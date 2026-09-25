@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "309",
+  "branch": "ci-sharding/issue309-t5-xdist-isolation-20260917",
+  "head_sha": "9b60d1c8da213fc781b4cb60c6e9d5a030d74b44",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35124947901,
+  "job_id": 104894093463,
+  "log_cursor": null,
+  "evidence": [
+    "Exact accepted T4 base a415f10fca808a19debba62e27cf90a7a864d46b",
+    "T5 Knowledge Preflight run 35123369936 at 562df006f: terminal SUCCESS before xdist/config behavior changes",
+    "T5 state-isolation RED run 35123520146 proved tools.xdist_state_isolation missing before implementation",
+    "T5 state-isolation focused GREEN run 35123702526 proved the minimum audit seam",
+    "T5 live census run 35123877758 found only dxf:s00 (15 nodes) as an XDIST_CANDIDATE; all other logical shards remained SERIAL_ONLY",
+    "T5 dynamic proof run 35124104891 at 45811716bb03b95927a33451bf7f1c8d0769c407 proved dxf:s00 15/15 PASS with serial versus two -n 2 repeats matching testcase identity/outcome and protected invariants",
+    "T5 execution-policy RED run 35124454802 proved the policy/argv APIs were absent before implementation",
+    "T5 execution-policy focused GREEN run 35124715319 at 9cdba4032e9380231fecbb1f98b72a4a25bd3e2f: 24 PASS / 0 FAIL",
+    "T5 full acceptance run 35124947901 at 9b60d1c8da213fc781b4cb60c6e9d5a030d74b44: completed SUCCESS",
+    "20/20 non-GUI shards terminal SUCCESS; only dxf:s00 used xdist_workers=2 and every other non-GUI shard used worker=1",
+    "Four Xvfb shards terminal SUCCESS and remained serial inside isolated displays",
+    "Aggregate schema WHD_TEST_AGGREGATION_V1 decision GREEN with 2246/2246 unique nodes reconciled",
+    "Aggregate totals 1969 PASS / 264 SKIP / 13 exact INHERITED_BASELINE_RED / 0 deterministic new RED / 0 infra errors / 0 flaky warnings / 0 unclassified RED / warnings=[]",
+    "Aggregate manifest sha256 9ad38e8019d0a09eab3bac91d5e9605f90513aa1f2ce4c112c7e24c90f49d8db",
+    "Aggregate plan artifact digest sha256:2bf10b586543102df45bf46a2bde19ff6d86c9e54e426f1fefcabf80a487f860",
+    "Aggregate evidence artifact issue309-t5-aggregate id 10459162812 digest sha256:1179886db3d321150460feddd1be42db6a4c14d69719df7a46d73dd0c59bbb42",
+    "T0 provenance run 35092857584 artifact 10445586630 digest sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77",
+    "Protected config/DXF invariants GREEN for all shard artifacts; production source untouched"
+  ]
+}

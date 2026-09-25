@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 截角類型語意與裝配實作計畫
 
 > **給代理工作者：** 實作此計畫時，必須使用 `superpowers:subagent-driven-development`（建議）或 `superpowers:executing-plans` 逐項執行。核取方塊 `- [x]` 表示該項已完成。

@@ -1,0 +1,51 @@
+name: Issue 309 T5 Closing Gate
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue309-t5-xdist-isolation-20260917
+    paths:
+      - 'docs/superpowers/checkpoints/issue309-t5.json'
+      - '.github/workflows/qa-issue309-t5-closing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify evidence-only closing drift from accepted T5 head
+        env:
+          ACCEPTED_T5_HEAD: 9b60d1c8da213fc781b4cb60c6e9d5a030d74b44
+        run: |
+          set -euo pipefail
+          git diff --name-only "$ACCEPTED_T5_HEAD" "$GITHUB_SHA" | sort | tee /tmp/issue309-closing-delta.txt
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('/tmp/issue309-closing-delta.txt').read_text().splitlines())
+          expected = {
+              '.github/workflows/qa-issue309-t5-closing.yml',
+              'docs/superpowers/checkpoints/issue309-t5.json',
+          }
+          assert actual == expected, f'ISSUE309_CLOSING_SCOPE_DRIFT={sorted(actual)}'
+          print('ISSUE309_CLOSING_SCOPE=EVIDENCE_ONLY')
+          PY
+      - name: Install focused test dependency
+        run: python -m pip install pytest
+      - name: Execute continuity finalization guard
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller assert-finalizable docs/superpowers/checkpoints/issue309-t5.json
+      - name: Run T5 xdist isolation contracts
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue309_t5_xdist_state_isolation.py

@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "issue": 439,
+  "state": "ACCEPTED_PENDING_INTEGRATION",
+  "branch": "fix/issue439-single-physical-content-host-20260920",
+  "production_baseline_sha": "719f4509371376f9d01fca97553b5199963de4c6",
+  "accepted_head_sha": "7827404b0f47aaa15f4b06ccb22b164062f16f95",
+  "final_acceptance_run_id": 35508601402,
+  "visual_artifact_id": 10603858764,
+  "visual_artifact_sha256": "7d8a7a1fe1aad4c8c4e23734621ddf6fe3f351f83ca19d606ace8d18ec58a5fe",
+  "protected_artifact_id": 10604473339,
+  "protected_artifact_sha256": "7026e4bf3be8604b960dcf8e1938b498adfa11d0a6ebf3e061aba984feb50e0e",
+  "visual_metrics": {
+    "part": [
+      10,
+      123,
+      318,
+      424
+    ],
+    "assembly": [
+      10,
+      123,
+      318,
+      424
+    ],
+    "corner_data": [
+      10,
+      123,
+      318,
+      424
+    ]
+  },
+  "gates": [
+    "EXTRA_SHARED_CONTENT_FRAME_COUNT=0",
+    "SHARED_CONTENT_HOST_IS_FOLD_EDITOR_HOST=1",
+    "FOLD_EDITOR_HOST_DIRECT_PARENT_IS_LEFT=1",
+    "INPUT_CONTENT_HOST_PARENT_IS_FOLD_EDITOR_HOST=1",
+    "ASSEMBLY_PANEL_PARENT_IS_FOLD_EDITOR_HOST=1",
+    "CORNER_DATA_PANEL_PARENT_IS_FOLD_EDITOR_HOST=1",
+    "OUTER_CONTENT_BBOX_IDENTICAL_ALL_MODES=1",
+    "ACTIVE_INNER_CONTENT_TREE_COUNT=1",
+    "SEPARATE_ASSEMBLY_REGION=0",
+    "SEPARATE_CORNER_DATA_REGION=0",
+    "DUPLICATE_WIDGET_TREE=0",
+    "GEOMETRY_DRIFT=0",
+    "PERSISTENCE_DRIFT=0",
+    "CALLBACK_SEMANTIC_DRIFT=0",
+    "DECISION=GREEN",
+    "FORCE_PUSH=0"
+  ],
+  "next_action": "Remove temporary #439 workflows, non-force fast-forward cleanup/2d-3d-sync, read back exact SHA, and run post-merge production smoke."
+}

@@ -23,18 +23,18 @@ def test_receiving_family_defaults_publish_fresh_intent_layout_and_upper_inner_d
     assert inner["stable_id"] == "upper"
     assert inner["cell_key"] == "0:0"
     assert inner["included_frame_sides"] == ["top", "left", "right"]
-    # The inner door is sized from the upper outer-door finished face.  Door
-    # gaps are already removed by the Door resolver, then the confirmed frame
-    # margins subtract another 50 mm on left/right/top.  Bottom is the shared
-    # divider, so there is no independent bottom-frame span.
+    # Top width follows the upper outer-door finished face.  Vertical frame
+    # span is now owned by the physical terminal contract: outer-door top
+    # terminal -> exact shared Divider support skin.  There is no independent
+    # bottom-frame physical part.
     frame_sets = derive_inner_door_frame_sets(result)
     assert len(frame_sets) == 1
     assert frame_sets[0].inner_door_id == "upper"
     assert frame_sets[0].included_sides == ("top", "left", "right")
     assert frame_sets[0].spans == {
         "top": pytest.approx(635.0),
-        "left": pytest.approx(1014.0),
-        "right": pytest.approx(1014.0),
+        "left": pytest.approx(1018.5),
+        "right": pytest.approx(1018.5),
     }
     # Frame spans are derived mechanical data, not duplicate project authority.
     assert "frame_spans" not in inner
@@ -183,3 +183,43 @@ def test_saved_receiving_project_values_win_over_fresh_family_defaults():
             root.destroy()
         except tk.TclError:
             pass
+
+
+def test_receiving_inner_door_frame_derivation_omits_unresolvable_terminal_items():
+    from ae_engine.cabinet_types.receiving import (
+        apply_family_defaults,
+        derive_inner_door_frame_sets,
+    )
+
+    snapshot = apply_family_defaults({
+        "model": "金庫型",
+        "w": 400,
+        "h": 600,
+        "d": 250,
+        "t": 2,
+        "fw": 29,
+    })
+
+    # Removing the shared horizontal Divider invalidates the persisted/stale
+    # lower-frame role.  Derived vertical frames fail closed as absent instead
+    # of aborting unrelated topology synchronization.
+    snapshot["door_layout_columns"] = [[800.0, [1600.0]]]
+    assert derive_inner_door_frame_sets(snapshot) == ()
+
+    # If one inner door remains physically resolvable while another is not,
+    # keep the valid frame set instead of failing the whole collection.
+    snapshot = apply_family_defaults({
+        "model": "金庫型",
+        "w": 400,
+        "h": 600,
+        "d": 250,
+        "t": 2,
+        "fw": 29,
+    })
+    snapshot["inner_doors"] = list(snapshot["inner_doors"]) + [{
+        "stable_id": "lower",
+        "cell_key": "0:1",
+        "included_frame_sides": ["top", "left", "right"],
+    }]
+    frame_sets = derive_inner_door_frame_sets(snapshot)
+    assert tuple(item.inner_door_id for item in frame_sets) == ("upper",)

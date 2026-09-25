@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 統一開孔編輯器交易狀態機實作計畫
 
 > **代理工作者要求：** 必須使用 TDD，逐項完成下列核取方塊；所有程式識別字可保留英文，說明與文件一律繁體中文。

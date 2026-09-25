@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "task_id": "262",
+  "stage_id": "T2",
+  "expected_parent_sha": "c0e175ac87a265d91b44ab8f95508de2af016647",
+  "expected_parent_issue": 264,
+  "work_branch": "governance/issue265-t2-parent-contract"
+}

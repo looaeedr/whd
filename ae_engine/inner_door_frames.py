@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 from .contracts import FoldProfileSegment
 
 FRAME_SIDES = ("top", "bottom", "left", "right")
+LOWER_TERMINAL_FACE = "LOWER_TERMINAL_FACE"
 _FRAME_SIGNED_CHAINS = {
     "top": (22.0, 46.0, 22.0),
     "bottom": (22.0, 46.0, 22.0),
@@ -55,6 +56,25 @@ class InnerDoorFrameSet:
 
 
 @dataclass(frozen=True)
+class InnerDoorFrameMatingRegionSemantic:
+    """Owner-published semantic selector for a physical frame mating region.
+
+    This contract identifies a flat-pattern boundary by manufacturing semantics.
+    It intentionally contains no world coordinates, bbox extrema, renderer state,
+    or test fixture values.  The assembly geometry layer resolves the actual
+    true-thickness physical face from this semantic plus canonical render data.
+    """
+
+    region_id: str
+    region_role: str
+    physical_face_kind: str
+    flat_boundary_axis: str
+    flat_boundary_side: str
+    flat_outward_normal: tuple[float, float]
+    requires_flat_mapping: bool = False
+
+
+@dataclass(frozen=True)
 class InnerDoorFramePart:
     stable_id: str
     inner_door_id: str
@@ -72,6 +92,35 @@ class InnerDoorFramePart:
     @property
     def blank_height(self) -> float:
         return float(self.span)
+
+
+def inner_door_frame_mating_region(
+    frame: InnerDoorFramePart,
+    region_id: str,
+) -> InnerDoorFrameMatingRegionSemantic:
+    """Return owner-authoritative mating-region semantics for one frame.
+
+    Receiving vertical frames mate their lower terminal end against the shared
+    horizontal Divider.  The lower end is the MIN endpoint of the explicit
+    longitudinal Y/span contract; it is not discovered from a world-space bbox.
+    """
+
+    if not isinstance(frame, InnerDoorFramePart):
+        raise TypeError("frame must be InnerDoorFramePart")
+    key = str(region_id or "").strip().upper()
+    if key != LOWER_TERMINAL_FACE:
+        raise ValueError(f"unsupported inner-door frame mating region: {region_id!r}")
+    if str(frame.side) not in {"left", "right"}:
+        raise ValueError("LOWER_TERMINAL_FACE is defined for vertical left/right frames")
+    return InnerDoorFrameMatingRegionSemantic(
+        region_id=LOWER_TERMINAL_FACE,
+        region_role="LOWER_TERMINAL",
+        physical_face_kind="TERMINAL_BOUNDARY_WALL",
+        flat_boundary_axis="Y",
+        flat_boundary_side="MIN",
+        flat_outward_normal=(0.0, -1.0),
+        requires_flat_mapping=False,
+    )
 
 
 def _fold_profile_from_signed_chain(side: str, signed_chain: Sequence[float]) -> tuple[FoldProfileSegment, ...]:

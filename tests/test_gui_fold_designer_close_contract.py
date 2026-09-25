@@ -1,17 +1,14 @@
-from pathlib import Path
+from gui_source_contract_helpers import phase6_host_method_source
 
 
 def _open_block():
-    source = Path('gui.py').read_text(encoding='utf-8')
-    start = source.index('    def open_original_fold_designer(self):')
-    end = source.index('\n    def on_fw_selected', start)
-    return source[start:end]
+    return phase6_host_method_source("open_original_fold_designer")
 
 
 def test_window_x_flushes_live_canonical_state_then_closes_without_rollback():
     block = _open_block()
-    start = block.index('        def close_designer():')
-    end = block.index('        def load_project_from_designer', start)
+    start = block.index('def close_designer():')
+    end = block.index('def load_project_from_designer', start)
     close = block[start:end]
     assert 'designer.flush_pending_settings()' in close
     assert 'designer._save_current_part(notify=False)' in close

@@ -12,6 +12,7 @@ def _has_tk_display() -> bool:
 def test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics():
     import tkinter as tk
     import gui
+    import fold_designer_bridge as bridge
     from ae_engine.assembly_joint import edge_relation_for_part, AssemblyJointRelation
 
     root = tk.Tk()
@@ -44,7 +45,7 @@ def test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantic
         alt_val = next(v for v in allowed_values if v != current_val)
 
         designer.endcap_joint_vars[target_edge].set(alt_val)
-        rel = designer._phase6_on_endcap_edge_relation_selected("head", target_edge)
+        rel = bridge._phase6_on_endcap_edge_relation_selected(designer, "head", target_edge)
         assert rel is not None
         assert edge_relation_for_part(designer._phase6_input_snapshot, "head", target_edge) == rel
     finally:

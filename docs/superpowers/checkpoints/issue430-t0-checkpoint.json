@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "430",
+  "branch": "qa/issue430-t0-single-host-census-20260920",
+  "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
+  "tested_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
+  "state": "ACCEPTED",
+  "next_action": "Start #431 from this T0 accepted closing head. T1 must introduce one dedicated shared-content host and mutually exclusive mode controller, preserving existing workspace/display/corner-data authority semantics.",
+  "run_id": 35495541940,
+  "job_id": 106037701015,
+  "artifact_id": 10599994493,
+  "artifact_sha256": "42ee0fde4cc477a53c31d6c0fd3e102bb0439b3f10864fac0c1d363dfadf841a",
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "POST_PHASE5_BASELINE=50e14c7054916cb0b9597c61194725939c5de323",
+    "KNOWLEDGE_PREFLIGHT_RUN=35495142279",
+    "CHANGED_FILE_PREFLIGHT_RUN=35495290137",
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "SHARED_CONTENT_HOST_CENSUS_COMPLETE=1",
+    "MODE_AUTHORITY_CENSUS_COMPLETE=1",
+    "MOUNT_UNMOUNT_CENSUS_COMPLETE=1",
+    "DUPLICATE_REGION_RED_INTENDED=1",
+    "CURRENT_DIRECT_MODE_HOST_COUNT=3",
+    "TARGET_DIRECT_SHARED_HOST_COUNT=1",
+    "FOCUSED_RESULT=4_PASS_1_INTENDED_FAIL_0_SKIP",
+    "PRODUCTION_RUNTIME_EDIT=0"
+  ]
+}

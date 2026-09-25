@@ -2,9 +2,17 @@
 name: triage
 description: Move issues and external PRs through a state machine of triage roles, categorise, verify, grill if needed, and write agent-ready briefs.
 disable-model-invocation: true
+whd_doc_role: CURRENT
+whd_contract: triage
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Triage
+
+## RUNTIME_CAPABILITY_FALLBACK
+
+Use the issue/PR tracker and runtime capabilities that actually exist. Parallel/subagent execution is optional; without it, the same executor performs verification, research, `深度質詢`, and `領域建模` as an **inline fallback**. Do not require an external setup Skill or retired English identity just to triage WHD work.
 
 Move issues on the project issue tracker through a small state machine of triage roles.
 
@@ -40,7 +48,7 @@ For a PR, the same states read against the attached code: `ready-for-agent` mean
 
 Every triaged issue should carry exactly one category role and one state role. If state roles conflict, flag it and ask the maintainer before doing anything else.
 
-These are canonical role names. The actual label strings used in the issue tracker may differ. The mapping should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
+These are canonical role names. Actual tracker labels may differ; discover the mapping from the tracker/project configuration that is really available. If no mapping exists, report that gap and use explicit state names rather than invoking a separate setup/governance system.
 
 State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time; flag transitions that look unusual and ask before proceeding.
 
@@ -73,7 +81,7 @@ Show counts and a one-line summary per item. Let the maintainer pick.
 
 3. **Verify the claim.** Before any grilling, check that the claim holds up. For a bug, reproduce it from the reporter's steps. For a PR, confirm the diff does what it claims: check it out, run the relevant tests or commands. Report what happened: confirmed (with code path), failed, or insufficient detail (a strong `needs-info` signal). A confirmed verification makes a much stronger agent brief.
 
-4. **Grill (if needed).** If the request needs fleshing out, call the Skill tool twice, for "grilling" and "domain-modeling", and grill it into shape a round of questions at a time, sharpening domain terms and updating `CONTEXT.md`/ADRs inline as decisions land.
+4. **Deep interview (if needed).** Use canonical `深度質詢` to flesh out the request a round at a time; when domain terms settle, use canonical `領域建模` and update `CONTEXT.md`/ADRs when their gates are met. If no separate Skill loader exists, follow the canonical Skills inline.
 
 5. **Apply the outcome:**
    - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)).

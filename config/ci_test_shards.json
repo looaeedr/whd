@@ -1,0 +1,16 @@
+{
+  "algorithm": "sha256-hrw-v1",
+  "schema": "WHD_TEST_SHARD_CONFIG_V1",
+  "shard_counts": {
+    "architecture": 1,
+    "dxf": 1,
+    "geometry": 4,
+    "governance": 1,
+    "integration": 6,
+    "persistence": 1,
+    "projection": 2,
+    "ui": 2,
+    "unit": 2,
+    "xvfb_ui": 4
+  }
+}

@@ -1,0 +1,420 @@
+name: Issue304 T0 Legacy Baseline
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue304-t0-baseline-20260916
+    paths:
+      - '.github/workflows/issue304-t0-baseline.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  legacy-baseline:
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: 3b59cb7bcc8ee5dc649924d17b164a55ec10f821
+      TEST_CLEANUP_ACCEPTED_SHA: a632d1158ba49364b1962a0ed27f4b4109ea4b85
+    steps:
+      - name: Capture runner start
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+          echo "JOB_START_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Capture workflow identity and queue timing
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue304
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          run_id = os.environ['GITHUB_RUN_ID']
+          req = urllib.request.Request(
+              f'https://api.github.com/repos/{repo}/actions/runs/{run_id}',
+              headers={
+                  'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+              },
+          )
+          with urllib.request.urlopen(req) as response:
+              payload = json.load(response)
+          created_at = payload['created_at']
+          run_started_at = payload.get('run_started_at') or created_at
+          def dt(value: str) -> datetime:
+              return datetime.fromisoformat(value.replace('Z', '+00:00'))
+          queue_delay = (dt(run_started_at) - dt(created_at)).total_seconds()
+          out = {
+              'run_id': int(run_id),
+              'workflow_sha': os.environ['GITHUB_SHA'],
+              'ref_name': os.environ['GITHUB_REF_NAME'],
+              'created_at': created_at,
+              'run_started_at': run_started_at,
+              'queue_delay_seconds': queue_delay,
+              'job_start_iso': os.environ['JOB_START_ISO'],
+              'job_start_epoch': int(os.environ['JOB_START_EPOCH']),
+          }
+          Path('.scratch/issue304/run-identity.json').write_text(
+              json.dumps(out, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(out, indent=2, sort_keys=True))
+          PY
+
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task 'CI pytest baseline timing collection lane governance unit geometry projection persistence DXF architecture UI Xvfb integration' \
+            --changed-file .github/workflows/issue304-t0-baseline.yml \
+            --changed-file docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md \
+            --evidence docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md
+
+      - name: Lock T0 scope and capture protected hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c core.quotepath=false diff --name-only "$BASE_SHA" "$GITHUB_SHA" | tee .scratch/issue304/changed.txt
+          python - <<'PY'
+          from pathlib import Path
+          changed = [x.strip() for x in Path('.scratch/issue304/changed.txt').read_text(encoding='utf-8').splitlines() if x.strip()]
+          allowed = {
+              '.github/workflows/issue304-t0-baseline.yml',
+              'docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md',
+          }
+          bad = [x for x in changed if x not in allowed]
+          assert not bad, f'T0_SOURCE_DRIFT={bad}'
+          print('T0_SOURCE_DRIFT=0')
+          PY
+          git ls-files -z | sort -z | xargs -0 sha256sum > .scratch/issue304/tracked-before.sha256
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > .scratch/issue304/config-dxf-before.sha256
+
+      - name: Collect authoritative full and lane node inventories
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/test_lane_audit.py --json-out .scratch/issue304/lane-audit.json | tee .scratch/issue304/lane-audit.log
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+          from tools.test_lane_policy import LANE_EXPRESSIONS, XVFB_UI_EXPRESSION
+
+          root = Path('.scratch/issue304')
+          root.mkdir(parents=True, exist_ok=True)
+
+          def collect(expr: str | None) -> list[str]:
+              cmd = [sys.executable, '-m', 'pytest', '--collect-only', '-q', 'tests']
+              if expr:
+                  cmd.extend(['-m', expr])
+              proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+              if proc.returncode != 0:
+                  raise SystemExit(f'COLLECTION_FAILED expr={expr!r} rc={proc.returncode}\n{proc.stdout}')
+              return sorted({
+                  line.strip() for line in proc.stdout.splitlines()
+                  if line.startswith('tests/') and '::' in line
+              })
+
+          full = collect(None)
+          lane_exprs = dict(LANE_EXPRESSIONS)
+          lane_exprs['xvfb_ui'] = XVFB_UI_EXPRESSION
+          lanes = {name: collect(expr) for name, expr in lane_exprs.items()}
+          union = sorted(set().union(*(set(nodes) for nodes in lanes.values())))
+          missing = sorted(set(full) - set(union))
+          extra = sorted(set(union) - set(full))
+
+          (root / 'full-collection.txt').write_text('\n'.join(full) + '\n', encoding='utf-8')
+          for name, nodes in lanes.items():
+              (root / f'collection-{name}.txt').write_text('\n'.join(nodes) + '\n', encoding='utf-8')
+          membership = {
+              'full_count': len(full),
+              'union_count': len(union),
+              'missing_from_union': missing,
+              'extra_in_union': extra,
+              'lane_expressions': lane_exprs,
+              'lanes': {name: {'count': len(nodes), 'nodes': nodes} for name, nodes in lanes.items()},
+          }
+          (root / 'lane-membership.json').write_text(
+              json.dumps(membership, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          if missing or extra:
+              raise SystemExit(f'LANE_UNION_MISMATCH missing={len(missing)} extra={len(extra)}')
+          print(f'FULL_COUNT={len(full)}')
+          print(f'UNION_COUNT={len(union)}')
+          for name, nodes in lanes.items():
+              print(f'LANE_COUNT {name}={len(nodes)}')
+          PY
+
+      - name: Run legacy lanes serially to terminal with timings
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > .scratch/issue304/lane-status.tsv
+          : > .scratch/issue304/lane-timing.tsv
+
+          run_lane() {
+            name="$1"
+            expr="$2"
+            display_mode="$3"
+            start_epoch=$(date +%s)
+            start_iso=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            echo "===== LANE $name :: $expr :: $display_mode ====="
+            set +e
+            if [ "$display_mode" = "xvfb" ]; then
+              xvfb-run -a python -m pytest -q -ra --tb=short --durations=30 \
+                --junitxml=".scratch/issue304/${name}.xml" -m "$expr" tests \
+                2>&1 | tee ".scratch/issue304/${name}.log"
+              rc=${PIPESTATUS[0]}
+            else
+              python -m pytest -q -ra --tb=short --durations=30 \
+                --junitxml=".scratch/issue304/${name}.xml" -m "$expr" tests \
+                2>&1 | tee ".scratch/issue304/${name}.log"
+              rc=${PIPESTATUS[0]}
+            fi
+            set -e
+            end_epoch=$(date +%s)
+            end_iso=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            elapsed=$((end_epoch - start_epoch))
+            printf '%s\t%s\n' "$name" "$rc" >> .scratch/issue304/lane-status.tsv
+            printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$start_iso" "$end_iso" "$elapsed" "$rc" >> .scratch/issue304/lane-timing.tsv
+            echo "LANE_TERMINAL name=$name rc=$rc elapsed_seconds=$elapsed"
+          }
+
+          run_lane governance 'governance' headless
+          run_lane unit 'unit' headless
+          run_lane geometry 'geometry' headless
+          run_lane projection 'projection' headless
+          run_lane persistence 'persistence' headless
+          run_lane dxf 'dxf' headless
+          run_lane architecture 'architecture' headless
+          run_lane ui_headless 'ui and not xvfb' headless
+          run_lane integration 'integration' headless
+          run_lane xvfb_ui 'ui and xvfb' xvfb
+
+      - name: Classify terminal lane results and Xvfb baseline
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'classifier_started=true' > .scratch/issue304/classifier-state.txt
+          set +e
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          import re
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path('.scratch/issue304')
+          expected_xvfb = {
+              'tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material',
+              'tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions',
+              'tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel',
+              'tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked',
+              'tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry',
+              'tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics',
+              'tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed',
+              'tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport',
+              'tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]',
+              'tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]',
+              'tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]',
+              'tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]',
+              'tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch',
+          }
+          statuses = {}
+          p = root / 'lane-status.tsv'
+          if p.is_file():
+              for line in p.read_text(encoding='utf-8').splitlines():
+                  if line.strip():
+                      name, rc = line.split('\t', 1)
+                      statuses[name] = int(rc)
+
+          lanes = {}
+          for name, rc in statuses.items():
+              counts = {'tests': 0, 'failures': 0, 'errors': 0, 'skipped': 0}
+              xml_path = root / f'{name}.xml'
+              if xml_path.is_file():
+                  tree = ET.parse(xml_path)
+                  nodes = [tree.getroot()] if tree.getroot().tag != 'testsuites' else list(tree.getroot())
+                  for node in nodes:
+                      for key in counts:
+                          counts[key] += int(node.attrib.get(key, 0) or 0)
+              failed = []
+              log_path = root / f'{name}.log'
+              if log_path.is_file():
+                  for line in log_path.read_text(encoding='utf-8', errors='replace').splitlines():
+                      if line.startswith('FAILED ') or line.startswith('ERROR '):
+                          token = line.split(None, 2)[1]
+                          failed.append(token)
+              lanes[name] = {'returncode': rc, **counts, 'failed_nodes': sorted(set(failed))}
+
+          required_non_xvfb = ['governance','unit','geometry','projection','persistence','dxf','architecture','ui_headless','integration']
+          missing_status = [name for name in required_non_xvfb + ['xvfb_ui'] if name not in statuses]
+          non_xvfb_red = {name: statuses.get(name) for name in required_non_xvfb if statuses.get(name) != 0}
+          actual_xvfb = set(lanes.get('xvfb_ui', {}).get('failed_nodes', []))
+          xvfb_rc = statuses.get('xvfb_ui')
+
+          if xvfb_rc is None:
+              xvfb_classification = 'CLASSIFICATION_NOT_RUN'
+          elif xvfb_rc == 0 and not actual_xvfb:
+              xvfb_classification = 'GREEN'
+          elif actual_xvfb == expected_xvfb:
+              xvfb_classification = 'INHERITED_BASELINE_RED'
+          else:
+              xvfb_classification = 'UNCLASSIFIED_RED'
+
+          payload = {
+              'classifier_started': True,
+              'missing_lane_status': missing_status,
+              'non_xvfb_red': non_xvfb_red,
+              'xvfb_child_rc': xvfb_rc,
+              'xvfb_failed_nodes': sorted(actual_xvfb),
+              'xvfb_expected_inherited_nodes': sorted(expected_xvfb),
+              'xvfb_missing_expected': sorted(expected_xvfb - actual_xvfb),
+              'xvfb_extra_failed': sorted(actual_xvfb - expected_xvfb),
+              'xvfb_classification': xvfb_classification,
+              'lanes': lanes,
+          }
+          (root / 'lane-summary.json').write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+
+          ok = (
+              not missing_status
+              and not non_xvfb_red
+              and xvfb_classification in {'GREEN', 'INHERITED_BASELINE_RED'}
+          )
+          raise SystemExit(0 if ok else 1)
+          PY
+          classifier_rc=$?
+          set -e
+          echo "classifier_rc=$classifier_rc" >> .scratch/issue304/classifier-state.txt
+          if [ "$classifier_rc" -eq 0 ]; then
+            echo 'classifier_terminal=GREEN' >> .scratch/issue304/classifier-state.txt
+          else
+            echo 'classifier_terminal=RED' >> .scratch/issue304/classifier-state.txt
+          fi
+
+      - name: Verify protected invariants and tracked tree
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files -z | sort -z | xargs -0 sha256sum > .scratch/issue304/tracked-after.sha256
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > .scratch/issue304/config-dxf-after.sha256
+          diff -u .scratch/issue304/tracked-before.sha256 .scratch/issue304/tracked-after.sha256 | tee .scratch/issue304/tracked-hash.diff
+          diff -u .scratch/issue304/config-dxf-before.sha256 .scratch/issue304/config-dxf-after.sha256 | tee .scratch/issue304/config-dxf-hash.diff
+          git diff --exit-code
+          echo 'TRACKED_AUTHORITY_INVARIANT=GREEN' | tee .scratch/issue304/invariant-status.txt
+          echo 'CONFIG_DXF_INVARIANT=GREEN' | tee -a .scratch/issue304/invariant-status.txt
+
+      - name: Finalize timing and acceptance summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import time
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path('.scratch/issue304')
+          identity = json.loads((root / 'run-identity.json').read_text(encoding='utf-8'))
+          now = datetime.now(timezone.utc)
+          created = datetime.fromisoformat(identity['created_at'].replace('Z', '+00:00'))
+          execution = int(time.time()) - int(identity['job_start_epoch'])
+          end_to_end = (now - created).total_seconds()
+          lane_timings = []
+          timing_file = root / 'lane-timing.tsv'
+          if timing_file.is_file():
+              for line in timing_file.read_text(encoding='utf-8').splitlines():
+                  if line.strip():
+                      name, start, end, elapsed, rc = line.split('\t')
+                      lane_timings.append({'lane': name, 'start': start, 'end': end, 'elapsed_seconds': int(elapsed), 'rc': int(rc)})
+          collection = json.loads((root / 'lane-membership.json').read_text(encoding='utf-8')) if (root / 'lane-membership.json').is_file() else None
+          classification = json.loads((root / 'lane-summary.json').read_text(encoding='utf-8')) if (root / 'lane-summary.json').is_file() else None
+          final = {
+              **identity,
+              'execution_wall_clock_seconds': execution,
+              'end_to_end_wall_clock_seconds': end_to_end,
+              'lane_timings': lane_timings,
+              'collection': {
+                  'full_count': collection.get('full_count') if collection else None,
+                  'union_count': collection.get('union_count') if collection else None,
+                  'missing_from_union': collection.get('missing_from_union') if collection else None,
+                  'extra_in_union': collection.get('extra_in_union') if collection else None,
+                  'lane_counts': {k: v['count'] for k, v in collection.get('lanes', {}).items()} if collection else None,
+              },
+              'xvfb_child_rc': classification.get('xvfb_child_rc') if classification else None,
+              'xvfb_classification': classification.get('xvfb_classification') if classification else 'CLASSIFICATION_NOT_RUN',
+              'classifier_state': (root / 'classifier-state.txt').read_text(encoding='utf-8').splitlines() if (root / 'classifier-state.txt').is_file() else ['classifier_started=false'],
+          }
+          (root / 'timing-summary.json').write_text(json.dumps(final, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(json.dumps(final, ensure_ascii=False, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload T0 baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue304-t0-baseline-evidence
+          path: .scratch/issue304
+
+      - name: Fail closed on incomplete or unclassified baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('.scratch/issue304')
+          membership = json.loads((root / 'lane-membership.json').read_text(encoding='utf-8'))
+          summary = json.loads((root / 'lane-summary.json').read_text(encoding='utf-8'))
+          classifier_lines = (root / 'classifier-state.txt').read_text(encoding='utf-8').splitlines()
+          assert not membership['missing_from_union'], membership['missing_from_union']
+          assert not membership['extra_in_union'], membership['extra_in_union']
+          assert not summary['missing_lane_status'], summary['missing_lane_status']
+          assert not summary['non_xvfb_red'], summary['non_xvfb_red']
+          assert summary['xvfb_classification'] in {'GREEN', 'INHERITED_BASELINE_RED'}, summary['xvfb_classification']
+          assert 'classifier_terminal=GREEN' in classifier_lines, classifier_lines
+          invariant_lines = (root / 'invariant-status.txt').read_text(encoding='utf-8').splitlines()
+          assert 'TRACKED_AUTHORITY_INVARIANT=GREEN' in invariant_lines
+          assert 'CONFIG_DXF_INVARIANT=GREEN' in invariant_lines
+          print('ISSUE304_T0_BASELINE=GREEN')
+          PY

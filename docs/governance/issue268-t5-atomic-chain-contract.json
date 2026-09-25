@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "master_task_id": "262",
+  "master_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+  "target": "X",
+  "expected_stages": ["T0", "T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+  "expected_issue_numbers": [263, 264, 265, 266, 267, 268, 269, 270],
+  "required_evidence": ["red", "green", "lineage", "acceptance_record"]
+}

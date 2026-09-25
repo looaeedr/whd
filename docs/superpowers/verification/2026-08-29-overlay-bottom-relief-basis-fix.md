@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # OVERLAY Bottom Relief Basis Fix — SUPERSEDED AS COMPLETE CONTRACT
 
 > 本文件只保留「下方 364→394」的歷史根因。它曾同時把上方錯寫為 25/350，因此**不能再作完整 OVERLAY 製造契約**。

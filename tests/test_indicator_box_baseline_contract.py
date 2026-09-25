@@ -123,14 +123,16 @@ def _gui_method_source(name):
     path = Path(__file__).parents[1] / 'gui.py'
     source = path.read_text(encoding='utf-8')
     tree = ast.parse(source)
-    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'BoxCalculatorGUI')
+    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Phase6ApplicationHost')
     method = next(node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == name)
     return ast.get_source_segment(source, method)
 
 
 def test_gui_indicator_box_page_loads_baseline_plus_dynamic_layout():
-    spec_source = _gui_method_source('_indicator_box_part_spec')
-    context_source = _gui_method_source('_indicator_component_editor_contexts')
+    import inspect
+    from gui_modules.application import manufacturing_adapter as owner
+    spec_source = inspect.getsource(owner._indicator_box_part_spec)
+    context_source = inspect.getsource(owner._indicator_component_editor_contexts)
     assert 'model_name=None' in spec_source
     assert 'get_stretched_indicator_box_data' in context_source
     assert '盒子.dxf' in context_source

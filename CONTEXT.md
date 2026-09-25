@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 領域詞彙
 
 ## [CURRENT] 2026-09-02 Runtime semantic guard
@@ -174,3 +180,18 @@
 - `中隔.dxf` 只提供固定孔／既有基準特徵，不提供 final relief contour；正式截角由 canonical manufacturing solve 的 placement → collision/backprojection → refold verification 產生。
 - 2D / single 3D / Assembly / DXF 是 **resolved geometry sinks**：全部消費同一 resolved final material，不得自行重建 CUTTING、relief、placement 或 Fold/FW semantics。
 - Save 只保存 authoritative state；derived `final_geometry`、renderer cache、probe polygon、UI warning 不得成為第二份 project truth。Reload 必須重新 canonical solve，得到同一 stable identity、FW physical face、placement、relief evidence 與 final material。
+
+
+## 2026-09-21 — 接合定位打標（Joint Placement Marking）
+
+- **接合定位打標** 是實際製造用的 `MARKING`，不是 UI 輔助線、尺寸線、BEND、CUTTING 或 CHECK。
+- 用途是在承接／定位母板表面，以雷射淺刻線標出另一片鈑金真實應落下／貼合／焊接的位置。
+- 預設只在 **locator / receiver 母板**上產生；attached part 不重複打同一組線，除非有明確 rule。
+- 預設 marking 幾何為 attached part 真實 contact footprint 的**兩側 longitudinal boundary**，沿完整真實接合長度輸出；不畫短端封口線。
+- 不是所有 assembly contact 都自動刻線。每種結構接合必須有 explicit marking policy，至少決定 enabled、locator part、attached part、contact region、footprint mode；沒有 rule 就 fail closed。
+- MARKING 座標必須由 authoritative physical parts + assembly placement + true-thickness legal mating/contact 求得，再透過 locator 的 world↔flat UV mapping 反投影回 authoritative flat pattern。**禁止用 bbox、中心點、固定 offset、part name 或手寫公式猜位置。**
+- 接合定位打標是 derived manufacturing geometry，進既有 FinalScene `MARKING` layer；DXF exporter 只 serialize FinalScene，不另算 joint geometry。
+- 2D manufacturing preview 與 DXF 消費同一份 MARKING；3D 若顯示刻線，只能從同一 flat MARKING fold/placement 投影，不得另算。
+- Project Save 不保存每條 derived marking 座標；Reload 後由 authoritative topology / placement / marking policy 重新 resolve。
+- Receiving 上方內門沒有獨立 bottom frame；水平 Divider 是 `SHARED_LOWER_FRAME`。第一個正式 marking case：該 exact horizontal Divider 為 locator，inner-door left/right vertical frames 為 attached parts，在 Divider 上各產生一組真實下端 contact-footprint 定位 MARKING。
+- 任何 contact footprint、stable identity、world→flat backprojection 或 final-material clipping 無法唯一成立時，禁止輸出猜測 MARKING。

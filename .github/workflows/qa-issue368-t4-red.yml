@@ -1,0 +1,47 @@
+name: "QA #368 T4 registry diagnostics RED"
+
+on:
+  push:
+    branches:
+      - refactor/issue368-phase3-registry-diagnostics-20260919
+    paths:
+      - 'tests/test_issue368_t4_registry_diagnostics_owner.py'
+      - '.github/workflows/qa-issue368-t4-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t4-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 05e7820e319421cbfbd83e5b243d05cdc7596410 HEAD
+          echo "T4_BASELINE=05e7820e319421cbfbd83e5b243d05cdc7596410"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+      - name: Install harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Run intended T4 RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue368_t4_registry_diagnostics_owner.py --tb=short | tee /tmp/issue368-t4-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing T4 registry diagnostics controller" /tmp/issue368-t4-red.log
+          grep -q "RED: bridge still owns T4 registry/diagnostic state machine" /tmp/issue368-t4-red.log
+          grep -q "RED: bridge T4 delegates missing" /tmp/issue368-t4-red.log
+          echo "PASS EXPECTED_T4_RED=1"

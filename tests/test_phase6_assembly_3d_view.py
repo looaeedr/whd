@@ -39,7 +39,7 @@ class Axis:
 
 
 def test_final_scene_view_can_render_multiple_authoritative_parts_as_one_assembly():
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     door_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -83,6 +83,7 @@ def test_final_scene_view_can_render_multiple_authoritative_parts_as_one_assembl
 
 def test_bridge_assembly_display_request_includes_all_available_sheet_parts(monkeypatch):
     import fold_designer_bridge as bridge
+    import gui_modules.application.fold_designer_adapter as application_adapter
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
@@ -135,7 +136,7 @@ def test_bridge_assembly_display_request_includes_all_available_sheet_parts(monk
 
 def test_phase6_assembly_placement_delegates_to_shared_engine(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
 
     calls = []
 
@@ -232,7 +233,7 @@ def test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets
 
 def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -288,7 +289,7 @@ def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum
 
 def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_midplane(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -343,7 +344,7 @@ def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_mi
 def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole_endcap(monkeypatch):
     import pytest
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
 
@@ -397,7 +398,7 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
 
 def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_lines(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
 
@@ -439,7 +440,7 @@ def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_
 
 def test_fixed_relief_diagnostic_does_not_treat_normal_full_sheet_mating_as_collision_when_restore_is_off(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
 
@@ -606,6 +607,7 @@ def test_assembly_diagnostic_status_reports_actual_corner_dimensions_and_verific
 def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contract(monkeypatch):
     """Mixed UPDATE installs must not crash on legacy AssemblySceneRenderData."""
     import fold_designer_bridge as bridge
+    import gui_modules.application.fold_designer_adapter as application_adapter
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
@@ -642,7 +644,7 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
         assembly_ignore_fixed_corner_var=SimpleNamespace(get=lambda: False),
         assembly_show_interference_var=SimpleNamespace(get=lambda: True),
     )
-    monkeypatch.setattr(bridge, "AssemblySceneRenderData", LegacyAssemblySceneRenderData)
+    monkeypatch.setattr(application_adapter, "AssemblySceneRenderData", LegacyAssemblySceneRenderData)
 
     bundle = bridge._phase6_query_assembly_render_data(app)
 
@@ -650,10 +652,12 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
     assert [part.part_key for part in bundle.assembly_parts] == ["box_body"]
 
 
-def test_bridge_verified_relief_requeries_authoritative_render_provider_with_solver_cuts(monkeypatch):
-    """Assembly 3D must display the same Manufacturing PartRenderData that 2D/DXF replay uses."""
+def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts(monkeypatch):
+    """Assembly 3D must replay the same canonical PartSpec path used by 2D/DXF."""
     import ae_engine.assembly_collision as collision
+    import phase6_manufacturing_service as manufacturing_service
     import fold_designer_bridge as bridge
+    from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
@@ -666,12 +670,28 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
         "tail": SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 92, 72), fold_guides=()),
     }
     callback_calls = []
+    replay_specs = []
 
     def callback(part_key, payload):
         callback_calls.append((part_key, dict(payload)))
-        if part_key in canonical and payload.get("resolved_assembly_relief_cuts"):
-            return canonical[part_key]
         return raw[part_key]
+
+    def part_spec_callback(part_key, payload):
+        return (
+            EndCapPartSpec(
+                width=100.0,
+                depth=80.0,
+                thickness=2.0,
+                frame_width=25.0,
+                height=40.0,
+                is_tail=part_key == "tail",
+            ),
+            ManufacturingContext(),
+        )
+
+    def fake_build_part_render_data(spec, context):
+        replay_specs.append(spec)
+        return canonical["tail" if spec.is_tail else "head"]
 
     def fake_solver(**kwargs):
         placement = kwargs["endcap_placement"]
@@ -680,7 +700,8 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
             corner_name="bottom_left" if placement == "top" else "top_left",
             primary_u=7.0, primary_v=9.0, secondary_u=None, secondary_depth=None, clearance_a=0.0,
         )
-        # Same geometry, different object: final display must still come from the provider.
+        # Same geometry, different object: final display must still come from
+        # the canonical PartSpec replay, not solver-private render data.
         solver_private = SimpleNamespace(
             scene=DrawingScene(),
             material=(canonical["head"].material if placement == "top" else canonical["tail"].material),
@@ -693,6 +714,7 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
         )
 
     monkeypatch.setattr(collision, "solve_world_backprojected_endcap_relief", fake_solver)
+    monkeypatch.setattr(manufacturing_service, "build_part_render_data", fake_build_part_render_data)
     flat_x = [{"len": 100.0, "core": True}]
     flat_y = [{"len": 80.0, "core": True}]
     app = SimpleNamespace(
@@ -705,9 +727,13 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
         }),
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
         _scene_query_callback=callback,
-        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]}, _phase6_assembly_type="INSERT", _settings_values={"t": 2.0},
+        _part_spec_query_callback=part_spec_callback,
+        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]},
+        _phase6_assembly_type="INSERT",
+        _settings_values={"t": 2.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
-        _phase6_corner_state={}, _phase6_endcap_fw_state={},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
         assembly_ignore_fixed_corner_var=SimpleNamespace(get=lambda: True),
         assembly_show_interference_var=SimpleNamespace(get=lambda: True),
         assembly_relief_clearance_var=SimpleNamespace(get=lambda: "0"),
@@ -719,10 +745,15 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
 
     assert by_key["head"].render_data is canonical["head"]
     assert by_key["tail"].render_data is canonical["tail"]
-    replay_calls = [payload for key, payload in callback_calls if key in {"head", "tail"} and payload.get("resolved_assembly_relief_cuts")]
-    assert len(replay_calls) == 2
-    assert all(len(payload["resolved_assembly_relief_cuts"]) == 1 for payload in replay_calls)
-
+    assert len(replay_specs) == 2
+    assert all(len(spec.resolved_assembly_relief_cuts) == 1 for spec in replay_specs)
+    # Pure service no longer reaches back into the UI render provider after the
+    # solve; replay is canonical manufacturing-api work from immutable PartSpec.
+    assert not any(
+        payload.get("resolved_assembly_relief_cuts")
+        for key, payload in callback_calls
+        if key in {"head", "tail"}
+    )
 
 def test_assembly_relief_is_atomic_when_one_endcap_fails_verification(monkeypatch):
     """Never display half-new/half-old EndCaps; both must verify before either is applied."""
@@ -891,7 +922,7 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
 
 def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_solved_endcap(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -936,3 +967,183 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
     assert calls, "pre-solve collision probe must reach the detector"
     assert round(120.0, 6) in folded_areas  # raw fixed-relief delta, not solved material
     assert scene_view.last_interference_diagnostic.has_interference is True
+
+
+def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
+    import ae_engine.assembly_geometry as assembly_geometry
+    import phase6_final_scene_renderer as view
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
+    head_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 40), fold_guides=())
+    tail_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 30), fold_guides=())
+    body_part = view.AssemblyScenePart("box_body", body_data, _flat_profile(100), _flat_profile(80), "box_body")
+    head_part = view.AssemblyScenePart("head", head_data, _flat_profile(100), _flat_profile(40), "top")
+    tail_part = view.AssemblyScenePart("tail", tail_data, _flat_profile(100), _flat_profile(30), "bottom")
+    render_data = view.AssemblySceneRenderData(
+        assembly_parts=(body_part, head_part, tail_part),
+        visible_part_keys=("head", "tail"),
+    )
+
+    local_mesh = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
+    body_world = (((-1.0, -40.0, 0.0), (1.0, -40.0, 0.0), (1.0, 40.0, 0.0)),)
+    head_world = (((10.0, 40.0, 1.0), (11.0, 40.0, 1.0), (10.0, 35.0, -1.0)),)
+    tail_world = (((20.0, -40.0, 1.0), (19.0, -40.0, 1.0), (20.0, -45.0, -1.0)),)
+    mating_calls = []
+
+    monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", lambda *args, **kwargs: local_mesh)
+
+    def fake_regular_place(triangles, placement, dimensions, offset):
+        if placement == "box_body":
+            return body_world
+        return (((999.0, 999.0, 999.0),) * 3,)
+
+    monkeypatch.setattr(view, "_phase6_place_assembly_triangles", fake_regular_place)
+
+    def fake_mate(
+        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0
+    ):
+        mating_calls.append((placement, body_triangles, offset, float(sheet_thickness)))
+        return head_world if placement == "top" else tail_world
+
+    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+
+    scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
+    triangles = scene_view.render(view.FinalSceneViewRequest(
+        render_data=render_data,
+        x_profile=(), y_profile=(), part_key="assembly",
+        alpha_bend=0.85, finished_dimensions=(100.0, 80.0, 40.0), thickness=2.0,
+    ))
+
+    assert [call[0] for call in mating_calls] == ["top", "bottom"]
+    assert all(call[1] == body_world for call in mating_calls)
+    assert head_world[0] in triangles
+    assert tail_world[0] in triangles
+    assert body_world[0] not in triangles, "hidden Box Body must remain a placement datum but not be rendered"
+
+
+def test_bridge_keeps_hidden_box_body_as_assembly_geometry_reference(monkeypatch):
+    import fold_designer_bridge as bridge
+    import phase6_final_scene_renderer as view
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
+    head_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 40), fold_guides=())
+    tail_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 30), fold_guides=())
+    resolved_parts = (
+        view.AssemblyScenePart("box_body", body_data, _flat_profile(100), _flat_profile(80), "box_body"),
+        view.AssemblyScenePart("head", head_data, _flat_profile(100), _flat_profile(40), "top"),
+        view.AssemblyScenePart("tail", tail_data, _flat_profile(100), _flat_profile(30), "bottom"),
+    )
+
+    monkeypatch.setattr(
+        bridge, "_phase6_resolve_manufacturing_geometry",
+        lambda self: SimpleNamespace(parts=resolved_parts),
+    )
+    monkeypatch.setattr(bridge, "_phase6_publish_live_state", lambda self, force=False: None)
+    monkeypatch.setattr(bridge, "_phase6_render_data_corner_dimension_text", lambda render_data: "")
+
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "t": 2.0},
+        _settings_values={"t": 2.0},
+        assembly_part_visible_vars={
+            "box_body": SimpleNamespace(get=lambda: False),
+            "head": SimpleNamespace(get=lambda: True),
+            "tail": SimpleNamespace(get=lambda: True),
+        },
+    )
+
+    bundle = bridge._phase6_query_assembly_render_data(app)
+
+    assert [part.part_key for part in bundle.assembly_parts] == ["box_body", "head", "tail"]
+    assert bundle.visible_part_keys == ("head", "tail")
+
+
+def test_operator_part_selector_collapses_box_body_physical_children_under_box_body():
+    import fold_designer_bridge as bridge
+
+    keys = bridge._phase6_operator_part_selector_keys((
+        "box_body",
+        "box_body:left_side",
+        "box_body:back",
+        "box_body:right_side",
+        "head",
+        "tail",
+        "door_c1_r1",
+    ))
+
+    assert keys == ("box_body", "head", "tail", "door_c1_r1")
+
+
+def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum(monkeypatch):
+    import ae_engine.assembly_geometry as assembly_geometry
+    import phase6_final_scene_renderer as view
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    def part_data():
+        return SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 10, 10), fold_guides=())
+
+    pieces = (
+        SimpleNamespace(role="left_side", render_data=part_data(), material_dimensions=(10.0, 10.0), formed_outer_dimensions=(10.0, 10.0)),
+        SimpleNamespace(role="back", render_data=part_data(), material_dimensions=(10.0, 10.0), formed_outer_dimensions=(10.0, 10.0)),
+        SimpleNamespace(role="right_side", render_data=part_data(), material_dimensions=(10.0, 10.0), formed_outer_dimensions=(10.0, 10.0)),
+    )
+    body_data = SimpleNamespace(pieces=pieces)
+    head_data = part_data()
+    body_part = view.AssemblyScenePart("box_body", body_data, (), (), "box_body")
+    head_part = view.AssemblyScenePart("head", head_data, _flat_profile(10), _flat_profile(10), "top")
+    render_data = view.AssemblySceneRenderData(
+        assembly_parts=(body_part, head_part),
+        visible_part_keys=("box_body", "head"),
+        visible_box_body_piece_keys=("box_body:left_side", "box_body:right_side"),
+    )
+
+    left = (((1.0, 0.0, 0.0), (1.5, 0.0, 0.0), (1.0, 0.5, 0.0)),)
+    back = (((2.0, 0.0, 0.0), (2.5, 0.0, 0.0), (2.0, 0.5, 0.0)),)
+    right = (((3.0, 0.0, 0.0), (3.5, 0.0, 0.0), (3.0, 0.5, 0.0)),)
+    head_local = (((9.0, 0.0, 0.0), (9.5, 0.0, 0.0), (9.0, 0.5, 0.0)),)
+    expected_body_world = left + back + right
+    head_world = (((20.0, 0.0, 0.0), (20.5, 0.0, 0.0), (20.0, 0.5, 0.0)),)
+    mate_calls = []
+
+    monkeypatch.setattr(
+        view,
+        "_phase6_box_body_structure_meshes",
+        lambda *a, **k: [(pieces[0], left), (pieces[1], back), (pieces[2], right)],
+    )
+    monkeypatch.setattr(
+        view,
+        "_phase6_folded_mesh_from_polygon",
+        lambda *a, **k: head_local,
+    )
+    monkeypatch.setattr(
+        view,
+        "_phase6_place_assembly_triangles",
+        lambda triangles, placement, dimensions, offset: tuple(triangles),
+    )
+    monkeypatch.setattr(
+        view.Phase6FinalSceneView,
+        "_draw_box_body_structure_bends",
+        lambda *args, **kwargs: None,
+    )
+
+    def fake_mate(triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0, **kwargs):
+        mate_calls.append(tuple(body_triangles))
+        return head_world
+
+    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+
+    scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
+    triangles = scene_view.render(view.FinalSceneViewRequest(
+        render_data=render_data,
+        x_profile=(), y_profile=(), part_key="assembly",
+        alpha_bend=0.85, finished_dimensions=(100.0, 80.0, 40.0), thickness=2.0,
+    ))
+
+    assert mate_calls == [expected_body_world], "hidden physical pieces must remain in the mating datum"
+    assert left[0] in triangles
+    assert right[0] in triangles
+    assert back[0] not in triangles
+    assert head_world[0] in triangles

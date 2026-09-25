@@ -119,11 +119,9 @@ def test_reset_initial_values_is_local_and_restores_factory_profiles(monkeypatch
         # Baseline selection is not part of ae.default_config and must not be invented/reset.
         assert app.baseline_model_var.get() == '金庫型'
 
-        assert app.confirm_corner_transaction() is True
-        assert len(confirmed) == 1
-        assert confirmed[0]['settings']['w'] == 400.0
-        assert confirmed[0]['settings']['z_comp'] == 2.0
-        assert confirmed[0]['settings']['base_plate_bend'] == 15.0
+        # C0: the legacy confirm wrapper has no production caller. Reset remains
+        # self-contained and must not invoke the backwards callback.
+        assert confirmed == []
     finally:
         try:
             root.destroy()
@@ -132,10 +130,11 @@ def test_reset_initial_values_is_local_and_restores_factory_profiles(monkeypatch
 
 
 def test_main_gui_passes_ae_factory_defaults_into_3d_snapshot():
-    source = open('gui.py', encoding='utf-8').read()
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    source = inspect.getsource(owner._snapshot_base_state)
     assert 'load_factory_defaults_from_ae' in source
     assert 'snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)' in source
-
 
 def test_factory_reset_does_not_poison_next_main_gui_baseline_model(monkeypatch):
     import gui

@@ -3,6 +3,7 @@ import tkinter as tk
 import pytest
 
 import gui
+import fold_designer_bridge as bridge
 
 
 def make_app():
@@ -22,24 +23,38 @@ def test_box_body_owns_three_independent_face_feature_stores():
         root.destroy()
 
 
-def test_box_body_overview_uses_direct_whd_face_dimensions():
+def test_box_body_corner_data_uses_direct_whd_face_dimensions():
     root, app = make_app()
+    designer = None
     try:
-        root.deiconify()
-        root.geometry("1200x800")
         app.w_var.set("500")
         app.h_var.set("600")
         app.d_var.set("200")
-        app.notebook.select(app.tab_z)
-        root.update()
-        app.draw_box_body(app.get_float_values())
-        assert set(app.box_body_face_bounds) == {"left", "back", "right"}
-        assert app.last_box_body_face_overview["dimensions"] == {
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        assert bridge._phase6_select_corner_data_part(designer, "box_body") == "box_body"
+        root.update_idletasks(); root.update()
+
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
+        assert projection is not None
+        assert projection.part_key == "box_body"
+        contexts = projection.render_data.box_body_face_contexts
+        assert {
+            key: (float(ctx.outer_width), float(ctx.outer_height))
+            for key, ctx in contexts.items()
+        } == {
             "left": (200.0, 600.0),
             "back": (500.0, 600.0),
             "right": (200.0, 600.0),
         }
+        assert not hasattr(app, "notebook")
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
@@ -170,81 +185,73 @@ def test_known_family_selection_applies_canonical_stripfold_parameters_without_p
         root.destroy()
 
 
-def test_box_body_main_preview_keeps_original_unfolded_structural_geometry(monkeypatch):
+def test_box_body_corner_data_keeps_original_unfolded_structural_geometry():
     root, app = make_app()
-    captured = {}
+    designer = None
     try:
-        root.deiconify()
-        root.geometry("1200x800")
         app.w_var.set("500")
         app.h_var.set("600")
         app.d_var.set("200")
-        app.notebook.select(app.tab_z)
-        root.update()
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        bridge._phase6_select_corner_data_part(designer, "box_body")
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
 
-        real_authoritative = app._authoritative_render_data
-        def capture_authoritative(spec, context):
-            render_data = real_authoritative(spec, context)
-            captured["render_data"] = render_data
-            return render_data
-        monkeypatch.setattr(app, "_authoritative_render_data", capture_authoritative)
-
-        app.draw_box_body(app.get_float_values())
-
-        render_data = captured["render_data"]
+        assert projection is not None
+        render_data = projection.render_data
         bend_primitives = [
             primitive for primitive in render_data.scene.primitives
             if getattr(primitive, "layer", None) == "BEND"
         ]
-        bend_items = [
-            item for item in app.canvas_z.find_all()
-            if app.canvas_z.type(item) == "line"
-            and app.canvas_z.itemcget(item, "fill") == "#0a84ff"
-        ]
         minx, _miny, maxx, _maxy = map(float, render_data.material.bounds)
         assert bend_primitives
-        assert len(bend_items) >= len(bend_primitives)
         assert (maxx - minx) > 500 + 200 + 200  # full unfolded blank includes folds/flanges
+        assert designer.corner_data_canvas is not None
+        assert not hasattr(app, "notebook")
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
-def test_box_body_face_hit_zones_are_projected_onto_unfolded_strip_not_replacing_it():
+def test_box_body_face_contexts_are_projected_onto_authoritative_unfolded_strip():
     root, app = make_app()
+    designer = None
     try:
-        root.deiconify()
-        root.geometry("1200x800")
         app.w_var.set("500")
         app.h_var.set("600")
         app.d_var.set("200")
-        app.notebook.select(app.tab_z)
-        root.update()
-        val = app.get_float_values()
-        app.draw_box_body(val)
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        bridge._phase6_select_corner_data_part(designer, "box_body")
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
 
-        spec = app._box_body_part_spec(val)
-        render_data = app._authoritative_render_data(
-            spec, app._manufacturing_context(draw_stock=False)
-        )
+        assert projection is not None
+        render_data = projection.render_data
         contexts = render_data.box_body_face_contexts
-        assert contexts
+        assert set(contexts) == {"left", "back", "right"}
         minx, miny, maxx, maxy = map(float, render_data.material.bounds)
-
-        meta = app.last_box_body_face_overview
-        assert meta["mode"] == "unfolded_with_face_hit_zones"
-        assert meta["unfolded_size"] == pytest.approx((maxx - minx, maxy - miny))
+        assert maxx > minx and maxy > miny
         for face in ("left", "back", "right"):
-            x1, y1, x2, y2 = app.box_body_face_bounds[face]
-            p1 = meta["transform"].canvas_to_world(x1, y2)
-            p2 = meta["transform"].canvas_to_world(x2, y1)
-            wx1, wy1 = p1.x, p1.y
-            wx2, wy2 = p2.x, p2.y
             ctx = contexts[face]
-            assert abs(wx1 - ctx.unfolded_min_x) < 1e-5
-            assert abs(wx2 - ctx.unfolded_max_x) < 1e-5
-            assert abs(wy1 - 0.0) < 1e-5
-            assert abs(wy2 - (maxy - miny)) < 1e-5
+            assert ctx.unfolded_max_x > ctx.unfolded_min_x
+            assert ctx.unfolded_height > 0
+            assert ctx.outer_width > 0 and ctx.outer_height == pytest.approx(600.0)
+        # Face ownership is metadata on the same authoritative aggregate blank;
+        # the 2D view must not substitute a face-only material polygon.
+        assert (maxx - minx) > sum(ctx.outer_width for ctx in contexts.values())
+        assert projection.part_key == "box_body"
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 

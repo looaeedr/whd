@@ -208,9 +208,16 @@ def test_every_active_registry_rule_has_unique_versioned_identity_and_evidence()
         assert int(rule.revision) >= 1
         assert str(rule.source_evidence or "").strip()
         if hasattr(rule, "evaluator"):
-            assert rule.evaluator is not None
-            assert str(rule.formula_x or "").strip()
-            assert str(rule.formula_y or "").strip()
+            if str(getattr(rule, "rule_domain", "ENDCAP_RELIEF") or "").upper() == "DIVIDER_CROSS":
+                assert rule.evaluator is None
+                assert str(rule.part_role or "").upper() == "DIVIDER"
+                assert str(rule.corner_type or "").upper() == "CROSS"
+                assert tuple(rule.joint_signature or ()) == ()
+                assert dict(rule.formula_record or {})
+            else:
+                assert rule.evaluator is not None
+                assert str(rule.formula_x or "").strip()
+                assert str(rule.formula_y or "").strip()
         else:
             assert set(rule.corner_selections) == {"bottom_left", "bottom_right", "top_left", "top_right"}
 

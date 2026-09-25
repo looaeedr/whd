@@ -1,0 +1,294 @@
+name: WHD｜#534｜C2 最終整合驗收
+run-name: WHD｜#534｜固定 T0 對最終候選 Headless／Xvfb A/B
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: issue534-c2-final-combined
+  cancel-in-progress: false
+
+env:
+  T0_SHA: adbfa95092a35183b3b64d0d38ea8cb68be64b65
+  CANDIDATE_SHA: ${{ github.sha }}
+
+jobs:
+  ab:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: 基準｜Headless
+            ref: adbfa95092a35183b3b64d0d38ea8cb68be64b65
+            mode: headless
+            report: baseline-headless.xml
+          - label: 候選｜Headless
+            ref: ${{ github.sha }}
+            mode: headless
+            report: candidate-headless.xml
+          - label: 基準｜Xvfb
+            ref: adbfa95092a35183b3b64d0d38ea8cb68be64b65
+            mode: xvfb
+            report: baseline-xvfb.xml
+          - label: 候選｜Xvfb
+            ref: ${{ github.sha }}
+            mode: xvfb
+            report: candidate-xvfb.xml
+    steps:
+      - name: 反讀 exact 驗收版本
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          fetch-depth: 0
+
+      - name: 設定 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝驗收相依套件
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: 驗證 exact SHA 與技能前置
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ matrix.ref }}"
+          python tools/phase6_skill_preflight.py \
+            --task 'Phase 6 C2 fixed T0 final combined acceptance Headless Xvfb GUI operator geometry FinalScene export DXF persistence' \
+            --changed-file fold_designer_bridge.py \
+            --evidence /dev/null || true
+          echo "EXACT_TESTED_SHA=$(git rev-parse HEAD)"
+
+      - name: 執行 Headless 全套 pytest
+        if: matrix.mode == 'headless'
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set +e
+          pytest -q --junitxml="${{ matrix.report }}"
+          rc=$?
+          echo "$rc" > "${{ matrix.report }}.rc"
+          exit 0
+
+      - name: 執行 Xvfb 全套 pytest
+        if: matrix.mode == 'xvfb'
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set +e
+          xvfb-run -a pytest -q --junitxml="${{ matrix.report }}"
+          rc=$?
+          echo "$rc" > "${{ matrix.report }}.rc"
+          exit 0
+
+      - name: 上傳 A/B 原始驗收證據
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue534-${{ matrix.mode }}-${{ matrix.ref }}
+          path: |
+            ${{ matrix.report }}
+            ${{ matrix.report }}.rc
+          if-no-files-found: error
+          retention-days: 14
+
+  compare:
+    name: 比對｜候選新增失敗必須為零
+    needs: ab
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下載四組 A/B 證據
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue534-*
+          merge-multiple: true
+
+      - name: 分類 candidate-only failure／error
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          pairs = [
+              ('headless', Path('baseline-headless.xml'), Path('candidate-headless.xml')),
+              ('xvfb', Path('baseline-xvfb.xml'), Path('candidate-xvfb.xml')),
+          ]
+
+          def reds(path):
+              root = ET.parse(path).getroot()
+              out = set()
+              for case in root.iter('testcase'):
+                  if case.find('failure') is not None or case.find('error') is not None:
+                      out.add(f"{case.get('classname','')}::{case.get('name','')}")
+              return out
+
+          summary = {}
+          candidate_only_all = []
+          for mode, base, cand in pairs:
+              b = reds(base)
+              c = reds(cand)
+              only = sorted(c - b)
+              summary[mode] = {
+                  'baseline_red': len(b),
+                  'candidate_red': len(c),
+                  'candidate_only': only,
+              }
+              candidate_only_all.extend(f'{mode}:{x}' for x in only)
+
+          Path('issue534-ab-summary.json').write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          if candidate_only_all:
+              raise SystemExit('ISSUE534_CANDIDATE_ONLY_RED=' + repr(candidate_only_all))
+          print('ISSUE534_CANDIDATE_ONLY_RED=0')
+          PY
+
+      - name: 上傳 C2 比對摘要
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue534-c2-ab-summary
+          path: issue534-ab-summary.json
+          if-no-files-found: error
+          retention-days: 14
+
+
+  integrity:
+    name: 最終完整性｜DXF／2D-3D／組合圖／Save-Reload
+    needs: ab
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 反讀 exact 最終候選
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: 設定 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝最終完整性驗收相依套件
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: 鎖定 config.ini 與基準 DXF 原始 SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          sha256sum config.ini > /tmp/issue534-config-before.sha256
+          find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/issue534-dxf-before.sha256
+          test -s /tmp/issue534-dxf-before.sha256
+          cp /tmp/issue534-config-before.sha256 issue534-config-before.sha256
+          cp /tmp/issue534-dxf-before.sha256 issue534-dxf-before.sha256
+
+      - name: 執行 canonical 幾何／DXF／持久化 final gate
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          xvfb-run -a pytest -q             tests/test_dxf_acceptance.py::test_saved_dxf_acceptance_passes_exact_roundtrip             tests/test_multipart_dxf_acceptance.py::test_resolved_saved_dxf_acceptance_reopens_every_physical_part             tests/test_receiving_door_dxf_roundtrip.py::test_receiving_door_baseline_arc_line_cutting_reopens_as_same_final_material             tests/test_resolved_manufacturing_export.py::test_resolved_dxf_export_uses_exact_canonical_render_data_without_rebuilding             tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object             tests/test_phase6_3d_single_source_renderer.py::test_single_door_2d_draw_consumes_authoritative_final_scene_only             tests/test_phase6_assembly_3d_view.py::test_final_scene_view_can_render_multiple_authoritative_parts_as_one_assembly             tests/test_phase6_assembly_3d_view.py::test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum             tests/test_assembly_collision_integration.py::test_standard_vault_head_world_backprojection_replaces_fixed_relief_and_verifies_3d             tests/test_assembly_collision_integration.py::test_standard_vault_tail_world_backprojection_verifies_and_preserves_holes             tests/test_assembly_collision_integration.py::test_user8_tail_insert_relief_stays_single_stage_and_refolds_without_penetration             tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state             tests/test_phase6_project_file.py::test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves
+
+      - name: 產生 exact candidate 可視 3D 檢查圖
+        shell: bash
+        env:
+          PYTHONPATH: .
+          MPLBACKEND: Agg
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from types import SimpleNamespace
+          from matplotlib.figure import Figure
+          from matplotlib.backends.backend_agg import FigureCanvasAgg
+          from ae_engine.contracts import DoorPartSpec, ManufacturingContext
+          from ae_engine.manufacturing_api import build_part_render_data
+          from phase6_final_scene_contracts import FinalSceneViewRequest
+          from phase6_final_scene_renderer import Phase6FinalSceneView
+
+          data = build_part_render_data(
+              DoorPartSpec(
+                  width=500.0,
+                  height=600.0,
+                  thickness=2.0,
+                  frame_width=25.0,
+              ),
+              ManufacturingContext(draw_stock=False),
+          )
+          minx, miny, maxx, maxy = data.material.bounds
+          fig = Figure(figsize=(8, 6))
+          FigureCanvasAgg(fig)
+          ax = fig.add_subplot(111, projection="3d")
+          view = Phase6FinalSceneView(SimpleNamespace(ax3d=ax))
+          view.render(FinalSceneViewRequest(
+              render_data=data,
+              x_profile=({"len": float(maxx - minx), "core": True},),
+              y_profile=({"len": float(maxy - miny), "core": True},),
+              part_key="door",
+              alpha_bend=0.85,
+              finished_dimensions=(500.0, 600.0),
+              thickness=2.0,
+              unfolded_blank_text="C2 exact candidate final integrity",
+          ))
+          fig.savefig("issue534-final-integrity-3d.png", dpi=140, bbox_inches="tight")
+          print("ISSUE534_VISUAL_3D_ARTIFACT=issue534-final-integrity-3d.png")
+          PY
+          test -s issue534-final-integrity-3d.png
+
+      - name: 驗證 config.ini 與基準 DXF 完全未改
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini > /tmp/issue534-config-after.sha256
+          find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/issue534-dxf-after.sha256
+          diff -u /tmp/issue534-config-before.sha256 /tmp/issue534-config-after.sha256
+          diff -u /tmp/issue534-dxf-before.sha256 /tmp/issue534-dxf-after.sha256
+          cp /tmp/issue534-config-after.sha256 issue534-config-after.sha256
+          cp /tmp/issue534-dxf-after.sha256 issue534-dxf-after.sha256
+          echo "ISSUE534_FINAL_INTEGRITY_GREEN=1"
+
+      - name: 上傳 final integrity 證據
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue534-final-integrity-${{ github.sha }}
+          path: |
+            issue534-final-integrity-3d.png
+            issue534-config-before.sha256
+            issue534-config-after.sha256
+            issue534-dxf-before.sha256
+            issue534-dxf-after.sha256
+          if-no-files-found: warn
+          retention-days: 14

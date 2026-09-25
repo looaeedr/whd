@@ -1,0 +1,474 @@
+# retrigger terminal-leg tangent-shift collision probe
+name: Receiving FW Formed Occupation Acceptance
+on:
+  push:
+    branches: [fix/receiving-fw-formed-solid-authority]
+    paths:
+      - ae_engine/contracts.py
+      - ae_engine/box_body_structure.py
+      - ae_engine/assembly_geometry.py
+      - ae_engine/divider_manufacturing.py
+      - ae_engine/assembly_collision.py
+      - phase6_fold_profiles.py
+      - tests/test_issue74_divider_side_front_penetration.py
+      - .github/workflows/receiving-fw-formed-occupation-red.yml
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: FW placement diagnostic
+        run: |
+          python - <<'PY'
+          import json
+          import fold_designer_bridge as bridge
+          from ae_engine.divider_manufacturing import resolve_divider_placement_evidence, _profile_flat_band
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, part=_divider_part(snap)
+          world=bridge._phase6_build_joint_world_geometry(
+              (body,part),(snap["w"],snap["h"],snap["d"]),snap["t"]
+          )
+          evidence=resolve_divider_placement_evidence(part,body,world)
+          out={"placement":part.placement,"offset":part.offset,"evidence":evidence.as_dict(),"pieces":{}}
+          for piece in body.render_data.pieces:
+              role=str(piece.role)
+              if role not in {"left_side","right_side"}:
+                  continue
+              key="fw_left" if role=="left_side" else "fw_right"
+              band=_profile_flat_band(piece.fold_profile,phase6_key=key)
+              skins=world["mapped_skin_triangles_by_part"][f"box_body:{role}"]
+              pts=[]
+              for skin in skins:
+                  cu=sum(float(p[0]) for p in skin.flat)/3.0
+                  if band[0]+1e-5 < cu < band[1]-1e-5:
+                      pts.extend(tuple(map(float,p)) for p in skin.world)
+              out["pieces"][role]={
+                  "profile":[
+                      {
+                          "key":getattr(row,"phase6_key",None),
+                          "material":float(row.length),
+                          "formed":getattr(row,"formed_length",None),
+                      }
+                      for row in piece.fold_profile
+                  ],
+                  "fw_band":band,
+                  "world_bounds":None if not pts else [
+                      [min(p[i] for p in pts),max(p[i] for p in pts)] for i in range(3)
+                  ],
+              }
+          # Stage-by-stage FW geometry evidence: flat UV -> folded local -> structure world.
+          from ae_engine.assembly_geometry import folded_mesh_with_flat_uv_from_polygon, place_box_body_structure_points
+          stage={}
+          total_w=max(float(getattr(p,"formed_w_end",0.0)) for p in body.render_data.pieces)
+          for piece in body.render_data.pieces:
+              role=str(piece.role)
+              if role not in {"left_side","right_side"}:
+                  continue
+              data=piece.render_data
+              _minx,miny,_maxx,maxy=map(float,data.material.bounds)
+              y_profile=({"len":maxy-miny,"core":True},)
+              mapped=folded_mesh_with_flat_uv_from_polygon(
+                  data.material,piece.fold_profile,y_profile,
+                  fold_guides=tuple(getattr(data,"fold_guides",()) or ())
+              )
+              fw_name="fw_left" if role=="left_side" else "fw_right"
+              band=_profile_flat_band(piece.fold_profile,phase6_key=fw_name)
+              rows=[]
+              for item in mapped:
+                  cu=sum(float(p[0]) for p in item.flat)/3.0
+                  if not (band[0]+1e-5 < cu < band[1]-1e-5):
+                      continue
+                  placed=place_box_body_structure_points(
+                      item.local,piece,total_w=total_w,thickness=snap["t"],x_profile=piece.fold_profile
+                  )
+                  rows.append({
+                      "flat":item.flat,
+                      "local":item.local,
+                      "structure":placed,
+                  })
+              stage[role]=rows
+          print("RECEIVING_FW_STAGE_GEOMETRY="+json.dumps(stage,ensure_ascii=False))
+          print("RECEIVING_FW_PLACEMENT_DIAGNOSTIC="+json.dumps(out,ensure_ascii=False))
+          PY
+      - name: Divider candidate replay diagnostic
+        run: |
+          python - <<'PY'
+          import json
+          import fold_designer_bridge as bridge
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          from ae_engine.assembly_collision import build_divider_front_fold_relief_candidate
+          from ae_engine.divider_manufacturing import (
+              _source_fold_bands_by_geometry_key, _core_start, _apply_cut_to_part
+          )
+          from tests.test_issue39_divider_relief import _divider_insert_joint
+
+          world=bridge._phase6_build_joint_world_geometry(
+              (body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          joint=_divider_insert_joint(divider.stable_id)
+          source_keys=("box_body:left_side","box_body:right_side")
+          candidate=build_divider_front_fold_relief_candidate(
+              joint,
+              world_triangles_by_part=world["world_triangles_by_part"],
+              mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+              flat_material_by_part=world["flat_material_by_part"],
+              core_start=_core_start(divider_part),
+              source_geometry_keys=source_keys,
+              source_fold_bands_by_key=_source_fold_bands_by_geometry_key(body),
+              clearance=0.0,
+              sheet_thickness=snap["t"],
+          )
+          original=divider_part.render_data.material
+          raw_diff=original.difference(candidate.cut_polygon_2d)
+          applied=_apply_cut_to_part(divider_part,candidate.cut_polygon_2d)
+
+          solved_parts, diagnostics, joints = bridge._phase6_resolve_family_divider_reliefs(
+              (body, divider_part),
+              finished_dimensions=(snap["w"], snap["h"], snap["d"]),
+              sheet_thickness=snap["t"],
+              clearance=0.0,
+          )
+          solved=next(p for p in solved_parts if p.part_key==divider.stable_id)
+          d=diagnostics[0]
+          from ae_engine.assembly_collision import classify_source_fold_true_thickness_interference
+          applied_world=bridge._phase6_build_joint_world_geometry(
+              (body, applied),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          post_class={}
+          bands=_source_fold_bands_by_geometry_key(body)
+          for source_key in source_keys:
+              row=classify_source_fold_true_thickness_interference(
+                  source_geometry_key=source_key,
+                  relief_geometry_key=divider.stable_id,
+                  mapped_skin_triangles_by_part=applied_world["mapped_skin_triangles_by_part"],
+                  source_fold_bands=bands[source_key],
+                  tolerance=1e-6,
+              )
+              post_class[source_key]={
+                  "penetrating_bands":row["penetrating_bands"],
+                  "penetrating_segment_count":row["penetrating_segment_count"],
+                  "bands":{
+                      name:{
+                          "skin_sides":list(info.get("skin_sides") or ()),
+                          "through_thickness":bool(info.get("through_thickness")),
+                          "divider_uv_bounds":info.get("divider_uv_bounds"),
+                          "physical_footprint_area":float(info.get("physical_footprint_area") or 0.0),
+                      }
+                      for name,info in dict(row["bands"]).items()
+                  },
+              }
+          print("DIVIDER_POST_REFOLD_CLASSIFICATION="+json.dumps(post_class,ensure_ascii=False,default=str))
+          print("DIVIDER_CUT_SINK_DIAGNOSTIC="+json.dumps({
+              "original_area":float(original.area),
+              "candidate_area":float(candidate.cut_polygon_2d.area),
+              "candidate_bounds":list(map(float,candidate.cut_polygon_2d.bounds)),
+              "raw_diff_area":float(raw_diff.area),
+              "raw_diff_bounds":list(map(float,raw_diff.bounds)),
+              "applied_area":float(applied.render_data.material.area),
+              "applied_bounds":list(map(float,applied.render_data.material.bounds)),
+              "area_loss_raw":float(original.area-raw_diff.area),
+              "area_loss_applied":float(original.area-applied.render_data.material.area),
+          },ensure_ascii=False,default=str))
+          print("DIVIDER_REPLAY_DIAGNOSTIC="+json.dumps({
+              "candidate_status":d.candidate_status,
+              "illegal_penetration":d.illegal_penetration,
+              "pre_pair_count":d.pre_pair_count,
+              "post_pair_count":d.post_pair_count,
+              "evidence":d.evidence,
+              "solved_material_bounds":list(map(float,solved.render_data.material.bounds)),
+              "solved_material_area":float(solved.render_data.material.area),
+              "has_relief_metadata":"divider_assembly_relief" in dict(solved.render_data.metadata or {}),
+          }, ensure_ascii=False, default=str))
+          PY
+      - name: ZL1 per-skin collision diagnostic
+        run: |
+          python - <<'PY'
+          import json
+          import fold_designer_bridge as bridge
+          from ae_engine.assembly_collision import (
+              _triangle_pair_crossing_segment,
+              _barycentric_world_to_flat,
+          )
+          from ae_engine.divider_manufacturing import _source_fold_bands_by_geometry_key
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          world=bridge._phase6_build_joint_world_geometry(
+              (body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          source_key="box_body:left_side"
+          bands=_source_fold_bands_by_geometry_key(body)[source_key]
+          u0,u1=next((a,b) for name,a,b in bands if name=="zl1")
+          source=tuple(world["mapped_skin_triangles_by_part"][source_key])
+          targets=tuple(world["mapped_skin_triangles_by_part"][divider.stable_id])
+
+          by_side={-1:[],1:[]}
+          pair_counts={-1:0,1:0}
+          for s in source:
+              side=int(getattr(s,"side",0) or 0)
+              if side not in (-1,1):
+                  continue
+              cu=sum(float(p[0]) for p in s.flat)/3.0
+              if not (u0-1e-6 <= cu <= u1+1e-6):
+                  continue
+              for t in targets:
+                  crossing=_triangle_pair_crossing_segment(
+                      tuple(tuple(map(float,p)) for p in t.world),
+                      tuple(tuple(map(float,p)) for p in s.world),
+                      tolerance=1e-6,
+                  )
+                  if crossing is None:
+                      continue
+                  try:
+                      tuv=tuple(
+                          _barycentric_world_to_flat(
+                              p,
+                              tuple(tuple(map(float,q)) for q in t.world),
+                              t.flat,
+                          )
+                          for p in crossing
+                      )
+                  except ValueError:
+                      continue
+                  pair_counts[side]+=1
+                  by_side[side].extend((float(p[0]),float(p[1])) for p in tuv)
+
+          out={}
+          for side,pts in by_side.items():
+              out[str(side)]={
+                  "pair_count":pair_counts[side],
+                  "uv_bounds":None if not pts else (
+                      min(p[0] for p in pts),
+                      max(p[0] for p in pts),
+                      min(p[1] for p in pts),
+                      max(p[1] for p in pts),
+                  ),
+              }
+          print("ZL1_PER_SKIN_COLLISION="+json.dumps(out,ensure_ascii=False))
+          PY
+      - name: Terminal-leg tangent-shift collision probe
+        run: |
+          python - <<'PY'
+          import json, math
+          from dataclasses import replace
+          import fold_designer_bridge as bridge
+          from ae_engine.assembly_collision import classify_source_fold_true_thickness_interference
+          from ae_engine.divider_manufacturing import _source_fold_bands_by_geometry_key
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          world=bridge._phase6_build_joint_world_geometry(
+              (body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          mapped=dict(world["mapped_skin_triangles_by_part"])
+          bands=_source_fold_bands_by_geometry_key(body)
+
+          def tangent_from_rows(rows,u0,u1):
+              candidates=[]
+              for r in rows:
+                  flat=list(r.flat); pts=list(r.world)
+                  cu=sum(float(p[0]) for p in flat)/3.0
+                  if not (u0-1e-6 <= cu <= u1+1e-6):
+                      continue
+                  for i in range(3):
+                      for j in range(i+1,3):
+                          du=float(flat[j][0])-float(flat[i][0])
+                          dv=float(flat[j][1])-float(flat[i][1])
+                          if abs(du) <= 1e-8 or abs(dv) > abs(du)*1e-4:
+                              continue
+                          vec=tuple((float(pts[j][k])-float(pts[i][k]))/du for k in range(3))
+                          mag=math.sqrt(sum(v*v for v in vec))
+                          if mag>1e-9:
+                              candidates.append(tuple(v/mag for v in vec))
+              if not candidates:
+                  raise RuntimeError("no terminal-leg tangent")
+              ref=candidates[0]
+              aligned=[]
+              for v in candidates:
+                  dot=sum(v[k]*ref[k] for k in range(3))
+                  aligned.append(v if dot>=0 else tuple(-x for x in v))
+              avg=tuple(sum(v[k] for v in aligned)/len(aligned) for k in range(3))
+              mag=math.sqrt(sum(v*v for v in avg))
+              return tuple(v/mag for v in avg)
+
+          shifted=dict(mapped)
+          specs=(
+              ("box_body:left_side","zl1",-1.0),
+              ("box_body:right_side","zr2",+1.0),
+          )
+          for source_key,band_name,away_sign in specs:
+              u0,u1=next((a,b) for name,a,b in bands[source_key] if name==band_name)
+              rows=list(mapped[source_key])
+              tangent=tangent_from_rows(rows,u0,u1)
+              delta=tuple(away_sign*float(snap["t"])*v for v in tangent)
+              out=[]
+              for r in rows:
+                  cu=sum(float(p[0]) for p in r.flat)/3.0
+                  if u0-1e-6 <= cu <= u1+1e-6:
+                      world2=tuple(
+                          tuple(float(p[k])+delta[k] for k in range(3))
+                          for p in r.world
+                      )
+                      out.append(replace(r,world=world2))
+                  else:
+                      out.append(r)
+              shifted[source_key]=tuple(out)
+
+          result={}
+          for source_key in ("box_body:left_side","box_body:right_side"):
+              row=classify_source_fold_true_thickness_interference(
+                  source_geometry_key=source_key,
+                  relief_geometry_key=divider.stable_id,
+                  mapped_skin_triangles_by_part=shifted,
+                  source_fold_bands=bands[source_key],
+                  tolerance=1e-6,
+              )
+              result[source_key]={
+                  name:{
+                      "through":bool(info.get("through_thickness")),
+                      "bounds":info.get("divider_uv_bounds"),
+                      "footprint_bounds":(
+                          None if info.get("physical_footprint_2d") is None
+                          else tuple(map(float,info["physical_footprint_2d"].bounds))
+                      ),
+                  }
+                  for name,info in row["bands"].items()
+              }
+          print("TERMINAL_LEG_TANGENT_SHIFT_PROBE="+json.dumps(result,ensure_ascii=False))
+          PY
+      - name: Material-midline full-solid cross-section diagnostic
+        run: |
+          python - <<'PY'
+          import json, math
+          from dataclasses import replace
+          from shapely.geometry import LineString, Polygon
+          from shapely.ops import unary_union
+          import fold_designer_bridge as bridge
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+
+          # Rebuild source BoxBody with MATERIAL midline only. The solid envelope
+          # comes from T/2 buffering; no formed_length stretches the midline.
+          material_pieces=[]
+          for piece in body.render_data.pieces:
+              profile=tuple(
+                  replace(row, formed_length=None)
+                  if hasattr(row, "formed_length") else row
+                  for row in piece.fold_profile
+              )
+              material_pieces.append(replace(piece, fold_profile=profile))
+          material_body=replace(
+              body,
+              render_data=replace(body.render_data, pieces=tuple(material_pieces)),
+          )
+          world=bridge._phase6_build_joint_world_geometry(
+              (material_body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+
+          def mids_from_skins(rows):
+              rows=list(rows)
+              mids=[]
+              for i in range(0,len(rows),2):
+                  if i+1>=len(rows): break
+                  a,b=rows[i],rows[i+1]
+                  if int(a.side)==int(b.side): continue
+                  mids.append(tuple(
+                      tuple((float(a.world[j][k])+float(b.world[j][k]))/2.0 for k in range(3))
+                      for j in range(3)
+                  ))
+              return mids
+
+          def solid_cross_section(source_key):
+              mids=mids_from_skins(world["mapped_skin_triangles_by_part"][source_key])
+              lines=[]
+              for tri in mids:
+                  xz=[(float(p[0]),float(p[2])) for p in tri]
+                  for i in range(3):
+                      a=xz[i]; b=xz[(i+1)%3]
+                      if math.hypot(a[0]-b[0],a[1]-b[1])>1e-8:
+                          lines.append(LineString((a,b)))
+              centerline=unary_union(lines)
+              return centerline.buffer(float(snap["t"])/2.0, cap_style=2, join_style=2)
+
+          def poly_parts(g):
+              if g.is_empty:return []
+              if g.geom_type=="Polygon":return [g]
+              return [x for x in getattr(g,"geoms",()) if x.geom_type=="Polygon" and x.area>1e-12]
+
+          def bary2(p,a,b,c):
+              x,y=p; x0,y0=a; x1,y1=b; x2,y2=c
+              den=(y1-y2)*(x0-x2)+(x2-x1)*(y0-y2)
+              if abs(den)<1e-12:return None
+              w0=((y1-y2)*(x-x2)+(x2-x1)*(y-y2))/den
+              w1=((y2-y0)*(x-x2)+(x0-x2)*(y-y2))/den
+              w2=1.0-w0-w1
+              return (w0,w1,w2)
+
+          target=[r for r in world["mapped_skin_triangles_by_part"][divider.stable_id] if int(r.side)==1]
+          out={}
+          for source_key in ("box_body:left_side","box_body:right_side"):
+              solid=solid_cross_section(source_key)
+              uv_polys=[]
+              for t in target:
+                  xz=[(float(p[0]),float(p[2])) for p in t.world]
+                  tri_poly=Polygon(xz)
+                  if tri_poly.is_empty or tri_poly.area<=1e-12: continue
+                  inter=tri_poly.intersection(solid)
+                  for part in poly_parts(inter):
+                      coords=list(part.exterior.coords)[:-1]
+                      uv=[]
+                      for q in coords:
+                          w=bary2(q,xz[0],xz[1],xz[2])
+                          if w is None: continue
+                          uv.append((
+                              sum(w[i]*float(t.flat[i][0]) for i in range(3)),
+                              sum(w[i]*float(t.flat[i][1]) for i in range(3)),
+                          ))
+                      if len(uv)>=3:
+                          p=Polygon(uv)
+                          if p.is_valid and p.area>1e-10:
+                              uv_polys.append(p)
+              merged=unary_union(uv_polys) if uv_polys else None
+              comps=[]
+              if merged is not None:
+                  for p in poly_parts(merged):
+                      b=tuple(map(float,p.bounds))
+                      if b[1] < 100.0 or b[3] > 696.0:
+                          comps.append({"bounds":b,"area":float(p.area)})
+              out[source_key]={
+                  "solid_xz_bounds":tuple(map(float,solid.bounds)),
+                  "uv_components":comps,
+              }
+          print("MATERIAL_MIDLINE_FULL_SOLID_UV="+json.dumps(out,ensure_ascii=False))
+          PY
+      - name: FW formed occupation + Issue74 targeted
+        run: |
+          pytest -q -s \
+            tests/test_issue74_divider_side_front_penetration.py

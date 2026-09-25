@@ -1,0 +1,11 @@
+ISSUE: #230
+TASK: T4 Clean AI Library README and Core Rules
+PARENT_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+PARENT_HEAD_AT_AUDIT: 12497eeb17bac1066374ed23f8597f4efec39d79
+TESTED_HEAD: 05efd71f1bffed3f85fcb0de8239c0e392822d6d
+TESTED_RUN: 34849263388
+TESTED_RESULT: focused 4 passed / bootstrap 8 passed / knowledge 65 passed / 0 failed
+PRE_CLOSING_HEAD: 3dda1d7fd1576f09d7696aa7c4cff1f62a99f96b
+TESTED_TO_PRE_CLOSING_DRIFT: only temporary workflow removal plus durable evidence; no README/core/test behavior drift.
+PARENT_ANCESTRY: feature ahead 7 / behind 0 at pre-closing audit; merge base equals parent head.
+FINAL_HEAD_AUTHORITY: Git branch / PR head SHA; do not self-embed the containing commit SHA in this file.

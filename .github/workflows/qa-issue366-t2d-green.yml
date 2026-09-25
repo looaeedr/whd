@@ -1,0 +1,95 @@
+name: "QA #366 T2D family width GREEN"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2d-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor bb8c3d0272756629654127fbd86e9d7013d797e4 HEAD
+          echo "BASELINE=bb8c3d0272756629654127fbd86e9d7013d797e4"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest pytest-json-report matplotlib numpy -r requirements.txt
+
+      - name: Compile T2D owners
+        run: python -m py_compile phase6_settings_transaction_controller.py fold_designer_bridge.py
+
+      - name: Run T2D ownership contracts
+        run: python -m pytest -q tests/test_issue366_t2d_family_width_controller.py
+
+      - name: Run pure width and structure regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_phase6_box_body_structure.py \
+            tests/test_phase6_settings_service.py
+
+      - name: Run real-Tk family model regressions excluding exact inherited RED nodes
+        shell: bash
+        run: |
+          set -euo pipefail
+          N1="tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy"
+          N2="tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side"
+          xvfb-run -a python -m pytest -q \
+            tests/test_receiving_cabinet_type.py \
+            tests/test_phase6_corner_transaction.py \
+            tests/test_phase6_live_canonical_sync.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_receiving_side_panel_outside_defaults.py \
+            --deselect "$N1" --deselect "$N2"
+
+      - name: Require exact inherited Tk node parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASELINE="bb8c3d0272756629654127fbd86e9d7013d797e4"
+          CANDIDATE="$GITHUB_SHA"
+          N1="tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy"
+          N2="tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side"
+          mkdir -p /tmp/t2d-green-ab
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$N1" "$N2" --tb=short \
+              --json-report --json-report-file="/tmp/t2d-green-ab/$label.json" >/tmp/t2d-green-ab/$label.log 2>&1
+            rc=$?
+            set -e
+            echo "$rc" > "/tmp/t2d-green-ab/$label.rc"
+            test -s "/tmp/t2d-green-ab/$label.json"
+          }
+          run_one baseline "$BASELINE"
+          run_one candidate "$CANDIDATE"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          def outcomes(label):
+              data=json.loads(Path(f"/tmp/t2d-green-ab/{label}.json").read_text())
+              return {row["nodeid"]: row.get("outcome") for row in data.get("tests", [])}
+          b=outcomes("baseline"); c=outcomes("candidate")
+          assert b == c, (b,c)
+          assert set(b.values()) == {"failed"}, b
+          print("PASS T2D_INHERITED_TK_RED_EXACT_PARITY=1")
+          PY

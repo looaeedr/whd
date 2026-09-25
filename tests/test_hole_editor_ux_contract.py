@@ -2,8 +2,15 @@ from pathlib import Path
 
 
 def _editor_body():
-    src=Path('gui.py').read_text(encoding='utf-8')
-    return src[src.index('    def _open_unified_hole_editor'):src.index('    def open_hole_editor')]
+    root = Path(__file__).resolve().parents[1]
+    return "\n".join(
+        (root / path).read_text(encoding='utf-8')
+        for path in (
+            'gui_modules/editors/hole_editor.py',
+            'gui_modules/editors/hole_editor_composition.py',
+            'gui_modules/editors/hole_editor_view.py',
+        )
+    )
 
 
 def test_hole_editor_keeps_left_catalog_explicit_insert_and_custom_blind_checkbox():

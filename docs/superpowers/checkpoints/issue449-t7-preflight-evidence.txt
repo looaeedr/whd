@@ -1,0 +1,51 @@
+ISSUE=449
+TASK=T7 Compress _fix11_init to bootstrap-only lifecycle seam
+ROLE=T7 實作者
+BASE_SHA=41bf313b9389a7e98f9978c36b96380c237e57ec
+WORK_BRANCH=refactor/issue449-t7-fix11-init-bootstrap-20260921
+CURRENT_X_HEAD_OBSERVATION=acdfcfc66a46940798bff77df4b8e32bfc10b7ca
+LINEAGE_RULE=child base remains accepted predecessor; do not chase X
+
+READ_SKILL: 派工
+READ_SKILL: issue-closure-gate
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 程式碼庫設計
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md
+
+ACCEPTED_T2_OWNER=phase6_bending_ui.py / #444
+ACCEPTED_T3_OWNER=phase6_settings_panel.py / #445
+ACCEPTED_T4_OWNER=phase6_registry_diagnostics_panel.py + controller / #446
+ACCEPTED_T5_DECISION=Workspace Shell NO_EXTRACTION / #447
+ACCEPTED_T6_DECISION=Part Editor C_KEEP_BRIDGE_COMPATIBILITY / #448
+
+MUTATION_GATE=_fix11_init remains sole composition root; helpers/installers may hide construction detail but must not create a second lifecycle/composition authority.
+DOD=semantic ownership/order invariants, not LOC threshold.
+
+GREEN_QA_PREFLIGHT:
+- fold_designer_bridge.py
+- tests/test_issue449_fix11_init_bootstrap_owner.py
+- docs/superpowers/checkpoints/issue449-t7-preflight-evidence.txt
+- docs/superpowers/checkpoints/issue449-t7-fix11-init-census.md
+- .github/workflows/qa-issue449-t7-green.yml
+MATCHED_ROUTE=remote-qa-monitoring
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+SOURCE_AUDIT_FIX11_ROOT_LINES=34
+SOURCE_AUDIT_FORBIDDEN_DEEP_OWNER_TOKENS=0
+SOURCE_AUDIT_FIX10_CALL_SITES=1

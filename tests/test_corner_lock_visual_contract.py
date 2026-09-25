@@ -6,6 +6,7 @@ import tkinter as tk
 import pytest
 
 import gui
+import fold_designer_bridge as bridge
 
 
 def _require_display():
@@ -13,31 +14,36 @@ def _require_display():
         pytest.skip("需要 Tk 顯示環境")
 
 
-def _select_head(app, root):
-    app.notebook.select(app.tab_head)
-    app.refresh_corner_type_panel()
-    root.update_idletasks(); root.update()
-
-
-def test_main_locked_corner_ui_shows_lock_and_collapses_detail_area():
+def test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area():
     _require_display()
     root = tk.Tk(); root.withdraw()
+    app = None
+    designer = None
     try:
         app = gui.BoxCalculatorGUI(root)
-        _select_head(app, root)
-        assert app.manual_corner_param_lock_button.winfo_manager() == "pack"
-        assert "鎖定" in app.manual_corner_param_lock_button.cget("text")
-        # Fine-detail editor must consume zero layout space while locked.
-        assert app.manual_corner_param_frame.winfo_manager() == ""
-        # Pair-symmetry toggles are part of advanced editing and must also collapse.
-        assert all(cb.winfo_manager() == "" for cb in app.manual_corner_pair_same_checkbuttons.values())
-
-        app.toggle_manual_corner_parameter_lock()
+        designer = app.open_original_fold_designer()
+        designer.activate_part("head")
         root.update_idletasks(); root.update()
-        assert "解鎖" in app.manual_corner_param_lock_button.cget("text")
-        assert app.manual_corner_param_frame.winfo_manager() == "pack"
-        assert all(cb.winfo_manager() == "pack" for cb in app.manual_corner_pair_same_checkbuttons.values())
+
+        assert not hasattr(app, "notebook")
+        assert designer.parameter_lock_button is not None
+        assert "鎖定" in designer.parameter_lock_button.cget("text")
+        # Fine-detail editor must consume zero layout space while locked.
+        assert designer.corner_detail_frames == {}
+        # Pair-symmetry toggles are part of advanced editing and must also collapse.
+        assert all(cb.winfo_manager() == "" for cb in designer.corner_pair_checkbuttons.values())
+
+        bridge._phase6_toggle_parameter_panel(designer)
+        root.update_idletasks(); root.update()
+        assert "解鎖" in designer.parameter_lock_button.cget("text")
+        assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())
+        assert all(cb.winfo_manager() == "pack" for cb in designer.corner_pair_checkbuttons.values())
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
@@ -63,7 +69,7 @@ def test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_
         labels = [designer.project_file_menu.entrycget(i, "label") for i in range(designer.project_file_menu.index("end") + 1)]
         assert labels == ["開啟", "儲存", "另存新檔"]
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         assert "解鎖" in designer.parameter_lock_button.cget("text")
         assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())

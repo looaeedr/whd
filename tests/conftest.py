@@ -1,4 +1,4 @@
-"""Phase6 pytest bootstrap and display-policy guardrails."""
+"""Phase6 pytest bootstrap, display-policy guardrails, and test taxonomy markers."""
 from __future__ import annotations
 
 import os
@@ -14,11 +14,15 @@ root = str(PROJECT_ROOT)
 if root not in sys.path:
     sys.path.insert(0, root)
 
+from tools.test_lane_policy import classify_test
+
+
 _TK_DISPLAY_ERROR_FRAGMENTS = (
     "no display name and no $DISPLAY environment variable",
     "couldn't connect to display",
 )
 _TK_DISPLAY_SKIP_REASON = "requires Tk display (DISPLAY is unset)"
+_DISPLAY_REASON_TOKENS = ("display", "tk", "xvfb")
 
 
 def _is_missing_display_tcl_error(exc: BaseException) -> bool:
@@ -29,11 +33,46 @@ def _is_missing_display_tcl_error(exc: BaseException) -> bool:
     return any(fragment.lower() in message for fragment in _TK_DISPLAY_ERROR_FRAGMENTS)
 
 
+def _item_requires_display_for_taxonomy(item: pytest.Item) -> bool:
+    """Classify display ownership without changing skip/fail behavior.
+
+    Legacy tests commonly use ``skipif`` with a DISPLAY/Tk reason instead of the
+    explicit ``requires_tk_display`` marker.  The reason text is stable across
+    headless and Xvfb collection, unlike the already-evaluated boolean condition.
+    """
+    if item.get_closest_marker("requires_tk_display") is not None:
+        return True
+    for marker in item.iter_markers(name="skipif"):
+        reason = str(marker.kwargs.get("reason", "")).lower()
+        if any(token in reason for token in _DISPLAY_REASON_TOKENS):
+            return True
+    return False
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
         "requires_tk_display: test requires a real Tk display; skipped only when DISPLAY is absent",
     )
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Attach taxonomy markers only; never deselect, skip, xfail, or mutate outcomes."""
+    for item in items:
+        path = str(getattr(item, "path", getattr(item, "fspath", "")))
+        try:
+            rel = Path(path).resolve().relative_to(PROJECT_ROOT).as_posix()
+        except (OSError, ValueError):
+            rel = Path(path).as_posix()
+        classification = classify_test(
+            path=rel,
+            nodeid=item.nodeid,
+            requires_display=_item_requires_display_for_taxonomy(item),
+        )
+        item.add_marker(getattr(pytest.mark, classification.primary))
+        for marker_name in classification.secondary:
+            item.add_marker(getattr(pytest.mark, marker_name))
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:

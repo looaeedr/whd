@@ -15,6 +15,7 @@ from ae_engine.corner_type_ui import (
 from ae_engine.sheetmetal_geometry import (
     CornerDirection,
     CornerTypeId,
+    CornerTypeSelection,
     CrossCornerMode,
 )
 
@@ -95,7 +96,7 @@ def test_main_gui_switching_known_model_to_custom_copies_current_corner_rules_wi
 
 def test_bridge_switching_known_model_to_custom_reseeds_from_known_rules_not_old_custom_draft():
     stale_custom = bridge._phase6_selection_to_raw(
-        bridge.CornerTypeSelection(bridge.CornerTypeId.INSERT, amount_t=3.0)
+        CornerTypeSelection(bridge.CornerTypeId.INSERT, amount_t=3.0)
     )
     holder = SimpleNamespace(
         baseline_model_var=DummyVar("自訂"),

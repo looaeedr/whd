@@ -1412,6 +1412,7 @@ class BoxBodyPieceRenderData:
     render_data: PartRenderData
     formed_outer_width: float | None = None
     formed_outer_height: float | None = None
+    formed_y_offset: float = 0.0
 
     @property
     def formed_outer_dimensions(self) -> tuple[float, float]:
@@ -1468,18 +1469,19 @@ def material_polygon_from_final_scene(scene):
     """Resolve final material once at the manufacturing boundary.
 
     AE scene builders emit the authoritative structural CUTTING outline first.
-    Later CUTTING contours are manufacturing cut-outs/features.  Some legacy
+    Later CUTTING contours are manufacturing cut-outs/features. Some legacy
     stretched baselines can also carry a mapped copy of the old structural
     outline; a same-sheet-bounds contour is therefore ignored rather than
     interpreted as one giant hole.
     """
     from shapely.geometry import LineString, Point, Polygon
-    from shapely.ops import polygonize, unary_union
+    from .cutting_material import material_from_cutting_components
     from .sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive
 
     primary = None
     secondary = []
     linework = []
+
     for primitive in getattr(scene, "primitives", ()):
         if str(getattr(primitive, "layer", "")).upper() != "CUTTING":
             continue
@@ -1489,7 +1491,7 @@ def material_polygon_from_final_scene(scene):
                 poly = Polygon(pts)
                 if not poly.is_valid:
                     poly = poly.buffer(0)
-                if poly.is_empty or poly.area <= 1e-9:
+                if poly.is_empty or float(poly.area) <= 1e-9:
                     continue
                 if primary is None:
                     primary = poly
@@ -1511,107 +1513,11 @@ def material_polygon_from_final_scene(scene):
                 )
             )
 
-    if primary is None:
-        if linework:
-            polys = [p for p in polygonize(unary_union(linework)) if p.area > 1e-9]
-            if polys:
-                primary = max(polys, key=lambda p: float(p.area))
-                secondary.extend(p for p in polys if p is not primary)
-        if primary is None:
-            raise ValueError("final DrawingScene has no structural CUTTING outline")
-    elif linework:
-        # Baseline CUTTING often arrives as exploded LINE/ARC segments.  The 2D
-        # preview can look perfectly closed even when adjacent DXF endpoints are
-        # separated by a few hundredths of a millimetre; exact polygonize then
-        # misses the contour and 3D stays solid.  Snap only segment endpoints
-        # within a tiny manufacturing tolerance before polygonizing.
-        from collections import defaultdict
-        from math import floor, hypot
-
-        minx0, miny0, maxx0, maxy0 = map(float, primary.bounds)
-        span = max(maxx0 - minx0, maxy0 - miny0, 1.0)
-        endpoint_tol = max(0.05, min(0.25, span * 2.0e-4))
-
-        endpoints = []
-        coords_by_line = []
-        for line in linework:
-            coords = list(line.coords)
-            coords_by_line.append(coords)
-            endpoints.extend([tuple(map(float, coords[0])), tuple(map(float, coords[-1]))])
-
-        parent = list(range(len(endpoints)))
-
-        def find(i):
-            while parent[i] != i:
-                parent[i] = parent[parent[i]]
-                i = parent[i]
-            return i
-
-        def union(i, j):
-            ri, rj = find(i), find(j)
-            if ri != rj:
-                parent[rj] = ri
-
-        buckets = defaultdict(list)
-        cell = endpoint_tol
-        for i, (x, y) in enumerate(endpoints):
-            gx, gy = int(floor(x / cell)), int(floor(y / cell))
-            for nx in (gx - 1, gx, gx + 1):
-                for ny in (gy - 1, gy, gy + 1):
-                    for j in buckets.get((nx, ny), ()):
-                        qx, qy = endpoints[j]
-                        if hypot(x - qx, y - qy) <= endpoint_tol:
-                            union(i, j)
-            buckets[(gx, gy)].append(i)
-
-        grouped = defaultdict(list)
-        for i, point in enumerate(endpoints):
-            grouped[find(i)].append(point)
-        snapped_point = {}
-        for root, pts in grouped.items():
-            snapped_point[root] = (
-                sum(p[0] for p in pts) / len(pts),
-                sum(p[1] for p in pts) / len(pts),
-            )
-
-        snapped_lines = []
-        for line_index, coords in enumerate(coords_by_line):
-            a = snapped_point[find(line_index * 2)]
-            b = snapped_point[find(line_index * 2 + 1)]
-            if a == b:
-                continue
-            mapped = [a] + [tuple(map(float, pt)) for pt in coords[1:-1]] + [b]
-            snapped_lines.append(LineString(mapped))
-
-        secondary.extend(
-            p for p in polygonize(unary_union(snapped_lines)) if p.area > 1e-9
-        )
-
-    minx, miny, maxx, maxy = map(float, primary.bounds)
-    sx, sy = max(1.0, maxx - minx), max(1.0, maxy - miny)
-    tolx, toly = max(1e-6, sx * 1e-4), max(1e-6, sy * 1e-4)
-
-    holes = []
-    for candidate in secondary:
-        if candidate.is_empty or candidate.area <= 1e-9:
-            continue
-        cb = tuple(map(float, candidate.bounds))
-        same_sheet_bounds = (
-            abs(cb[0] - minx) <= tolx and abs(cb[1] - miny) <= toly and
-            abs(cb[2] - maxx) <= tolx and abs(cb[3] - maxy) <= toly
-        )
-        if same_sheet_bounds:
-            continue
-        if primary.buffer(1e-7).covers(candidate.representative_point()):
-            holes.append(candidate.intersection(primary))
-
-    material = primary if not holes else primary.difference(unary_union(holes))
-    if not material.is_valid:
-        material = material.buffer(0)
-    if material.is_empty:
-        raise ValueError("final material is empty")
-    return material
-
+    return material_from_cutting_components(
+        primary=primary,
+        secondary=secondary,
+        linework=linework,
+    )
 
 def _translated_scene(scene, dx: float, dy: float = 0.0):
     from .sheetmetal_drawing import (
@@ -1750,10 +1656,10 @@ def build_box_body_divider_render_data(
 ) -> PartRenderData:
     """Build one canonical box-body divider from its resolved material chain.
 
-    Divider baseline DXF owns fixed holes only.  Its outer CUTTING contour is
-    intentionally not copied here: T3 Assembly Collision/Relief owns the final
-    assembly notch.  Baseline holes are rigidly rotated into the nominal strip
-    and centered without scaling, preserving the source A/B/C relative vectors.
+    Divider baseline DXF owns the certified fixed-hole and CROSS relief reference.
+    Runtime CUTTING is not copied as fixed vertices: the Certified Registry
+    parameterizes CROSS from canonical Fold/FW/T inputs, while 3D collision is
+    shadow verification only. Baseline holes keep the existing rigid mapping.
     """
     from .door_dividers import BoxBodyDividerPart
     from .sheetmetal_drawing import CirclePrimitive, DrawingScene, structural_result_to_primitives
@@ -1804,14 +1710,19 @@ def build_box_body_divider_render_data(
         source_bounds = ezdxf_bbox.extents(msp)
         if source_bounds.has_data:
             source_min_x = float(source_bounds.extmin.x)
+            source_max_x = float(source_bounds.extmax.x)
             source_min_y = float(source_bounds.extmin.y)
-            source_w = float(source_bounds.extmax.x) - source_min_x
+            source_w = source_max_x - source_min_x
             source_h = float(source_bounds.extmax.y) - source_min_y
             # Baseline long X axis maps to Divider span Y; baseline short Y
-            # axis maps to the fold-chain X width. Center the unscaled source
-            # envelope so every fixed hole remains datum-neutral.
-            offset_x = (float(chain.total_width) - source_h) / 2.0
-            offset_y = (float(chain.height) - source_w) / 2.0
+            # axis maps to fold-chain X.  Preserve the physical source-edge
+            # datum under the clockwise 90-degree rigid rotation:
+            #   source min-Y -> Divider min-X
+            #   source max-X -> Divider min-Y
+            # The baseline file owns fixed-hole offsets from those edges; a
+            # larger Divider span must not re-center the old hole envelope.
+            offset_x = 0.0
+            offset_y = 0.0
             for index, entity in enumerate(msp.query("CIRCLE")):
                 cx = float(entity.dxf.center.x)
                 cy = float(entity.dxf.center.y)
@@ -1820,7 +1731,7 @@ def build_box_body_divider_render_data(
                 scene.add(CirclePrimitive(
                     center=Vec2(
                         offset_x + (cy - source_min_y),
-                        offset_y + (cx - source_min_x),
+                        offset_y + (source_max_x - cx),
                     ),
                     radius=float(entity.dxf.radius),
                     layer="CUTTING",
@@ -1844,6 +1755,7 @@ def build_box_body_divider_render_data(
         metadata={
             "stable_id": str(divider.stable_id),
             "owner": "box_body",
+            "model_name": (str(divider.model_name).strip() if divider.model_name else ""),
             "axis": str(divider.axis),
             "boundary_key": str(divider.boundary_key),
             "handle_side": bool(divider.handle_side),
@@ -1881,6 +1793,7 @@ def build_box_body_structure_render_data(
         spec.fold_profile,
         w=float(spec.width), h=float(spec.height), t=float(spec.thickness), d=float(spec.depth),
         structure_state=spec.structure_state,
+        back_panel_contract=spec.back_panel_contract,
         head_corner_policy=spec.head_corner_policy, tail_corner_policy=spec.tail_corner_policy,
         head_ybottom1=float(spec.head_ybottom1), tail_ybottom1=float(spec.tail_ybottom1),
     )
@@ -1895,6 +1808,18 @@ def build_box_body_structure_render_data(
         if ctx.draw_stock:
             scene.add(ae.build_stock_outline(piece.structural.width, piece.structural.height))
         scene.extend(structural_result_to_primitives(piece.structural))
+        if piece.role == "back" and spec.back_panel_contract:
+            contract = dict(spec.back_panel_contract or {})
+            for profile in tuple(contract.get("fixed_slot_profiles") or ()):
+                scene.add_polyline(profile, layer="CUTTING", closed=True)
+            opening = contract.get("opening")
+            if opening is not None:
+                x0, y0, x1, y1 = map(float, opening)
+                scene.add_polyline(
+                    ((x0, y0), (x1, y0), (x1, y1), (x0, y1)),
+                    layer="CUTTING",
+                    closed=True,
+                )
         resolved_features = tuple(feature_stores.get(piece.key, ()) or ())
         if resolved_features:
             scene.extend(resolved_features_to_primitives(resolved_features))
@@ -1907,10 +1832,15 @@ def build_box_body_structure_render_data(
             y_segments=(MaterialSegment("Y", "piece_height", float(piece.structural.height), "BOX_BODY_STRUCTURAL_RESULT"),),
             source="BOX_BODY_PHYSICAL_PIECE", revision=1,
         )
+        metadata = {}
+        if piece.role == "back" and spec.back_panel_contract:
+            metadata["back_panel_contract"] = dict(spec.back_panel_contract)
+            metadata["back_panel_mode"] = str(spec.back_panel_contract.get("mode") or "FULL")
         render_data = PartRenderData(
             scene=scene,
             material=material_polygon_from_final_scene(scene),
             fold_guides=fold_guides_from_final_scene(scene),
+            metadata=metadata,
             unfolded_topology=topology,
         )
         pieces.append(BoxBodyPieceRenderData(
@@ -1919,6 +1849,7 @@ def build_box_body_structure_render_data(
             fold_profile=tuple(piece.fold_profile), render_data=render_data,
             formed_outer_width=float(piece.formed_outer_dimensions[0]),
             formed_outer_height=float(piece.formed_outer_dimensions[1]),
+            formed_y_offset=float(getattr(piece, "formed_y_offset", 0.0)),
         ))
     piece_tuple = tuple(pieces)
     return BoxBodyStructureRenderData(
@@ -2492,21 +2423,38 @@ def generate_part(
     )
 
 
-def save_resolved_manufacturing_geometry_dxf(
-    resolved_geometry,
-    output_dir: str | os.PathLike[str],
-    *,
-    overwrite: bool = False,
-) -> dict[str, str]:
-    """Export the exact canonical ResolvedManufacturingGeometry to per-part DXF.
+_BOX_BODY_PHYSICAL_PIECE_ROLES = frozenset({
+    "left", "middle", "right",
+    "left_side", "back", "right_side",
+    "integral",
+})
 
-    This is intentionally a sink: it never reconstructs PartSpec or recomputes
-    Corner/Relief.  Every file is serialized from the same PartRenderData already
-    consumed by 2D/Single3D/Assembly3D.
-    """
-    root = Path(output_dir)
-    root.mkdir(parents=True, exist_ok=True)
-    outputs: dict[str, str] = {}
+
+def _safe_dxf_part_stem(part_id: str) -> str:
+    """Map one stable part id to a Windows-safe default DXF filename stem."""
+    value = str(part_id or "").strip()
+    if not value:
+        raise ValueError("physical part id is empty")
+    return re.sub(r'[<>:"/\\\\|?*]', "_", value)
+
+
+def _resolved_physical_dxf_stem(part_id: str) -> str:
+    """Keep Box Body physical-piece filenames distinct from dynamic part IDs."""
+    value = str(part_id or "").strip()
+    root, sep, role = value.partition(":")
+    if (
+        sep
+        and root == "box_body"
+        and ":" not in role
+        and role in _BOX_BODY_PHYSICAL_PIECE_ROLES
+    ):
+        return f"box_body__{_safe_dxf_part_stem(role)}"
+    return _safe_dxf_part_stem(value)
+
+
+def _resolved_physical_render_parts(resolved_geometry):
+    """Return ordered (stable_part_id, render_data) rows from canonical resolved state."""
+    rows = []
     for part in tuple(getattr(resolved_geometry, "parts", ()) or ()):
         key = str(getattr(part, "part_key", "") or "").strip()
         if not key:
@@ -2514,22 +2462,46 @@ def save_resolved_manufacturing_geometry_dxf(
         render_data = getattr(part, "render_data", None)
         if render_data is None:
             raise ValueError(f"resolved manufacturing part missing render_data: {key}")
-        # Piece-level canonical parts are not silently merged: each physical
-        # piece is exported from its own already-resolved render_data.
         pieces = tuple(getattr(render_data, "pieces", ()) or ())
         if pieces:
             for index, piece in enumerate(pieces, start=1):
                 piece_render = getattr(piece, "render_data", None)
                 if piece_render is None:
                     raise ValueError(f"resolved piece missing render_data: {key}#{index}")
-                piece_key = str(getattr(piece, "piece_key", "") or f"piece{index}")
-                path = root / f"{key}__{piece_key}.dxf"
-                outputs[f"{key}:{piece_key}"] = save_part_render_data_dxf(
-                    piece_render, path, overwrite=overwrite
-                )
+                piece_key = str(
+                    getattr(piece, "key", "")
+                    or getattr(piece, "piece_key", "")
+                    or f"piece{index}"
+                ).strip()
+                rows.append((f"{key}:{piece_key}", piece_render))
         else:
-            path = root / f"{key}.dxf"
-            outputs[key] = save_part_render_data_dxf(render_data, path, overwrite=overwrite)
+            rows.append((key, render_data))
+    return tuple(rows)
+
+
+def _resolved_physical_dxf_filename(part_id: str) -> str:
+    return f"{_resolved_physical_dxf_stem(part_id)}.dxf"
+
+
+def save_resolved_manufacturing_geometry_dxf(
+    resolved_geometry,
+    output_dir: str | os.PathLike[str],
+    *,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    """Export exact canonical physical parts to stable per-part DXF files.
+
+    Stable part IDs remain domain IDs (including ':' separators).  Only the
+    filesystem filename is sanitized for Windows compatibility.
+    """
+    root = Path(output_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    outputs: dict[str, str] = {}
+    for part_id, render_data in _resolved_physical_render_parts(resolved_geometry):
+        path = root / _resolved_physical_dxf_filename(part_id)
+        outputs[part_id] = save_part_render_data_dxf(
+            render_data, path, overwrite=overwrite
+        )
     return outputs
 
 
@@ -2545,3 +2517,90 @@ def resolved_manufacturing_nc_capability() -> dict[str, object]:
         "reason": "production NC sink is not implemented at the ResolvedManufacturingGeometry boundary",
         "canonical_input": "ResolvedManufacturingGeometry",
     }
+
+
+def verify_saved_part_render_data_dxf(
+    render_data: PartRenderData,
+    output_path: str | os.PathLike[str],
+    *,
+    coordinate_tolerance: float = 1e-6,
+    area_tolerance: float = 1e-6,
+):
+    """Public manufacturing boundary for independent saved-DXF acceptance."""
+    from .dxf_acceptance import verify_saved_part_render_data_dxf as _verify
+    return _verify(
+        render_data,
+        output_path,
+        coordinate_tolerance=coordinate_tolerance,
+        area_tolerance=area_tolerance,
+    )
+
+
+def verify_saved_resolved_manufacturing_geometry_dxf(
+    resolved_geometry,
+    output_dir: str | os.PathLike[str],
+    *,
+    coordinate_tolerance: float = 1e-6,
+    area_tolerance: float = 1e-6,
+):
+    """Reopen and verify every canonical physical-part DXF as one acceptance set."""
+    from .dxf_acceptance import (
+        ResolvedDxfAcceptanceIssue,
+        ResolvedDxfAcceptanceResult,
+    )
+
+    root = Path(output_dir)
+    expected_rows = _resolved_physical_render_parts(resolved_geometry)
+    expected_files = {
+        _resolved_physical_dxf_filename(part_id): part_id
+        for part_id, _render_data in expected_rows
+    }
+    actual_files = {path.name for path in root.glob("*.dxf") if path.is_file()}
+    issues = []
+    part_results = {}
+
+    missing = sorted(set(expected_files) - actual_files)
+    extra = sorted(actual_files - set(expected_files))
+    for filename in missing:
+        issues.append(ResolvedDxfAcceptanceIssue(
+            expected_files[filename],
+            "MISSING_PART",
+            f"expected physical-part DXF is missing: {filename}",
+            filename,
+            None,
+        ))
+    for filename in extra:
+        issues.append(ResolvedDxfAcceptanceIssue(
+            filename[:-4] if filename.lower().endswith(".dxf") else filename,
+            "EXTRA_PART",
+            f"stale/extra DXF not present in current resolved physical-part state: {filename}",
+            None,
+            filename,
+        ))
+
+    for part_id, render_data in expected_rows:
+        filename = _resolved_physical_dxf_filename(part_id)
+        path = root / filename
+        if not path.is_file():
+            continue
+        result = verify_saved_part_render_data_dxf(
+            render_data,
+            path,
+            coordinate_tolerance=coordinate_tolerance,
+            area_tolerance=area_tolerance,
+        )
+        part_results[part_id] = result
+        for issue in result.issues:
+            issues.append(ResolvedDxfAcceptanceIssue(
+                part_id,
+                issue.category,
+                issue.detail,
+                issue.expected,
+                issue.actual,
+            ))
+
+    return ResolvedDxfAcceptanceResult(
+        ok=not issues,
+        issues=tuple(issues),
+        part_results=part_results,
+    )

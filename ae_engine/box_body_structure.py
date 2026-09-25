@@ -15,6 +15,7 @@ from phase6_box_body_structure import (
     normalize_box_body_structure_state,
     resolve_two_piece_widths,
     resolve_three_piece_widths,
+    side_rear_bend_material_length,
 )
 from .contracts import FoldProfileSegment
 from .sheetmetal_geometry import (
@@ -51,6 +52,7 @@ class ResolvedBoxBodyPiece:
     structural: StructuralGeometryResult
     formed_outer_width: float | None = None
     formed_outer_height: float | None = None
+    formed_y_offset: float = 0.0
 
     @property
     def formed_width(self) -> float:
@@ -121,6 +123,12 @@ def _copy_profile_rows(profile):
         key = _value(row, "phase6_key")
         if key:
             copied["phase6_key"] = str(key)
+        ui_add = _value(row, "ui_len_add")
+        if ui_add is not None:
+            copied["ui_len_add"] = float(ui_add)
+        formed_length = _value(row, "formed_length")
+        if formed_length is not None:
+            copied["formed_length"] = float(formed_length)
         rows.append(copied)
     return rows
 
@@ -134,11 +142,21 @@ def _core_indexes(rows):
 
 
 def _to_contract(rows) -> tuple[FoldProfileSegment, ...]:
+    def formed_length(row):
+        explicit = row.get("formed_length")
+        if explicit is not None:
+            return float(explicit)
+        ui_add = row.get("ui_len_add")
+        if ui_add is None or row.get("core"):
+            return None
+        return float(row.get("len", 0.0)) + abs(float(ui_add))
+
     return tuple(FoldProfileSegment(
         length=float(row.get("len", 0.0)),
         angle=(float(row["angle"]) if "angle" in row else None),
         core=(str(row["core"]) if row.get("core") else None),
         phase6_key=(str(row["phase6_key"]) if row.get("phase6_key") else None),
+        formed_length=formed_length(row),
     ) for row in rows)
 
 
@@ -321,6 +339,40 @@ def _side_back_rows(profile, *, rear_bend):
     right.extend(deepcopy(rows[right_d:]))
     return left, right
 
+
+def _merge_side_back_piece_override(base_rows, override_rows, *, shared_keys):
+    """Keep piece-local topology while rebasing shared cabinet dimensions."""
+    if not override_rows:
+        return deepcopy(list(base_rows or ()))
+    base_by_key = {
+        str(row.get("phase6_key") or ""): row
+        for row in tuple(base_rows or ())
+        if str(row.get("phase6_key") or "")
+    }
+    result = []
+    for raw in tuple(override_rows or ()):
+        row = deepcopy(dict(raw))
+        key = str(row.get("phase6_key") or "")
+        base = base_by_key.get(key)
+        if key in set(shared_keys or ()) and base is not None:
+            # Length/core are shared physical dimensions. Angle/topology remain
+            # piece-local so the three Fold editors are genuinely independent.
+            row["len"] = float(base.get("len", row.get("len", 0.0)))
+            if base.get("ui_len_add") is not None:
+                row["ui_len_add"] = float(base["ui_len_add"])
+            else:
+                row.pop("ui_len_add", None)
+            if base.get("formed_length") is not None:
+                row["formed_length"] = float(base["formed_length"])
+            else:
+                row.pop("formed_length", None)
+            if base.get("core") is not None:
+                row["core"] = base.get("core")
+            else:
+                row.pop("core", None)
+        result.append(row)
+    return result
+
 def resolve_box_body_structure(
     profile,
     *,
@@ -329,6 +381,7 @@ def resolve_box_body_structure(
     t,
     d=None,
     structure_state=None,
+    back_panel_contract=None,
     head_corner_policy=None,
     tail_corner_policy=None,
     head_ybottom1=15.0,
@@ -356,7 +409,7 @@ def resolve_box_body_structure(
 
     if type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
         cfg = state["configs"][type_id.value]
-        rear_bend = float(cfg.get("side_rear_bend", 15.0))
+        rear_bend = side_rear_bend_material_length(state, float(t))
         comp_t = float(cfg.get("back_width_comp_t", 0.5))
         if rear_bend <= 0:
             raise ValueError("側板後折必須大於 0")
@@ -371,8 +424,41 @@ def resolve_box_body_structure(
         back_width = float(w) - comp_t * float(t)
         if back_width <= 0:
             raise ValueError("側背分離後面板寬度計算後必須大於 0")
+        back_contract = dict(back_panel_contract or {})
+        if back_contract:
+            contract_width = float(back_contract.get("panel_width", back_width))
+            if abs(contract_width - back_width) > 1e-6:
+                raise ValueError("後面板 contract 寬度與 canonical structure 不一致")
+            back_height = float(back_contract.get("material_height", height))
+            back_y_offset = float(back_contract.get("formed_y_offset", 0.0))
+            if back_height <= 0.0 or back_height > float(height) + 1e-6:
+                raise ValueError("後面板 contract 高度超出 canonical structure")
+        else:
+            back_height = float(height)
+            back_y_offset = 0.0
+        back_rows = [{"len": back_width, "core": "W_BACK", "phase6_key": "back_panel"}]
+
+        piece_overrides = dict(cfg.get("piece_profiles") or {})
+        left_rows = _merge_side_back_piece_override(
+            left_rows, piece_overrides.get("left_side"),
+            shared_keys={"zl1", "zl2", "fw_left", "d_left"},
+        )
+        back_rows = _merge_side_back_piece_override(
+            back_rows, piece_overrides.get("back"),
+            shared_keys={"back_panel"},
+        )
+        right_rows = _merge_side_back_piece_override(
+            right_rows, piece_overrides.get("right_side"),
+            shared_keys={"d_right", "fw_right", "zr2"},
+        )
+
         offset = (float(w) - back_width) / 2.0
         formed_depth = _formed_depth_from_profile(profile, thickness=float(t), explicit_depth=d)
+        back_result = (
+            _flat_panel_result(width=back_width, height=back_height)
+            if len(back_rows) == 1 and not back_rows[0].get("angle")
+            else _generic_strip_result(back_rows, height=back_height)
+        )
         pieces = (
             ResolvedBoxBodyPiece(
                 "box_body_left_side", "left_side", 0.0, 0.0,
@@ -381,9 +467,9 @@ def resolve_box_body_structure(
             ),
             ResolvedBoxBodyPiece(
                 "box_body_back", "back", offset, offset + back_width,
-                (FoldProfileSegment(back_width, None, "W_BACK", "back_panel"),),
-                _flat_panel_result(width=back_width, height=height),
-                formed_outer_width=back_width, formed_outer_height=height,
+                _to_contract(back_rows), back_result,
+                formed_outer_width=back_width, formed_outer_height=back_height,
+                formed_y_offset=back_y_offset,
             ),
             ResolvedBoxBodyPiece(
                 "box_body_right_side", "right_side", float(w), float(w),

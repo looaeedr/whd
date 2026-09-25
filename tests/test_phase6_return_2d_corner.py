@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 
-def test_return_2d_after_loaded_project_closes_designer_cleanly(tmp_path):
+def test_loaded_project_opens_head_2d_in_fold_designer_corner_data(tmp_path):
     import os
     if not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
@@ -30,26 +30,32 @@ def test_return_2d_after_loaded_project_closes_designer_cleanly(tmp_path):
         }
         snapshot["existing_parts"] = list(snapshot["workspace"]["existing_parts"])
         path = write_project(
-            tmp_path / "return-2d.p6fold",
+            tmp_path / "corner-data-2d.p6fold",
             {"schema": PROJECT_SCHEMA, "saved_at": "now", "snapshot": snapshot, "final_geometry": {}},
         )
 
         designer = app.load_phase6_project(path, open_designer=True)
         for _ in range(4):
             root.update_idletasks(); root.update()
-        for key in designer.available_parts:
-            designer.activate_part(key)
-            root.update_idletasks(); root.update()
-        bridge._phase6_show_assembly(designer)
-        root.update_idletasks(); root.update()
-        designer.activate_part("head")
-        root.update_idletasks(); root.update()
 
-        assert bridge._phase6_return_to_2d_corner(designer) is True
-        root.update_idletasks(); root.update()
-        assert app.fold_designer_window is None
-        assert app.fold_designer_app is None
-        assert "封頭" in app.notebook.tab(app.notebook.select(), "text")
+        bridge._phase6_show_corner_data(designer)
+        selected = bridge._phase6_select_corner_data_part(designer, "head")
+        for _ in range(2):
+            root.update_idletasks(); root.update()
+
+        assert selected == "head"
+        assert designer._phase6_3d_display_mode == "corner_data"
+        assert designer.part_var.get() == "截角資料"
+        assert designer._phase6_corner_data_selected_part_key == "head"
+        assert designer.corner_data_canvas is not None
+        assert app.fold_designer_window is not None
+        assert app.fold_designer_app is designer
+
+        # T7 retired the standalone Notebook and the return-to-legacy-2D path.
+        # The same 2D capability must remain inside Fold Designer instead.
+        assert not hasattr(app, "notebook")
+        assert not hasattr(bridge, "_phase6_return_to_2d_corner")
+        assert not hasattr(designer, "return_2d_button")
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:

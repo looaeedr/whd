@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 目前狀態補充：3D 獨立入口調整
 
 2026-08-18 後續 UI 決定：保留平鋪板件按鈕與主工作區開孔；取消內嵌 `3D折彎` workspace mode，恢復左側 `開啟折彎 / 3D 設計` 獨立 Toplevel 入口。以下內容保留為 FIX14 原始實作歷史。

@@ -4,6 +4,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
+SNAPSHOTS = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 
 
 def _function_source(name):
@@ -16,8 +17,26 @@ def _function_source(name):
     raise AssertionError(f"missing function: {name}")
 
 
+def _module_function_source(path, name):
+    text = path.read_text(encoding="utf-8")
+    tree = ast.parse(text)
+    lines = text.splitlines()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            return "\n".join(lines[node.lineno - 1: node.end_lineno])
+    raise AssertionError(f"missing function: {name}")
+
+
 def test_3d_render_path_consumes_scene_callback_only():
-    src = _function_source("_phase6_final_scene_view_request")
+    # Phase 4 T1 (#479) moved the FinalScene port factory to the existing
+    # application composition owner. Keep validating the same single-source
+    # callback, but at its new authoritative wiring seam.
+    src = _class_method_source(
+        ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+        "Phase6FoldDesignerComposition",
+        "final_scene_ports",
+    )
+    assert "final_render_provider" in src
     assert "_phase6_query_final_render_data" in src
     forbidden = (
         "_phase6_cutting_polygon_from_scene",
@@ -139,23 +158,20 @@ def _class_method_source(path, class_name, method_name):
 
 
 def test_gui_3d_callback_does_not_construct_part_specs_directly():
-    gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "BoxCalculatorGUI", "_query_fold_designer_render_data")
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    src = inspect.getsource(owner._query_fold_designer_render_data)
     assert "_fold_designer_part_spec_from_payload" in src
     assert "_authoritative_render_data" in src
-    for ctor in (
-        "DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(",
-        "BasePlatePartSpec(", "IndicatorBoxPartSpec(",
-    ):
+    for ctor in ("DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(", "BasePlatePartSpec(", "IndicatorBoxPartSpec("):
         assert ctor not in src
-
 
 def test_gui_authoritative_render_data_cache_reuses_exact_object(monkeypatch):
     import gui
     from ae_engine.contracts import DoorPartSpec, ManufacturingContext
     from types import SimpleNamespace
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     calls = []
     expected = SimpleNamespace(scene=object(), material=object())
     monkeypatch.setattr(
@@ -187,7 +203,7 @@ def test_committed_and_fold_draft_door_use_identical_part_spec_mapping():
         def get(self):
             return "金庫型"
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     feature = CircleFeature(12.0, FeatureAnchor.PANEL_CENTER, Vec2(5.0, -7.0))
     app.surface_features = {"door": [feature]}
     app.door_indicator_offset_x = 11.0
@@ -217,17 +233,20 @@ def test_committed_and_fold_draft_door_use_identical_part_spec_mapping():
 
 def test_single_door_2d_draw_consumes_authoritative_final_scene_only():
     gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "BoxCalculatorGUI", "draw_door")
-    assert "_single_door_part_spec" in src
-    assert "_authoritative_render_data" in src
-    assert "render_drawing_scene" in src
+    draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_door")
+    snapshot_src = _module_function_source(SNAPSHOTS, "single_door_render_snapshot")
+    assert "_single_door_part_spec" in snapshot_src
+    assert "_authoritative_render_data" in snapshot_src
+    assert "_single_door_render_snapshot" in draw_src
+    assert "render_drawing_scene" in draw_src
+    combined = draw_src + "\n" + snapshot_src
     for forbidden in (
         "get_stretched_door_data",
         "render_structural_result",
         "render_secondary_scene",
         "render_surface_user_features",
     ):
-        assert forbidden not in src
+        assert forbidden not in combined
 
 
 def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
@@ -247,7 +266,7 @@ def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
         def get(self):
             return "金庫型"
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     feature = CircleFeature(10.0, FeatureAnchor.PANEL_CENTER, Vec2(0.0, 0.0))
     app.surface_features = {"door": [feature]}
     app.door_indicator_offset_x = 0.0
@@ -284,37 +303,38 @@ def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
 
 
 def test_fold_draft_adapter_reuses_canonical_part_spec_helpers():
-    gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "BoxCalculatorGUI", "_fold_designer_part_spec_from_payload")
-    for ctor in (
-        "DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(",
-        "BasePlatePartSpec(", "IndicatorBoxPartSpec(",
-    ):
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    src = inspect.getsource(owner._fold_designer_part_spec_from_payload)
+    for ctor in ("DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(", "BasePlatePartSpec(", "IndicatorBoxPartSpec("):
         assert ctor not in src
     for helper in (
-        "_box_body_part_spec_from_values",
-        "_end_cap_part_spec_from_values",
-        "_door_part_spec_from_values",
-        "_base_plate_part_spec_from_values",
-        "_indicator_box_part_spec_from_values",
-        "_indicator_door_part_spec_from_values",
+        "_box_body_part_spec_from_values", "_end_cap_part_spec_from_values",
+        "_door_part_spec_from_values", "_base_plate_part_spec_from_values",
+        "_indicator_box_part_spec_from_values", "_indicator_door_part_spec_from_values",
     ):
         assert helper in src
 
-
 def test_all_primary_2d_part_previews_use_authoritative_render_data():
     gui_path = ROOT / "gui.py"
-    for method in (
-        "draw_box_body", "draw_end_cap", "draw_door", "draw_base_plate",
-        "draw_indicator_box", "draw_indicator_door",
-    ):
-        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
-        assert "_authoritative_render_data" in src, method
+    owners = {
+        "draw_box_body": ("_box_body_render_snapshot", "box_body_render_snapshot"),
+        "draw_end_cap": ("_end_cap_render_snapshot", "end_cap_render_snapshot"),
+        "draw_door": ("_single_door_render_snapshot", "single_door_render_snapshot"),
+        "draw_base_plate": ("_base_plate_render_snapshot", "base_plate_render_snapshot"),
+        "draw_indicator_box": ("_indicator_box_render_snapshot", "indicator_box_render_snapshot"),
+        "draw_indicator_door": ("_indicator_door_render_snapshot", "indicator_door_render_snapshot"),
+    }
+    for method, (host_snapshot, app_snapshot) in owners.items():
+        draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
+        snapshot_src = _module_function_source(SNAPSHOTS, app_snapshot)
+        assert host_snapshot in draw_src, method
+        assert "_authoritative_render_data" in snapshot_src, method
 
 
 def test_baseline_reload_invalidates_authoritative_render_cache():
     import gui
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     app._authoritative_part_render_cache = {("old", "ctx"): object()}
     app._door_layout_baseline_cache = {"old": object()}
     app._box_body_baseline_face_cache = {"old": object()}
@@ -353,7 +373,6 @@ def test_3d_view_never_calls_legacy_geometry_renderer(monkeypatch):
 
     monkeypatch.setattr(bridge, "_phase6_final_scene_view_request", lambda self: object())
     monkeypatch.setattr(bridge.Phase6FinalSceneView, "render", lambda self, request: calls.append("final-material") or [])
-    monkeypatch.setattr(bridge, "_phase6_update_unfolded_size_label", lambda self: None)
 
     bridge._phase6_install_renderer_view(app)
     app.renderer.render()
@@ -422,7 +441,7 @@ def test_opening_phase6_designer_does_not_execute_legacy_renderer(monkeypatch):
     root = tk.Tk(); root.withdraw()
     app = None
     try:
-        app = gui.BoxCalculatorGUI(root)
+        app = gui.Phase6ApplicationHost(root)
         assert calls == []
         app.open_original_fold_designer()
         assert calls == []
@@ -462,7 +481,7 @@ def test_gui_export_reuses_cached_final_scene_without_second_manufacturing_build
     from shapely.geometry import box
     from types import SimpleNamespace
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     app._authoritative_part_render_cache = {}
     scene = DrawingScene()
     render_data = SimpleNamespace(scene=scene, material=box(0, 0, 100, 80), fold_guides=())
@@ -492,12 +511,16 @@ def test_gui_export_reuses_cached_final_scene_without_second_manufacturing_build
 
 
 def test_all_gui_dxf_export_paths_serialize_authoritative_render_data_not_generate_again():
-    gui_path = ROOT / "gui.py"
-    for method in (
-        "export_selected_dxf",
-        "export_multi_door_layout_dxfs",
-        "export_multi_door_indicator_box_parts",
-    ):
-        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
+    import inspect
+    from gui_modules.project import export_actions as owner
+
+    selected = inspect.getsource(owner.export_selected_dxf)
+    helper = inspect.getsource(owner._export_selected_parts)
+    assert "manufacturing_api.generate_part" not in selected + helper
+    assert "_export_selected_parts" in selected
+    assert "_export_authoritative_part" in helper
+
+    for method in ("export_multi_door_layout_dxfs", "export_multi_door_indicator_box_parts"):
+        src = inspect.getsource(getattr(owner, method))
         assert "manufacturing_api.generate_part" not in src, method
         assert "_export_authoritative_part" in src, method

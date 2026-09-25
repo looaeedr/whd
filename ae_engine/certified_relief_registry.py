@@ -26,6 +26,8 @@ _ALLOWED_GEOMETRY_INPUTS = frozenset({
     "BOX_BODY_FORMED_FW", "ENDCAP_SIDE_FOLD", "ENDCAP_FW",
     "ENDCAP_YTOP1", "ENDCAP_YBOTTOM1", "BOX_SIDE_REAR_BEND", "SHEET_THICKNESS",
     "BOTTOM_RELIEF_RESERVE_U", "BOTTOM_RELIEF_RESERVE_V",
+    "DIVIDER_CORE_START", "DIVIDER_FIRST_OUTSIDE", "DIVIDER_FW_OUTSIDE",
+    "DIVIDER_FW_MATERIAL", "DIVIDER_LAST_OUTSIDE", "BOX_ZL1_FORMED",
 })
 
 from .sheetmetal_geometry import (
@@ -65,6 +67,7 @@ class CertifiedReliefRule:
     topology_levels: int
     formula_x: str
     formula_y: str
+    rule_domain: str = "ENDCAP_RELIEF"
     formula_secondary: str | None = None
     joint_signature: tuple[Mapping[str, str], ...] = ()
     preconditions: tuple[str, ...] = ()
@@ -79,6 +82,8 @@ class CertifiedReliefRule:
     adjustment_type: str = ""
     adjustment_amount: object | None = None
     certification_evidence: object | None = None
+    corner_type: str = ""
+    cross_parameters: Mapping[str, object] | None = None
     solver_shadow_policy: str = "REQUIRED_NO_OVERRIDE"
     evaluator: Callable[..., "CertifiedReliefResult | None"] | None = None
 
@@ -104,6 +109,16 @@ class CertifiedReliefResult:
 
 
 @dataclass(frozen=True)
+class CertifiedDividerCrossReliefResult:
+    """Certified Divider CROSS result: primary stays fold_u/fold_v; slot is additive."""
+
+    rule: CertifiedReliefRule
+    min_y: object
+    max_y: object
+    geometry_evidence: Mapping[str, object] | None = None
+
+
+@dataclass(frozen=True)
 class CertifiedCornerPolicyRule:
     """固定板件 CornerType 資料庫項目。
 
@@ -124,6 +139,8 @@ _ALLOWED_FORMULA_NAMES = frozenset({
     "T", "FW", "side_fold", "ytop1", "ybottom1", "rear_bend",
     "mating_width", "effective_mating_width", "fold_u", "fold_v", "clearance",
     "reserve_u", "reserve_v",
+    "core_start", "divider_first_outside", "divider_fw_outside",
+    "divider_fw_material", "divider_last_outside", "box_zl1_formed",
 })
 _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
 _ALLOWED_UNARYOPS = (ast.UAdd, ast.USub)
@@ -160,8 +177,22 @@ def load_external_relief_rule_records(path: str | Path | None = None) -> tuple[d
         topology = int(raw.get("topology_levels", 0) or 0)
         if topology not in (1, 2):
             raise CertifiedReliefRegistryError(f"invalid topology_levels: {rid}@{rev}")
-        if not isinstance(raw.get("joint_signature"), list) or not raw.get("joint_signature"):
-            raise CertifiedReliefRegistryError(f"missing joint_signature: {rid}@{rev}")
+        rule_domain = str(raw.get("rule_domain") or "ENDCAP_RELIEF").strip().upper()
+        if rule_domain not in {"ENDCAP_RELIEF", "DIVIDER_CROSS"}:
+            raise CertifiedReliefRegistryError(f"unsupported rule_domain: {rid}@{rev}: {rule_domain}")
+        joint_signature = raw.get("joint_signature")
+        if rule_domain == "ENDCAP_RELIEF":
+            if not isinstance(joint_signature, list) or not joint_signature:
+                raise CertifiedReliefRegistryError(f"missing joint_signature: {rid}@{rev}")
+        else:
+            if str(raw.get("part_role") or "").strip().upper() != "DIVIDER":
+                raise CertifiedReliefRegistryError(f"DIVIDER_CROSS requires part_role=DIVIDER: {rid}@{rev}")
+            if str(raw.get("corner_type") or "").strip().upper() != CornerTypeId.CROSS.value:
+                raise CertifiedReliefRegistryError(f"DIVIDER_CROSS requires corner_type=CROSS: {rid}@{rev}")
+            if joint_signature not in (None, []):
+                raise CertifiedReliefRegistryError(
+                    f"DIVIDER_CROSS must not declare AssemblyJoint relations: {rid}@{rev}"
+                )
         geometry_inputs = raw.get("geometry_inputs")
         if geometry_inputs is not None:
             if not isinstance(geometry_inputs, list) or not geometry_inputs:
@@ -242,6 +273,37 @@ def evaluate_relief_formula_record(record: Mapping[str, object], variables: Mapp
     return result
 
 
+def evaluate_divider_cross_formula_record(
+    record: Mapping[str, object],
+    variables: Mapping[str, float],
+) -> dict[str, float]:
+    """Evaluate the Divider CROSS A-model without replacing fold_u/fold_v ownership."""
+    formula = dict(record.get("formula", {}) or {})
+    required = (
+        "slotted_fold_u", "plain_fold_u", "fold_v",
+        "slot_width", "slot_straight_depth", "slot_radius",
+    )
+    missing = [name for name in required if name not in formula]
+    if missing:
+        raise CertifiedReliefRegistryError(
+            "Divider CROSS formula missing: " + ", ".join(missing)
+        )
+    result = {
+        name: evaluate_relief_formula_expression(str(formula[name]), variables)
+        for name in required
+    }
+    for key, value in result.items():
+        if value <= 0:
+            raise CertifiedReliefRegistryError(
+                f"Divider CROSS formula result must be > 0: {key}={value}"
+            )
+    if 2.0 * result["slot_radius"] > result["slot_width"] + 1e-9:
+        raise CertifiedReliefRegistryError(
+            "Divider CROSS slot_radius cannot exceed half slot_width"
+        )
+    return result
+
+
 def _external_record_map() -> dict[str, dict[str, object]]:
     records = [r for r in load_external_relief_rule_records() if bool(r.get("active", True))]
     return {str(r["rule_id"]): r for r in records}
@@ -266,6 +328,7 @@ def _rule_from_record(raw: Mapping[str, object], evaluator) -> CertifiedReliefRu
         topology_levels=int(raw["topology_levels"]),
         formula_x=str(raw.get("display_formula_x") or formula.get("primary_u") or ""),
         formula_y=str(raw.get("display_formula_y") or formula.get("primary_v") or ""),
+        rule_domain=str(raw.get("rule_domain") or "ENDCAP_RELIEF").strip().upper(),
         formula_secondary=(None if not raw.get("display_formula_secondary") else str(raw.get("display_formula_secondary"))),
         joint_signature=tuple(dict(v) for v in raw.get("joint_signature", ()) or ()),
         preconditions=tuple(str(v) for v in raw.get("preconditions", ()) or ()),
@@ -279,6 +342,8 @@ def _rule_from_record(raw: Mapping[str, object], evaluator) -> CertifiedReliefRu
         adjustment_type=str(raw.get("adjustment_type", "") or ""),
         adjustment_amount=raw.get("adjustment_amount"),
         certification_evidence=raw.get("certification_evidence"),
+        corner_type=str(raw.get("corner_type", "") or ""),
+        cross_parameters=dict(raw.get("cross_parameters", {}) or {}),
         evaluator=evaluator,
     )
 
@@ -538,15 +603,22 @@ def _assembly_joint_corner_names(endcap_y_profile, joint_face: str = "TOP"):
     return (("top_left", "top_right") if is_tail_native else ("bottom_left", "bottom_right"))
 
 
-def _side_rear_bend_from_structure_state(structure_state) -> float | None:
+def _side_rear_bend_from_structure_state(
+    structure_state, sheet_thickness: float
+) -> float | None:
+    """Resolve the side-rear flange in canonical MATERIAL space exactly once.
+
+    Fresh Receiving persists the operator value in OUTSIDE space while legacy
+    snapshots may persist MATERIAL directly.  Registry/3D projection must not
+    read the raw stored number; the shared structure helper owns that conversion.
+    """
     if not structure_state:
         return None
     try:
-        from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
-        state = normalize_box_body_structure_state(structure_state)
-        cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        value = cfg.get("side_rear_bend")
-        return None if value is None else abs(float(value))
+        from phase6_box_body_structure import side_rear_bend_material_length
+        return abs(float(side_rear_bend_material_length(
+            structure_state, float(sheet_thickness)
+        )))
     except Exception:
         return None
 
@@ -826,7 +898,7 @@ def _data_formula_evaluator(
         return None
     ytop = _profile_segment_length(endcap_y_profile, "ytop1", None)
     ybottom = _profile_segment_length(endcap_y_profile, "ybottom1", None)
-    rear_bend = _side_rear_bend_from_structure_state(box_body_structure_state)
+    rear_bend = _side_rear_bend_from_structure_state(box_body_structure_state, t)
     flat_x = _profile_has_key(endcap_x_profile, "endcap_w_flat")
     face = str(rule.joint_face or "TOP").upper()
     semantic_corners = _assembly_joint_corner_names(endcap_y_profile, face)
@@ -981,7 +1053,14 @@ def evaluate_editable_endcap_rule_record(
 
 def build_runtime_relief_rules_from_external(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
     rows = [row for row in load_external_relief_rule_records(path) if bool(row.get("active", True))]
-    return tuple(_rule_from_record(row, _data_formula_evaluator) for row in rows)
+    return tuple(
+        _rule_from_record(
+            row,
+            None if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS"
+            else _data_formula_evaluator,
+        )
+        for row in rows
+    )
 
 
 def reload_runtime_relief_rules(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
@@ -1004,12 +1083,130 @@ _SPECIAL_RULE_EVALUATORS = {
 def _build_initial_runtime_rules() -> tuple[CertifiedReliefRule, ...]:
     rows = [row for row in load_external_relief_rule_records() if bool(row.get("active", True))]
     return tuple(
-        _rule_from_record(row, _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator))
+        _rule_from_record(
+            row,
+            None if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS"
+            else _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator),
+        )
         for row in rows
     )
 
 
 _RULES: tuple[CertifiedReliefRule, ...] = _build_initial_runtime_rules()
+
+
+def lookup_certified_divider_cross_relief(
+    *,
+    cabinet_family: str,
+    variables: Mapping[str, float],
+    mating_fold_sign_by_end: Mapping[str, float],
+) -> CertifiedDividerCrossReliefResult | None:
+    """Resolve a certified Divider CROSS rule from authoritative parameters only."""
+    family = _family_key(cabinet_family)
+    matches = []
+    for rule in _RULES:
+        if str(rule.rule_domain or "").strip().upper() != "DIVIDER_CROSS":
+            continue
+        if str(rule.part_role or "").strip().upper() != "DIVIDER":
+            continue
+        if str(rule.corner_type or "").strip().upper() != CornerTypeId.CROSS.value:
+            continue
+        if not _active_status(rule.status):
+            continue
+        rule_family = _family_key(rule.cabinet_family)
+        if rule_family not in {"ANY", family}:
+            continue
+        values = evaluate_divider_cross_formula_record(
+            {"formula": dict(rule.formula_record or {})}, variables
+        )
+        selector = str(
+            dict(rule.cross_parameters or {}).get(
+                "slot_end_selector", "OBJECT_MATING_FOLD_SIGN_NEGATIVE"
+            )
+        ).upper()
+        if selector != "OBJECT_MATING_FOLD_SIGN_NEGATIVE":
+            raise CertifiedReliefRegistryError(
+                f"Divider CROSS unsupported slot_end_selector: {selector}"
+            )
+        signs = {
+            str(key).upper(): float(value)
+            for key, value in dict(mating_fold_sign_by_end or {}).items()
+        }
+        if set(signs) != {"MIN_Y", "MAX_Y"}:
+            raise CertifiedReliefRegistryError(
+                "Divider CROSS requires MIN_Y/MAX_Y mating Fold signs"
+            )
+        negative_ends = [
+            end for end in ("MIN_Y", "MAX_Y")
+            if signs[end] < -1e-9
+        ]
+        if len(negative_ends) != 1:
+            raise CertifiedReliefRegistryError(
+                "Divider CROSS requires exactly one negative object mating Fold"
+            )
+        slot_end = negative_ends[0]
+
+        slot_kwargs = {
+            "slot_width": float(values["slot_width"]),
+            "slot_straight_depth": float(values["slot_straight_depth"]),
+            "slot_radius": float(values["slot_radius"]),
+        }
+        plain = CornerTypeSelection(
+            CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD
+        )
+        slotted = CornerTypeSelection(
+            CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD, **slot_kwargs
+        )
+        t = float(variables["T"])
+        fw = float(variables["divider_fw_material"])
+        min_y = resolve_corner_relief(
+            slotted if slot_end == "MIN_Y" else plain,
+            fold_u=float(
+                values["slotted_fold_u"] if slot_end == "MIN_Y"
+                else values["plain_fold_u"]
+            ),
+            fold_v=float(values["fold_v"]),
+            thickness=t,
+            fw=fw,
+        )
+        max_y = resolve_corner_relief(
+            slotted if slot_end == "MAX_Y" else plain,
+            fold_u=float(
+                values["slotted_fold_u"] if slot_end == "MAX_Y"
+                else values["plain_fold_u"]
+            ),
+            fold_v=float(values["fold_v"]),
+            thickness=t,
+            fw=fw,
+        )
+        matches.append(CertifiedDividerCrossReliefResult(
+            rule=rule,
+            min_y=min_y,
+            max_y=max_y,
+            geometry_evidence={
+                "corner_type": CornerTypeId.CROSS.value,
+                "formula_values": dict(values),
+                "slot_end": slot_end,
+                "mating_fold_sign_by_end": dict(signs),
+                "slot_end_selector": selector,
+                "authority": "CERTIFIED_REGISTRY_PARAMETERS",
+            },
+        ))
+    if not matches:
+        return None
+    specific = [
+        item for item in matches
+        if _family_key(item.rule.cabinet_family) == family and family != "ANY"
+    ]
+    candidates = specific or matches
+    if len(candidates) != 1:
+        ids = ", ".join(
+            f"{item.rule.rule_id}@{item.rule.revision}" for item in candidates
+        )
+        raise CertifiedReliefRegistryAmbiguityError(
+            f"REGISTRY_AMBIGUOUS: {family}/DIVIDER/CROSS: {ids}"
+        )
+    return candidates[0]
 
 
 def registered_certified_relief_rules() -> tuple[CertifiedReliefRule, ...]:

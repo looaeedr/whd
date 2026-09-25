@@ -31,7 +31,7 @@ def test_receiving_family_defaults_are_explicit_and_do_not_reuse_vault_defaults(
     assert result["w"] == 800.0
     assert result["d"] == 350.0
     assert result["fw"] == 29.0
-    assert result["zl1"] == 24.0
+    assert result["zl1"] == -24.0
     assert result["zl2"] == 24.0
     assert result["zr2"] == 18.0
     assert result["door_fold_l"] == 19.0
@@ -124,7 +124,7 @@ def test_receiving_canonical_linked_top_uses_standard_insert_overlay_relief_not_
         assert item.measurement.secondary_depth == pytest.approx(4.0)
 
 
-def test_receiving_forces_existing_side_back_structure_with_15mm_rear_bend():
+def test_receiving_fresh_side_back_structure_uses_18mm_outside_rear_bend():
     from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
 
     state = default_box_body_structure_state()
@@ -132,7 +132,8 @@ def test_receiving_forces_existing_side_back_structure_with_15mm_rear_bend():
     assert result["active_type"] == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
     assert result["locked"] is True
     cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    assert cfg["side_rear_bend"] == 15.0
+    assert cfg["side_rear_bend"] == 18.0
+    assert cfg["side_rear_bend_dimension_space"] == "OUTSIDE"
 
 
 def test_receiving_endcap_y_core_keeps_material_and_outside_dimension_spaces_separate():
@@ -206,7 +207,8 @@ def test_receiving_model_switch_applies_family_defaults_structure_and_bottom_cor
         assert app.w_var.get() == "800"
         assert app.d_var.get() == "350"
         assert app.fw_z_var.get() == "29"
-        assert app.zl1_var.get() == "24"
+        # #84 preserves signed operator OUTSIDE direction.
+        assert app.zl1_var.get() == "-24"
         assert app.zl2_var.get() == "24"
         assert app.zr2_var.get() == "18"
         assert [app.door_fold_l_var.get(), app.door_fold_r_var.get(), app.door_fold_t_var.get(), app.door_fold_b_var.get()] == ["19"] * 4
@@ -255,13 +257,15 @@ def test_receiving_gui_part_specs_drive_actual_2d_contracts_and_survive_snapshot
 
         head_spec = app._end_cap_part_spec(val, is_tail=False)
         assert head_spec.depth_comp_t == pytest.approx(2.0)
-        assert head_spec.corner_policy.bottom_fw == pytest.approx(17.0)
+        # Fresh OUTSIDE18 -> MATERIAL16 + 1T => bottom FW 18.
+        assert head_spec.corner_policy.bottom_fw == pytest.approx(18.0)
         assert head_spec.corner_policy.bottom_left.type_id is CornerTypeId.CROSS
         assert head_spec.corner_policy.bottom_left.cross_mode.value == "standard"
         structure = app.workspace_controller.box_body_structure_state()
         structure["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]["side_rear_bend"] = 20.0
         app.workspace_controller.set_box_body_structure_state(structure)
-        assert app._end_cap_part_spec(val, is_tail=False).corner_policy.bottom_fw == pytest.approx(22.0)
+        # side_rear_bend remains OUTSIDE-space; 20 OUTSIDE -> 18 MATERIAL + 1T = 20.
+        assert app._end_cap_part_spec(val, is_tail=False).corner_policy.bottom_fw == pytest.approx(20.0)
         structure["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]["side_rear_bend"] = 15.0
         app.workspace_controller.set_box_body_structure_state(structure)
         head_render = app._authoritative_render_data(head_spec)
@@ -296,7 +300,8 @@ def test_receiving_gui_part_specs_drive_actual_2d_contracts_and_survive_snapshot
         )
         assert restored_core["len"] == pytest.approx(346.0)
         assert restored_head.depth_comp_t == pytest.approx(2.0)
-        assert restored_head.corner_policy.bottom_fw == pytest.approx(17.0)
+        # Snapshot stored the edited 15 mm OUTSIDE rear flange: 13 MATERIAL + 1T = 15.
+        assert restored_head.corner_policy.bottom_fw == pytest.approx(15.0)
         assert "下方：包覆貼外" in restored._fixed_corner_summary("head")
         assert "BOTTOM＝WRAP" in restored._fixed_corner_summary("head")
     finally:

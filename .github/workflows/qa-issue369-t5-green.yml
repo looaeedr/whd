@@ -1,0 +1,102 @@
+name: "QA #369 T5 2D corner view GREEN"
+
+on:
+  push:
+    branches:
+      - refactor/issue369-phase3-2d-corner-view-20260919
+    paths:
+      - 'fold_designer_bridge.py'
+      - 'phase6_corner_data_view_adapter.py'
+      - 'tests/test_issue369_t5_corner_data_view_owner.py'
+      - '.github/workflows/qa-issue369-t5-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t5-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 4137b62887c3dc20c6ee5bbd4d753f485dcaf23b HEAD
+          echo "T5_BASELINE=4137b62887c3dc20c6ee5bbd4d753f485dcaf23b"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+
+      - name: Compile T5 owners
+        run: python -m py_compile phase6_corner_data_view_adapter.py fold_designer_bridge.py
+
+      - name: Run T5 ownership contract
+        run: python -m pytest -q tests/test_issue369_t5_corner_data_view_owner.py
+
+      - name: Run headless 2D projection regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue95_corner_data_authoritative_parts.py             tests/test_issue96_corner_data_selection_lifecycle.py             tests/test_issue97_authoritative_unfold_view_adapter.py             tests/test_issue101_multidoor_corner_data_parity.py             tests/test_issue109_corner_data_boxbody_tree.py             tests/test_issue110_shared_info_projection.py             tests/test_canonical_unfolded_blank_info.py             tests/test_issue111_corner_data_grid_isolation.py
+
+      - name: Run real-Tk 2D view regressions excluding exact inherited RED nodes
+        shell: bash
+        run: |
+          set -euo pipefail
+          N1="tests/test_issue94_corner_data_navigation_mode.py::test_corner_data_mode_is_view_only_and_not_a_fake_part"
+          N2="tests/test_issue163_unfold_workspace_layout.py::test_red_163_top_surface_contains_only_file_and_corner_data_commands"
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue94_corner_data_navigation_mode.py \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue162_unfold_viewport.py \
+            tests/test_issue163_unfold_workspace_layout.py \
+            --deselect "$N1" --deselect "$N2"
+
+      - name: Require exact inherited Xvfb parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASELINE="4137b62887c3dc20c6ee5bbd4d753f485dcaf23b"
+          TESTED="823e1dc6ac186d27d814aac0226d4a243273ecee"
+          N1="tests/test_issue94_corner_data_navigation_mode.py::test_corner_data_mode_is_view_only_and_not_a_fake_part"
+          N2="tests/test_issue163_unfold_workspace_layout.py::test_red_163_top_surface_contains_only_file_and_corner_data_commands"
+          mkdir -p /tmp/t5-green-inherited
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$N1" "$N2" --tb=short \
+              --json-report --json-report-file="/tmp/t5-green-inherited/$label.json" \
+              >"/tmp/t5-green-inherited/$label.log" 2>&1
+            rc=$?
+            set -e
+            echo "$rc" >"/tmp/t5-green-inherited/$label.rc"
+            test -s "/tmp/t5-green-inherited/$label.json"
+          }
+          run_one baseline "$BASELINE"
+          run_one candidate "$TESTED"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          def outcomes(label):
+              data=json.loads(Path(f"/tmp/t5-green-inherited/{label}.json").read_text())
+              return {row["nodeid"]: row.get("outcome") for row in data.get("tests", [])}
+          b=outcomes("baseline"); c=outcomes("candidate")
+          assert b == c, (b,c)
+          assert len(b) == 2, b
+          assert set(b.values()) == {"failed"}, b
+          print("PASS T5_INHERITED_XVFB_RED_EXACT_PARITY=2")
+          PY

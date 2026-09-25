@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: handoff-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 02 — Vault Factory Rules
 
 目前確認的是**金庫型**規則，不是所有鈑金箱通則。

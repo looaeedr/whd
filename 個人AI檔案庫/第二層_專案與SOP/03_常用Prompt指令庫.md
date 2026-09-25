@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: ai-library-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # ⚡ 03. 常用 Prompt 指令庫 (Prompt Library)
 
 > 常用高頻任務的快速啟動指令，可直接複製使用。

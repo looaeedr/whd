@@ -9,6 +9,7 @@ import ae_engine.assembly_collision as collision
 import fold_designer_bridge as bridge
 from ae_engine.sheetmetal_drawing import DrawingScene
 from phase6_designer_workspace import Phase6DesignerWorkspace
+from phase6_assembly_panel import Phase6AssemblyPanel
 
 
 class Var:
@@ -83,6 +84,23 @@ def test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_
         calls.append(part_key)
         return raw[part_key]
 
+    visible_vars = {
+        "box_body": Var(True),
+        "head": Var(True),
+        "tail": Var(True),
+        "door": Var(False),
+        "base_plate": Var(True),
+    }
+    panel_owner = SimpleNamespace(
+        visible_vars=visible_vars,
+        box_piece_visible_vars={},
+        resolve_visibility=lambda parts: Phase6AssemblyPanel._resolve_visibility_with_vars(
+            parts, visible_vars, {}
+        ),
+        set_corner_texts=lambda _values: None,
+        set_part_text=lambda _kind, _key, _value: None,
+        refresh_box_body_piece_info=lambda _render_data, **_kwargs: (),
+    )
     app = SimpleNamespace(
         designer_workspace=workspace,
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
@@ -94,49 +112,33 @@ def test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_
         _phase6_endcap_fw_state={},
         assembly_ignore_fixed_corner_var=Var(False),
         assembly_show_interference_var=Var(False),
-        assembly_part_visible_vars={
-            "box_body": Var(True),
-            "head": Var(True),
-            "tail": Var(True),
-            "door": Var(False),
-            "base_plate": Var(True),
-        },
+        _phase6_assembly_panel_owner=panel_owner,
+        assembly_part_visible_vars=visible_vars,
     )
+    assert app.assembly_part_visible_vars is app._phase6_assembly_panel_owner.visible_vars
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
     bundle = bridge._phase6_query_assembly_render_data(app)
 
-    assert [part.part_key for part in bundle.assembly_parts] == [
+    # The bundle retains all authoritative geometry so hidden parts can still
+    # participate in placement/mating references. Visibility is render-only.
+    assert [part.part_key for part in bundle.assembly_parts] == parts
+    assert tuple(bundle.visible_part_keys or ()) == (
         "box_body", "head", "tail", "base_plate"
-    ]
+    )
     # Door is still queried so its canonical corner-size row can be updated,
-    # but view-only filtering keeps it out of the combined renderer.
+    # while visible_part_keys keeps it out of drawing only.
     # Raw parts are queried first; certified Head/Tail relief is then replayed
-    # through the same canonical scene callback.  Door remains view-only hidden.
+    # through the same canonical scene callback.
     assert calls == parts + ["head", "tail"]
     summary = app._phase6_last_assembly_corner_dimension_texts
     assert set(summary) == set(parts)
 
 
-def test_return_2d_corner_publishes_current_part_before_callback():
-    events = []
-    app = SimpleNamespace(
-        designer_workspace=SimpleNamespace(active_part="tail"),
-        _phase6_pending_settings={"fw": 25.0},
-        flush_pending_settings=lambda: events.append("flush"),
-        _save_current_part=lambda: events.append("save"),
-        _return_2d_callback=lambda key: events.append(("return", key)),
-    )
-
-    # Keep the unit test focused on ordering, not serialization internals.
-    original_publish = bridge._phase6_publish_live_state
-    try:
-        bridge._phase6_publish_live_state = lambda self, force=False: events.append(("publish", force))
-        assert bridge._phase6_return_to_2d_corner(app) is True
-    finally:
-        bridge._phase6_publish_live_state = original_publish
-
-    assert events == ["flush", "save", ("publish", True), ("return", "tail")]
+def test_legacy_return_2d_corner_hook_remains_retired():
+    # #100/T7 formally removed the user-reachable legacy Notebook return path.
+    # Reintroducing this hook would violate the accepted navigation contract.
+    assert not hasattr(bridge, "_phase6_return_to_2d_corner")
 
 
 def test_single_part_3d_request_carries_same_corner_dimension_text(monkeypatch):

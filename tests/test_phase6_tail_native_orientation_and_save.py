@@ -131,6 +131,10 @@ def test_door_baseline_preserves_cutting_handle_inside_insert_block(tmp_path, mo
     assert not material.contains(Point(cx, cy))
 
 def test_diagnostic_snapshot_contains_fold_profiles_and_exact_final_geometry():
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from phase6_diagnostics import DiagnosticSnapshotContext, build_active_diagnostic_snapshot
+    from phase6_project_controller import Phase6ProjectController
+
     scene = DrawingScene()
     scene.add_polyline([(0, 0), (100, 0), (100, 60), (0, 60)], layer="CUTTING", closed=True)
     scene.add_circle((30, 30), 5, layer="CUTTING")
@@ -138,8 +142,6 @@ def test_diagnostic_snapshot_contains_fold_profiles_and_exact_final_geometry():
         scene=scene, material=manufacturing_api.material_polygon_from_final_scene(scene)
     )
     profiles = bridge.build_standard_part_profiles(_snapshot(), "door")
-
-    from phase6_designer_workspace import Phase6DesignerWorkspace
     workspace = Phase6DesignerWorkspace.from_snapshot({
         "existing_parts": ["box_body", "door", "tail"],
         "active_part": "door",
@@ -150,25 +152,21 @@ def test_diagnostic_snapshot_contains_fold_profiles_and_exact_final_geometry():
             "tail": bridge.build_endcap_xy_profiles(_snapshot(), part_key="tail"),
         },
     })
-    holder = SimpleNamespace(
-        designer_workspace=workspace,
-        _phase6_input_snapshot={**_snapshot(), "model": "PW"},
-        _settings_values=dict(_snapshot()),
-        _phase6_box_whd={"w": 500.0, "h": 600.0, "d": 200.0},
-        _phase6_corner_state={},
-        _phase6_corner_pair_same={},
-        _phase6_assembly_type=bridge.CornerTypeId.INSERT_OVERLAY,
-        _phase6_endcap_fw_state={},
-        _scene_query_callback=lambda part, payload: render_data,
-        state=SimpleNamespace(
-            profiles={"X": profiles["X"], "Y": profiles["Y"]},
-            profiles_vault={"箱身": []},
-        ),
-        baseline_model_var=SimpleNamespace(get=lambda: "PW"),
-        _phase6_baseline_initial_model="PW",
+    settings = {**_snapshot(), "model": "PW", "w": 500.0, "h": 600.0, "d": 200.0}
+
+    data = Phase6ProjectController.build_diagnostic_payload(
+        model="PW",
+        active_part="door",
+        settings=settings,
+        corner_state={},
+        corner_pair_same={},
+        workspace=workspace.snapshot(),
+        active_part_payload={"model": "PW"},
+        final_geometry_provider=lambda: render_data,
+        context_factory=DiagnosticSnapshotContext,
+        builder=build_active_diagnostic_snapshot,
     )
 
-    data = bridge._phase6_build_diagnostic_snapshot(holder)
     assert data["schema"] == "phase6-fold-diagnostic-v1"
     assert data["active_part"] == "door"
     assert "tail" in data["workspace"]["part_profiles"]
@@ -178,7 +176,6 @@ def test_diagnostic_snapshot_contains_fold_profiles_and_exact_final_geometry():
     assert data["final_geometry"]["material"]["interior_count"] == 1
     assert data["final_geometry"]["material"]["geojson"]["type"] == "Polygon"
 
-
 def test_diagnostic_json_writer_is_utf8_and_round_trips(tmp_path):
     path = tmp_path / "折彎診斷.json"
     payload = {"schema": "phase6-fold-diagnostic-v1", "label": "封尾", "x": 12.5}
@@ -187,11 +184,13 @@ def test_diagnostic_json_writer_is_utf8_and_round_trips(tmp_path):
 
 
 def test_project_file_controls_are_global_not_in_fold_designer_footer():
+    root = Path(__file__).resolve().parents[1]
     source = Path(bridge.__file__).read_text(encoding="utf-8")
-    gui_source = Path(__file__).resolve().parents[1].joinpath("gui.py").read_text(encoding="utf-8")
-    assert 'text="開啟專案"' in gui_source
-    assert 'text="儲存專案"' in gui_source
-    assert 'text="另存新檔"' in gui_source
+    toolbar_source = (root / "gui_modules" / "layout" / "toolbar.py").read_text(encoding="utf-8")
+    project_source = (root / "phase6_project_file.py").read_text(encoding="utf-8")
+    assert 'text="開啟專案"' in toolbar_source
+    assert 'text="儲存專案"' in toolbar_source
+    assert 'text="另存新檔"' in toolbar_source
     assert 'text="讀檔"' not in source
     assert 'text="存檔"' not in source
-    assert ".p6fold" in gui_source
+    assert ".p6fold" in project_source

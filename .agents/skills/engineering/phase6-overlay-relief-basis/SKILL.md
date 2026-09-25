@@ -1,6 +1,10 @@
 ---
 name: phase6-overlay-relief-basis
 description: Use when modifying Phase6 OVERLAY endcap relief, flat-X topology, AssemblyJoint Graph semantics, Certified Relief Registry rules, 3D collision/backprojection, or persisted assembly relief replay.
+whd_doc_role: CURRENT
+whd_contract: phase6-overlay-relief-basis
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Phase6 OVERLAY：Joint Graph → STANDARD → Semantic Delta

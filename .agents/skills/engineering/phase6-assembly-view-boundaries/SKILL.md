@@ -1,6 +1,10 @@
 ---
 name: phase6-assembly-view-boundaries
 description: Use when modifying Phase6 組合圖、3D assembly rendering、Assembly Joint、collision/relief diagnostics、operator status UI，或修正組合圖出現不該出現的診斷圖元與控制項時。
+whd_doc_role: CURRENT
+whd_contract: phase6-assembly-view-boundaries
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Phase6 組合圖／診斷邊界
@@ -68,3 +72,30 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 ## 3D 完整性聯動
 
 只要本次組合圖修改同時動到截角、Joint、碰撞、material、Fold/placement 或 3D 幾何，必須再套用 `.agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md`；operator/debug 分層通過不代表 3D 機械模型已通過。
+
+## 多件式箱身：identity / navigation / visibility 三層邊界（2026-09-09）
+
+- `box_body:left_side`、`box_body:back`、`box_body:right_side` 等 **stable physical IDs** 屬於 manufacturing / Fold / collision / persistence identity；存在 physical ID 不代表它要成為操作員的頂層板件。
+- 操作員的**頂層板件 selector** 對多件式箱身只顯示一個「箱身」。左側板／後面板／右側板的輸入、尺寸與狀態必須收到「箱身」context 裡，不得各自再多一個頂層板件。
+- 組合圖 visibility 是另一層：左側板／後面板／右側板必須在「箱身」區塊內**各自顯示／隱藏**；aggregate `box_body` 總開關不得取代 child visibility。
+- child visibility 只能控制 renderer。隱藏 child 時，完整 physical geometry 仍保留作 Head/Tail mating、collision、relief、dimension 與 persistence authority；不得因此改變其他板件的 **world placement**。
+- `identity / navigation / visibility` 必須有三份清楚責任邊界：identity 可細到 physical piece；navigation 可聚合成一個 logical part；visibility 可再細分到 physical piece。
+- 回歸至少鎖：selector aggregation、箱身內 nested child controls、逐片 render mask，以及 hidden child 仍存在於 mating/collision datum。
+
+## 多件式箱身：頂層聚合不得吃掉 child navigation（2026-09-09）
+
+- **頂層聚合 ≠ 單一 editor**。多件式箱身在 operator 頂層仍只顯示一個「箱身」，但進入「箱身」後必須保留 physical child 的 **nested child tabs / 子標籤**，讓操作員可切換左側板／後面板／右側板等 stable physical IDs。
+- 子標籤切換的是同一個 physical child identity：3D 單板 Fold/FinalScene、2D 展開預覽、孔位／尺寸顯示與 Save→Reload active child 都必須使用同一 `box_body:<role>`；不得一邊切 child、另一邊仍顯示 aggregate。
+- **2D / 3D navigation parity 是硬規則**：2D 選哪片，進 3D 後「箱身」要進同一片；3D 切哪片後回 2D，2D 要自動選同一片。logical `box_body` 只負責頂層 grouping，不得覆蓋 physical active child。
+- 2D child preview 必須直接消費 manufacturing-owned `BoxBodyStructureRenderData.pieces[*].render_data`；不得由 aggregate bbox、face hit-zone 或驗證數值重建第二套 CUTTING/Fold geometry。
+- assembly visibility 與 child navigation 仍是不同責任：visibility 可逐片隱藏，但不得改 active child；navigation 可切 child，但不得移除完整 assembly datum/collision geometry。
+- Regression 至少要鎖：單一頂層「箱身」、nested child tabs、child 切換後 active physical ID、2D/3D 同片 round-trip、單片 render material 與 authoritative physical piece material 一致。
+
+
+## 多件式箱身：child editor authority 不等於所有 physical child 都可用同一 commit（2026-09-10）
+
+- `box_body:<role>` 同為 physical child identity，但**不同結構型態的 child authority 不相同**。
+- Receiving 側背分離 `box_body:left_side / box_body:back / box_body:right_side` 可持有 piece-local Fold profile；只有這三種 role 可以走 side/back piece-profile commit。
+- W 二分／W 三分的 `box_body:left / box_body:middle / box_body:right` 是 aggregate BoxBody + width allocation 的 manufacturing projection。切換／Save 時不得誤送進 Receiving side/back commit，也不得把 projection 反寫成第二份 Fold Source of Truth。
+- W 分件 child editor 若僅作 resolved sink，Save 只可保留 workspace view；canonical 幾何仍由 aggregate `box_body` 與 `box_body_structure` 擁有。
+- Regression 必須包含：二件式／三件式 W 分件 Save→Reload、Receiving 側背分離 child edit/save、active child round-trip。任何 `unsupported BoxBody physical piece` 代表 routing boundary 又混在一起。

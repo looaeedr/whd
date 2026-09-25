@@ -104,3 +104,136 @@ class Phase6ProjectController:
         payload = self._read_project(path)
         committed = self._session.load_project(path, payload["snapshot"])
         return payload, committed
+
+
+    @staticmethod
+    def build_designer_payload(
+        *,
+        schema: str,
+        model: str,
+        base_snapshot: Mapping[str, object],
+        settings: Mapping[str, object],
+        box_whd: Mapping[str, object],
+        assembly_type,
+        endcap_fw,
+        corner_state,
+        corner_pair_same,
+        owner_workspace: Mapping[str, object],
+        workspace: Mapping[str, object],
+        box_body_profile,
+        assembly_relief,
+        final_geometry,
+        saved_at: str | None = None,
+    ) -> dict:
+        snapshot = deepcopy(dict(base_snapshot or {}))
+        snapshot.update(dict(settings or {}))
+        snapshot.update(dict(box_whd or {}))
+        owner = dict(owner_workspace or {})
+        shared_workspace = deepcopy(dict(workspace or {}))
+        snapshot.update({
+            "model": str(model or ""),
+            "assembly_type": deepcopy(assembly_type),
+            "endcap_fw": deepcopy(endcap_fw),
+            "settings": deepcopy(dict(settings or {})),
+            "corner_state": deepcopy(corner_state or {}),
+            "corner_pair_same": deepcopy(corner_pair_same or {}),
+            "existing_parts": list(owner.get("existing_parts") or ()),
+            "active_part": owner.get("active_part"),
+            "workspace": shared_workspace,
+            "box_body_profile": deepcopy(box_body_profile or []),
+            "part_profiles": deepcopy(shared_workspace.get("part_profiles") or {}),
+            "part_features": deepcopy(owner.get("part_features") or {}),
+            "part_face_features": deepcopy(owner.get("part_face_features") or {}),
+            "assembly_placements": deepcopy(owner.get("assembly_placements") or {}),
+            "assembly_relief": deepcopy(assembly_relief or {}),
+        })
+        return {
+            "schema": str(schema),
+            "saved_at": saved_at or Phase6ProjectController._default_clock(),
+            "model": str(model or ""),
+            "snapshot": snapshot,
+            "final_geometry": deepcopy(final_geometry or {}),
+        }
+
+    @staticmethod
+    def validate_project_load(path, read_project):
+        return read_project(path)
+
+    @staticmethod
+    def write_designer_project(path, payload, write_project) -> str:
+        return str(write_project(path, payload))
+
+    @staticmethod
+    def build_diagnostic_payload(
+        *,
+        model: str,
+        active_part,
+        settings: Mapping[str, object],
+        corner_state,
+        corner_pair_same,
+        workspace,
+        active_part_payload,
+        final_geometry_provider,
+        context_factory,
+        builder,
+    ):
+        context = context_factory(
+            model=str(model or ""),
+            active_part=active_part,
+            settings=deepcopy(dict(settings or {})),
+            corner_state=deepcopy(corner_state or {}),
+            corner_pair_same=deepcopy(corner_pair_same or {}),
+            workspace=deepcopy(workspace or {}),
+            active_part_payload=deepcopy(active_part_payload or {}),
+        )
+        return builder(context, final_geometry_provider)
+
+    @staticmethod
+    def write_diagnostic(path, payload, writer) -> str:
+        return str(writer(path, payload))
+
+    @staticmethod
+    def build_workspace_export(
+        *,
+        owner_workspace: Mapping[str, object],
+        box_body_profile,
+        structure_state,
+    ) -> dict:
+        owner = dict(owner_workspace or {})
+        return {
+            "box_body_profile": deepcopy(box_body_profile or []),
+            "existing_parts": list(owner.get("existing_parts") or ()),
+            "active_part": owner.get("active_part"),
+            "part_profiles": deepcopy(owner.get("part_profiles") or {}),
+            "box_body_structure": deepcopy(
+                owner.get("box_body_structure") or structure_state or {}
+            ),
+        }
+
+    @staticmethod
+    def project_status_projection(*, family: str, mode: str, part_text: str) -> str:
+        if mode == "assembly":
+            return f"箱型：{family or '-'}  ｜  板件：-  ｜  視圖：組合體"
+        if mode == "corner_data":
+            return f"箱型：{family or '-'}  ｜  板件：{part_text or '-'}  ｜  視圖：截角資料"
+        return f"箱型：{family or '-'}  ｜  板件：{part_text or '-'}  ｜  視圖：單件 3D"
+
+    @staticmethod
+    def route_settings_defaults(callback, payload) -> bool:
+        if callback is None:
+            return False
+        callback(*payload)
+        return True
+
+    @staticmethod
+    def commit_output_stock(value, stage_setting) -> bool:
+        committed = bool(value)
+        stage_setting("draw_stock", committed)
+        return committed
+
+    @staticmethod
+    def route_selected_dxf_export(callback, flush_pending):
+        flush_pending()
+        if callback is None:
+            return None
+        return callback()

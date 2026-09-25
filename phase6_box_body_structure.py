@@ -16,6 +16,14 @@ class BoxBodyStructureType(str, Enum):
     THREE_PIECE_SIDE_BACK_SPLIT = "three_piece_side_back_split"
 
 
+class BackPanelMode(str, Enum):
+    """Receiving side/back-split rear-panel manufacturing mode."""
+
+    FULL = "FULL"
+    HALF = "HALF"
+    BACK_OPENING = "BACK_OPENING"
+
+
 DEFAULT_STRUCTURE_TYPE = BoxBodyStructureType.INTEGRAL
 
 
@@ -54,6 +62,10 @@ def default_box_body_structure_state() -> dict:
             BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value: {
                 "side_rear_bend": 15.0,
                 "back_width_comp_t": 0.5,
+                # Physical-piece Fold editors persist here. The aggregate
+                # box_body Fold Chain remains the source for shared D/FW/W
+                # dimensions; piece profiles own piece-local topology/angles.
+                "piece_profiles": {},
                 # Receiving EndCap lower-face WRAP manufacturing defaults.
                 # Family adapters may override these per Head/Tail before building
                 # a PartSpec; keeping them here makes old/headless snapshots stable.
@@ -156,6 +168,36 @@ def set_structure_locked(state: Mapping[str, object] | None, locked: bool) -> di
     result = normalize_box_body_structure_state(state)
     result["locked"] = bool(locked)
     return result
+
+
+def _back_panel_mode(value) -> BackPanelMode:
+    if isinstance(value, BackPanelMode):
+        return value
+    text = str(value or "").strip().upper()
+    try:
+        return BackPanelMode(text)
+    except ValueError:
+        return BackPanelMode.FULL
+
+
+def back_panel_mode(state: Mapping[str, object] | None) -> BackPanelMode:
+    """Return the canonical Receiving rear-panel mode; legacy projects are FULL."""
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    return _back_panel_mode(cfg.get("back_panel_mode"))
+
+
+def set_side_back_back_panel_mode(
+    state: Mapping[str, object] | None,
+    mode,
+) -> dict:
+    """Persist one of the three mutually-exclusive rear-panel modes."""
+    resolved = _back_panel_mode(mode)
+    return update_structure_config(
+        state,
+        BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT,
+        {"back_panel_mode": resolved.value},
+    )
 
 
 def update_structure_config(
@@ -345,19 +387,95 @@ def set_three_piece_width(
     return result
 
 
+
+def set_side_back_piece_profile(
+    state: Mapping[str, object] | None,
+    role: str,
+    profile,
+) -> dict:
+    """Persist one side/back physical piece Fold profile in canonical structure state."""
+    role = str(role or "").strip()
+    if role not in {"left_side", "back", "right_side"}:
+        raise ValueError(f"unsupported side/back physical role: {role}")
+    rows = []
+    for raw in tuple(profile or ()):
+        row = deepcopy(dict(raw))
+        length = float(row.get("len", 0.0))
+        if length <= 0:
+            raise ValueError(f"{role} Fold segment length must be > 0")
+        row["len"] = length
+        rows.append(row)
+    if not rows:
+        raise ValueError(f"{role} Fold profile must not be empty")
+
+    result = normalize_box_body_structure_state(state)
+    cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    profiles = deepcopy(dict(cfg.get("piece_profiles") or {}))
+    profiles[role] = rows
+    cfg["piece_profiles"] = profiles
+    return result
+
+def side_rear_bend_dimension_space(state: Mapping[str, object] | None) -> str:
+    """Return the stored side-rear-bend dimension space.
+
+    Legacy projects predate the marker and stored the material flange directly.
+    New family policies may explicitly own an operator OUTSIDE value.
+    """
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    space = str(cfg.get("side_rear_bend_dimension_space") or "MATERIAL").strip().upper()
+    if space not in {"MATERIAL", "OUTSIDE"}:
+        raise ValueError(f"unsupported side rear bend dimension space: {space}")
+    return space
+
+
+def side_rear_bend_material_length(
+    state: Mapping[str, object] | None, thickness: float
+) -> float:
+    """Resolve the physical/material rear flange exactly once."""
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    value = float(cfg.get("side_rear_bend", 15.0))
+    if side_rear_bend_dimension_space(normalized) == "OUTSIDE":
+        value -= float(thickness)
+    if value <= 0:
+        raise ValueError("側板後折換算後料尺寸必須大於 0")
+    return value
+
+
+def side_rear_bend_outside_length(
+    state: Mapping[str, object] | None, thickness: float
+) -> float:
+    """Resolve the operator-facing outside rear flange without changing geometry."""
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    value = float(cfg.get("side_rear_bend", 15.0))
+    if side_rear_bend_dimension_space(normalized) == "MATERIAL":
+        value += float(thickness)
+    if value <= 0:
+        raise ValueError("側板後折包外尺寸必須大於 0")
+    return value
+
+
 def set_side_back_geometry(
     state: Mapping[str, object] | None,
     *,
     side_rear_bend=None,
+    side_rear_bend_dimension_space=None,
     back_width_comp_t=None,
 ) -> dict:
-    """更新側背分離專屬參數。"""
+    """更新側背分離專屬參數；dimension space 必須顯式保存。"""
     values = {}
     if side_rear_bend is not None:
         bend = float(side_rear_bend)
         if bend <= 0:
             raise ValueError("側板後折必須大於 0")
         values["side_rear_bend"] = bend
+    if side_rear_bend_dimension_space is not None:
+        space = str(side_rear_bend_dimension_space).strip().upper()
+        if space not in {"MATERIAL", "OUTSIDE"}:
+            raise ValueError("側板後折 dimension space 只接受 MATERIAL / OUTSIDE")
+        values["side_rear_bend_dimension_space"] = space
     if back_width_comp_t is not None:
         comp = float(back_width_comp_t)
         if comp < 0:

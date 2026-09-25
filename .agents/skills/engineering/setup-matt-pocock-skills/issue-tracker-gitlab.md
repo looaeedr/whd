@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: setup-matt-pocock-skills
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Issue tracker: GitLab
 
 Issues and specs for this repo live as GitLab issues. Use the [`glab`](https://gitlab.com/gitlab-org/cli) CLI for all operations.

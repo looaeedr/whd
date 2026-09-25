@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: teach
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Learning Record Format
 
 Learning records live in `./learning-records/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc. Create the directory lazily: only when the first record is written.

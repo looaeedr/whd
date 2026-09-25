@@ -8,6 +8,7 @@ import os
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+RENDER_SNAPSHOTS = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 
 
 def _class_method_source(path: Path, class_name: str, method_name: str) -> str:
@@ -20,6 +21,16 @@ def _class_method_source(path: Path, class_name: str, method_name: str) -> str:
                 if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == method_name:
                     return "\n".join(lines[item.lineno - 1:item.end_lineno])
     raise AssertionError(f"missing {class_name}.{method_name}")
+
+
+def _function_source(path: Path, function_name: str) -> str:
+    text = path.read_text(encoding="utf-8")
+    tree = ast.parse(text)
+    lines = text.splitlines()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == function_name:
+            return "\n".join(lines[node.lineno - 1:node.end_lineno])
+    raise AssertionError(f"missing function {function_name}")
 
 
 def _receiving_values():
@@ -60,22 +71,26 @@ def _receiving_profile_and_spec(*, structure=False):
 
 def test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback():
     gui_path = ROOT / "gui.py"
-
-    update_src = _class_method_source(gui_path, "BoxCalculatorGUI", "update_calculations")
+    calculation_owner = ROOT / "gui_modules" / "application" / "calculation_controller.py"
+    update_src = _function_source(calculation_owner, "update_calculations")
     assert "calculate_z_length(" not in update_src
-
-    draw_src = _class_method_source(gui_path, "BoxCalculatorGUI", "draw_box_body")
-    assert "build_box_body_result(" not in draw_src
-    assert "build_box_body_result_from_fold_profile(" not in draw_src
-    assert "_authoritative_render_data(" in draw_src
-    assert "box_body_face_contexts" in draw_src
-
-    hole_src = _class_method_source(gui_path, "BoxCalculatorGUI", "open_part_hole_editor")
+    draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_box_body")
+    snapshot_route_src = _class_method_source(gui_path, "Phase6ApplicationHost", "_box_body_render_snapshot")
+    snapshot_owner_src = _function_source(RENDER_SNAPSHOTS, "box_body_render_snapshot")
+    assert "build_box_body_result(" not in draw_src + snapshot_route_src + snapshot_owner_src
+    assert "build_box_body_result_from_fold_profile(" not in draw_src + snapshot_route_src + snapshot_owner_src
+    assert "_box_body_render_snapshot(" in draw_src
+    assert "_box_body_render_snapshot_impl(" in snapshot_route_src
+    assert "_authoritative_render_data(" in snapshot_owner_src
+    assert "box_body_face_contexts" in snapshot_owner_src
+    editor_path = ROOT / "gui_modules" / "editors" / "hole_editor.py"
+    hole_src = _function_source(editor_path, "open_part_hole_editor")
     early = hole_src.index('if part_key == "box_body":')
-    early_return = hole_src.index("return", early)
-    legacy = hole_src.index("build_box_body_result(", early_return)
-    assert early < early_return < legacy, "legacy Box Body generic-editor branch must remain unreachable"
-
+    early_route = hole_src.index("host.open_box_body_face_editor", early)
+    early_return = hole_src.index("return", early_route)
+    assert early < early_route < early_return
+    assert "build_box_body_result(" not in hole_src
+    assert "build_box_body_result_from_fold_profile(" not in hole_src
 
 def test_t4_receiving_canonical_profile_and_multipart_blanks_are_single_source():
     from ae_engine import manufacturing_api
@@ -114,7 +129,7 @@ def test_t4_receiving_designer_controller_project_profile_owner_parity():
     root.withdraw()
     designer = None
     try:
-        app = gui.BoxCalculatorGUI(root)
+        app = gui.Phase6ApplicationHost(root)
         app.baseline_var.set("受電箱")
         root.update_idletasks()
         root.update()

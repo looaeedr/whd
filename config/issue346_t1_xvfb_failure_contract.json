@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "issue": 346,
+  "task": "T1",
+  "source_sha": "75e4f81f365c74ec0e255e847f3db5551c85f6da",
+  "classification": "INHERITED_BASELINE_RED",
+  "failures": [
+    "tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first",
+    "tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part"
+  ],
+  "reason": "UI v3 live selector starts at 箱身 while the two legacy Xvfb tests still assert 組合體.",
+  "candidate_run": 35357605585,
+  "predecessor_classifier_run": 35357899165
+}

@@ -1,21 +1,10 @@
-import ast
-from pathlib import Path
-from types import MethodType, SimpleNamespace
+from types import SimpleNamespace
+
+from gui_source_contract_helpers import compile_phase6_host_method
 
 
 def _load_method(name):
-    source = Path('gui.py').read_text(encoding='utf-8')
-    tree = ast.parse(source)
-    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'BoxCalculatorGUI')
-    method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
-    fn = ast.FunctionDef(
-        name=method.name, args=method.args, body=method.body,
-        decorator_list=[], returns=method.returns, type_comment=method.type_comment,
-    )
-    ast.fix_missing_locations(fn)
-    ns = {}
-    exec(compile(ast.Module(body=[fn], type_ignores=[]), 'gui.py', 'exec'), ns)
-    return ns[name]
+    return compile_phase6_host_method(name)
 
 
 class FakeVar:

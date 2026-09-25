@@ -2,6 +2,10 @@
 name: writing-shape
 description: "Writing, exploit: shape raw material into an article, paragraph by paragraph."
 disable-model-invocation: true
+whd_doc_role: REFERENCE
+whd_contract: writing-shape
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 <what-to-do>

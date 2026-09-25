@@ -1,9 +1,17 @@
 ---
 name: diagnosing-bugs
 description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+whd_doc_role: CURRENT
+whd_contract: diagnosing-bugs
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Diagnosing Bugs
+
+## RUNTIME_CAPABILITY_FALLBACK
+
+Use the tightest loop the current runtime can actually execute. Specialized browser/debugger/subagent helpers are optional; when absent, build the repro and diagnosis as an **inline fallback** with available commands/tests. If a human must perform a step, generate a self-contained checklist or small temporary script from current evidence; do not depend on a missing supporting template.
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
@@ -32,7 +40,7 @@ Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give
 7. **Property / fuzz loop.** If the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
 8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate "boot at state X, check, repeat" so you can `git bisect run` it.
 9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.
-10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.
+10. **HITL guided loop.** Last resort. If a human must click, generate a self-contained numbered checklist or temporary script that captures the exact signal needed; do not depend on a repository template that may not exist. Captured redacted output feeds back into the loop.
 
 Build the right feedback loop, and the bug is 90% fixed.
 
@@ -61,7 +69,7 @@ Phase 1 is done when the loop is **tight** and **red-capable**: you can name **o
 - [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring"; it must be able to _catch this specific bug_.
 - [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
 - [ ] **Fast**: seconds, not minutes.
-- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
+- [ ] **Runnable in the available environment**: unattended when possible; if a human is unavoidable, use the self-contained HITL guide described above and keep the pass/fail signal explicit.
 
 If you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
 
@@ -136,3 +144,39 @@ Required before declaring done:
 - [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
 - [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns
+
+## Domain uncertainty: ask before inventing
+
+For WHD mechanical/manufacturing bugs, an unknown domain rule is **not** a hypothesis to silently promote into production.
+
+- If the correct CornerType, mating face, dimension space, fixed-vs-variable status, or parameter ownership is not explicitly supported by authoritative project data, **ask the user** before writing the spec or fix.
+- Do not infer product truth from current code behavior, a passing/failing test, a collision probe, a screenshot, or a convenient existing enum.
+- When the user has already named an existing model (for example `CROSS / 十字截角`), test whether that model plus parameters can represent the requirement before proposing a new type.
+- Diagnosis may continue read-only while waiting for clarification, but production/Registry/AI-library writes must not encode the unresolved guess.
+
+## Durable correction propagation
+
+When the user corrects the diagnosis, clarifies a product rule, or identifies a repeatable failure mode, do not leave the correction only in chat.
+
+- Proactively update the directly relevant project Skill plus the global AI pitfall library.
+- Also update the relevant domain pitfall/spec/Registry guidance and owning Issue/PR when the correction changes future implementation decisions.
+- Search for conflicting durable guidance and mark it `SUPERSEDED / REVOKED`; do not leave contradictory authorities active.
+- Do not wait for the user to say "add this to the skill / AI library" again.
+- Keep transient run IDs, temporary measurements, and one-off progress out of durable knowledge unless they establish a reusable rule.
+- Re-read the remote file after writing so the update is proven durable.
+
+## Branch-first write gate
+
+Before the first write for any new bug-fix/modification task:
+
+1. Resolve the latest authoritative target branch and HEAD SHA.
+2. Create a **new work branch** from that exact target HEAD.
+3. Re-read the remote branch and record its parent/base SHA.
+4. Only then write production, tests, docs, workflows, Skills, AI Library, Registry, or fixtures.
+
+Hard rules:
+- Never patch `cleanup/2d-3d-sync` / `main` directly.
+- The same task stays on the same work branch through RED → GREEN → durable-knowledge sync → QA cleanup.
+- A new independent modification task gets a new branch.
+- If target advances/diverges, resolve it on a work/integration branch and re-run acceptance; do not repair by writing straight to target.
+- Branch-first is required even for "small" or docs-only corrections.

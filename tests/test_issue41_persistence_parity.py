@@ -212,11 +212,14 @@ def test_t5_source_scan_has_single_placement_and_divider_relief_owners():
     assert bridge._PHASE6_ASSEMBLY_PLACEMENTS.get("box_body")=="box_body"
 
     bridge_source=Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    owner_source=Path("phase6_manufacturing_geometry.py").read_text(encoding="utf-8")
     collision_source=Path("ae_engine/assembly_collision.py").read_text(encoding="utf-8")
     renderer_source=Path("phase6_final_scene_view.py").read_text(encoding="utf-8")
 
-    assert bridge_source.count("def _phase6_resolve_family_divider_reliefs(")==1
+    assert owner_source.count("def _phase6_resolve_family_divider_reliefs(")==1
+    assert bridge_source.count("def _phase6_resolve_family_divider_reliefs(")==0
     assert collision_source.count("def build_divider_front_fold_relief_candidate(")==1
     assert "build_divider_front_fold_relief_candidate" not in renderer_source
     assert "apply_divider_endcap_shared_6p4_datum" not in renderer_source
     assert '"base_plate": "base"' not in bridge_source
+    assert '"base_plate": "base"' not in owner_source

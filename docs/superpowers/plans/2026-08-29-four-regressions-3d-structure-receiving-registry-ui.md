@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 Four Regressions Implementation Plan
 
 **Goal:** 修正箱身 3D BEND、結構切換預設/即時 3D、受電箱下方截角 3D 真值鏈，以及截角資料庫繁中表單。

@@ -5,6 +5,8 @@ import pytest
 from matplotlib.figure import Figure
 
 import fold_designer_bridge as bridge
+from phase6_final_scene_contracts import FinalSceneViewRequest
+from phase6_final_scene_renderer import Phase6FinalSceneRenderer
 
 
 def _door_profiles():
@@ -41,7 +43,16 @@ def test_operator_dimensions_use_finished_door_w_h_not_engine_core_lengths():
         _settings_values={},
     )
 
-    bridge._phase6_draw_operator_dimensions(holder, profiles["X"], profiles["Y"])
+    owner = Phase6FinalSceneRenderer(holder.renderer)
+    request = FinalSceneViewRequest(
+        render_data=None,
+        x_profile=tuple(dict(seg) for seg in profiles["X"]),
+        y_profile=tuple(dict(seg) for seg in profiles["Y"]),
+        part_key="door",
+        finished_dimensions=(335.0, 535.0),
+        thickness=2.0,
+    )
+    owner._draw_operator_dimensions(request, [])
     texts = [str(t.get_text()) for t in ax.texts]
 
     assert any("W 335" in t for t in texts)

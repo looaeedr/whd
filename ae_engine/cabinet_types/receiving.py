@@ -22,7 +22,7 @@ BOX_BODY_DEFAULTS = {
     "h": 1600.0,
     "d": 350.0,
     "fw": 29.0,
-    "zl1": 24.0,
+    "zl1": -24.0,
     "zl2": 24.0,
     "zr2": 18.0,
 }
@@ -54,11 +54,24 @@ DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
 
 # Receiving Divider is a family-owned four-segment outside contract:
 # 18 / FW / 106 / 17.  FW is the live family frame-width Source of Truth.
-# The baseline Divider DXF owns fixed holes only; assembly relief remains
-# collision/backprojection owned.
+# Divider corner identity is CROSS + certified parameters.  中隔.dxf is the
+# certification/reference baseline for that contour; collision/backprojection
+# is shadow/penetration evidence and must not overwrite a certified CROSS rule.
 DIVIDER_OUTSIDE_FIRST = 18.0
 DIVIDER_FORMED_CORE = 106.0
 DIVIDER_OUTSIDE_LAST = 17.0
+
+
+# Receiving rear-panel reference authority from the user-supplied 後面板.dxf.
+# Coordinates are panel-local manufacturing datums, not renderer measurements.
+BACK_PANEL_CERTIFIED_UPPER_SECTION = 1100.0
+BACK_PANEL_CERTIFIED_HALF_HEIGHT = 1124.0
+BACK_PANEL_GENERAL_TOP_EXTENSION = 24.0
+BACK_PANEL_FIXED_SLOT_X_LEFT = 120.0
+BACK_PANEL_FIXED_SLOT_X_RIGHT_INSET = 120.0
+BACK_PANEL_FIXED_SLOT_Y_INSET = 120.0
+BACK_PANEL_OPENING_BOUNDS = (72.5, 248.0, 722.5, 448.0)
+BACK_PANEL_OPENING_SIZE = (650.0, 200.0)
 
 
 def divider_fold_contract(
@@ -211,6 +224,97 @@ def default_inner_doors(
     }]
 
 
+def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[str, object]:
+    """Resolve Receiving vertical-frame span/center from its two physical terminal datums.
+
+    The upper datum comes from the canonical outer Door finished face after the
+    confirmed top inset. The lower datum is the upper-facing physical skin of
+    the exact shared horizontal Divider CORE_PHYSICAL_SEGMENT. No observed gap,
+    renderer bbox, or test fixture delta participates in this contract.
+    """
+    from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
+    from ae_engine.assembly_placement import resolve_divider_placement, resolve_outer_door_placement
+    from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
+    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells, door_layout_part_key
+
+    data = dict(snapshot or {})
+    wanted = str(inner_door_id or '').strip()
+    if not wanted:
+        raise ValueError("inner_door_id must be non-empty")
+    item = next(
+        (row for row in list(data.get('inner_doors') or ())
+         if isinstance(row, dict) and str(row.get('stable_id') or '').strip() == wanted),
+        None,
+    )
+    if item is None:
+        raise ValueError(f"inner door stable id is missing from authoritative state: {wanted!r}")
+
+    columns = list(data.get('door_layout_columns') or ())
+    if not columns or not bool(data.get('multi_door_enabled', False)):
+        raise ValueError("Receiving vertical frame contract requires enabled Door topology")
+    normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
+    cells = {f'{cell.column_index}:{cell.row_index}': cell for cell in derive_door_layout_cells(normalized)}
+    cell_key = str(item.get('cell_key') or '').strip()
+    if cell_key not in cells:
+        raise ValueError(f"inner-door cell outside authoritative Door topology: {cell_key!r}")
+    cell = cells[cell_key]
+
+    t = float(data.get('t', 2.0))
+    fw = door_material_frame_width(
+        frame_width=float(data.get('fw', BOX_BODY_DEFAULTS['fw'])), thickness=t
+    )
+    outer_w, outer_h = calculate_door_finished_size(
+        w=cell.start_width, h=cell.start_height, t=t, fw=fw,
+        gap_w=float(data.get('door_gap_w', DOOR_DEFAULTS['door_gap_w'])),
+        gap_h=float(data.get('door_gap_h', DOOR_DEFAULTS['door_gap_h'])),
+        frame_edges=cell.edges,
+    )
+    outer = resolve_outer_door_placement(data, door_layout_part_key(cell))
+    top_y = float(outer.world_offset[1]) + float(outer_h) / 2.0 - float(INNER_DOOR_INSET_TOP)
+
+    dividers = derive_box_body_dividers(
+        normalized,
+        depth=float(data.get('d', BOX_BODY_DEFAULTS['d'])),
+        thickness=t,
+        frame_width=float(data.get('fw', BOX_BODY_DEFAULTS['fw'])),
+        layout_scope=str(data.get('door_layout_scope') or DEFAULT_DOOR_LAYOUT_SCOPE).strip() or DEFAULT_DOOR_LAYOUT_SCOPE,
+        handle_edges=dict(data.get('door_handle_edges') or {}),
+        model_name='受電箱',
+    )
+    lower_role = dict(item.get('lower_frame_role') or {})
+    role = resolve_inner_door_lower_frame_role(
+        wanted,
+        dividers,
+        previous_divider_stable_id=(str(lower_role.get('divider_stable_id') or '').strip() or None),
+    )
+    if role is None:
+        raise ValueError("Receiving vertical frame has no unambiguous shared horizontal Divider")
+    divider = next((row for row in dividers if row.stable_id == role.divider_stable_id), None)
+    if divider is None or str(divider.axis) != 'HORIZONTAL':
+        raise ValueError("Receiving lower-frame role does not resolve a horizontal Divider")
+    placement = resolve_divider_placement(data, divider.stable_id)
+    if placement.placement_kind not in {'divider_horizontal', 'divider_horizontal_inward'}:
+        raise ValueError("Receiving lower-frame Divider has unsupported assembly orientation")
+
+    _core_u, core_z = folded_profile_segment_center_from_full_envelope(
+        divider.fold_profile, divider.core_segment_index
+    )
+    lower_support_y = (
+        float(placement.world_offset[1]) + float(core_z) + float(t) / 2.0
+    )
+    span = float(top_y) - float(lower_support_y)
+    if span <= 0.0:
+        raise ValueError("Receiving vertical frame physical terminal datums do not define a positive span")
+    return {
+        'inner_door_id': wanted,
+        'divider_stable_id': str(divider.stable_id),
+        'top_terminal_y': float(top_y),
+        'lower_terminal_y': float(lower_support_y),
+        'center_y': (float(top_y) + float(lower_support_y)) / 2.0,
+        'span': float(span),
+        'authority': 'OUTER_DOOR_TOP_INSET__TO__SHARED_DIVIDER_CORE_SUPPORT_SKIN',
+    }
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     """Derive one real flat panel for every enabled outer-door inner-door item."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
@@ -295,17 +399,26 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
             gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
         )
         inner_w = float(outer_w) - INNER_DOOR_INSET_LEFT - INNER_DOOR_INSET_RIGHT
-        inner_h = float(outer_h) - INNER_DOOR_INSET_TOP
-        if inner_w <= 0 or inner_h <= 0:
-            raise ValueError("receiving inner-door 50 mm inset leaves no valid finished area")
+        if inner_w <= 0:
+            raise ValueError("receiving inner-door horizontal insets leave no valid finished width")
         included = tuple(
             side for side in (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
             if side != "bottom"
         )
+        try:
+            vertical = inner_door_vertical_frame_contract(data, stable_id)
+        except ValueError:
+            # A vertical frame exists only when its two physical terminal
+            # datums resolve uniquely.  Single-door/transient topologies can
+            # legitimately remove the shared Divider; fail closed for this
+            # derived frame item without aborting unrelated Door/Base Plate/
+            # panel synchronization.  The strict terminal resolver remains
+            # authoritative and marking diagnostics surface missing frames.
+            continue
         spans = {
             "top": inner_w,
-            "left": inner_h,
-            "right": inner_h,
+            "left": float(vertical["span"]),
+            "right": float(vertical["span"]),
         }
         result.append(InnerDoorFrameSet(
             inner_door_id=stable_id,
@@ -368,7 +481,12 @@ def is_receiving_snapshot(snapshot) -> bool:
 
 
 def resolve_box_body_structure_state(state=None):
-    """受電箱固定使用既有側背分離結構，不建立第二套結構引擎。"""
+    """受電箱固定使用既有側背分離結構，不建立第二套結構引擎。
+
+    Fresh Receiving owns operator OUTSIDE rear-flange input.  Legacy saved
+    side/back states predate the dimension-space marker and remain MATERIAL so
+    loading an old project cannot silently move physical geometry.
+    """
     from phase6_box_body_structure import (
         BoxBodyStructureType,
         normalize_box_body_structure_state,
@@ -376,14 +494,147 @@ def resolve_box_body_structure_state(state=None):
         set_structure_locked,
     )
 
-    result = normalize_box_body_structure_state(state)
-    result = set_active_structure(result, BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT)
+    normalized = normalize_box_body_structure_state(state)
+    was_receiving_side_back = (
+        isinstance(state, dict)
+        and normalized.get("active_type") == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    )
+    result = set_active_structure(normalized, BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT)
     result = set_structure_locked(result, True)
     cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    cfg.setdefault("side_rear_bend", 15.0)
+
+    if state is None or not was_receiving_side_back:
+        cfg["side_rear_bend"] = 18.0
+        cfg["side_rear_bend_dimension_space"] = "OUTSIDE"
+    elif not cfg.get("side_rear_bend_dimension_space"):
+        cfg["side_rear_bend_dimension_space"] = "MATERIAL"
+
     # 受電箱後面板是無折彎平板；已確認成形/下料寬 = W - 2.5T。
     cfg["back_width_comp_t"] = 2.5
+    # #510: rear-panel mode is Receiving family state, not a generic BoxBody option.
+    cfg.setdefault("back_panel_mode", "FULL")
     return result
+
+
+def _back_panel_fixed_slot_profile(datum) -> tuple[tuple[float, float], ...]:
+    """Return the certified key-slot contour from 後面板.dxf around one datum.
+
+    The datum is the centre of the 9-mm neck line. The reference profile is a
+    4.5-mm upper semicircle joined to the major arc of an R8 lower bulb whose
+    centre is 11 mm below the datum; its exact envelope is 16 x 23.5 mm.
+    """
+    from math import atan2, cos, pi, sin, sqrt
+
+    cx, cy = map(float, datum)
+    neck_half = 4.5
+    upper_radius = 4.5
+    lower_radius = 8.0
+    lower_center_y = -11.0
+    neck_y = lower_center_y + sqrt(lower_radius ** 2 - neck_half ** 2)
+
+    points = []
+    for index in range(13):
+        angle = pi * index / 12.0
+        points.append((
+            cx + upper_radius * cos(angle),
+            cy + upper_radius * sin(angle),
+        ))
+    points.append((cx - neck_half, cy + neck_y))
+
+    start_angle = atan2(neck_y - lower_center_y, -neck_half)
+    end_angle = atan2(neck_y - lower_center_y, neck_half) + 2.0 * pi
+    sweep = end_angle - start_angle
+    for index in range(1, 31):
+        angle = start_angle + sweep * index / 30.0
+        points.append((
+            cx + lower_radius * cos(angle),
+            cy + lower_center_y + lower_radius * sin(angle),
+        ))
+    points.append((cx + neck_half, cy))
+    return tuple(points)
+
+
+def resolve_back_panel_contract(
+    snapshot,
+    *,
+    structure_state,
+    panel_width: float,
+    full_panel_height: float,
+) -> dict[str, object]:
+    """Resolve Receiving rear-panel manufacturing geometry from canonical state.
+
+    The 1100-mm upper section uses the certified fixed half-panel position from
+    the supplied 後面板.dxf. Other upper-section heights retain the same
+    family-owned 24-mm top extension. The four mounting-slot datums and the
+    optional 650x200 rear opening are manufacturing coordinates.
+    """
+    from phase6_box_body_structure import BackPanelMode, back_panel_mode
+
+    data = dict(snapshot or {})
+    if not is_receiving_snapshot(data):
+        raise ValueError("back-panel mode contract is Receiving-only")
+
+    width = float(panel_width)
+    full_height = float(full_panel_height)
+    if width <= 0.0 or full_height <= 0.0:
+        raise ValueError("rear-panel dimensions must be positive")
+
+    mode = back_panel_mode(structure_state)
+    material_height = full_height
+    formed_y_offset = 0.0
+
+    if mode is BackPanelMode.HALF:
+        columns = list(data.get("door_layout_columns") or ())
+        if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
+            raise ValueError("Receiving half rear panel requires authoritative Door topology")
+        upper_section = float(list(columns[0][1])[0])
+        if abs(upper_section - BACK_PANEL_CERTIFIED_UPPER_SECTION) <= 1e-9:
+            material_height = BACK_PANEL_CERTIFIED_HALF_HEIGHT
+        else:
+            material_height = upper_section + BACK_PANEL_GENERAL_TOP_EXTENSION
+        if material_height <= 0.0 or material_height >= full_height:
+            raise ValueError("Receiving half rear-panel height must remain inside the full panel")
+        # The short panel keeps the original full-panel top edge in assembly.
+        formed_y_offset = (full_height - material_height) / 2.0
+
+    left_x = BACK_PANEL_FIXED_SLOT_X_LEFT
+    right_x = width - BACK_PANEL_FIXED_SLOT_X_RIGHT_INSET
+    lower_y = BACK_PANEL_FIXED_SLOT_Y_INSET
+    upper_y = material_height - BACK_PANEL_FIXED_SLOT_Y_INSET
+    if not (0.0 < left_x < right_x < width and 0.0 < lower_y < upper_y < material_height):
+        raise ValueError("Receiving rear-panel mounting-slot datums fall outside material")
+
+    opening = None
+    if mode is BackPanelMode.BACK_OPENING:
+        opening = tuple(float(v) for v in BACK_PANEL_OPENING_BOUNDS)
+        x0, y0, x1, y1 = opening
+        if (
+            abs((x1 - x0) - BACK_PANEL_OPENING_SIZE[0]) > 1e-9
+            or abs((y1 - y0) - BACK_PANEL_OPENING_SIZE[1]) > 1e-9
+            or x0 < 0.0 or y0 < 0.0 or x1 > width or y1 > material_height
+        ):
+            raise ValueError("certified Receiving rear opening does not fit rear-panel material")
+
+    fixed_slot_datums = (
+        (left_x, upper_y),
+        (right_x, upper_y),
+        (left_x, lower_y),
+        (right_x, lower_y),
+    )
+    return {
+        "mode": mode.value,
+        "panel_width": width,
+        "full_panel_height": full_height,
+        "material_height": float(material_height),
+        "formed_y_offset": float(formed_y_offset),
+        "fixed_slot_datums": fixed_slot_datums,
+        "fixed_slot_profiles": tuple(
+            _back_panel_fixed_slot_profile(datum)
+            for datum in fixed_slot_datums
+        ),
+        "opening": opening,
+        "authority": "USER_SUPPLIED_BACK_PANEL_DXF_2026_09_22",
+    }
 
 
 def family_fixes_box_body_structure() -> bool:

@@ -31,12 +31,15 @@ def test_axis_group_layout_follows_crosshair():
 
 
 def test_gui_source_groups_x_with_x_and_y_with_y():
-    source = (Path(__file__).resolve().parents[1] / 'gui.py').read_text(encoding='utf-8')
-    assert 'x_group = tk.Frame(canvas' in source
-    assert 'add_group_entry(x_group, lbl_x_edge, var_x_edge, "x", "edge")' in source
-    assert 'add_group_entry(x_group, lbl_x_neighbor, var_x_neighbor, "x", "neighbor")' in source
-    assert 'y_group = tk.Frame(canvas' in source
-    assert 'add_group_entry(y_group, lbl_y_edge, var_y_edge, "y", "edge")' in source
-    assert 'add_group_entry(y_group, lbl_y_neighbor, var_y_neighbor, "y", "neighbor")' in source
-    assert 'edge_group = tk.Frame(canvas' not in source
-    assert 'neighbor_group = tk.Frame(canvas' not in source
+    source = (
+        Path(__file__).resolve().parents[1]
+        / 'gui_modules' / 'editors' / 'hole_editor_composition.py'
+    ).read_text(encoding='utf-8')
+    assert 'x_group = d.tk.Frame(s.canvas' in source
+    assert 'add_group_entry(x_group, s.lbl_x_edge, s.var_x_edge, "x", "edge")' in source
+    assert 'add_group_entry(x_group, s.lbl_x_neighbor, s.var_x_neighbor, "x", "neighbor")' in source
+    assert 'y_group = d.tk.Frame(s.canvas' in source
+    assert 'add_group_entry(y_group, s.lbl_y_edge, s.var_y_edge, "y", "edge")' in source
+    assert 'add_group_entry(y_group, s.lbl_y_neighbor, s.var_y_neighbor, "y", "neighbor")' in source
+    assert 'edge_group = d.tk.Frame(s.canvas' not in source
+    assert 'neighbor_group = d.tk.Frame(s.canvas' not in source

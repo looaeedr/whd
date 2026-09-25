@@ -1,6 +1,10 @@
 ---
 name: git-remote-sync-fallback
 description: Use when Git remote synchronization is blocked by DNS, network, authentication transport, or harness limitations; when git push/fetch/pull cannot reach GitHub; or when an authorized GitHub Connector may be available as a fallback.
+whd_doc_role: CURRENT
+whd_contract: git-remote-sync-fallback
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Git Remote Sync Fallback
@@ -61,3 +65,36 @@ description: Use when Git remote synchronization is blocked by DNS, network, aut
 | 「Connector call 報錯，所以一定什麼都沒寫」 | 可能部分成功；先重讀遠端。 |
 | 「文字檔都上去了，所以 ZIP 應該也算上去了」 | 未遠端讀回或列檔驗證就不算。 |
 | 「remote 有內容就等於 local commits 都 push 了」 | 內容同步與 commit identity 是兩回事。 |
+
+## Branch-first before any remote write
+
+For WHD repository mutations, transport fallback never changes the branch policy:
+
+- A new modification task must first create a **new work branch from the latest authoritative target HEAD**.
+- Contents API / GitHub Connector writes must target that work branch, not `cleanup/2d-3d-sync` or `main`.
+- Record and re-read the new branch HEAD before the first content write.
+- Same-task follow-up commits stay on the same work branch; a separate modification task starts a new branch.
+- If a Connector limitation makes branch creation impossible, stop and report the blocker; do not substitute direct target writes.
+- Merge back only through a non-force integration path after acceptance.
+
+## Connector target-write hard gate
+
+Before every GitHub Connector write, bind the **intent** to the exact action and target ref. This is a hard gate, not a reminder:
+
+- `create_branch` is for creating a branch. Never substitute `create_file` / `update_file` because the desired branch does not yet exist.
+- `create_file` / `update_file` / `delete_file` are content mutations and must **fail closed** if their `branch` is an authoritative target such as `cleanup/2d-3d-sync` or `main`.
+- Integrating an already accepted candidate into production must use `update_ref(force=false)` or an equivalent non-force merge path. **Contents API is forbidden for production integration.**
+- Immediately before `update_ref`, re-read both target HEAD and candidate HEAD. Require the candidate to have the expected target ancestry; if the target moved, stop and re-qualify.
+- Immediately after `update_ref`, re-read production and verify exact HEAD plus expected tree SHA.
+
+If a direct target write happens accidentally:
+
+1. **STOP_PRODUCTION_WRITES** — do not send a compensating direct write and do not force-reset history.
+2. Re-read the live target SHA and the accidental commit contents.
+3. Create a fresh repair branch from the **current accidental target HEAD**.
+4. On that repair branch, remove accidental files and restore the previously verified content/tree.
+5. Prove the repair tree SHA equals the intended verified tree whenever an accepted tree already exists.
+6. Re-run acceptance needed for the repaired state.
+7. Advance production only with `update_ref(force=false)`.
+8. Run post-merge production readback/invariants and clean temporary refs.
+9. Record the failure mode in `個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md` so future workers do not repeat it.

@@ -10,8 +10,7 @@ def test_custom_circle_and_rectangle_default_to_cutting_and_checkbox_makes_blind
 
 
 def test_gui_catalog_sources_are_only_the_two_csv_loaders():
-    source=Path('gui.py').read_text(encoding='utf-8')
-    block=source[source.index('def _open_unified_hole_editor'):source.index('def open_hole_editor')]
-    assert 'load_hole_catalog(hole_base_dir)' in block
-    assert 'load_pipe_catalog(hole_base_dir)' in block
-    assert '"AS"' not in block and '"VS"' not in block
+    source=(Path('gui_modules') / 'editors' / 'hole_editor_composition.py').read_text(encoding='utf-8')
+    assert 'd.load_hole_catalog(hole_base_dir)' in source
+    assert 'd.load_pipe_catalog(hole_base_dir)' in source
+    assert '"AS"' not in source and '"VS"' not in source

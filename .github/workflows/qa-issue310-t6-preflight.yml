@@ -1,0 +1,37 @@
+# trigger: branch-resident T6 preflight
+name: Issue 310 T6 Knowledge Preflight
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue310-t6-duration-tuning-20260917
+    paths:
+      - '.github/workflows/qa-issue310-t6-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue310-t6-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue310-t6.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run T6 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Measure CI queue and shard duration evidence, evaluate concurrency budget and the 1.75x-median large-lane imbalance gate, keep HRW authoritative unless measured evidence justifies a deliberate versioned duration-aware manifest, preserve full collection ownership and protected invariants, and report execution versus end-to-end wall clock separately." \
+            --changed-file tools/test_shard_tuning.py \
+            --changed-file tests/test_issue310_t6_duration_tuning.py \
+            --changed-file config/ci_test_execution.json \
+            --changed-file .github/workflows/qa-issue310-t6-tuning.yml \
+            --changed-file docs/superpowers/checkpoints/issue310-t6.json \
+            --evidence docs/superpowers/checkpoints/issue310-t6-preflight-evidence.txt

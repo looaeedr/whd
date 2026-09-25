@@ -1,0 +1,49 @@
+name: "QA #365 T1 RED workspace navigation"
+# explicit trigger after workflow creation
+# harness-ready trigger
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t1-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=365"
+          echo "BASELINE=0dd6561f3253d0a17714af316d5e9da90e24058f"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor 0dd6561f3253d0a17714af316d5e9da90e24058f HEAD
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk
+          python -m pip install pytest
+
+      - name: Run intended RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue365_t1_workspace_navigation_controller.py --tb=short | tee /tmp/issue365-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "PYTEST_RC=$rc"
+          if [ "$rc" -eq 0 ]; then
+            echo "UNEXPECTED_GREEN"
+            exit 1
+          fi
+          grep -q "Phase 3 T1 requires an application-level workspace/navigation" /tmp/issue365-red.log
+          grep -q "bridge still owns T1 workspace/navigation state transitions" /tmp/issue365-red.log
+          echo "PASS EXPECTED_RED=1"

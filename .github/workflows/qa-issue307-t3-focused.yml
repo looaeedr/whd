@@ -1,0 +1,65 @@
+name: Issue 307 T3 Focused QA
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue307-t3-xvfb-isolation-20260916
+    paths:
+      - 'tests/test_issue307_xvfb_sharding.py'
+      - 'tests/test_issue307_t0_xvfb_contract_authority.py'
+      - 'tests/test_issue307_junit_location_fallback.py'
+      - 'tests/test_issue306_non_gui_sharding.py'
+      - 'tools/test_shard_execution.py'
+      - 'tools/xvfb_shard_execution.py'
+      - 'tools/phase6_release_test_runner.py'
+      - 'config/ci_test_shards.json'
+      - 'config/ci_test_execution.json'
+      - 'config/issue307_t0_xvfb_failure_contract.json'
+      - 'docs/superpowers/checkpoints/issue307-t3.json'
+      - '.github/workflows/qa-issue307-t3-focused.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify evidence-only closing drift from accepted Xvfb head
+        env:
+          ACCEPTED_XVFB_HEAD: 548215758543d9047ce70e1fe8fbb9cbdf173755
+        run: |
+          set -euo pipefail
+          git diff --name-only "$ACCEPTED_XVFB_HEAD" "$GITHUB_SHA" | sort | tee /tmp/issue307-closing-delta.txt
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('/tmp/issue307-closing-delta.txt').read_text().splitlines())
+          expected = {
+              '.github/workflows/qa-issue307-t3-focused.yml',
+              'docs/superpowers/checkpoints/issue307-t3.json',
+          }
+          assert actual == expected, f'ISSUE307_CLOSING_SCOPE_DRIFT={sorted(actual)}'
+          print('ISSUE307_CLOSING_SCOPE=EVIDENCE_ONLY')
+          PY
+      - name: Install focused test dependency
+        run: python -m pip install pytest
+      - name: Execute continuity finalization guard
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller assert-finalizable docs/superpowers/checkpoints/issue307-t3.json
+      - name: Run T3 contracts and T2 regression
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_issue307_xvfb_sharding.py \
+            tests/test_issue307_t0_xvfb_contract_authority.py \
+            tests/test_issue307_junit_location_fallback.py \
+            tests/test_issue306_non_gui_sharding.py

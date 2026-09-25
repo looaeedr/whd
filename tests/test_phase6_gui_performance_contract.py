@@ -64,13 +64,14 @@ def test_live_settings_only_sets_tk_vars_that_actually_change():
 
 def test_external_designer_apply_has_explicit_anti_echo_guard_contract():
     apply_src = inspect.getsource(bridge._phase6_apply_external_settings)
-    execute_src = inspect.getsource(bridge._phase6_execute_update_intents)
+    from gui_modules.application import command_router
+    execute_src = inspect.getsource(command_router.execute_fold_designer_update_reasons)
     wrapper_src = inspect.getsource(bridge._phase6_preview_aware_do_update)
     assert "_phase6_external_apply_guard" in apply_src
     # T06 centralizes publish/anti-echo ownership in the orchestration executor;
     # compatibility wrappers must delegate instead of duplicating the guard.
     assert "_phase6_external_apply_guard" in execute_src
-    assert "not getattr(self, \"_phase6_external_apply_guard\"" in execute_src
+    assert 'not getattr(owner, "_phase6_external_apply_guard"' in execute_src
     assert "submit_update_intent" in wrapper_src
 
 
@@ -82,10 +83,10 @@ def test_live_snapshot_routes_final_recalculation_through_scheduler_not_direct_c
 
 
 def test_main_input_traces_never_call_full_recalculation_directly():
+    from gui_modules.application import state_sync
     bind_src = inspect.getsource(gui.BoxCalculatorGUI.bind_live_updates)
     total_src = inspect.getsource(gui.BoxCalculatorGUI._on_total_door_dimension_changed)
-    setting_src = inspect.getsource(gui.BoxCalculatorGUI._on_main_setting_var_changed)
-
+    setting_src = inspect.getsource(state_sync.on_main_setting_var_changed)
     assert 'trace_add("write", lambda *args: self.update_calculations())' not in bind_src
     assert 'self.update_calculations()' not in total_src
     assert '_phase6_update_scheduler' in setting_src

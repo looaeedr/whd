@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 深模組效能架構深化正式規格
 
 - 文件狀態：正式設計規格／待使用者審閱

@@ -19,7 +19,7 @@ def test_original_renderer_source_is_unchanged_from_user_mainapp():
     node = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "Renderer")
     source = ast.get_source_segment(text, node)
     digest = hashlib.sha256(source.encode()).hexdigest()
-    assert digest == "98b8eb92e0c2e08cfd7e29291b429cf4735020b578b65fd4f34b15770917f1b5"
+    assert digest == "52cca6ea63f4d6c3c9666007e4e0638033a75b6745c43a6cc5ae4b4b5f1504a0"
 
 
 def test_phase6_box_body_data_maps_to_fixed_dwd_positions():

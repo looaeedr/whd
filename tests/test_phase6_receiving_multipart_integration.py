@@ -22,6 +22,7 @@ def _feature(diameter: float, x: float):
 def test_opening_receiving_designer_preserves_formal_door_features_and_authoritative_rows():
     import tkinter as tk
     import gui
+    import fold_designer_bridge as bridge
 
     root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
     designer = None
@@ -37,6 +38,7 @@ def test_opening_receiving_designer_preserves_formal_door_features_and_authorita
         root.update_idletasks(); root.update()
 
         wanted = tuple(designer.designer_workspace.available_parts)
+        operator_wanted = bridge._phase6_operator_part_selector_keys(wanted)
         assert "door" not in wanted
         assert "door_c1_r1" in wanted and "door_c1_r2" in wanted
         assert any(key.startswith("box_body:divider:") for key in wanted)
@@ -45,9 +47,9 @@ def test_opening_receiving_designer_preserves_formal_door_features_and_authorita
             "inner_door:upper:left_frame",
             "inner_door:upper:right_frame",
         }.issubset(wanted)
-        assert tuple(designer.assembly_part_formed_vars) == wanted
-        assert tuple(designer.assembly_part_blank_vars) == wanted
-        assert tuple(designer.assembly_part_corner_vars) == wanted
+        assert tuple(designer.assembly_part_formed_vars) == operator_wanted
+        assert tuple(designer.assembly_part_blank_vars) == operator_wanted
+        assert tuple(designer.assembly_part_corner_vars) == operator_wanted
         assert designer.designer_workspace.features_for("door_c1_r1") == [upper]
         assert designer.designer_workspace.features_for("door_c1_r2") == [lower]
     finally:
@@ -267,9 +269,10 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
         root2.update_idletasks(); root2.update()
 
         wanted = tuple(designer2.designer_workspace.available_parts)
-        assert tuple(designer2.assembly_part_formed_vars) == wanted
-        assert tuple(designer2.assembly_part_blank_vars) == wanted
-        assert tuple(designer2.assembly_part_corner_vars) == wanted
+        operator_wanted = bridge._phase6_operator_part_selector_keys(wanted)
+        assert tuple(designer2.assembly_part_formed_vars) == operator_wanted
+        assert tuple(designer2.assembly_part_blank_vars) == operator_wanted
+        assert tuple(designer2.assembly_part_corner_vars) == operator_wanted
         assert tuple(designer2.assembly_box_body_piece_formed_vars) == (
             "box_body:left_side", "box_body:back", "box_body:right_side"
         )
@@ -280,7 +283,30 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
         assert designer2.designer_workspace.features_for("door_c1_r2") == [lower]
         resolved = bridge._phase6_resolve_manufacturing_geometry(designer2)
         resolved_keys = tuple(part.part_key for part in resolved.parts)
-        assert resolved_keys == wanted
+        physical_piece_keys = (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+        )
+        assert resolved_keys == tuple(
+            key for key in wanted if key not in physical_piece_keys
+        )
+
+        # Physical BoxBody pieces stay nested under the canonical aggregate
+        # while remaining independent operator Fold/render contexts.
+        aggregate = resolved.part("box_body").render_data
+        nested = {
+            f"box_body:{piece.role}": piece.render_data
+            for piece in tuple(aggregate.pieces or ())
+        }
+        assert tuple(nested) == physical_piece_keys
+        for key in physical_piece_keys:
+            designer2.activate_part(key)
+            root2.update_idletasks(); root2.update()
+            physical_render = bridge._phase6_query_final_render_data(designer2)
+            assert physical_render.material.equals(nested[key].material)
+            assert tuple(designer2.designer_workspace.profiles_for(key, {})["X"])
+
         assert resolved.part("door_c1_r1").offset != resolved.part("door_c1_r2").offset
     finally:
         try:
@@ -293,6 +319,63 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
                 root2.destroy()
         except Exception:
             pass
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
+
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+def test_receiving_box_body_children_are_nested_under_box_body_but_independently_hideable():
+    import tkinter as tk
+    import gui
+    import fold_designer_bridge as bridge
+
+    root = tk.Tk(); root.withdraw()
+    app = gui.BoxCalculatorGUI(root)
+    designer = None
+    try:
+        app.baseline_var.set("受電箱")
+        root.update_idletasks(); root.update()
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+
+        labels = [
+            designer.part_choice_menu.entrycget(i, "label")
+            for i in range(designer.part_choice_menu.index("end") + 1)
+        ]
+        assert labels.count("箱身") == 1
+        assert "左側板" not in labels
+        assert "後面板" not in labels
+        assert "右側板" not in labels
+
+        bundle = bridge._phase6_query_assembly_render_data(designer)
+        root.update_idletasks(); root.update()
+
+        assert tuple(designer.assembly_box_body_piece_visible_vars) == (
+            "box_body:left_side", "box_body:back", "box_body:right_side",
+        )
+        assert all(
+            designer.assembly_box_body_piece_checkbuttons[key].master.master
+            is designer.assembly_box_body_piece_sections[key]
+            for key in designer.assembly_box_body_piece_visible_vars
+        )
+        assert set(designer.assembly_box_body_piece_detail_frames) == set(
+            designer.assembly_box_body_piece_visible_vars
+        )
+
+        designer.assembly_box_body_piece_visible_vars["box_body:back"].set(False)
+        bundle = bridge._phase6_query_assembly_render_data(designer)
+        assert bundle.visible_box_body_piece_keys == (
+            "box_body:left_side", "box_body:right_side",
+        )
+        assert "box_body" in bundle.visible_part_keys
+    finally:
         try:
             if designer is not None:
                 designer.root.destroy()

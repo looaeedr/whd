@@ -1,6 +1,10 @@
 ---
 name: migrate-to-shoehorn
 description: Migrate test files from `as` type assertions to @total-typescript/shoehorn. Use when user mentions shoehorn, wants to replace `as` in tests, or needs partial test data.
+whd_doc_role: REFERENCE
+whd_contract: migrate-to-shoehorn
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Migrate to Shoehorn

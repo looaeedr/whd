@@ -1,26 +1,24 @@
-import ast
 from pathlib import Path
 
-SOURCE = Path("gui.py").read_text(encoding="utf-8")
-TREE = ast.parse(SOURCE)
-GUI = next(node for node in TREE.body if isinstance(node, ast.ClassDef) and node.name == "BoxCalculatorGUI")
+from gui_source_contract_helpers import application_source_bundle, phase6_host_method_source
 
 
 def method_source(name):
-    node = next(node for node in GUI.body if isinstance(node, ast.FunctionDef) and node.name == name)
-    return ast.get_source_segment(SOURCE, node)
+    return phase6_host_method_source(name)
 
 
 def test_gui_owns_one_shared_settings_state_loaded_from_ae_and_snapshot_carries_it():
-    init = method_source("init_variables")
-    snap = method_source("_make_original_fold_designer_snapshot")
-    source = Path("gui.py").read_text(encoding="utf-8")
+    import inspect
+    from gui_modules.application import state_sync
+    from gui_modules.application import fold_designer_adapter as fold_adapter
+    init = inspect.getsource(state_sync.init_variables)
+    snap = inspect.getsource(fold_adapter._snapshot_base_state)
+    source = application_source_bundle()
     assert "self.settings_service = SettingsService(ae)" in source
     assert "settings = self.settings_service.snapshot()" in init
     assert 'snapshot["settings"]' in snap
     assert 'snapshot["corner_state"]' in snap
     assert 'snapshot["corner_pair_same"]' in snap
-
 
 def test_open_designer_uses_transactional_settings_and_save_default_callback():
     text = method_source("open_original_fold_designer")
@@ -31,28 +29,33 @@ def test_open_designer_uses_transactional_settings_and_save_default_callback():
         "_save_fold_designer_defaults",
         "_on_main_setting_var_changed",
     ):
-        assert any(isinstance(node, ast.FunctionDef) and node.name == name for node in GUI.body)
+        assert method_source(name)
 
 
 def test_old_main_gui_no_longer_constructs_fold_advanced_panel_but_keeps_global_dimensions():
     create = method_source("create_widgets")
-    assert '"寬度 (W) :"' in create
-    assert '"高度 (H) :"' in create
-    assert '"深度 (D) :"' in create
+    left_panel = Path("gui_modules/layout/left_panel.py").read_text(encoding="utf-8")
+    assert "_build_main_layout(self)" in create
+    for token in ('"寬度 (W) :"', '"高度 (H) :"', '"深度 (D) :"'):
+        assert token in left_panel
     assert "create_advanced_inputs" not in create
+    assert "create_advanced_inputs" not in left_panel
     assert "self.adv_btn" not in create
-    assert "create_corner_type_panel" in create
+    assert "host.adv_btn" not in left_panel
+    assert "host.create_corner_type_panel" in left_panel
 
 
 def test_box_body_tab_keeps_global_fw_t_but_removes_z_comp_input():
-    text = method_source("setup_tab_z_ui")
+    text = Path("gui_modules/parts/panels/box_body.py").read_text(encoding="utf-8")
+    assert "def setup_tab_z_ui" in text
     assert "self.fw_z_var" in text
     assert "self.t_var" in text
     assert "self.z_comp_var" not in text
 
 
 def test_base_plate_tab_has_no_duplicate_shrink_or_bend_entries():
-    text = method_source("setup_tab_base_plate_ui")
+    text = Path("gui_modules/parts/panels/base_plate.py").read_text(encoding="utf-8")
+    assert "def setup_tab_base_plate_ui" in text
     assert "self.canvas_base_plate" in text
     for token in (
         "self.base_plate_shrink_same_var",
@@ -66,12 +69,18 @@ def test_base_plate_tab_has_no_duplicate_shrink_or_bend_entries():
 
 
 def test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_explicit_only():
-    init = method_source("init_variables")
-    snap = method_source("_make_original_fold_designer_snapshot")
+    import inspect
+    from gui_modules.application import state_sync
+    from gui_modules.application import fold_designer_adapter as fold_adapter
+
+    init = inspect.getsource(state_sync.init_variables)
+    corner_init = inspect.getsource(state_sync._init_base_results_and_corner_state)
+    snap = inspect.getsource(fold_adapter._snapshot_base_state)
     open_text = method_source("open_original_fold_designer")
     save_text = method_source("_save_fold_designer_defaults")
     live_text = method_source("_apply_fold_designer_live_snapshot")
-    assert "load_corner_defaults_from_ini(ae)" in init
+    assert "load_corner_defaults_from_ini(ae)" in corner_init
+    assert "_init_base_results_and_corner_state" in init
     assert 'snapshot["corner_editable"]' in snap
     assert 'snapshot["baseline_models"]' in snap
     assert "on_corner_change=None" in open_text
@@ -89,8 +98,8 @@ def test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_exp
 def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d_page():
     source = Path("gui.py").read_text(encoding="utf-8")
     bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    panel_source = Path("phase6_settings_panel.py").read_text(encoding="utf-8")
     assert "from phase6_settings_center import" in source
     assert "SettingsService" in source
-    assert "Phase6SettingsPanel" in bridge_source
+    assert "class Phase6SettingsPanel" in panel_source
     assert "self.global_settings_button =" not in bridge_source
-

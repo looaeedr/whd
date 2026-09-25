@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # FIX13 指示燈盒／主門開孔／小門單一尺寸鏈
 
 日期：2026-08-20

@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # TESTS 無用性分析報告
 
 > 運行結果：**17 failed / 402 passed**（共 57 個測試檔，419 個 test case，歷時 166 秒）

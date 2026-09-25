@@ -6,6 +6,32 @@ def _skill_text() -> str:
     return path.read_text(encoding="utf-8")
 
 
+def test_dispatching_skill_identity_is_user_requested_chinese_name():
+    text = _skill_text()
+    frontmatter = text.split("---", 2)[1]
+    assert "name: 派工" in frontmatter
+    assert "name: dispatching" not in frontmatter
+    assert "# 派工" in text
+
+
+def test_dispatching_skill_sections_follow_execution_order():
+    text = _skill_text()
+    ordered = (
+        "## 1. 啟動與能力邊界",
+        "## 2. 狀態機",
+        "## 3. PM：工單與 Authority Gate",
+        "## 4. Implementer：實作與 Checkpoint",
+        "## 5. QA：審查與完成條件",
+        "## 6. 測試 Runner / TIMEOUT 協定",
+        "## 7. Remote QA Active Lock",
+        "## 8. 30 秒進度回報",
+        "## 9. 掃描深模組來源檢查",
+        "## 10. Skill 自我檢查",
+    )
+    positions = [text.index(section) for section in ordered]
+    assert positions == sorted(positions)
+
+
 def test_dispatching_skill_requires_process_group_cleanup_and_timeout_classification():
     text = _skill_text()
     assert "process group" in text.lower()
@@ -84,3 +110,109 @@ def test_dispatching_skill_requires_30_second_progress_reporting_without_stoppin
         "不得中斷",
     ):
         assert required in implement_text
+
+
+def test_dispatching_skill_keeps_github_issue_ai_library_and_remote_qa_gates():
+    text = _skill_text()
+    for required in (
+        "GitHub owning Issue",
+        "Requirement Authority",
+        "AI Library References",
+        "AI Library Writeback",
+        "monitoring-remote-qa",
+        "run_id + head_sha",
+        "REMOTE_QA_ACTIVE_LOCK",
+    ):
+        assert required in text
+
+
+def test_dispatching_skill_requires_non_terminal_continue_instead_of_returning_on_pending():
+    text = _skill_text()
+    for required in (
+        "NON_TERMINAL_CONTINUE",
+        "pending 本身不是停工點",
+        "不是結束回合的理由",
+        "不能當作 `return` condition",
+        "立即執行下一個可執行 action",
+        "不假報完成",
+        "持續施工",
+    ):
+        assert required in text
+
+    assert "使用者明確中止" in text
+    assert "不可繞過" in text
+    assert "硬閘門" in text
+
+
+def test_dispatching_skill_requires_one_atomic_execution_claim_per_owning_issue():
+    text = _skill_text()
+    for required in (
+        "NO_WORK_WITHOUT_CLAIM",
+        "一張 GitHub owning Issue 同時間只能有一個 execution claim owner",
+        "shared coordination namespace/ref",
+        "atomic",
+        "branch-local lock",
+        "不能作為互斥 authority",
+        "production/test/Skill/AI Library 第一筆 write 前",
+        "claim 失敗",
+        "禁止施工該 Issue",
+    ):
+        assert required in text
+
+    assert "Issue comment / label" in text
+    assert "不是 execution claim authority" in text
+
+
+def test_dispatching_skill_claim_keeps_durable_progress_visible_to_other_ai_workers():
+    text = _skill_text()
+    for required in (
+        "CLAIM_PROGRESS_STATE",
+        "phase/state",
+        "last_update",
+        "branch",
+        "HEAD",
+        "remote QA run/status",
+        "next_action",
+        "blocker",
+        "RED",
+        "GREEN",
+        "cleanup",
+        "drift audit",
+    ):
+        assert required in text
+
+    for bucket in ("我持有", "其他 AI 已鎖定", "尚未認領"):
+        assert bucket in text
+
+
+def test_dispatching_skill_stale_claim_recovery_is_audited_not_silent_steal():
+    text = _skill_text()
+    for required in (
+        "STALE_CLAIM_RECOVERY",
+        "不得直接搶鎖",
+        "owning branch",
+        "checkpoint/journal",
+        "last_update",
+        "remote QA",
+        "compare-and-swap",
+        "recovery evidence",
+    ):
+        assert required in text
+
+    assert "Issue terminal" in text
+    assert "release claim" in text
+
+
+def test_dispatching_skill_live_remote_qa_overrides_stale_claim_snapshot():
+    text = _skill_text()
+    for required in (
+        "LIVE_REMOTE_QA_AUTHORITY_BRIDGE",
+        "live run status",
+        "claim/checkpoint",
+        "stale remote-QA snapshot",
+        "禁止套用 10 分鐘保護",
+        "completed + success",
+        "reconcile",
+        "不能成為 stop condition",
+    ):
+        assert required in text

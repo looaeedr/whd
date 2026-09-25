@@ -5,6 +5,7 @@ import pytest
 
 import gui
 import fold_designer_bridge as bridge
+import phase6_bending_ui as bending_ui
 import phase6_settings_panel as settings_panel
 
 
@@ -120,11 +121,11 @@ def test_has_any_indicator_box_ignores_direct_indicator_and_finds_box_cells():
 
 
 def test_indicator_aux_exports_default_off_and_export_path_is_box_gated():
-    source = Path(gui.__file__).read_text(encoding="utf-8")
-    assert "self.export_ib_var   = tk.BooleanVar(value=False)" in source
-    assert "self.export_ib_door_var = tk.BooleanVar(value=False)" in source
-    assert "self._has_any_indicator_box()" in source
-
+    state_source = Path("gui_modules/application/state_sync.py").read_text(encoding="utf-8")
+    export_source = Path("gui_modules/project/export_actions.py").read_text(encoding="utf-8")
+    assert "self.export_ib_var   = tk.BooleanVar(value=False)" in state_source
+    assert "self.export_ib_door_var = tk.BooleanVar(value=False)" in state_source
+    assert "self._has_any_indicator_box()" in export_source
 
 def test_fold_designer_part_existence_is_not_controlled_by_indicator_export_checkboxes():
     from phase6_workspace_controller import Phase6WorkspaceController
@@ -262,7 +263,7 @@ def test_real_tk_part_selector_menu_opens_part_and_delete_shares_selector_row():
         assert selector.cget('text') == '組合體'
         selector_menu = root.nametowidget(selector.cget('menu'))
         labels = [selector_menu.entrycget(i, 'label') for i in range(selector_menu.index('end') + 1)]
-        assert labels[:6] == ['組合體', '箱身', '封頭', '封尾', '門', '底板']
+        assert labels[:7] == ['組合體', '截角資料', '箱身', '封頭', '封尾', '門', '底板']
         assert add_button.cget('text') == '新增 ▼'
 
         # Selecting a part is a single menu action; no second click or separate
@@ -347,9 +348,11 @@ def test_phase6_box_symmetry_toggle_updates_authoritative_state():
 
 
 def test_phase6_box_page_restores_symmetry_checkbox():
-    source = Path(bridge.__file__).read_text(encoding="utf-8")
-    assert 'text="對稱折彎"' in source
-    assert "_phase6_on_box_symmetry_changed" in source
+    owner_source = Path(bending_ui.__file__).read_text(encoding="utf-8")
+    bridge_source = Path(bridge.__file__).read_text(encoding="utf-8")
+    assert 'text="對稱折彎"' in owner_source
+    assert "phase6_symmetry" in owner_source
+    assert "def _phase6_on_box_symmetry_changed" in bridge_source
 
 
 def test_corner_type_icon_canvas_mapping_is_vertically_flipped_for_operator_view():
@@ -429,7 +432,10 @@ def test_selecting_assembly_type_rebuilds_current_box_body_settings_page(monkeyp
 
     assert invalidated == ["head", "tail"]
     assert rendered == []
-    assert holder._phase6_assembly_type is bridge.CornerTypeId.OVERLAY
+    assert (
+        bridge._phase6_settings_transactions(holder).assembly_type
+        is bridge.CornerTypeId.OVERLAY
+    )
 
 
 def test_symmetric_box_body_fw_mirrors_by_semantic_key_after_asymmetric_extra_fold_history():
@@ -556,7 +562,10 @@ def test_selecting_assembly_type_keeps_current_box_page_alive_and_invalidates_on
 
     assert invalidated == ["head", "tail"]
     assert rendered == []
-    assert holder._phase6_assembly_type is bridge.CornerTypeId.OVERLAY
+    assert (
+        bridge._phase6_settings_transactions(holder).assembly_type
+        is bridge.CornerTypeId.OVERLAY
+    )
 
 
 def test_baseline_only_setting_groups_are_not_duplicated_into_advanced_settings():
@@ -602,10 +611,7 @@ def test_open_fold_designer_is_modal_and_blocks_main_2d_while_draft_is_open():
 
 def test_box_symmetry_checkbox_lives_in_fold_editor_not_right_settings_page():
     settings_source = Path(settings_panel.__file__).read_text(encoding="utf-8")
-    source = Path(bridge.__file__).read_text(encoding="utf-8")
-    bending_start = source.index("class Phase6BendingUI")
-    bending_end = source.index("class Phase6FoldDesignerApp", bending_start)
-    bending_source = source[bending_start:bending_end]
+    bending_source = Path(bending_ui.__file__).read_text(encoding="utf-8")
 
     assert "_phase6_build_box_symmetry_settings" not in settings_source
     assert 'text="對稱折彎"' in bending_source
@@ -676,43 +682,29 @@ def test_overlay_endcap_editor_hides_x_axis_and_keeps_y_axis():
 
 
 def test_main_2d_overlay_builds_flat_x_profile_even_without_3d_workspace():
+    from gui_modules.application.manufacturing_adapter import _endcap_profiles_for_assembly
     values = _assembly_snapshot(bridge.CornerTypeId.OVERLAY)
-    profiles = gui._endcap_profiles_for_assembly(
-        values, None, bridge.CornerTypeId.OVERLAY, "head"
-    )
+    profiles = _endcap_profiles_for_assembly(values, None, bridge.CornerTypeId.OVERLAY, "head")
     assert [row.get("phase6_key") for row in profiles["X"]] == ["endcap_w_flat"]
     assert all("angle" not in row for row in profiles["X"])
     assert profiles["Y"]
 
-
 def test_main_2d_switching_from_overlay_to_wrap_overlay_restores_normal_x_without_corner_enum_projection():
+    from gui_modules.application.manufacturing_adapter import _endcap_profiles_for_assembly
     overlay_values = _assembly_snapshot(bridge.CornerTypeId.OVERLAY)
-    overlay_profiles = gui._endcap_profiles_for_assembly(
-        overlay_values, None, bridge.CornerTypeId.OVERLAY, "head"
-    )
+    overlay_profiles = _endcap_profiles_for_assembly(overlay_values, None, bridge.CornerTypeId.OVERLAY, "head")
     wrap_values = _assembly_snapshot(bridge.CornerTypeId.INSERT)
     wrap_values["assembly_type"] = "WRAP_OVERLAY"
-    restored = gui._endcap_profiles_for_assembly(
-        wrap_values, overlay_profiles, "WRAP_OVERLAY", "head"
-    )
-    assert [row.get("phase6_key") for row in restored["X"]] == [
-        "yl1", "endcap_w_core", "yr1"
-    ]
-
+    restored = _endcap_profiles_for_assembly(wrap_values, overlay_profiles, "WRAP_OVERLAY", "head")
+    assert [row.get("phase6_key") for row in restored["X"]] == ["yl1", "endcap_w_core", "yr1"]
 
 def test_main_2d_switching_back_from_overlay_restores_normal_x_fold_topology():
+    from gui_modules.application.manufacturing_adapter import _endcap_profiles_for_assembly
     overlay_values = _assembly_snapshot(bridge.CornerTypeId.OVERLAY)
-    overlay_profiles = gui._endcap_profiles_for_assembly(
-        overlay_values, None, bridge.CornerTypeId.OVERLAY, "head"
-    )
+    overlay_profiles = _endcap_profiles_for_assembly(overlay_values, None, bridge.CornerTypeId.OVERLAY, "head")
     insert_values = _assembly_snapshot(bridge.CornerTypeId.INSERT)
-    restored = gui._endcap_profiles_for_assembly(
-        insert_values, overlay_profiles, bridge.CornerTypeId.INSERT, "head"
-    )
-    assert [row.get("phase6_key") for row in restored["X"]] == [
-        "yl1", "endcap_w_core", "yr1"
-    ]
-
+    restored = _endcap_profiles_for_assembly(insert_values, overlay_profiles, bridge.CornerTypeId.INSERT, "head")
+    assert [row.get("phase6_key") for row in restored["X"]] == ["yl1", "endcap_w_core", "yr1"]
 
 def test_overlay_final_scene_contains_no_x_axis_bend_lines():
     from ae_engine.contracts import EndCapPartSpec
@@ -755,14 +747,7 @@ def test_box_assembly_combobox_selection_updates_joint_graph_without_rewriting_c
         settings_context="box_body",
         do_update=lambda: None,
     )
-    sync_calls = []
     legacy_apply_calls = []
-
-    monkeypatch.setattr(
-        bridge,
-        "_phase6_sync_joint_state_for_intent",
-        lambda self, type_id: sync_calls.append(type_id) or (),
-    )
     monkeypatch.setattr(
         bridge,
         "apply_box_assembly_type_to_raw_state",
@@ -773,9 +758,9 @@ def test_box_assembly_combobox_selection_updates_joint_graph_without_rewriting_c
 
     bridge._phase6_on_assembly_type_selected(holder)
 
-    assert sync_calls == [bridge.CornerTypeId.OVERLAY]
     assert legacy_apply_calls == []
     assert holder._phase6_input_snapshot["assembly_type"] == bridge.CornerTypeId.OVERLAY.value
+    assert holder._phase6_input_snapshot["assembly_joints"]
     assert holder._phase6_corner_state is original_corner_state
     assert workspace.dirty is True
 

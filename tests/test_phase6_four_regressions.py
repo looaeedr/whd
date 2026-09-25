@@ -81,7 +81,8 @@ def test_receiving_phase6_policy_keeps_family_specific_bottom_effective_fw():
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
-    import fold_designer_bridge as bridge
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from phase6_endcap_semantics import resolve_endcap_fw
 
     root = tk.Tk(); root.withdraw()
     app = gui.BoxCalculatorGUI(root)
@@ -91,9 +92,21 @@ def test_receiving_phase6_policy_keeps_family_specific_bottom_effective_fw():
         designer = app.open_original_fold_designer()
         designer.activate_part("head")
         root.update_idletasks(); root.update()
-        policy = bridge._phase6_corner_policy_for(designer, "head")
-        assert policy.bottom_fw == pytest.approx(17.0), "側板後折15 + 1T(2) 應成為受電箱下方等價 FW"
-        assert policy.fw == pytest.approx(29.0)
+
+        snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+        snapshot.update(dict(getattr(designer, "_settings_values", {}) or {}))
+        fw = resolve_endcap_fw(snapshot, "head")
+        bottom_fw = cabinet_family_policy.effective_endcap_bottom_fw(
+            snapshot,
+            snapshot.get("box_body_structure"),
+            thickness=float(snapshot.get("t", 2.0) or 2.0),
+            default_fw=float(fw),
+        )
+
+        # #84 fresh Receiving rear flange is 18 OUTSIDE. At T=2 it is
+        # 16 MATERIAL and bottom_effective_fw adds 1T once => 18.
+        assert bottom_fw == pytest.approx(18.0)
+        assert fw == pytest.approx(29.0)
     finally:
         try:
             if app.fold_designer_window is not None:
@@ -101,7 +114,6 @@ def test_receiving_phase6_policy_keeps_family_specific_bottom_effective_fw():
         except Exception:
             pass
         root.destroy()
-
 
 def test_relief_registry_form_is_traditional_chinese_and_explains_internal_terms():
     import os
@@ -243,18 +255,19 @@ def test_receiving_wrap_intent_callback_preserves_bottom_relief_before_and_after
             material = manufacturing_api.material_polygon_from_final_scene(render_data.scene)
             return {m.corner_name: m for m in measure_material_corner_reliefs(material, blank_bounds=material.bounds)}
 
-        # Payload adapter 可保留 display bottom_fw=17；真正 machining CUT 由
-        # 已解析為 WRAP 的 BOTTOM Joint 命中 Certified Registry。
+        # Payload adapter follows fresh Receiving OUTSIDE18 -> MATERIAL16 ->
+        # bottom FW 18. The WRAP machining cut is owned by the Certified Registry.
         for part_key in ("head", "tail"):
             payload = bridge._phase6_scene_query_payload_for_part(designer, part_key)
             payload["_use_committed_relief"] = False
             spec, _ctx = app._fold_designer_part_spec_from_payload(part_key, payload)
-            assert spec.corner_policy.bottom_fw == pytest.approx(17.0)
+            assert spec.corner_policy.bottom_fw == pytest.approx(18.0)
 
             raw = designer._scene_query_callback(part_key, payload)
             raw_m = measurements(raw)
             physical_bottom = "top_left" if part_key == "head" else "bottom_left"
-            assert raw_m[physical_bottom].primary_u == pytest.approx(28.0)
+            # Certified rule: side_fold15 + rear_material16 - reserve_u2 = 29.
+            assert raw_m[physical_bottom].primary_u == pytest.approx(29.0)
             assert raw_m[physical_bottom].primary_v == pytest.approx(14.0)
             assert raw_m[physical_bottom].secondary_u == pytest.approx(15.0)
             assert raw_m[physical_bottom].secondary_depth == pytest.approx(1.0)
@@ -270,7 +283,7 @@ def test_receiving_wrap_intent_callback_preserves_bottom_relief_before_and_after
             final = resolved.part(part_key)
             final_m = measurements(final.render_data)
             physical_bottom = "top_left" if part_key == "head" else "bottom_left"
-            assert final_m[physical_bottom].primary_u == pytest.approx(28.0)
+            assert final_m[physical_bottom].primary_u == pytest.approx(29.0)
             assert final_m[physical_bottom].primary_v == pytest.approx(14.0)
             assert final_m[physical_bottom].secondary_u == pytest.approx(15.0)
             assert final_m[physical_bottom].secondary_depth == pytest.approx(1.0)

@@ -1,0 +1,31 @@
+{
+  "task_id": "DM6",
+  "work_order": "#66",
+  "role": "ACCEPTED",
+  "branch": "work/dm6-t2-layout-semantic-identity",
+  "dependency": "#65 ACCEPTED",
+  "red": {
+    "run_id": 34338898740,
+    "head_sha": "e058a2305ab4bbe1b3dea2f0a4b9b6e316cc7713",
+    "result": "3 failed in 1.06s",
+    "user_approval": "covered by one-time DM6 completion approval"
+  },
+  "green": {
+    "production_head": "7a9e018f25e4c739d834bba89a1f38fa0e3c88f3",
+    "fixture_contract_commit": "2b017b140bb222185f7c5a61d8d6401de351f271"
+  },
+  "acceptance": {
+    "run_id": 34339492745,
+    "job_id": 102426654173,
+    "head_sha": "1a2552385410f6fdf23c98ddb4d2b2f0a45336ae",
+    "result": "19 passed in 1.96s",
+    "compile": "PASS",
+    "source_authority_guard": "PASS"
+  },
+  "contract": "TextPrimitive carries Planner semantic_id; Layout resolves dimension/callout ownership only from semantic_id; label/distance authority removed.",
+  "cleanup": {
+    "temporary_workflow_removed": true,
+    "cleanup_commit": "94271b5e9606f4e943d27061b7b032154e6a099c"
+  },
+  "blocked": []
+}

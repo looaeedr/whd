@@ -1,7 +1,7 @@
-from pathlib import Path
 import tkinter as tk
 
 import fold_designer_bridge as bridge
+from gui_source_contract_helpers import phase6_host_method_source
 from test_phase6_settings_center_bridge import _snapshot
 
 
@@ -74,10 +74,7 @@ def test_corner_change_notifier_publishes_immediately(monkeypatch):
 
 
 def test_main_gui_3d_open_path_has_no_project_draft_confirm_cancel():
-    source = Path("gui.py").read_text(encoding="utf-8")
-    start = source.index("    def open_original_fold_designer(self):")
-    end = source.index("    def _apply_ui_text_size_preference", start)
-    block = source[start:end]
+    block = phase6_host_method_source("open_original_fold_designer")
     assert "begin_designer(" not in block
     assert "confirm_designer(" not in block
     assert "cancel_designer(" not in block
@@ -100,7 +97,7 @@ def test_baseline_change_publishes_live(monkeypatch):
     try:
         published.clear()
         app.baseline_model_var.set("未知類型")
-        app.on_baseline_model_changed()
+        bridge._phase6_on_baseline_model_changed(app)
         root.update_idletasks()
         assert published
         assert published[-1]["model"] == "未知類型"

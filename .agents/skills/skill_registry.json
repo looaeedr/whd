@@ -3,6 +3,364 @@
   "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
+      "id": "skill-authoring",
+      "keywords": [
+        "寫技能",
+        "修改技能",
+        "修技能",
+        "SKILL.md",
+        "skill authoring",
+        "skill creator",
+        "skill update"
+      ],
+      "file_globs": [
+        ".agents/skills/**"
+      ],
+      "required_skills": [
+        "寫技能"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "scheduler-authoring",
+      "keywords": [
+        "寫排程",
+        "新增排程",
+        "修改排程",
+        "建立排程",
+        "排程技能",
+        "排程 prompt",
+        "scheduler prompt",
+        "recurring automation",
+        "automation prompt",
+        "排程一直停",
+        "排程又停了",
+        "排程硬閘門"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/寫排程/**"
+      ],
+      "required_skills": [
+        "寫排程",
+        "派工",
+        "遠端執行守門",
+        "monitoring-remote-qa",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
+      "id": "scheduler-simulation",
+      "keywords": [
+        "/排程A",
+        "/排程B",
+        "排程A",
+        "排程B",
+        "排程模擬",
+        "same-lane resume"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/排程模擬/**"
+      ],
+      "required_skills": [
+        "排程模擬",
+        "派工",
+        "遠端執行守門",
+        "monitoring-remote-qa",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
+      "id": "deterministic-repo-migration",
+      "keywords": [
+        "deterministic repo migration",
+        "deterministic repository migration",
+        "authority-driven repository migration",
+        "authority-driven repo migration",
+        "authoritative matrix migration",
+        "authoritative registry migration",
+        "idempotent repository migration"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/deterministic-repo-migration/**"
+      ],
+      "required_skills": [
+        "deterministic-repo-migration"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md"
+      ]
+    },
+    {
+      "id": "skill-discovery",
+      "keywords": [
+        "找技能",
+        "有沒有技能",
+        "幫我找技能",
+        "搜尋技能",
+        "安裝技能",
+        "skill discovery",
+        "find skill",
+        "install skill"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/找技能/**"
+      ],
+      "required_skills": [
+        "找技能"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "mcp-tool-operation",
+      "keywords": [
+        "MCP",
+        "Model Context Protocol",
+        "MCP server",
+        "MCP tool",
+        "mcp-cli",
+        "MCP工具",
+        "連接 MCP"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/MCP工具操作/**"
+      ],
+      "required_skills": [
+        "MCP工具操作"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "python-testing-practices",
+      "keywords": [
+        "Python 測試",
+        "pytest",
+        "fixture",
+        "parameterization",
+        "parametrize",
+        "mock",
+        "monkeypatch",
+        "async test",
+        "property-based",
+        "Hypothesis",
+        "tmp_path",
+        "xfail",
+        "coverage"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/Python測試實務/**",
+        "tests/**/*.py",
+        "conftest.py"
+      ],
+      "required_skills": [
+        "Python測試實務"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "property-invariant-testing",
+      "keywords": [
+        "性質導向測試",
+        "property-based testing",
+        "property testing",
+        "property test",
+        "invariant testing",
+        "roundtrip property",
+        "idempotence property",
+        "shrinking",
+        "shrunk counterexample",
+        "counterexample classification",
+        "Hypothesis property"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/性質導向測試/**",
+        "tests/test_*property*.py",
+        "tests/test_*invariant*.py"
+      ],
+      "required_skills": [
+        "性質導向測試"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "dimension-semantics-analysis",
+      "keywords": [
+        "尺寸語意分析",
+        "尺寸語意",
+        "尺寸混用",
+        "dimensional analysis",
+        "dimension semantics",
+        "semantic dimension",
+        "包外 vs 料尺寸",
+        "料尺寸 vs 包外",
+        "flat vs formed",
+        "unit mismatch",
+        "FW 包外",
+        "T/2T"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/尺寸語意分析/**"
+      ],
+      "required_skills": [
+        "尺寸語意分析"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md"
+      ]
+    },
+    {
+      "id": "dm7-part-navigation",
+      "keywords": [
+        "DM7",
+        "Corner Data",
+        "截角資料",
+        "板件導覽",
+        "stale physical child",
+        "STALE_PHYSICAL_CHILD",
+        "RESTORE_CHILD_CONTEXT"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/截角資料入口收斂/**"
+      ],
+      "required_skills": [
+        "截角資料入口收斂"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+        "個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md"
+      ]
+    },
+    {
+      "id": "ui-design-de-ai",
+      "keywords": [
+        "UI設計",
+        "UI",
+        "UX",
+        "去AI味",
+        "AI味",
+        "AI slop",
+        "不像AI",
+        "介面設計",
+        "介面重整",
+        "視覺層級",
+        "layout",
+        "typography",
+        "UI audit",
+        "frontend design",
+        "UI UX Pro Max",
+        "UI/UX Pro Max",
+        "ui ux pro max",
+        "ui-ux-pro-max",
+        "UUPM"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/UI設計與去AI味/**"
+      ],
+      "required_skills": [
+        "UI設計與去AI味"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "dispatching-workflow",
+      "keywords": [
+        "派工",
+        "dispatching",
+        "角色切換",
+        "轉移至：實作者",
+        "當前角色：總控審查",
+        "PM → Implementer → QA"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/派工/**"
+      ],
+      "required_skills": [
+        "派工",
+        "issue-closure-gate"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "remote-execution-guard",
+      "keywords": [
+        "遠端執行守門",
+        "Remote Guard",
+        "remote execution guard",
+        "WHD_REMOTE_GUARD_REQUEST_V1",
+        "WHD_REMOTE_GUARD_RECEIPT_V1",
+        "repository command execution",
+        "scheduler no shell",
+        "排程沒有 shell",
+        "排程無 shell",
+        "execution_claim_guard.py 無法執行",
+        "GUARD_EXECUTION_CAPABILITY_BLOCKER",
+        "remote-execution-guard"
+      ],
+      "file_globs": [
+        ".github/workflows/whd-remote-execution-guard.yml",
+        ".agents/skills/engineering/remote-execution-guard/**"
+      ],
+      "required_skills": [
+        "遠端執行守門",
+        "monitoring-remote-qa",
+        "long-log-context-safe-execution",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
+      "id": "issue-closure-gate",
+      "keywords": [
+        "關單",
+        "關議題",
+        "Issue closure",
+        "close issue",
+        "Master issue",
+        "Final Combined",
+        "production integration",
+        "合併完成",
+        "正式完成"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/issue-closure-gate/**"
+      ],
+      "required_skills": [
+        "issue-closure-gate",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
       "id": "scan-deep-modules",
       "keywords": [
         "掃描深模組",
@@ -184,6 +542,67 @@
       "required_references": []
     },
     {
+      "id": "long-log-context-safe-execution",
+      "keywords": [
+        "超長 Log",
+        "長輸出",
+        "Long-Log",
+        "long log",
+        "context-safe execution",
+        "tail output",
+        "tail log",
+        "log-failed",
+        "offset cursor",
+        "log 太長",
+        "Xvfb full-suite",
+        "Combined Acceptance log"
+      ],
+      "file_globs": [],
+      "required_skills": [
+        "long-log-context-safe-execution"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      ]
+    },
+    {
+      "id": "executable-continuity-controller",
+      "keywords": [
+        "不停工",
+        "持續執行",
+        "continuous execution",
+        "continuity controller",
+        "runtime cut",
+        "runtime interruption",
+        "checkpoint resume",
+        "nonterminal",
+        "non-terminal",
+        "finalization gate",
+        "使用者不是 scheduler",
+        "accepted spec",
+        "accepted specification",
+        "specification required",
+        "新 Phase",
+        "新階段",
+        "ownership boundary",
+        "task chain",
+        "繼續拆",
+        "implement spec"
+      ],
+      "file_globs": [
+        "tools/continuity_controller.py",
+        "tests/process/test_continuity_controller.py",
+        "tests/process/test_continuous_execution_durable_contract.py",
+        ".agents/skills/engineering/executable-continuity-controller/**"
+      ],
+      "required_skills": [
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
       "id": "remote-qa-monitoring",
       "keywords": [
         "遠端 QA",
@@ -201,7 +620,586 @@
         ".github/workflows/*qa*.yaml"
       ],
       "required_skills": [
+        "monitoring-remote-qa",
+        "long-log-context-safe-execution",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
+      "id": "part-dxf-acceptance",
+      "keywords": [
+        "驗目前板件",
+        "驗板件",
+        "驗這個板件",
+        "驗全部板件",
+        "全部板件驗收",
+        "完整驗收全部板件",
+        "驗箱身",
+        "驗中隔",
+        "驗目前中隔",
+        "驗封頭",
+        "驗封尾",
+        "驗門",
+        "驗底板",
+        "驗指示燈盒",
+        "驗指示燈小門",
+        "驗內門",
+        "DXF反驗證",
+        "DXF 反驗證",
+        "驗輸出的DXF",
+        "驗全部DXF",
+        "驗目前板件的DXF",
+        "Save→Reload 驗收",
+        "Save Reload 驗收",
+        "存檔再讀回來驗",
+        "2D/3D 同步",
+        "2D 3D 同步",
+        "multipart",
+        "多件式",
+        "physical part",
+        "dynamic part",
+        "Final Material",
+        "板件切換",
+        "板件顯示",
+        "完整板件驗收"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/驗證板件與DXF/**",
+        "tests/test_dxf_acceptance.py",
+        "tests/test_multipart_dxf_acceptance.py",
+        "tests/test_resolved_manufacturing_export.py",
+        "tests/test_resolved_manufacturing_geometry.py",
+        "tests/test_issue41_persistence_parity.py",
+        "tests/test_issue45_dynamic_parts_2d_roundtrip.py",
+        "tests/test_issue38_receiving_divider_baseline.py",
+        "tests/test_issue39_divider_relief.py",
+        "tests/test_issue40_divider_6p4_shared_datum.py",
+        "gui.py",
+        "fold_designer_bridge.py",
+        "phase6_final_scene_view.py",
+        "phase6_box_body_structure.py",
+        "ae_engine/manufacturing_api.py",
+        "ae_engine/*manufacturing*.py",
+        "ae_engine/*export*.py",
+        "phase6_project_*.py"
+      ],
+      "required_skills": [
+        "驗證板件與DXF",
         "monitoring-remote-qa"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      ]
+    },
+    {
+      "id": "explicit-skill-拆解任務工單",
+      "keywords": [
+        "拆解任務工單"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/拆解任務工單/**"
+      ],
+      "required_skills": [
+        "拆解任務工單"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-拷問邊建立文件",
+      "keywords": [
+        "拷問邊建立文件"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/拷問邊建立文件/**"
+      ],
+      "required_skills": [
+        "拷問邊建立文件"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-執行開發任務",
+      "keywords": [
+        "執行開發任務"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/執行開發任務/**"
+      ],
+      "required_skills": [
+        "執行開發任務"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-深度質詢",
+      "keywords": [
+        "深度質詢"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/深度質詢/**"
+      ],
+      "required_skills": [
+        "深度質詢"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-程式碼庫設計",
+      "keywords": [
+        "程式碼庫設計"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/程式碼庫設計/**"
+      ],
+      "required_skills": [
+        "程式碼庫設計"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-領域建模",
+      "keywords": [
+        "領域建模"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/領域建模/**"
+      ],
+      "required_skills": [
+        "領域建模"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-寫成規格書",
+      "keywords": [
+        "寫成規格書"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/寫成規格書/**"
+      ],
+      "required_skills": [
+        "寫成規格書"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-ask-matt",
+      "keywords": [
+        "ask-matt"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/ask-matt/**"
+      ],
+      "required_skills": [
+        "ask-matt"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-code-review",
+      "keywords": [
+        "code-review"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/code-review/**"
+      ],
+      "required_skills": [
+        "code-review"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-handoff",
+      "keywords": [
+        "handoff"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/handoff/**"
+      ],
+      "required_skills": [
+        "handoff"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-assembly-view-boundaries",
+      "keywords": [
+        "phase6-assembly-view-boundaries"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-assembly-view-boundaries/**"
+      ],
+      "required_skills": [
+        "phase6-assembly-view-boundaries"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-prototype",
+      "keywords": [
+        "prototype"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/prototype/**"
+      ],
+      "required_skills": [
+        "prototype"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-research",
+      "keywords": [
+        "research"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/research/**"
+      ],
+      "required_skills": [
+        "research"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-resolving-merge-conflicts",
+      "keywords": [
+        "resolving-merge-conflicts"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/resolving-merge-conflicts/**"
+      ],
+      "required_skills": [
+        "resolving-merge-conflicts"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-teach",
+      "keywords": [
+        "teach"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/teach/**"
+      ],
+      "required_skills": [
+        "teach"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-to-questionnaire",
+      "keywords": [
+        "to-questionnaire"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/to-questionnaire/**"
+      ],
+      "required_skills": [
+        "to-questionnaire"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-triage",
+      "keywords": [
+        "triage"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/triage/**"
+      ],
+      "required_skills": [
+        "triage"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wait-what",
+      "keywords": [
+        "wait-what"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/wait-what/**"
+      ],
+      "required_skills": [
+        "wait-what"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wayfinder",
+      "keywords": [
+        "wayfinder"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/wayfinder/**"
+      ],
+      "required_skills": [
+        "wayfinder"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wizard",
+      "keywords": [
+        "wizard"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/wizard/**"
+      ],
+      "required_skills": [
+        "wizard"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-writing-for-agents",
+      "keywords": [
+        "writing-for-agents"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/writing-for-agents/**"
+      ],
+      "required_skills": [
+        "writing-for-agents"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-Python測試實務",
+      "keywords": [
+        "Python測試實務"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/Python測試實務/**"
+      ],
+      "required_skills": [
+        "Python測試實務"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-UI設計與去AI味",
+      "keywords": [
+        "UI設計與去AI味"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/UI設計與去AI味/**"
+      ],
+      "required_skills": [
+        "UI設計與去AI味"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-deterministic-repo-migration",
+      "keywords": [
+        "deterministic-repo-migration"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/deterministic-repo-migration/**"
+      ],
+      "required_skills": [
+        "deterministic-repo-migration"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-diagnosing-bugs",
+      "keywords": [
+        "diagnosing-bugs"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/diagnosing-bugs/**"
+      ],
+      "required_skills": [
+        "diagnosing-bugs"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-executable-continuity-controller",
+      "keywords": [
+        "executable-continuity-controller"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/executable-continuity-controller/**"
+      ],
+      "required_skills": [
+        "executable-continuity-controller"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-issue-closure-gate",
+      "keywords": [
+        "issue-closure-gate"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/issue-closure-gate/**"
+      ],
+      "required_skills": [
+        "issue-closure-gate"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-long-log-context-safe-execution",
+      "keywords": [
+        "long-log-context-safe-execution"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/long-log-context-safe-execution/**"
+      ],
+      "required_skills": [
+        "long-log-context-safe-execution"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-monitoring-remote-qa",
+      "keywords": [
+        "monitoring-remote-qa"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/monitoring-remote-qa/**"
+      ],
+      "required_skills": [
+        "monitoring-remote-qa"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-corner-3d-model-integrity",
+      "keywords": [
+        "phase6-corner-3d-model-integrity"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-corner-3d-model-integrity/**"
+      ],
+      "required_skills": [
+        "phase6-corner-3d-model-integrity"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-gui-performance-integrity",
+      "keywords": [
+        "phase6-gui-performance-integrity"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-gui-performance-integrity/**"
+      ],
+      "required_skills": [
+        "phase6-gui-performance-integrity"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-overlay-relief-basis",
+      "keywords": [
+        "phase6-overlay-relief-basis"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-overlay-relief-basis/**"
+      ],
+      "required_skills": [
+        "phase6-overlay-relief-basis"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-release-packaging",
+      "keywords": [
+        "phase6-release-packaging"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-release-packaging/**"
+      ],
+      "required_skills": [
+        "phase6-release-packaging"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-tdd",
+      "keywords": [
+        "tdd"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/tdd/**"
+      ],
+      "required_skills": [
+        "tdd"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-寫技能",
+      "keywords": [
+        "寫技能"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/寫技能/**"
+      ],
+      "required_skills": [
+        "寫技能"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-截角資料入口收斂",
+      "keywords": [
+        "截角資料入口收斂"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/截角資料入口收斂/**"
+      ],
+      "required_skills": [
+        "截角資料入口收斂"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-驗證板件與DXF",
+      "keywords": [
+        "驗證板件與DXF"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/驗證板件與DXF/**"
+      ],
+      "required_skills": [
+        "驗證板件與DXF"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-git-remote-sync-fallback",
+      "keywords": [
+        "git-remote-sync-fallback"
+      ],
+      "file_globs": [
+        ".agents/skills/misc/git-remote-sync-fallback/**"
+      ],
+      "required_skills": [
+        "git-remote-sync-fallback"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-MCP工具操作",
+      "keywords": [
+        "MCP工具操作"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/MCP工具操作/**"
+      ],
+      "required_skills": [
+        "MCP工具操作"
       ],
       "required_references": []
     }

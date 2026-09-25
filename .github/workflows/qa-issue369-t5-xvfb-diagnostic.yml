@@ -1,0 +1,64 @@
+name: "QA #369 T5 inherited Xvfb diagnostic"
+
+on:
+  push:
+    branches:
+      - refactor/issue369-phase3-2d-corner-view-20260919
+    paths:
+      - '.github/workflows/qa-issue369-t5-xvfb-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: 4137b62887c3dc20c6ee5bbd4d753f485dcaf23b
+  TESTED_SHA: 823e1dc6ac186d27d814aac0226d4a243273ecee
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Compare exact nodes
+        shell: bash
+        run: |
+          set -euo pipefail
+          N1="tests/test_issue94_corner_data_navigation_mode.py::test_corner_data_mode_is_view_only_and_not_a_fake_part"
+          N2="tests/test_issue163_unfold_workspace_layout.py::test_red_163_top_surface_contains_only_file_and_corner_data_commands"
+          mkdir -p /tmp/t5diag
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$N1" "$N2" --tb=short               --json-report --json-report-file="/tmp/t5diag/$label.json"               >"/tmp/t5diag/$label.log" 2>&1
+            rc=$?
+            set -e
+            echo "$rc" >"/tmp/t5diag/$label.rc"
+            test -s "/tmp/t5diag/$label.json"
+          }
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          def load(label):
+              data=json.loads(Path(f"/tmp/t5diag/{label}.json").read_text())
+              return {row["nodeid"]: row.get("outcome") for row in data.get("tests", [])}
+          b=load("baseline"); c=load("candidate")
+          print("BASELINE", b)
+          print("CANDIDATE", c)
+          assert b == c, (b,c)
+          print("PASS T5_XVFB_EXACT_OUTCOME_PARITY=1")
+          PY

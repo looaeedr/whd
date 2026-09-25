@@ -1,0 +1,39 @@
+ISSUE=448
+TASK=T6 Part Editor contract decomposition / owner decision
+ROLE=T6 實作者
+BASE_SHA=9ccd3f51dbda0a9096c2ec964aa69c803ee09238
+WORK_BRANCH=refactor/issue448-t6-part-editor-owner-20260921
+CURRENT_X_HEAD_OBSERVATION=acdfcfc66a46940798bff77df4b8e32bfc10b7ca
+LINEAGE_RULE=child base remains accepted predecessor; do not chase X
+
+READ_SKILL: 派工
+READ_SKILL: issue-closure-gate
+READ_SKILL: phase6-release-packaging
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 程式碼庫設計
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md
+
+PRE_AGREED_TEST_SEAMS=owning Issue #448 approved acceptance seams: part identity, part switch behavior, profile save/reload, multipart physical-child selection, render intent.
+DECISION_SPACE=A:DEEPEN_EXISTING_DESIGNER_WORKSPACE | B:EXTRACT_PART_EDITOR_SESSION | C:KEEP_BRIDGE_COMPATIBILITY
+MUTATION_GATE=no production mutation before characterization and A/B/C decision are durable.
+
+REMOTE_QA_PREFLIGHT:
+- tests/test_issue448_part_editor_owner_decision.py
+- .github/workflows/qa-issue448-t6-part-editor-owner.yml
+MATCHED_ROUTE=remote-qa-monitoring
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md

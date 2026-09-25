@@ -134,8 +134,8 @@ def test_corner_preview_module_does_not_rederive_corner_formulas():
 
 def test_gui_corner_preview_has_no_illustrative_fold_constants():
     from pathlib import Path
-    source = Path(__file__).parents[1].joinpath('gui.py').read_text(encoding='utf-8')
-    body = source[source.index('    def _draw_corner_type_icon'):source.index('    def _pair_for_corner_target')]
+    source = Path(__file__).parents[1].joinpath('gui_modules', 'parts', 'panels', 'assembly_corner.py').read_text(encoding='utf-8')
+    body = source[source.index('def draw_corner_type_icon'):source.index('def select_manual_corner')]
     assert 'fold_u=12.0' not in body
     assert 'fold_v=12.0' not in body
     assert 'thickness=4.0' not in body
@@ -189,8 +189,8 @@ def test_corner_preview_crops_real_semantic_bend_segments_with_cutting():
 
 def test_gui_corner_thumbnail_draws_cutting_and_bend_paths_without_filled_cut_polygon():
     from pathlib import Path
-    source = Path(__file__).parents[1].joinpath('gui.py').read_text(encoding='utf-8')
-    body = source[source.index('    def _draw_corner_type_icon'):source.index('    def _pair_for_corner_target')]
+    source = Path(__file__).parents[1].joinpath('gui_modules', 'parts', 'panels', 'assembly_corner.py').read_text(encoding='utf-8')
+    body = source[source.index('def draw_corner_type_icon'):source.index('def select_manual_corner')]
     assert 'preview.cut_paths' in body
     assert 'preview.bend_paths' in body
     assert 'create_polygon' not in body

@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: ai-library-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 📋 02. 通用任務 SOP 模板 (Task SOP Template)
 
 > 當需要為特定工作（如：數據分析、爬蟲開發、報告生成）建立標準作業程序時，可複製此模板。

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "issue": 440,
+  "state": "ACCEPTED_PENDING_INTEGRATION",
+  "production_baseline_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
+  "tested_sha": "5a76f12c5984d5ff60d595ea172e44b11e27d271",
+  "final_acceptance_run_id": 35511690588,
+  "visual_artifact_id": 10605812154,
+  "visual_artifact_sha256": "4d268261d67c4b2abe3657c4100f6c5ec39bc6e9c3d70de1b86c5d5401262dc2",
+  "mode_bboxes": {
+    "part": [
+      10,
+      123,
+      318,
+      234
+    ],
+    "assembly": [
+      10,
+      123,
+      318,
+      44
+    ],
+    "corner_data": [
+      10,
+      123,
+      318,
+      114
+    ]
+  },
+  "focused_run_id": 35511619252,
+  "focused_pass": 37,
+  "protected_pass": 26,
+  "protected_skip": 1,
+  "gates": {
+    "extra_content_wrapper_frame_count": 0,
+    "fixed_outer_content_extent": 0,
+    "pack_propagate_false_content_shell": 0,
+    "mode_surfaces_direct_parent_is_left": true,
+    "active_mode_surface_count": 1,
+    "same_layout_slot": true,
+    "same_slot_anchor_width_parity": true,
+    "natural_mode_heights": true,
+    "default_tk_canvas_bg_leak": 0,
+    "geometry_drift": 0,
+    "persistence_drift": 0,
+    "callback_semantic_drift": 0,
+    "force_push": 0
+  }
+}

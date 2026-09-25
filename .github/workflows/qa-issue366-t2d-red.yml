@@ -1,0 +1,49 @@
+name: "QA #366 T2D family width RED"
+
+on:
+  push:
+    branches:
+      - refactor/issue366-phase3-settings-transactions-20260919
+    paths:
+      - 'tests/test_issue366_t2d_family_width_controller.py'
+      - '.github/workflows/qa-issue366-t2d-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2d-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor bb8c3d0272756629654127fbd86e9d7013d797e4 HEAD
+          echo "BASELINE=bb8c3d0272756629654127fbd86e9d7013d797e4"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run intended T2D RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue366_t2d_family_width_controller.py --tb=short | tee /tmp/t2d-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing T2D controller methods" /tmp/t2d-red.log
+          grep -q "RED: bridge still owns T2D width/family transaction semantics" /tmp/t2d-red.log
+          echo "PASS EXPECTED_T2D_RED=1"

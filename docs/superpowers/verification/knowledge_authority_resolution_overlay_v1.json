@@ -1,0 +1,4284 @@
+{
+  "frozen_matrix_blob_sha1": "d1afe3013d74010ee23660659cd4692fade4a815",
+  "frozen_matrix_path": "docs/superpowers/verification/knowledge_authority_classification_v1.json",
+  "governed_count": 398,
+  "resolution_count": 383,
+  "rows": [
+    {
+      "canonical": null,
+      "contract": "retired-skill-provenance",
+      "evidence": [
+        "skill-catalog:deprecated retired",
+        "approved-spec:HISTORICAL provenance"
+      ],
+      "path": ".agents/skills/deprecated/README.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "python-testing-practices",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=Python測試實務",
+        "skill-registry:python-testing-practices"
+      ],
+      "path": ".agents/skills/engineering/Python測試實務/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-navigation",
+      "evidence": [
+        "approved-spec:Skill README is navigation, not machine authority",
+        "path-scope:skill README"
+      ],
+      "path": ".agents/skills/engineering/README.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ui-design-de-ai",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=UI設計與去AI味",
+        "skill-registry:ui-design-de-ai"
+      ],
+      "path": ".agents/skills/engineering/UI設計與去AI味/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "ask-matt",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/ask-matt/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=ask-matt"
+      ],
+      "path": ".agents/skills/engineering/ask-matt/PHASE-BOUNDARIES.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ask-matt",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=ask-matt"
+      ],
+      "path": ".agents/skills/engineering/ask-matt/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "code-review",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=code-review"
+      ],
+      "path": ".agents/skills/engineering/code-review/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "deterministic-repo-migration",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=deterministic-repo-migration",
+        "skill-registry:deterministic-repo-migration"
+      ],
+      "path": ".agents/skills/engineering/deterministic-repo-migration/SKILL.md",
+      "resolves": "post-t1-governed-path",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "diagnosing-bugs",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=diagnosing-bugs",
+        "skill-registry:bugfix-tdd"
+      ],
+      "path": ".agents/skills/engineering/diagnosing-bugs/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "continuous-execution-operations",
+      "evidence": [
+        "authority-map:.agents/skills/engineering/executable-continuity-controller/SKILL.md"
+      ],
+      "path": ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "issue-closure",
+      "evidence": [
+        "authority-map:.agents/skills/engineering/issue-closure-gate/SKILL.md"
+      ],
+      "path": ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "long-log-context-safe-execution",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=long-log-context-safe-execution",
+        "skill-registry:long-log-context-safe-execution,remote-qa-monitoring"
+      ],
+      "path": ".agents/skills/engineering/long-log-context-safe-execution/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "remote-qa-monitoring",
+      "evidence": [
+        "authority-map:.agents/skills/engineering/monitoring-remote-qa/SKILL.md"
+      ],
+      "path": ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "phase6-assembly-view-boundaries",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=phase6-assembly-view-boundaries"
+      ],
+      "path": ".agents/skills/engineering/phase6-assembly-view-boundaries/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "phase6-corner-3d-model-integrity",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=phase6-corner-3d-model-integrity",
+        "skill-registry:phase6-corner-relief-3d,phase6-overlay-basis"
+      ],
+      "path": ".agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "phase6-gui-performance-integrity",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=phase6-gui-performance-integrity",
+        "skill-registry:phase6-gui-performance"
+      ],
+      "path": ".agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "phase6-overlay-relief-basis",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=phase6-overlay-relief-basis",
+        "skill-registry:phase6-overlay-basis"
+      ],
+      "path": ".agents/skills/engineering/phase6-overlay-relief-basis/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "phase6-release-packaging",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=phase6-release-packaging",
+        "skill-registry:phase6-release-packaging"
+      ],
+      "path": ".agents/skills/engineering/phase6-release-packaging/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "prototype",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/prototype/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=prototype"
+      ],
+      "path": ".agents/skills/engineering/prototype/LOGIC.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "prototype",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=prototype"
+      ],
+      "path": ".agents/skills/engineering/prototype/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "prototype",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/prototype/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=prototype"
+      ],
+      "path": ".agents/skills/engineering/prototype/UI.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "research",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=research"
+      ],
+      "path": ".agents/skills/engineering/research/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "resolving-merge-conflicts",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=resolving-merge-conflicts"
+      ],
+      "path": ".agents/skills/engineering/resolving-merge-conflicts/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-matt-pocock-skills",
+      "evidence": [
+        "skill-catalog:reference",
+        "skill-frontmatter:name=setup-matt-pocock-skills"
+      ],
+      "path": ".agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-matt-pocock-skills",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+        "skill-catalog:reference",
+        "skill-frontmatter:name=setup-matt-pocock-skills"
+      ],
+      "path": ".agents/skills/engineering/setup-matt-pocock-skills/domain.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-matt-pocock-skills",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+        "skill-catalog:reference",
+        "skill-frontmatter:name=setup-matt-pocock-skills"
+      ],
+      "path": ".agents/skills/engineering/setup-matt-pocock-skills/issue-tracker-github.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-matt-pocock-skills",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+        "skill-catalog:reference",
+        "skill-frontmatter:name=setup-matt-pocock-skills"
+      ],
+      "path": ".agents/skills/engineering/setup-matt-pocock-skills/issue-tracker-gitlab.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-matt-pocock-skills",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+        "skill-catalog:reference",
+        "skill-frontmatter:name=setup-matt-pocock-skills"
+      ],
+      "path": ".agents/skills/engineering/setup-matt-pocock-skills/issue-tracker-local.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-matt-pocock-skills",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+        "skill-catalog:reference",
+        "skill-frontmatter:name=setup-matt-pocock-skills"
+      ],
+      "path": ".agents/skills/engineering/setup-matt-pocock-skills/triage-labels.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "tdd",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=tdd",
+        "skill-registry:bugfix-tdd"
+      ],
+      "path": ".agents/skills/engineering/tdd/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "tdd",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/tdd/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=tdd",
+        "skill-registry:bugfix-tdd"
+      ],
+      "path": ".agents/skills/engineering/tdd/mocking.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "tdd",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/tdd/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=tdd",
+        "skill-registry:bugfix-tdd"
+      ],
+      "path": ".agents/skills/engineering/tdd/tests.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "triage",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/triage/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=triage"
+      ],
+      "path": ".agents/skills/engineering/triage/AGENT-BRIEF.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "triage",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/triage/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=triage"
+      ],
+      "path": ".agents/skills/engineering/triage/OUT-OF-SCOPE.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "triage",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=triage"
+      ],
+      "path": ".agents/skills/engineering/triage/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "wayfinder",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=wayfinder"
+      ],
+      "path": ".agents/skills/engineering/wayfinder/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "wizard",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=wizard"
+      ],
+      "path": ".agents/skills/engineering/wizard/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "development-task-execution",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=執行開發任務",
+        "skill-content:依已核准規格或工單執行實作，負責實作者階段/TDD/targeted validation/durable checkpoint",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/執行開發任務/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "grounded-spec-authoring",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=寫成規格書",
+        "skill-content:將已確認需求與current codebase/AI Library/spec/tests/certified data grounding整理成可施工規格，禁止test/probe反推產品真值",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/寫成規格書/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-authoring",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=寫技能",
+        "skill-registry:skill-authoring"
+      ],
+      "path": ".agents/skills/engineering/寫技能/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-authoring",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/寫技能/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=寫技能",
+        "skill-registry:skill-authoring"
+      ],
+      "path": ".agents/skills/engineering/寫技能/references/preflight-keyword-boundary.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "dimension-semantics-analysis",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=尺寸語意分析",
+        "skill-registry:dimension-semantics-analysis"
+      ],
+      "path": ".agents/skills/engineering/尺寸語意分析/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "property-invariant-testing",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=性質導向測試",
+        "skill-registry:property-invariant-testing"
+      ],
+      "path": ".agents/skills/engineering/性質導向測試/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "dm7-part-navigation",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=截角資料入口收斂",
+        "skill-registry:dm7-part-navigation"
+      ],
+      "path": ".agents/skills/engineering/截角資料入口收斂/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "requirement-red-ticket-decomposition",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=拆解任務工單",
+        "skill-content:以approved requirement-level RED證明需求後，依root contract拆成可實作tickets並保留authority/AI Library/owning issue/closing ownership",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/拆解任務工單/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "inquiry-driven-domain-documentation",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=拷問邊建立文件",
+        "skill-content:source-first深度質詢design frontier，並在決策settle時同步維護CONTEXT/ADR durable domain docs",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/拷問邊建立文件/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "scan-deep-modules",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/掃描深模組/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=掃描深模組",
+        "skill-registry:scan-deep-modules"
+      ],
+      "path": ".agents/skills/engineering/掃描深模組/HTML-REPORT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "scan-deep-modules",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=掃描深模組",
+        "skill-registry:scan-deep-modules"
+      ],
+      "path": ".agents/skills/engineering/掃描深模組/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "dispatching-workflow",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=派工",
+        "skill-registry:dispatching-workflow"
+      ],
+      "path": ".agents/skills/engineering/派工/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "deep-module-codebase-design",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/程式碼庫設計/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=程式碼庫設計",
+        "skill-content:定義deep module/interface/seam/adapter/leverage/locality vocabulary與testability設計原則",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/程式碼庫設計/DEEPENING.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "deep-module-codebase-design",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/程式碼庫設計/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=程式碼庫設計",
+        "skill-content:定義deep module/interface/seam/adapter/leverage/locality vocabulary與testability設計原則",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/程式碼庫設計/DESIGN-IT-TWICE.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "deep-module-codebase-design",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=程式碼庫設計",
+        "skill-content:定義deep module/interface/seam/adapter/leverage/locality vocabulary與testability設計原則",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/程式碼庫設計/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "domain-modeling",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/領域建模/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=領域建模",
+        "skill-content:建立與磨利domain model/canonical terminology，settle後同步CONTEXT glossary與符合gate的ADR",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/領域建模/ADR-FORMAT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "domain-modeling",
+      "evidence": [
+        "parent-skill:.agents/skills/engineering/領域建模/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=領域建模",
+        "skill-content:建立與磨利domain model/canonical terminology，settle後同步CONTEXT glossary與符合gate的ADR",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/領域建模/CONTEXT-FORMAT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "domain-modeling",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=領域建模",
+        "skill-content:建立與磨利domain model/canonical terminology，settle後同步CONTEXT glossary與符合gate的ADR",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/engineering/領域建模/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "part-dxf-acceptance",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=驗證板件與DXF",
+        "skill-registry:part-dxf-acceptance"
+      ],
+      "path": ".agents/skills/engineering/驗證板件與DXF/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-navigation",
+      "evidence": [
+        "approved-spec:Skill README is navigation, not machine authority",
+        "path-scope:skill README"
+      ],
+      "path": ".agents/skills/in-progress/README.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "claude-handoff",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=claude-handoff"
+      ],
+      "path": ".agents/skills/in-progress/claude-handoff/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "implement-spec",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=implement-spec"
+      ],
+      "path": ".agents/skills/in-progress/implement-spec/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "loop-me",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=loop-me"
+      ],
+      "path": ".agents/skills/in-progress/loop-me/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-ts-deep-modules",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=setup-ts-deep-modules"
+      ],
+      "path": ".agents/skills/in-progress/setup-ts-deep-modules/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "writing-beats",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=writing-beats"
+      ],
+      "path": ".agents/skills/in-progress/writing-beats/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "writing-fragments",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=writing-fragments"
+      ],
+      "path": ".agents/skills/in-progress/writing-fragments/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "writing-shape",
+      "evidence": [
+        "skill-catalog:upstream-beta",
+        "skill-frontmatter:name=writing-shape"
+      ],
+      "path": ".agents/skills/in-progress/writing-shape/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-navigation",
+      "evidence": [
+        "approved-spec:Skill README is navigation, not machine authority",
+        "path-scope:skill README"
+      ],
+      "path": ".agents/skills/misc/README.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "git-guardrails-claude-code",
+      "evidence": [
+        "skill-catalog:tool-specific",
+        "skill-frontmatter:name=git-guardrails-claude-code"
+      ],
+      "path": ".agents/skills/misc/git-guardrails-claude-code/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "git-remote-sync-fallback",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=git-remote-sync-fallback",
+        "skill-registry:git-remote-sync-fallback"
+      ],
+      "path": ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "migrate-to-shoehorn",
+      "evidence": [
+        "skill-catalog:tool-specific",
+        "skill-frontmatter:name=migrate-to-shoehorn"
+      ],
+      "path": ".agents/skills/misc/migrate-to-shoehorn/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "scaffold-exercises",
+      "evidence": [
+        "skill-catalog:tool-specific",
+        "skill-frontmatter:name=scaffold-exercises"
+      ],
+      "path": ".agents/skills/misc/scaffold-exercises/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "setup-pre-commit",
+      "evidence": [
+        "skill-catalog:tool-specific",
+        "skill-frontmatter:name=setup-pre-commit"
+      ],
+      "path": ".agents/skills/misc/setup-pre-commit/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "mcp-tool-operation",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=MCP工具操作",
+        "skill-registry:mcp-tool-operation"
+      ],
+      "path": ".agents/skills/productivity/MCP工具操作/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-navigation",
+      "evidence": [
+        "approved-spec:Skill README is navigation, not machine authority",
+        "path-scope:skill README"
+      ],
+      "path": ".agents/skills/productivity/README.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "handoff",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=handoff"
+      ],
+      "path": ".agents/skills/productivity/handoff/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "teach",
+      "evidence": [
+        "parent-skill:.agents/skills/productivity/teach/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=teach"
+      ],
+      "path": ".agents/skills/productivity/teach/GLOSSARY-FORMAT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "teach",
+      "evidence": [
+        "parent-skill:.agents/skills/productivity/teach/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=teach"
+      ],
+      "path": ".agents/skills/productivity/teach/LEARNING-RECORD-FORMAT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "teach",
+      "evidence": [
+        "parent-skill:.agents/skills/productivity/teach/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=teach"
+      ],
+      "path": ".agents/skills/productivity/teach/MISSION-FORMAT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "teach",
+      "evidence": [
+        "parent-skill:.agents/skills/productivity/teach/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=teach"
+      ],
+      "path": ".agents/skills/productivity/teach/RESOURCES-FORMAT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "teach",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=teach"
+      ],
+      "path": ".agents/skills/productivity/teach/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "to-questionnaire",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=to-questionnaire"
+      ],
+      "path": ".agents/skills/productivity/to-questionnaire/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "wait-what",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=wait-what"
+      ],
+      "path": ".agents/skills/productivity/wait-what/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "writing-for-agents",
+      "evidence": [
+        "parent-skill:.agents/skills/productivity/writing-for-agents/SKILL.md",
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=writing-for-agents"
+      ],
+      "path": ".agents/skills/productivity/writing-for-agents/SKILL-MECHANICS.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "writing-for-agents",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=writing-for-agents"
+      ],
+      "path": ".agents/skills/productivity/writing-for-agents/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "skill-discovery",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=找技能",
+        "skill-registry:skill-discovery"
+      ],
+      "path": ".agents/skills/productivity/找技能/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "deep-design-inquiry",
+      "evidence": [
+        "skill-catalog:canonical",
+        "skill-frontmatter:name=深度質詢",
+        "skill-content:source-first建立design tree並逐輪處理可決策frontier，facts由執行者查證、decisions由使用者定案",
+        "issue255:reviewed-explicit-skill-contract"
+      ],
+      "path": ".agents/skills/productivity/深度質詢/SKILL.md",
+      "resolves": "frozen-t1:CURRENT:MISSING_STABLE_CONTRACT",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "CONTEXT.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "DELIVERY_README.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "HEADLESS_API.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "PHASE6_組合尺寸截角與JointGraph_整合最高優先規格_20260831.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "PROGRESS_README_20260831.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "README_MULTI_DOOR_TRIAL.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "RELEASE_NOTES_v0.0.14.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T1.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T1.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T10.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T10.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T11.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T11.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T12.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T12.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T13.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T13.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T14.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T14.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T15.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T15.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T16.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T16.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T17.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T17.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T18.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T19.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T2.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T2.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T20.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T21.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T22.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T23.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T24.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T25.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T3.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T3.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T4.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T4.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T5.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T5.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T6.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T6.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T7.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T7.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T8.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T8.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T9.provenance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "execution-checkpoint-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/issue evidence",
+        "path-scope:docs/superpowers/checkpoints"
+      ],
+      "path": "docs/superpowers/checkpoints/dispatch/T9.state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-10-all-part-topology-migration.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-10-sheetmetal-geometry-engine.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-ae-dispatcher-finalization.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-axis-paired-reference-controls.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-cad-feature-placement.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-drawing-primitives.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-drawing-scene.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-feature-surface-boundary.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-gui-hole-feature-engine.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-gui-interaction-geometry.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-gui-overlay-guide.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-gui-structural-preview.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-hole-catalog-blind-rotation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-hole-editor-cad-overlay.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-hole-editor-finished-boundary.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-intuitive-hole-workspace.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-reference-ui-undo.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-round-hole-pattern.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-scene-data-migration.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-unified-hole-catalog-editor.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-11-unified-hole-editor-positioning.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-16-box-body-three-face-editor.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-16-door-editor-indicator-box-and-frame-guides.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-16-door-layout-visual-remainder-export-mirror.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-16-gui-manufacturing-api-adapter.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-16-headless-manufacturing-api.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-16-manufacturing-policy-boundary.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-17-ae-engine-clean-break.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-17-ae-engine-package.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-17-corner-type-unknown.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-18-fold-designer-part-bundle.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-18-unified-part-workspace.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-18-vault-xy-upright.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-19-3d-settings-center.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-20-FIX13-baseline-resolver-no-hardcoded-paths.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-20-FIX13-door-indicator-box-dynamic-guard.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-20-FIX13-indicator-box-small-door-single-size-chain.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-20-FIX13-indicator-shared-box-small-door-and-tab-context.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-20-FIX13-indicator-window-center-from-lamp-pattern.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-corner-semantic-regression-recovery.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-corner-type-semantic-assembly-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-phase6-3d-cutting-mesh-and-view-fit.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-phase6-3d-retain-and-baseline-hole-guard.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-phase6-3d-single-source-renderer.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-phase6-baseline-operation-and-anchor-alignment.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-21-phase6-ui-state-regression-guards.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-22-fold-diagnostic-save-tail-native-orientation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-22-linked-fold-chain-parts.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-22-phase6-core-fold-dimensions-project-file.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-22-shared-2d-3d-assembly-dimensions.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-22-shared-final-part-geometry.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-endcap-resolved-geometry-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-designer-workspace-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-diagnostic-snapshot-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-final-scene-view-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-fold-designer-bridge-slim-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-gui-project-controller-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-hole-editor-canvas-view-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-project-session-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-settings-panel-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-settings-single-source-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-unified-hole-editor-session-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-23-phase6-workspace-controller-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-27-boxbody-endcap-collision-relief.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-28-assembly-relief-backprojection.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-28-live-canonical-2d-3d-sync.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-29-certified-relief-registry-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-29-formed-fw-registry-3d-relief.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-29-four-regressions-3d-structure-receiving-registry-ui.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-29-wrap-joint-registry-3d-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-08-30-receiving-wrap-reserves-blanks-skills.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-09-03-phase6-deep-module-performance-implementation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-09-04-phase6-deep-module-ownership-consolidation.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-09-08-divider-physical-contract.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-09-10-chinese-skill-identity-normalization.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-09-13-dm7-navigation-red-guards.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "implementation-plan-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves migration/implementation provenance",
+        "path-scope:docs/superpowers/plans"
+      ],
+      "path": "docs/superpowers/plans/2026-09-14-continuous-execution-runtime-guard.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-10-all-part-topology-migration-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-10-gui-hole-feature-engine-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-10-sheetmetal-geometry-engine-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-ae-dispatcher-finalization-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-cad-feature-placement-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-drawing-primitives-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-drawing-scene-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-feature-surface-boundary-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-gui-interaction-geometry-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-gui-overlay-guide-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-gui-structural-preview-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-hole-catalog-blind-rotation-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-reference-ui-undo-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-round-hole-pattern-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-scene-data-migration-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-11-unified-hole-editor-positioning-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-16-door-layout-and-export-mirror-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-16-manufacturing-policy-boundary-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-17-ae-engine-clean-break-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-17-ae-engine-package-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-17-corner-type-unknown-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-18-fold-designer-part-bundle-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-18-unified-part-workspace-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-18-vault-xy-upright-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-19-3d-settings-center-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-21-corner-type-semantic-assembly-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-22-fold-diagnostic-save-tail-native-orientation-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-22-linked-fold-chain-parts-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-22-phase6-core-fold-dimensions-project-file-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-22-shared-final-part-geometry-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-box-body-structure-buildable-spec.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-designer-workspace-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-diagnostic-snapshot-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-final-scene-view-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-fold-designer-bridge-slim-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-gui-project-controller-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-hole-editor-canvas-view-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-project-session-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-settings-panel-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-settings-single-source-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-unified-hole-editor-session-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-phase6-workspace-controller-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-23-resolved-part-geometry-ownership-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-27-boxbody-endcap-collision-relief-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-28-assembly-relief-backprojection-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-28-live-canonical-2d-3d-sync-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-29-certified-relief-registry-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-29-formed-fw-registry-3d-relief-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-31-phase6-joint-graph-migration-spec.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-08-31-phase6-latest-canonical-semantics.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-03-phase6-deep-module-performance-architecture-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-04-phase6-project-session-deletion-evidence.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-05-2d-3d-receiving-box-integrity-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-box-body-child-input-sections.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-endcap-hole-provenance-trace.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-family-preset-switching.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-per-door-inner-door-panel.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-receiving-asymmetric-policy.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-receiving-authoritative-placement.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-receiving-base-plate-55.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-06-receiving-inner-door-frame-80.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-07-box-body-single-source-geometry-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-10-corner-data-2d-entry-convergence-spec.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "design-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves design provenance",
+        "path-scope:docs/superpowers/specs"
+      ],
+      "path": "docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-21-corner-type-semantic-assembly-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-endcap-resolved-geometry-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-box-body-structure-code-audit.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-box-body-structure-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-designer-workspace-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-diagnostic-snapshot-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-final-scene-view-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-fold-designer-bridge-slim-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-global-project-and-corner-lock-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-gui-project-controller-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-hole-editor-canvas-view-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-project-load-button-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-project-session-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-settings-panel-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-settings-single-source-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-unified-hole-editor-session-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-23-phase6-workspace-controller-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-27-assembly-semantic-mating-and-switch-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-27-boxbody-endcap-collision-relief-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-27-shared-assembly-world-geometry-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-assembly-interference-diagnostic-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-assembly-relief-backprojection-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-assembly-scene-contract-sync-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-boxbody-assembly-bend-solid-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-dynamic-relief-corner-restore-ownership-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-endcap-assembly-edge-visibility-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-endcap-physical-sheet-assembly-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-live-canonical-2d-3d-sync.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-28-parameter-lock-panel-visibility-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-assembly-collision-registry-gate.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-assembly-view-joint-debug-clean.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-certified-relief-registry.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-endcap-relief-38-sync.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-formed-fw-registry-3d-relief.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-insert-single-stage-c04-correction.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-overlay-bottom-relief-basis-fix.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-overlay-fw-invariant-correction.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-29-overlay-nominal-side-fold-correction.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-30-gui-3d-integrity-final.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-30-receiving-family-followup-fixes.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-30-receiving-wrap-reserves-blanks-skills.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-08-31-skill-preflight-registry-gate.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-01-dispatching-skill-frontmatter-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-01-joint-graph-migration-verification.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-02-knowledge-preflight-pitfall-gate.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-02-receiving-default-wrap-ui-fix.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-02-receiving-default-wrap-ui-preflight.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-03-delivery-readme-hardcode-risk.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-03-dispatching-checkpoint-gate.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-03-gui-performance-knowledge-evidence.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-03-integrated-deep-module-update-dispatch-gate.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-06-remote-qa-monitoring-skill.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-10-chinese-skill-identity-preflight.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-10-find-skill-preflight.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-10-issue93-t0-baseline-knowledge-gate.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-10-writing-and-dispatch-skill-preflight.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-fourth-batch-skills.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-issue115-ui-design-skill.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-issue116-ui-design-governance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-issue117-ui-design-combined-acceptance.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-python-testing-practices-skill.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-second-batch-skills.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-skill-stack-issue104-integration.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-ui-skill-stack-production-integration.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-11-ui-skill-stack-production-refresh.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-12-issue119-replay-state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-12-issue124-r5-state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-12-issue126-r1-state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-12-issue127-r2-state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "verification-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old acceptance/verification evidence",
+        "path-scope:docs/superpowers/verification"
+      ],
+      "path": "docs/superpowers/verification/2026-09-12-issue128-r2-state.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "handoff-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old handoff architecture",
+        "path-scope:handoff"
+      ],
+      "path": "handoff/00_AI_HANDOFF_README.md",
+      "resolves": "frozen-t1:MIRROR:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "handoff-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old handoff architecture",
+        "path-scope:handoff"
+      ],
+      "path": "handoff/02_VAULT_FACTORY_RULES.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "handoff-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old handoff architecture",
+        "path-scope:handoff"
+      ],
+      "path": "handoff/03_PART_TOPOLOGY_MAP.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "handoff-provenance",
+      "evidence": [
+        "approved-spec:HISTORICAL preserves old handoff architecture",
+        "path-scope:handoff"
+      ],
+      "path": "handoff/04_DEVELOPMENT_RULES.md",
+      "resolves": "frozen-t1:HISTORICAL:missing-stable-contract",
+      "target_role": "HISTORICAL"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "tests_analysis.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "使用說明書.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/README.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第一層_核心檔案/01_個人背景與身份.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第一層_核心檔案/02_溝通風格與輸出偏好.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第一層_核心檔案/03_核心目標與近期重點.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第一層_核心檔案/05_反饋學習與自我演化機制.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/01_DXF與CAD自動化全域規範.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/02_通用任務SOP模板.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/03_常用Prompt指令庫.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/05_CAD批次拆圖與特徵萃取規範.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "CURRENT"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/WHD_DXF驗收容差與Production邊界_20260911.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "ai-library-reference",
+      "evidence": [
+        "approved-spec:REFERENCE background/explanation context",
+        "authority-map:only mapped paths may act as CURRENT owners"
+      ],
+      "path": "個人AI檔案庫/第二層_專案與SOP/WHD_拷問前先讀程式_SourceFirst_20260911.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "continuous-execution-operations",
+      "evidence": [
+        "authority-map:個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/corner_data_authoritative_view_refresh_20260910.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md",
+      "resolves": "post-t1-governed-path",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "continuous-execution-machine",
+      "evidence": [
+        "authority-map:個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/issue124_external_text_scale_echo_pitfall.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/issue186_ui_rehost_visibility_and_stale_layout_test_pitfall.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/issue188_dark_theme_runtime_pitfall.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "issue-closure",
+      "evidence": [
+        "authority-map:個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/phase6_inner_door_panel_pitfalls.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "pitfall-ledger",
+      "evidence": [
+        "authority-map:pitfall-ledger boundary",
+        "authority-map:pitfall artifacts are REFERENCE incident evidence"
+      ],
+      "path": "個人AI檔案庫/踩坑庫/preflight_keyword_boundary_pitfall.md",
+      "resolves": "frozen-t1:REFERENCE:missing-stable-contract",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "受電箱_UI配置.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "截角類型.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "補充.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    },
+    {
+      "canonical": null,
+      "contract": "project-reference",
+      "evidence": [
+        "approved-spec:unmapped project prose cannot become parallel CURRENT",
+        "authority-map:no CURRENT row for path"
+      ],
+      "path": "開孔功能－現場操作簡易說明.md",
+      "resolves": "frozen-t1:UNRESOLVED:ROLE_REQUIRES_AUTHORITY_REVIEW",
+      "target_role": "REFERENCE"
+    }
+  ],
+  "schema": "WHD_KNOWLEDGE_AUTHORITY_OVERLAY_V1"
+}

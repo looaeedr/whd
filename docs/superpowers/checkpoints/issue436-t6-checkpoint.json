@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "issue": "436",
+  "parent_issue": "429",
+  "branch": "qa/issue436-t6-cumulative-acceptance-20260920",
+  "fixed_baseline_sha": "50e14c7054916cb0b9597c61194725939c5de323",
+  "production_candidate_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
+  "accepted_visual_head_sha": "3fd041736d81194182ea568f2173da3cc6484aa1",
+  "state": "ACCEPTED_PENDING_INTEGRATION",
+  "preflight_run_id": 35500313918,
+  "full_ab_run_id": 35504038682,
+  "nonvisual_finalizer_run_id": 35505517389,
+  "final_visual_acceptance_run_id": 35505738075,
+  "final_visual_artifact_id": 10603786010,
+  "final_visual_artifact_sha256": "c6a470600465617de736413eee35de7ece8eb2a45ec98009cea91a3ba940e093",
+  "final_acceptance_artifact_id": 10603781041,
+  "final_acceptance_artifact_sha256": "ae9f83cd48bade30983d70a1746b0180509816afbafe1b5bbed097c11f0c7021",
+  "full_ab": {
+    "baseline_headless": "2630_pass_11_fail_460_skip_0_error",
+    "candidate_headless": "2633_pass_8_fail_485_skip_0_error",
+    "baseline_xvfb": "3052_pass_48_fail_1_skip_0_error",
+    "candidate_xvfb": "3079_pass_46_fail_1_skip_0_error",
+    "normalized_new_headless": [],
+    "normalized_new_xvfb": [],
+    "normalized_new_headless_errors": [],
+    "normalized_new_xvfb_errors": []
+  },
+  "migrated_stale_contracts": [
+    "tests/process/test_issue426_phase5_t5_bridge_compression.py::test_t5_mount_unmount_transition_sources_match_t0_behavior",
+    "tests/test_phase6_latest_layout_contract.py::test_assembly_left_panel_lists_all_sheet_parts_with_view_only_checkboxes"
+  ],
+  "visual_metrics": {
+    "part": {
+      "host_bbox": [
+        10,
+        123,
+        318,
+        244
+      ],
+      "active_bbox": [
+        10,
+        123,
+        318,
+        234
+      ],
+      "mapped_surface_count": 1
+    },
+    "assembly": {
+      "host_bbox": [
+        10,
+        123,
+        318,
+        52
+      ],
+      "active_bbox": [
+        10,
+        123,
+        318,
+        44
+      ],
+      "mapped_surface_count": 1
+    },
+    "corner_data": {
+      "host_bbox": [
+        10,
+        123,
+        318,
+        122
+      ],
+      "active_bbox": [
+        10,
+        123,
+        318,
+        114
+      ],
+      "mapped_surface_count": 1
+    }
+  },
+  "gates": [
+    "SHARED_CONTENT_HOST_COUNT=1",
+    "ACTIVE_SHARED_CONTENT_MODE_COUNT=1",
+    "SEPARATE_ASSEMBLY_REGION=0",
+    "SEPARATE_CORNER_DATA_REGION=0",
+    "PERMANENT_HIDDEN_SECOND_HOST=0",
+    "DUPLICATE_WIDGET_TREE=0",
+    "DUPLICATE_EVENT_BINDING=0",
+    "NEW_HEADLESS=[]",
+    "NEW_XVFB=[]",
+    "NEW_HEADLESS_ERRORS=[]",
+    "NEW_XVFB_ERRORS=[]",
+    "GEOMETRY_DRIFT=0",
+    "DATAFLOW_DRIFT=0",
+    "PERSISTENCE_DRIFT=0",
+    "CALLBACK_SEMANTIC_DRIFT=0",
+    "VISIBILITY_SEMANTIC_DRIFT=0",
+    "CORNER_DATA_BEHAVIOR_DRIFT=0",
+    "PROTECTED_DRIFT=0",
+    "DECISION=GREEN",
+    "FORCE_PUSH=0"
+  ],
+  "next_action": "Remove temporary T6 workflows, fast-forward cleanup/2d-3d-sync without force, read back exact production SHA, then run post-merge smoke from that exact production SHA."
+}

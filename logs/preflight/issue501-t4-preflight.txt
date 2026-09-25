@@ -1,0 +1,30 @@
+FROZEN_X_BASE_SHA=ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa
+T3_ACCEPTED_BASE_SHA=6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49
+EXACT_REGISTRY_SHA=4ed99227c91212fc06fe00074430975884b2e79a
+PREFLIGHT_SCRIPT_SHA=c69f8a611efb4771efee6b8fa22589abfc8868d9
+TASK=Phase 5 T4 Baseline transition + factory reset application flow; move cross-owner effect ordering into Phase6FoldDesignerSettingsCoordinator while preserving canonical Settings semantic owners and Phase 4 protected seams.
+
+VALIDATED_MATCHED_ROUTES=dispatching-workflow,phase6-corner-relief-3d,phase6-gui-performance
+
+READ_SKILL: 派工
+READ_SKILL: issue-closure-gate
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: phase6-gui-performance-integrity
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+
+PLANNED_CHANGED_FILE=logs/preflight/issue501-t4-preflight.txt
+PLANNED_CHANGED_FILE=tests/test_issue501_baseline_reset_coordinator.py
+PLANNED_CHANGED_FILE=gui_modules/application/fold_designer_settings_coordinator.py
+PLANNED_CHANGED_FILE=fold_designer_bridge.py
+
+PREFLIGHT_EXIT=0
+NOTE=R3/R4 only. T5 editor-value commit seam remains protected for later task.
+NOTE=commit_family_model_transition remains the canonical semantic owner.
+NOTE=Factory source remains _factory_defaults / SettingsService factory snapshot contract.

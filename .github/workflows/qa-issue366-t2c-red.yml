@@ -1,0 +1,50 @@
+name: "QA #366 T2C corner external RED"
+
+on:
+  push:
+    branches:
+      - refactor/issue366-phase3-settings-transactions-20260919
+    paths:
+      - 'tests/test_issue366_t2c_corner_external_controller.py'
+      - '.github/workflows/qa-issue366-t2c-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2c-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=366 T2C"
+          echo "BASELINE=bb8c3d0272756629654127fbd86e9d7013d797e4"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor bb8c3d0272756629654127fbd86e9d7013d797e4 HEAD
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run intended T2C RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue366_t2c_corner_external_controller.py --tb=short | tee /tmp/issue366-t2c-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing T2C controller methods" /tmp/issue366-t2c-red.log
+          grep -q "RED: bridge still owns T2C corner/assembly/external transaction semantics" /tmp/issue366-t2c-red.log
+          echo "PASS EXPECTED_T2C_RED=1"

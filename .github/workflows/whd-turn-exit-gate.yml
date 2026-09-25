@@ -87,6 +87,10 @@ jobs:
                   fh.write(f"TE_{key.upper()}={value}\n")
           PY
 
+          # GITHUB_ENV updates become automatic only in subsequent steps.
+          # This step writes TE_* above and consumes them immediately, so load them now.
+          source "$GITHUB_ENV"
+
           git fetch --no-tags origin "$TE_GUARD_AUTHORITY_SHA"
           git checkout --detach "$TE_GUARD_AUTHORITY_SHA"
           test "$(git rev-parse HEAD)" = "$TE_GUARD_AUTHORITY_SHA"

@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: scan-deep-modules
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # HTML 報告格式（繁體中文）
 
 架構掃描輸出為單一 HTML 檔案，預設放在作業系統暫存目錄。**所有使用者可見文字必須使用繁體中文。**

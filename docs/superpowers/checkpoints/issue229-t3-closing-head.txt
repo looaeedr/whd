@@ -1,0 +1,14 @@
+ISSUE: #229
+TASK: T3 Align AGENTS and Skill Routing with Executable Continuity
+PRE_PROVENANCE_AUDITED_HEAD: 2f27c97787cebdbe24a8c66c7d96d35e61276cbf
+PARENT_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+PARENT_HEAD_AT_AUDIT: 68e80b2366466d91db158199042422ec2cf19f95
+FOCUSED_GREEN_RUN: 34846170019
+FOCUSED_GREEN_HEAD: d4f5f4ecde675cf847ca52fdd692eb0bbd93ecef
+FOCUSED_RESULT: 4 passed / 0 failed
+KNOWLEDGE_GREEN_RUN: 34846508784
+KNOWLEDGE_GREEN_HEAD: dcc858b3f76a510c64bbb1f0bd16a191655f8fe9
+KNOWLEDGE_RESULT: 61 passed / 0 failed
+TESTED_TO_PRE_PROVENANCE_DRIFT: only temporary final regression workflow removal plus durable acceptance evidence; no production/doc/test behavior drift.
+FINAL_BRANCH_AND_INTEGRATION_SHA_AUTHORITY: Git ref / PR / merge result; this file does not self-assert the SHA of the commit containing itself.
+PARENT_ANCESTRY_AT_AUDIT: merge base equals parent head; no concurrent parent drift detected.

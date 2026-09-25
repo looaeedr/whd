@@ -1,0 +1,45 @@
+# Issue #250 Skill Preflight / Final QA Evidence
+
+TASK: Issue250 deterministic repository migration Skill authoring and focused QA
+BRANCH: fix/issue250-deterministic-repo-migration-skill-20260914
+
+READ_SKILL: 寫技能
+READ_SKILL: Python測試實務
+READ_SKILL: phase6-release-packaging
+READ_SKILL: deterministic-repo-migration
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+READBACK_SHA: Python測試實務=84f7a78ac45a853582624e571dad40b84845dd33
+READBACK_SHA: release_required_artifacts.json=29968e4b3f4255ebbd547e13a308ad47f127ed83
+READBACK_SHA: deterministic_repo_migration_pitfalls.md=c1717e524920b88319a2385a8e6cbc69fe9f2b26
+READBACK_SHA: long_log_context_safe_execution.md=9175243b852ecb096df2dc1d1ead0c6b74d2efb4
+READBACK_SHA: executable_continuity_controller_pitfall.md=60128f6aecc4e811ddf4c33f71cf496241ef8427
+READBACK_SHA: long-log-context-safe-execution=3e5ae7fc97d87db1125eb38b29786831adebdfd0
+READBACK_SHA: executable-continuity-controller=d653958bb46fb111f2c957a76d22f54e7e245dad
+
+RED_RUN_1: 34855515433 @ f40d860f362be93763559c9b11cb93bf2653b527 => 4 FAIL / 0 PASS; missing Skill/navigation/pitfall artifacts only.
+RED_RUN_2: 34856217253 @ f79b9b34f4a568c9629932454395a4eaf3cebb90 => 1 FAIL / 4 PASS; sole failure was missing machine preflight route.
+FINAL_RUN: 34856737215 @ c5cf7bf4c9d51073d262677c571f32ec86043aed => SUCCESS.
+FINAL_FOCUSED: 5 PASS / 0 FAIL.
+FINAL_PREFLIGHT: PASS; required Skills all green: 寫技能, deterministic-repo-migration, Python測試實務, phase6-release-packaging, monitoring-remote-qa, long-log-context-safe-execution, executable-continuity-controller.
+FINAL_PREFLIGHT_REFERENCES: PASS; all six required references present.
+FINAL_REGRESSION: tests/test_phase6_skill_preflight_gate.py => 15 PASS / 0 FAIL.
+
+FINAL_BLOB: deterministic-repo-migration/SKILL.md=e2a9d6eb67e5ef5937286ae3a94a710f52570ace
+FINAL_BLOB: skill_registry.json=8387e4a5b7dc7362c6c772aba4957f00a9fa9ebb
+FINAL_BLOB: engineering/README.md=3129e7bb053189239edb28e2af0feb7a6c5622d3
+FINAL_BLOB: test_issue250_deterministic_repo_migration_skill.py=90189fe7d8ae9ad8f0407c1a4cf997832b16cdae
+FINAL_BLOB: deterministic_repo_migration_pitfalls.md=c1717e524920b88319a2385a8e6cbc69fe9f2b26
+
+AUTHORITY_BOUNDARY: Validator/test evidence judges correctness only and must not become migration or production calculation authority.
+DOMAIN_BOUNDARY: Production geometry, DXF, and manufacturing truth are outside Issue #250 migration-framework scope.
+CLEANUP_POLICY: temporary Issue250 QA workflow must be removed before integration; tested-to-closing drift may contain only durable evidence update and workflow cleanup.

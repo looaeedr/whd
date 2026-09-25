@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: deep-module-codebase-design
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Deepening
 
 How to deepen a cluster of shallow modules safely, given its dependencies. Assumes the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **seam**, **adapter**.

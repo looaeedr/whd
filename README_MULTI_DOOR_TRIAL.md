@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 多門配置試作版
 
 本版保持全域 `W / H / D` 為整個箱體尺寸；多門分格只在 Door 分頁處理。

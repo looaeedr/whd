@@ -1,8 +1,48 @@
+---
+whd_doc_role: CURRENT
+whd_contract: agent-startup-process
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+<!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->
+> **[CURRENT — PROCESS ONLY]** `AGENTS.md` 擁有 Agent 啟動、Knowledge Preflight、派工與驗收流程入口；不擁有製造公式或 ae_engine 架構真值。
+> Current authority pointers：
+- `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` — contract/role ownership map。
+- `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md` — 現行 `ae_engine` 製造架構、公開 API 與 Certified Registry boundary。
+- `AGENTS.md` — Agent 啟動、Preflight、派工與驗收流程入口。
+
 # WHD 板金展開自動化系統
 
 ## AI 開發交接總覽
 
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
+
+### 0.0.0 Skill 使用前 user-visible 公告硬閘門
+
+<!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
+
+當本回合**實際要使用任一 WHD canonical Skill** 時，在任何實質 user-visible 內容之前，必須先公告本回合要使用的 Skill。這是使用者可見的硬閘門，不得只留在內部 reasoning、checkpoint 或 tool log。
+
+單一 Skill 的固定格式：
+
+```text
+使用「<技能名>」技能…
+```
+
+多個 Skill 已在本回合開始時確定時，第一行一次列出：
+
+```text
+使用「<技能A>」「<技能B>」技能…
+```
+
+硬規則：
+
+1. 上述公告必須是本回合**第一個 user-visible 行／句**；不得先輸出計畫、狀態、問題、分析、工具操作說明、結果或其他前言，再補 Skill 名稱。
+2. Skill 名稱使用 active canonical identity，中文 Skill 直接使用 canonical 中文 `name`；不得用 retired alias 或自創簡稱冒充。
+3. 只有實際要使用 Skill 時才公告；沒有使用 Skill 的回合不得為了形式虛報。
+4. 若本回合開始時已知會使用多個 Skill，必須在第一行全部列出。若因後續 evidence / scope expansion 才新增一個事前無法知道的 Skill，必須在**第一次實際使用該新增 Skill 之前**另行輸出 `追加使用「<技能名>」技能…`。
+5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、checkpoint、tests 或該 Skill 自己要求的其他證據。
+6. 不得先完成實質工作，再用「使用某 Skill」補述並宣稱符合本 gate；公告順序錯誤即屬本回合流程違規。
 
 > **這是所有 AI / Agent / Subagent 接手本專案後的第一個執行規則。優先級高於本文後續章節。**
 
@@ -32,6 +72,24 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 8. 派工給 Subagent 時，Subagent 必須在自己的隔離工作上下文重新跑相同 Preflight、讀相同必讀來源並留下自己的 evidence；總控不得用自己的 evidence 代替 Subagent。
 9. 正式交付前依第 11 節要求再次跑帶 verification evidence 的 Preflight。
 
+### 0.0.0A Skill mutation Preflight pre-write 硬閘門
+
+<!-- SKILL_MUTATION_PREFLIGHT_PREWRITE_V1 -->
+
+任何 repo mutation 只要 target path 符合 `.agents/skills/**/SKILL.md`，不得只靠「我已經讀過 Skill」或一般 execution claim 放行。**在該次 write/commit 前**必須同時滿足：
+
+1. 已用本任務完整描述 + planned changed files 跑 canonical `tools/phase6_skill_preflight.py`，且 evidence 證明 `寫技能` 與所有 required references 已完成。
+2. 緊接著的 `tools/execution_claim_guard.py` 必須帶實際 target `--changed-file "<path>"`；`write/commit` 缺 changed-file 一律 fail closed。
+3. Skill target 另必須帶至少一個 `--preflight-evidence "<evidence-path>"`；guard 會用 canonical Phase6 Preflight required/completed 邏輯重新驗證，缺 `寫技能`、缺 required Skill 或缺 required reference 都不得 GREEN。
+4. scope / planned changed files 擴大時先重跑 Preflight；舊 evidence 只有在仍覆蓋目前 target requirements 時才可重用。
+5. 此 gate 由 executable guard 擁有 machine enforcement；本節只定義啟動 authority，不建立第二套 evidence parser。
+
+標準形式：
+
+```text
+python tools/execution_claim_guard.py ... --action write --changed-file ".agents/skills/<...>/SKILL.md" --preflight-evidence "<phase6-evidence>"
+```
+
 ### 0.0.1 派工 Skill 實際執行硬閘門
 
 當任務明確要求「派工」、使用 `.agents/skills/engineering/派工/SKILL.md`，或總控自行拆成 PM / Worker / QA 工單時，不能只在文字上宣稱已派工。總控必須驗收以下外顯證據，任一缺失即視為**未實際執行派工 Skill**：
@@ -42,6 +100,64 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 4. 若環境沒有真正背景 Subagent Runtime，執行者必須依派工 Skill 在同一工作上下文自動完成 PM → Worker → QA 角色切換，禁止回報「已派給其他人等待」。
 5. 總控不得接受只有口頭進度、無 checkpoint path、無 journal/state、無角色標記的 Subagent / Worker 回報；此類回報必須退回補落盤，或標記為不可續跑並重建證據。
 6. **同步遠端 QA 必須啟動 `monitoring-remote-qa`**：只要建立 GitHub Actions / remote QA run，就必須記錄本輪 `run_id + head_sha` 並持續監控至 terminal state；`queued`、`in_progress`、部分 step GREEN、或「workflow 已觸發」都不是停工點。紅燈先抓 logs 分類；GREEN 後才清 temp workflow、寫 durable state/provenance、關單。
+
+### 0.0.2 超長 Log / Context-Safe Execution 硬閘門
+
+<!-- LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 -->
+pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能產生大量輸出，就必須讀並遵守：
+
+`.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`
+
+硬規則：完整 raw log 落檔／artifact，不得整包灌入執行或聊天 context；running 期間只讀 structured status、bounded tail/new chunk；FAIL 先定位 failure marker 再擷取有限上下文；分段讀取必須保存 offset/cursor；Runtime/聊天視窗被切斷後先反查 run/process + branch + HEAD + checkpoint + artifact + cursor，從同一工作續接，禁止因視窗中斷就重跑 full-suite。Remote QA 的 30 秒 active polling 仍由 `monitoring-remote-qa` 擁有，本 gate 不建立第二套 polling state machine。
+<!-- QA_PIPELINE_FAIL_CLOSED_V1 -->
+### 0.0.2A QA Pipeline Fail-Closed 硬閘門
+
+任何會影響 PASS/FAIL 判定的命令，只要透過 pipe（尤其 `tee`）輸出，必須啟用 `set -o pipefail` 或等價保留左側命令 exit status。`pytest ... | tee ...` / `python validator.py | tee ...` 若未 fail-closed，即使 GitHub Actions step/job 顯示 SUCCESS 也不是有效驗收證據。
+
+正式接受前同時必須確認：
+
+1. test / validator 的完整 terminal summary 或等價終態，而不是只看 workflow conclusion；
+2. exact tested `head_sha`；
+3. characterization / Move-Only baseline 使用 immutable accepted commit SHA，禁止 movable branch ref；
+4. symbol owner/class 來自 AST/dependency inventory 或 exact source reread，不得由 public inheritance surface 猜測。
+
+若歷史 run 違反任一條，狀態只能標記為 evidence invalid / rerun required；禁止拿假綠結果關單、合併或 release。
+
+### 0.0.3 成品板件驗收硬閘門：Focused GREEN 不能直接合併
+
+> 本節屬所有 AI / Agent 的第一閱讀規則。只要改動會影響實體板件使用路徑，issue-specific QA 通過後仍必須交接到 `驗證板件與DXF`。
+
+下列任一情況，正式合併／關單／release 前都必須執行：
+
+```text
+.agents/skills/engineering/驗證板件與DXF/SKILL.md
+```
+
+觸發範圍至少包含：
+
+- physical-part identity / dynamic part / multipart topology；
+- 2D / 3D 顯示、navigation、sync、FinalScene；
+- manufacturing Final Material / BEND / holes / placement；
+- DXF export / physical-piece file set；
+- Save→Reload / project persistence；
+- GUI / Bridge 修改雖屬 adapter，但會改變操作員看到、切換或回讀的實體板件。
+
+硬規則：
+
+1. **Focused / issue-specific regression GREEN 只代表該 seam GREEN，不等於 Final Acceptance。**
+2. 單一板件修改至少跑「驗該板件」；跨 2D/3D/DXF/persistence、multipart/dynamic IDs 時必須跑「完整板件驗收」。
+3. multipart 必須逐 physical piece 驗；不得只驗 aggregate logical `box_body`。
+4. DXF 相關必須 actual export → reopen → compare；Save/Reload 相關必須真的存檔再重建 canonical output。
+5. Remote QA 建立後必須依 `monitoring-remote-qa` 輪詢到 terminal；cleanup 後做 tested-head → cleaned-head drift audit。
+6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
+7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
+
+### 0.0.3.1 Executable Continuity finalization bridge
+
+<!-- EXECUTABLE_CONTINUITY_BRIDGE_V1 -->
+當任務具有 durable checkpoint、remote QA、runtime cut / resume，或準備宣告完成／關單時，`AGENTS.md` 只負責導向 `executable-continuity-controller`，不得在此複製第二套 controller state machine。Canonical executable 是 `tools/continuity_controller.py`；操作語意以 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 為準。
+
+正式 finalization 前必須對 authoritative checkpoint 實際執行 `python -m tools.continuity_controller assert-finalizable path/to/checkpoint.json`（`assert-finalizable`）。若 executable guard 尚未放行，就不得因文字進度、聊天結尾、部分 QA GREEN 或 runtime 視窗中斷而宣告完成；續工／remote polling 仍依 controller Skill 與對應領域 Skill 的既有權責執行。
 
 ### 0.1 知識載入優先級
 
@@ -87,6 +203,9 @@ production code
 > 若需要了解完整架構、金庫型製造規則、零件拓撲對照、開發規範或後續計畫，請再閱讀 `handoff/` 目錄內的細節文件。
 
 ---
+
+<!-- WHD_SECTION_ROLE role=HISTORICAL contract=legacy-v5-architecture-roadmap -->
+> **[HISTORICAL/SUPERSEDED]** 第 1～10 節是 V5 / Layer A-B-C / GUI Preview 時代的架構與 roadmap snapshot，只保留 provenance，不參與 current routing。現行製造架構請讀 Canonical Authority Map 指向的 ae_engine 規範。
 
 # 1. 專案核心精神
 
@@ -620,6 +739,9 @@ handoff/05_NEXT_STEPS.md
 
 ---
 
+<!-- WHD_SECTION_ROLE role=CURRENT contract=agent-startup-process RESUME -->
+> **[CURRENT PROCESS RESUMES]** 以下 Skill Preflight / Registry / remote QA / execution governance 仍屬 current process contract；上方 HISTORICAL 標記不延伸到此處。
+
 # 11. Skill Preflight 強制啟動鏈
 
 Skill 決定「AI 怎麼改」。截角資料庫決定「程式算什麼」。兩者是不同強制鏈，禁止互相取代。
@@ -771,3 +893,54 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 若出現 `Code Mode exceeded the maximum number of tool calls`，不得猜前半段是否已寫入；第一步固定反讀 branch/ref HEAD 與必要檔案，確認實際 side effects。
 - branch/ref 未前進時，任何未引用 blob 都不得當成已完成修改；重新從反讀到的 parent HEAD 開始。
 - 為了「原子」而把工具呼叫塞成超長腳本不是原子性；真正原子性由 tree/commit/ref 更新與 parent SHA gate 保證。
+
+### L. 機械語意不確定：不懂就問，禁止假會
+
+- WHD 涉及實體鈑金製造。對 CornerType、mating face、尺寸空間（料／包外／formed）、固定值／可變參數、參數 owner、DXF feature meaning 任一項不確定時，**先問使用者再寫規格或 production**。
+- 禁止用目前程式行為、測試 expected、collision/probe、bbox、畫面外觀或「看起來合理」補成產品真值。
+- 使用者已指定既有模型（例如 `CROSS / 十字截角`）時，優先保留該模型並以參數擴充；schema 不足不能成為另造 CornerType 的理由。
+- 不確定期間可以做只讀調查、列出已知/未知，但不得把假設寫入 Registry、production、Skill、AI Library 或驗收 oracle。
+- 使用者更正後，所有 durable knowledge 中衝突的舊說法必須標示 **SUPERSEDED / REVOKED**；不能只在聊天中更正。
+
+### M. 使用者更正／新規則的 Durable Knowledge 自動同步
+
+- **不得等使用者提醒「補技能／補 AI 庫」。** 只要使用者糾正了 AI、確認了新的產品語意、指出一個可重複踩坑，或本輪診斷得到會影響未來工作的永久規則，AI 必須在本輪主動判斷並同步 durable knowledge。
+- 最低同步面：
+  1. 直接相關的 `.agents/skills/**/SKILL.md`；
+  2. 全域 AI 踩坑庫 `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md`；
+  3. 命中領域的 AI/踩坑庫、canonical spec、Registry README / schema 說明；
+  4. 若已有 owning Issue / PR，補 durable correction/provenance。
+- 不必每次四處亂加：只寫**真正會讓下一個 AI/Agent 做出不同決策**的永久規則；純一次性進度、run id、臨時數值不進知識庫。
+- 使用者更正若與舊規則衝突，必須主動搜尋並標記舊內容 `SUPERSEDED / REVOKED`；禁止只新增新段落而讓兩套互相衝突的 authority 同時有效。
+- 完成後必須遠端反讀確認 marker/內容真的存在；不能只口頭宣稱「已補」。
+- 若不確定這次更正是否屬永久知識，**先問使用者是否要固化**；但對明確的產品規則、AI 行為規則、踩坑防線，不應再等使用者第二次提醒。
+
+### N. 任何修改前先開新分支（BRANCH-FIRST HARD GATE）
+
+- **每一個新的修改任務，在第一個 repository write 發生前，必須先從最新 authoritative target HEAD 建立一支新的 work branch，並遠端反讀確認 branch parent SHA。**
+- 「修改」包含：production code、tests、DXF/fixture、workflow、docs/spec、Skill、AI Library、Registry、Issue-owned durable files；**docs-only / AI-only 也不能直接寫 target**。
+- 禁止直接修改 `cleanup/2d-3d-sync`、`main` 或其他 production target。target 只能接受完成驗收後的正常 non-force merge / PR。
+- 同一工作項目建立 branch 後，後續 RED/GREEN、修正、文件同步、QA cleanup 都留在該 branch；**不是每改一個檔就再開一支 branch**。新的獨立修改需求／工單才重新從當時最新 target 開新 branch。
+- 若施工期間 target 前進，先 compare ancestry。若 work branch behind/diverged，必須在 integration/work branch 解衝突並重新驗收；禁止為了省事直接 patch target。
+- 若發現已經直接寫到 target：立即停止後續寫入，反讀實際 side effects，建立新的修正／recovery branch，留下 provenance；不得假裝 branch-first 已遵守。
+- merge 前仍需遵守對應 final acceptance、config invariant、workflow cleanup、tested-head→closing-head drift audit。branch existence **不能取代驗收**。
+- branch-first 是所有其他工程 Skill 的前置硬閘門；任何 Skill 若準備修改檔案，先驗 branch name + parent/base SHA。
+
+### 0.0.4 Authoritative View freshness 硬閘門
+
+> **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
+
+凡 Main GUI / Fold Designer / 2D / 3D 共用 authoritative state 的同步或入口收斂任務，必須同時驗證資料同源與可見 View freshness：
+
+1. authoritative mutation / external sync 必須先完成 commit/apply/invalidate，再由 View 重新讀 authoritative projection / render data。
+2. 若 `corner_data` / 截角資料 View 當下可見，每個新的 authoritative revision 套用成功後**剛好刷新一次**。
+3. hidden View 不得 eager refresh；replayed / stale revision 必須 no-op，不得重刷。
+4. repeated authoritative revisions 必須維持「一個 commit 對應一次 visible refresh」，不得漏刷或雙刷。
+5. 禁止 widget-to-widget 抄值作同步；View refresh / destroy / recreate 不得寫回 manufacturing state、available parts、CornerType、Fold Profile、holes/features 或 persistence payload。
+6. 驗 dual-view parity 不得只比 Final Material / DXF / Save→Reload；還必須有 visible refresh、hidden no-refresh、replayed revision no-op、repeated revisions、View recreate zero-mutation 的證據。
+7. 發現「資料正確但畫面仍舊」時，先查 authoritative commit → invalidate/apply → visible View refresh orchestration，不得另建第二套 geometry/state 當 workaround。
+
+
+### ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE
+
+退役 UI 入口時，先切斷「使用者可達入口 / navigation authority / identity authority」，不得因名稱看似 legacy 就盲刪仍被新入口共用的 renderer/helper/callback state。若暫留 compatibility state，必須 user-unreachable、non-navigation、non-manufacturing-authority，並以 runtime navigation + capability preservation 驗收。

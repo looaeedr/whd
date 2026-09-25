@@ -10,6 +10,7 @@ def test_receiving_topology_change_rebuilds_all_assembly_info_rows():
     """金庫型→受電箱後，資訊列必須跟最新 authoritative part topology 一致。"""
     import tkinter as tk
     import gui
+    import fold_designer_bridge as bridge
 
     root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
     designer = None
@@ -19,9 +20,13 @@ def test_receiving_topology_change_rebuilds_all_assembly_info_rows():
         designer.baseline_model_var.set("受電箱")
         root.update_idletasks(); root.update()
 
-        wanted = tuple(designer.designer_workspace.available_parts)
-        assert any(key.startswith("box_body:divider:") for key in wanted)
-        assert any(key.startswith("inner_door:") for key in wanted)
+        workspace_parts = tuple(designer.designer_workspace.available_parts)
+        wanted = bridge._phase6_operator_part_selector_keys(workspace_parts)
+        assert any(key.startswith("box_body:divider:") for key in workspace_parts)
+        assert any(key.startswith("inner_door:") for key in workspace_parts)
+        assert bridge._phase6_box_body_piece_keys(workspace_parts) == (
+            "box_body:left_side", "box_body:back", "box_body:right_side",
+        )
         assert tuple(designer.assembly_part_visible_vars) == wanted
         assert tuple(designer.assembly_part_corner_vars) == wanted
         assert tuple(designer.assembly_part_blank_vars) == wanted
@@ -92,9 +97,13 @@ def test_receiving_second_topology_change_rebuilds_without_stale_rows():
         bridge._phase6_refresh_profiles_from_settings(designer)
         root.update_idletasks(); root.update()
 
-        wanted = tuple(designer.designer_workspace.available_parts)
+        workspace_parts = tuple(designer.designer_workspace.available_parts)
+        wanted = bridge._phase6_operator_part_selector_keys(workspace_parts)
         current = tuple(designer.assembly_part_visible_vars)
-        assert sum(key.startswith("box_body:divider:") for key in wanted) == 2
+        assert sum(key.startswith("box_body:divider:") for key in workspace_parts) == 2
+        assert bridge._phase6_box_body_piece_keys(workspace_parts) == (
+            "box_body:left_side", "box_body:back", "box_body:right_side",
+        )
         assert current == wanted
         assert len(current) == len(set(current))
         assert tuple(designer.assembly_part_corner_vars) == wanted
@@ -138,10 +147,15 @@ def test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_ke
         root.update_idletasks(); root.update()
         bridge._phase6_query_assembly_render_data(designer)
 
-        wanted = tuple(designer.designer_workspace.available_parts)
+        workspace_parts = tuple(designer.designer_workspace.available_parts)
+        wanted = bridge._phase6_operator_part_selector_keys(workspace_parts)
+        piece_wanted = bridge._phase6_box_body_piece_keys(workspace_parts)
         assert tuple(designer.assembly_part_formed_vars) == wanted
         assert tuple(designer.assembly_part_blank_vars) == wanted
         assert tuple(designer.assembly_part_corner_vars) == wanted
+        assert tuple(designer.assembly_box_body_piece_formed_vars) == piece_wanted
+        assert tuple(designer.assembly_box_body_piece_blank_vars) == piece_wanted
+        assert tuple(designer.assembly_box_body_piece_corner_vars) == piece_wanted
         operator_text = "\n".join(
             [bridge._phase6_part_label(key, snapshot=designer._phase6_input_snapshot) for key in wanted]
             + [var.get() for var in designer.assembly_part_formed_vars.values()]
@@ -204,6 +218,8 @@ def test_receiving_formal_door_parts_activate_with_independent_cell_dimensions()
     import tkinter as tk
     import gui
     import fold_designer_bridge as bridge
+    from ae_engine.manufacturing_api import measure_unfolded_blanks
+    from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 
     root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
     designer = None
@@ -221,13 +237,21 @@ def test_receiving_formal_door_parts_activate_with_independent_cell_dimensions()
         designer.activate_part("door_c1_r1")
         root.update_idletasks(); root.update()
         r1 = bridge._phase6_query_final_render_data(designer)
-        r1_blank = bridge._phase6_current_unfolded_size(designer, "door_c1_r1")
+        r1_blank = Phase6CornerDataViewAdapter.current_unfolded_size(
+            r1,
+            part_key="door_c1_r1",
+            measurer=measure_unfolded_blanks,
+        )
         assert designer.designer_workspace.active_part == "door_c1_r1"
 
         designer.activate_part("door_c1_r2")
         root.update_idletasks(); root.update()
         r2 = bridge._phase6_query_final_render_data(designer)
-        r2_blank = bridge._phase6_current_unfolded_size(designer, "door_c1_r2")
+        r2_blank = Phase6CornerDataViewAdapter.current_unfolded_size(
+            r2,
+            part_key="door_c1_r2",
+            measurer=measure_unfolded_blanks,
+        )
         assert designer.designer_workspace.active_part == "door_c1_r2"
 
         assert r1 is not None and r2 is not None

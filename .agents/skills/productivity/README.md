@@ -1,20 +1,30 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: skill-navigation
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Productivity
 
 General workflow tools, not code-specific.
 
-## User-invoked
+> Navigation only. Filesystem `SKILL.md` proves inventory; `.agents/skills/skill_catalog.json` decides WHD classification. Only `canonical` is active WHD canonical.
 
-Reachable only when you type them (Claude Code: `disable-model-invocation: true`; Codex: `policy.allow_implicit_invocation: false` in `agents/openai.yaml`).
+## User-invoked navigation
 
-- **[grill-me](./grill-me/SKILL.md)**: Get relentlessly interviewed about a plan or design until every branch of the design tree is resolved.
-- **[handoff](./handoff/SKILL.md)**: Compact the current conversation into a handoff document so another agent can continue the work.
-- **[teach](./teach/SKILL.md)**: Teach the user a new skill or concept over multiple sessions, using the current directory as a stateful teaching workspace.
-- **[to-questionnaire](./to-questionnaire/SKILL.md)**: Turn a decision you can't answer alone into a Markdown questionnaire for the one person who can (filled in async, or together over a meeting).
-- **[wait-what](./wait-what/SKILL.md)**: Fire this the moment a message doesn't land. The agent re-pitches it with the context you're missing, in plain English, using your `CONTEXT.md` vocabulary.
+- **[handoff](./handoff/SKILL.md)**: Compact the current conversation into a handoff document.
+- **[teach](./teach/SKILL.md)**: Teach a skill or concept over multiple sessions using the current directory as state.
+- **[to-questionnaire](./to-questionnaire/SKILL.md)**: Turn an external decision gap into a Markdown questionnaire.
+- **[wait-what](./wait-what/SKILL.md)**: Re-pitch a message with missing context in plain language.
+- **[深度質詢](./深度質詢/SKILL.md)**: canonical WHD deep-interview / design-tree Skill. Legacy `grill-me` 已 retired，不再是 current invocation entry。
 
-## Model-invoked
+## Model- or user-reachable navigation
 
-Model- or user-reachable (rich trigger phrasing so the model can reach for them).
+- **[MCP工具操作](./MCP工具操作/SKILL.md)**: 依目前 runtime 真實能力操作 MCP。
+- **[找技能](./找技能/SKILL.md)**: 搜尋、驗證、比較外部 Skill；外部 Skill 不會自動納入 WHD。
+- **[深度質詢](./深度質詢/SKILL.md)**: 逐輪釐清 plan / decision / idea。
+- **[writing-for-agents](./writing-for-agents/SKILL.md)**: Writing documents for agents。
 
-- **[grilling](./grilling/SKILL.md)**: Interview the user relentlessly about a plan, decision, or idea until every branch of the design tree is resolved.
-- **[writing-for-agents](./writing-for-agents/SKILL.md)**: Writing documents for agents: skills, AGENTS.md/CLAUDE.md, and any doc an agent reaches by a pointer.
+## Canonical identity rule
+
+中文 Skill 資料夾的 frontmatter `name` 必須等於資料夾 basename。`grill-me` / `grilling` 只保留 retired/history mapping，不得再競爭 routing；replacement 是 `深度質詢`。

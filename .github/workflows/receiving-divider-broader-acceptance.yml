@@ -1,0 +1,64 @@
+name: Receiving Divider Broader Acceptance
+on:
+  push:
+    branches: [fix/receiving-fw-formed-solid-authority]
+    paths:
+      - ae_engine/**
+      - fold_designer_bridge.py
+      - phase6_fold_profiles.py
+      - tests/test_dm1_divider_physical_contract.py
+      - tests/test_dm3_divider_canonical_relief_contract.py
+      - tests/test_dm4_divider_resolved_sinks.py
+      - tests/test_issue39_divider_relief.py
+      - tests/test_issue63_regression_red.py
+      - tests/test_issue71_divider_relief_components.py
+      - tests/test_issue74_divider_side_front_penetration.py
+      - .github/workflows/receiving-divider-broader-acceptance.yml
+
+jobs:
+  broader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+
+      - name: Capture config invariant
+        run: |
+          sha256sum config.ini | tee /tmp/config.before
+
+      - name: Source authority scan
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("ae_engine/assembly_collision.py")
+          text=p.read_text(encoding="utf-8")
+          stale=[
+              "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
+              '"target_half_thickness"',
+              '"solid_depth"',
+              "PHYSICAL_PRIMARY_BOUNDARY_PLUS_SOURCE_COLLISION_SPAN",
+          ]
+          found=[token for token in stale if token in text]
+          assert not found, f"stale target-T/2 Divider authority remains: {found}"
+          assert "from tests" not in text and "import tests" not in text
+          print("SOURCE_AUTHORITY_SCAN=PASS")
+          PY
+
+      - name: Divider broader guards
+        run: |
+          pytest -q -s \
+            tests/test_dm1_divider_physical_contract.py \
+            tests/test_dm3_divider_canonical_relief_contract.py \
+            tests/test_dm4_divider_resolved_sinks.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue63_regression_red.py \
+            tests/test_issue71_divider_relief_components.py \
+            tests/test_issue74_divider_side_front_penetration.py
+
+      - name: Verify config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after

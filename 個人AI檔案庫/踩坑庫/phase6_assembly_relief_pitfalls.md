@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 
 ## 2026-08-29：已知公式不能被 3D discovery 覆蓋
 - 錯誤模式：已知正確 INSERT 公式應為 38×27，但 3D skin intersection 可能求出 38.98、39 或回退 40。
@@ -157,3 +163,213 @@
 - `中隔.dxf` 只供固定孔／既有特徵；外框不是 final relief contour Source of Truth。
 - resolved geometry sinks 共用同一 final material。Renderer / exporter 若為了「畫對」而另算 CUTTING 或截角，就是第二 geometry path。
 - Save 只存 authoritative state；Reload 重新 canonical solve。derived `final_geometry`、probe geometry 或 render cache 不得持久化成第二份真值。
+
+
+## 2026-09-09 — Validation Authority Boundary：驗證不是製造計算來源
+
+- **全域硬規則**：驗證只回答「production 結果對不對」；不得回答「production 應該怎麼算」。任何 test expected、fixture output、probe/measurement delta、tolerance、PASS/FAIL evidence 都不得被 production 當成公式、offset、補償或 branch condition。
+- Divider / EndCap / BoxBody 類幾何 mismatch 必須回到 authoritative state、physical geometry、`T`、FW face、AssemblyJoint/Registry、collision/backprojection、canonical resolver 查根因；禁止用 `expected - actual` 反推切多少、移多少、補多少。
+- tolerance/epsilon/boolean fringe 只屬驗證判定邊界；若它出現在 manufacturing formula，視為 authority leakage。
+- 某數值只有在**另有獨立 authoritative provenance（產品／機械 authority）**並正式固化於 spec/registry/canonical state 時才能成為 production input；QA 恰好量到相同數字不構成 authority。
+- Review/source scan 發現 production 依賴 `tests/**`、fixture expected、單次 probe magic number，直接 fail closed，不得以「測試都過」接受。
+
+## 2026-09-09 — Issue63：驗證結果不得反向成為 Divider production 幾何公式
+
+- **硬規則：驗證不是計算來源。** Receiving Divider 的 production relief / hole transform 只能由 authoritative state、真實 physical geometry、collision/backprojection、canonical resolve 與 authoritative `T` 推導；pytest expected、驗收量測值、單次 fixture output 都只能驗證結果，不得回灌製造計算。
+- 真板厚補償的 authority 是 `T` 本身。當 mid-surface / skin 幾何要轉成 physical solid 時，使用由 authoritative `T` 推得的 `T/2` skin→solid sweep；這是物理板厚模型，不是由封頭尾／中隔最後量到的中間段差值反推補償。
+- Issue63 的 `T=2.0 → solid_half_thickness=1.0` 是上述規則的直接結果。驗收中 resolved 封頭／尾中間段約 `742.0`、Divider 中間段約 `741.999` 的 `0.001` 差，只來自 solver/boolean fringe（`0.0005 × 2`）的數值容差；**只能作 test tolerance，不得成為 manufacturing compensation。**
+- 孔位 parity 量到的「Ø6.4 到截角邊 10.0 mm」與曾觀察到整組固定孔偏移約 `100 mm` 都是 validation evidence，不是公式。正式孔位修正必須由 `中隔.dxf` authoritative fixed-hole / physical-edge datum 與正式 rigid orientation transform 推導；禁止直接寫 `-100` 或任何由單次差值反推的 magic offset。
+- 同理，任何 `47/26`、`1 mm`、某次 middle-segment 長度、world bbox、renderer origin、probe delta 都不得作 runtime oracle。測試應鎖幾何 invariant：FW physical face-flush、pre-solve collision、backprojection ownership、post-refold illegal penetration=0、fixed-hole datum rigid parity、2D/3D/DXF resolved sink 同源。
+- **完成條件**：若為了讓 test GREEN 必須把 expected / tolerance / fixture delta 寫進 production，直接判定為架構違規；先修 authority/data-flow 或 stale oracle，不得用驗證資料餵製造公式。
+
+
+
+## 2026-09-09 — Divider：3D triangulation 輪廓不得升格為 STANDARD CUTTING
+
+- **症狀**：Receiving Divider 已通過 FW face-flush、collision replay、`illegal penetration=0`，甚至中間有效直線段 parity 也可通過，但 final material 仍出現不屬於標準截角的斜邊。
+- **實際根因**：Divider 專用 relief solver 把 backprojection endpoints 直接做 `MultiPoint(...).convex_hull`，再把該 hull 當正式 CUTTING。三角網格交線的數值頂點因此被錯誤升格成製造 topology；#63 的舊 shape test 又用同一 convex-hull 假設建立 expected，形成 circular oracle。
+- **有效 RED**：run `34346306940`。左右兩端都在「存在 triangulation-generated non-axis CUTTING edge」精確紅燈；同一測試中的 core boundary、physical skin depth、`T/2` solid depth都由各自 authority 動態推導，不含 dead dimension。
+- **被撤銷假設**：第一輪猜測「disconnected collision components 被 global hull 橋接」；run `34345831526` 的 reproducer 找不到該 disconnected gap，所以該假設已撤銷。禁止日後把已撤銷假設當歷史事實。
+- **正確 authority 分工**：
+  - Fold/material contract → STANDARD manufacturing topology / pre-core boundary；
+  - real `left_side/right_side` collision/backprojection → touched span end + required physical skin depth；
+  - authoritative `T` → `T/2` skin→solid sweep；
+  - refold replay → 只判定剩餘非法穿透是否為 0；
+  - validation → 只判定以上結果對不對，不回灌 production。
+- **正確實作**：先將 physical crossing linework fit 回既有 stable orthogonal corner topology，再做 `T/2` inward sweep；union 必須保留 STANDARD topology，禁止再用 convex hull 重新產生斜邊／新 stage。
+- **防線**：只驗 `illegal penetration=0` 不夠。任何 collision-derived relief 必須另驗 manufacturing topology invariant；STANDARD one-level corner若出現非 X/Y 軸 CUTTING edge，直接 fail closed。
+- **GREEN 證據**：run `34346627948`：Issue71 exact seam **2 PASS**；Divider broader guards（#63/#39/DM3/DM4）**23 PASS / 0 FAIL**；`config.ini` SHA256 前後一致。
+
+## 2026-09-09 — BoxBody child identity 不可直接升格成 operator part
+
+- `box_body:<role>` 是 physical geometry identity，不是 UI hierarchy 的 Source of Truth。
+- 頂層板件只保留 logical `box_body`；physical children 的操作資訊巢狀放在箱身內。
+- 每片 visibility 必須獨立，但 visibility mask 只作用於 drawing sink；完整 child meshes 仍留在 assembly datum / collision source。
+- 若取消顯示某 child 後 Head/Tail 位置、collision 或 relief 改變，表示 renderer visibility 又污染了 mechanical authority，直接判定回歸。
+
+## 2026-09-09 — Issue74：core_start 不是 Divider 穿透界線；兩張 source skin 不可再補 T/2
+
+- **症狀**：Divider verifier 曾回 `verified=true`，但 true-thickness world-space 檢查仍發現左側板 `zl1/zl2` 與右側板 `zr2` 穿過 Divider；相鄰 FW/D 只是一張 skin 接觸。
+- **根因 1 — legality boundary 錯置**：舊 solver 用 Divider `core_start` 當硬界線，把 `core_start` 後的交線全部當 retained contact。實際上 collision legality 必須看 source physical Fold band 是否跨過**兩張** skin，不能看 target UV 是否超過某條折線。
+- **根因 2 — 板厚重複補償**：第一輪 true-thickness 修正把 source 兩張 skins 已經界定好的 physical footprint 又加一次 `T/2`，造成多切。兩張 source skins 已包含 source 板厚，不可再做相同方向的 source skin→solid 補償。
+- **根因 3 — 只挖 footprint 會做成內部槽**：把碰撞 footprint 小矩形直接 difference 雖可讓 positive overlap 歸零，但不等於正確 corner relief。Manufacturing topology 必須由 Fold semantics 建出「外緣 primary + 必要 secondary arm」。
+- **正式 production authority**：
+  - source semantic Fold band + both-skin crossing：只判定 penetrating band；
+  - Fold material lengths + Divider `core_start` + authoritative `T`：算 nominal CUTTING；
+  - physical footprint：只做 coverage/replay validation；若 nominal 不覆蓋就 fail closed，禁止把 measured miss/delta 加回公式；
+  - post-solve：驗 retained material 與 pre-solve true-solid footprint 的 positive-area overlap=0，邊界 intersection line 不算正體積穿透。
+- **Receiving nominal 公式**：
+  - 左 primary：`U=core_start+zl2`，`V=fw_left+T/2`；
+  - 左 secondary：center U 同上、寬 `T`，V=`fw_left .. fw_left+zl1`；
+  - 右 primary：`U=core_start+zr2`，`V=fw_right+T/2`。
+- **目前 fixture evidence（非 runtime oracle）**：`core_start=41, zl1=22, zl2=20, FW料=25, zr2=16, T=2` → 左 primary `61×26`；左 secondary `X60..62, V25..47`（比 primary 再深 21）；右 primary `57×26`。這些數字只能用來驗當次輸出，production 必須每次從 Fold+T 重算。
+- **數值毛邊**：`0.0005` boolean fringe 只為浮點 polygon robustness；不得當 clearance / 多切量 / manufacturing compensation。
+- **驗收**：Issue74 exact + Divider guards 必須同時 GREEN，並保留 `config.ini` SHA invariant；舊「左右深度必須相同」與「只截到 core_start」測試 oracle 已廢止。
+
+
+## 2026-09-09 — Issue74 CORRECTION：source both-skin != source+target 全實體
+
+- **撤銷錯誤結論**：先前「source Fold band 已跨兩張 skins，所以再加 T/2 一定是重複補償」只說對一半。兩張 source skins 的確已含 **source 板厚**，但 backprojection 仍落在 **Divider target skin**；target 中隔自己的板厚尚未成為 solid。
+- **真正根因**：Issue74 第一版 verifier 把 source-solid footprint 當成完整 source+target solid collision，漏做 target sheet 的 `T/2` inward sweep，因此 current fixture primary 只切到約26，造成 Divider middle 約744，與 resolved Head/Tail 742 parity FAIL（run `34352892221`）。
+- **正確 production chain**：
+  1. real left/right side Fold band crosses both source skins → source true-solid penetration；
+  2. crossing backproject 到 Divider target-skin UV；
+  3. authoritative Divider `T` → target `T/2` inward sweep，形成真正 source-solid × target-solid collision footprint；
+  4. 用 stable orthogonal manufacturing topology 從 touched material edge 連到該 physical solid footprint；
+  5. refold 後 positive-area illegal overlap=0 才可 promotion。
+- **禁止事項**：不得用 `W/FW` 閉合、Head/Tail 742、expected 27、probe miss/delta 反推 production。這些都只能驗證。
+- **final physical evidence**：run `34353654567` 自碰撞得到 left zl2 約26 skin +1 target half-thickness ≈27 solid、right zr2 約26+1≈27、left zl1 約47+1≈48；Xvfb 中隔 middle 約741.999 與 Head/Tail 742.0 parity PASS。數值只屬該 fixture evidence，不可硬編。
+- **永久防線**：任何「已經有兩張 skins」的說法都必須標明是 source 還是 target；只有 source/target 兩邊的 true-thickness 都被建模後，才可宣稱完整實體 collision。
+
+## 2026-09-09 — BoxBody top-level aggregation 不能刪掉 child editor navigation
+
+- `box_body:<role>` 不升格成頂層 operator part，只代表**階層收納**；不代表 child editor 可以消失。
+- logical `box_body` 下面必須有 nested child tabs，直接切換 stable physical ID。Receiving 三件式至少是 `left_side / back / right_side`。
+- 2D 與 3D 必須保存同一 active child；從任一側切片後往返另一側都要維持同一片。
+- child preview 必須直接讀 manufacturing physical piece `render_data`；不得由 aggregate 或 validation evidence 重建。
+- visibility、navigation、mechanical authority 三層不可互相污染：隱藏不改 placement/collision；切換不刪 geometry；頂層聚合不刪 child navigation。
+
+
+## 2026-09-09 — 重犯：Receiving material FW 25 被錯當 3D formed FW 25
+
+- **這不是新規則。** Receiving family 早已明定 operator `FW=29` 是 formed outside occupation；`T=2` 時 material flange 是 `25`。另外「FW 都是同一個面」也已是既定 assembly contract。
+- **實際重犯原因**：文件與 UI/material conversion 都正確，但 3D folded geometry 仍直接以 material Fold span 建 FW physical face，沒有 hard gate 驗證 formed occupation。結果 full-solid diagnostic 量到 left/right FW world occupation 都只有 `25`。
+- **後果**：在錯的 FW solid 上做任何 Divider collision，都不可能得到可信截角；即使 validation/parity 變綠也只是建立在錯誤 physical model 上。
+- **永久防線**：Receiving Divider collision 前先驗 `fw_left/fw_right world formed occupation == physical_contract.fw_physical_face.outside_dimension`；不一致立即 fail closed。不得再以 material `len`、skin proxy 或 test expected 補差值。
+
+
+## 2026-09-09 — Remote QA 有 30 秒規則仍會漏輪詢：缺少 Active Lock
+
+- **症狀**：Skill 已明寫「約每 30 秒 active polling」，但 assistant 仍會在 run `in_progress` 時轉去讀 code、改檔或做別的診斷，導致使用者看起來像「又沒輪詢」。
+- **根因**：只有 cadence 規則，沒有排程互斥；remote run 非 terminal 時，其他工具工作仍能插隊。這不是 cadence 文案不足，而是缺少 execution lock。
+- **永久防線**：取得 `run_id + head_sha` 後進 `REMOTE_QA_ACTIVE_LOCK`。直到 terminal 前，只允許 poll run/jobs/steps、terminal failure log、30 秒回報。任何其他工具動作都屬流程違規。
+- **恢復規則**：Runtime 切斷不解除遠端任務；下一 Runtime 第一動作恢復同一 locked run。replacement run 建立後立即把 lock 移交到新 `run_id + head_sha`。
+
+
+## 2026-09-09 — 只鎖 collision metadata 仍會假綠：必須鎖 final CUTTING 輪廓
+
+- **漏掉的缺口**：前一版 QA 雖驗 FW=29、face-flush、collision metadata，卻沒有用獨立產品 oracle 直接驗最終中隔 CUTTING。結果 production 可吐出 `zl1 solid_depth=48`，舊測試仍自洽 GREEN。
+- **產品 oracle（validation-only）**：左主 `61×27`、左副階 `2×22`、右主 `57×27`。其中 `48` 不屬製造尺寸。
+- **永久防線**：測試從 nominal Divider blank 與 resolved final material 做 difference，直接比較最終移除輪廓；不得以 production metadata 當 expected。
+- **authority boundary**：上述 expected 只能在 test/QA 出現；production 若 import tests、讀 fixture expected 或複製 expected magic number 來求 relief，直接 fail closed。
+
+
+## 2026-09-09 — 25→47→48 是 coordinate-domain leakage（撤銷舊 Issue74 authority）
+
+- **為什麼會一直重犯**：AI/Skill 歷史段落仍保存「secondary 從 material FW=25 起算」以及「footprint endpoint 47 + T/2 = 48」的舊說法。這會讓後續推理把 flat/material 座標誤升格成 final manufacturing CUTTING 座標。
+- **正式撤銷**：
+  - `V=fw_left..fw_left+zl1` 不再是 final CUTTING placement authority；
+  - `25→47` 只可能描述某 material/UV 座標區間，不代表 final notch stage；
+  - `47+T/2=48` 不得再當製造尺寸。
+- **永久 domain 規則**：每個幾何量必須標示 `MATERIAL_UV` / `WORLD_SOLID` / `FINAL_CUTTING`。沒有 domain 的「depth」「position」「offset」禁止進 production geometry。
+- secondary relief 若與 primary relief 相接，final stage 的 anchor 必須來自 physical adjacency / resolved primary CUTTING boundary；不得從 material FW 數值抄一個起點。
+- validation expected 只判 final CUTTING 對錯；不得把 expected 常數回灌 production。
+
+
+## 2026-09-09 — 輸入區都已給值還從材料 Fold 腦補
+
+- **症狀**：使用者已在 Receiving 3D 輸入區提供 `zl1/zl2/FW/zr2`，但分析仍拿 material Fold `22/20/25/16`、collision footprint 或 UV endpoint 去反推截角語意。
+- **根因**：把 canonical operator input 與 derived material profile 混成同一 authority。
+- **正確資料流**：`3D input → _phase6_input_snapshot → family/topology conversion → material Fold → formed solid → collision → final CUTTING`。
+- **禁止逆流**：material Fold、world bbox、collision evidence、test expected 都不得回推 operator input 語意。
+- **reference evidence**：operator/outside `24/24/29/18` 在 T=2 下可導出 material `22/20/25/16`；這是單向 derivation，不可反向使用。
+
+
+## 2026-09-09 — 口語沒說「包外」卻被當成 outside
+
+- **使用者明確規則**：口語尺寸若沒有說「包外」，就是料尺寸。
+- **錯誤模式**：看到 Receiving / FW / 3D input 既有 outside semantics，就把使用者口頭給的數字自動解讀成包外，造成後續 22/20/25、24/24/29 等尺寸域混亂。
+- **永久防線**：conversation/spec parser 先判語意；未出現「包外」→ `MATERIAL`，明確出現「包外」→ `OUTSIDE/FORMED`。UI/production 的 internal semantics 不得反過來改寫使用者原話。
+
+
+## 2026-09-09 — 48 的真正根因：把 target sheet thickness 當 flat-UV in-plane offset
+
+- **錯誤鏈**：source both-skin collision backproject 到 Divider UV 後，舊 solver 把 Divider `T/2` 沿 W/UV 方向平移，於是某個 `zl1` endpoint 被錯誤升格成 `47 + 1 = 48`。
+- **為什麼錯**：target sheet thickness 是**板面法向**的物理厚度，不是中隔平面內的 W 向 offset。把 `T/2` 直接加到 flat-UV 座標是 coordinate-domain leakage。
+- **正確 collision authority**：
+  - primary depth：FW physical face ↔ Divider 的實際接觸；
+  - primary width：true-thickness source Fold collision；
+  - secondary stage：source both-skin collision backprojection 的實際 footprint；
+  - post-refold：CURRENT footprint 對 retained material 的 positive-area overlap。
+- **boundary trap**：精確切完後兩張 skin 仍可能沿 CUTTING 邊界相交；不能只因 both-skin segments 存在就判 penetration。area=0 為合法 boundary contact。
+- **sink 檢查**：raw material difference 與 `_apply_cut_to_part()` 面積必須一致，避免把 collision 問題誤診成 FinalScene sink 問題。此次證據兩者都切除 `3227.9999998638 mm²`。
+- **GREEN**：run `34364056682`，7 PASS；reference final outer CUTTING：左 `61×27` + 副階 `2×22` + 右 `57×27`；post positive overlap=0。
+
+
+## 2026-09-09 — 最新更正：左副階 final material band = 27→49
+
+- 使用者先暫時判定 `25→47`，隨後再次思考並明確更正：**正確為 `27→49`**。
+- 最新 authority 覆蓋前一筆暫時判定：左主 `61×27`；左副階 `2×22` at `Y=27..49`；右主 `57×27`。
+- 因使用者沒有說「包外」，`27/49` 按既定口語規則皆為 **料座標**。
+- **踩坑**：不得把上一個對話回合的暫時確認永久化；使用者後續明確更正時，Skill、AI 庫、test oracle 必須同步 supersede。
+- production 不可把這些 expected 常數拿來計算，只能以物理幾何自行撞出相同結果。
+
+
+## 2026-09-09 — 截角是 2D，碰撞對象是 3D 包外實體
+
+- **錯誤模式**：把 3D collision 的 raw target-UV / material midline 座標直接當 2D CUTTING，或看到差 T 就認為是驗收補償。
+- **正確物理鏈**：2D 料 Fold → 3D 成形包外 solid → 箱內 Divider 撞 physical inside face → 折回 2D 料面。
+- Receiving reference：FW material=25、formed outside=29、T=2；Divider 在箱內所以 physical collision datum=29−2=27；zl1 material length=22；final 2D secondary band=27..49。
+- **禁止**：拿 test 的 27/49 回灌 production；禁止把 +T 說成 target T/2；禁止直接把 raw 25..47 UV endpoint 當 final manufacturing coordinate。
+- **數值 seam**：同一 physical 27 datum 若由兩條浮點路徑得到 26.999999997 與 26.999999999，必須共用同一 canonical physical-face boundary，否則 CUTTING union 會被誤拆成 exterior notch + interior hole。
+
+## 2026-09-09 — Divider 不得因 schema 不夠就另造截角類型
+
+- Receiving Divider 已由使用者確認使用 **CROSS／十字截角＋參數**。
+- 若現有 CROSS schema 暫時只能表達 STANDARD/RETAIN/EXTRA_CUT，不能因此自行判斷「Divider 要一個新 relief type」或偷換成 INSERT_OVERLAY。
+- 正確順序：先確認機械語意 → 保留 CROSS identity → 擴充必要參數 → Registry 參數化 → 用 `中隔.dxf` 反讀驗證 → true-thickness 3D shadow 驗證。
+- `中隔.dxf` 在此任務是截角認證基準；舊「只拿孔、不拿外框」指引對此截角 requirement 已 **SUPERSEDED**。
+- 對任何不確定的二級槽、R、方向、固定/變動來源，**先問使用者，禁止猜。**
+
+## 2026-09-09 — Divider DXF 座標方向不能直接當 final-CUTTING 深度
+
+- `基準檔/金庫型/中隔.dxf` 的 long-X / short-Y 會經既有 90° rigid mapping 進 Divider 座標；source 座標上的某段長度不能直接命名成 Divider final-CUTTING depth。
+- 本次錯誤例：source 幾何裡看到 `51`，一度被誤解成二級深度；實際 normalize 後它屬另一座標方向的定位，不能直接拿 `51` 當 production 參數。
+- 正確做法：先做完整 rigid normalization，再以 Divider local U/V 描述主截角、槽寬、直段、R；任何參數 ownership 若仍不明確就問使用者。
+- DXF 反讀是 certification/validation authority，不可把座標差值直接回灌 production。
+## 2026-09-10 — 把 DXF rigid mapping 誤當 Divider 外框端向 authority
+
+- **事故模式**：因 `中隔.dxf` 固定孔採既有 clockwise 90° rigid mapping，就把 DXF 有槽端直接綁成 production 的 `MIN_Y` 或 `MAX_Y`。
+- **為什麼錯**：固定孔 mapping 只決定 baseline hole datum；Divider 外框截角端向是裝配語意，應由**對象 mating Fold 的正負方向**決定。
+- **正確規則**：先把 DXF 認證成兩種端型「66×27 + U 槽」與「60×27 plain」，再由 object Fold sign 分配端向；對象是負折的那一端用有槽型。
+- **禁止**：用 collision/backprojection 找哪端要槽，再把結果寫回 Registry。3D 只能驗證「依 Fold sign 算出的 production」有沒有穿透。
+- 本次 Receiving HORIZONTAL 證據：`MIN_Y -> zl2=-90°`，有槽端落 MIN_Y 後 post-refold positive overlap = 0。
+
+
+## 2026-09-22 — Divider view sink 不得因 UI active-part 不同退回 raw pre-relief geometry
+
+- **事故模式**：Divider canonical CROSS relief solver 與 Certified Registry 全部 GREEN，但 Corner Data 選到 Divider 時，若 `designer_workspace.active_part` 仍是 aggregate `box_body`，view helper 會繞過 `ResolvedManufacturingGeometry`，改讀 raw scene provider。raw Divider 本來就是 pre-relief rectangle，因此 CROSS 截角消失；derived Joint Placement `MARKING` 也同時消失。
+- **永久 authority**：Receiving Divider 的 final CUTTING、assembly relief、derived MARKING 都在 manufacturing resolve 後才成立。任何 2D/3D/Corner Data/DXF sink 只要顯示或輸出 `box_body:divider:...`，都必須讀 resolved part；**UI selection identity 不能決定 manufacturing 是否 resolve**。
+- **禁止修法**：不得把 CROSS 座標硬畫回 preview、不得把 MARKING 在 renderer 重算、不得把 raw `build_box_body_divider_render_data()` 改成偷偷含 assembly-dependent relief。raw part 保持 nominal；resolved manufacturing 才擁有 final material。
+- **必要 regression**：至少覆蓋「Corner Data selected Divider != workspace active part」並斷言回傳 resolved render object；另以 actual resolved DXF export→reopen 驗證 final CROSS material。
+
+
+## 2026-09-22 — Receiving frame MARKING V2：frame-owned upper-horizontal
+
+<!-- ISSUE509_RECEIVING_MARKING_V2_DOMAIN -->
+- 使用者明確更正第一版 Receiving MARKING：`top_frame / left_frame / right_frame` 三支 physical frame 都要在**自己的** FinalScene / DXF 上有一條上方水平 `MARKING`。
+- Current policy identity：`RECEIVING_INNER_DOOR_FRAME_UPPER_HORIZONTAL_V2`；role = `UPPER_HORIZONTAL`。
+- **SUPERSEDED**：`RECEIVING_INNER_DOOR_VERTICAL_FRAME_TO_SHARED_DIVIDER_V1` 對此案例的 `SIDE_BOUNDARY_PAIR`、`SIDE_NEGATIVE / SIDE_POSITIVE`、shared Divider 四條定位線。
+- FinalScene owner 與 stable physical identity 必須一致；view selection / renderer 不得另畫第二套 MARKING。DXF 直接 serialize resolved frame scene。
+- MARKING 是 derived manufacturing projection，不能改 CUTTING/BEND/holes/relief/material，也不另存 XY project truth。Save→Reload 由 topology/state 重建。
+- acceptance 要同時鎖：三支 frame 各 1 條水平線、Divider 無 stale V1 side marks、actual DXF reopen parity、mark IDs reload stable。

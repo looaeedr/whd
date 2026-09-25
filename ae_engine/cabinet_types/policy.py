@@ -83,6 +83,11 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     return tuple(result or ())
 
 
+def inner_door_vertical_frame_contract(source, inner_door_id: object) -> dict[str, object] | None:
+    result = _call(source, "inner_door_vertical_frame_contract", None, source, inner_door_id)
+    return None if result is None else dict(result)
+
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     result = _call(snapshot, "derive_inner_door_panels", (), snapshot)
     return tuple(result or ())
@@ -197,6 +202,27 @@ def resolve_box_body_structure_state(source, state=None) -> dict:
     return normalize_box_body_structure_state(state)
 
 
+def resolve_back_panel_contract(
+    source,
+    snapshot,
+    *,
+    structure_state,
+    panel_width: float,
+    full_panel_height: float,
+):
+    """Resolve a family-owned rear-panel contract when the family defines one."""
+    module = _family_module(source)
+    callback = getattr(module, "resolve_back_panel_contract", None) if module is not None else None
+    if not callable(callback):
+        return None
+    return callback(
+        snapshot,
+        structure_state=structure_state,
+        panel_width=float(panel_width),
+        full_panel_height=float(full_panel_height),
+    )
+
+
 def box_body_structure_is_fixed(source) -> bool:
     try:
         return bool(resolve_box_body_structure_state(source, None).get("locked", False))
@@ -260,9 +286,8 @@ def effective_endcap_bottom_fw(source, state, *, thickness: float, default_fw: f
     if not callable(callback):
         return float(default_fw)
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import BoxBodyStructureType
-    cfg = structure["configs"].get(BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value, {})
-    rear = float(cfg.get("side_rear_bend", 15.0))
+    from phase6_box_body_structure import side_rear_bend_material_length
+    rear = side_rear_bend_material_length(structure, float(thickness))
     return float(callback(side_rear_bend=rear, thickness=float(thickness)))
 
 
@@ -280,10 +305,9 @@ def endcap_corner_policy(source, *, frame_width: float, thickness: float, state=
     if not callable(callback):
         return None
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import BoxBodyStructureType
-    cfg = structure["configs"].get(BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value, {})
+    from phase6_box_body_structure import side_rear_bend_material_length
     return callback(
         frame_width=float(frame_width),
         thickness=float(thickness),
-        side_rear_bend=float(cfg.get("side_rear_bend", 15.0)),
+        side_rear_bend=side_rear_bend_material_length(structure, float(thickness)),
     )

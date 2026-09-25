@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "421",
+  "branch": "refactor/issue413-phase5-assembly-presentation-20260920",
+  "head_sha": "d9fe94b472d20105020a170f1504b11fdf541929",
+  "state": "RUNNING",
+  "next_action": "Create guarded qa-issue421-phase5-t0 workflow; push trigger must run T0 census to terminal.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "PHASE5_ACCEPTED_ROOT=396bfd96524a44a178c29bbefaf1b7c0437c119f",
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "EXECUTION_CLAIM_REF=claims/issue-421",
+    "EXECUTION_CLAIM_GUARD_BRANCH_CREATE=GREEN",
+    "T0_RUNTIME_IMPLEMENTATION_CHANGED=0"
+  ]
+}

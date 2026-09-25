@@ -19,7 +19,7 @@ DOOR_LAYOUT_METHODS = {
 
 def _box_methods():
     tree = ast.parse((ROOT / 'gui.py').read_text(encoding='utf-8'))
-    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'BoxCalculatorGUI')
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Phase6ApplicationHost')
     return {n.name for n in cls.body if isinstance(n, ast.FunctionDef)}
 
 

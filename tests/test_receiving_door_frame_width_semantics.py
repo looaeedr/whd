@@ -94,8 +94,11 @@ def test_receiving_inner_door_derivation_uses_the_same_corrected_outer_door_fini
 
     frame_sets = derive_inner_door_frame_sets(snapshot)
     assert len(frame_sets) == 1
+    # Panel height still follows the corrected outer Door finished face.
+    # Vertical frame span is independently resolved from physical terminal
+    # datums down to the shared Divider support skin.
     assert frame_sets[0].spans == {
         "top": pytest.approx(635.0),
-        "left": pytest.approx(1014.0),
-        "right": pytest.approx(1014.0),
+        "left": pytest.approx(1018.5),
+        "right": pytest.approx(1018.5),
     }

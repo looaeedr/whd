@@ -1,0 +1,56 @@
+name: "QA #366 T2B edge-control A-B diagnostic"
+
+on:
+  push:
+    branches:
+      - refactor/issue366-phase3-settings-transactions-20260919
+    paths:
+      - '.github/workflows/qa-issue366-t2b-edge-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  edge-ab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib numpy -r requirements.txt
+
+      - name: Baseline and candidate exact node
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATE="$GITHUB_SHA"
+          NODE="tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry"
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$NODE" --tb=short 2>&1 | tee "/tmp/$label.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$label rc=$rc"
+            return 0
+          }
+          run_one baseline bb8c3d0272756629654127fbd86e9d7013d797e4
+          run_one candidate "$CANDIDATE"
+          python - <<'PY'
+          from pathlib import Path
+          for label in ("baseline", "candidate"):
+              text = Path(f"/tmp/{label}.log").read_text(encoding="utf-8")
+              failed = "1 failed" in text
+              passed = "1 passed" in text
+              print(f"{label.upper()}_FAILED={int(failed)} PASSED={int(passed)}")
+          PY

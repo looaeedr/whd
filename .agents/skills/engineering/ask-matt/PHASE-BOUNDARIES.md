@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: ask-matt
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase boundaries
 
 A **phase** is a chunk of work inside a session: the grilling, the implementation, the QA. The definition is fuzzy on purpose: a phase ends when you think *"ok, we're done with that"*.

@@ -1,0 +1,902 @@
+name: Issue 311 T7 Legacy Optimized A-B Acceptance
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue311-t7-ab-acceptance-20260917
+    paths:
+      - 'tests/test_issue311_t7_ab_acceptance.py'
+      - 'tools/issue311_t7_ab_acceptance.py'
+      - '.github/workflows/qa-issue311-t7-ab-acceptance.yml'
+      - 'docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue311-t7.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  focused-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Re-enforce T7 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Compare legacy and optimized CI on one exact repository head using canonical collection, failure, skip, invariant, and timing evidence; fail closed on any semantic mismatch without mutating production." \
+            --changed-file tests/test_issue311_t7_ab_acceptance.py \
+            --changed-file tools/issue311_t7_ab_acceptance.py \
+            --changed-file .github/workflows/qa-issue311-t7-ab-acceptance.yml \
+            --changed-file docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt \
+            --changed-file docs/superpowers/checkpoints/issue311-t7.json \
+            --evidence docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt
+      - name: Install focused dependency
+        run: python -m pip install pytest
+      - name: Run T7 comparator contract
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue311_t7_ab_acceptance.py
+
+  plan:
+    needs: focused-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      source_sha: ${{ steps.owner.outputs.source_sha }}
+      manifest_sha256: ${{ steps.manifest.outputs.manifest_sha256 }}
+      non_gui_matrix: ${{ steps.non-gui-matrix.outputs.matrix }}
+      non_gui_max_parallel: ${{ steps.non-gui-matrix.outputs.max_parallel }}
+      xvfb_matrix: ${{ steps.xvfb-matrix.outputs.matrix }}
+      xvfb_max_parallel: ${{ steps.xvfb-matrix.outputs.max_parallel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind T7 to one exact SHA
+        id: owner
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "source_sha=$actual" >> "$GITHUB_OUTPUT"
+          echo "ISSUE311_SOURCE_SHA=$actual"
+      - name: Reject production or unrelated drift from accepted T6
+        env:
+          T6_ACCEPTED_HEAD: cf656c1efaf0e3f9c2a74330d7fb988847226db7
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$T6_ACCEPTED_HEAD" "$GITHUB_SHA" | sort | tee /tmp/issue311-scope.txt
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('/tmp/issue311-scope.txt').read_text().splitlines())
+          allowed = {
+              '.github/workflows/qa-issue311-t7-ab-acceptance.yml',
+              'docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt',
+              'docs/superpowers/checkpoints/issue311-t7.json',
+              'tests/test_issue311_t7_ab_acceptance.py',
+              'tools/issue311_t7_ab_acceptance.py',
+          }
+          unexpected = sorted(actual - allowed)
+          assert not unexpected, f'ISSUE311_SCOPE_DRIFT={unexpected}'
+          required = {
+              '.github/workflows/qa-issue311-t7-ab-acceptance.yml',
+              'docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt',
+              'tests/test_issue311_t7_ab_acceptance.py',
+              'tools/issue311_t7_ab_acceptance.py',
+          }
+          missing = sorted(required - actual)
+          assert not missing, f'ISSUE311_REQUIRED_EVIDENCE_MISSING={missing}'
+          print('ISSUE311_SCOPE=TEST_AND_QA_ONLY')
+          PY
+      - name: Install collection dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-xdist matplotlib ezdxf
+      - name: Generate one authoritative live manifest
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue311/plan
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue311/plan/manifest \
+            --source-sha "$GITHUB_SHA" \
+            | tee .scratch/issue311/plan/manifest-generation.log
+      - name: Bind manifest and inherited RED contract
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=.scratch/issue311/plan/manifest/shard-manifest.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          GITHUB_SHA="$GITHUB_SHA" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path('.scratch/issue311/plan')
+          manifest = json.loads((root / 'manifest/shard-manifest.json').read_text())
+          assert manifest['source_sha'] == os.environ['GITHUB_SHA'], manifest
+          r = manifest['reconciliation']
+          assert r['full_count'] == r['lane_union_count'] == r['unique_shard_union_count'], r
+          for key in ('lane_missing','lane_extra','lane_duplicate','shard_missing','shard_extra','shard_duplicate'):
+              assert not r[key], (key, r[key])
+          contract = json.loads(Path('config/issue307_t0_xvfb_failure_contract.json').read_text())
+          failures = sorted(contract['failures'])
+          assert len(failures) == 13, len(failures)
+          xvfb_union = {
+              node
+              for item in manifest['shards']['xvfb_ui'].values()
+              for node in item['nodes']
+          }
+          missing = sorted(set(failures) - xvfb_union)
+          assert not missing, f'INHERITED_RED_OUTSIDE_XVFB={missing}'
+          (root / 'expected-xvfb-global.json').write_text(json.dumps(failures, indent=2) + '\n')
+          (root / 't0-failure-contract.json').write_text(json.dumps(contract, indent=2, sort_keys=True) + '\n')
+          print(f"FULL_COLLECTION={r['full_count']}")
+          print("INHERITED_RED_CONTRACT=13")
+          PY
+          printf '%s\n' "$digest" > .scratch/issue311/plan/manifest.sha256
+          printf '%s\n' "$GITHUB_SHA" > .scratch/issue311/plan/source.sha
+          echo "manifest_sha256=$digest" >> "$GITHUB_OUTPUT"
+      - name: Emit optimized non-GUI matrix
+        id: non-gui-matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/test_shard_execution.py matrix \
+            --manifest .scratch/issue311/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Emit optimized Xvfb matrix
+        id: xvfb-matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/xvfb_shard_execution.py matrix \
+            --manifest .scratch/issue311/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload locked T7 plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue311-t7-plan
+          path: .scratch/issue311/plan
+          if-no-files-found: error
+
+  legacy-full:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install legacy validation dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Download locked T7 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue311-t7-plan
+          path: .scratch/issue311/plan
+      - name: Verify exact legacy checkout identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue311/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(sha256sum .scratch/issue311/plan/manifest/shard-manifest.json | awk '{print $1}')" = "$PLAN_MANIFEST_SHA256"
+      - name: Independently collect legacy full and lane inventories
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue311/legacy
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+          from tools.test_lane_policy import LANE_EXPRESSIONS, XVFB_UI_EXPRESSION
+
+          root = Path('.scratch/issue311/legacy')
+          def collect(expr: str | None) -> list[str]:
+              cmd = [sys.executable, '-m', 'pytest', '--collect-only', '-q', 'tests']
+              if expr:
+                  cmd.extend(['-m', expr])
+              proc = subprocess.run(
+                  cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False
+              )
+              if proc.returncode != 0:
+                  raise SystemExit(f'COLLECTION_FAILED expr={expr!r} rc={proc.returncode}\n{proc.stdout}')
+              return sorted({
+                  line.strip()
+                  for line in proc.stdout.splitlines()
+                  if line.startswith('tests/') and '::' in line
+              })
+
+          full = collect(None)
+          lane_exprs = dict(LANE_EXPRESSIONS)
+          lane_exprs['xvfb_ui'] = XVFB_UI_EXPRESSION
+          lanes = {name: collect(expr) for name, expr in lane_exprs.items()}
+          owners = {}
+          duplicates = {}
+          for lane, nodes in lanes.items():
+              for node in nodes:
+                  if node in owners:
+                      duplicates.setdefault(node, [owners[node]]).append(lane)
+                  else:
+                      owners[node] = lane
+          union = sorted(owners)
+          missing = sorted(set(full) - set(union))
+          extra = sorted(set(union) - set(full))
+          assert not duplicates, f'LEGACY_LANE_DUPLICATE={duplicates}'
+          assert not missing, f'LEGACY_LANE_MISSING={missing}'
+          assert not extra, f'LEGACY_LANE_EXTRA={extra}'
+          (root / 'full-collection.txt').write_text('\n'.join(full) + '\n')
+          (root / 'lane-expressions.json').write_text(json.dumps(lane_exprs, indent=2, sort_keys=True) + '\n')
+          for lane, nodes in lanes.items():
+              (root / f'collection-{lane}.txt').write_text('\n'.join(nodes) + '\n')
+          print(f'LEGACY_FULL_COLLECTION={len(full)}')
+          PY
+      - name: Capture legacy protected digests before execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue311/legacy
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/tracked-before.digest"
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/config-dxf-before.digest"
+      - name: Run authoritative legacy lanes serially
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue311/legacy
+          : > "$root/lane-status.tsv"
+          : > "$root/lane-timing.tsv"
+
+          run_lane() {
+            name="$1"
+            expr="$2"
+            mode="$3"
+            start=$(date +%s)
+            set +e
+            if [ "$mode" = "xvfb" ]; then
+              xvfb-run -a python -m pytest -q -ra --tb=short \
+                --junitxml="$root/${name}.xml" -m "$expr" tests \
+                2>&1 | tee "$root/${name}.log"
+              rc=${PIPESTATUS[0]}
+            else
+              python -m pytest -q -ra --tb=short \
+                --junitxml="$root/${name}.xml" -m "$expr" tests \
+                2>&1 | tee "$root/${name}.log"
+              rc=${PIPESTATUS[0]}
+            fi
+            set -e
+            end=$(date +%s)
+            printf '%s\t%s\n' "$name" "$rc" >> "$root/lane-status.tsv"
+            printf '%s\t%s\n' "$name" "$((end-start))" >> "$root/lane-timing.tsv"
+            echo "LEGACY_LANE_TERMINAL name=$name rc=$rc elapsed=$((end-start))"
+          }
+
+          run_lane governance 'governance' headless
+          run_lane unit 'unit' headless
+          run_lane geometry 'geometry' headless
+          run_lane projection 'projection' headless
+          run_lane persistence 'persistence' headless
+          run_lane dxf 'dxf' headless
+          run_lane architecture 'architecture' headless
+          run_lane ui 'ui and not xvfb' headless
+          run_lane integration 'integration' headless
+          run_lane xvfb_ui 'ui and xvfb' xvfb
+      - name: Verify legacy protected invariants after execution
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue311/legacy
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/tracked-after.digest"
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/config-dxf-after.digest"
+          cmp "$root/tracked-before.digest" "$root/tracked-after.digest"
+          cmp "$root/config-dxf-before.digest" "$root/config-dxf-after.digest"
+          git diff --exit-code
+      - name: Normalize legacy evidence into canonical aggregation schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from tools.test_shard_aggregation import (
+              INHERITED_RED,
+              aggregate_shard_results,
+              normalize_shard_artifact,
+          )
+          from tools.test_shard_execution import SHARD_MANIFEST_SCHEMA
+
+          root = Path('.scratch/issue311/legacy')
+          expected_failures = set(json.loads(Path('.scratch/issue311/plan/expected-xvfb-global.json').read_text()))
+          full = [x for x in root.joinpath('full-collection.txt').read_text().splitlines() if x]
+          expressions = json.loads(root.joinpath('lane-expressions.json').read_text())
+          durations = {}
+          for line in root.joinpath('lane-timing.tsv').read_text().splitlines():
+              lane, seconds = line.split('\t')
+              durations[lane] = float(seconds)
+          statuses = {}
+          for line in root.joinpath('lane-status.tsv').read_text().splitlines():
+              lane, rc = line.split('\t')
+              statuses[lane] = int(rc)
+
+          manifest = {
+              'schema': SHARD_MANIFEST_SCHEMA,
+              'source_sha': os.environ['PLAN_SOURCE_SHA'],
+              'full_collection_count': len(full),
+              'shards': {},
+          }
+          results = []
+          skipped_nodes = []
+          for lane in expressions:
+              nodes = [x for x in root.joinpath(f'collection-{lane}.txt').read_text().splitlines() if x]
+              manifest['shards'][lane] = {'legacy': {'count': len(nodes), 'nodes': nodes}}
+              payload = {
+                  'lane': lane,
+                  'shard_id': 'legacy',
+                  'source_sha': os.environ['PLAN_SOURCE_SHA'],
+                  'assigned_nodes': nodes,
+                  'assigned_count': len(nodes),
+                  'execution_seconds': durations[lane],
+                  'failed_nodes': sorted(expected_failures) if lane == 'xvfb_ui' else [],
+              }
+              if lane == 'xvfb_ui':
+                  payload['classification'] = INHERITED_RED
+              normalized = normalize_shard_artifact(
+                  result_payload=payload,
+                  junit_xml=root / f'{lane}.xml',
+                  expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+                  artifact_refs=[f'artifact://issue311-legacy/{lane}.xml'],
+              )
+              for node, record in normalized['node_results'].items():
+                  if record['outcome'] == 'skipped':
+                      skipped_nodes.append(node)
+              results.append(normalized)
+
+          assert all(statuses[lane] == 0 for lane in expressions if lane != 'xvfb_ui'), statuses
+          assert statuses['xvfb_ui'] != 0, statuses
+          invariants = {
+              'tracked-tree': {
+                  'before': root.joinpath('tracked-before.digest').read_text().strip(),
+                  'after': root.joinpath('tracked-after.digest').read_text().strip(),
+              },
+              'config-dxf': {
+                  'before': root.joinpath('config-dxf-before.digest').read_text().strip(),
+                  'after': root.joinpath('config-dxf-after.digest').read_text().strip(),
+              },
+          }
+          summary = aggregate_shard_results(
+              manifest=manifest,
+              shard_results=results,
+              expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+              protected_invariants=invariants,
+          )
+          assert summary['decision'] == 'GREEN', summary
+          assert summary['counts']['failed'] == len(expected_failures), summary['counts']
+          assert summary['counts']['errors'] == 0, summary['counts']
+          assert {item['node'] for item in summary['failures']} == expected_failures, summary['failures']
+          assert all(item['classification'] == INHERITED_RED for item in summary['failures']), summary['failures']
+          evidence = {
+              'head_sha': os.environ['PLAN_SOURCE_SHA'],
+              'full_collection': sorted(full),
+              'failed_nodes': [
+                  {'nodeid': item['node'], 'reason': item['classification']}
+                  for item in summary['failures']
+              ],
+              'allowed_skip_contract': [
+                  {'nodeid': node, 'reason': 'SKIPPED'}
+                  for node in sorted(set(skipped_nodes))
+              ],
+              'missing_nodes': [],
+              'duplicate_nodes': [],
+              'protected_drift': {},
+              'aggregation': summary,
+          }
+          root.joinpath('legacy-evidence.json').write_text(json.dumps(evidence, indent=2, sort_keys=True) + '\n')
+          print(f"LEGACY_FAILED_NODES={len(evidence['failed_nodes'])}")
+          print(f"LEGACY_ALLOWED_SKIPS={len(evidence['allowed_skip_contract'])}")
+          print('LEGACY_CANONICAL_AGGREGATION=GREEN')
+          PY
+      - name: Upload permanent legacy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue311-legacy
+          path: .scratch/issue311/legacy
+          if-no-files-found: error
+
+  optimized-non-gui:
+    needs: [plan, legacy-full]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.non_gui_max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.non_gui_matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install optimized shard dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-xdist matplotlib ezdxf
+      - name: Download locked T7 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue311-t7-plan
+          path: .scratch/issue311/plan
+      - name: Verify exact optimized checkout identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue311/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(sha256sum .scratch/issue311/plan/manifest/shard-manifest.json | awk '{print $1}')" = "$PLAN_MANIFEST_SHA256"
+      - name: Capture optimized protected digests before shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/non-gui/$LANE/$SHARD_ID"
+          mkdir -p "$root"
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/tracked-before.digest"
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/config-dxf-before.digest"
+      - name: Run exact optimized non-GUI manifest shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/non-gui/$LANE/$SHARD_ID"
+          python tools/test_shard_execution.py run \
+            --manifest .scratch/issue311/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --lane "$LANE" \
+            --shard "$SHARD_ID" \
+            --result-json "$root/shard-result.json" \
+            --junit-xml "$root/result.xml" \
+            --log "$root/pytest.log" \
+            --basetemp "$root/pytest-tmp"
+      - name: Verify optimized protected invariants after shard
+        if: always()
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/non-gui/$LANE/$SHARD_ID"
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/tracked-after.digest"
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/config-dxf-after.digest"
+          cmp "$root/tracked-before.digest" "$root/tracked-after.digest"
+          cmp "$root/config-dxf-before.digest" "$root/config-dxf-after.digest"
+          git diff --exit-code
+      - name: Upload optimized non-GUI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue311-opt-nongui-${{ matrix.lane }}-${{ matrix.shard_id }}
+          path: .scratch/issue311/optimized/non-gui/${{ matrix.lane }}/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  optimized-xvfb:
+    if: always() && needs.plan.result == 'success' && needs.legacy-full.result == 'success' && needs.optimized-non-gui.result == 'success'
+    needs: [plan, legacy-full, optimized-non-gui]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.xvfb_max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.xvfb_matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Xvfb and optimized dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Download locked T7 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue311-t7-plan
+          path: .scratch/issue311/plan
+      - name: Verify exact optimized Xvfb checkout identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue311/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(sha256sum .scratch/issue311/plan/manifest/shard-manifest.json | awk '{print $1}')" = "$PLAN_MANIFEST_SHA256"
+      - name: Slice exact inherited RED contract by shard ownership
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+          EXPECTED_NODE_COUNT: ${{ matrix.node_count }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/xvfb/$SHARD_ID"
+          mkdir -p "$root"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          shard_id = os.environ['SHARD_ID']
+          expected_count = int(os.environ['EXPECTED_NODE_COUNT'])
+          manifest = json.loads(Path('.scratch/issue311/plan/manifest/shard-manifest.json').read_text())
+          assigned = manifest['shards']['xvfb_ui'][shard_id]['nodes']
+          assert len(assigned) == expected_count, (len(assigned), expected_count)
+          inherited = set(json.loads(Path('.scratch/issue311/plan/expected-xvfb-global.json').read_text()))
+          expected = sorted(inherited.intersection(assigned))
+          Path(f'.scratch/issue311/optimized/xvfb/{shard_id}/expected.json').write_text(
+              json.dumps(expected, indent=2) + '\n'
+          )
+          print(f'XVFB_SHARD={shard_id} NODES={len(assigned)} EXPECTED_RED={len(expected)}')
+          PY
+      - name: Capture optimized Xvfb protected digests before shard
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/xvfb/$SHARD_ID"
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/tracked-before.digest"
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/config-dxf-before.digest"
+      - name: Run exact isolated optimized Xvfb shard
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/xvfb/$SHARD_ID"
+          python tools/xvfb_shard_execution.py run \
+            --manifest .scratch/issue311/plan/manifest/shard-manifest.json \
+            --shard "$SHARD_ID" \
+            --expected-failures "$root/expected.json" \
+            --result-json "$root/result.json" \
+            --log "$root/pytest.log" \
+            --basetemp "$root/pytest-tmp" \
+            --timeout-seconds 1200 \
+            --expected-source-sha "$PLAN_SOURCE_SHA" \
+            --expected-manifest-sha256 "$PLAN_MANIFEST_SHA256"
+      - name: Verify optimized Xvfb protected invariants after shard
+        if: always()
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=".scratch/issue311/optimized/xvfb/$SHARD_ID"
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/tracked-after.digest"
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > "$root/config-dxf-after.digest"
+          cmp "$root/tracked-before.digest" "$root/tracked-after.digest"
+          cmp "$root/config-dxf-before.digest" "$root/config-dxf-after.digest"
+          git diff --exit-code
+      - name: Upload optimized Xvfb evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue311-opt-xvfb-${{ matrix.shard_id }}
+          path: .scratch/issue311/optimized/xvfb/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  compare:
+    if: always() && needs.plan.result == 'success' && needs.legacy-full.result == 'success' && needs.optimized-non-gui.result == 'success' && needs.optimized-xvfb.result == 'success'
+    needs: [plan, legacy-full, optimized-non-gui, optimized-xvfb]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download locked T7 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue311-t7-plan
+          path: .scratch/issue311/plan
+      - name: Download legacy evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: issue311-legacy
+          path: .scratch/issue311/legacy
+      - name: Download all optimized non-GUI evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue311-opt-nongui-*
+          path: .scratch/issue311/all-nongui
+      - name: Download all optimized Xvfb evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue311-opt-xvfb-*
+          path: .scratch/issue311/all-xvfb
+      - name: Fetch current run jobs for independent timing evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue311/compare
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" \
+            > .scratch/issue311/compare/jobs.json
+      - name: Aggregate optimized path and compare exact A-B semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from tools.issue311_t7_ab_acceptance import compare_ab_evidence
+          from tools.test_shard_aggregation import aggregate_shard_results, normalize_shard_artifact
+          from tools.test_shard_tuning import PERFORMANCE_FAIL, classify_performance, summarize_workflow_timing
+
+          plan = Path('.scratch/issue311/plan')
+          manifest_path = plan / 'manifest/shard-manifest.json'
+          manifest_bytes = manifest_path.read_bytes()
+          manifest_digest = hashlib.sha256(manifest_bytes).hexdigest()
+          assert manifest_digest == os.environ['PLAN_MANIFEST_SHA256']
+          manifest = json.loads(manifest_bytes)
+          results = []
+          invariants = {}
+          skipped_nodes = []
+
+          expected_non_gui = sum(
+              len(shards) for lane, shards in manifest['shards'].items()
+              if lane != 'xvfb_ui'
+          )
+          non_gui_roots = sorted(Path('.scratch/issue311/all-nongui').glob('issue311-opt-nongui-*'))
+          assert len(non_gui_roots) == expected_non_gui, (len(non_gui_roots), expected_non_gui)
+          for root in non_gui_roots:
+              payload = json.loads((root / 'shard-result.json').read_text())
+              normalized = normalize_shard_artifact(
+                  result_payload=payload,
+                  junit_xml=root / 'result.xml',
+                  expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+                  artifact_refs=[f'artifact://{root.name}'],
+              )
+              for node, record in normalized['node_results'].items():
+                  if record['outcome'] == 'skipped':
+                      skipped_nodes.append(node)
+              results.append(normalized)
+              invariants[f'{root.name}:tracked-tree'] = {
+                  'before': (root / 'tracked-before.digest').read_text().strip(),
+                  'after': (root / 'tracked-after.digest').read_text().strip(),
+              }
+              invariants[f'{root.name}:config-dxf'] = {
+                  'before': (root / 'config-dxf-before.digest').read_text().strip(),
+                  'after': (root / 'config-dxf-after.digest').read_text().strip(),
+              }
+
+          xvfb_roots = sorted(Path('.scratch/issue311/all-xvfb').glob('issue311-opt-xvfb-*'))
+          assert len(xvfb_roots) == len(manifest['shards']['xvfb_ui']), (
+              len(xvfb_roots), len(manifest['shards']['xvfb_ui'])
+          )
+          for root in xvfb_roots:
+              payload = json.loads((root / 'result.json').read_text())
+              normalized = normalize_shard_artifact(
+                  result_payload=payload,
+                  junit_xml=root / 'result.xml',
+                  expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+                  artifact_refs=[f'artifact://{root.name}'],
+              )
+              for node, record in normalized['node_results'].items():
+                  if record['outcome'] == 'skipped':
+                      skipped_nodes.append(node)
+              results.append(normalized)
+              invariants[f'{root.name}:tracked-tree'] = {
+                  'before': (root / 'tracked-before.digest').read_text().strip(),
+                  'after': (root / 'tracked-after.digest').read_text().strip(),
+              }
+              invariants[f'{root.name}:config-dxf'] = {
+                  'before': (root / 'config-dxf-before.digest').read_text().strip(),
+                  'after': (root / 'config-dxf-after.digest').read_text().strip(),
+              }
+
+          optimized_summary = aggregate_shard_results(
+              manifest=manifest,
+              shard_results=results,
+              expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+              protected_invariants=invariants,
+          )
+          expected_failures = set(json.loads((plan / 'expected-xvfb-global.json').read_text()))
+          assert optimized_summary['decision'] == 'GREEN', optimized_summary
+          assert optimized_summary['counts']['failed'] == len(expected_failures), optimized_summary['counts']
+          assert optimized_summary['counts']['errors'] == 0, optimized_summary['counts']
+          assert {item['node'] for item in optimized_summary['failures']} == expected_failures
+          assert all(
+              item['classification'] == 'INHERITED_BASELINE_RED'
+              for item in optimized_summary['failures']
+          )
+
+          full_collection = sorted({
+              node
+              for lane in manifest['shards'].values()
+              for shard in lane.values()
+              for node in shard['nodes']
+          })
+          optimized = {
+              'head_sha': os.environ['PLAN_SOURCE_SHA'],
+              'full_collection': full_collection,
+              'failed_nodes': [
+                  {'nodeid': item['node'], 'reason': item['classification']}
+                  for item in optimized_summary['failures']
+              ],
+              'allowed_skip_contract': [
+                  {'nodeid': node, 'reason': 'SKIPPED'}
+                  for node in sorted(set(skipped_nodes))
+              ],
+              'missing_nodes': [],
+              'duplicate_nodes': [],
+              'protected_drift': {},
+          }
+          legacy_path = Path('.scratch/issue311/legacy/legacy-evidence.json')
+          legacy = json.loads(legacy_path.read_text())
+          assert legacy['head_sha'] == os.environ['PLAN_SOURCE_SHA']
+
+          jobs = json.loads(Path('.scratch/issue311/compare/jobs.json').read_text())['jobs']
+          legacy_jobs = [job for job in jobs if job['name'] == 'legacy-full']
+          assert len(legacy_jobs) == 1, [j['name'] for j in jobs]
+          legacy_job = legacy_jobs[0]
+          assert legacy_job['status'] == 'completed' and legacy_job['conclusion'] == 'success', legacy_job
+          legacy_timing = summarize_workflow_timing(
+              created_at=legacy_job['created_at'],
+              first_required_job_started_at=legacy_job['started_at'],
+              final_required_job_completed_at=legacy_job['completed_at'],
+          )
+          legacy['queue_seconds'] = legacy_timing['initial_queue_seconds']
+          legacy['execution_wall_clock_seconds'] = legacy_timing['execution_wall_clock_seconds']
+          legacy['end_to_end_wall_clock_seconds'] = legacy_timing['end_to_end_wall_clock_seconds']
+
+          optimized_jobs = [
+              job for job in jobs
+              if job['name'].startswith('optimized-non-gui (')
+              or job['name'].startswith('optimized-xvfb (')
+          ]
+          expected_optimized_jobs = expected_non_gui + len(manifest['shards']['xvfb_ui'])
+          assert len(optimized_jobs) == expected_optimized_jobs, (
+              len(optimized_jobs), expected_optimized_jobs, [j['name'] for j in optimized_jobs]
+          )
+          for job in optimized_jobs:
+              assert job['status'] == 'completed' and job['conclusion'] == 'success', job
+          optimized_created = min(job['created_at'] for job in optimized_jobs)
+          optimized_started = min(job['started_at'] for job in optimized_jobs)
+          optimized_completed = max(job['completed_at'] for job in optimized_jobs)
+          optimized_timing = summarize_workflow_timing(
+              created_at=optimized_created,
+              first_required_job_started_at=optimized_started,
+              final_required_job_completed_at=optimized_completed,
+          )
+          optimized['queue_seconds'] = optimized_timing['initial_queue_seconds']
+          optimized['execution_wall_clock_seconds'] = optimized_timing['execution_wall_clock_seconds']
+          optimized['end_to_end_wall_clock_seconds'] = optimized_timing['end_to_end_wall_clock_seconds']
+
+          performance = classify_performance(optimized['execution_wall_clock_seconds'])
+          assert performance != PERFORMANCE_FAIL, {
+              'optimized_execution_wall_clock_seconds': optimized['execution_wall_clock_seconds'],
+              'performance': performance,
+          }
+
+          parity = compare_ab_evidence(legacy, optimized)
+          output = {
+              'schema': 'WHD_ISSUE311_T7_AB_QUALIFICATION_V1',
+              'decision': parity['decision'],
+              'source_sha': os.environ['PLAN_SOURCE_SHA'],
+              'manifest_sha256': manifest_digest,
+              'legacy': legacy,
+              'optimized': optimized,
+              'optimized_aggregation': optimized_summary,
+              'parity': parity,
+              'performance_classification': performance,
+          }
+          out = Path('.scratch/issue311/compare')
+          (out / 'ab-qualification.json').write_text(
+              json.dumps(output, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps({
+              'decision': output['decision'],
+              'source_sha': output['source_sha'],
+              'full_collection_count': parity['full_collection_count'],
+              'failed_node_count': parity['failed_node_count'],
+              'allowed_skip_count': parity['allowed_skip_count'],
+              'legacy_timing': parity['legacy_timing'],
+              'optimized_timing': parity['optimized_timing'],
+              'performance_classification': performance,
+          }, indent=2, sort_keys=True))
+          print('OLD_FULL_COLLECTION_EQ_NEW_FULL_COLLECTION=GREEN')
+          print('OLD_FAILED_NODE_SET_EQ_NEW_FAILED_NODE_SET=GREEN')
+          print('OLD_ALLOWED_SKIP_CONTRACT_EQ_NEW_ALLOWED_SKIP_CONTRACT=GREEN')
+          print('NEW_MISSING_NODES=[]')
+          print('NEW_DUPLICATE_NODES=[]')
+          print('PROTECTED_DRIFT=0')
+          print('ISSUE311_T7_AB_ACCEPTANCE=GREEN')
+          PY
+      - name: Publish T7 qualification summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          p = json.loads(Path('.scratch/issue311/compare/ab-qualification.json').read_text())
+          parity = p['parity']
+          print('# #311 T7 Legacy vs Optimized A/B Qualification')
+          print()
+          print(f"- Tested SHA: `{p['source_sha']}`")
+          print(f"- Decision: **{p['decision']}**")
+          print(f"- Full collection identity: **{parity['full_collection_count']} nodes / exact match**")
+          print(f"- Failed node identity: **{parity['failed_node_count']} / exact match**")
+          print(f"- Allowed skip contract: **{parity['allowed_skip_count']} / exact match**")
+          print('- New missing nodes: **0**')
+          print('- New duplicate nodes: **0**')
+          print('- Protected drift: **0**')
+          print(f"- Legacy execution: **{parity['legacy_timing']['execution_wall_clock_seconds']:.1f}s**")
+          print(f"- Legacy end-to-end: **{parity['legacy_timing']['end_to_end_wall_clock_seconds']:.1f}s**")
+          print(f"- Legacy queue: **{parity['legacy_timing']['queue_seconds']:.1f}s**")
+          print(f"- Optimized execution: **{parity['optimized_timing']['execution_wall_clock_seconds']:.1f}s**")
+          print(f"- Optimized end-to-end: **{parity['optimized_timing']['end_to_end_wall_clock_seconds']:.1f}s**")
+          print(f"- Optimized queue: **{parity['optimized_timing']['queue_seconds']:.1f}s**")
+          print(f"- T6 performance classification: **{p['performance_classification']}**")
+          PY
+      - name: Upload permanent T7 A-B qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue311-t7-ab-qualification
+          path: .scratch/issue311/compare/ab-qualification.json
+          if-no-files-found: error

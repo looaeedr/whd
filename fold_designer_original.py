@@ -10,6 +10,7 @@ import matplotlib.patches as patches
 import math
 import sys
 import os
+from whd_theme import WHD_THEME, apply_ttk_dark_theme, apply_mpl_dark_theme
 
 try:
     from PIL import Image, ImageDraw
@@ -189,6 +190,7 @@ class Renderer:
         except AttributeError: elev, azim = 30, -45
 
         self.ax3d.clear(); self.ax2d.clear(); self.ax2d.axis('off')
+        apply_mpl_dark_theme(self.ax3d.figure, (self.ax3d, self.ax2d))
         w, h, d = self.state.w, self.state.h, self.state.d
         all_x, all_y, all_z = [0], [0], [0]
 
@@ -505,6 +507,7 @@ class HolesUI:
 class MainApp:
     def __init__(self, root):
         self.root = root
+        self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
         self.root.title("雙重架構設計系統：標準型與金庫型")
         self.root.geometry("1450x1000")
         

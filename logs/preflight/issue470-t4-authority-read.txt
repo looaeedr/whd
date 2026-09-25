@@ -1,0 +1,27 @@
+ISSUE: #470
+TASK: T4 — Dormant Manufacturing Integration + Gate A Acceptance
+BRANCH: workorder/issue464-joint-placement-marking-v1.3-20260921
+BASE_HEAD: 245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c
+REQUIREMENT_AUTHORITY_READ: docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md@0fafeae16c7cb0b4e2d1902c004626d7714d97d9
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+ISSUE_REFERENCE_READ: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+ISSUE_REFERENCE_READ: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+PREFLIGHT_RESULT: GREEN
+PREFLIGHT_MATCHED_ROUTE: phase6-corner-relief-3d
+PREFLIGHT_REQUIRED_SKILLS: phase6-corner-3d-model-integrity
+PREFLIGHT_REQUIRED_REFERENCES: 06_踩坑記錄與防錯經驗庫.md; README_母規則說明.md; certified_relief_rules.json; phase6_assembly_relief_pitfalls.md
+OWNER_READBACK:
+- canonical orchestration owner = phase6_manufacturing_service.resolve(request)
+- phase6_manufacturing_adapter is app/provider adapter only
+- phase6_manufacturing_geometry is geometry/helper owner only
+GATE_A_AUTHORITY:
+- production activation remains OFF while OPEN-1 is unresolved
+- status name must be FOUNDATION_MERGED / MARKING_NOT_ACTIVATED
+- FinalScene/DXF must gain zero Joint Placement MARKING before activation
+- CUTTING/BEND/holes/relief/material must not drift
+- diagnostics/status must be independently testable
+- Gate A must not register/activate the first Receiving production policy

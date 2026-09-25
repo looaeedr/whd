@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: domain-modeling
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # CONTEXT.md Format
 
 ## Structure

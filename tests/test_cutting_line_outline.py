@@ -12,6 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 AE = ROOT / "ae_engine" / "ae.py"
 GUI = ROOT / "gui.py"
+RENDER_CANVAS = ROOT / "gui_modules" / "rendering" / "canvas_2d.py"
 
 
 def _load_function(path: Path, name: str, namespace: dict):
@@ -159,15 +160,14 @@ def test_gui_feature_surface_delegates_to_ae_scene_outline_resolver():
             assert len(scene.primitives) == 12
             return expected
 
-    namespace = {
-        "ae": FakeAE,
-        "PolylinePrimitive": PolylinePrimitive,
-        "feature_surface_from_outline": lambda *_: None,
-    }
-    fn = _load_function(GUI, "feature_surface_from_drawing_scene", namespace)
+    namespace = {"ae": FakeAE}
+    fn = _load_function(RENDER_CANVAS, "feature_surface_from_drawing_scene", namespace)
     scene = SimpleNamespace(primitives=_box_outline_lines())
 
     assert fn("indicator_box", scene) is expected
+    gui_text = GUI.read_text(encoding="utf-8")
+    assert "feature_surface_from_drawing_scene as _feature_surface_from_drawing_scene_impl" in gui_text
+    assert "_feature_surface_from_drawing_scene_impl(" in gui_text
 
 
 def test_stretched_indicator_box_accepts_line_based_cutting_outline(tmp_path):

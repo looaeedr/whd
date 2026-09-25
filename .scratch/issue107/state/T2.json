@@ -1,0 +1,19 @@
+{
+  "task_id": 107,
+  "work_order": 109,
+  "role": "T2 Implementer",
+  "branch": "fix/issue109-boxbody-parent-child-tree-20260911",
+  "accepted_base": "185fd413097701a77395da3746427ae7ab897584",
+  "red": {
+    "expected_failures": 5,
+    "status": "confirmed"
+  },
+  "focused_green": {
+    "status": "confirmed"
+  },
+  "pending": [
+    "exact-head remote QA",
+    "QA review"
+  ],
+  "next": "#110 after #109 acceptance"
+}

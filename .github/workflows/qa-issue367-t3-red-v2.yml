@@ -1,0 +1,44 @@
+name: "QA #367 T3 project persistence RED v2"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t3-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e3ff53d3b8509759aed014a3ed8f83f23a65851a HEAD
+          echo "T3_BASELINE=e3ff53d3b8509759aed014a3ed8f83f23a65851a"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run intended T3 RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue367_t3_project_persistence_owner.py --tb=short | tee /tmp/issue367-t3-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing T3 project controller methods" /tmp/issue367-t3-red.log
+          grep -q "RED: bridge still owns T3 project serialization/direct I/O" /tmp/issue367-t3-red.log
+          grep -q "RED: bridge T3 delegates missing" /tmp/issue367-t3-red.log
+          echo "PASS EXPECTED_T3_RED=1"

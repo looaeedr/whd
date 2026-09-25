@@ -1,0 +1,37 @@
+# trigger: branch-resident T5 preflight
+name: Issue 309 T5 Knowledge Preflight
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue309-t5-xdist-isolation-20260917
+    paths:
+      - '.github/workflows/qa-issue309-t5-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue309-t5-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue309-t5.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run T5 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Audit pytest-xdist state isolation for non-GUI deterministic shards, classify scopes as xdist-safe or serial-only, enable conservative worker counts only where repeat evidence proves stable node/result semantics, preserve protected invariants, and keep Xvfb/Tk serial inside each isolated display." \
+            --changed-file tools/xdist_state_isolation.py \
+            --changed-file tests/test_issue309_t5_xdist_state_isolation.py \
+            --changed-file config/ci_test_execution.json \
+            --changed-file .github/workflows/qa-issue309-t5-xdist.yml \
+            --changed-file docs/superpowers/checkpoints/issue309-t5.json \
+            --evidence docs/superpowers/checkpoints/issue309-t5-preflight-evidence.txt

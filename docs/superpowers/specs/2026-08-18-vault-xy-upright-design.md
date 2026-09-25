@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # FIX12 金庫型 XY 折彎 / 全域 WHD / 封頭尾立姿設計
 
 ## 目標

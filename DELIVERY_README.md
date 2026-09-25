@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 交付備忘 — OVERLAY 成型 FW Registry / 3D Relief 正式化
 
 > 本檔只是交付歷史備忘，不是 release policy、runtime oracle、必備檔名契約或下一輪修改的 Source of Truth。

@@ -1,6 +1,10 @@
 ---
 name: resolving-merge-conflicts
 description: "Use when you need to resolve an in-progress git merge/rebase conflict."
+whd_doc_role: CURRENT
+whd_contract: resolving-merge-conflicts
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 1. **See the current state** of the merge/rebase. Check git history, and the conflicting files.

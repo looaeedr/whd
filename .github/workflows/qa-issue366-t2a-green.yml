@@ -1,0 +1,53 @@
+name: "QA #366 T2A settings stage GREEN"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2a-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        run: |
+          set -euo pipefail
+          echo "BASELINE=bb8c3d0272756629654127fbd86e9d7013d797e4"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor bb8c3d0272756629654127fbd86e9d7013d797e4 HEAD
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib numpy -r requirements.txt
+
+      - name: Compile T2A
+        run: python -m py_compile phase6_settings_transaction_controller.py fold_designer_bridge.py
+
+      - name: Run T2A pure contracts
+        run: python -m pytest -q tests/test_issue366_t2a_settings_stage_controller.py
+
+      - name: Run settings transaction focused regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_phase6_settings_service.py \
+            tests/test_phase6_settings_center.py \
+            tests/test_phase6_settings_panel_ownership.py
+
+      - name: Run real-Tk settings bridge regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_corner_transaction.py

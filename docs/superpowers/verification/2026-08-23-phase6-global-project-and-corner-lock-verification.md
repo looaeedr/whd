@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 全域專案操作＋CornerType 參數鎖驗證 — 2026-08-23
 
 ## 驗證範圍

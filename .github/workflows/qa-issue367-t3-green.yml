@@ -1,0 +1,58 @@
+name: "QA #367 T3 project persistence GREEN"
+
+on:
+  push:
+    branches:
+      - refactor/issue367-phase3-project-persistence-20260919
+    paths:
+      - 'fold_designer_bridge.py'
+      - 'phase6_project_controller.py'
+      - 'tests/test_issue367_t3_project_persistence_owner.py'
+      - '.github/workflows/qa-issue367-t3-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t3-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e3ff53d3b8509759aed014a3ed8f83f23a65851a HEAD
+          echo "T3_BASELINE=e3ff53d3b8509759aed014a3ed8f83f23a65851a"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib numpy -r requirements.txt
+
+      - name: Compile T3 owners
+        run: python -m py_compile phase6_project_controller.py fold_designer_bridge.py
+
+      - name: Run T3 ownership contract
+        run: python -m pytest -q tests/test_issue367_t3_project_persistence_owner.py
+
+      - name: Run pure project persistence regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_phase6_project_controller.py             tests/test_phase6_project_session.py             tests/test_phase6_project_file.py             tests/test_phase6_project_ownership.py             tests/test_phase6_diagnostics_ownership.py             tests/test_issue295_t7_project_export_adapter_slice.py
+
+      - name: Run project round-trip authority regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q             tests/test_phase6_t10_project_authority.py             tests/test_phase6_settings_center_bridge.py
