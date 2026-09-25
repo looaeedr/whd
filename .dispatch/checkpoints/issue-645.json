@@ -24,10 +24,11 @@
     "Cleanup commit d254729ec20f0d5da8542cf778c7cc0115abb776 removed exactly those two one-shot workflows.",
     "Tested-to-closing drift audit 2a05e159 -> d254729e contains only those two workflow deletions.",
     "Post-cleanup reconcile Guard run 36103265908 GREEN authorized claim/checkpoint alignment to closing HEAD d254729ec20f0d5da8542cf778c7cc0115abb776.",
-    "Remote Guard run 36103388833 GREEN authorized terminal checkpoint entry for #645."
+    "Remote Guard run 36103388833 GREEN authorized terminal checkpoint entry for #645.",
+    "Remote Guard run 36103491973 GREEN authorized closure transition to ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance durable closure to ISSUE_CLOSE_PENDING, mint and verify bound finalization proof, close/read back Issue #645, then persist RELEASE_HANDOFF_PENDING and final CLOSED + claim RELEASED.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify the bound finalization proof on this exact frozen checkpoint; then close/read back Issue #645 and persist RELEASE_HANDOFF_PENDING followed by final CLOSED + claim RELEASED.",
   "master_issue": 640,
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 646,
