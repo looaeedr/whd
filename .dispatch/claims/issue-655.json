@@ -7,20 +7,27 @@
   "claimed_at": "2026-09-25T10:29:00Z",
   "base_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "head_sha": "4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T10:36:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T10:41:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run focused scheduler simulation Skill contract test on exact HEAD 4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31, then inspect result and continue to integration only if GREEN.",
+  "next_action": "Advance terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #655, then release claim.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-655.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36124863787,
-    "request_comment_id": 5830996506,
+    "run_id": 36125315455,
+    "request_comment_id": 5831055995,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
     "consumed": true
+  },
+  "evidence": {
+    "pr": 656,
+    "integrated_target_head": "04281ff361117ba65c7c517dc7f78820f00127cf",
+    "governance_run_id": 36125136459,
+    "governance_result": "success",
+    "static_contract_result": "GREEN_STATIC_CONTRACT"
   }
 }

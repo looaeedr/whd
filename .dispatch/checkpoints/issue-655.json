@@ -3,8 +3,8 @@
   "issue": "655",
   "branch": "governance/issue655-scheduler-simulation-skill-20260925",
   "head_sha": "4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31",
-  "state": "RUNNING",
-  "next_action": "Run focused tests/process/test_scheduler_simulation_skill_contract.py on exact HEAD, then continue to guarded integration only if GREEN.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,10 +13,15 @@
   "evidence": [
     "Requirement authority: user requested /排程A and /排程B same-lane scheduler simulation/resume skill with post-takeover chat title/pin handoff.",
     "Owning Issue #655 created and fresh-read open.",
-    "Frozen production target cleanup/2d-3d-sync HEAD=5822ab30360dfcf09e21408584c3da100baafd37.",
-    "Branch-create Guard run 36124323004 GREEN; work branch created from exact frozen target HEAD.",
+    "Branch-create Guard run 36124323004 GREEN; work branch created from exact frozen target HEAD 5822ab30360dfcf09e21408584c3da100baafd37.",
     "Skill-authoring commit Guard run 36124501488 GREEN with canonical Preflight evidence including 寫技能 and Python測試實務.",
     "Commit 4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31 adds 排程模擬 Skill, skill_registry route, and focused contract test.",
-    "Post-commit claim/checkpoint reconciliation Guard run 36124863787 GREEN under trusted authority 8909143569bf1e23d3fd6ef563e57c3a20992638."
-  ]
+    "Exact committed-content contract readback GREEN_STATIC_CONTRACT.",
+    "PR #656 exact HEAD 4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31 Knowledge Governance Bootstrap run 36125136459 SUCCESS.",
+    "PR #656 merge Guard run 36125215819 GREEN and PR merged cleanly.",
+    "Production target cleanup/2d-3d-sync fresh-read HEAD=04281ff361117ba65c7c517dc7f78820f00127cf.",
+    "Local pytest is not claimed because current execution container cannot resolve github.com; acceptance uses exact committed-content contract readback plus PR governance run."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #655, then atomically persist checkpoint CLOSED + claim RELEASED."
 }
