@@ -3,8 +3,8 @@
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
-  "state": "TERMINAL_SUCCESS",
-  "next_action": null,
+  "state": "RECOVERING",
+  "next_action": "Recover invalid terminal Master handoff metadata: under a fresh exact Remote Guard, write TERMINAL_SUCCESS with master_issue=628 and chain_state=NEXT_CHILD_EXECUTABLE pointing to fresh-discovered #616, then advance closure to ISSUE_CLOSE_PENDING and finalize.",
   "run_id": 36201380480,
   "job_id": null,
   "log_cursor": null,
@@ -33,13 +33,10 @@
     "Acceptance harness-only repair committed at 952fb35d185530feea5fce81069e6a48d980f12d under Remote Guard run 36201315376; production overlay files unchanged.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36201468168.",
     "Expanded B2 acceptance run 36201380480 completed SUCCESS on exact head 952fb35d185530feea5fce81069e6a48d980f12d; protected config.ini check GREEN.",
-    "Closure transition to TERMINAL_SUCCESS / FINALIZATION_PENDING authorized by Remote Guard run 36201570369."
+    "Closure transition to TERMINAL_SUCCESS / FINALIZATION_PENDING authorized by Remote Guard run 36201570369.",
+    "Recovery reactivation required because prior terminal checkpoint omitted required Master-chain handoff state.",
+    "Fresh successor discovery selected #616 as NEXT_CHILD_EXECUTABLE; terminal metadata will be rebuilt under Remote Guard after reactivation."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #615, then release claim and compute live Master-chain successor.",
-  "master_issue": "628",
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
