@@ -1594,6 +1594,60 @@ def assert_execution_claim_checkpoint_prewrite(
     return checkpoint
 
 
+def assert_legacy_checkpoint_repair_transaction(
+    prior_claim_path: Path,
+    candidate_claim_path: Path,
+    candidate_checkpoint_path: Path,
+    *,
+    prior_checkpoint_exists: bool,
+    changed_files: Iterable[str],
+):
+    """Validate the one narrow legacy claim-without-checkpoint bootstrap.
+
+    The claim is immutable in this repair.  Only the missing checkpoint is
+    bootstrapped; any claim/head/owner/phase continuity update must use the
+    normal evidence-bound reconciliation path afterwards.
+    """
+
+    if prior_checkpoint_exists:
+        raise ExecutionClaimError(
+            "LEGACY_CHECKPOINT_REPAIR: prior checkpoint must be missing"
+        )
+
+    prior_path = Path(prior_claim_path)
+    candidate_path = Path(candidate_claim_path)
+    try:
+        prior_bytes = prior_path.read_bytes()
+        candidate_bytes = candidate_path.read_bytes()
+    except OSError as exc:
+        raise ExecutionClaimError(
+            f"LEGACY_CHECKPOINT_REPAIR: prior claim must exist: {exc}"
+        ) from exc
+
+    if prior_bytes != candidate_bytes:
+        raise ExecutionClaimError(
+            "LEGACY_CHECKPOINT_REPAIR: candidate claim must remain unchanged"
+        )
+
+    claim = load_execution_claim(candidate_path)
+    normalized = _normalize_changed_files(changed_files)
+    claim_path = f".dispatch/claims/issue-{claim.issue}.json"
+    checkpoint_repo_path = f".dispatch/checkpoints/issue-{claim.issue}.json"
+    if len(normalized) != 2 or set(normalized) != {
+        claim_path,
+        checkpoint_repo_path,
+    }:
+        raise ExecutionClaimError(
+            "LEGACY_CHECKPOINT_REPAIR: must atomically write the exact "
+            "claim+checkpoint pair"
+        )
+
+    return assert_active_claim_requires_checkpoint(
+        claim,
+        Path(candidate_checkpoint_path),
+    )
+
+
 def assert_active_claim_activation_transaction(
     claim: "ExecutionClaim",
     checkpoint_path: Path,
@@ -1604,7 +1658,7 @@ def assert_active_claim_activation_transaction(
     """Validate one active-claim activation/re-activation transaction."""
 
     transition = str(transition).strip()
-    allowed = {"fresh-create", "successor-create", "takeover", "reactivate"}
+    allowed = {"fresh-create", "successor-create", "takeover", "reactivate", "legacy-checkpoint-repair"}
     if transition not in allowed:
         raise ExecutionClaimError(
             "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: unsupported activation transition "
@@ -1616,14 +1670,14 @@ def assert_active_claim_activation_transaction(
     claim_path = f".dispatch/claims/issue-{claim.issue}.json"
     checkpoint_repo_path = f".dispatch/checkpoints/issue-{claim.issue}.json"
 
-    if transition in {"fresh-create", "successor-create"}:
+    if transition in {"fresh-create", "successor-create", "legacy-checkpoint-repair"}:
         if len(normalized) != 2 or set(normalized) != {
             claim_path,
             checkpoint_repo_path,
         }:
             raise ExecutionClaimError(
-                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: fresh/successor activation "
-                "must atomically create the exact claim+checkpoint pair"
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: fresh/successor/legacy repair "
+                "must atomically use the exact claim+checkpoint pair"
             )
     elif claim_path not in normalized:
         raise ExecutionClaimError(
