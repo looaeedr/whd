@@ -171,10 +171,62 @@ def test_pr9_consumed_receipt_replay_is_rejected():
         assert_consumable(decision, guard_run_id=1001)
 
 
-def test_pr10_two_valid_pending_green_receipts_are_ambiguous():
+def test_pr10_two_conflicting_pending_green_receipts_are_ambiguous():
     _, _, _, state = _api()
-    decision = _classify(receipts=[_receipt(run_id=1001), _receipt(run_id=1002)])
+    first = _receipt(run_id=1001)
+    second = _receipt(run_id=1002)
+    second["guard_authority_sha"] = H1
+    decision = _classify(receipts=[first, second])
     assert decision.state is state.AMBIGUOUS
+
+
+def test_issue651_equivalent_duplicate_green_collapses_to_canonical_pending():
+    _, _, assert_consumable, state = _api()
+    first = _receipt(run_id=1001)
+    second = _receipt(run_id=1002)
+    second["issued_at"] = "2026-09-25T00:00:03Z"
+    second["expires_at"] = "2026-09-25T00:40:03Z"
+
+    decision = _classify(receipts=[second, first])
+
+    assert decision.state is state.PENDING
+    assert decision.guard_run_ids == (1001, 1002)
+    assert decision.receipt["run_id"] == 1001
+    assert assert_consumable(decision, guard_run_id=1001)["run_id"] == 1001
+    with pytest.raises(guard.ExecutionClaimError, match="IDENTITY_MISMATCH"):
+        assert_consumable(decision, guard_run_id=1002)
+
+
+def test_issue651_shadow_readback_consumes_equivalent_group():
+    _, _, _, state = _api()
+    first = _receipt(run_id=1001)
+    second = _receipt(run_id=1002)
+    second["issued_at"] = "2026-09-25T00:00:03Z"
+    second["expires_at"] = "2026-09-25T00:40:03Z"
+
+    decision = _classify(
+        receipts=[first, second],
+        readbacks=[_commit_readback(run_id=1002, reconciled=True)],
+        live_head=H1,
+    )
+
+    assert decision.state is state.CONSUMED
+    assert decision.guard_run_ids == (1001, 1002)
+
+
+def test_issue651_equivalent_group_stays_pending_while_any_member_is_live():
+    _, _, _, state = _api()
+    first = _receipt(run_id=1001, expires="2026-09-25T00:05:00Z")
+    second = _receipt(run_id=1002, expires="2026-09-25T00:40:00Z")
+
+    decision = _classify(
+        receipts=[first, second],
+        now="2026-09-25T00:10:00Z",
+    )
+
+    assert decision.state is state.PENDING
+    assert decision.guard_run_ids == (1001, 1002)
+    assert decision.receipt["run_id"] == 1001
 
 
 def test_pr11_scheduler_resume_points_to_pending_transaction_first():
