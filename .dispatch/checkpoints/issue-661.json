@@ -23,8 +23,9 @@
     "Narrow metadata recovery commit 2252d444b03271a04531a67f995576c585b9b819 corrected checkpoint state GREEN -> RECOVERING without changing owner, branch, head, acceptance, or work content.",
     "Cleanup commit Guard run 36135263242 GREEN authorized deletion of .github/workflows/qa-issue661-final-release-executor.yml.",
     "Cleanup commit f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76 removed the one-shot #661 workflow.",
-    "Post-cleanup claim/checkpoint reconciliation Guard run 36135343974 GREEN; #661 now enters canonical closure on the exact cleaned head."
+    "Post-cleanup claim/checkpoint reconciliation Guard run 36135343974 GREEN; #661 now enters canonical closure on the exact cleaned head.",
+    "Closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36135526399."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING on this exact cleaned terminal checkpoint; then obtain trusted Remote Finalization proof before closing Issue #661."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted Remote Finalization for this exact immutable checkpoint; on FINALIZATION_PROOF_VALID close Issue #661 and fresh-read closed/completed before any further checkpoint mutation."
 }
