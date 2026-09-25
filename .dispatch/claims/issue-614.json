@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T22:55:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T22:56:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -24,7 +24,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED after the closed/completed Issue #614 readback and FINALIZATION_PROOF_VALID run 36198788666; then immediately activate/claim #615 B2 under Master #628.",
+  "next_action": null,
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -93,16 +93,17 @@
     "issue_state": "closed",
     "issue_state_reason": "completed",
     "accepted_comment_id": 5840762760,
-    "closed_at": "2026-09-25T22:54:33Z"
+    "closed_at": "2026-09-25T22:54:33Z",
+    "final_release_guard_run": 36198967224
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36198872445,
-    "request_comment_id": 5840765673,
+    "run_id": 36198967224,
+    "request_comment_id": 5840779318,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
     "consumed": true,
-    "mutation": "atomic claim+checkpoint closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "final atomic checkpoint CLOSED + claim RELEASED handoff"
   }
 }

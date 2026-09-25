@@ -20,14 +20,15 @@
     "Closure-state Guard run 36198679037 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36198788666 completed SUCCESS with FINALIZATION_PROOF_VALID and artifact 10891066995.",
     "Issue #614 closure evidence comment 5840762760 was written; remote readback confirmed state=closed and state_reason=completed at 2026-09-25T22:54:33Z.",
-    "Post-close Guard run 36198872445 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
-    "Master #628 next executable child remains #615."
+    "Post-close Guard run 36198872445 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard run 36198967224 GREEN authorized final atomic checkpoint CLOSED + claim RELEASED handoff.",
+    "Master #628 next executable child is #615."
   ],
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "615",
-  "chain_next_action": "After #614 checkpoint CLOSED + claim RELEASED, activate/claim #615 B2 under Master #628 using accepted lineage head c043e447afc0da533ef965fe82d175e75011d186.",
+  "chain_next_action": "Activate/claim #615 B2 under Master #628 using accepted #614 lineage head c043e447afc0da533ef965fe82d175e75011d186 and continue the first executable action.",
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then activate/claim #615 B2 under Master #628"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
