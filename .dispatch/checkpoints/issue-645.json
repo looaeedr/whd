@@ -2,25 +2,20 @@
   "version": 1,
   "issue": "645",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
-  "state": "RUNNING",
-  "next_action": "Run T5 focused GREEN for D-R9..D-R13 plus existing #638 ACTIVE_DELEGATED_WORK / D-R1..D-R8 regressions; if GREEN, remove one-shot QA, drift-audit closing HEAD, finalization, close/release, then hand off #646.",
+  "head_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a",
+  "state": "RECOVERING",
+  "next_action": "Run T5 focused GREEN for D-R9..D-R13 plus delegated/helper/takeover regressions; if GREEN, clean QA workflow, drift-audit, finalization, close/release #645, then hand off #646.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Predecessor #644 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
-    "#644 canonical handoff points to #645 at accepted closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
-    "#644 final release was authorized by Remote Guard run 36085903906.",
-    "T5 D-R9..D-R13 RED test+runner commit b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086269462.",
-    "Post-RED atomic claim+checkpoint reconciliation to b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086382498.",
-    "Exact T5 Requirement RED run 36086357033 at b9b20a4b6fd985da2c850af10c86f053fbdc3749: 5 failed / no collection errors; marker ISSUE645_T5_REQUIREMENT_RED=GREEN; artifact 10843484916.",
-    "T5 RED acceptance durable write authorized by Remote Guard run 36086478495.",
-    "T5 implementation commit 27e57fc10e9d279f58b0a77047e9f4f207137650 authorized by Remote Guard run 36086719791; changed tools/stale_claim_takeover.py and regression fixture tests/process/test_issue641_helper_reservation_red.py.",
-    "Post-implementation atomic claim+checkpoint reconciliation to 27e57fc10e9d279f58b0a77047e9f4f207137650 authorized by Remote Guard run 36086984653."
-  ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+    "T5 implementation commit 27e57fc10e9d279f58b0a77047e9f4f207137650 was already legally guarded and reconciled.",
+    "Blocking #648 timestamp-precision governance repair is closed/released and integrated to cleanup/2d-3d-sync at 5822ab30360dfcf09e21408584c3da100baafd37.",
+    "Blocking #649 trusted Remote Guard compatibility repair is closed/released.",
+    "Governance repair #651 is closed/released; PR #652 legally merged it into this work-order at 0eee910cfe2f121c6074911d9c9414b877f7003a.",
+    "User-directed #645 takeover authority is Issue comment 5827803045.",
+    "No #645 implementation replay is authorized; resume point is focused T5 GREEN."
+  ]
 }

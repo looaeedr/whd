@@ -1,21 +1,21 @@
 {
   "issue": 645,
   "issue_url": "https://github.com/looaeedr/whd/issues/645",
-  "worker": "chatgpt.sol260925.issue640t5.a1",
+  "worker": "chatgpt.sol260925.issue645.resume2",
   "executor_source": "chatgpt_interactive",
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T02:22:28Z",
   "base_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
-  "head_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T02:37:34.157943Z",
+  "head_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-25T06:16:12Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T5",
   "expected_parent_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "27e57fc10e9d279f58b0a77047e9f4f207137650",
+  "chain_head": "0eee910cfe2f121c6074911d9c9414b877f7003a",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-HELPER-01",
@@ -23,7 +23,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Run T5 focused GREEN for D-R9..D-R13 plus existing #638 ACTIVE_DELEGATED_WORK / D-R1..D-R8 regressions; if GREEN, remove one-shot QA, drift-audit closing HEAD, finalization, close/release, then hand off #646.",
+  "next_action": "Run T5 focused GREEN at 0eee910cfe2f121c6074911d9c9414b877f7003a for D-R9..D-R13 plus existing delegated/helper/takeover regressions; on GREEN, clean one-shot QA, drift-audit, finalization, close/release #645, then hand off #646.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-645.json",
   "predecessor": {
@@ -70,5 +70,29 @@
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
     "consumed": true
+  },
+  "takeover": {
+    "previous_worker": "chatgpt.sol260925.issue640t5.a1",
+    "previous_executor_source": "chatgpt_interactive",
+    "user_authority_comment_id": 5827803045,
+    "observed_live_head_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a",
+    "taken_over_at": "2026-09-25T06:16:12Z",
+    "reason": "User explicitly directed continuation of #645 after blocking governance repairs #648/#649/#651 completed; live work-order advanced only through accepted #651 governance integration."
+  },
+  "governance_repairs": {
+    "issue648": {
+      "state": "CLOSED",
+      "claim_phase": "RELEASED",
+      "production_merge_sha": "5822ab30360dfcf09e21408584c3da100baafd37"
+    },
+    "issue649": {
+      "state": "CLOSED",
+      "claim_phase": "RELEASED"
+    },
+    "issue651": {
+      "state": "CLOSED",
+      "claim_phase": "RELEASED",
+      "workorder_merge_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a"
+    }
   }
 }
