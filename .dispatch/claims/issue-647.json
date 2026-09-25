@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T09:16:00Z",
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
-  "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T10:35:46.693337Z",
+  "head_sha": "f4720a1404e3c8685d7f2fdc4307045603ae9c23",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-25T10:48:26.716980Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T7",
   "expected_parent_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+  "chain_head": "f4720a1404e3c8685d7f2fdc4307045603ae9c23",
   "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Create and run one guarded temporary #647 Combined Acceptance workflow over the accepted work-order HEAD, covering focused #641-#645 process tests, #638 delegated-work regression, finalization/closure/exact-run/scheduler regressions, and governance SSOT checks; do not integrate to cleanup/2d-3d-sync until this verification is GREEN.",
+  "next_action": "Repair temporary #647 Combined Acceptance workflow dependency by installing matplotlib, rerun exact combined acceptance on the reconciled work-order HEAD, and require focused/process/governance/default-branch gates GREEN before cleanup integration.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -51,11 +51,11 @@
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36124818636,
-    "request_comment_id": 5830990242,
+    "run_id": 36125945096,
+    "request_comment_id": 5831146503,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "guard_authority_sha": "f4720a1404e3c8685d7f2fdc4307045603ae9c23",
     "consumed": true
   },
   "stale_takeover": {
@@ -108,5 +108,14 @@
     "turn_exit_exact_accepted": true,
     "helper_issue": 653,
     "helper_reservation_state": "TERMINAL"
+  },
+  "combined_acceptance": {
+    "runner_commit_sha": "f4720a1404e3c8685d7f2fdc4307045603ae9c23",
+    "run_id": 36125098702,
+    "job_id": 108039273349,
+    "conclusion": "failure",
+    "focused_result": "178 passed",
+    "classification": "HARNESS_DEPENDENCY_FAILURE",
+    "reason": "full tests/process collection requires matplotlib; requirements.txt did not install it"
   }
 }

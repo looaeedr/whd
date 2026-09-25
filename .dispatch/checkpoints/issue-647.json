@@ -2,12 +2,12 @@
   "version": 1,
   "issue": "647",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
-  "state": "RUNNING",
-  "next_action": "Create and run one guarded temporary #647 Combined Acceptance workflow on the accepted work-order HEAD; require focused process + #638 delegated-work + finalization/closure/exact-run/scheduler regressions and governance SSOT checks GREEN before any cleanup/2d-3d-sync integration.",
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
+  "head_sha": "f4720a1404e3c8685d7f2fdc4307045603ae9c23",
+  "state": "RECOVERING",
+  "next_action": "Repair temporary #647 Combined Acceptance workflow dependency by installing matplotlib, rerun exact combined acceptance, then continue only when all acceptance gates are GREEN.",
+  "run_id": 36125098702,
+  "job_id": 108039273349,
+  "log_cursor": "Full process regression: 2 collection errors, ModuleNotFoundError: matplotlib",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -27,6 +27,10 @@
     "Helper #653 final coordination commit 1ba557c0b1c43f261c2f7120bca6fa125e3a1702; final claim blob 38f444b0c4f08937f14780a89b3720f3f74a9244; checkpoint blob 939f08512beef038bc0eb00c8ae934257ea92533.",
     "Default-branch trusted workflow readback GREEN: main whd-remote-claim-activation.yml blob 13d0b673a26a2912917df89234bd29428563cd10 exactly matches accepted work-order artifact.",
     "Default-branch trusted workflow readback GREEN: main whd-turn-exit-gate.yml blob 41bf76f78c9af8246947939660daf05f525989d8 exactly matches accepted work-order artifact deployed by terminal helper #653.",
-    "Trusted workflow readback coordination write authorized by Remote Guard run 36124818636."
+    "Trusted workflow readback coordination write authorized by Remote Guard run 36124818636.",
+    "Temporary #647 Combined Acceptance runner committed at f4720a1404e3c8685d7f2fdc4307045603ae9c23 under Remote Guard run 36125037933.",
+    "Combined Acceptance run 36125098702: focused governance/process set GREEN with 178 passed.",
+    "Run 36125098702 full tests/process step failed during collection only because matplotlib was not installed; test_issue425_phase5_t4_final_scene_visibility.py and test_issue426_phase5_t5_bridge_compression.py raised ModuleNotFoundError: matplotlib.",
+    "Post-commit reconciliation to f4720a1404e3c8685d7f2fdc4307045603ae9c23 authorized by Remote Guard run 36125945096."
   ]
 }
