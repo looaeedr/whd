@@ -25,10 +25,13 @@
     "Tested-to-closing drift audit 2a05e159 -> d254729e contains only those two workflow deletions.",
     "Post-cleanup reconcile Guard run 36103265908 GREEN authorized claim/checkpoint alignment to closing HEAD d254729ec20f0d5da8542cf778c7cc0115abb776.",
     "Remote Guard run 36103388833 GREEN authorized terminal checkpoint entry for #645.",
-    "Remote Guard run 36103491973 GREEN authorized closure transition to ISSUE_CLOSE_PENDING."
+    "Remote Guard run 36103491973 GREEN authorized closure transition to ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36103701082 completed success; authorize-finalization and verify-finalization-proof both passed for checkpoint fingerprint 44c6c38586689e1b2bec9ee6e6723f6d6faa5e5aa413f0da7e87fa3d8bf9b7ee.",
+    "Issue #645 fresh readback confirmed closed/completed at 2026-09-25T06:59:48Z.",
+    "Remote Guard run 36105467764 GREEN authorized closure transition to RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify the bound finalization proof on this exact frozen checkpoint; then close/read back Issue #645 and persist RELEASE_HANDOFF_PENDING followed by final CLOSED + claim RELEASED.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED, then hand off successor #646 from accepted work-order HEAD d254729ec20f0d5da8542cf778c7cc0115abb776.",
   "master_issue": 640,
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 646,
