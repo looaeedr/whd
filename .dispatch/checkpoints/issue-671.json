@@ -4,7 +4,7 @@
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
   "state": "RUNNING",
-  "next_action": "Obtain a fresh exact pr-write Guard against the reconciled claim blob and merge PR #672 non-force into cleanup/2d-3d-sync; fresh-read production, then deploy accepted cleanup to default branch main before repairing #617.",
+  "next_action": "Create a narrow deployment helper owned by the same A lane to sync accepted cleanup/2d-3d-sync governance (including #671) into default branch main; after main readback proves legacy-checkpoint-repair live, return to #617 repair.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -33,6 +33,9 @@
     "Tested-to-cleaned compare shows exactly one removed file: .github/workflows/qa-issue671-legacy-checkpoint-repair.yml; implementation/test/Skill blobs are unchanged.",
     "Cleanup reconciliation Guard 36172518847 GREEN consumed to bind claim/checkpoint to cleaned HEAD.",
     "PR #672 fresh-read open on exact cleaned head a8093a2b70f817c74491467a2fca7e05f99ea37a targeting cleanup/2d-3d-sync.",
-    "Guard run 36173064563 GREEN was consumed exactly once by creation of PR #672; durable pr_readback recorded via trusted Claim Activation reconciliation because current Remote Guard transport does not yet feed action-specific durable readbacks into classifier."
+    "Guard run 36173064563 GREEN was consumed exactly once by creation of PR #672; durable pr_readback recorded via trusted Claim Activation reconciliation because current Remote Guard transport does not yet feed action-specific durable readbacks into classifier.",
+    "Merge Guard 36173783435 GREEN consumed exactly once by non-force merge of PR #672.",
+    "PR #672 fresh-read merged/closed; cleanup/2d-3d-sync fresh-read HEAD=3b250e911fe728fa21507fe6b144b5add2abb7c1.",
+    "Default main still at 156bc20e7b7c331eae2a24d2c46bd984c5959720; trusted Claim Activation issue_comment transport is therefore not yet deployed for #617."
   ]
 }

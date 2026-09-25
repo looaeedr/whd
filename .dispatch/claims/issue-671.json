@@ -11,20 +11,20 @@
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T18:24:45Z",
+  "last_update": "2026-09-25T18:30:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain a fresh exact pr-write Guard against the reconciled claim blob and merge PR #672 non-force into cleanup/2d-3d-sync; fresh-read production, then deploy accepted cleanup to default branch main before repairing #617.",
+  "next_action": "Create a narrow deployment helper owned by the same A lane to sync accepted cleanup/2d-3d-sync governance (including #671) into default branch main; after main readback proves legacy-checkpoint-repair live, return to #617 repair.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "pr-write",
-    "run_id": 36173064563,
-    "request_comment_id": 5837396489,
+    "run_id": 36173783435,
+    "request_comment_id": 5837495524,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "created PR #672"
+    "mutation": "merged PR #672"
   },
   "red_evidence": {
     "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
@@ -77,12 +77,28 @@
       "pr_head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
       "pr_base": "cleanup/2d-3d-sync",
       "observed_at": "2026-09-25T18:24:45Z"
+    },
+    {
+      "guard_run_id": 36173783435,
+      "action": "pr-write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [],
+      "pr_readback": true,
+      "pr_number": 672,
+      "pr_state": "merged",
+      "pr_head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
+      "pr_base": "cleanup/2d-3d-sync",
+      "merge_commit_sha": "3b250e911fe728fa21507fe6b144b5add2abb7c1",
+      "observed_at": "2026-09-25T18:30:30Z"
     }
   ],
   "integration": {
     "pr": 672,
-    "state": "open",
+    "state": "merged",
     "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
-    "base": "cleanup/2d-3d-sync"
+    "base": "cleanup/2d-3d-sync",
+    "merge_commit_sha": "3b250e911fe728fa21507fe6b144b5add2abb7c1",
+    "production_head": "3b250e911fe728fa21507fe6b144b5add2abb7c1"
   }
 }
