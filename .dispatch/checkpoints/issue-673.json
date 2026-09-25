@@ -33,12 +33,13 @@
     "PR #674 fresh-read merged/closed; main fresh-read HEAD=ff2783c5c8243f1bd777b43f8c1da5db0e7226cb.",
     "main trusted Claim Activation blob=757c04902e19b997ee3d4d3511793e19abba2e83 and execution_claim_guard.py blob=7a6f948c092e97f269f5af5473b3ab1a884d7cda; legacy-checkpoint-repair is live on default branch.",
     "Helper #673 acceptance complete: PR #674 merged into main at ff2783c5c8243f1bd777b43f8c1da5db0e7226cb; main trusted legacy-checkpoint-repair readback GREEN.",
-    "Terminalization Guard run 36198685677 GREEN consumed exactly once to persist TERMINAL_SUCCESS / FINALIZATION_PENDING."
+    "Terminalization Guard run 36198685677 GREEN consumed exactly once to persist TERMINAL_SUCCESS / FINALIZATION_PENDING.",
+    "Closure advance Guard run 36198855811 GREEN consumed for adjacent transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING under fresh write Guard; then authorize and verify finalization proof on the exact frozen checkpoint."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted authorize-finalization + verify-finalization-proof on this exact checkpoint; if GREEN, close Issue #673 and fresh-read closed/completed without checkpoint mutation."
 }
