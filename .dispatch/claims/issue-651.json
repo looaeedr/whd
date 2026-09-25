@@ -6,14 +6,26 @@
   "work_branch": "governance/issue651-equivalent-duplicate-green-20260925",
   "claimed_at": "2026-09-25T04:56:03Z",
   "base_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
-  "head_sha": "c7fac09b136478c210eaf2205aa11cd569c58c64",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T05:00:37.476411Z",
+  "head_sha": "02a71a468e22ba302d3f11417d16f3d7ff9a690e",
+  "phase": "RED",
+  "last_update": "2026-09-25T05:03:26.101129Z",
   "production_target": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "task_id": "GOV-EQUIVALENT-DUPLICATE-GREEN",
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Run focused RED for equivalent duplicate GREEN regressions at c7fac09b136478c210eaf2205aa11cd569c58c64 before any production classifier change.",
+  "next_action": "Implement equivalent duplicate GREEN grouping in tools/execution_claim_guard.py; preserve true identity conflicts as AMBIGUOUS, then rerun focused QA.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-651.json"
+  "checkpoint": ".dispatch/checkpoints/issue-651.json",
+  "qa": {
+    "red_run_id": 36096916986,
+    "red_head_sha": "02a71a468e22ba302d3f11417d16f3d7ff9a690e",
+    "result": "failure",
+    "passed": 19,
+    "failed": 3,
+    "expected_failures": [
+      "test_issue651_equivalent_duplicate_green_collapses_to_canonical_pending",
+      "test_issue651_shadow_readback_consumes_equivalent_group",
+      "test_issue651_equivalent_group_stays_pending_while_any_member_is_live"
+    ]
+  }
 }

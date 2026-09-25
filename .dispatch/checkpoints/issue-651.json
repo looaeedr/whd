@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "651",
   "branch": "governance/issue651-equivalent-duplicate-green-20260925",
-  "head_sha": "c7fac09b136478c210eaf2205aa11cd569c58c64",
+  "head_sha": "02a71a468e22ba302d3f11417d16f3d7ff9a690e",
   "state": "RUNNING",
-  "next_action": "Run focused RED for #651 duplicate-GREEN regressions at c7fac09b136478c210eaf2205aa11cd569c58c64.",
+  "next_action": "Implement #651 equivalent duplicate GREEN grouping, then rerun focused QA on the same branch.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,6 +14,8 @@
     "RED-DUP-GREEN-01: #648 runs 36095688419 and 36095692365 are mutation-identity equivalent but current classifier returns AMBIGUOUS.",
     "User explicitly directed immediate repair without touching #648 live duplicate receipts.",
     "Guarded RED test commit c7fac09b136478c210eaf2205aa11cd569c58c64 modifies only tests/process/test_issue643_guard_transaction_gate.py.",
-    "Post-commit coordination reconcile Guard run 36096745783 GREEN."
+    "Post-commit coordination reconcile Guard run 36096745783 GREEN.",
+    "RED run 36096916986 at 02a71a468e22ba302d3f11417d16f3d7ff9a690e: 3 failed / 19 passed; all three failures are the new #651 duplicate-GREEN requirements.",
+    "Post-workflow-commit coordination reconcile Guard run 36096942874 GREEN."
   ]
 }
