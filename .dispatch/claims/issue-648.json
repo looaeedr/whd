@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T04:01:14Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "head_sha": "c2da9c17735a5face45d70c15ccdea8820daa167",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T04:43:12.218121Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T05:41:18.739523Z",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-TAKEOVER-TIMESTAMP-PRECISION",
   "parent_issue": 645,
@@ -23,7 +23,7 @@
     "failed": 0,
     "marker": "ISSUE648_GOVERNANCE_GREEN=PASS"
   },
-  "next_action": "Drift-audit c2da9c17735a5face45d70c15ccdea8820daa167 against base 2bf5969aba8c8aa033b314f0d6f92165239f67c0; require net diff only tools/stale_claim_takeover.py and tests/process/test_issue540_stale_claim_takeover.py, then non-force integrate PR #650 to cleanup/2d-3d-sync and close/release #648.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-648.json",
   "stale_takeover": {
