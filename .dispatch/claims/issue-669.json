@@ -1,0 +1,17 @@
+{
+  "issue": 669,
+  "issue_url": "https://github.com/looaeedr/whd/issues/669",
+  "worker": "chatgpt.sol260926.issue669.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue669-scheduler-exit-enable-20260926",
+  "claimed_at": "2026-09-25T16:31:30Z",
+  "base_sha": "68b920967c438679c0841123571230a66b013877",
+  "head_sha": "68b920967c438679c0841123571230a66b013877",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T16:31:30Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Obtain exact branch-create Remote Guard GREEN, create the work branch, then fresh-read branch identity.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-669.json"
+}
