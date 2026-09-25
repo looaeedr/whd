@@ -7,20 +7,21 @@
   "claimed_at": "2026-09-25T15:08:30Z",
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T15:44:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T15:46:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain pr-write Guard and create PR from cleaned HEAD 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2 to cleanup/2d-3d-sync; monitor governance checks, then guarded merge.",
+  "next_action": "Obtain a fresh pr-write Guard bound to PR #668 / cleaned head, then merge PR #668 non-force into cleanup/2d-3d-sync and fresh-read production target.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-667.json",
   "last_guard": {
-    "action": "write",
-    "run_id": 36156048014,
-    "request_comment_id": 5835176939,
+    "action": "pr-write",
+    "run_id": 36156159373,
+    "request_comment_id": 5835191298,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "consumed": true
+    "consumed": true,
+    "mutation": "created PR #668"
   },
   "red_evidence": {
     "head_sha": "49dd1a64e925cb6fb9fbc281ea27b60db3057678",
@@ -58,5 +59,14 @@
     "cleaned_head": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
     "drift": "only .github/workflows/qa-issue667-force-takeover-liveness.yml removed",
     "production_target_head": "156bc20e7b7c331eae2a24d2c46bd984c5959720"
+  },
+  "integration": {
+    "pr": 668,
+    "pr_state": "open",
+    "mergeable": true,
+    "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
+    "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+    "governance_run_id": 36156325494,
+    "governance_result": "success"
   }
 }

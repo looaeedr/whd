@@ -4,7 +4,7 @@
   "branch": "governance/issue667-force-takeover-liveness-20260925",
   "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
   "state": "RUNNING",
-  "next_action": "Obtain pr-write Guard, create PR to cleanup/2d-3d-sync, monitor exact governance run, then guarded merge.",
+  "next_action": "Obtain a fresh pr-write Guard bound to PR #668 / cleaned head, merge non-force into cleanup/2d-3d-sync, then fresh-read production and enter finalization transaction.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,6 +24,9 @@
     "Cleanup Guard run 36155948186 GREEN consumed by deleting temporary workflow in commit 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2.",
     "Drift audit 9ca136b61c1eea6cdb18cdec140286c40c75c35f -> 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2: exactly one removed file, .github/workflows/qa-issue667-force-takeover-liveness.yml; accepted implementation blobs unchanged.",
     "Production target cleanup/2d-3d-sync remained at frozen base 156bc20e7b7c331eae2a24d2c46bd984c5959720 during acceptance.",
-    "Post-cleanup reconciliation Guard run 36156048014 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
+    "Post-cleanup reconciliation Guard run 36156048014 GREEN consumed for exact claim+checkpoint HEAD reconciliation.",
+    "PR-write Guard run 36156159373 GREEN consumed exactly once by creating PR #668 at cleaned head 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2 targeting cleanup/2d-3d-sync@156bc20e7b7c331eae2a24d2c46bd984c5959720.",
+    "PR #668 fresh-read open, mergeable=true, exact head/base identities.",
+    "Knowledge Governance Bootstrap run 36156325494 completed/success on exact PR head 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2."
   ]
 }
