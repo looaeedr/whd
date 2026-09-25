@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "657",
   "branch": "integration/issue657-main-remote-guard-20260925",
-  "head_sha": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
+  "head_sha": "53184c28ed1041558cd735817f4aae54f6c3af74",
   "state": "RUNNING",
-  "next_action": "Create guarded helper branch from exact main base and deploy only accepted whd-remote-execution-guard.yml blob c6e96581c47b4d46704f719877174f9248928f5e.",
+  "next_action": "Open exactly one guarded PR to main from helper commit 53184c28ed1041558cd735817f4aae54f6c3af74, merge non-force, then fresh-read exact main Remote Guard blob.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,8 +14,11 @@
     "Parent #647 reservation helper_key default-branch-remote-guard-deploy is RESERVING at coord commit 60c1a7b55c7835de4ebc00111d346d517148e7c1.",
     "Parent Combined Acceptance run 36126332602: focused 178 PASS and governance/writeback 26 PASS; only trusted default-branch Remote Guard exact-blob gate failed.",
     "Accepted work-order Remote Guard blob is c6e96581c47b4d46704f719877174f9248928f5e at parent authority 3967da33e35e26ba3973e5565af0defe65fa7e12.",
-    "Helper base is current main bdb3da203c898d43898b092ff37b7fa9e0c93061; no cleanup/2d-3d-sync integration is authorized."
-  ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+    "Helper base is current main bdb3da203c898d43898b092ff37b7fa9e0c93061; no cleanup/2d-3d-sync integration is authorized.",
+    "Branch-create Guard run 36127002432 authorized integration/issue657-main-remote-guard-20260925 from exact main bdb3da203c898d43898b092ff37b7fa9e0c93061.",
+    "Workflow commit Guard run 36127088060 authorized changing only .github/workflows/whd-remote-execution-guard.yml.",
+    "Helper commit 53184c28ed1041558cd735817f4aae54f6c3af74 has exact accepted workflow blob c6e96581c47b4d46704f719877174f9248928f5e.",
+    "Post-commit child claim/checkpoint reconciliation authorized by Remote Guard run 36127183938.",
+    "Recovered active RUNNING checkpoint by removing stale closure_state=CLOSED / closure_next_action metadata inherited from malformed initial candidate."
+  ]
 }
