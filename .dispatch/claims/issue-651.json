@@ -6,14 +6,14 @@
   "work_branch": "governance/issue651-equivalent-duplicate-green-20260925",
   "claimed_at": "2026-09-25T04:56:03Z",
   "base_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
-  "head_sha": "6435ce37e6a28d7797ba31ec0c5cca7cbb6e36db",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T05:11:01.474291Z",
+  "head_sha": "27396d0c8cf828b567529f01c74293ab2995861b",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-25T05:12:36.854254Z",
   "production_target": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "task_id": "GOV-EQUIVALENT-DUPLICATE-GREEN",
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Delete one-shot qa-issue651-red.yml under Guard, then drift-audit the cleaned head against tested GREEN 6435ce37e6a28d7797ba31ec0c5cca7cbb6e36db and integrate #651 non-force to the work-order target.",
+  "next_action": "Complete reusable governance writeback, then final drift audit and non-force integrate #651 to the #640 work-order branch.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-651.json",
   "qa": {
@@ -33,6 +33,9 @@
     "implementation_failure_class": "TEST_COLLECTION_LITERAL_NEWLINE",
     "green_run_id": 36097453177,
     "green_head_sha": "6435ce37e6a28d7797ba31ec0c5cca7cbb6e36db",
-    "post_fix_reconcile_guard_run_id": 36097476759
+    "post_fix_reconcile_guard_run_id": 36097476759,
+    "cleanup_head": "27396d0c8cf828b567529f01c74293ab2995861b",
+    "cleanup_guard_run_id": 36097540204,
+    "drift_audit": "tested-to-cleaned only removed qa-issue651-red.yml"
   }
 }
