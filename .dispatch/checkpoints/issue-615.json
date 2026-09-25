@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
-  "state": "RUNNING",
-  "next_action": "Expand B2 acceptance on the same exact work-order branch: add Xvfb assertions for overlay stacking/scroll/focus/hit-test, run existing Settings/Registry/Workspace owner regressions, and verify protected config.ini remains untouched. Then lock the exact expanded acceptance run to terminal.",
-  "run_id": 36200796522,
-  "job_id": 108286793137,
+  "head_sha": "d1e50fa365907a8c83935d1487be5a998875ec49",
+  "state": "WAITING_REMOTE",
+  "next_action": "Lock expanded B2 acceptance run 36201114106 at head_sha d1e50fa365907a8c83935d1487be5a998875ec49 and poll to terminal. Require overlay interaction tests, existing Settings/Registry/Workspace owner regressions, and protected config invariant GREEN before finalization.",
+  "run_id": 36201114106,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -24,7 +24,10 @@
     "UI-R2 implementation committed at b46d38f0f01f6d43aa3286356fffa7799d368818 under Remote Guard run 36200439556.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36200815593.",
     "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818.",
-    "Focused UI-R2 implementation run 36200796522 completed SUCCESS on exact head b46d38f0f01f6d43aa3286356fffa7799d368818."
+    "Focused UI-R2 implementation run 36200796522 completed SUCCESS on exact head b46d38f0f01f6d43aa3286356fffa7799d368818.",
+    "Expanded B2 acceptance commit d1e50fa365907a8c83935d1487be5a998875ec49 authorized by Remote Guard run 36201058169.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36201131130.",
+    "Expanded acceptance run 36201114106 created for exact head d1e50fa365907a8c83935d1487be5a998875ec49."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
