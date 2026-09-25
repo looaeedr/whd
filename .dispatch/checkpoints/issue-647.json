@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "647",
+  "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+  "state": "RUNNING",
+  "next_action": "Fresh-read accepted #641-#646 closure/evidence plus main trusted workflows and current X observation; build the #647 Combined Acceptance matrix before any integration or release mutation.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "#646 fresh readback: Issue closed/completed, checkpoint CLOSED, claim RELEASED.",
+    "#646 accepted work-order HEAD is 8909143569bf1e23d3fd6ef563e57c3a20992638.",
+    "#646 trusted Remote Finalization run 36117063829 succeeded; canonical final atomic release Guard run 36117369022 GREEN.",
+    "Equivalent shadow final-release Guard run 36117415167 was not used for mutation.",
+    "Canonical successor handoff from #646 points to #647.",
+    "Current X observation only: cleanup/2d-3d-sync@5822ab30360dfcf09e21408584c3da100baafd37; #647 base remains the accepted work-order HEAD and does not chase X."
+  ]
+}

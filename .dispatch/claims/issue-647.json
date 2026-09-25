@@ -1,0 +1,40 @@
+{
+  "issue": 647,
+  "issue_url": "https://github.com/looaeedr/whd/issues/647",
+  "worker": "chatgpt.sol260925.issue647.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "claimed_at": "2026-09-25T09:16:00Z",
+  "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+  "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T09:16:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "master_issue": 640,
+  "task_id": "T7",
+  "expected_parent_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+  "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "chain_head": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+  "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
+  "approved_red_ids": [
+    "RED-CLOSE-01",
+    "RED-CLOSE-02",
+    "RED-CLOSE-03",
+    "RED-HELPER-01",
+    "RED-HELPER-02"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Fresh-read all accepted #641-#646 evidence and live trusted-workflow/default-branch state, then execute #647 Combined Acceptance from accepted work-order HEAD 8909143569bf1e23d3fd6ef563e57c3a20992638 without chasing X.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-647.json",
+  "predecessor": {
+    "issue": 646,
+    "closure_state": "CLOSED",
+    "claim_phase": "RELEASED",
+    "accepted_head": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "finalization_run_id": 36117063829,
+    "final_release_guard_run_id": 36117369022
+  }
+}
