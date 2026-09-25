@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   focused:
-    name: "#667｜focused contract"
+    name: "#667｜強制接手與心跳 focused contract"
     runs-on: ubuntu-latest
     steps:
       - name: 取出 exact branch
