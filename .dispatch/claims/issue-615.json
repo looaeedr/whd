@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-25T22:57:00Z",
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T23:44:40Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T23:45:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Under a final fresh exact Remote Guard, atomically persist checkpoint CLOSED + claim RELEASED while preserving Master #628 NEXT_CHILD_EXECUTABLE -> #616 handoff; fresh-read release, then immediately activate/claim #616 B3 and execute its first approved UI-R3 diagnostic RED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -62,7 +62,8 @@
     "Closure-state Guard run 36201875215 GREEN authorized adjacent FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization run 36202097312 completed GREEN / FINALIZATION_PROOF_VALID; artifact 10891849434.",
     "Issue #615 closure evidence comment 5841164798 written; remote readback confirmed closed/completed at 2026-09-25T23:44:03Z.",
-    "Post-close Guard run 36202160837 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Post-close Guard run 36202160837 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard run 36202211330 GREEN authorized atomic checkpoint CLOSED + claim RELEASED handoff to #616."
   ],
   "remote_qa": {
     "run_id": 36201380480,
@@ -73,13 +74,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36202160837,
-    "request_comment_id": 5841166618,
+    "run_id": 36202211330,
+    "request_comment_id": 5841172035,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
     "consumed": true,
-    "mutation": "atomic claim+checkpoint closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "final atomic checkpoint CLOSED + claim RELEASED handoff"
   },
   "finalization": {
     "run_id": 36202097312,
@@ -95,6 +96,8 @@
     "issue_state": "closed",
     "issue_state_reason": "completed",
     "accepted_comment_id": 5841164798,
-    "closed_at": "2026-09-25T23:44:03Z"
+    "closed_at": "2026-09-25T23:44:03Z",
+    "final_release_guard_run": 36202211330,
+    "successor_issue": 616
   }
 }

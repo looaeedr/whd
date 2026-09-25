@@ -40,10 +40,12 @@
     "Closure-state Guard run 36201875215 GREEN authorized adjacent FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization run 36202097312 completed GREEN / FINALIZATION_PROOF_VALID; artifact 10891849434.",
     "Issue #615 closure evidence comment 5841164798 written; remote readback confirmed closed/completed at 2026-09-25T23:44:03Z.",
-    "Post-close Guard run 36202160837 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Post-close Guard run 36202160837 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard run 36202211330 GREEN authorized atomic checkpoint CLOSED + claim RELEASED handoff.",
+    "Master #628 successor remains #616 NEXT_CHILD_EXECUTABLE."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED with successor #616 handoff, fresh-read release, then activate/claim #616 and execute first approved UI-R3 diagnostic RED",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "616",
