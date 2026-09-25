@@ -9,18 +9,18 @@
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
-  "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T17:35:55Z",
+  "head_sha": "35deb32f1920748107817490d5f7f98e3c69376a",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-25T18:13:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Implement the accepted #671 RED without changing RED assertions; add strict legacy-checkpoint-repair candidate gate and trusted Claim Activation transport, update governance Skills/pitfall, then run focused GREEN.",
+  "next_action": "Fix only the invalid RUNNING checkpoint fixture master-chain metadata in #671 tests without changing RED assertions or repair policy; rerun focused GREEN, then continue acceptance/deployment.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36168093324,
-    "request_comment_id": 5836730852,
+    "run_id": 36171913340,
+    "request_comment_id": 5837241930,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -35,5 +35,12 @@
       "activation transition unsupported",
       "trusted workflow prior identity missing"
     ]
+  },
+  "green_candidate": {
+    "head_sha": "35deb32f1920748107817490d5f7f98e3c69376a",
+    "run_id": 36168544427,
+    "conclusion": "failure",
+    "summary": "2 failed, 30 passed",
+    "failure": "positive fixture carries master_issue on RUNNING checkpoint; canonical continuity rejects master-chain metadata on non-terminal state"
   }
 }
