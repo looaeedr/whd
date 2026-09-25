@@ -1,5 +1,5 @@
-name: WHD #671 legacy checkpoint repair focused QA
-run-name: "WHD｜#671｜legacy checkpoint repair RED/GREEN"
+name: WHD #671 舊式 checkpoint 修復 focused QA
+run-name: "WHD｜#671｜舊式 checkpoint 修復 RED/GREEN"
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   focused:
-    name: "#671｜legacy checkpoint repair focused contract"
+    name: "#671｜舊式 checkpoint 修復 focused contract"
     runs-on: ubuntu-latest
     steps:
       - name: 取出 exact branch
