@@ -300,10 +300,12 @@ def _write_recovery_comment(path: Path, **overrides) -> Path:
         "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
         "executor_source": "scheduler",
         "branch": BRANCH,
+        "claim_blob_sha": _load_guard()._git_blob_sha(path.parent / "claim.json"),
         "claim_head_sha": HEAD,
         "live_head_sha": LIVE_HEAD,
         "prior_guard_run_id": str(RECOVERY_RUN_ID),
         "prior_request_comment_id": str(RECOVERY_REQUEST_ID),
+        "recovery_reason": "LEGACY_RECEIPT_WINDOW_EXPIRED_AFTER_MUTATION",
         "changed_file": MUTATED_FILE,
     }
     fields.update(overrides)

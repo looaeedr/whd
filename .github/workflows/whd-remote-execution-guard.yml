@@ -54,7 +54,11 @@ jobs:
               "guard_authority_sha",
               "tested_target_sha",
           }
-          allowed_single = required_single | {"executor_source", "takeover_worker"}
+          allowed_single = required_single | {
+              "executor_source",
+              "takeover_worker",
+              "legacy_reconcile_recovery_comment_id",
+          }
           allowed_multi = {"changed_file"}
           singles = {}
           changed_files = []
@@ -159,6 +163,27 @@ jobs:
               raise SystemExit("write/commit requires at least one changed_file")
           if singles["action"] == "claim-takeover" and normalized:
               raise SystemExit("claim-takeover must not carry changed_file")
+
+          legacy_recovery_id = singles.get("legacy_reconcile_recovery_comment_id")
+          if legacy_recovery_id is not None:
+              try:
+                  parsed_recovery_id = int(legacy_recovery_id)
+              except ValueError as exc:
+                  raise SystemExit("invalid legacy_reconcile_recovery_comment_id") from exc
+              if parsed_recovery_id <= 0:
+                  raise SystemExit("invalid legacy_reconcile_recovery_comment_id")
+              expected_pair = {
+                  f".dispatch/claims/issue-{issue}.json",
+                  f".dispatch/checkpoints/issue-{issue}.json",
+              }
+              if (
+                  singles["action"] != "write"
+                  or len(normalized) != 2
+                  or set(normalized) != expected_pair
+              ):
+                  raise SystemExit(
+                      "legacy reconciliation recovery requires exact claim+checkpoint write scope"
+                  )
 
           request = {
               **singles,
@@ -290,6 +315,39 @@ jobs:
                 exit 42
               }
               echo "REMOTE_GUARD_RECONCILE_ONLY: live HEAD differs from claim HEAD; canonical pair reconciliation required"
+            fi
+
+            legacy_reconcile_arg=()
+            if [ -n "${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID:-}" ]; then
+              test "$effective_live_head" != "$claim_head_sha"
+              rm -f /tmp/legacy-reconcile-recovery.json
+              gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID}" > /tmp/legacy-reconcile-recovery.json
+              python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("/tmp/legacy-reconcile-recovery.json").read_text(encoding="utf-8")
+          )
+          user = payload.get("user")
+          body = payload.get("body")
+          if (
+              not isinstance(user, dict)
+              or user.get("login") != os.environ["GITHUB_REPOSITORY_OWNER"]
+          ):
+              raise SystemExit(
+                  "legacy reconciliation recovery comment must be repository-owner authored"
+              )
+          if not isinstance(body, str):
+              raise SystemExit("legacy reconciliation recovery comment body missing")
+          lines = body.replace("\r\n", "\n").split("\n")
+          if not lines or lines[0].strip() != "WHD_LEGACY_POSTCOMMIT_RECONCILE_V1":
+              raise SystemExit("legacy reconciliation recovery marker mismatch")
+          PY
+              legacy_reconcile_arg=(
+                --legacy-reconcile-recovery /tmp/legacy-reconcile-recovery.json
+              )
             fi
 
             takeover_live_commit_at=""
@@ -495,6 +553,7 @@ jobs:
               guard_args+=(--head-sha "$RG_HEAD_SHA")
             fi
             guard_args+=(--preflight-evidence /tmp/preflight-evidence.txt)
+            guard_args+=("${legacy_reconcile_arg[@]}")
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
             done < /tmp/remote-guard-changed-files.txt
@@ -537,6 +596,9 @@ jobs:
               "guard_authority_sha": request["guard_authority_sha"],
               "tested_target_sha": request["tested_target_sha"],
               "changed_files": request["changed_files"],
+              "legacy_reconcile_recovery_comment_id": request.get(
+                  "legacy_reconcile_recovery_comment_id"
+              ),
               "run_id": int(os.environ["GITHUB_RUN_ID"]),
               "orchestrator_head_sha": os.environ["GITHUB_SHA"],
               "issued_at": now.isoformat().replace("+00:00", "Z"),
@@ -561,6 +623,9 @@ jobs:
           fi
           if [ -f /tmp/stale-takeover.log ]; then
             cp /tmp/stale-takeover.log "$GITHUB_WORKSPACE/remote-guard-artifact/stale-takeover.log"
+          fi
+          if [ -f /tmp/legacy-reconcile-recovery.json ]; then
+            cp /tmp/legacy-reconcile-recovery.json "$GITHUB_WORKSPACE/remote-guard-artifact/legacy-reconcile-recovery.json"
           fi
 
           {
