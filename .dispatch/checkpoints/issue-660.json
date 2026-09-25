@@ -1,13 +1,13 @@
 {
   "version": 1,
   "issue": "660",
-  "branch": "governance/issue660-live-issue657-takeover-proof-20260925",
+  "branch": "governance/issue660-cleanup-20260925",
   "head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
-  "state": "RECOVERING",
-  "next_action": "Repair #660 closure-pair workflow permission to issues:write and rerun exact #657 RELEASE_HANDOFF_PENDING→CLOSED prewrite; run 36131547470 already proved canonical claim guard GREEN and failed only while posting the result comment.",
-  "run_id": 36131547470,
-  "job_id": 108053273286,
-  "log_cursor": "closure-pair core GREEN; addComment failed because workflow had issues:read",
+  "state": "RUNNING",
+  "next_action": "Create guarded cleanup branch from exact legal head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323; delete the temporary #660 workflow, reconcile, then close/release #660.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -29,6 +29,8 @@
     "#657 Remote Finalization run 36130911881 returned FINALIZATION_PROOF_VALID for checkpoint blob 43bb2bc82c455d70384a29a4af1fee186c79424e and Issue #657 was fresh-read closed/completed.",
     "Commit Guard run 36131422310 authorized exact direct-child workflow commit 67545e829e9cec7567e92ffe65f21b63951b7b9e -> 2f33ad01b3027b3bb882bbcd0423d5f645f6d323 and is now consumed/reconciled.",
     "Closure-pair run 36131547470 on 48370003d620d024fb62a6e61b30e72367dc8a77 reached EXECUTION_CLAIM_GUARD_GREEN and emitted WHD_ISSUE657_CLOSURE_PAIR_GUARD_GREEN; final job failure was only GraphQL Resource not accessible by integration (addComment) because issues permission was read.",
-    "Run 36131547470 is not a logical RED; required runner repair is permissions issues:write before rerunning the final RELEASE_HANDOFF_PENDING→CLOSED pair."
+    "Run 36131547470 is not a logical RED; required runner repair is permissions issues:write before rerunning the final RELEASE_HANDOFF_PENDING→CLOSED pair.",
+    "Cleanup reactivation intentionally does not adopt live temp-branch head 48370003d620d024fb62a6e61b30e72367dc8a77 because no exact prior GREEN commit Guard authorizes 2f33ad01 -> 48370003.",
+    "Cleanup restarts from exact legal #660 claim head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323 on a fresh isolated cleanup branch."
   ]
 }

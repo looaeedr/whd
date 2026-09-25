@@ -3,18 +3,18 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/660",
   "worker": "chatgpt.sol260925.issue660.proof",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "governance/issue660-live-issue657-takeover-proof-20260925",
+  "work_branch": "governance/issue660-cleanup-20260925",
   "claimed_at": "2026-09-25T11:17:27Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T11:50:30Z",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-25T12:10:00Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Repair #660 closure-pair runner permission from issues:read to issues:write and rerun exact #657 RELEASE_HANDOFF_PENDING→CLOSED prewrite. Treat run 36131547470 as closure-logic GREEN with comment-publication permission failure only; do not classify it as logical RED.",
+  "next_action": "Create cleanup branch governance/issue660-cleanup-20260925 from exact legal head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323 under branch-create Guard; delete the sole temporary qa-issue660-live-issue657-takeover-proof.yml workflow under commit Guard; reconcile, then terminalize #660.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
@@ -67,5 +67,12 @@
     "classification": "COMMENT_PERMISSION_FAILURE_ONLY",
     "failure": "Resource not accessible by integration (addComment)",
     "required_fix": "issues: write"
+  },
+  "cleanup_reactivation": {
+    "reason": "Isolate cleanup from unclaimed live temp-branch commit 48370003d620d024fb62a6e61b30e72367dc8a77",
+    "prior_work_branch": "governance/issue660-live-issue657-takeover-proof-20260925",
+    "prior_claim_head": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
+    "contaminated_live_head": "48370003d620d024fb62a6e61b30e72367dc8a77",
+    "invariant": "Do not adopt contaminated live head; restart cleanup from exact legal claim head."
   }
 }
