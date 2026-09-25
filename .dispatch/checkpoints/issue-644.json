@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "644",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
+  "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "state": "RUNNING",
-  "next_action": "Clean up one-shot #644 RED/GREEN workflows, reconcile closing HEAD, and prove tested-head → closing-head drift is cleanup-only before Task Acceptance closure.",
+  "next_action": "Enter terminal Task Acceptance checkpoint for #644 at cleanup-only closing HEAD, then complete canonical closure and handoff to #645.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -27,7 +27,11 @@
     "Post-implementation atomic claim+checkpoint reconciliation to 19f4ed4b7ef91af3f1d71558ea872241d6bc9a89 authorized by Remote Guard run 36085139928.",
     "Focused #644 GREEN runner commit accba53d9a1695f0db8bb7add610648ad34d5e61 authorized by Remote Guard run 36085215489.",
     "Exact T4 GREEN run 36085249106 at accba53d9a1695f0db8bb7add610648ad34d5e61: 54 passed / 0 failed; marker ISSUE644_T4_GREEN=PASS; artifact 10843368463.",
-    "Post-GREEN-runner atomic claim+checkpoint reconciliation to accba53d9a1695f0db8bb7add610648ad34d5e61 authorized by Remote Guard run 36085269476."
+    "Post-GREEN-runner atomic claim+checkpoint reconciliation to accba53d9a1695f0db8bb7add610648ad34d5e61 authorized by Remote Guard run 36085269476.",
+    "One-shot T4 RED/GREEN workflow cleanup commit 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085387817.",
+    "Fresh readback confirms qa-issue644-t4-red.yml and qa-issue644-t4-green.yml are absent; permanent whd-turn-exit-gate.yml remains blob 41bf76f78c9af8246947939660daf05f525989d8.",
+    "Tested-head → closing-head drift audit PASS: accba53d9a1695f0db8bb7add610648ad34d5e61 → 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 is exactly one commit removing only the two one-shot QA workflows.",
+    "Post-cleanup atomic claim+checkpoint reconciliation to 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085463763."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

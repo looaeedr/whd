@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T01:35:29Z",
   "base_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
-  "head_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T02:12:17.267534Z",
+  "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T02:15:00.550344Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T4",
   "expected_parent_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "accba53d9a1695f0db8bb7add610648ad34d5e61",
+  "chain_head": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-03"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Clean up #644 one-shot RED/GREEN QA workflows, reconcile the closing HEAD, perform tested-head → closing-head drift audit, then enter canonical Task Acceptance closure.",
+  "next_action": "Enter #644 terminal Task Acceptance checkpoint at closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4, then follow FINALIZATION_PENDING → ISSUE_CLOSE_PENDING → proof → Issue close/readback → RELEASE_HANDOFF_PENDING → CLOSED+RELEASED with successor #645.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-644.json",
   "predecessor": {
@@ -74,5 +74,25 @@
     "runner_commit_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
     "runner_guard_run_id": 36085215489,
     "runner_reconcile_guard_run_id": 36085269476
+  },
+  "cleanup_drift_audit": {
+    "cleanup_commit_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+    "cleanup_guard_run_id": 36085387817,
+    "cleanup_reconcile_guard_run_id": 36085463763,
+    "tested_head_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
+    "closing_head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+    "drift_status": "PASS",
+    "ahead_by": 1,
+    "changed_files": [
+      {
+        "path": ".github/workflows/qa-issue644-t4-green.yml",
+        "status": "removed"
+      },
+      {
+        "path": ".github/workflows/qa-issue644-t4-red.yml",
+        "status": "removed"
+      }
+    ],
+    "permanent_turn_exit_workflow_blob_sha": "41bf76f78c9af8246947939660daf05f525989d8"
   }
 }
