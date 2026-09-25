@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T07:03:13Z",
   "base_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
-  "head_sha": "e117ae5581cdb74ab5c0189e8fc01785344eb1be",
+  "head_sha": "8fdf3f94d5af873575b2185cedd2327c191cb77f",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T08:09:58.839292Z",
+  "last_update": "2026-09-25T08:13:39.315126Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T6",
   "expected_parent_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "e117ae5581cdb74ab5c0189e8fc01785344eb1be",
+  "chain_head": "8fdf3f94d5af873575b2185cedd2327c191cb77f",
   "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Run focused #646 governance/Skill/spec validation at e117ae5581cdb74ab5c0189e8fc01785344eb1be, confirm five live scheduler prompts preserve cadence/IDs/lane owners/enabled state, then prepare canonical #647 handoff and #646 closure transaction.",
+  "next_action": "Fix the single stale checkpoint-only assert_turn_exitable(checkpoint) prose/example in executable-continuity-controller Skill, rerun #646 focused QA, require process tests + static contract GREEN, then remove the one-shot QA workflow and enter closure/handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-646.json",
   "predecessor": {
@@ -39,11 +39,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36111424769,
-    "request_comment_id": 5829123860,
+    "run_id": 36111759340,
+    "request_comment_id": 5829168412,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "e117ae5581cdb74ab5c0189e8fc01785344eb1be",
+    "guard_authority_sha": "8fdf3f94d5af873575b2185cedd2327c191cb77f",
     "consumed": true
   }
 }

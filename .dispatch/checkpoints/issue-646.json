@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "646",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "e117ae5581cdb74ab5c0189e8fc01785344eb1be",
+  "head_sha": "8fdf3f94d5af873575b2185cedd2327c191cb77f",
   "state": "RUNNING",
-  "next_action": "Run focused #646 governance/Skill/spec validation at e117ae5581cdb74ab5c0189e8fc01785344eb1be, confirm five live scheduler prompts preserve cadence/IDs/lane owners/enabled state, then prepare canonical #647 handoff and #646 closure transaction.",
+  "next_action": "Fix the single stale checkpoint-only assert_turn_exitable(checkpoint) prose/example in executable-continuity-controller Skill, rerun #646 focused QA, require process tests + static contract GREEN, then remove the one-shot QA workflow and enter closure/handoff.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -21,6 +21,9 @@
     "#646 governance synchronization commit d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 atomically changed the eight guarded governance surfaces under Remote Guard run 36110185995.",
     "Post-commit claim/checkpoint reconciliation to d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 authorized by Remote Guard run 36110667161.",
     "Canonical v1.2 spec published at docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md in commit e117ae5581cdb74ab5c0189e8fc01785344eb1be under Guard run 36111311539; source was the original 1501-line Library artifact plus accepted implementation overlay for #651/PR #652 and exact executor provenance/interactive liveness follow-up.",
-    "Post-spec claim/checkpoint reconciliation to e117ae5581cdb74ab5c0189e8fc01785344eb1be authorized by Remote Guard run 36111424769."
+    "Post-spec claim/checkpoint reconciliation to e117ae5581cdb74ab5c0189e8fc01785344eb1be authorized by Remote Guard run 36111424769.",
+    "One-shot #646 focused QA workflow added in commit 8fdf3f94d5af873575b2185cedd2327c191cb77f under Guard run 36111621665.",
+    "RED run 36111725175 at 8fdf3f94d5af873575b2185cedd2327c191cb77f: all 119 focused process tests PASS; static writeback gate FAIL only on stale checkpoint-only literal assert_turn_exitable(checkpoint) remaining in executable-continuity-controller Skill.",
+    "Post-QA-workflow claim/checkpoint reconciliation to 8fdf3f94d5af873575b2185cedd2327c191cb77f authorized by Remote Guard run 36111759340."
   ]
 }
