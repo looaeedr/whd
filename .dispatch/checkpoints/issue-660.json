@@ -2,12 +2,12 @@
   "version": 1,
   "issue": "660",
   "branch": "governance/issue660-live-issue657-takeover-proof-20260925",
-  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "state": "RUNNING",
-  "next_action": "Commit the one-shot #657 takeover proof workflow under a fresh commit Guard and run the proof.",
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
+  "head_sha": "dfc28028a0217272988b70de5e8a5ac559170f34",
+  "state": "RECOVERING",
+  "next_action": "Repair canonical execution_claim_guard terminal-checkpoint takeover gate: allow owner-authorized claim-takeover when checkpoint is TERMINAL_SUCCESS/TERMINAL_FAILURE with closure_state FINALIZATION_PENDING, ISSUE_CLOSE_PENDING, or RELEASE_HANDOFF_PENDING; do not mutate checkpoint state. Add regression, rerun exact #657 takeover proof, then CAS owner and resume original closure checkpoint.",
+  "run_id": 36129509764,
+  "job_id": 108053273286,
+  "log_cursor": "stale evaluator GREEN; execution claim guard blocked terminal checkpoint takeover",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -16,6 +16,9 @@
     "Proof target #657 branch/head is integration/issue657-main-remote-guard-20260925@53184c28ed1041558cd735817f4aae54f6c3af74.",
     "Proof workflow must not mutate #657 before machine proof GREEN.",
     "Branch-create Guard run 36128821062 GREEN was consumed after exact durable readback: governance/issue660-live-issue657-takeover-proof-20260925 exists at 3967da33e35e26ba3973e5565af0defe65fa7e12.",
-    "Canonical Guard transaction recovery classified the branch-create mutation as MUTATION_DONE_RECONCILE_ONLY and reconciled it before any next Guard."
+    "Canonical Guard transaction recovery classified the branch-create mutation as MUTATION_DONE_RECONCILE_ONLY and reconciled it before any next Guard.",
+    "Exact live proof run 36129509764: stale_claim_takeover.py GREEN classification=EXECUTOR_STUCK actionable=true stale_seconds=1312 authority_comment_id=5831428688.",
+    "Same proof run execution_claim_guard.py --action claim-takeover failed only at terminal-checkpoint prewrite gate: terminal checkpoint permits only exact closure coordination write.",
+    "Post-proof commit reconciliation to dfc28028a0217272988b70de5e8a5ac559170f34 authorized by Remote Guard run 36129720393."
   ]
 }

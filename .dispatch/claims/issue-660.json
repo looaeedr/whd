@@ -6,24 +6,24 @@
   "work_branch": "governance/issue660-live-issue657-takeover-proof-20260925",
   "claimed_at": "2026-09-25T11:17:27Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T11:23:30Z",
+  "head_sha": "dfc28028a0217272988b70de5e8a5ac559170f34",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-25T11:30:49.922846Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Commit the one-shot #657 takeover proof workflow under a fresh commit Guard, run it to terminal, and require EXECUTOR_STUCK/actionable plus EXECUTION_CLAIM_GUARD_GREEN before #657 CAS takeover.",
+  "next_action": "Repair canonical execution_claim_guard terminal-checkpoint takeover gate: allow owner-authorized claim-takeover when checkpoint is TERMINAL_SUCCESS/TERMINAL_FAILURE with closure_state FINALIZATION_PENDING, ISSUE_CLOSE_PENDING, or RELEASE_HANDOFF_PENDING; do not mutate checkpoint state. Add regression, rerun exact #657 takeover proof, then CAS owner and resume original closure checkpoint.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
-    "action": "branch-create",
-    "run_id": 36128821062,
-    "request_comment_id": 5831526517,
+    "action": "write",
+    "run_id": 36129720393,
+    "request_comment_id": 5831658364,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "guard_authority_sha": "dfc28028a0217272988b70de5e8a5ac559170f34",
     "consumed": true
   },
   "guard_transaction_recovery": {
@@ -39,5 +39,14 @@
       "reconciled": true
     },
     "reconciled": true
+  },
+  "proof_evidence": {
+    "proof_run_id": 36129509764,
+    "stale_evaluator": "GREEN",
+    "classification": "EXECUTOR_STUCK",
+    "stale_seconds": 1312,
+    "authority_comment_id": 5831428688,
+    "execution_claim_guard": "FAIL",
+    "execution_claim_guard_reason": "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: terminal checkpoint permits only an exact canonical closure coordination write"
   }
 }
