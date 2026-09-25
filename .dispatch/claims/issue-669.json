@@ -8,10 +8,18 @@
   "base_sha": "68b920967c438679c0841123571230a66b013877",
   "head_sha": "68b920967c438679c0841123571230a66b013877",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T16:31:30Z",
+  "last_update": "2026-09-25T16:33:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain exact branch-create Remote Guard GREEN, create the work branch, then fresh-read branch identity.",
+  "next_action": "Establish RED contract for exit-time scheduler enable, then obtain guarded Skill commit.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-669.json"
+  "checkpoint": ".dispatch/checkpoints/issue-669.json",
+  "last_guard": {
+    "action": "branch-create",
+    "run_id": 36161436729,
+    "request_comment_id": 5835868668,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true
+  }
 }
