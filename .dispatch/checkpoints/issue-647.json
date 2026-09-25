@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
   "state": "RUNNING",
-  "next_action": "Integration Acceptance: non-force integrate exact closing HEAD 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 into cleanup/2d-3d-sync, fresh-read production, then enter terminal finalization.",
+  "next_action": "Resolve PR #662 single-file integration conflict using a two-parent non-force merge commit that preserves verified work-order HEAD as second parent and current cleanup/2d-3d-sync as first parent; fresh-read production after ref update.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -55,6 +55,10 @@
     "Tested-head→closing-head drift audit PASS: 3967da33e35e26ba3973e5565af0defe65fa7e12 → 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 is exactly one commit.",
     "Drift file set is exactly five temporary #640-chain QA/proof workflows and every delta is deletion-only; no other file changed.",
     "Closing-head tree fresh-read confirms all five temporary workflows are absent.",
-    "Drift-audit durable writeback authorized by Remote Guard run 36136171111."
+    "Drift-audit durable writeback authorized by Remote Guard run 36136171111.",
+    "Integration PR #662 created under Remote Guard run 36136314508 from verified closing HEAD 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 to cleanup/2d-3d-sync@04281ff361117ba65c7c517dc7f78820f00127cf.",
+    "PR #662 durable readback is open/mergeable=false; canonical transaction classification is MUTATION_DONE_RECONCILE_ONLY and PR creation was not replayed.",
+    "Conflict analysis: X-only delta has five paths; four are disjoint from work-order and the only overlapping path is tools/stale_claim_takeover.py.",
+    "X overlap is #648 timestamp precision fix: claim_last_update uses _iso_utc_exact and helper preserves fractional seconds."
   ]
 }
