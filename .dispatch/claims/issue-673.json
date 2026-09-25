@@ -11,12 +11,18 @@
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T22:24:00Z",
+  "last_update": "2026-09-25T22:25:30Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Activate parent #671 helper reservation, obtain branch-create Guard, create main deployment branch, then sync only #671 accepted governance files and verify trusted main deployment.",
+  "next_action": "Obtain exact branch-create Guard; create narrow main deployment branch; sync only #671 accepted governance files; verify main deployment; then release helper and return to #617 repair.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-673.json",
   "parent_issue": 671,
-  "helper_key": "main-governance-deploy-issue671"
+  "helper_key": "main-governance-deploy-issue671",
+  "parent_binding": {
+    "parent_issue": 671,
+    "parent_claim_blob_sha": "cdd53bc4420d72d9a96b1b1b3d3833851447ba7c",
+    "helper_key": "main-governance-deploy-issue671",
+    "reservation_state": "ACTIVE"
+  }
 }
