@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T02:22:28Z",
   "base_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
-  "head_sha": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T06:20:27.750208Z",
+  "head_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T06:31:52.809433Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T5",
   "expected_parent_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
+  "chain_head": "d254729ec20f0d5da8542cf778c7cc0115abb776",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-HELPER-01",
@@ -23,7 +23,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Remove one-shot #645 RED/GREEN QA workflows under fresh Guard, reconcile closing HEAD, drift-audit tested-to-closing changes, then finalization, close/release #645 and hand off #646.",
+  "next_action": "Enter canonical terminal closure for #645: TERMINAL_SUCCESS + FINALIZATION_PENDING, then ISSUE_CLOSE_PENDING, trusted finalization proof, Issue close/readback, CLOSED + RELEASED, and hand off #646.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-645.json",
   "predecessor": {
@@ -114,6 +114,10 @@
     "passed": 50,
     "failed": 0,
     "marker": "ISSUE645_T5_GREEN=PASS",
-    "reconcile_guard_run_id": 36102411132
+    "reconcile_guard_run_id": 36102411132,
+    "cleanup_head": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+    "cleanup_guard_run_id": 36102883002,
+    "cleanup_reconcile_guard_run_id": 36103265908,
+    "drift_audit": "tested 2a05e159cd7661e24260abb7545b6d9eb6b04ee1 -> closing d254729ec20f0d5da8542cf778c7cc0115abb776 changes only removal of qa-issue645-t5-red.yml and qa-issue645-t5-green.yml"
   }
 }
