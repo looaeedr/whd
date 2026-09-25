@@ -1,0 +1,32 @@
+name: WHD #671 legacy checkpoint repair focused QA
+run-name: "WHD｜#671｜legacy checkpoint repair RED/GREEN"
+
+on:
+  push:
+    branches:
+      - governance/issue671-legacy-half-pair-repair-20260926
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "#671｜legacy checkpoint repair focused contract"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出 exact branch
+        uses: actions/checkout@v4
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 驗證 Actions 顯示名稱
+        run: python tools/actions_visible_naming_guard.py .github/workflows/qa-issue671-legacy-checkpoint-repair.yml
+      - name: 安裝 focused pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: 執行 #671 focused tests
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue671_legacy_checkpoint_repair.py
+          tests/process/test_issue642_active_claim_checkpoint_gate.py
