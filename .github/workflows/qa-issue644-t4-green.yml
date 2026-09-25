@@ -1,0 +1,45 @@
+name: QA Issue 644 T4 GREEN
+
+on:
+  push:
+    branches:
+      - workorder/issue640-guard-turn-exit-helper-hardening-20260925
+    paths:
+      - .github/workflows/qa-issue644-t4-green.yml
+      - .github/workflows/whd-turn-exit-gate.yml
+      - tools/continuity_controller.py
+      - tools/execution_claim_guard.py
+      - tests/process/test_issue641_closing_turn_exit_red.py
+      - tests/process/test_issue642_active_claim_checkpoint_gate.py
+      - tests/process/test_issue643_guard_transaction_gate.py
+      - tests/process/test_issue644_trusted_turn_exit_gate.py
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install focused test dependency
+        run: python -m pip install pytest
+      - name: Run T4 GREEN plus T1-T3 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q --confcutdir=tests/process \
+            tests/process/test_issue641_closing_turn_exit_red.py \
+            tests/process/test_issue642_active_claim_checkpoint_gate.py \
+            tests/process/test_issue643_guard_transaction_gate.py \
+            tests/process/test_issue644_trusted_turn_exit_gate.py \
+            | tee /tmp/t4-green.log
+          echo 'ISSUE644_T4_GREEN=PASS'
+      - name: Upload focused GREEN evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue644-t4-green
+          path: /tmp/t4-green.log
+          if-no-files-found: error
+          retention-days: 7
