@@ -84,3 +84,18 @@ evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接
 - issue/worker/source/branch/base/current claim blob/request/receipt/guard authority/receipt window 等既有 identity checks 不得放寬。
 - ordinary single-parent post-commit reconciliation 維持原本 direct-child commit-file evidence。
 - canonical regression：`tests/process/test_issue570_merge_head_claim_reconciliation.py`；governance repair owner：#603。
+
+
+## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1（2026-09-26）
+
+### 事故
+#617 的 scheduler claim 建於 checkpoint invariant 上線前；claim 歷史存在、checkpoint 歷史為 0。#642/#649 上線後，Remote Guard/Turn Exit/Finalization 都正確 fail closed，但 Claim Activation 只有「兩者都不存在」或「兩者都存在」兩種入口，形成 migration catch-22。
+
+### 永久規則
+- 不放寬 `ACTIVE_CLAIM_REQUIRES_CHECKPOINT`。
+- trusted Claim Activation 提供窄 transition `legacy-checkpoint-repair`。
+- prior claim 必須存在、prior checkpoint 必須 missing。
+- candidate claim blob 必須與 prior blob byte-for-byte 相同；repair 只能 bootstrap checkpoint，不能偷帶 owner/branch/base/head/phase/next_action 變更。
+- candidate checkpoint 必須 canonical non-terminal 並 exact 綁 unchanged claim issue/branch/head。
+- coordination parent + prior claim blob 共同作 CAS identity；任何 drift fail closed。
+- repair 後的 branch HEAD drift仍走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得把 legacy repair 升格成 stale-head bypass。
