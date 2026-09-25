@@ -3,7 +3,7 @@
   "issue": "661",
   "branch": "governance/issue661-final-release-executor-20260925",
   "head_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
-  "state": "GREEN",
+  "state": "RECOVERING",
   "next_action": "Consume dual guard run 36132610537 to atomically close/release #657 and terminalize #647 helper reservation; then fresh-read and resume #647.",
   "run_id": 36132610537,
   "job_id": 108063127364,
