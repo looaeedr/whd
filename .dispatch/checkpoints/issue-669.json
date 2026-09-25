@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "669",
   "branch": "governance/issue669-scheduler-exit-enable-20260926",
-  "head_sha": "68b920967c438679c0841123571230a66b013877",
+  "head_sha": "6e71c86d26b550e68491ce744465af5e92f8bb88",
   "state": "RUNNING",
-  "next_action": "Establish RED contract for exit-time scheduler enable, then obtain guarded Skill commit.",
+  "next_action": "Obtain exact guarded commit for .agents/skills/engineering/排程模擬/SKILL.md implementing exit-time recurring-lane enable semantics.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "User requested 排程模擬 activation-enable be moved to an exit-time final enable step.",
     "Authoritative target cleanup/2d-3d-sync fresh-read HEAD=68b920967c438679c0841123571230a66b013877.",
     "Owning Issue #669 created and fresh task scope recorded.",
-    "Branch-create Guard run 36161436729 GREEN consumed exactly once by creating governance/issue669-scheduler-exit-enable-20260926 at frozen base 68b920967c438679c0841123571230a66b013877."
+    "Branch-create Guard run 36161436729 GREEN consumed exactly once by creating governance/issue669-scheduler-exit-enable-20260926 at frozen base 68b920967c438679c0841123571230a66b013877.",
+    "RED contract Guard run 36161611103 GREEN consumed exactly once by commit 6e71c86d26b550e68491ce744465af5e92f8bb88 changing only tests/process/test_issue667_force_takeover_liveness.py.",
+    "RED contract now requires Exit-time recurring automation enable / EXIT_TIME_SCHEDULER_ENABLE_GATE and forbids activation-time enable wording.",
+    "Post-commit reconciliation Guard run 36161718553 GREEN consumed for exact claim+checkpoint HEAD reconciliation to 6e71c86d26b550e68491ce744465af5e92f8bb88."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
