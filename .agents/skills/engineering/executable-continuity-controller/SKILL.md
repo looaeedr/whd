@@ -334,7 +334,7 @@ Turn-exit boundary 不得只接受「有 checkpoint」或「JSON 可讀」。它
 
 ### Actual guard invocation
 
-Canonical path boundary `assert_turn_exitable_path(...)` 必須在載入與 ownership 驗證後，**實際呼叫** canonical `assert_turn_exitable(checkpoint)`。禁止：
+Canonical path boundary `assert_turn_exitable_path(...)` 必須在載入與 ownership 驗證後，**實際呼叫** canonical `assert_turn_exitable(checkpoint, expected_master_issue=..., claim_state=..., transaction_state=...)`，並傳入當輪 fresh machine context。禁止：
 
 - 只讀 state 後自行複製判斷；
 - 只看到 checkpoint valid 就放行；
