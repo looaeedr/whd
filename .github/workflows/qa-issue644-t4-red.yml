@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python -m pytest -q tests/process/test_issue644_trusted_turn_exit_gate.py > /tmp/t4-red.log 2>&1
+          python -m pytest -q --confcutdir=tests/process tests/process/test_issue644_trusted_turn_exit_gate.py > /tmp/t4-red.log 2>&1
           rc=$?
           set -e
           cat /tmp/t4-red.log
