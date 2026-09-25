@@ -3,8 +3,8 @@
   "issue": "658",
   "branch": "integration/issue658-main-remote-guard-20260925",
   "head_sha": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
-  "state": "RUNNING",
-  "next_action": "Create helper branch from exact main bdb3da203c898d43898b092ff37b7fa9e0c93061 under branch-create Guard; deploy exact accepted Remote Guard blob c6e96581c47b4d46704f719877174f9248928f5e only, then PR/merge/readback.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,6 +13,12 @@
   "evidence": [
     "Parent #647 helper reservation default-branch-remote-execution-guard-deploy is RESERVING under token issue647-main-remote-guard-deploy-force1.",
     "Accepted #647 work-order Remote Guard workflow blob is c6e96581c47b4d46704f719877174f9248928f5e.",
-    "Helper base is current main bdb3da203c898d43898b092ff37b7fa9e0c93061; cleanup/2d-3d-sync integration is explicitly out of scope."
-  ]
+    "Helper base is current main bdb3da203c898d43898b092ff37b7fa9e0c93061; cleanup/2d-3d-sync integration is explicitly out of scope.",
+    "Duplicate helper fail-closed evidence comment 5831292681: parent #647 durable ACTIVE reservation points only to canonical child #657 / claim b89fb336cadf9041a3b2318ea1cf3c761ea4edd8.",
+    "#658 helper_key differs from the parent reserved helper_key and has no parent delegated_work pointer; substantive mutation is prohibited.",
+    "Empty helper branch integration/issue658-main-remote-guard-20260925 created from exact main base bdb3da203c898d43898b092ff37b7fa9e0c93061 under branch-create Guard run 36127079997; no content commit occurred.",
+    "Duplicate/no-work terminal entry authorized by Remote Guard run 36127153714."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof, close duplicate helper #658, then atomically CLOSED + RELEASED."
 }
