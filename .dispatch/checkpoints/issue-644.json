@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "644",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "0ccacde2808bca45a43a2dfc4a3681aa5d305ee7",
+  "head_sha": "63a3dc22739ee75ef54da2246e35951969708251",
   "state": "RUNNING",
-  "next_action": "Repair #644 RED QA harness to avoid loading tests/conftest.py (tkinter dependency), rerun C-R1..C-R12, and require exactly 12 intended failures before implementation.",
+  "next_action": "Implement #644 RED-CLOSE-03 durable remote turn-exit evaluator + trusted workflow and drive exact C-R1..C-R12 GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,10 @@
     "Initial RED runner 36083251937 was HARNESS_FAILURE because pytest was not installed; no T4 acceptance assertion was evaluated.",
     "T4 RED harness repair commit 0ccacde2808bca45a43a2dfc4a3681aa5d305ee7 installed pytest and was authorized by Remote Guard run 36083375516.",
     "Second RED runner 36083413269 remained HARNESS_FAILURE because tests/conftest.py imports tkinter and the hosted runner lacks tkinter; no T4 acceptance assertion was evaluated.",
-    "Post-harness-repair atomic claim+checkpoint reconciliation to 0ccacde2808bca45a43a2dfc4a3681aa5d305ee7 authorized by Remote Guard run 36084537554."
+    "Post-harness-repair atomic claim+checkpoint reconciliation to 0ccacde2808bca45a43a2dfc4a3681aa5d305ee7 authorized by Remote Guard run 36084537554.",
+    "T4 isolated RED harness commit 63a3dc22739ee75ef54da2246e35951969708251 authorized by Remote Guard run 36084618510; pytest uses --confcutdir=tests/process to avoid unrelated GUI conftest dependencies.",
+    "Exact T4 RED run 36084646762 completed success as a RED harness: exactly 12 approved C-R1..C-R12 tests failed as intended; marker ISSUE644_T4_REQUIREMENT_RED=GREEN.",
+    "Post-isolated-runner atomic claim+checkpoint reconciliation to 63a3dc22739ee75ef54da2246e35951969708251 authorized by Remote Guard run 36084668112."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
