@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "head_sha": "ced52c7bc161a0d54ef16613638222442ea8498a",
-  "phase": "RED",
-  "last_update": "2026-09-25T00:10:35.368848Z",
+  "head_sha": "fc9412ed6a8943c1fb7a6582a18d2fe0e1074516",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T00:15:11.700568Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T3",
   "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "ced52c7bc161a0d54ef16613638222442ea8498a",
+  "chain_head": "fc9412ed6a8943c1fb7a6582a18d2fe0e1074516",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-02"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Implement #643 T3 canonical Guard transaction classifier, pending/expired/reconciliation-only turn-exit gates, and second-Guard rejection; then run focused GREEN for P-R1..P-R14.",
+  "next_action": "Run focused P-R1..P-R14 GREEN against the canonical Guard transaction implementation, then add trusted Remote Guard second-request rejection.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -45,5 +45,14 @@
     "marker": "ISSUE643_T3_REQUIREMENT_RED=GREEN",
     "expected_failures": 14,
     "reconcile_guard_run_id": 36076301116
+  },
+  "implementation": {
+    "commit_sha": "fc9412ed6a8943c1fb7a6582a18d2fe0e1074516",
+    "guard_run_id": 36076486660,
+    "reconcile_guard_run_id": 36076658509,
+    "changed_files": [
+      "tools/execution_claim_guard.py",
+      "tools/continuity_controller.py"
+    ]
   }
 }

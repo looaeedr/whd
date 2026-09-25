@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "643",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "ced52c7bc161a0d54ef16613638222442ea8498a",
+  "head_sha": "fc9412ed6a8943c1fb7a6582a18d2fe0e1074516",
   "state": "RUNNING",
-  "next_action": "Implement #643 T3 P-R1..P-R14 machine gates from exact RED HEAD ced52c7bc161a0d54ef16613638222442ea8498a.",
+  "next_action": "Run focused #643 P-R1..P-R14 GREEN at exact implementation HEAD fc9412ed6a8943c1fb7a6582a18d2fe0e1074516.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,9 @@
     "Trusted claim-activation bootstrap workflow was deployed to main as the exact accepted #642 artifact (blob 13d0b673a26a2912917df89234bd29428563cd10) under #647 bootstrap evidence comment 5824319790; #647 final deployment/readback gate remains mandatory.",
     "T3 RED commit ced52c7bc161a0d54ef16613638222442ea8498a was authorized by Remote Guard run 36076145122.",
     "Exact T3 RED run 36076252162 completed success as a RED harness: 14 approved P-R tests failed as intended; marker ISSUE643_T3_REQUIREMENT_RED=GREEN.",
-    "Post-commit atomic claim+checkpoint reconciliation to ced52c7bc161a0d54ef16613638222442ea8498a authorized by Remote Guard run 36076301116."
+    "Post-commit atomic claim+checkpoint reconciliation to ced52c7bc161a0d54ef16613638222442ea8498a authorized by Remote Guard run 36076301116.",
+    "T3 core implementation commit fc9412ed6a8943c1fb7a6582a18d2fe0e1074516 authorized by Remote Guard run 36076486660.",
+    "Post-implementation atomic claim+checkpoint reconciliation to fc9412ed6a8943c1fb7a6582a18d2fe0e1074516 authorized by Remote Guard run 36076658509."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
