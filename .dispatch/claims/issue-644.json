@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T01:35:29Z",
   "base_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
-  "head_sha": "0fbbc02dd95066e8e302c9d944a96221a59f602c",
+  "head_sha": "0ccacde2808bca45a43a2dfc4a3681aa5d305ee7",
   "phase": "RED",
-  "last_update": "2026-09-25T01:44:03.210235Z",
+  "last_update": "2026-09-25T02:01:57.018550Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T4",
   "expected_parent_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "0fbbc02dd95066e8e302c9d944a96221a59f602c",
+  "chain_head": "0ccacde2808bca45a43a2dfc4a3681aa5d305ee7",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-03"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Repair #644 RED QA harness by installing pytest, then rerun the exact C-R1..C-R12 RED suite; do not start implementation until exactly 12 intended failures are proven.",
+  "next_action": "Repair #644 RED QA harness to avoid loading tests/conftest.py (tkinter dependency), then rerun exact C-R1..C-R12 and require exactly 12 intended failures before implementation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-644.json",
   "predecessor": {
@@ -38,6 +38,12 @@
     "reconcile_guard_run_id": 36083279364,
     "first_runner_run_id": 36083251937,
     "first_runner_result": "HARNESS_FAILURE",
-    "first_runner_reason": "python -m pytest unavailable on runner"
+    "first_runner_reason": "python -m pytest unavailable on runner",
+    "harness_repair_commit_sha": "0ccacde2808bca45a43a2dfc4a3681aa5d305ee7",
+    "harness_repair_guard_run_id": 36083375516,
+    "second_runner_run_id": 36083413269,
+    "second_runner_result": "HARNESS_FAILURE",
+    "second_runner_reason": "tests/conftest.py imported tkinter but hosted runner lacks tkinter",
+    "second_reconcile_guard_run_id": 36084537554
   }
 }

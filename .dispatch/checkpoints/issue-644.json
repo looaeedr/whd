@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "644",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "0fbbc02dd95066e8e302c9d944a96221a59f602c",
+  "head_sha": "0ccacde2808bca45a43a2dfc4a3681aa5d305ee7",
   "state": "RUNNING",
-  "next_action": "Repair #644 RED QA harness by installing pytest, rerun C-R1..C-R12, and require exactly 12 intended failures before implementation.",
+  "next_action": "Repair #644 RED QA harness to avoid loading tests/conftest.py (tkinter dependency), rerun C-R1..C-R12, and require exactly 12 intended failures before implementation.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,10 @@
     "#643 final release was authorized by Remote Guard run 36082598116.",
     "T4 RED test+runner commit 0fbbc02dd95066e8e302c9d944a96221a59f602c authorized by Remote Guard run 36083166526.",
     "Post-RED atomic claim+checkpoint reconciliation authorized by Remote Guard run 36083279364.",
-    "Initial RED runner 36083251937 was HARNESS_FAILURE because pytest was not installed; no T4 acceptance assertion was evaluated."
+    "Initial RED runner 36083251937 was HARNESS_FAILURE because pytest was not installed; no T4 acceptance assertion was evaluated.",
+    "T4 RED harness repair commit 0ccacde2808bca45a43a2dfc4a3681aa5d305ee7 installed pytest and was authorized by Remote Guard run 36083375516.",
+    "Second RED runner 36083413269 remained HARNESS_FAILURE because tests/conftest.py imports tkinter and the hosted runner lacks tkinter; no T4 acceptance assertion was evaluated.",
+    "Post-harness-repair atomic claim+checkpoint reconciliation to 0ccacde2808bca45a43a2dfc4a3681aa5d305ee7 authorized by Remote Guard run 36084537554."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
