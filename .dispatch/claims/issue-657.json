@@ -8,7 +8,7 @@
   "base_sha": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
   "head_sha": "53184c28ed1041558cd735817f4aae54f6c3af74",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T19:40:26+08:00",
+  "last_update": "2026-09-25T11:49:30Z",
   "production_target": "main",
   "master_issue": 640,
   "parent_issue": 647,
@@ -16,7 +16,7 @@
   "reservation_owner": "chatgpt.sol260925.issue647.force1",
   "reservation_token": "issue647-main-remote-guard-deploy-force1",
   "delegated_branches": [],
-  "next_action": "Run bound Remote Finalization against exact #657 ISSUE_CLOSE_PENDING checkpoint, verify FINALIZATION_PROOF_VALID, close/readback Issue, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Perform final guarded coordination commit: checkpoint closure_state=CLOSED + claim phase=RELEASED/next_action=null; then terminalize parent #647 reservation default-branch-remote-execution-guard-deploy and resume #647 Combined Acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-657.json",
   "last_guard": {
@@ -81,6 +81,15 @@
     "proof_head_sha": "67545e829e9cec7567e92ffe65f21b63951b7b9e",
     "claim_blob_sha": "94869fb0d5916393477a91d318d70af5923f50c5",
     "checkpoint_blob_sha": "f8215aaac5a23c032fa826803b95d606c478cb47",
+    "result": "EXECUTION_CLAIM_GUARD_GREEN"
+  },
+  "release_handoff_guard": {
+    "schema": "WHD_ISSUE657_RELEASE_HANDOFF_PREWRITE_GUARD_V1",
+    "run_id": 36131485797,
+    "proof_comment_id": 5831885113,
+    "proof_head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
+    "claim_blob_sha": "1ae6453a201763a3c8c8788860b1b6489ebdf9b8",
+    "checkpoint_blob_sha": "43bb2bc82c455d70384a29a4af1fee186c79424e",
     "result": "EXECUTION_CLAIM_GUARD_GREEN"
   }
 }
