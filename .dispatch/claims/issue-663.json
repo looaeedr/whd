@@ -7,15 +7,16 @@
   "claimed_at": "2026-09-25T13:20:46Z",
   "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T14:21:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T14:36:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "production_head_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
+  "main_integration_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "USER_HANDOFF: merge cleanup/2d-3d-sync@3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f into main. After main readback contains workflow blob 647e8d663625c7f2056315fc820ffd92f8db5aaf, rerun #640 trusted Turn Exit proof and continue #663 closure.",
-  "blocker": "WAITING_USER_CLEANUP_TO_MAIN",
+  "next_action": "Advance terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh guarded coordination write; do not mint finalization proof before that transition.",
+  "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
   "blocked_master_issue": 640,
@@ -31,23 +32,30 @@
     "changed_file": ".github/workflows/whd-turn-exit-gate.yml",
     "verified_fix": true
   },
+  "main_readback": {
+    "main_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+    "remote_guard_blob_sha": "b3ab7978f8e451d5d8a3564aac63fb91e6a97bbc",
+    "remote_finalization_blob_sha": "b2cf072bd078bdaad23d3056ce930798a3c9d9cb",
+    "turn_exit_blob_sha": "67d6dd5f4009c962881485bea7d2179ce09abcc4",
+    "turn_exit_fix_present": true
+  },
+  "acceptance": {
+    "master_issue": 640,
+    "turn_exit_run_id": 36148382848,
+    "turn_exit_result": "TURN_EXIT_PERMITTED",
+    "scheduler_end_allowed": true,
+    "request_comment_id": 5834163664,
+    "result_comment_id": 5834167193
+  },
   "last_guard": {
-    "action": "pr-write",
-    "run_id": 36146801303,
-    "request_comment_id": 5833956289,
+    "action": "write",
+    "run_id": 36148530716,
+    "request_comment_id": 5834183410,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "consumed": true,
-    "durable_readback": {
-      "pr_number": 666,
-      "pr_readback": true,
-      "merged": true,
-      "merge_commit_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
-      "base": "cleanup/2d-3d-sync",
-      "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
-      "cleanup_head_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
-      "workflow_blob_sha": "647e8d663625c7f2056315fc820ffd92f8db5aaf"
-    }
+    "guard_authority_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+    "tested_target_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
+    "consumed": true
   },
   "superseded_pr": {
     "number": 665,
@@ -56,6 +64,7 @@
   "integration_target_change": {
     "requested_by_user": true,
     "target": "cleanup/2d-3d-sync",
-    "cleanup_merge_complete": true
+    "cleanup_merge_complete": true,
+    "main_merge_complete": true
   }
 }
