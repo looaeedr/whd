@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "649",
+  "branch": "governance/issue649-remote-guard-compat-20260925",
+  "head_sha": "bb60d580752b191d78d5d5c9d10fa2a4ad78f1c1",
+  "state": "RUNNING",
+  "next_action": "Request exact branch-create Remote Guard against current trusted main authority. If the trusted self-hosted guard cannot execute because main lacks compatible canonical guard tooling, preserve the failure as REMOTE_GUARD_UNAVAILABLE and do not bypass repository mutation authority.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Issue #649 fresh-read open; claim/checkpoint and work branch were absent before acquisition.",
+    "Issue #649 blocks #648, which blocks #645/#640 scheduler recovery.",
+    "Trusted target main fresh-read at bb60d580752b191d78d5d5c9d10fa2a4ad78f1c1."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
