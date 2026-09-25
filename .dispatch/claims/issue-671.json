@@ -105,12 +105,12 @@
     {
       "relationship": "helper",
       "helper_key": "main-governance-deploy-issue671",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue671-main-deploy-a-20260925",
       "reserved_at": "2026-09-25T22:17:00Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 673,
+      "child_claim_blob_sha": "a32910f64b0b453a0dc14846811517bfcf2b3a1a"
     }
   ]
 }
