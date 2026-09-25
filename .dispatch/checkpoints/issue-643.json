@@ -40,10 +40,11 @@
     "T2 active-claim checkpoint regression run 36082023965 also completed success at the same exact repair HEAD.",
     "Post-fix atomic claim+checkpoint reconciliation to c7e1e6fa5664e8c877b411ab6dcac941c90c2341 authorized by Remote Guard run 36082039164 and consumed immediately.",
     "Recovered T3 Task Acceptance at exact HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341 after closure-prewrite regression fix; final GREEN run 36082023995: 80 passed / 0 failed.",
-    "Recovered terminal-entry Remote Guard run 36082230445 GREEN at exact accepted HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341."
+    "Recovered terminal-entry Remote Guard run 36082230445 GREEN at exact accepted HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341.",
+    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36082281766 after the terminal-checkpoint prewrite repair."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #643 closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, then mint and verify an exact bound finalization proof before closing Issue #643.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify the exact bound Remote Finalization proof for #643 at HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341, then close Issue #643 and fresh-read closed/completed before advancing to RELEASE_HANDOFF_PENDING.",
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 644,
