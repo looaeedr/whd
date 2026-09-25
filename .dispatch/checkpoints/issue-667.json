@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "667",
   "branch": "governance/issue667-force-takeover-liveness-20260925",
-  "head_sha": "9ca136b61c1eea6cdb18cdec140286c40c75c35f",
+  "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
   "state": "RUNNING",
-  "next_action": "Remove temporary #667 focused workflow, then perform tested-head→cleaned-head drift audit and guarded integration.",
+  "next_action": "Obtain pr-write Guard, create PR to cleanup/2d-3d-sync, monitor exact governance run, then guarded merge.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,6 +20,10 @@
     "Follow-up Skill Guard run 36155615803 GREEN consumed by commit 9ca136b61c1eea6cdb18cdec140286c40c75c35f.",
     "Commit 9ca136b61c1eea6cdb18cdec140286c40c75c35f fixes canonical-chain token order and replaces all 9 派工 occurrences of 420 with 300.",
     "Focused GREEN run 36155754299 SUCCESS: ACTIONS_VISIBLE_NAMING_GREEN; 29 passed in 0.11s.",
-    "Post-commit reconciliation Guard run 36155835887 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
+    "Post-commit reconciliation Guard run 36155835887 GREEN consumed for exact claim+checkpoint HEAD reconciliation.",
+    "Cleanup Guard run 36155948186 GREEN consumed by deleting temporary workflow in commit 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2.",
+    "Drift audit 9ca136b61c1eea6cdb18cdec140286c40c75c35f -> 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2: exactly one removed file, .github/workflows/qa-issue667-force-takeover-liveness.yml; accepted implementation blobs unchanged.",
+    "Production target cleanup/2d-3d-sync remained at frozen base 156bc20e7b7c331eae2a24d2c46bd984c5959720 during acceptance.",
+    "Post-cleanup reconciliation Guard run 36156048014 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
   ]
 }
