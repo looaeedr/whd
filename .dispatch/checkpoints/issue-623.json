@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "623",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "5a22ebcda31890f6a44724566a3a53cfcb73b980",
-  "state": "RUNNING",
-  "next_action": "Complete canonical P7-F DT-1..DT-6 and write WHD_PHASE7_TARGET_COMPLETION_V1 ASCG artifact with terminal ACCEPTED result; then finalization/Issue close/release handoff to #627.",
+  "head_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36241909307,
   "job_id": 108403896927,
   "log_cursor": null,
@@ -29,13 +29,17 @@
     "Broader-QA-head claim+checkpoint reconciliation authorized by Remote Guard run 36241926712.",
     "Temporary A6 QA workflows removed atomically by cleanup commit 5a22ebcda31890f6a44724566a3a53cfcb73b980 under Remote Guard run 36242001140.",
     "tested→closing drift d843ce5c89ff0c7c36c5ed1286b77c2514730707..5a22ebcda31890f6a44724566a3a53cfcb73b980 contains only removal of the two temporary #623 QA workflows.",
-    "Cleanup-head claim+checkpoint reconciliation authorized by Remote Guard run 36242176864."
+    "Cleanup-head claim+checkpoint reconciliation authorized by Remote Guard run 36242176864.",
+    "Canonical P7-F DT artifact is terminal: DT-1..DT-6 COMPLETE, DT-6 decision EXTRACT_TO_DEEP_OWNER, result ACCEPTED.",
+    "WHD_PHASE7_TARGET_COMPLETION_V1 artifact docs/superpowers/checkpoints/issue623-a6-target-completion.json read back result=ACCEPTED with reverse_import=0, duplicate_path=0, duplicate_owner=0, second_composition_root=0, full_app_dependency=false.",
+    "ASCG/documentation commit 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d authorized by Remote Guard run 36242298621; post-commit terminalization reconciliation authorized by Remote Guard run 36242430109.",
+    "Successor #624 fresh-read open with no shared claim/checkpoint; Master #627 handoff may advance to NEXT_CHILD_EXECUTABLE -> #624 only after #623 closure transaction completes."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
+  "master_issue": "627",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "624",
+  "chain_next_action": "Activate/claim #624 Phase 7 A7 on accepted #623 head 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d and execute approved P7-R-A residual fold_designer_bridge owner reduction; preserve the Phase 7 frozen work-order lineage and do not chase current production X.",
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Fresh-guard closure advance to ISSUE_CLOSE_PENDING, then mint trusted finalization proof bound to this exact terminal checkpoint before closing Issue #623."
 }
