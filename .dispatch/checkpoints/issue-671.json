@@ -55,8 +55,9 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36207290073.",
     "Trusted Remote Finalization run 36207369221 GREEN; artifact 10894656535; checkpoint fingerprint c1ffe6588776f729ef6a6ec2cb8f23ed88ba0288628d0dcba7bb378ec9fdc7eb; FINALIZATION_PROOF_VALID.",
     "Owning Issue #671 fresh-read closed/completed at 2026-09-26T01:08:39Z.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36207421616."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36207421616.",
+    "Final coordination Guard run 36207581084 GREEN consumed for the single atomic checkpoint CLOSED + claim RELEASED commit."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED after trusted finalization run 36207369221 and Issue #671 closed/completed readback."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
