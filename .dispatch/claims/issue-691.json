@@ -9,14 +9,14 @@
   "work_branch": "work/issue691-turn-exit-scheduler-end-20260926",
   "claimed_at": "2026-09-26T14:42:00Z",
   "base_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-  "head_sha": "9c084e69041cb168bd31a96954d9df937aee5359",
-  "phase": "RED",
-  "last_update": "2026-09-26T15:00:47.286777Z",
+  "head_sha": "6032d79f1ddc9d91c75c8b99d2b05e4bcf96e7c3",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T15:06:42.605944Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Implement RED-STOP-08/12/13: local live durable turn-exit parity, exact scheduler END receipt binding, and trusted END verification; rerun branch-native focused QA to GREEN.",
+  "next_action": "Fix the focused #691 implementation defect (missing re import), rerun branch-native QA to GREEN, then run broader continuity/turn-exit regressions.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-691.json",
   "evidence": [
@@ -28,7 +28,10 @@
     "Branch-create Guard GREEN run 36249643634 / result comment 5847183670 consumed by exact branch readback at 6647ce01e1834e8c1eb8c5d15d30896187c69397; branch creation is non-substantive.",
     "First substantive action: RED commit 9c084e69041cb168bd31a96954d9df937aee5359 under Guard run 36250304277 / result comment 5847266347.",
     "Branch-native QA run 36250376673 terminal failure with 5 expected RED failures for RED-STOP-08/12/13; no harness failures.",
-    "Post-RED reconciliation Guard GREEN run 36250437614 / result comment 5847283342."
+    "Post-RED reconciliation Guard GREEN run 36250437614 / result comment 5847283342.",
+    "Implementation commit 6032d79f1ddc9d91c75c8b99d2b05e4bcf96e7c3 added local/remote live gate parity, scheduler END exact receipt verifier, and trusted END workflow validation.",
+    "Branch-native QA run 36250707212: 4 PASS / 2 FAIL; both failures are identical NameError: re is not defined in assert_scheduler_end_receipt.",
+    "Post-implementation reconciliation Guard GREEN run 36250782205 / result comment 5847325306."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",

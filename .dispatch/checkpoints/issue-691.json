@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "691",
   "branch": "work/issue691-turn-exit-scheduler-end-20260926",
-  "head_sha": "9c084e69041cb168bd31a96954d9df937aee5359",
+  "head_sha": "6032d79f1ddc9d91c75c8b99d2b05e4bcf96e7c3",
   "state": "RUNNING",
-  "next_action": "Implement RED-STOP-08/12/13: local live durable turn-exit parity, exact scheduler END receipt binding, and trusted END verification; rerun branch-native focused QA to GREEN.",
+  "next_action": "Fix the focused #691 implementation defect (missing re import), rerun branch-native QA to GREEN, then run broader continuity/turn-exit regressions.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,7 +20,10 @@
     "Authority remains AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION; branch creation/Guard/readback are non-substantive.",
     "Focused #691 RED committed at 9c084e69041cb168bd31a96954d9df937aee5359.",
     "Branch-native QA run 36250376673: 5 expected FAIL / 0 PASS proving missing local live gate + scheduler END exact receipt verifier.",
-    "Post-RED reconciliation Guard GREEN run 36250437614 / result comment 5847283342."
+    "Post-RED reconciliation Guard GREEN run 36250437614 / result comment 5847283342.",
+    "Implementation commit 6032d79f1ddc9d91c75c8b99d2b05e4bcf96e7c3.",
+    "Focused QA run 36250707212: 4 PASS / 2 FAIL; only blocker is missing import re.",
+    "Reconciliation Guard GREEN run 36250782205 / result comment 5847325306."
   ],
   "master_issue": null,
   "chain_state": "NONE",
