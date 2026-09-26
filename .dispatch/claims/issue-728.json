@@ -9,21 +9,25 @@
   "work_branch": "governance/issue728-scheduler-no-work-census",
   "claimed_at": "2026-09-26T13:25:00Z",
   "base_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
-  "head_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T13:25:00Z",
+  "head_sha": "ca71bcb485b22073d32e060b028d537adc1ff798",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T13:32:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create branch; add RED contract proving NO_MATCHING_HANDOFF != NO_WORK and READY_WORK_CENSUS_V1 exhaustive durable exclusion proof; implement in 排程模擬 and 寫排程; run focused + related regressions; PR/merge/finalize.",
+  "next_action": "Create PR to cleanup/2d-3d-sync from validated ca71bcb485b22073d32e060b028d537adc1ff798; verify CI/merge, then complete terminal closure/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-728.json",
   "evidence": [
     "TASK_START_AUTHORITY_DECLARATION_V1: authorization_source=user explicit '先補'; execution_intent=UPDATE_ONLY.",
     "Authorized scope: 排程模擬, 寫排程, necessary process contract test only.",
     "Prohibited scope: cadence/enabled/lane owner/claim ownership/takeover semantics/product tickets unchanged.",
-    "Phase6 Skill mutation preflight GREEN: C:\\Users\\Public\\whd_scheduler_no_work_preflight.md."
+    "Phase6 Skill mutation preflight GREEN: C:\\Users\\Public\\whd_scheduler_no_work_preflight.md.",
+    "RED: tests/process/test_scheduler_no_work_census_contract.py = 4 failed before implementation.",
+    "GREEN regression: 53 passed / 0 failed; git diff --check GREEN.",
+    "Work branch direct child H1=ca71bcb485b22073d32e060b028d537adc1ff798 contains only two Skill edits + one contract test.",
+    "Ordinary trusted post-commit reconciliation run 36245351028 failed closed because the preceding mutation used local Guard and therefore had no matching trusted GREEN receipt; recovery uses trusted claim activation reactivate to atomically rebind the same owner/branch/checkpoint to the already-existing H1 without replaying mutation."
   ]
 }

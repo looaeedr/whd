@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "728",
   "branch": "governance/issue728-scheduler-no-work-census",
-  "head_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
+  "head_sha": "ca71bcb485b22073d32e060b028d537adc1ff798",
   "state": "RUNNING",
-  "next_action": "Create branch; add RED contract proving NO_MATCHING_HANDOFF != NO_WORK and READY_WORK_CENSUS_V1 exhaustive durable exclusion proof; implement in 排程模擬 and 寫排程; run focused + related regressions; PR/merge/finalize.",
+  "next_action": "Create PR to cleanup/2d-3d-sync from validated ca71bcb485b22073d32e060b028d537adc1ff798; verify CI/merge, then complete terminal closure/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "Requirement authority: Issue #728 + explicit user instruction.",
     "Execution mode: UPDATE_ONLY.",
     "Base/head authority: cleanup/2d-3d-sync@b90f2ee4304726e7eb22b24b708c8fa37ffa8d55.",
-    "Preflight evidence GREEN."
+    "Preflight evidence GREEN.",
+    "RED 4 failed before implementation.",
+    "GREEN 53 passed / 0 failed; diff check GREEN.",
+    "Recovery evidence: trusted reconcile run 36245351028 fail-closed; no mutation replay. Candidate pair rebinds exact same owner/branch to existing direct-child H1."
   ],
   "master_issue": null,
   "chain_state": "NONE",
