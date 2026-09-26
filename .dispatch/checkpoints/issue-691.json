@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "691",
   "branch": "work/issue691-turn-exit-scheduler-end-20260926",
-  "head_sha": "6032d79f1ddc9d91c75c8b99d2b05e4bcf96e7c3",
+  "head_sha": "a26e1f1bbe0c93d26947e1ad8f3896c896701a05",
   "state": "RUNNING",
-  "next_action": "Fix the focused #691 implementation defect (missing re import), rerun branch-native QA to GREEN, then run broader continuity/turn-exit regressions.",
+  "next_action": "Run broader continuity/turn-exit/scheduler regression on exact head a26e1f1b, then perform acceptance/drift audit and hand terminal closure to #693.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -23,7 +23,10 @@
     "Post-RED reconciliation Guard GREEN run 36250437614 / result comment 5847283342.",
     "Implementation commit 6032d79f1ddc9d91c75c8b99d2b05e4bcf96e7c3.",
     "Focused QA run 36250707212: 4 PASS / 2 FAIL; only blocker is missing import re.",
-    "Reconciliation Guard GREEN run 36250782205 / result comment 5847325306."
+    "Reconciliation Guard GREEN run 36250782205 / result comment 5847325306.",
+    "Fix commit a26e1f1bbe0c93d26947e1ad8f3896c896701a05.",
+    "Focused QA run 36250946336: SUCCESS.",
+    "Reconciliation Guard GREEN run 36251008760 / result comment 5847352182."
   ],
   "master_issue": null,
   "chain_state": "NONE",
