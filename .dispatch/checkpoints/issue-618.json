@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "618",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "7fadcaf4e9c4331182a48e85d2721e585bba522e",
+  "head_sha": "4e62133bf515e79b32d53a1942b79c12d92707b0",
   "state": "RUNNING",
-  "next_action": "Continue #618 A3 DT-0~DT-6 from 7fadcaf4e9c4331182a48e85d2721e585bba522e: deepen baseline source/cache ownership, characterize legacy stretched scene adapters and thin ae compatibility facade, then run targeted DXF reopen/manufacturing regression and remote QA.",
+  "next_action": "Continue #618 A3 DT-0~DT-6 from 4e62133bf515e79b32d53a1942b79c12d92707b0: characterize remaining resource/path and legacy stretched-scene adapters, preserve ae.py as a thin compatibility facade, run targeted DXF reopen/manufacturing regression, then dispatch exact-head remote QA.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,8 @@
     "First premature push 42cc5f8df92a048a2cbffcaa09b106b6579ecf96 was rejected by trusted Remote Guard run 36212346391 with LIVE_CLAIM_HEAD_DRIFT_NOT_RECONCILIATION; exact compare proved one direct-child commit with only the four intended files, so the branch was surgically restored to c20bb25c334003d2e8439bf636b3a193b6debc78 using exact force-with-lease before retry.",
     "Correct pre-mutation Remote Guard run 36212565969 / request 5842467233 GREEN at claim HEAD c20bb25c334003d2e8439bf636b3a193b6debc78 for exact four-file serializer scope.",
     "Fresh guarded commit 7fadcaf4e9c4331182a48e85d2721e585bba522e created at 2026-09-26T02:43:49Z and non-force pushed as direct child of c20bb25c334003d2e8439bf636b3a193b6debc78.",
-    "Post-commit pair reconciliation Remote Guard run 36212621328 / request 5842476348 GREEN; trusted guard verified direct-child changed-file identity and prior GREEN receipt window."
+    "Post-commit pair reconciliation Remote Guard run 36212621328 / request 5842476348 GREEN; trusted guard verified direct-child changed-file identity and prior GREEN receipt window.",
+    "Baseline source/cache owner commit 4e62133bf515e79b32d53a1942b79c12d92707b0 is a direct child of 7fadcaf4e9c4331182a48e85d2721e585bba522e; pre-mutation Remote Guard 36213030391 GREEN, post-commit reconciliation Guard 36213075044 GREEN."
   ],
   "chain_state": "NONE",
   "next_issue": null,
