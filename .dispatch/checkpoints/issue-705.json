@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "705",
+  "branch": "work/issue705-startup-auth-purpose-20260926",
+  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "state": "RUNNING",
+  "next_action": "create guarded work branch, run RED-STOP-16 contract test, then implement the canonical startup Authorization/Purpose entry contract",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Amendment RED-STOP-16 approved on 2026-09-26 via #685 comment 5843692950.",
+    "Breakdown approved on 2026-09-26 via #685 comment 5844028895.",
+    "Owning implementation Issue #705."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
