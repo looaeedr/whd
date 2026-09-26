@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T01:00:46Z",
   "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "head_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-26T03:50:25Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T03:54:02Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
@@ -33,7 +33,7 @@
     "artifact_id": 10897785610,
     "artifact_sha256": "201182590231c3cf812369b9a9fb47389528c8924bd8c59cad614c2b4062da6b"
   },
-  "next_action": "Terminalize #618 A3 at cleaned accepted head acc38cd39ab548f802f6d18445ac8ca23550c335 with closure_state=FINALIZATION_PENDING and claim phase=CLOSING; preserve Master #627 handoff NEXT_CHILD_EXECUTABLE -> #620 A4. Then run canonical finalization/Issue close/release transaction.",
+  "next_action": "Advance #618 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Remote Guard, then submit exact trusted finalization proof, close Issue #618, and release the claim while preserving Master #627 handoff to #620.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-618.json",
   "predecessor": {
@@ -56,13 +56,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36216026316,
-    "request_comment_id": 5842917684,
+    "run_id": 36216211193,
+    "request_comment_id": 5842940161,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-cleanup atomic claim+checkpoint reconciliation to cleaned head"
+    "mutation": "terminalize #618 to TERMINAL_SUCCESS / FINALIZATION_PENDING with #620 handoff"
   },
   "evidence": [
     "Interactive stale takeover completed for #618: canonical evaluator classified prior chat owner EXECUTOR_STUCK at stale_seconds=5045; authority comment 5842349343; shared claim CAS transferred to chatgpt.sol260926.issue618.a3.",
@@ -84,7 +84,8 @@
     "Exact-head Remote QA run 36215728523 at QA head 180bdc988f81b8c8f974b213cbd89c6b92dcac32 completed SUCCESS: structural 37/37, manufacturing+DXF reopen 37/37, Xvfb 23/23 = 97 passed, 0 failed, 0 skipped. Protected config.ini and baseline DXF invariants GREEN. Artifact 10897785610 sha256:201182590231c3cf812369b9a9fb47389528c8924bd8c59cad614c2b4062da6b. QA workflow head is exactly one commit above 508478cdbfcb82bc2cf115991f1bc64d75c1ad00 and adds only .github/workflows/qa-issue618-a3-final.yml.",
     "Exact-head QA harness commit 180bdc988f81b8c8f974b213cbd89c6b92dcac32 ran GitHub Actions 36215728523 SUCCESS: P7-R-C/ASCG 37 passed; Baseline/DXF/reopen manufacturing 37 passed; Xvfb cross-environment 23 passed; protected config.ini and baseline DXF hashes unchanged; artifact 10897785610 sha256:201182590231c3cf812369b9a9fb47389528c8924bd8c59cad614c2b4062da6b.",
     "Post-QA reconciliation received duplicate identical GREEN write receipts: canonical consume uses request 5842890371 / run 36215819319; later duplicate request 5842892576 / run 36215836279 is not used and is invalidated for future exact matching by this claim-blob CAS.",
-    "One-shot QA workflow cleanup landed at acc38cd39ab548f802f6d18445ac8ca23550c335 as a direct child of 180bdc988f81b8c8f974b213cbd89c6b92dcac32 under commit Guard 36215947476; post-cleanup reconciliation Guard 36216026316 GREEN. Cleaned tree 683d40c511437af95deaad4316c2a8fa16f71f66 exactly equals pre-harness implementation tree at 508478cdbfcb82bc2cf115991f1bc64d75c1ad00; compare reports zero file differences."
+    "One-shot QA workflow cleanup landed at acc38cd39ab548f802f6d18445ac8ca23550c335 as a direct child of 180bdc988f81b8c8f974b213cbd89c6b92dcac32 under commit Guard 36215947476; post-cleanup reconciliation Guard 36216026316 GREEN. Cleaned tree 683d40c511437af95deaad4316c2a8fa16f71f66 exactly equals pre-harness implementation tree at 508478cdbfcb82bc2cf115991f1bc64d75c1ad00; compare reports zero file differences.",
+    "Terminalization Guard 36216211193 / request 5842940161 GREEN consumed at cleaned accepted head acc38cd39ab548f802f6d18445ac8ca23550c335; #618 enters TERMINAL_SUCCESS / FINALIZATION_PENDING. Fresh dependency readback confirms #620 A4 is open, Approved RED P7-R-D, and blocked by #618."
   ],
   "local_validation": {
     "red": "2 failed: bounded dxf_serialization owner absent",
@@ -136,5 +137,19 @@
       "tree_equals_implementation": true,
       "file_diff_count": 0
     }
-  }
+  },
+  "guard_readbacks": [
+    {
+      "guard_run_id": 36216211193,
+      "action": "write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [
+        ".dispatch/claims/issue-618.json",
+        ".dispatch/checkpoints/issue-618.json"
+      ],
+      "target_changed": true,
+      "observed_at": "2026-09-26T03:54:02Z"
+    }
+  ]
 }
