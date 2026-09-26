@@ -13,13 +13,14 @@
   "evidence": [
     "PR #773 merged to trusted main at 33503143a8fbcc4f787bb2783e9e11f9c3b1ea74.",
     "Trusted main blob parity with accepted #768 source confirmed.",
-    "#762 final release succeeded with new Remote Guard authority."
+    "#762 final release succeeded with new Remote Guard authority.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING using Guard run 36277713491."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/readback #772, then atomically CLOSED+RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize and verify finalization proof for exact #772 checkpoint, close/readback Issue #772, then advance RELEASE_HANDOFF_PENDING."
 }
