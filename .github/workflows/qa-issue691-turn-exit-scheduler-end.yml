@@ -1,0 +1,37 @@
+name: QA Issue691 T3 Turn Exit Scheduler END
+
+on:
+  push:
+    branches:
+      - work/issue691-turn-exit-scheduler-end-20260926
+    paths:
+      - 'tests/process/test_issue691_turn_exit_scheduler_end_parity.py'
+      - 'tools/continuity_controller.py'
+      - '.github/workflows/whd-turn-exit-gate.yml'
+      - '.github/workflows/qa-issue691-turn-exit-scheduler-end.yml'
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - 'tests/process/test_issue691_turn_exit_scheduler_end_parity.py'
+      - 'tools/continuity_controller.py'
+      - '.github/workflows/whd-turn-exit-gate.yml'
+      - '.github/workflows/qa-issue691-turn-exit-scheduler-end.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Run #691 focused parity contract
+        run: python -m pytest tests/process/test_issue691_turn_exit_scheduler_end_parity.py -q
