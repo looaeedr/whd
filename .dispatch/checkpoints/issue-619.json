@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
+  "head_sha": "e308170aa4c2fa5878eb56f250cb4919d53e0186",
   "state": "RUNNING",
-  "next_action": "Apply the B4 production sequencing fix at Phase6FoldDesignerSettingsCoordinator.apply_baseline_transition by suppressing the commit-stage apply_profile_plan render and retaining the single authoritative submit_update_intent after baseline_stage=finalize; then run the exact #619 Xvfb acceptance and existing live-switch/coordinator regressions to GREEN.",
+  "next_action": "Diagnose the remaining commit-stage visible render on head e308170aa4c2fa5878eb56f250cb4919d53e0186 by tracing sync_derived_parts, refresh_topology, refresh_persistent_controls, and nested update/render paths before baseline_stage=finalize; patch only the actual pre-finalize effect seam, then rerun exact #619 Xvfb acceptance.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,11 @@
     "B4 acceptance RED committed at 1f88f33ea21a8dfd532b8ccce747e1779150df0a under Guard 36205952414.",
     "Exact Xvfb run 36206010112 failed only the atomic visible-commit condition: current path emits commit-stage invalid scene then finalize-stage valid scene; 5 companion tests passed.",
     "Artifact 10894225095 is durable B4 RED evidence.",
-    "Post-commit pair reconciliation authorized by Guard 36206028583."
+    "Post-commit pair reconciliation authorized by Guard 36206028583.",
+    "B4 implementation candidate e308170aa4c2fa5878eb56f250cb4919d53e0186 suppresses apply_profile_plan rendering during baseline commit.",
+    "Exact run 36206167411 still fails the atomic visible-commit assertion with the same 2-record commit/finalize sequence; 5 companion tests pass.",
+    "Artifact 10893049706 records the failed candidate.",
+    "Post-commit pair reconciliation authorized by Guard 36206184000."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
