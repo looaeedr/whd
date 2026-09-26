@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "715",
+  "branch": "work/issue715-work-slot-skill-20260926",
+  "head_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
+  "state": "RUNNING",
+  "next_action": "Create the exact UPDATE_ONLY work branch, add focused RED contract tests for /工作1 /工作2 /工作3 and /工作槽 semantics, then implement the canonical 工作槽 Skill + registry/readme routing and validate without starting any implementation Issue.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User explicitly requested a standalone canonical 工作槽 Skill and fixed /工作1 /工作2 /工作3 entrypoints.",
+    "Execution intent is UPDATE_ONLY; no existing implementation Issue may be started by this task.",
+    "Phase6 Skill preflight is GREEN for 工作槽/SKILL.md + skill_registry.json + engineering/README.md + focused contract test.",
+    "Fresh production target cleanup/2d-3d-sync HEAD=fa1b105daed90684db8e0b7500c0a81894cc0c55."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

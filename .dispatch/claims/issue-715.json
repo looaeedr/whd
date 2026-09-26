@@ -1,0 +1,21 @@
+{
+  "issue": 715,
+  "issue_url": "https://github.com/looaeedr/whd/issues/715",
+  "worker": "chatgpt.sol260926.workslot.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.workslot.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue715-work-slot-skill-20260926",
+  "claimed_at": "2026-09-26T08:27:02Z",
+  "base_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
+  "head_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T08:27:02Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Create the exact UPDATE_ONLY work branch, add focused RED contract tests for /工作1 /工作2 /工作3 and /工作槽 semantics, then implement the canonical 工作槽 Skill + registry/readme routing and validate without starting any implementation Issue.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-715.json",
+  "execution_intent": "UPDATE_ONLY"
+}
