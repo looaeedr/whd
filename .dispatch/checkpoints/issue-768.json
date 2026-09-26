@@ -14,13 +14,14 @@
     "Hard gate merged to X at 1de50f9a63ae6f61c1614ae757a31bd471f27ac8.",
     "Trusted Remote Guard parity helper #772 CLOSED + RELEASED.",
     "#762 closure deadlock regression repaired and final CLOSED + RELEASED verified.",
-    "126 adjacent tests passed; Phase6 preflight GREEN."
+    "126 adjacent tests passed; Phase6 preflight GREEN.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/readback #768, then atomically CLOSED+RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize and verify finalization proof for exact #768 checkpoint, close/readback Issue #768, then advance RELEASE_HANDOFF_PENDING."
 }
