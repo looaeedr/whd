@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "697",
   "branch": "work/issue697-operation-transaction-core-20260926",
-  "head_sha": "3969ac5d0ffdffa975824921b85b1168713abc21",
+  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "state": "RUNNING",
-  "next_action": "remove one-shot A2 QA workflow, reconcile closing head, verify only expected A2 production/test files remain, then mark A2 accepted-pending-chain-closure and hand off #698/#699/#700",
+  "next_action": "Audit tested head 3969ac5d0ffdffa975824921b85b1168713abc21 to closing head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e; require cleanup-only workflow deletion with zero production/test drift, then terminalize A2.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,10 @@
     "A2 minimum GREEN implementation ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1: exact run 36226816283 passed 7/7.",
     "Broader remote regression run 36227111155 / job 108363140084 at 3969ac5d0ffdffa975824921b85b1168713abc21: 53 passed / 0 failed; marker ISSUE697_A2_REGRESSION_GREEN=PASS.",
     "Regression scope includes A2 behavior, continuity controller, checkpoint resume contract and turn-exit enforcement.",
-    "One-shot QA workflow cleanup and closing drift audit remain before A2 terminal acceptance."
+    "One-shot QA workflow cleanup and closing drift audit remain before A2 terminal acceptance.",
+    "Cleanup commit 03da7a28d0aa04fae85fd9a92f13c0a8129af83e removes only .github/workflows/qa-issue697-operation-transaction.yml; prior owner had commit Guard 36227256106 GREEN and reconciliation Guard 36227371332 GREEN but did not persist the pair before becoming stale.",
+    "User-directed takeover transferred ownership to chatgpt.sol260926.cleanup.1; normal new-owner reconciliation run 36231154918 fail-closed because prior mutation receipt remained bound to the old owner/blob.",
+    "Trusted Claim Activation reactivate is used solely to atomically synchronize the active claim/checkpoint pair to the already-existing cleanup H1."
   ],
   "master_issue": null,
   "chain_state": "NONE",
