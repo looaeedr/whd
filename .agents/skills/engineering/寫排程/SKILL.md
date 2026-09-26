@@ -135,6 +135,15 @@ whd_schema: WHD_DOC_META_V1
 - 驗證 canonical name / contract；
 - live authority 與 prompt 衝突時，live authority 優先。
 
+#### SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1
+
+所有新建或修改的 WHD A/B recurring scheduler prompt 都必須明確要求：**每次 wake** 在 handoff 判定、ordinary discovery 或任何 NO_WORK / `NO_EXECUTABLE_WORK` 結論之前，fresh-read production `.agents/skills/engineering/排程模擬/SKILL.md`。
+
+- 此 read **不論**本輪是否存在 matching planned handoff 都必須發生；不得把《排程模擬》綁成只有 work-slot handoff 才讀。
+- 真實 scheduled entrypoint 與 interactive same-lane resume 都使用同一 live《排程模擬》census / continuity contract，但必須保留各自真實 physical invocation provenance。
+- 《工作槽》仍可依是否存在 work-slot handoff 按需載入；這不影響《排程模擬》每輪必讀。
+- replacement prompt 的 post-update readback 必須驗證「每次 wake + `.agents/skills/engineering/排程模擬/SKILL.md` + 不論 handoff」語意仍存在，不能為縮短 prompt 刪除。
+
 ### 4.2 LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY
 
 <!-- LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY -->

@@ -1,6 +1,6 @@
 ---
 name: 排程模擬
-description: 當使用者在 WHD 聊天室輸入 /排程A 或 /排程B 時使用；以對應 durable scheduler lane 的 logical owner 與現行排程行為做互動式 same-lane resume，避免另建第二個 logical owner，並在合法接手後執行 NEW排程A/B 聊天室標題與釘選交接。不得用來偽造平台 scheduled trigger。
+description: WHD A/B recurring scheduler lane 的 shared runtime contract；同時適用於真實 recurring scheduled entrypoint 與使用者明確輸入 /排程A 或 /排程B 的互動式 same-lane resume。維持同一 durable logical owner、READY_WORK_CENSUS 與 continuity 規則；互動命令不得偽造成平台 scheduled trigger，scheduled invocation 也不得被誤當成只限互動模式。
 whd_doc_role: CURRENT
 whd_contract: scheduler-interactive-lane-resume
 whd_canonical: null
@@ -11,13 +11,20 @@ whd_schema: WHD_DOC_META_V1
 
 ## EXECUTION_INTENT_ROUTING_V1_BRIDGE
 
-本 Skill 是明確 execution entrypoint：`/排程A` / `/排程B` = `SCHEDULER_LANE`。只有使用者輸入 exact command 才進此模式；普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式。
+本 Skill 是 A/B durable scheduler lane 的 shared runtime entry contract。合法進入 `SCHEDULER_LANE` 有兩種 physical invocation：真實 recurring scheduled entrypoint，或使用者輸入 exact `/排程A` / `/排程B` 進行同 lane 的互動式 resume。普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式；互動式 resume 也不得宣稱自己是平台 scheduled trigger。
+
+### REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1
+
+- `actual_invocation_source=scheduler`：host 真實觸發 A lane 的 `00 / 20 / 40` 或 B lane 的 `B15 / B45` 時，schedule trigger 本身就是該 invocation 的 `SCHEDULER_LANE` execution authority；entrypoint 仍不是 durable owner。
+- `actual_invocation_source=chatgpt_interactive`：只有使用者明確輸入 exact `/排程A` / `/排程B` 時，才可用相同 durable lane owner 做 same-lane interactive resume。
+- 兩種 physical source 進入後都套用同一份 handoff、`READY_WORK_CENSUS_V1`、claim/Guard、exact-run lock、continuity 與 turn-exit contract；不得因 scheduled source 沒有聊天室 command 就略過 census。
+- scheduled invocation 必須保留真實 scheduler provenance；interactive invocation 必須保留真實 chat provenance。logical owner 相同不代表 physical source 相同。
 
 ## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
 
 本 Skill 不建立第二套 startup declaration；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
 
-- exact `/排程A` / `/排程B` 建立 `SCHEDULER_LANE` 後，Skill 公告後立即聲明 authorization source、purpose、lane-level authorized/prohibited scope 與 `resume_authority`，再做 claim 或 mutation。
+- 真實 recurring scheduled entrypoint 或 exact `/排程A` / `/排程B` 合法建立 `SCHEDULER_LANE` 後，Skill 公告後立即聲明 authorization source、purpose、lane-level authorized/prohibited scope 與 `resume_authority`，再做 claim 或 mutation；physical invocation source 必須如實記錄。
 - 若尚未選出 executable leaf，`authorized_scope` 只能寫 exact lane + canonical discovery boundary；不得預先聲稱某張 Issue 已授權。
 - discovery 後、第一個 claim / checkpoint mutation 前，把 exact issue / branch / HEAD / next_action 寫入 durable evidence；已有合法 same-lane claim 時，`resume_authority` 必須指向 exact checkpoint/next_action。
 - 其他 lane、unrelated ready leaf、空工作槽與 open Issue 都不能因 startup declaration 變成 execution authority。
@@ -32,7 +39,7 @@ takeover、reconciliation、pending-Guard recovery 只在 fresh machine evidence
 
 ### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
 
-scheduler lane / work slot 是 routing 與互斥 identity，不是 execution authority。空工作槽、open / unblocked Issue 本身不構成 execution authority；本 Skill 只有在 exact `/排程A` / `/排程B` 已建立 `SCHEDULER_LANE` mode 後，才可依 canonical discovery 選 executable leaf。
+scheduler lane / work slot 是 routing 與互斥 identity，不是 execution authority。空工作槽、open / unblocked Issue 本身不構成 execution authority；本 Skill 只有在真實 recurring scheduled A/B entrypoint 已由 host 觸發，或 exact `/排程A` / `/排程B` 已建立 `SCHEDULER_LANE` mode 後，才可依 canonical discovery 選 executable leaf。
 
 ### WORK_SLOT_HANDOFF_RECEIVER_V1
 
@@ -71,16 +78,16 @@ terminal child 後，**只有 SCHEDULER_LANE / chain authority** 已合法允許
 - 沒有 chain authority 時，本票 closure/release 完成後不得因 slot 空出而自行 discovery 下一票。
 
 
-這個 Skill 只處理 WHD A/B recurring lane 的**互動式接手與續跑**。它不是第三條 scheduler lane，也不是新的派工 authority。
+這個 Skill 是 WHD A/B recurring lane 的 **shared runtime contract**：同時約束真實 scheduled invocation 與互動式 same-lane 接手/續跑。它不是第三條 scheduler lane，也不是新的派工 authority。
 
 ## 0. Trigger
 
-只在使用者明確輸入下列命令時啟用：
+本 Skill 有兩類合法 trigger，兩者都進入既有 A/B durable lane，不建立新 owner：
 
-- `/排程A`
-- `/排程B`
+1. **real recurring scheduled invocation**：host 實際喚醒 A 的 `00 / 20 / 40` 或 B 的 `B15 / B45` entrypoint；`actual_invocation_source=scheduler`。
+2. **interactive same-lane resume**：使用者明確輸入 `/排程A` 或 `/排程B`；`actual_invocation_source=chatgpt_interactive`。
 
-普通文字提到「排程 A/B」不自動取得 lane ownership。
+普通文字提到「排程 A/B」不自動取得 lane ownership；互動命令不得偽造 scheduled trigger，scheduled trigger 也不需要等待聊天室 exact command。
 
 固定 lane mapping：
 
@@ -134,17 +141,25 @@ B15 / B45 是同一 durable B lane；entrypoint 不是 owner。
 
 ### 2.1 Logical owner 與 physical invocation 分離
 
-`lane_owner` 是 durable ownership identity；互動聊天室只是本輪 physical invocation。
+`lane_owner` 是 durable ownership identity；physical invocation 必須依真實來源記錄，不能由 logical owner 反推。
 
 ```text
 logical_owner = scheduler.<lane-id>
+
+scheduled:
+entrypoint = scheduled:00|20|40|B15|B45
+invocation_identity = exact scheduler invocation identity if exposed,
+                      otherwise exact entrypoint + fresh stable-per-invocation token
+actual_invocation_source = scheduler
+
+interactive:
 entrypoint = interactive:/排程A | interactive:/排程B
 invocation_identity = exact current chat/conversation identity if exposed,
                       otherwise a fresh stable-per-invocation chat.<token>
 actual_invocation_source = chatgpt_interactive
 ```
 
-**不得把「logical owner 相同」解讀成「本輪真的由平台 scheduler 觸發」。**
+**不得把「logical owner 相同」解讀成 physical source 相同，也不得把 interactive resume 說成平台 scheduler trigger。**
 
 如果 host 不暴露 conversation id：
 - 不得杜撰 conversation id；
