@@ -11,13 +11,13 @@
   "base_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
   "head_sha": "141123445c00d4dbef637d95ba5d756c30db58e0",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T22:37:04Z",
+  "last_update": "2026-09-26T22:40:16Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run trusted Remote Finalization against the exact ISSUE_CLOSE_PENDING checkpoint, then close/read back Issue #764 without mutating the checkpoint in between.",
+  "next_action": "Atomically persist checkpoint closure_state=CLOSED and claim phase=RELEASED; no successor/chain handoff exists for #764.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-764.json",
   "evidence": [
@@ -47,6 +47,9 @@
     "PR #770 merged to cleanup/2d-3d-sync at 73eeb38746f4809e5362348158f9dcf3526981d2",
     "fresh production readback cleanup@73eeb38746f4809e5362348158f9dcf3526981d2",
     "terminal checkpoint write Guard run=36276787909 request=5850513381 receipt=5850515196",
-    "ISSUE_CLOSE_PENDING advance Guard run=36276847482 request=5850522692 receipt=5850524231"
+    "ISSUE_CLOSE_PENDING advance Guard run=36276847482 request=5850522692 receipt=5850524231",
+    "Remote Finalization run=36276961037 result=GREEN reason=FINALIZATION_PROOF_VALID artifact=10916528982 request=5850539180",
+    "Issue #764 fresh-read closed/completed",
+    "RELEASE_HANDOFF_PENDING advance Guard run=36277019922 request=5850547213 receipt=5850548643"
   ]
 }

@@ -28,13 +28,16 @@
     "PR #770 merged to cleanup/2d-3d-sync at 73eeb38746f4809e5362348158f9dcf3526981d2.",
     "Fresh production readback confirms merged production HEAD.",
     "Terminal transition authorized by Guard run 36276787909.",
-    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Guard run 36276847482."
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Guard run 36276847482.",
+    "Remote Finalization run 36276961037 terminal success; bound artifact 10916528982; FINALIZATION_PROOF_VALID.",
+    "Issue #764 closed/completed and fresh-read confirmed.",
+    "Closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard run 36277019922."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof and close/read back the owning Issue without mutating this checkpoint"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff exists"
 }
