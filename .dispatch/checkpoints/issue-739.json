@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "739",
+  "branch": "governance/issue739-pr-write-auto-consume-20260926",
+  "head_sha": "0d8a36b686630e00284a67465da82b1401231254",
+  "state": "RUNNING",
+  "next_action": "Establish RED for exact pr-write GREEN + live PR durable auto-consume, then implement trusted workflow/tool readback and regression.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Authority: live #733 blocker caused by pr-write durable readback gap.",
+    "Main baseline 0d8a36b686630e00284a67465da82b1401231254."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

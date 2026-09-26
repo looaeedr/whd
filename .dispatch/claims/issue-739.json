@@ -1,0 +1,27 @@
+{
+  "issue": 739,
+  "issue_url": "https://github.com/looaeedr/whd/issues/739",
+  "worker": "chatgpt.sol260926.issue739.prauto1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue739.prauto1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue739-pr-write-auto-consume-20260926",
+  "claimed_at": "2026-09-26T15:46:10Z",
+  "base_sha": "0d8a36b686630e00284a67465da82b1401231254",
+  "head_sha": "0d8a36b686630e00284a67465da82b1401231254",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T15:46:10Z",
+  "production_target": "main",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Establish RED for exact pr-write GREEN + live PR durable auto-consume, then implement trusted workflow/tool readback and regression.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-739.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: #733 batch parity is blocked by prior pr-write GREEN 36251791591 even though PR #734 exists durably.",
+    "Execution intent: reusable pr-write durable auto-consume repair only.",
+    "Main baseline: 0d8a36b686630e00284a67465da82b1401231254."
+  ]
+}
