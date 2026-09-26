@@ -11,10 +11,10 @@
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T14:10:00Z",
+  "last_update": "2026-09-26T14:11:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard, create the WI-2 branch from exact production HEAD, then run focused RED characterization for planned handoff sender + Scheduler A/B receiver without changing recurring cadence.",
+  "next_action": "Run focused RED characterization for planned handoff sender + Scheduler A/B receiver on the existing exact branch, then implement only the accepted WI-2 scope without changing recurring cadence.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -38,6 +38,9 @@
   "evidence": [
     "Interactive /排程B 680 selected durable B lane; physical invocation remains chatgpt_interactive.",
     "Remote Guard run 36247505394 GREEN claim-takeover; classification=EXECUTOR_STUCK; stale_seconds=36734; no active exact run.",
-    "Single-use takeover receipt consumed by exact claim-owner CAS; branch/base/head unchanged."
+    "Single-use takeover receipt consumed by exact claim-owner CAS; branch/base/head unchanged.",
+    "Fresh branch readback proves work/issue680-planned-handoff-scheduler-receiver-20260926 already exists at exact claim HEAD cb0c6ada73d4bee15572c42220f03993a93554fc; branch-create next_action is superseded.",
+    "Remote Guard run 36247597276 GREEN authorized exact claim/checkpoint pair reconciliation.",
+    "Canonical next action advanced to focused RED characterization; no repository implementation mutation replayed."
   ]
 }

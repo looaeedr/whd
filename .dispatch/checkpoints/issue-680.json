@@ -4,7 +4,7 @@
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard, create the WI-2 branch from exact production HEAD, then run focused RED characterization for planned handoff sender + Scheduler A/B receiver without changing recurring cadence.",
+  "next_action": "Run focused RED characterization for planned handoff sender + Scheduler A/B receiver on the existing exact branch, then implement only the accepted WI-2 scope without changing recurring cadence.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,8 +14,11 @@
     "Requirement Authority: accepted HA safe-shutdown spec v1.4 and user-approved WI breakdown.",
     "Dependency #678 fresh-read closed/completed with claim RELEASED and checkpoint CLOSED.",
     "Fresh production target cleanup/2d-3d-sync HEAD=cb0c6ada73d4bee15572c42220f03993a93554fc.",
-    "WI-2 includes both planned handoff sender and Scheduler A/B receiver/resume path; recurring cadence must remain unchanged."
+    "WI-2 includes both planned handoff sender and Scheduler A/B receiver/resume path; recurring cadence must remain unchanged.",
+    "Interactive /排程B takeover readback: claim owner scheduler.e58ea936e7d0b12bd0d475314709d6f1.",
+    "Existing branch exact HEAD cb0c6ada73d4bee15572c42220f03993a93554fc; branch-create step already materially satisfied.",
+    "Remote Guard run 36247597276 GREEN; pair reconciled to focused RED characterization."
   ],
-  "closure_state": "CLOSED",
+  "closure_state": "OPEN",
   "closure_next_action": null
 }
