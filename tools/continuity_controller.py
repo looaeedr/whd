@@ -1193,7 +1193,7 @@ def evaluate_turn_exit_from_durable_state(
     return "TURN_EXIT_PERMITTED"
 
 
-def evaluate_remote_turn_exit_from_durable_state(
+def _evaluate_live_turn_exit_from_durable_state(
     checkpoint: Checkpoint | None,
     *,
     issue_state: str | None,
@@ -1209,7 +1209,7 @@ def evaluate_remote_turn_exit_from_durable_state(
     expected_master_issue: str | None = None,
     blocked_exit_proof: object | None = None,
 ) -> str:
-    """Trusted remote turn-exit decision from fresh durable evidence."""
+    """Shared local/remote turn-exit authority from the same fresh durable evidence."""
 
     result = evaluate_turn_exit_from_durable_state(
         checkpoint,
@@ -1254,6 +1254,167 @@ def evaluate_remote_turn_exit_from_durable_state(
         raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: {delegated}")
 
     return result
+
+
+def evaluate_local_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+    transaction_state: object | None,
+    live_branch_head_sha: str,
+    active_remote_run: bool = False,
+    delegated_work_state: str = "NONE",
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
+) -> str:
+    """Local/interactive gate with the same durable invariants as trusted remote."""
+
+    return _evaluate_live_turn_exit_from_durable_state(
+        checkpoint,
+        issue_state=issue_state,
+        issue_state_reason=issue_state_reason,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+        live_branch_head_sha=live_branch_head_sha,
+        active_remote_run=active_remote_run,
+        delegated_work_state=delegated_work_state,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+        expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
+    )
+
+
+def evaluate_remote_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+    transaction_state: object | None,
+    live_branch_head_sha: str,
+    active_remote_run: bool = False,
+    delegated_work_state: str = "NONE",
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
+) -> str:
+    """Trusted remote gate with the same durable invariants as local/interactive."""
+
+    return _evaluate_live_turn_exit_from_durable_state(
+        checkpoint,
+        issue_state=issue_state,
+        issue_state_reason=issue_state_reason,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+        live_branch_head_sha=live_branch_head_sha,
+        active_remote_run=active_remote_run,
+        delegated_work_state=delegated_work_state,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+        expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
+    )
+
+
+def _positive_scheduler_end_int(label: str, value: object) -> int:
+    if isinstance(value, bool):
+        raise TurnExitBlocked(f"scheduler END {label} must be a positive integer")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise TurnExitBlocked(
+            f"scheduler END {label} must be a positive integer"
+        ) from exc
+    if parsed <= 0:
+        raise TurnExitBlocked(f"scheduler END {label} must be a positive integer")
+    return parsed
+
+
+def assert_scheduler_end_receipt(
+    end_payload: Mapping[str, object],
+    *,
+    turn_exit_receipt: Mapping[str, object],
+    result_comment_id: int,
+) -> Mapping[str, object]:
+    """Bind scheduler END to one exact trusted TURN_EXIT_PERMITTED result comment."""
+
+    if not isinstance(end_payload, Mapping):
+        raise TurnExitBlocked("scheduler END payload must be an object")
+    if not isinstance(turn_exit_receipt, Mapping):
+        raise TurnExitBlocked("scheduler END turn-exit receipt must be an object")
+
+    if end_payload.get("schema") != "WHD_SCHEDULER_RUNTIME_END_V1":
+        raise TurnExitBlocked("scheduler END marker/schema mismatch")
+    if turn_exit_receipt.get("schema") != "WHD_REMOTE_TURN_EXIT_RESULT_V1":
+        raise TurnExitBlocked("scheduler END turn-exit receipt schema mismatch")
+    if (
+        turn_exit_receipt.get("result") != "TURN_EXIT_PERMITTED"
+        or turn_exit_receipt.get("scheduler_end_allowed") is not True
+        or turn_exit_receipt.get("required_end_marker")
+        != "WHD_SCHEDULER_RUNTIME_END_V1"
+    ):
+        raise TurnExitBlocked(
+            "scheduler END requires exact TURN_EXIT_PERMITTED receipt"
+        )
+
+    actual_result_comment_id = _positive_scheduler_end_int(
+        "result comment id", result_comment_id
+    )
+    bound_result_comment_id = _positive_scheduler_end_int(
+        "result comment id", end_payload.get("result_comment_id")
+    )
+    if bound_result_comment_id != actual_result_comment_id:
+        raise TurnExitBlocked("scheduler END result comment mismatch")
+
+    request_comment_id = _positive_scheduler_end_int(
+        "request comment id", end_payload.get("request_comment_id")
+    )
+    receipt_request_comment_id = _positive_scheduler_end_int(
+        "request comment id", turn_exit_receipt.get("request_comment_id")
+    )
+    if request_comment_id != receipt_request_comment_id:
+        raise TurnExitBlocked("scheduler END request comment mismatch")
+
+    if str(end_payload.get("issue") or "") != str(turn_exit_receipt.get("issue") or ""):
+        raise TurnExitBlocked("scheduler END issue mismatch")
+    if str(end_payload.get("scheduler_lane") or "") != str(
+        turn_exit_receipt.get("worker") or ""
+    ):
+        raise TurnExitBlocked("scheduler END scheduler lane/worker mismatch")
+    if str(end_payload.get("invocation_identity") or "") != str(
+        turn_exit_receipt.get("invocation_identity") or ""
+    ):
+        raise TurnExitBlocked("scheduler END invocation identity mismatch")
+
+    end_fingerprint = str(end_payload.get("checkpoint_fingerprint") or "")
+    receipt_fingerprint = str(turn_exit_receipt.get("checkpoint_fingerprint") or "")
+    if (
+        len(end_fingerprint) != 64
+        or not re.fullmatch(r"[0-9a-f]{64}", end_fingerprint)
+        or end_fingerprint != receipt_fingerprint
+    ):
+        raise TurnExitBlocked("scheduler END checkpoint fingerprint mismatch")
+
+    end_run_id = _positive_scheduler_end_int(
+        "turn-exit run id", end_payload.get("turn_exit_run_id")
+    )
+    receipt_run_id = _positive_scheduler_end_int(
+        "turn-exit run id", turn_exit_receipt.get("run_id")
+    )
+    if end_run_id != receipt_run_id:
+        raise TurnExitBlocked("scheduler END turn-exit run mismatch")
+
+    return dict(turn_exit_receipt)
 
 
 def _checkpoint_digest(path: Path) -> str:

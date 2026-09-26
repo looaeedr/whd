@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 import tools.continuity_controller as continuity
@@ -138,3 +140,20 @@ def test_red_stop_13_scheduler_end_rejects_stale_or_wrong_receipt_identity(
             turn_exit_receipt=_turn_exit_receipt(),
             result_comment_id=202,
         )
+
+
+def test_trusted_workflow_validates_scheduler_end_comment() -> None:
+    text = Path(".github/workflows/whd-turn-exit-gate.yml").read_text(
+        encoding="utf-8"
+    )
+    for token in (
+        "scheduler-end:",
+        "WHD_SCHEDULER_RUNTIME_END_V1",
+        "assert_scheduler_end_receipt",
+        "request_comment_id",
+        "result_comment_id",
+        "checkpoint_fingerprint",
+        "turn_exit_run_id",
+        "WHD_SCHEDULER_RUNTIME_END_RESULT_V1",
+    ):
+        assert token in text

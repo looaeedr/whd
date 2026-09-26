@@ -275,3 +275,158 @@ jobs:
       - name: Enforce TURN_EXIT_DENIED
         if: steps.gate.outputs.result != 'TURN_EXIT_PERMITTED'
         run: exit 1
+
+  scheduler-end:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, 'WHD_SCHEDULER_RUNTIME_END_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted workflow repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify scheduler END exact turn-exit receipt
+        id: end
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          from tools.continuity_controller import assert_scheduler_end_receipt
+
+          if os.environ["COMMENT_AUTHOR"] != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("scheduler END must be authored by repository owner")
+
+          lines = os.environ["COMMENT_BODY"].replace("\r\n", "\n").split("\n")
+          if not lines or lines[0].strip() != "WHD_SCHEDULER_RUNTIME_END_V1":
+              raise SystemExit("invalid scheduler END marker")
+
+          required = {
+              "issue",
+              "scheduler_lane",
+              "invocation_identity",
+              "request_comment_id",
+              "result_comment_id",
+              "checkpoint_fingerprint",
+              "turn_exit_run_id",
+          }
+          values = {}
+          for raw in lines[1:]:
+              if not raw.strip():
+                  continue
+              if "=" not in raw:
+                  raise SystemExit(f"malformed scheduler END line: {raw!r}")
+              key, value = raw.split("=", 1)
+              key, value = key.strip(), value.strip()
+              if key not in required or key in values:
+                  raise SystemExit(f"unsupported/duplicate scheduler END key: {key}")
+              values[key] = value
+          missing = sorted(required - set(values))
+          if missing:
+              raise SystemExit(f"missing scheduler END keys: {missing}")
+          if int(values["issue"]) != int(os.environ["EVENT_ISSUE"]):
+              raise SystemExit("scheduler END issue mismatch")
+
+          result_comment_id = int(values["result_comment_id"])
+          request_comment_id = int(values["request_comment_id"])
+          result_comment = json.loads(
+              subprocess.check_output(
+                  [
+                      "gh",
+                      "api",
+                      f"repos/{os.environ['GITHUB_REPOSITORY']}/issues/comments/{result_comment_id}",
+                  ],
+                  text=True,
+              )
+          )
+          if str(result_comment.get("user", {}).get("login") or "") != "github-actions[bot]":
+              raise SystemExit("scheduler END result comment must be bot-authored")
+
+          request_comment = json.loads(
+              subprocess.check_output(
+                  [
+                      "gh",
+                      "api",
+                      f"repos/{os.environ['GITHUB_REPOSITORY']}/issues/comments/{request_comment_id}",
+                  ],
+                  text=True,
+              )
+          )
+          if str(request_comment.get("user", {}).get("login") or "") != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("scheduler END request comment must be owner-authored")
+          if not str(request_comment.get("body") or "").startswith(
+              "WHD_REMOTE_TURN_EXIT_REQUEST_V1"
+          ):
+              raise SystemExit("scheduler END request comment marker mismatch")
+
+          body = str(result_comment.get("body") or "")
+          if not body.startswith("WHD_REMOTE_TURN_EXIT_RESULT_V1"):
+              raise SystemExit("scheduler END result comment marker mismatch")
+          match = re.search(r"~~~json\s*(\{.*?\})\s*~~~", body, re.S)
+          if not match:
+              raise SystemExit("scheduler END result comment JSON missing")
+          receipt = json.loads(match.group(1))
+
+          normalized = {
+              "schema": "WHD_SCHEDULER_RUNTIME_END_V1",
+              "issue": int(values["issue"]),
+              "scheduler_lane": values["scheduler_lane"],
+              "invocation_identity": values["invocation_identity"],
+              "request_comment_id": request_comment_id,
+              "result_comment_id": result_comment_id,
+              "checkpoint_fingerprint": values["checkpoint_fingerprint"],
+              "turn_exit_run_id": int(values["turn_exit_run_id"]),
+          }
+          assert_scheduler_end_receipt(
+              normalized,
+              turn_exit_receipt=receipt,
+              result_comment_id=result_comment_id,
+          )
+
+          result = {
+              "schema": "WHD_SCHEDULER_RUNTIME_END_RESULT_V1",
+              **normalized,
+              "result": "GREEN",
+              "reason": "EXACT_TURN_EXIT_RECEIPT_BOUND",
+              "validation_run_id": int(os.environ["GITHUB_RUN_ID"]),
+          }
+          Path("/tmp/scheduler-end-result.json").write_text(
+              json.dumps(result, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(
+              "SCHEDULER_END_VALID "
+              f"request_comment_id={request_comment_id} "
+              f"result_comment_id={result_comment_id} "
+              f"checkpoint_fingerprint={values['checkpoint_fingerprint']}"
+          )
+          PY
+
+      - name: Publish scheduler END validation receipt
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const receipt = fs.readFileSync('/tmp/scheduler-end-result.json', 'utf8').trim();
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: ['WHD_SCHEDULER_RUNTIME_END_RESULT_V1', '~~~json', receipt, '~~~'].join('\n'),
+            });
+
