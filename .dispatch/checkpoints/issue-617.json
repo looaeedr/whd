@@ -3,8 +3,8 @@
   "issue": "617",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
-  "state": "RUNNING",
-  "next_action": "Take over #617 under user-directed interactive authority, then transition the accepted A2 completion to terminal finalization/closure without replaying implementation.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,12 +16,17 @@
     "Checkpoint is bound to the unchanged #617 claim head 7127129081c21732d49aa07f37823fb0f708700d; no implementation replay or ownership change is performed.",
     "Legacy expired post-commit recovery authority comment 5841657055 exact-binds historical Guard 36013452861 / request 5816149112.",
     "Remote Guard 36206105653 GREEN on main@cf6d2906fddcf2478020cdc7ef841211fca1ae34.",
-    "Atomic H0->H1 reconciliation advances claim/checkpoint from 7127129081c21732d49aa07f37823fb0f708700d to c20bb25c334003d2e8439bf636b3a193b6debc78 without replaying implementation."
+    "Atomic H0->H1 reconciliation advances claim/checkpoint from 7127129081c21732d49aa07f37823fb0f708700d to c20bb25c334003d2e8439bf636b3a193b6debc78 without replaying implementation.",
+    "WHD_PHASE7_TARGET_COMPLETION_V1 at c20bb25c334003d2e8439bf636b3a193b6debc78 is ACCEPTED for #617/P7-B with reverse_import=0, duplicate_owner_path=0, second_composition_root=0, full_app_dependency=false.",
+    "User-directed takeover completed: claim owner chatgpt.sol260926.issue617, classification ORPHANED_SCHEDULER_OWNER, authority comment 5841672435.",
+    "Remote Guard run 36206414886 GREEN consumed to transition accepted A2 into TERMINAL_SUCCESS / FINALIZATION_PENDING.",
+    "Master #627 handoff resolved from live child state: #613 closed/completed; #618 open and unclaimed => NEXT_CHILD_EXECUTABLE."
   ],
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "618",
+  "chain_next_action": "Activate and claim #618 A3 on accepted #617 head c20bb25c334003d2e8439bf636b3a193b6debc78, then execute approved P7-R-C scope; do not merge production until Master integration gate.",
+  "chain_reason": "Master #627 live dependency readback: #613 is closed/completed; #618 is OPEN, blocked only by #613, and has no shared claim.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Run trusted owning finalization proof for #617 at c20bb25c334003d2e8439bf636b3a193b6debc78, advance closure to ISSUE_CLOSE_PENDING, close/read back #617, then atomically release claim and hand off Master #627 to executable child #618.",
+  "master_issue": "627"
 }
