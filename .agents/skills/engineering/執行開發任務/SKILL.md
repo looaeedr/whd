@@ -10,6 +10,40 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+## EXECUTION_INTENT_ROUTING_V1
+
+本 Skill 是 WHD execution intent 的 canonical routing authority。任何 claim / implementation branch / successor continuation 前，先把本輪 intent 分成且只分成一種：
+
+- `UPDATE_ONLY`：只修改使用者點名的 automation / scheduler 設定、Skill、Issue body、prompt、spec、governance text 或其他控制面，並完成該更新必要的驗證與 readback。
+- `EXECUTE_TICKET`：使用者明確要求做／修／實作／接手／繼續／收掉一張具體工單，授權該 ticket 的完整 normal path。
+- `EXECUTE_CHAIN`：使用者明確要求整條工單鏈持續施工，child terminal 後才可依 canonical successor authority 接下一張。
+- `SCHEDULER_LANE`：真正 scheduled invocation 或使用者明確輸入 `/排程A` / `/排程B`；可依 lane contract discovery/resume work。
+
+### UPDATE_DOES_NOT_IMPLY_EXECUTION
+
+`UPDATE_ONLY` 不得取得或恢復 implementation execution claim；不得建立 implementation branch；不得自動進入 successor / next child。更新完成條件是該更新本身 + 必要驗證/readback。
+
+若被更新的 surface 本身位於受治理 repository，專案規則仍可要求建立**專屬 update/governance owning Issue + update branch + claim**；這只授權該更新 transaction，不得因此擴張成產品 implementation 或其他 open Issue 的施工。
+
+### ISSUE_EXISTENCE_IS_NOT_EXECUTION_AUTHORITY
+
+Issue open、dependency unblocked、工作槽空閒、存在 next_action、或某個 Guard/runner 可用，都只代表「可能可執行」，不等於本輪已獲 execution authority。沒有 explicit execution mode 時不得因上述條件自行升級為 `EXECUTE_TICKET` / `EXECUTE_CHAIN` / `SCHEDULER_LANE`。
+
+### NORMAL_PATH_FIRST
+
+進入 `EXECUTE_TICKET` 後，預設只走最短 canonical happy path：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+finalization proof、claim/head bookkeeping 與必要 Guard 仍是各 boundary 的 safety gate，但不得把 recovery action 當成固定 phase。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+`takeover / reactivate / reconciliation / legacy repair / replay recovery` 只在 fresh machine evidence 證明對應 drift、衝突、中斷、expired/unconsumed receipt 或 half-terminal state 時啟動。沒有 evidence 就留在 normal path；recovery condition 修復後立即回 normal path，不得持續停留在 recovery mode。
+
+普通 freshness/readback/Guard precondition 是正常安全檢查，不等於已進 recovery。
+
+
 依使用者已核准的規格或工單實作，不重新發明需求。
 
 ## 1. 開始前

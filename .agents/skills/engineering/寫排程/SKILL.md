@@ -9,6 +9,19 @@ whd_schema: WHD_DOC_META_V1
 
 # 寫排程
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+本 Skill 的 scheduler authoring / automation update 預設為 `UPDATE_ONLY`。建立、改名、改 cadence、改 prompt、補 hard gate 或修 automation 設定，只授權該 automation update + 必要 validation/readback。
+
+更新 automation 不授權 claim Issue、建立 implementation branch 或執行 successor chain。只有使用者另外明確啟動 `/排程A` / `/排程B`、scheduled invocation 真正觸發，或明確要求施工，才交給對應 execution mode。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+本 Skill 內的 drift / expired receipt / unconsumed GREEN / reconciliation 條款描述的是**被寫入 scheduler runtime 的 recovery capability**，不是 authoring update 自己要逐條執行的固定 phase。只有 runtime fresh machine evidence 命中條件時才進 recovery。
+
+`POST_UPDATE_READBACK` 是 `UPDATE_ONLY` 的正常完成 gate；readback GREEN 後 authoring 任務完成，不得順手啟動 scheduler lane 施工或 unrelated Issue。
+
+
 本 Skill 擁有「怎麼建立／修改 WHD recurring scheduler / automation prompt」的 authoring contract。它**不**擁有派工狀態機、execution claim、Remote Guard、Remote QA、continuity state 或 Issue closure；這些一律 bridge 回既有 canonical Skill / executable authority。
 
 目標不是把 prompt 寫得很長，而是避免每次「縮短、補一句、改名稱、改 cadence」時不小心刪掉真正的 safety / continuity contract。

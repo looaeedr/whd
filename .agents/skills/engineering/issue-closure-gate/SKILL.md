@@ -9,6 +9,18 @@ whd_schema: WHD_DOC_META_V1
 
 # GitHub Issue Closure Gate
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+Closure 只收斂**已授權 scope**，不建立新的 execution scope。
+
+- `EXECUTE_TICKET`：把當前 ticket 收到 Issue close/readback + checkpoint CLOSED + claim RELEASED；單票 closure 完成不等於授權啟動 successor。
+- `EXECUTE_CHAIN`：當 parent/master authority 與 checkpoint chain metadata 都允許時，closure 後可 handoff 下一 child。
+- `SCHEDULER_LANE`：依 lane/chain authority可續 executable successor。
+- `UPDATE_ONLY`：若只是 Issue body / automation / Skill / spec update，不得因 closure gate 或 open dependency 自動進 implementation chain。
+
+因此後文 `NEXT_CHILD_EXECUTABLE` 的「立即進下一票」只適用已明確是 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 的 execution scope；不得把單票 closure 或 update-only 誤升級成 chain execution。
+
+
 ## 必讀 Authority
 
 執行本 Skill 時，同步讀取：

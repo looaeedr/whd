@@ -9,6 +9,19 @@ whd_schema: WHD_DOC_META_V1
 
 # 遠端執行守門
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+Guard 只驗證已授權 mutation；它不建立 execution authority、也不選工單。Guard GREEN 不會建立 execution intent，也不代表可以開始下一張票。
+
+- 沒有 explicit execution mode 時不得因 Guard 可用而開始施工。
+- `UPDATE_ONLY` 若只更新 automation/control-plane，Remote Guard 不得藉此 discovery/claim implementation work。
+- `EXECUTE_TICKET / EXECUTE_CHAIN / SCHEDULER_LANE` 已由上層取得 authority 後，Guard 才驗該 exact mutation。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+Remote Guard 的 takeover、post-commit reconciliation、invalid-phase repair、legacy checkpoint repair 都只在 fresh machine evidence 命中對應 recovery condition 時使用。normal path 的 clean mutation只跑該 mutation真正需要的 prewrite Guard；不得因 recovery capability 存在而預先 mint recovery receipt。
+
+
 本 Skill 把「scheduler 沒有 shell，因此不能跑 canonical execution claim guard」從永久 blocker 變成可驗證的遠端 guard 路徑。它不放寬 `派工` 的 claim/prewrite hard gate；它要求 GitHub Actions 在 exact identity 上真正執行同一支 `tools/execution_claim_guard.py`，再回傳 machine-readable receipt。
 
 ## 1. Responsibility boundary

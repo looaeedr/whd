@@ -10,6 +10,33 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+### EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+派工不自行推導 execution intent；先服從 `執行開發任務::EXECUTION_INTENT_ROUTING_V1`。
+
+- `UPDATE_ONLY`：只處理被點名的 update transaction；不得因其他 Issue open/unblocked、claim pool 有空位或 child dependency 解鎖而自動開工。
+- `EXECUTE_TICKET`：只完成當前 ticket；ticket closure 後不自動 claim successor。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE`：只有這兩種 mode 才允許 terminal child 依 canonical chain authority接續 successor。
+
+#### NORMAL_PATH_FIRST
+
+單張正常 implementation 工單的 canonical 主幹固定為：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+Guard/finalization safety gate 仍保留，但不得預防性執行 takeover / reactivate / reconciliation / legacy repair。只有 fresh machine evidence 證明異常條件時，才暫時分支到 recovery。
+
+#### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+takeover、reactivate、claim/head reconciliation、legacy-checkpoint repair、expired receipt repair 都是 evidence-triggered recovery。正常票不先跑 recovery 再開始施工；fresh machine evidence 顯示 clean/一致時立即沿 normal path。
+
+#### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
+
+工作槽只表示可並行容量／occupancy／routing identity。空工作槽、open / unblocked Issue、沒有 claim 的 ready leaf 都不構成 execution authority。只有本輪已是 `EXECUTE_TICKET`、`EXECUTE_CHAIN` 或 `SCHEDULER_LANE` 時，工作槽才能用來選擇/隔離已授權工作。
+
+本節優先解釋本 Skill 其他「successor 同輪繼續」字樣：只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 可跨 ticket；`EXECUTE_TICKET` 關完本票即停止擴張 scope。
+
+
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
