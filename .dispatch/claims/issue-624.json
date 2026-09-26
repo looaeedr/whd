@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "head_sha": "6c9771cc936cbd7cc368a115ca2348a404a1bb66",
+  "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-26T13:56:50Z",
+  "last_update": "2026-09-26T14:02:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -30,17 +30,17 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36246812185,
-    "job_id": 108417408104,
-    "head_sha": "6c9771cc936cbd7cc368a115ca2348a404a1bb66",
+    "run_id": 36247109748,
+    "job_id": 108418225953,
+    "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
     "status": "in_progress",
     "conclusion": null,
-    "focused_run_id": 36246812159,
-    "focused_job_id": 108417412476,
+    "focused_run_id": 36247109736,
+    "focused_job_id": 108418225925,
     "focused_result": "success",
-    "scope": "A7 broader Bridge compatibility + owner boundary regression after formatting-agnostic live-port assertion fix"
+    "scope": "A7 broader Bridge compatibility + owner boundary verification after restoring dynamic FinalScene/Settings composition ports"
   },
-  "next_action": "Poll exact broader A7 run 36246812185 at 6c9771cc936cbd7cc368a115ca2348a404a1bb66 to terminal; if GREEN, complete DT-4..DT-6/ASCG artifact, cleanup both temporary A7 workflows, drift-audit, finalization, close/readback, RELEASED handoff.",
+  "next_action": "Poll exact broader A7 run 36247109748 at da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to terminal; if GREEN, complete DT-5..DT-6/ASCG artifact, cleanup temporary A7 workflows, drift-audit, trusted finalization, close/readback, RELEASED handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -63,14 +63,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36246829692,
-    "request_comment_id": 5846838690,
-    "result_comment_id": 5846839980,
+    "run_id": 36247131304,
+    "request_comment_id": 5846875212,
+    "result_comment_id": 5846876486,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "reconcile formatting-agnostic assertion fix and bind exact focused/broader verification runs"
+    "mutation": "reconcile second runtime-port correction and bind exact focused/broader verification runs"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
@@ -115,5 +115,21 @@
     "guard_run_id": 36246791396,
     "guard_request_comment_id": 5846833609,
     "guard_result_comment_id": 5846834749
+  },
+  "second_runtime_port_correction": {
+    "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+    "parent_sha": "6c9771cc936cbd7cc368a115ca2348a404a1bb66",
+    "changed_files": [
+      "fold_designer_bridge.py",
+      "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
+      "docs/superpowers/checkpoints/issue624-a7-bridge-residual-census.md"
+    ],
+    "guard_run_id": 36246953826,
+    "guard_request_comment_id": 5846854740,
+    "guard_result_comment_id": 5846856109,
+    "restored_ports": [
+      "_phase6_final_scene_view_request",
+      "_phase6_save_settings_context_as_defaults"
+    ]
   }
 }
