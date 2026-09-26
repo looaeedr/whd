@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T03:13:11Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T03:49:52Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T03:54:49Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Advance terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, authorize and verify finalization proof, close/read back Issue #678, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-678.json",
   "green_candidate": {
@@ -38,5 +38,23 @@
     "conclusion": "success",
     "workflow": "Knowledge Governance Bootstrap",
     "evidence": "bootstrap-governance PASS on PR #694"
+  },
+  "finalization": {
+    "mode": "local-shell",
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T03:53:27Z"
+    }
+  },
+  "final_release": {
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "production_head": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+    "pr": 694
   }
 }
