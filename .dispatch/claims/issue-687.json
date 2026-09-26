@@ -6,16 +6,23 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chatgpt.sol260926.stopgate.t1",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue687-continuous-legal-stop-20260926",
+  "work_branch": "work/issue687-continuous-legal-stop-r2-20260926",
   "claimed_at": "2026-09-26T03:40:08Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T03:40:08Z",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-26T04:53:29Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "create guarded work branch, then implement RED-STOP-01 through RED-STOP-05",
+  "next_action": "create guarded recovery work branch from H0, then obtain Remote Guard before re-landing RED-STOP-01 through RED-STOP-05",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-687.json"
+  "checkpoint": ".dispatch/checkpoints/issue-687.json",
+  "recovery": {
+    "classification": "UNAUTHORIZED_POST_GUARD_REMOTE_RECEIPT_MISSING",
+    "isolated_branch": "work/issue687-continuous-legal-stop-20260926",
+    "isolated_head_sha": "f04034f7027ec9677b04db3af01f5564fb9a0371",
+    "authorized_resume_head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+    "recovery_strategy": "reactivate_same_owner_new_branch_from_authorized_H0"
+  }
 }
