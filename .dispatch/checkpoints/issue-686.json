@@ -43,8 +43,11 @@
     "PR #741 merged to cleanup/2d-3d-sync at 5a29aacdc39805e6950362a8880f1513318389f0.",
     "Canonical pr-write durable readback classified Guard run 36279125488 as CONSUMED from exact PR #741 merge event.",
     "Local canonical Guard GREEN authorized terminal checkpoint transition.",
-    "Closure advance Guard run 36279416517 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36279416517 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36279493333 GREEN; FINALIZATION_PROOF_VALID; artifact 10918780894.",
+    "Issue #686 fresh-read closed/completed.",
+    "Release-handoff advance Guard run 36279597537 GREEN; closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff"
 }
