@@ -24,13 +24,14 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36206534675.",
     "Trusted Remote Finalization run 36206629673 GREEN; artifact 10893634878; checkpoint fingerprint 890dc72b4a021782cda2eff5e16a8f11127a6cd5b7af79bf3cb484dc22ad4a99; local verify-finalization-proof PASS.",
     "Owning Issue #617 closed/completed and fresh-read back at 2026-09-26T00:57:03Z.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36206741985."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36206741985.",
+    "Final coordination Guard run 36206813329 GREEN consumed for the single atomic checkpoint CLOSED + claim RELEASED commit; Master #627 NEXT_CHILD_EXECUTABLE handoff to #618 preserved."
   ],
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "618",
   "chain_next_action": "Activate and claim #618 A3 on accepted #617 head c20bb25c334003d2e8439bf636b3a193b6debc78, then execute approved P7-R-C scope; do not merge production until Master integration gate.",
   "chain_reason": "Master #627 live dependency readback: #613 is closed/completed; #618 is OPEN, blocked only by #613, and has no shared claim.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED while preserving Master #627 NEXT_CHILD_EXECUTABLE handoff to #618; then activate/claim #618 and begin P7-R-C production work.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "627"
 }

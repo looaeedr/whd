@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T22:13:28+08:00",
   "base_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
   "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T00:58:10Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T00:59:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
@@ -30,16 +30,16 @@
       "xvfb": "29 passed in 2.63s"
     }
   },
-  "next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED while preserving Master #627 NEXT_CHILD_EXECUTABLE handoff to #618; then activate/claim #618 and begin P7-R-C production work.",
+  "next_action": null,
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 36206741985,
-    "request_comment_id": 5841736500,
+    "run_id": 36206813329,
+    "request_comment_id": 5841744103,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #617 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after trusted finalization + issue close readback"
+    "mutation": "final atomic checkpoint CLOSED + claim RELEASED with Master #627 -> #618 handoff preserved"
   },
   "decision_artifact": "docs/superpowers/checkpoints/issue617-a2-decision.json",
   "legacy_postcommit_recovery": {
@@ -103,6 +103,18 @@
       ],
       "target_changed": true,
       "observed_at": "2026-09-26T00:58:10Z"
+    },
+    {
+      "guard_run_id": 36206813329,
+      "action": "write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [
+        ".dispatch/claims/issue-617.json",
+        ".dispatch/checkpoints/issue-617.json"
+      ],
+      "target_changed": true,
+      "observed_at": "2026-09-26T00:59:30Z"
     }
   ],
   "finalization": {
@@ -118,5 +130,14 @@
       "state_reason": "completed",
       "closed_at": "2026-09-26T00:57:03Z"
     }
+  },
+  "final_release": {
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "finalization_run_id": 36206629673,
+    "next_issue": 618,
+    "chain_state": "NEXT_CHILD_EXECUTABLE"
   }
 }
