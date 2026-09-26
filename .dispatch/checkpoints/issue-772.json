@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "772",
+  "branch": "trusted/issue772-deploy-guard-consume-hardening-20260927",
+  "head_sha": "b6febcfc641beab1b015946671ace7642ab6de48",
+  "state": "RUNNING",
+  "next_action": "Create guarded helper branch from trusted main and deploy exact accepted guard/test source.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #768 requires trusted-main parity before #762 retry."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
