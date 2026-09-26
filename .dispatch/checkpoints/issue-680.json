@@ -4,7 +4,7 @@
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "head_sha": "3b5669765c5f1ed9af6a7899af22aee516aa8a85",
   "state": "RUNNING",
-  "next_action": "Obtain qa-dispatch Guard for .github/workflows/qa-issue680-planned-handoff.yml at exact head 3b5669765c5f1ed9af6a7899af22aee516aa8a85, dispatch the focused RED characterization, and lock the exact run to terminal.",
+  "next_action": "Modify only .github/workflows/qa-issue680-planned-handoff.yml to add exact branch push trigger, commit under a fresh commit Guard, reconcile H1→H2, then monitor the automatically-created #680 RED run to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -21,7 +21,10 @@
     "Run 36248639696 exposed invalid checkpoint serialization before any implementation commit.",
     "Same-lane recovery canonicalizes checkpoint fields without changing issue/branch/head/state/next_action authority.",
     "RED characterization + temporary QA workflow committed at 3b5669765c5f1ed9af6a7899af22aee516aa8a85 under Guard run 36249418541.",
-    "H0→H1 reconciliation Guard run 36249598080 GREEN."
+    "H0→H1 reconciliation Guard run 36249598080 GREEN.",
+    "qa-dispatch transaction consumed by exact run 36250084689 @ 3b5669765c5f1ed9af6a7899af22aee516aa8a85.",
+    "Run 36250084689 terminal success; full collection 3573; artifact 10907744881. This proves dispatch/readback only, not WI-2 RED acceptance.",
+    "Next canonical action: make #680 QA workflow branch-push-triggerable, then run true RED at exact next head."
   ],
   "master_issue": null,
   "chain_state": "NONE",
