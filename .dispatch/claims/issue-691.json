@@ -1,0 +1,38 @@
+{
+  "issue": 691,
+  "issue_url": "https://github.com/looaeedr/whd/issues/691",
+  "worker": "chatgpt.sol260926.work2.691.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.work2.691.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue691-turn-exit-scheduler-end-20260926",
+  "claimed_at": "2026-09-26T14:42:00Z",
+  "base_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
+  "head_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T14:42:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run Phase6 Preflight for #691 RED-STOP-08/12/13, prove local/remote turn-exit parity and scheduler END exact-receipt binding, then implement the canonical machine gate.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-691.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user explicitly instructed work2/#693 chain to continue.",
+    "Execution intent: EXECUTE_CHAIN limited to #693 dependency chain and current child #691.",
+    "Dependencies satisfied: #687 and #689 are closed/completed with claims RELEASED.",
+    "Inherited accepted work-order HEAD: #689 accepted head 6647ce01e1834e8c1eb8c5d15d30896187c69397; do not restart from newer production X.",
+    "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance."
+  ],
+  "authority_progress": {
+    "schema": "WHD_AUTHORITY_PROGRESS_V1",
+    "state": "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION",
+    "acquired_via": "fresh-create",
+    "branch_create_guard_run_id": null,
+    "branch_create_result_comment_id": null,
+    "branch_readback_head_sha": null,
+    "first_substantive_action": null
+  }
+}
