@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T01:00:46Z",
   "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "head_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T04:00:56Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T04:01:37Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
@@ -33,7 +33,7 @@
     "artifact_id": 10897785610,
     "artifact_sha256": "201182590231c3cf812369b9a9fb47389528c8924bd8c59cad614c2b4062da6b"
   },
-  "next_action": "Advance #618 RELEASE_HANDOFF_PENDING -> CLOSED/RELEASED under one final fresh Remote Guard while preserving Master #627 NEXT_CHILD_EXECUTABLE handoff to #620 A4.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-618.json",
   "predecessor": {
@@ -56,13 +56,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36216489662,
-    "request_comment_id": 5842978119,
+    "run_id": 36216580110,
+    "request_comment_id": 5842989255,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "advance #618 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after trusted proof and close readback"
+    "mutation": "final atomic #618 CLOSED + RELEASED with #620 handoff preserved"
   },
   "evidence": [
     "Interactive stale takeover completed for #618: canonical evaluator classified prior chat owner EXECUTOR_STUCK at stale_seconds=5045; authority comment 5842349343; shared claim CAS transferred to chatgpt.sol260926.issue618.a3.",
@@ -87,7 +87,8 @@
     "One-shot QA workflow cleanup landed at acc38cd39ab548f802f6d18445ac8ca23550c335 as a direct child of 180bdc988f81b8c8f974b213cbd89c6b92dcac32 under commit Guard 36215947476; post-cleanup reconciliation Guard 36216026316 GREEN. Cleaned tree 683d40c511437af95deaad4316c2a8fa16f71f66 exactly equals pre-harness implementation tree at 508478cdbfcb82bc2cf115991f1bc64d75c1ad00; compare reports zero file differences.",
     "Terminalization Guard 36216211193 / request 5842940161 GREEN consumed at cleaned accepted head acc38cd39ab548f802f6d18445ac8ca23550c335; #618 enters TERMINAL_SUCCESS / FINALIZATION_PENDING. Fresh dependency readback confirms #620 A4 is open, Approved RED P7-R-D, and blocked by #618.",
     "Closure advance Guard 36216299418 / request 5842950677 GREEN consumed: #618 FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING at exact cleaned accepted head acc38cd39ab548f802f6d18445ac8ca23550c335.",
-    "Trusted Remote Finalization run 36216411556 GREEN at exact #618 checkpoint fingerprint 0222e839076e477f08a3119776e0a1c91f81875978b3cc2ac06f9baa30eb12c8; FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID; artifact 10897657226 sha256:7f173af88d43970a2e3c58f00fe3fe4bb40996a7ca24c4cb9fb370cd5aa3ffee. Issue #618 fresh readback closed/completed at 2026-09-26T03:59:21Z. Post-close Guard 36216489662 / request 5842978119 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Trusted Remote Finalization run 36216411556 GREEN at exact #618 checkpoint fingerprint 0222e839076e477f08a3119776e0a1c91f81875978b3cc2ac06f9baa30eb12c8; FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID; artifact 10897657226 sha256:7f173af88d43970a2e3c58f00fe3fe4bb40996a7ca24c4cb9fb370cd5aa3ffee. Issue #618 fresh readback closed/completed at 2026-09-26T03:59:21Z. Post-close Guard 36216489662 / request 5842978119 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final coordination Guard 36216580110 / request 5842989255 GREEN consumed: #618 checkpoint closure_state CLOSED and shared claim RELEASED atomically, with Master #627 NEXT_CHILD_EXECUTABLE handoff to #620 A4 preserved."
   ],
   "local_validation": {
     "red": "2 failed: bounded dxf_serialization owner absent",
@@ -168,5 +169,16 @@
       "state_reason": "completed",
       "closed_at": "2026-09-26T03:59:21Z"
     }
+  },
+  "final_release": {
+    "released_at": "2026-09-26T04:01:37Z",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "accepted_head_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "next_issue": 620,
+    "chain_state": "NEXT_CHILD_EXECUTABLE",
+    "final_guard_run_id": 36216580110
   }
 }
