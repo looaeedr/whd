@@ -4,7 +4,7 @@
   "branch": "governance/issue731-branch-create-auto-consume-20260926",
   "head_sha": "0161dfb1b3476e4a9c98d0581596613ed6d318d5",
   "state": "RUNNING",
-  "next_action": "Open guarded PR to main, merge after exact readback/checks, then propagate compatible-equivalent accepted artifacts to cleanup/2d-3d-sync and close #731.",
+  "next_action": "PR #732 exact readback complete; obtain fresh pr-write Guard for merge to main, then fresh-read main and propagate parity to cleanup/2d-3d-sync.",
   "run_id": 36251168771,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,8 @@
     "Implementation f9ce121f4f586f455158546b326e234ba093603e; focused QA run 36251018227 SUCCESS.",
     "Post-implementation reconciliation Guard GREEN run 36251037035 / result comment 5847355374.",
     "Durable Skill/AI writeback commit 0161dfb1b3476e4a9c98d0581596613ed6d318d5; focused QA run 36251168771 SUCCESS.",
-    "Post-writeback reconciliation Guard GREEN run 36251184673 / result comment 5847373188."
+    "Post-writeback reconciliation Guard GREEN run 36251184673 / result comment 5847373188.",
+    "PR #732 created under pr-write Guard run 36251273204; exact readback open/mergeable=true, head 0161dfb1b3476e4a9c98d0581596613ed6d318d5, base main@407766cba2405b4f4b6a6cc014b0ac27180a7f24."
   ],
   "master_issue": null,
   "chain_state": "NONE",
