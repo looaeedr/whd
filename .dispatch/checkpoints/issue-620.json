@@ -3,11 +3,11 @@
   "issue": "620",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "head_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
-  "state": "RUNNING",
-  "next_action": "Terminalize #620 at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4: transition checkpoint TERMINAL_SUCCESS + closure_state FINALIZATION_PENDING, claim phase CLOSING, preserve Master #627 successor handoff to #621 A5, then run bound finalization proof, close Issue, release claim, and atomically persist CLOSED.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
-  "log_cursor": "cleanup:zero-drift",
+  "log_cursor": "terminalized:accepted-clean-head",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -19,12 +19,14 @@
     "P7-R-D EndCap request-owner slice: RED 1 failed/2 passed because ae_engine.manufacturing_requests was absent; GREEN ResolvedEndCapRequest ownership + precedence resolver moved behind manufacturing_api thin facade at 785efb1edf5a524a64dcbfe331ba74c28abb57a8. Characterization 3 passed; broader EndCap/corner/manufacturing regression 59 passed, 11 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219821454 GREEN; post-commit reconciliation Guard 36220071538 GREEN.",
     "P7-R-D render-owner slice: RED 1 failed/3 passed because ae_engine.manufacturing_render was absent; GREEN build_part_render_data orchestration moved behind manufacturing_api thin facade at 883c40401e37f4303cb01172ce78fc865e026310. Structural test was refined from a false-positive bare 'gui' substring (matched fold_guides) to import-specific reverse-import checks without changing production semantics. Focused facade 4 passed; broader manufacturing/assembly-collision/EndCap/BoxBody/DXF regression 122 passed, 7 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36220204130 GREEN; post-commit reconciliation Guard 36221395401 GREEN.",
     "Exact-head remote QA GREEN for #620 P7-R-D: workflow orchestration head 9f0c0670b8070cce1f5e7dcd8be9be7b3952e9c3 explicitly checked out TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310. Run 36221637524 / job 108347881676 completed success; structural+anti-regrowth, Manufacturing API/policy/collision, DXF export/reopen and protected-input verification steps all SUCCESS. Artifact 10899159285 digest sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e. Workflow commit Guard 36221552013 GREEN; orchestration post-commit Guard 36221678331 GREEN.",
-    "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid."
+    "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid.",
+    "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed."
   ],
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "621",
+  "chain_next_action": "Activate/claim #621 Phase 7 A5 on accepted #620 head a21dabe56e99201a106edac14460e8731ee435b4 and execute approved P7-R-E: separate assembly_collision.py bounded generic/backprojection, Divider relief and EndCap world-relief solver owners while preserving one generic algorithm path and zero manufacturing_api reverse import.",
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back owning Issue #620, then atomically persist checkpoint CLOSED + claim RELEASED + successor #621 handoff",
+  "master_issue": "627"
 }

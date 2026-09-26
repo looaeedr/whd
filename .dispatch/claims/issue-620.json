@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T04:50:00Z",
   "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
   "head_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-26T05:49:25Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T05:51:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e",
     "protected_inputs": "GREEN"
   },
-  "next_action": "Terminalize #620 at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4: transition checkpoint TERMINAL_SUCCESS + closure_state FINALIZATION_PENDING, claim phase CLOSING, preserve Master #627 successor handoff to #621 A5, then run bound finalization proof, close Issue, release claim, and atomically persist CLOSED.",
+  "next_action": "Run bound #620 finalization proof at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4, close/read back Issue #620, then advance RELEASE_HANDOFF_PENDING and atomically release claim while preserving successor #621 A5.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-620.json",
   "predecessor": {
@@ -50,17 +50,18 @@
     "P7-R-D EndCap request-owner slice: RED 1 failed/2 passed because ae_engine.manufacturing_requests was absent; GREEN ResolvedEndCapRequest ownership + precedence resolver moved behind manufacturing_api thin facade at 785efb1edf5a524a64dcbfe331ba74c28abb57a8. Characterization 3 passed; broader EndCap/corner/manufacturing regression 59 passed, 11 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219821454 GREEN; post-commit reconciliation Guard 36220071538 GREEN.",
     "P7-R-D render-owner slice: RED 1 failed/3 passed because ae_engine.manufacturing_render was absent; GREEN build_part_render_data orchestration moved behind manufacturing_api thin facade at 883c40401e37f4303cb01172ce78fc865e026310. Structural test was refined from a false-positive bare 'gui' substring (matched fold_guides) to import-specific reverse-import checks without changing production semantics. Focused facade 4 passed; broader manufacturing/assembly-collision/EndCap/BoxBody/DXF regression 122 passed, 7 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36220204130 GREEN; post-commit reconciliation Guard 36221395401 GREEN.",
     "Exact-head remote QA GREEN for #620 P7-R-D: workflow orchestration head 9f0c0670b8070cce1f5e7dcd8be9be7b3952e9c3 explicitly checked out TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310. Run 36221637524 / job 108347881676 completed success; structural+anti-regrowth, Manufacturing API/policy/collision, DXF export/reopen and protected-input verification steps all SUCCESS. Artifact 10899159285 digest sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e. Workflow commit Guard 36221552013 GREEN; orchestration post-commit Guard 36221678331 GREEN.",
-    "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid."
+    "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid.",
+    "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36221921918,
-    "request_comment_id": 5843649583,
+    "run_id": 36222012979,
+    "request_comment_id": 5843661092,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "consume one-shot workflow cleanup and zero-drift readback"
+    "mutation": "terminalize #620 and establish Master #627 successor handoff"
   },
   "local_validation": {
     "verification_owner": {
