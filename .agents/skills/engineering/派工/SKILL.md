@@ -10,6 +10,37 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+## EXECUTION_MODE_HARD_GATE_V1
+
+在讀 open Issue、dependency 或 `next_action` 之前，先確立本輪 **execution_mode**。Canonical machine bridge：`tools/execution_scope_gate.py`。
+
+固定 mode：
+
+- `UPDATE_ONLY`：使用者只要求新增／修改／修正 automation、排程、Skill、Issue body、規格、設定、名稱、routing 或其他既有控制面；只授權完成該指定更新、必要驗證與 fresh readback。
+- `EXECUTE_TICKET`：使用者明確要求做／修／實作／接手／繼續／收掉一張指定工單；只授權該 owning Issue 到合法 terminal。
+- `EXECUTE_CHAIN`：使用者明確要求繼續整條 Master／successor chain，或 durable authority 已明確建立 chain execution scope。
+- `SCHEDULER_LANE`：actual recurring scheduler wake，或使用者明確輸入 `/排程A`、`/排程B` 進入對應 durable lane。
+
+既有 active execution scope 可在同一 mode 內 resume；一般文字「更新／補一句／改設定」不得把 `UPDATE_ONLY` 擴大成 execution mode。使用者詢問狀態也不得改 mode。
+
+### ISSUE_EXISTENCE_IS_NOT_EXECUTION_AUTHORITY
+
+Open、unblocked、甚至 canonical executable Issue 只代表「可以被合法執行器選中」，**不代表本輪已取得 execution authority**。普通 update request 不得因發現下一張 executable Issue 就自動 claim／branch／施工。
+
+跨 scope 前必須先以 `tools/execution_scope_gate.py` 檢查對應 action：`SAME_SCOPE_NEXT_ACTION / START_SUCCESSOR / DYNAMIC_DISCOVERY / RECOVERY / TAKEOVER`。
+
+### NORMAL_PATH_FIRST
+
+正常 implementation ticket 固定優先走最短 canonical happy path：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+不得預防性執行 recovery、reactivate、reconcile、takeover、legacy repair 或 duplicate-receipt repair。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+Recovery 是處理**已被 fresh machine evidence 證明**的 drift / conflict / interrupted transaction 的暫時分支，不是每張票的固定 phase。沒有 fresh machine evidence 不得進 recovery；修復並 fresh readback 後立即回 normal path，且 recovery 不得擴張到 successor 或別張 Issue。
+
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
@@ -19,7 +50,7 @@ whd_schema: WHD_DOC_META_V1
 ### LIVE_REMOTE_QA_AUTHORITY_BRIDGE
 claim/checkpoint 的 remote QA 狀態只是 durable snapshot；只要存在 exact `run_id + head_sha`，每次 resume / poll / final gate 都必須 fresh-read GitHub Actions，**live run status/conclusion 永遠高於 snapshot**。
 - claim/checkpoint 若仍是 `queued / in_progress / WAITING_REMOTE / RUN_NOT_CREATED`，但 live exact run 已 terminal，立即標記 `stale remote-QA snapshot`；禁止套用 10 分鐘保護，也禁止沿用舊的「poll to terminal」next action。
-- live exact run `completed + success` → 同一 flow 立即 reconcile durable state，接續 counts/invariants、cleanup、drift audit、Issue closure/release；有 dependency-unblocked successor 時續做下一票。
+- live exact run `completed + success` → 同一 flow 立即 reconcile durable state，接續 counts/invariants、cleanup、drift audit、Issue closure/release；只有 `execution_scope_gate START_SUCCESSOR` 對目前 execution_mode GREEN 時，才可續做 dependency-unblocked successor。
 - live exact run failure/cancelled/timed_out → 同一 flow 立即讀 exact failed-job evidence、分類並 repair/retry；不得因 stale snapshot 假等。
 - stale snapshot 只能觸發 reconcile/recovery，**不能成為 stop condition**；本 bridge 與 `monitoring-remote-qa` 的 stale-wait / terminal continuation 規則同義，衝突時採較嚴格的 continuation 規則。
 

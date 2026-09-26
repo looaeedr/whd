@@ -9,6 +9,15 @@ whd_schema: WHD_DOC_META_V1
 
 # GitHub Issue Closure Gate
 
+## SUCCESSOR_SCOPE_GATE_V1
+
+Closure 完成本票不會自動授權下一票。跨 child / successor 前，先用 `tools/execution_scope_gate.py` 檢查 `START_SUCCESSOR`。
+
+- `UPDATE_ONLY / EXECUTE_TICKET`：把目前 scope 收到 Issue close/readback + checkpoint CLOSED + claim RELEASED 即完成；下一張 open/unblocked Issue 保持 unclaimed。
+- `EXECUTE_CHAIN / SCHEDULER_LANE`：`START_SUCCESSOR` GREEN 後才可寫入／消費 `NEXT_CHILD_EXECUTABLE` handoff 並立即續下一票。
+- Issue existence、dependency 解鎖、Master 尚未完成，都不能單獨升級 execution mode。
+- closure 本身若發生 fresh drift/conflict，可在同 scope 進 recovery；不得借 closure recovery 啟動 unrelated successor。
+
 ## 必讀 Authority
 
 執行本 Skill 時，同步讀取：
@@ -194,7 +203,7 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 
 ### MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
 
-關閉一張 child Issue 後，**不得只看到 child checkpoint terminal 就結束 turn**。如果 parent/Master 尚有 required child：
+在 `EXECUTE_CHAIN / SCHEDULER_LANE` 已授權跨 child 的 scope 中，關閉一張 child Issue 後，**不得只看到 child checkpoint terminal 就結束 turn**。如果 parent/Master 尚有 required child：
 
 1. fresh-read Master/child dependency 與下一票狀態；
 2. child terminal checkpoint 寫入 `master_issue + chain_state + next_issue + chain_next_action/chain_reason`；

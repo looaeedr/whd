@@ -9,6 +9,21 @@ whd_schema: WHD_DOC_META_V1
 
 # 寫排程
 
+## UPDATE_DOES_NOT_IMPLY_EXECUTION
+
+建立／修改／修復 automation、prompt、cadence、title、enabled 狀態或 lane 設定時，預設 execution mode 是 `UPDATE_ONLY`。Canonical scope bridge：`tools/execution_scope_gate.py`。
+
+`UPDATE_ONLY` 的完成邊界固定是：
+
+`update + validation + readback`
+
+- 不得自動 claim successor；
+- 不得自動啟動工單施工；
+- 不得因 automation 內存在 executable `next_action` 就把本次 authoring/update turn 變成 scheduler execution；
+- 不得因 Issue 已 open/unblocked 就做 dynamic discovery。
+
+只有使用者另外明確輸入 `/排程A`、`/排程B` 或明確要求執行工單／整條 chain，才建立新的 `SCHEDULER_LANE / EXECUTE_TICKET / EXECUTE_CHAIN` execution scope。排程更新成功本身不等於 lane 已被執行。
+
 本 Skill 擁有「怎麼建立／修改 WHD recurring scheduler / automation prompt」的 authoring contract。它**不**擁有派工狀態機、execution claim、Remote Guard、Remote QA、continuity state 或 Issue closure；這些一律 bridge 回既有 canonical Skill / executable authority。
 
 目標不是把 prompt 寫得很長，而是避免每次「縮短、補一句、改名稱、改 cadence」時不小心刪掉真正的 safety / continuity contract。

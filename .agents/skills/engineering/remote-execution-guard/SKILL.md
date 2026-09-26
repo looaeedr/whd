@@ -9,6 +9,15 @@ whd_schema: WHD_DOC_META_V1
 
 # 遠端執行守門
 
+## RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+Remote Guard 只提供既有 execution scope 的 mutation guard／capability fallback，**不能創造新的 execution authority**。Mode authority bridge：`tools/execution_scope_gate.py`。
+
+- ordinary `branch-create / write / commit / qa-dispatch / workflow-dispatch / pr-write` 只服務目前已授權 owning scope。
+- `reactivate / reconcile / claim-takeover / legacy repair / duplicate-GREEN recovery` 只能在 fresh machine evidence 證明對應 drift、stale、interrupted transaction 後執行。
+- 進 `RECOVERY` 或 `TAKEOVER` 前必須通過 `execution_scope_gate`；沒有 fresh evidence 時 fail closed。
+- recovery 成功並 fresh readback 後立即回 normal path；不得因 Remote Guard 有 recovery capability 就預防性走 recovery。
+
 本 Skill 把「scheduler 沒有 shell，因此不能跑 canonical execution claim guard」從永久 blocker 變成可驗證的遠端 guard 路徑。它不放寬 `派工` 的 claim/prewrite hard gate；它要求 GitHub Actions 在 exact identity 上真正執行同一支 `tools/execution_claim_guard.py`，再回傳 machine-readable receipt。
 
 ## 1. Responsibility boundary
@@ -405,7 +414,7 @@ Equivalent duplicate GREEN exact-equivalent 才 deterministic dedupe；shadow re
 
 Interactive user-directed takeover 使用 WHD_USER_DIRECTED_TAKEOVER_V1 + canonical evaluator/guard；trusted Remote Guard 允許 executor_source=chat，但必須保留 exact chat provenance，禁止把聊天室偽裝成 scheduler。
 
-Required follow-up：interactive heartbeat/liveness；chat conversation identity + invocation identity；scheduler lane + invocation identity。generic executor_source 不足以回答 exact executor。
+Interactive heartbeat/liveness 已由 `tools/interactive_runtime_liveness.py` 擁有；chat conversation identity + invocation identity 與 scheduler lane + invocation identity 必須保持獨立 namespace。generic executor_source 不足以回答 exact executor。
 
 
 ## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1

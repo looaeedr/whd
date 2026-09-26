@@ -9,6 +9,16 @@ whd_schema: WHD_DOC_META_V1
 
 # 排程模擬
 
+## EXECUTION_MODE_GATE_BRIDGE_V1
+
+`/排程A`、`/排程B` 是明確 execution command，進入對應 `SCHEDULER_LANE` mode；普通文字提到排程、修改排程設定、補 prompt、改名稱或改 cadence，仍屬 `UPDATE_ONLY`，不得因此取得 lane execution authority。
+
+Canonical machine bridge：`tools/execution_scope_gate.py`。
+
+- `SCHEDULER_LANE` 可在 claim/dependency/Guard 合法時做 `DYNAMIC_DISCOVERY / START_SUCCESSOR`。
+- `UPDATE_ONLY` 只做指定 scheduler/automation update + validation + readback；不得 claim successor、不得啟動工單施工。
+- stale/takeover/reconcile 只有 fresh machine evidence 存在時才進 `RECOVERY / TAKEOVER`；不得把 recovery 當 activation 固定步驟。
+
 這個 Skill 只處理 WHD A/B recurring lane 的**互動式接手與續跑**。它不是第三條 scheduler lane，也不是新的派工 authority。
 
 ## 0. Trigger

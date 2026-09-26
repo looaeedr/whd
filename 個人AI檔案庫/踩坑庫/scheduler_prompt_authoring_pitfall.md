@@ -6,6 +6,18 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Scheduler Prompt Authoring / 排程「有醒但沒施工」踩坑
 
+## UPDATE_ONLY 被誤點火成施工 — 2026-09-26
+
+事故模式：使用者只要求修改 scheduler / Skill / Issue / spec 設定，執行器卻因看到 open executable Issue 或 durable `next_action`，把 update turn 擴張成 claim successor、啟動 implementation chain。
+
+永久規則：
+
+- scheduler authoring/update 預設 `UPDATE_ONLY`；完成邊界是 `update + validation + readback`。
+- `/排程A`、`/排程B` 才是明確 `SCHEDULER_LANE` execution entrypoint；普通文字提到排程不算。
+- Open/unblocked Issue 不是 execution authority。
+- Canonical scope gate：`tools/execution_scope_gate.py`。
+- recovery/takeover 只在 fresh machine evidence 證明需要時進入，不能成為 scheduler activation 的固定 preflight。
+
 ## SCHEDULER_PROMPT_AUTHORING_PITFALL_V1
 
 ### 事故

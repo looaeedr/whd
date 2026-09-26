@@ -10,6 +10,19 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+## WORK_SLOT_EXECUTION_MODE_V1
+
+每個工作槽／互動 runtime 在開始實質工作前，必須保存本輪 `execution_mode`，並 bridge 到 `tools/execution_scope_gate.py`。工作槽 identity、runtime identity、execution location 與 execution mode 是不同概念，不得混用。
+
+- `UPDATE_ONLY`：只完成指定 update + validation + readback；不得跨到下一張工單。
+- `EXECUTE_TICKET`：只完成指定 owning Issue 到 terminal。
+- `EXECUTE_CHAIN`：允許在目前 chain authority 下進下一個 successor。
+- `SCHEDULER_LANE`：允許 recurring lane dynamic discovery / successor continuation，但仍受 claim/dependency/Guard 約束。
+
+**progress/status 不得改變 execution_mode**。CHECKPOINT、heartbeat、remote QA PASS、Issue close、PR merge 都不能自行升級 mode。
+
+`RUNNING / WAITING_REMOTE / RECOVERING` 的續跑規則只在目前 mode 已授權的 scope 內成立；continuity 不能創造新的工單 authority。跨 successor、dynamic discovery、recovery 或 takeover 前使用 `tools/execution_scope_gate.py` 做 machine decision。
+
 依使用者已核准的規格或工單實作，不重新發明需求。
 
 ## 1. 開始前

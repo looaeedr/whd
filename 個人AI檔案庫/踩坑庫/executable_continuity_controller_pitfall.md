@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Executable Continuity Controller / 文件規則不等於執行鎖
 
+## Execution scope 與 continuity 混線 — 2026-09-26
+
+事故模式：continuity / Master-chain「不得停」規則被誤用成新的 execution authority，導致使用者只要求 update 或單票施工時，child close 後仍自動 claim 下一張 successor。
+
+永久規則：
+
+- continuity 只回答「已授權 scope 如何不中斷」，不能回答「是否授權新的 scope」。
+- execution mode 固定分為 `UPDATE_ONLY / EXECUTE_TICKET / EXECUTE_CHAIN / SCHEDULER_LANE`。
+- Canonical cross-scope decision：`tools/execution_scope_gate.py`。
+- `START_SUCCESSOR` 只有 `EXECUTE_CHAIN / SCHEDULER_LANE` 可通過。
+- `NEXT_CHILD_EXECUTABLE` 只應在 caller 已有 chain/lane scope 時寫入；單票/update-only 不得因 next child 存在就合成 handoff authority。
+- recovery 是 fresh machine evidence 驅動的 exception，不是 continuity 的固定 phase。
+
 ## EXECUTABLE_CONTINUITY_CONTROLLER_PITFALL_V1
 
 ### 事故
@@ -69,7 +82,7 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 
 - Canonical executable owner：`tools/continuity_controller.py`。
 - terminal child 若屬 Master/work-order chain，checkpoint 必須結構化保存 `master_issue + chain_state + next_issue + chain_next_action/chain_reason`。
-- `NEXT_CHILD_EXECUTABLE`：child 可關，但 turn exit **必須拒絕**；scheduled resume / CLI resume 皆回 exact `chain_next_action`。
+- `NEXT_CHILD_EXECUTABLE`：在 caller 已具 `EXECUTE_CHAIN / SCHEDULER_LANE` scope 時，child 可關但 turn exit **必須拒絕**；scheduled resume / CLI resume 皆回 exact `chain_next_action`。`UPDATE_ONLY / EXECUTE_TICKET` 不得自行建立這個 cross-child handoff。
 - `NEXT_CHILD_BLOCKED`：只允許 genuine external authority/capability wait，且需 reason。
 - `CHAIN_COMPLETE`：只有整條 Master 已真正 terminal。
 - `USER_STOPPED`：只有使用者明確停止／取消 chain。

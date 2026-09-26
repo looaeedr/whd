@@ -9,6 +9,17 @@ whd_schema: WHD_DOC_META_V1
 
 # Executable Continuity Controller
 
+## EXECUTION_SCOPE_BRIDGE_V1
+
+Continuity 只延續**既有已授權 scope**；跨 scope authority 由 `tools/execution_scope_gate.py` 判定，continuity controller 不自行創造。
+
+- `SAME_SCOPE_NEXT_ACTION`：在目前 `UPDATE_ONLY / EXECUTE_TICKET / EXECUTE_CHAIN / SCHEDULER_LANE` scope 內正常續跑。
+- `START_SUCCESSOR`：只有 `EXECUTE_CHAIN / SCHEDULER_LANE` 可 GREEN；`UPDATE_ONLY / EXECUTE_TICKET` 必須停止在目前 scope terminal，不得自動 claim 下一票。
+- `DYNAMIC_DISCOVERY`：只允許 `SCHEDULER_LANE`。
+- `RECOVERY / TAKEOVER`：必須有 fresh machine evidence，且不得離開目前 authorized scope。
+
+既有 `NEXT_CHILD_EXECUTABLE` machine behavior 本身不變：只有 caller 已建立可跨 child 的 execution mode 時才應寫入／傳入 Master-chain continuation authority。單票或 update-only scope 不得為了「下一票存在」而自行合成 `NEXT_CHILD_EXECUTABLE`。
+
 ## EXECUTION_SCOPE_AUTHORITY_GATE_V1
 
 Continuity is allowed to continue **only inside an already-authorized execution scope**. It must never create authority for a new phase, architecture, ownership boundary, or task chain.
