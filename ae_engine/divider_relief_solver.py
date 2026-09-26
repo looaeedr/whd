@@ -544,4 +544,3 @@ def verify_divider_front_fold_relief(
         "core_start_evidence_only": float(core_start),
         "by_source": by_source,
     }
-
