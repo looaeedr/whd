@@ -54,3 +54,26 @@ def test_p7_r_e_divider_relief_has_bounded_owner():
         'import manufacturing_api',
     ):
         assert forbidden not in owner_source
+
+
+def test_p7_r_e_endcap_world_relief_has_bounded_owner():
+    from ae_engine import assembly_collision
+
+    owner = importlib.import_module('ae_engine.endcap_world_relief_solver')
+    facade_source = inspect.getsource(
+        assembly_collision.solve_world_backprojected_endcap_relief
+    )
+    assert '_endcap_world_relief_solver.solve_world_backprojected_endcap_relief' in facade_source
+    assert 'lookup_certified_endcap_relief' not in facade_source
+    assert 'folded_mesh_with_flat_uv_from_polygon' not in facade_source
+
+    owner_source = inspect.getsource(owner)
+    assert 'def solve_world_backprojected_endcap_relief' in owner_source
+    assert 'lookup_certified_endcap_relief' in owner_source
+    assert 'folded_mesh_with_flat_uv_from_polygon' in owner_source
+    for forbidden in (
+        'from .assembly_collision import',
+        'from .manufacturing_api import',
+        'import manufacturing_api',
+    ):
+        assert forbidden not in owner_source
