@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T00:40:00Z",
   "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "head_sha": "372bf25f74e7006c9701f472d77596d39a9bce45",
+  "head_sha": "392fcb6a4ca2d8b8d6098a7715b1f13d40bdfa9b",
   "phase": "RED",
-  "last_update": "2026-09-26T01:02:00Z",
+  "last_update": "2026-09-26T01:06:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Instrument the requested_draw visible-commit hook with a bounded Python call stack on the remaining commit-stage record, rerun exact #619 Xvfb to identify the synchronous pre-finalize render caller, then remove that temporary stack field and patch only the actual caller.",
+  "next_action": "Remove temporary call-stack instrumentation; guard programmatic ui_text_size projection so Phase6SettingsPanel trace cannot call _phase6_apply_ui_text_size/renderer during baseline commit; retain commit-stage profile render suppression and scheduler batching; rerun exact #619 Xvfb acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-619.json",
   "predecessor": {
@@ -56,17 +56,21 @@
     "Second B4 candidate 372bf25f74e7006c9701f472d77596d39a9bce45 batches the baseline transaction in the canonical _Phase6UpdateScheduler.",
     "Exact run 36206900499 FAILED 1 / passed 6; the added scheduler/coordinator regression passed but the live UI still emitted the same commit-stage invalid scene followed by finalize-stage valid scene.",
     "Artifact 10894900242 / sha256:0ad9f7c82ecd802ca6a77e8bf264c1c51d6f4c3de54dad9377a8f543a4264834.",
-    "Post-commit pair reconciliation authorized by Guard 36206920272."
+    "Post-commit pair reconciliation authorized by Guard 36206920272.",
+    "Stack diagnostic commit 392fcb6a4ca2d8b8d6098a7715b1f13d40bdfa9b authorized by Guard 36207148218.",
+    "Exact run 36207188252 identified the synchronous pre-finalize caller: project_ui_values ui_text_size_var.set -> Phase6SettingsPanel trace -> _phase6_apply_ui_text_size -> self.renderer.render.",
+    "This proves the remaining invalid visible commit is programmatic UI-text projection, not scheduler flush. Artifact 10894776048 / sha256:4d1b033c3665302f75153746b16751ec04033346ead93c2b64b53ddd65231749.",
+    "Post-commit pair reconciliation authorized by Guard 36207208348."
   ],
   "remote_qa": {
-    "run_id": 36206900499,
-    "head_sha": "372bf25f74e7006c9701f472d77596d39a9bce45",
+    "run_id": 36207188252,
+    "head_sha": "392fcb6a4ca2d8b8d6098a7715b1f13d40bdfa9b",
     "status": "completed",
     "conclusion": "failure",
     "workflow": ".github/workflows/qa-issue619-b4-atomic-live-switch.yml",
-    "job_id": 108305229445,
-    "artifact_id": 10894900242,
-    "artifact_digest": "sha256:0ad9f7c82ecd802ca6a77e8bf264c1c51d6f4c3de54dad9377a8f543a4264834"
+    "job_id": 108306065907,
+    "artifact_id": 10894776048,
+    "artifact_digest": "sha256:4d1b033c3665302f75153746b16751ec04033346ead93c2b64b53ddd65231749"
   },
   "red_evidence": {
     "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
@@ -80,12 +84,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36206920272,
-    "request_comment_id": 5841755692,
+    "run_id": 36207208348,
+    "request_comment_id": 5841788070,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
     "consumed": true,
-    "mutation": "reconcile second B4 candidate failure"
+    "mutation": "reconcile bounded call-stack diagnostic head"
   }
 }

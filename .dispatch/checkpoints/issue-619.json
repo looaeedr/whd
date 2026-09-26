@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "372bf25f74e7006c9701f472d77596d39a9bce45",
+  "head_sha": "392fcb6a4ca2d8b8d6098a7715b1f13d40bdfa9b",
   "state": "RUNNING",
-  "next_action": "Instrument the requested_draw visible-commit hook with a bounded Python call stack on the remaining commit-stage record, rerun exact #619 Xvfb to identify the synchronous pre-finalize render caller, then remove that temporary stack field and patch only the actual caller.",
+  "next_action": "Remove temporary call-stack instrumentation; guard programmatic ui_text_size projection so Phase6SettingsPanel trace cannot call _phase6_apply_ui_text_size/renderer during baseline commit; retain commit-stage profile render suppression and scheduler batching; rerun exact #619 Xvfb acceptance.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,10 @@
     "Second B4 candidate 372bf25f74e7006c9701f472d77596d39a9bce45 uses canonical update-scheduler batching across baseline commit/state/finalize.",
     "Exact run 36206900499 still failed only the atomic visible-commit assertion; 6 companion/coordinator tests passed.",
     "Artifact 10894900242 records the remaining commit-stage render.",
-    "Post-commit pair reconciliation authorized by Guard 36206920272."
+    "Post-commit pair reconciliation authorized by Guard 36206920272.",
+    "Stack diagnostic exact run 36207188252 traces the commit-stage render to ui_text_size_var.set -> panel trace -> _phase6_apply_ui_text_size -> renderer.render.",
+    "Artifact 10894776048 holds the bounded diagnostic evidence.",
+    "Post-commit reconciliation authorized by Guard 36207208348."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
