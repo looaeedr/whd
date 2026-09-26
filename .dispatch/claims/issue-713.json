@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T07:42:30Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T07:57:34Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T08:11:47Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Open PR for exact GREEN head aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4, run remote governance/CI, then merge and close/release #713; after merge, update live A/B automation prompts without changing cadence or enabled state.",
+  "next_action": "Finalize and close/release Issue #713 only; do not activate any successor.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-713.json",
   "red_evidence": {
@@ -29,10 +29,30 @@
     "knowledge_governance": "GREEN",
     "diff_check": "GREEN"
   },
-  "recovery_evidence": {
-    "classification": "MALFORMED_COORD_SERIALIZATION_WRAPPER",
-    "prior_claim_blob_sha": "1f332741e9f20f1a48da716a980f41bdc8c9ef61",
-    "prior_checkpoint_blob_sha": "6291393c9fbd5dcadd07c1bc44cdca9327811069",
-    "repair": "replace wrapper-contaminated coordination blobs with pure JSON while syncing the real GREEN head"
+  "integration": {
+    "pr": 714,
+    "state": "merged",
+    "merge_commit_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
+    "production_head": "fa1b105daed90684db8e0b7500c0a81894cc0c55"
+  },
+  "remote_qa": {
+    "run_id": 36228428292,
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap"
+  },
+  "automation_update": {
+    "entrypoints": [
+      "00",
+      "20",
+      "40",
+      "B15",
+      "B45"
+    ],
+    "mode": "UPDATE_ONLY",
+    "schedules_preserved": true,
+    "enabled_preserved": true,
+    "resulting_enabled": false,
+    "contract": "SCHEDULER_LANE + NORMAL_PATH_FIRST + RECOVERY_IS_EXCEPTION_NOT_PHASE"
   }
 }

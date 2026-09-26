@@ -3,22 +3,23 @@
   "issue": "713",
   "branch": "work/issue713-normal-path-governance-20260926",
   "head_sha": "aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4",
-  "state": "RUNNING",
-  "next_action": "Open PR for exact GREEN head aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4, run remote governance/CI, then merge and close/release #713; after merge, update live A/B automation prompts without changing cadence or enabled state.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "User explicitly authorized standalone governance repair for Guard, Scheduler Simulation, work-slot/execution routing and related entrypoints.",
-    "Phase6 Skill Preflight passed with all required Skills/references.",
-    "RED evidence durable on Issue #713 comment 5844371798: 10 intended failures / 0 harness errors.",
-    "GREEN head aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4: focused 10 passed; safety/governance regression 134 passed.",
+    "Issue #713 standalone governance repair accepted.",
+    "RED: 10 intended failures / 0 harness errors.",
+    "GREEN: 10 focused passes; 134 safety/governance regression passes.",
     "Knowledge governance bootstrap GREEN; git diff --check GREEN.",
-    "No tools/** executable code changed; seven Skill entrypoints + two pitfall ledgers + one contract test changed.",
-    "Fresh recovery condition: initial coord blobs were wrapper-contaminated; this update repairs them to pure JSON while syncing the GREEN work head."
+    "PR #714 merged to cleanup/2d-3d-sync at fa1b105daed90684db8e0b7500c0a81894cc0c55.",
+    "Remote QA run 36228428292 completed success on exact work head.",
+    "Live A/B automation prompts 00/20/40/B15/B45 updated in UPDATE_ONLY mode; cadence and disabled state preserved.",
+    "No tools/** executable code changed; safety Guard/takeover/finalization machine behavior remained intact."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/read back #713, then atomically persist CLOSED + RELEASED. Do not activate successor."
 }
