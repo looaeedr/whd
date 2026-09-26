@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "7a52d091a03e6c88f26e05d432daf1ce94ac0efa",
+  "head_sha": "a59aa727640f03991c23409d95975d15080144a2",
   "state": "RUNNING",
-  "next_action": "Expand #619 exact-head regression to existing Receiving live-switch / 3D baseline / protected-config coverage; if GREEN, delete the one-shot #619 workflow, audit tested-to-cleaned drift, transition terminal, then close/release and hand off to #622.",
+  "next_action": "Create and run a one-shot Ubuntu+Xvfb baseline comparison that checks out B4 starting head 81468a8103fd5045160e0f16e9458317acee584b and executes only the three expanded-gate failures from run 36207583989; classify each failure as pre-existing/stale-test versus B4-introduced before any production change.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -32,8 +32,10 @@
     "Post-commit reconciliation authorized by Guard 36207208348.",
     "Root fix exact run 36207365473 completed SUCCESS: 7 passed in 9.46s on head 7a52d091a03e6c88f26e05d432daf1ce94ac0efa.",
     "Artifact 10894002855 proves the exact UI-R3 atomic visible-commit contract.",
-    "Post-commit reconciliation authorized by Guard 36207383255."
-  ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+    "Post-commit reconciliation authorized by Guard 36207383255.",
+    "Expanded acceptance workflow commit a59aa727640f03991c23409d95975d15080144a2 changed only the one-shot #619 QA workflow.",
+    "Expanded run 36207583989 failed 3 broader regressions while the exact UI-R3 atomic path had already passed at 7a52d091a03e6c88f26e05d432daf1ce94ac0efa.",
+    "Baseline comparison must use Ubuntu+Xvfb at exact B4 start 81468a8103fd5045160e0f16e9458317acee584b; local Windows comparison is not authoritative.",
+    "Post-workflow-commit pair reconciliation authorized by Guard 36207602937."
+  ]
 }
