@@ -847,67 +847,6 @@ def repair_malformed_terminal_checkpoint(
     return checkpoint
 
 
-def repair_malformed_terminal_checkpoint(
-    payload: Mapping[str, object],
-    *,
-    expected_issue: str,
-    expected_branch: str,
-    expected_head_sha: str,
-) -> Checkpoint:
-    """Narrowly repair the historical malformed terminal closure marker.
-
-    This recovery exists only for a terminal checkpoint whose owner identity and
-    terminal state are already exact but whose closure_state was written as the
-    non-canonical historical value READY_FOR_FINALIZATION. It must never be
-    used as a generic checkpoint rewrite path.
-    """
-
-    if not isinstance(payload, Mapping):
-        raise CheckpointError("malformed terminal checkpoint repair requires an object")
-
-    issue = _require_text("issue", payload.get("issue"))
-    branch = _require_text("branch", payload.get("branch"))
-    head_sha = _require_text("head_sha", payload.get("head_sha"))
-    if issue != _require_text("expected_issue", expected_issue):
-        raise CheckpointError("malformed terminal checkpoint repair issue drift")
-    if branch != _require_text("expected_branch", expected_branch):
-        raise CheckpointError("malformed terminal checkpoint repair branch drift")
-    if head_sha != _require_text("expected_head_sha", expected_head_sha):
-        raise CheckpointError("malformed terminal checkpoint repair head drift")
-
-    if payload.get("state") != ContinuityState.TERMINAL_SUCCESS.value:
-        raise CheckpointError(
-            "malformed terminal checkpoint repair requires TERMINAL_SUCCESS"
-        )
-    if payload.get("next_action") is not None:
-        raise CheckpointError(
-            "malformed terminal checkpoint repair requires terminal next_action=None"
-        )
-    if payload.get("closure_state") != "READY_FOR_FINALIZATION":
-        raise CheckpointError(
-            "malformed terminal checkpoint repair only accepts READY_FOR_FINALIZATION"
-        )
-
-    candidate = dict(payload)
-    candidate["closure_state"] = ClosureState.FINALIZATION_PENDING.value
-    candidate["closure_next_action"] = DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION
-    repaired = checkpoint_from_payload(candidate)
-
-    if (
-        repaired.issue != issue
-        or repaired.branch != branch
-        or repaired.head_sha != head_sha
-        or repaired.state is not ContinuityState.TERMINAL_SUCCESS
-    ):
-        raise CheckpointError(
-            "malformed terminal checkpoint repair changed immutable owner identity"
-        )
-    if repaired.closure_state is not ClosureState.FINALIZATION_PENDING:
-        raise CheckpointError(
-            "malformed terminal checkpoint repair did not restore FINALIZATION_PENDING"
-        )
-    return repaired
-
 def load_checkpoint(path: Path) -> Checkpoint:
     path = Path(path)
     try:
