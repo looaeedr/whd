@@ -20,6 +20,7 @@ import threading
 from typing import Literal, Mapping
 
 from . import ae
+from .dxf_serialization import save_scene_dxf
 from .contracts import (
     FinalMaterialCollisionPart,
     BasePlatePartSpec,
@@ -2163,7 +2164,7 @@ def save_part_render_data_dxf(
     os.close(fd)
     temp_path = Path(temp_name)
     try:
-        ae._save_scene_dxf(str(temp_path), render_data.scene)
+        save_scene_dxf(str(temp_path), render_data.scene)
         os.replace(temp_path, destination)
     except Exception:
         temp_path.unlink(missing_ok=True)
@@ -2284,7 +2285,7 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
     )
     if has_resolved_geometry:
         render_data = build_part_render_data(spec, context)
-        ae._save_scene_dxf(filepath, render_data.scene)
+        save_scene_dxf(filepath, render_data.scene)
         return "final_scene_end_cap_export", baseline, expected
     if baseline is not None:
         _call(
@@ -2316,7 +2317,7 @@ def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: Manufact
     # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
         render_data = build_part_render_data(spec, context)
-        ae._save_scene_dxf(filepath, render_data.scene)
+        save_scene_dxf(filepath, render_data.scene)
         return "final_scene_base_plate_structure_export", None, None
     exporter = ae.export_unknown_base_plate_dxf if spec.corner_policy is not None else ae.export_base_plate_dxf
     kwargs = {"corner_policy": spec.corner_policy} if spec.corner_policy is not None else {}

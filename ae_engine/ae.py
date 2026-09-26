@@ -65,6 +65,12 @@ from .sheetmetal_drawing import (
     mirror_drawing_scene_x,
 )
 
+from .dxf_serialization import (
+    setup_dxf_layers,
+    add_drawing_scene_to_dxf as _add_drawing_scene_to_dxf,
+    save_scene_dxf as _save_scene_dxf,
+)
+
 from .sheetmetal_features import (
     box_body_face_contexts_from_strip,
     resolve_box_body_face_features,
@@ -671,27 +677,6 @@ def export_unknown_door_dxf(filepath, *, corner_policy, W_val=None, H_val=None, 
     print(f"成功輸出自訂門 DXF: {filepath}")
 
 
-def setup_dxf_layers(doc):
-    """
-    建立符合「加工層分類與定義」的 Layer
-    """
-    if 'CUTTING' not in doc.layers:
-        doc.layers.new(name='CUTTING', dxfattribs={'color': 3, 'linetype': 'CONTINUOUS'})
-    if 'BEND' not in doc.layers:
-        doc.layers.new(name='BEND', dxfattribs={'color': 5, 'linetype': 'CONTINUOUS'})
-    if 'MARKING' not in doc.layers:
-        doc.layers.new(name='MARKING', dxfattribs={'color': 211, 'linetype': 'CONTINUOUS'})
-    if 'BLIND_HOLE' not in doc.layers:
-        doc.layers.new(name='BLIND_HOLE', dxfattribs={'color': 1, 'linetype': 'CONTINUOUS'})
-    if 'STOCK' not in doc.layers:
-        doc.layers.new(name='STOCK', dxfattribs={'color': 4, 'linetype': 'CONTINUOUS'})
-    if 'CENTER' not in doc.linetypes:
-        doc.linetypes.add(name='CENTER', description='Center ____ _ ____ _ ____ _ ____', pattern=[1.25, -0.25, 0.25, -0.25])
-    if 'DATUM' not in doc.layers:
-        doc.layers.new(name='DATUM', dxfattribs={'color': 6, 'linetype': 'CENTER'})
-    if 'CHECK' not in doc.layers:
-        doc.layers.new(name='CHECK', dxfattribs={'color': 2, 'linetype': 'CONTINUOUS'})
-
 def _box_body_baseline_mapping_context(model_name, total_length, total_height,
                                        zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=-10.0,
                                        w=500.0, d=150.0, t=2.0, fw=25.0):
@@ -1201,53 +1186,6 @@ def export_box_body_dxf(filepath, W_val=None, H_val=None, D_val=None, T_val=None
     )
     _save_scene_dxf(filepath, scene)
     print(f"成功輸出箱身 DXF: {filepath}")
-
-def _add_drawing_scene_to_dxf(msp, scene):
-    """Serialize a pure DrawingScene without recalculating coordinates."""
-    for primitive in scene.primitives:
-        attrs = {'layer': primitive.layer}
-        color = getattr(primitive, 'color', None)
-        if color is None and primitive.layer == 'MARKING':
-            color = 211
-        if color is not None:
-            attrs['color'] = color
-
-        if isinstance(primitive, PolylinePrimitive):
-            msp.add_lwpolyline(
-                [(p.x, p.y) for p in primitive.points],
-                close=primitive.closed,
-                dxfattribs=attrs,
-            )
-        elif isinstance(primitive, LinePrimitive):
-            msp.add_line(
-                (primitive.p1.x, primitive.p1.y),
-                (primitive.p2.x, primitive.p2.y),
-                dxfattribs=attrs,
-            )
-        elif isinstance(primitive, CirclePrimitive):
-            msp.add_circle(
-                (primitive.center.x, primitive.center.y),
-                primitive.radius,
-                dxfattribs=attrs,
-            )
-        elif isinstance(primitive, TextPrimitive):
-            attrs.update({
-                'insert': (primitive.insert.x, primitive.insert.y),
-                'char_height': primitive.char_height,
-                'attachment_point': primitive.attachment_point,
-            })
-            msp.add_mtext(primitive.text, dxfattribs=attrs)
-        else:
-            raise TypeError(f"Unsupported drawing primitive: {type(primitive).__name__}")
-
-
-def _save_scene_dxf(filepath, scene):
-    """Create one DXF document, serialize one DrawingScene, and save it."""
-    doc = ezdxf.new('R2010')
-    setup_dxf_layers(doc)
-    _add_drawing_scene_to_dxf(doc.modelspace(), scene)
-    doc.saveas(filepath)
-
 
 def _resolve_user_holes(holes, geometry, finished_width, finished_depth, *, normalized_head=False):
     """Resolve end-cap user features in the scene's final WYSIWYG orientation.
