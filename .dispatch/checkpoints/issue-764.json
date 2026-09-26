@@ -27,13 +27,14 @@
     "coord progress write authorized by Guard run 36276663230.",
     "PR #770 merged to cleanup/2d-3d-sync at 73eeb38746f4809e5362348158f9dcf3526981d2.",
     "Fresh production readback confirms merged production HEAD.",
-    "Terminal transition authorized by Guard run 36276787909."
+    "Terminal transition authorized by Guard run 36276787909.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Guard run 36276847482."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run bound finalization proof and close/read back the owning Issue without mutating this checkpoint"
 }
