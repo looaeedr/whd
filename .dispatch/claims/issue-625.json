@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T14:48:10Z",
   "base_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
-  "head_sha": "590448a911099d2bdb61aef09112dd6b6d3afc3c",
-  "phase": "RED",
-  "last_update": "2026-09-26T21:39:08Z",
+  "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-26T21:45:03Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
@@ -29,8 +29,13 @@
   "slot_id": "UNBOUND",
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Write DT-1..DT-6 for P7-G with canonical KEEP_CURRENT_BOUNDARY, add A8 target-completion evidence and one-shot GREEN/Xvfb QA, without changing Settings transaction/state authority.",
+  "remote_qa": {
+    "run_id": 36273892831,
+    "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "next_action": "Promote A8 target completion to ACCEPTED with GREEN run 36273892831 evidence, remove the one-shot RED/GREEN workflows, drift-audit tested head 6603578386cc56b34bf79db82093706338cc92fd to closing head, then terminalize #625 and hand off #626.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-625.json",
   "evidence": [
@@ -53,6 +58,11 @@
     "QA dependency fix commit advanced work branch to 590448a911099d2bdb61aef09112dd6b6d3afc3c under commit Guard 36273553170 GREEN.",
     "Focused P7-R-G run 36273585335 SUCCESS as an expected-RED harness: exactly 3 passed / 1 failed; only test_p7_r_g_requires_terminal_deletion_test_decision failed because DT-6 status remained PENDING.",
     "Reconciliation Guard 36273655460 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact head 590448a911099d2bdb61aef09112dd6b6d3afc3c.",
-    "Deletion-test readback: six exact Settings compatibility bodies and all structure/corner/endcap mutation callback bodies are source-identical to accepted #528 lineage; phase6_settings_panel.py and phase6_settings_profile_projection.py blobs are unchanged."
+    "Deletion-test readback: six exact Settings compatibility bodies and all structure/corner/endcap mutation callback bodies are source-identical to accepted #528 lineage; phase6_settings_panel.py and phase6_settings_profile_projection.py blobs are unchanged.",
+    "P7-G decision/evidence commit 6603578386cc56b34bf79db82093706338cc92fd records DT-1..DT-6 with canonical KEEP_CURRENT_BOUNDARY.",
+    "GREEN/Xvfb run 36273892831 SUCCESS at exact tested head 6603578386cc56b34bf79db82093706338cc92fd: focused 37 passed / 6 skipped; Xvfb 23 passed / 24 font-glyph warnings.",
+    "No production Settings implementation changed; Settings transaction/state authority remained unchanged.",
+    "Reconciliation Guard 36273983046 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact tested head 6603578386cc56b34bf79db82093706338cc92fd.",
+    "One-shot RED rerun 36273892838 failed only because DT-6 is now COMPLETE; it is disposable harness lifecycle, not a production regression."
   ]
 }
