@@ -1,0 +1,38 @@
+{
+  "issue": 620,
+  "issue_url": "https://github.com/looaeedr/whd/issues/620",
+  "worker": "chatgpt.sol260926.issue620.a4",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue620.a4",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "claimed_at": "2026-09-26T04:50:00Z",
+  "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+  "head_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T04:50:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+  "master_issue": 627,
+  "task_id": "A4",
+  "parent_issue": 627,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run #620 Phase6 Knowledge Preflight on accepted #618 head acc38cd39ab548f802f6d18445ac8ca23550c335, characterize P7-R-D DT boundaries for manufacturing_api.py public facade versus request resolution, render-data builders, export pipeline and verification, then execute the first evidence-backed RED/production/test mutation without importing UI/Bridge or duplicating manufacturing truth.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-620.json",
+  "predecessor": {
+    "issue": 618,
+    "accepted_head_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+    "claim_phase": "RELEASED",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED"
+  },
+  "evidence": [
+    "Requirement Authority: user-approved Phase 7 v1.2 specification + approved RED/breakdown; owning Issue #620 P7-R-D fresh-read open.",
+    "Work-order lineage authority: predecessor #618 is closed/completed with claim RELEASED and checkpoint TERMINAL_SUCCESS/CLOSED at accepted head acc38cd39ab548f802f6d18445ac8ca23550c335.",
+    "Master #627 handoff is NEXT_CHILD_EXECUTABLE -> #620 A4; production target cleanup/2d-3d-sync is observation/integration authority only and current production head cb0c6ada73d4bee15572c42220f03993a93554fc is not a child base."
+  ]
+}
