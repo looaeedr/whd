@@ -735,4 +735,16 @@ Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance
 6. exact coord parent CAS drift 立即 FAIL；repair GREEN 後必須 fresh-read candidate pair，再回 canonical finalization progression。
 
 此 transition 是 process-state migration repair，不是 takeover、不是 generic checkpoint editor。Primary regression：`tests/process/test_issue744_terminal_checkpoint_repair_transport.py`；governance repair：#744。
+## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1
+
+對 shared coordination 的 `action=write`，GREEN receipt 不得只靠「目前檔案看起來已更新」判定 consumed。trusted Remote Guard 必須從 `coord/dispatch-claims` fresh-read receipt window 內的 exact commit，且只接受該 Issue 的 claim/checkpoint 路徑。
+
+可 auto-consume 的 durable readback 必須同時成立：
+- commit 的 changed-file set 與 receipt 完全相同；
+- target claim/checkpoint blob 可在該 commit 精確讀回；
+- claim payload 的 issue / worker / executor_source / work_branch / head_sha 與 receipt 一致；
+- checkpoint payload的 issue / branch / head_sha 與 receipt 一致；
+- receipt window 內只能有一顆 exact matching coordination commit；多顆或零顆皆 fail closed。
+
+Canonical implementation：`tools.execution_claim_guard.durable_coord_write_readbacks_from_live_commits`。trusted workflow 必須把它與 branch-create / pr-write readbacks 一起餵給 transaction classifier。這條規則不放寬一般 repository write/commit。
 

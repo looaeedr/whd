@@ -448,4 +448,11 @@ Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到
 只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
 
 Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1
+
+Remote Guard 的 `action=write` 若 scope 僅為 `.dispatch/claims/issue-N.json` 與／或 `.dispatch/checkpoints/issue-N.json`，可由 shared coordination branch 的 exact commit 作 durable mutation proof。
+
+Workflow 必須查詢 receipt `issued_at..expires_at` 期間、相同 path 的 `coord/dispatch-claims` commits，讀回 commit changed files 與各 target blob/payload，再交由 `durable_coord_write_readbacks_from_live_commits()` 驗證。不得只拿 current HEAD/current blob 倒推，也不得把非 coordination write 自動 consume。
+
+缺 commit、identity mismatch、changed-file mismatch、payload mismatch 或多個 exact matches 時一律 fail closed。
 
