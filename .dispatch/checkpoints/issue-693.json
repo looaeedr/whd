@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "693",
   "branch": "work/issue693-combined-acceptance-20260926",
-  "head_sha": "cea45ae780f64c89646edcecb68c807f7075dca3",
+  "head_sha": "d347198b23cb451883772c0b2fb0835dcfc79b9a",
   "state": "RUNNING",
-  "next_action": "Finalize docs/governance/issue693_combined_acceptance_writeback_manifest.json with trusted main deployment/readback evidence from #763/#765, verify governance parity result GREEN, then create/merge #693 integration PR to cleanup/2d-3d-sync and close/release #693.",
+  "next_action": "Fresh-read current cleanup/2d-3d-sync against #693 head d347198b23cb451883772c0b2fb0835dcfc79b9a; if cleanup drift exists, reconcile it and rerun focused acceptance; otherwise create/merge #693 integration PR to cleanup, verify production readback, then finalization/close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -30,7 +30,9 @@
     "Final drift merge cea45ae780f64c89646edcecb68c807f7075dca3.",
     "Post-conflict focused acceptance 71 passed / 0 failed; full H3 suite 786 passed / 2 baseline failures reproduced on fresh cleanup.",
     "Trusted deploy helper #763 terminal and released.",
-    "PR #765 merged to main with exact two-file source parity."
+    "PR #765 merged to main with exact two-file source parity.",
+    "Final parity manifest commit d347198b23cb451883772c0b2fb0835dcfc79b9a.",
+    "Governance parity result GREEN / PARITY_PROVEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
