@@ -11,6 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 AE = ROOT / "ae_engine" / "ae.py"
+BASELINE_RESOURCES = ROOT / "ae_engine" / "baseline_resources.py"
 API = ROOT / "ae_engine" / "manufacturing_api.py"
 sys.path.insert(0, str(ROOT))
 
@@ -43,14 +44,16 @@ def test_small_door_role_is_not_detected_by_shared_model_name():
     assert "if indicator_window_groups is not None:" in src
 
 
-def test_ae_has_one_central_baseline_root_builder_and_no_fixed_shared_model():
+def test_baseline_resource_owner_is_deep_and_has_no_fixed_shared_model():
     src = _text(AE)
-    # Only baseline_root_path() may ask get_resource_path() for the baseline root.
-    occurrences = src.count('get_resource_path("基準檔') + src.count("get_resource_path('基準檔")
-    assert occurrences == 1
-    assert "INDICATOR_SHARED_BASELINE_MODEL =" not in src
-    assert 'fallback="指示燈"' not in src
-    assert "fallback='指示燈'" not in src
+    owner = _text(BASELINE_RESOURCES)
+    assert 'get_resource_path("基準檔' not in src
+    assert "_baseline_resources.baseline_root_path(get_resource_path)" in src
+    assert 'resource_path("基準檔")' in owner
+    assert owner.count('resource_path("基準檔")') == 1
+    assert "INDICATOR_SHARED_BASELINE_MODEL =" not in src + owner
+    assert 'fallback="指示燈"' not in src + owner
+    assert "fallback='指示燈'" not in src + owner
 
 
 def _fresh_config(shared_model: str = "") -> configparser.ConfigParser:

@@ -84,6 +84,7 @@ from .baseline_source import (
     baseline_entity_layer as _baseline_entity_layer,
     baseline_cutting_bounds as _baseline_cutting_bounds,
 )
+from . import baseline_resources as _baseline_resources
 
 from .sheetmetal_features import (
     box_body_face_contexts_from_strip,
@@ -1344,110 +1345,65 @@ def export_unknown_end_cap_dxf(filepath, *, corner_policy, W_val=None, H_val=Non
 
 
 def get_baseline_list():
-    """
-    掃描 基準檔 目錄，獲取所有可用的型號
-    """
-    base_dir = baseline_root_path()
-    if not os.path.exists(base_dir):
-        return []
-    models = []
-    try:
-        for item in os.listdir(base_dir):
-            if os.path.isdir(os.path.join(base_dir, item)):
-                # 必須含有 封頭尾.dxf 才算有效基準型號
-                if os.path.exists(os.path.join(base_dir, item, "封頭尾.dxf")):
-                    models.append(item)
-    except Exception:
-        pass
-    return models
+    """Backward-compatible facade for baseline model discovery."""
+    return _baseline_resources.get_baseline_list(get_resource_path)
 
 
 def baseline_root_path():
-    """Return the one resource-aware root that owns every baseline model folder."""
-    return get_resource_path("基準檔")
+    """Backward-compatible facade for the baseline resource root."""
+    return _baseline_resources.baseline_root_path(get_resource_path)
 
 
 def baseline_expected_path(model_name, filename):
-    """Build a baseline-part path through the central resource root without requiring existence."""
-    model = str(model_name or "").strip()
-    if not model:
-        return None
-    return os.path.join(baseline_root_path(), model, str(filename))
+    """Backward-compatible facade for an expected baseline-part path."""
+    return _baseline_resources.baseline_expected_path(
+        get_resource_path, model_name, filename
+    )
 
 
 def baseline_part_path(model_name, filename):
-    """Return an existing baseline part path, or ``None`` when formula-generated."""
-    path = baseline_expected_path(model_name, filename)
-    return path if path and os.path.isfile(path) else None
+    """Backward-compatible facade for an existing baseline-part path."""
+    return _baseline_resources.baseline_part_path(
+        get_resource_path, model_name, filename
+    )
 
 
 def baseline_hole_catalog_root_path():
-    """Return the shared baseline-hole catalog directory through the central resource root."""
-    return os.path.join(baseline_root_path(), "開孔")
+    """Backward-compatible facade for the shared hole-catalog root."""
+    return _baseline_resources.baseline_hole_catalog_root_path(get_resource_path)
 
 
 def indicator_shared_baseline_model_name():
-    """Resolve the globally shared indicator-box namespace without a built-in folder name.
-
-    An explicit ``[INDICATOR_BOX] shared_baseline_model`` wins.  Otherwise the
-    baseline root must contain exactly one folder that owns both shared parts.
-    Ambiguous or missing resources are errors; there is deliberately no silent fallback.
-    """
-    configured = config.get('INDICATOR_BOX', 'shared_baseline_model', fallback='').strip()
-    if configured:
-        return configured
-
-    root = baseline_root_path()
-    required = ("盒子.dxf", "小門.dxf")
-    candidates = []
-    if os.path.isdir(root):
-        for name in sorted(os.listdir(root)):
-            folder = os.path.join(root, name)
-            if os.path.isdir(folder) and all(os.path.isfile(os.path.join(folder, part)) for part in required):
-                candidates.append(name)
-
-    if len(candidates) == 1:
-        return candidates[0]
-    if not candidates:
-        raise FileNotFoundError(
-            "找不到全域指示燈盒基準；請設定 [INDICATOR_BOX] shared_baseline_model，"
-            "或讓基準檔根目錄中只有一個資料夾同時包含 盒子.dxf 與 小門.dxf"
-        )
-    raise RuntimeError(
-        "找到多個全域指示燈盒基準候選：" + ", ".join(candidates)
-        + "；請用 [INDICATOR_BOX] shared_baseline_model 明確指定"
+    """Backward-compatible facade for shared indicator baseline discovery."""
+    return _baseline_resources.indicator_shared_baseline_model_name(
+        config, get_resource_path
     )
 
 
 def indicator_shared_baseline_part_path(filename, require_exists=True):
-    """Resolve one globally shared indicator-box part through the normal baseline resolver."""
-    model = indicator_shared_baseline_model_name()
-    path = baseline_expected_path(model, filename)
-    if require_exists and (not path or not os.path.isfile(path)):
-        return None
-    return path
+    """Backward-compatible facade for a shared indicator baseline part."""
+    return _baseline_resources.indicator_shared_baseline_part_path(
+        config, get_resource_path, filename, require_exists=require_exists
+    )
 
 
 def indicator_shared_baseline_source_label(filename):
-    try:
-        model = indicator_shared_baseline_model_name()
-    except Exception as exc:
-        return f"共用基準檔解析失敗：{exc}"
-    path = baseline_expected_path(model, filename)
-    if path and os.path.isfile(path):
-        return f"基準檔：{model}/{filename}"
-    return f"共用基準檔缺少：{model}/{filename}"
+    """Backward-compatible facade for shared indicator source status."""
+    return _baseline_resources.indicator_shared_baseline_source_label(
+        config, get_resource_path, filename
+    )
 
 
 def has_baseline_part(model_name, filename):
-    return baseline_part_path(model_name, filename) is not None
+    return _baseline_resources.has_baseline_part(
+        get_resource_path, model_name, filename
+    )
 
 
 def baseline_source_label(model_name, filename):
-    model = str(model_name or "").strip()
-    if model and has_baseline_part(model, filename):
-        return f"基準檔：{model}/{filename}"
-    return "未使用基準檔（程式計算生成）"
+    return _baseline_resources.baseline_source_label(
+        get_resource_path, model_name, filename
+    )
 
 
 def get_end_cap_contour_points(w, d, t, fw, yl1, yr1, ytop1, ybottom1, relief_config=None):
