@@ -9,14 +9,14 @@
   "work_branch": "work/issue693-combined-acceptance-20260926",
   "claimed_at": "2026-09-26T12:20:00Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "head_sha": "64a64d4a0ee8adae81396eaef52c16db97b57d4f",
+  "head_sha": "32ae049cbfe51780af5b1d18cbfbfd638c64bf26",
   "phase": "GREEN",
-  "last_update": "2026-09-26T21:48:00Z",
+  "last_update": "2026-09-26T21:52:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Complete #693 required 17-target durable writeback/readback (actual update or explicit no-change reason), run full combined acceptance including tests/process and required RED/REG contracts, then create/merge integration PR to cleanup, verify production↔trusted parity, remove obsolete temporary QA artifacts in #693 scope, and close/release.",
+  "next_action": "Run full tests/process at exact #693 writeback head, verify all approved RED/REG contracts, evaluate production-source vs trusted-main governance parity, deploy only required trusted deltas, finalize trusted workflow deployment/readback manifest, then integrate #693 to cleanup and close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-693.json",
   "evidence": [
@@ -39,7 +39,10 @@
     "Drift merge commit 64a64d4a0ee8adae81396eaef52c16db97b57d4f merges current cleanup into #693 after accepted child integration.",
     "Post-drift focused acceptance: 91 passed / 0 failed.",
     "Full 64-file Phase6 merge preflight GREEN.",
-    "Net diff versus current cleanup remains the accepted 13 substantive files; inherited cleanup raw-evidence whitespace was not altered."
+    "Net diff versus current cleanup remains the accepted 13 substantive files; inherited cleanup raw-evidence whitespace was not altered.",
+    "17-target durable writeback commit 32ae049cbfe51780af5b1d18cbfbfd638c64bf26.",
+    "Writeback preflight GREEN; related Skill/scheduler/closure contracts 44 passed / 0 failed.",
+    "Manifest created at docs/governance/issue693_combined_acceptance_writeback_manifest.json with final deployment readback intentionally pending until trusted parity is verified."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",

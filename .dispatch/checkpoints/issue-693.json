@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "693",
   "branch": "work/issue693-combined-acceptance-20260926",
-  "head_sha": "64a64d4a0ee8adae81396eaef52c16db97b57d4f",
+  "head_sha": "32ae049cbfe51780af5b1d18cbfbfd638c64bf26",
   "state": "RUNNING",
-  "next_action": "Complete #693 required 17-target durable writeback/readback (actual update or explicit no-change reason), run full combined acceptance including tests/process and required RED/REG contracts, then create/merge integration PR to cleanup, verify production↔trusted parity, remove obsolete temporary QA artifacts in #693 scope, and close/release.",
+  "next_action": "Run full tests/process at exact #693 writeback head, verify all approved RED/REG contracts, evaluate production-source vs trusted-main governance parity, deploy only required trusted deltas, finalize trusted workflow deployment/readback manifest, then integrate #693 to cleanup and close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,7 +24,9 @@
     "Combined child integration commit 226a081a7630a34375daa3d4a6047211a6ce6ae9.",
     "Pre-commit combined acceptance 77 passed / 0 failed; temporary child QA workflows excluded.",
     "Post-drift merge commit 64a64d4a0ee8adae81396eaef52c16db97b57d4f.",
-    "Post-drift focused acceptance 91 passed / 0 failed; current-cleanup net delta remains 13 accepted substantive files."
+    "Post-drift focused acceptance 91 passed / 0 failed; current-cleanup net delta remains 13 accepted substantive files.",
+    "17-target writeback commit 32ae049cbfe51780af5b1d18cbfbfd638c64bf26.",
+    "Writeback contract regression 44 passed / 0 failed."
   ],
   "master_issue": null,
   "chain_state": "NONE",
