@@ -241,6 +241,7 @@ jobs:
 
             if [ "$effective_live_head" = "$claim_head_sha" ]; then
               gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/issues/${RG_ISSUE}/comments?per_page=100" > /tmp/remote-guard-comments.json
+              gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=all&head=${GITHUB_REPOSITORY_OWNER}:${RG_BRANCH}&per_page=100" > /tmp/remote-guard-pulls.json
               RG_EFFECTIVE_LIVE_HEAD="$effective_live_head" python - <<'PY'
           import datetime as dt
           import json
@@ -251,6 +252,7 @@ jobs:
               assert_remote_guard_request_permitted,
               classify_guard_transaction,
               durable_branch_create_readbacks_from_live_branch,
+              durable_pr_write_readbacks_from_live_pulls,
               exact_remote_guard_receipts_from_comments,
           )
 
@@ -267,6 +269,15 @@ jobs:
           claim = json.loads(
               Path("/tmp/execution-claim.json").read_text(encoding="utf-8")
           )
+          raw_pulls = json.loads(
+              Path("/tmp/remote-guard-pulls.json").read_text(encoding="utf-8")
+          )
+          pulls = []
+          for item in raw_pulls:
+              if isinstance(item, list):
+                  pulls.extend(entry for entry in item if isinstance(entry, dict))
+              elif isinstance(item, dict):
+                  pulls.append(item)
           receipts = exact_remote_guard_receipts_from_comments(
               comments,
               issue=int(os.environ["RG_ISSUE"]),
@@ -281,6 +292,11 @@ jobs:
               receipts,
               live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
           )
+          pr_write_readbacks = durable_pr_write_readbacks_from_live_pulls(
+              receipts,
+              live_pulls=pulls,
+              expected_base_branch=claim["production_target"],
+          )
           decision = classify_guard_transaction(
               receipts=receipts,
               current_issue=int(os.environ["RG_ISSUE"]),
@@ -291,7 +307,7 @@ jobs:
               live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
               current_claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
               now=dt.datetime.now(dt.timezone.utc),
-              durable_readbacks=branch_create_readbacks,
+              durable_readbacks=branch_create_readbacks + pr_write_readbacks,
           )
           assert_remote_guard_request_permitted(decision)
           if decision.state.value == "EXPIRED_UNCONSUMED":

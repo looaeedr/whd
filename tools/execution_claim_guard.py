@@ -211,6 +211,93 @@ def durable_branch_create_readbacks_from_live_branch(
         )
     return readbacks
 
+
+def durable_pr_write_readbacks_from_live_pulls(
+    receipts: Iterable[Mapping[str, object]],
+    *,
+    live_pulls: Iterable[Mapping[str, object]],
+    expected_base_branch: str,
+) -> list[dict[str, object]]:
+    """Project exact durable PR mutation events into pr-write readbacks.
+
+    A pre-existing PR is not enough: at least one durable create/merge/close event
+    must fall inside the exact GREEN receipt window. This prevents an already-open
+    PR from falsely consuming a later pr-write Guard.
+    """
+
+    base_branch = str(expected_base_branch or "").strip()
+    if not base_branch:
+        return []
+
+    pulls = [item for item in live_pulls if isinstance(item, Mapping)]
+    readbacks: list[dict[str, object]] = []
+    for receipt in receipts:
+        if receipt.get("schema") != "WHD_REMOTE_GUARD_RECEIPT_V1":
+            continue
+        if receipt.get("result") != "GREEN":
+            continue
+        if str(receipt.get("action") or "") != "pr-write":
+            continue
+
+        branch = str(receipt.get("branch") or "")
+        head_sha = str(receipt.get("head_sha") or "")
+        tested_target = str(receipt.get("tested_target_sha") or "")
+        if not branch or not head_sha or tested_target != head_sha:
+            continue
+
+        issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
+        expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+        matches: list[tuple[Mapping[str, object], str, datetime]] = []
+        for pull in pulls:
+            head = pull.get("head")
+            base = pull.get("base")
+            if not isinstance(head, Mapping) or not isinstance(base, Mapping):
+                continue
+            if str(head.get("ref") or "") != branch:
+                continue
+            if str(head.get("sha") or "") != head_sha:
+                continue
+            if str(base.get("ref") or "") != base_branch:
+                continue
+
+            qualifying: list[tuple[str, datetime]] = []
+            for field in ("created_at", "merged_at", "closed_at"):
+                raw = pull.get(field)
+                if raw in (None, ""):
+                    continue
+                try:
+                    event_at = _guard_tx_timestamp(raw, field)
+                except ExecutionClaimError:
+                    continue
+                if issued_at <= event_at <= expires_at:
+                    qualifying.append((field, event_at))
+            if qualifying:
+                event_name, event_at = max(qualifying, key=lambda item: item[1])
+                matches.append((pull, event_name, event_at))
+
+        if len(matches) > 1:
+            raise ExecutionClaimError(
+                "ambiguous pr-write durable readback: multiple exact PR mutation events"
+            )
+        if not matches:
+            continue
+
+        pull, event_name, event_at = matches[0]
+        readbacks.append(
+            {
+                "guard_run_id": _guard_tx_run_id(receipt),
+                "action": "pr-write",
+                "mutation_applied": True,
+                "reconciled": True,
+                "pr_readback": True,
+                "pr_number": pull.get("number"),
+                "pr_event": event_name,
+                "pr_event_at": event_at.isoformat(),
+                "changed_files": list(_guard_tx_files(receipt)),
+            }
+        )
+    return readbacks
+
 def _guard_tx_equivalence_key(
     receipt: Mapping[str, object],
 ) -> tuple[object, ...]:
