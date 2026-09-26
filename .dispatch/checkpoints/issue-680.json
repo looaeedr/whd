@@ -50,13 +50,15 @@
     "Pre-commit focused contracts 12 passed / 0 failed; UTF-8 #680 writeback repaired and verified.",
     "Implementation integrated to cleanup via PR #740 / merge 79efd748107db7578105fd0ca920f2436a3ff67a.",
     "Delegated trusted-main helper #751 is terminal and released.",
-    "Fresh main readback confirms claim-handoff executable/parser parity after PR #752 / merge 4355938c49e5feec0961fb0e4073d7aa101b2396."
+    "Fresh main readback confirms claim-handoff executable/parser parity after PR #752 / merge 4355938c49e5feec0961fb0e4073d7aa101b2396.",
+    "Issue #680 closed/completed after verified finalization proof.",
+    "Final atomic parent transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Authorize finalization proof, close #680, fresh-read, then atomic CLOSED + RELEASED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
