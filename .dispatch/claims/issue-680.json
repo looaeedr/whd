@@ -4,14 +4,14 @@
   "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.b680.20260926T1409",
+  "invocation_identity": "chat.b680.20260926T1441",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T14:11:00Z",
+  "last_update": "2026-09-26T14:41:14Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "next_action": "Run focused RED characterization for planned handoff sender + Scheduler A/B receiver on the existing exact branch, then implement only the accepted WI-2 scope without changing recurring cadence.",
@@ -41,6 +41,9 @@
     "Single-use takeover receipt consumed by exact claim-owner CAS; branch/base/head unchanged.",
     "Fresh branch readback proves work/issue680-planned-handoff-scheduler-receiver-20260926 already exists at exact claim HEAD cb0c6ada73d4bee15572c42220f03993a93554fc; branch-create next_action is superseded.",
     "Remote Guard run 36247597276 GREEN authorized exact claim/checkpoint pair reconciliation.",
-    "Canonical next action advanced to focused RED characterization; no repository implementation mutation replayed."
+    "Canonical next action advanced to focused RED characterization; no repository implementation mutation replayed.",
+    "Same-lane /排程B resume at 2026-09-26T14:41:14Z after prior runtime liveness expired.",
+    "Run 36248639696 failed before mutation because current checkpoint payload could not be parsed by canonical continuity controller.",
+    "Recovery uses Claim Activation transition=reactivate with a canonical explicit checkpoint payload; claim owner/branch/base/head/phase remain unchanged."
   ]
 }

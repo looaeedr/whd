@@ -17,8 +17,15 @@
     "WI-2 includes both planned handoff sender and Scheduler A/B receiver/resume path; recurring cadence must remain unchanged.",
     "Interactive /排程B takeover readback: claim owner scheduler.e58ea936e7d0b12bd0d475314709d6f1.",
     "Existing branch exact HEAD cb0c6ada73d4bee15572c42220f03993a93554fc; branch-create step already materially satisfied.",
-    "Remote Guard run 36247597276 GREEN; pair reconciled to focused RED characterization."
+    "Remote Guard run 36247597276 GREEN; pair reconciled to focused RED characterization.",
+    "Run 36248639696 exposed invalid checkpoint serialization before any implementation commit.",
+    "Same-lane recovery canonicalizes checkpoint fields without changing issue/branch/head/state/next_action authority."
   ],
-  "closure_state": "OPEN",
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
   "closure_next_action": null
 }
