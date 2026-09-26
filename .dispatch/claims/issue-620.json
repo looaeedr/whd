@@ -11,7 +11,7 @@
   "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
   "head_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T05:52:36Z",
+  "last_update": "2026-09-26T05:56:09Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e",
     "protected_inputs": "GREEN"
   },
-  "next_action": "Run bound WHD_REMOTE_FINALIZATION_REQUEST_V1 for #620 against the exact ISSUE_CLOSE_PENDING checkpoint blob/fingerprint; on GREEN close/read back Issue #620, then advance RELEASE_HANDOFF_PENDING and release claim.",
+  "next_action": "Run final release Guard for #620, then atomically persist checkpoint closure_state CLOSED + claim phase RELEASED with next_action null while preserving Master #627 NEXT_CHILD_EXECUTABLE -> #621 A5.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-620.json",
   "predecessor": {
@@ -52,17 +52,18 @@
     "Exact-head remote QA GREEN for #620 P7-R-D: workflow orchestration head 9f0c0670b8070cce1f5e7dcd8be9be7b3952e9c3 explicitly checked out TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310. Run 36221637524 / job 108347881676 completed success; structural+anti-regrowth, Manufacturing API/policy/collision, DXF export/reopen and protected-input verification steps all SUCCESS. Artifact 10899159285 digest sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e. Workflow commit Guard 36221552013 GREEN; orchestration post-commit Guard 36221678331 GREEN.",
     "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid.",
     "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed.",
-    "Closure advance authority: write Guard 36222077026 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim CLOSING and checkpoint TERMINAL_SUCCESS/FINALIZATION_PENDING."
+    "Closure advance authority: write Guard 36222077026 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim CLOSING and checkpoint TERMINAL_SUCCESS/FINALIZATION_PENDING.",
+    "Bound finalization + issue-close readback accepted: WHD Remote Finalization run 36222179672 SUCCESS at checkpoint blob 1105c4bc0d7b4192938c4b61ac46b5074d461e98 / fingerprint dc8be0be488daf07cf27da2a08bf210d0e2d396bc87ea625f5079098d3f37a25; artifact 10898998585 digest sha256:0395916b65de825cc0edc817ae54129e689e562368b506009065bd69aea92975. Issue #620 fresh-read closed/completed at 2026-09-26T05:55:33Z. Release-handoff advance Guard 36222238656 GREEN."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36222077026,
-    "request_comment_id": 5843668219,
+    "run_id": 36222238656,
+    "request_comment_id": 5843687436,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "advance #620 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "persist finalization proof + closed Issue readback and advance to RELEASE_HANDOFF_PENDING"
   },
   "local_validation": {
     "verification_owner": {
@@ -101,5 +102,15 @@
     "compare_ahead_by": 2,
     "changed_files": [],
     "production_test_blob_drift": false
+  },
+  "finalization": {
+    "run_id": 36222179672,
+    "artifact_id": 10898998585,
+    "artifact_digest": "sha256:0395916b65de825cc0edc817ae54129e689e562368b506009065bd69aea92975",
+    "checkpoint_blob_sha": "1105c4bc0d7b4192938c4b61ac46b5074d461e98",
+    "checkpoint_fingerprint": "dc8be0be488daf07cf27da2a08bf210d0e2d396bc87ea625f5079098d3f37a25",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "issue_closed_at": "2026-09-26T05:55:33Z"
   }
 }
