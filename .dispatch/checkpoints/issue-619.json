@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "6d86a0799f18f11641529dc68e1b97fa181eaa87",
-  "state": "RUNNING",
-  "next_action": "Revert only the e308170a commit-stage apply_profile_plan render=False suppression on current B4 lineage, preserving scheduler batching and the later ui_text_size trace guard; then run exact UI-R3 plus the two B4-regression tests under Ubuntu+Xvfb.",
-  "run_id": null,
-  "job_id": null,
+  "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
+  "state": "WAITING_REMOTE",
+  "next_action": "Poll exact expanded acceptance run 36209867923 on regression-fix head 6b9ab982654c2b2c1f12bbbd48e6163974233533 to terminal. Require UI-R3 atomic, GUI batch export, combined Receiving W/D, protected config, and other in-scope live-switch tests to pass; treat selector-menubutton failure separately as baseline-confirmed pre-existing debt.",
+  "run_id": 36209867923,
+  "job_id": 108313977906,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -47,6 +47,9 @@
     "Lineage bisect run 36209645278: 1f88f33e GREEN; e308170a and all later sampled heads RED for Export + Receiving W/D.",
     "e308170a is first bad commit and changes only commit-stage apply_profile_plan by adding render=False.",
     "Next action is surgical revert of that single suppression while retaining later true UI-R3 root fix.",
-    "Post-bisect reconciliation authorized by Guard 36209654430."
+    "Post-bisect reconciliation authorized by Guard 36209654430.",
+    "Regression fix head 6b9ab982654c2b2c1f12bbbd48e6163974233533 surgically reverts the first-bad e308 render suppression.",
+    "Locked expanded remote QA run 36209867923 / job 108313977906.",
+    "Post-commit reconciliation authorized by Guard 36209880217."
   ]
 }

@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T00:40:00Z",
   "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "head_sha": "6d86a0799f18f11641529dc68e1b97fa181eaa87",
-  "phase": "RED",
-  "last_update": "2026-09-26T01:50:00Z",
+  "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-26T01:53:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Revert only the e308170a commit-stage apply_profile_plan render=False suppression on current B4 lineage, preserving scheduler batching and the later ui_text_size trace guard; then run exact UI-R3 plus the two B4-regression tests under Ubuntu+Xvfb.",
+  "next_action": "Poll exact expanded acceptance run 36209867923 on regression-fix head 6b9ab982654c2b2c1f12bbbd48e6163974233533 to terminal. Require UI-R3 atomic, GUI batch export, combined Receiving W/D, protected config, and other in-scope live-switch tests to pass; treat selector-menubutton failure separately as baseline-confirmed pre-existing debt.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-619.json",
   "predecessor": {
@@ -84,36 +84,18 @@
     "All later sampled heads 372bf25f, 392fcb6a, 7a52d091 remain FAIL for the same two-test gate; therefore e308170a is the first bad commit.",
     "e308170a diff is exactly one production change: add render=False to commit-stage apply_profile_plan.",
     "Bisect artifacts include e308 failure artifact 10895500200 / sha256:440b8c26a150c338be8f8617bdc3c78e943b76557adf55f2d3527039c47d6ae1.",
-    "Post-bisect pair reconciliation authorized by Guard 36209654430."
+    "Post-bisect pair reconciliation authorized by Guard 36209654430.",
+    "Surgical regression fix 6b9ab982654c2b2c1f12bbbd48e6163974233533 removes only the e308170a render=False suppression; later scheduler batching and ui_text_size root-fix behavior remain.",
+    "Exact expanded acceptance run 36209867923 started automatically on 6b9ab982654c2b2c1f12bbbd48e6163974233533.",
+    "Post-commit pair reconciliation authorized by Guard 36209880217."
   ],
   "remote_qa": {
-    "run_id": 36209645278,
-    "head_sha": "6d86a0799f18f11641529dc68e1b97fa181eaa87",
-    "status": "completed",
-    "conclusion": "failure",
-    "workflow": ".github/workflows/qa-issue619-b4-baseline-compare.yml",
-    "jobs": {
-      "red_1f88f33e": {
-        "job_id": 108313329915,
-        "conclusion": "success"
-      },
-      "render_off_e308170a": {
-        "job_id": 108313329820,
-        "conclusion": "failure"
-      },
-      "batch_372bf25f": {
-        "job_id": 108313329944,
-        "conclusion": "failure"
-      },
-      "stack_392fcb6a": {
-        "job_id": 108313330010,
-        "conclusion": "failure"
-      },
-      "rootfix_7a52d091": {
-        "job_id": 108313329912,
-        "conclusion": "failure"
-      }
-    }
+    "run_id": 36209867923,
+    "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
+    "status": "in_progress",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue619-b4-atomic-live-switch.yml",
+    "job_id": 108313977906
   },
   "red_evidence": {
     "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
@@ -127,13 +109,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36209654430,
-    "request_comment_id": 5842111945,
+    "run_id": 36209880217,
+    "request_comment_id": 5842140479,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "reconcile B4 lineage bisect terminal evidence"
+    "mutation": "post-regression-fix pair reconciliation and expanded-run lock"
   },
   "green_evidence": {
     "head_sha": "7a52d091a03e6c88f26e05d432daf1ce94ac0efa",
