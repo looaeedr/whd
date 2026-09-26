@@ -3,26 +3,25 @@
   "issue": "705",
   "branch": "work/issue705-startup-auth-purpose-20260926",
   "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "state": "RECOVERING",
-  "next_action": "duplicate publication repair: terminalize #705 without implementation, close as duplicate of #696, atomically release claim/checkpoint",
+  "state": "TERMINAL_FAILURE",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Amendment RED-STOP-16 approved on 2026-09-26 via #685 comment 5843692950.",
-    "Breakdown approved on 2026-09-26 via #685 comment 5844028895.",
-    "Owning duplicate Issue #705 was created after canonical #696 already existed.",
-    "Canonical A1 is #696; duplicate mapping confirmed against RED-STOP-16 and #685 authority.",
-    "Branch-create Guard run 36225131683 was consumed; branch remains at base H0 with no implementation commit.",
-    "Recovery purpose is duplicate cleanup/release only; implementation on #705 is prohibited."
+    "Duplicate publication repair: canonical A1 is #696; #705 must not implement RED-STOP-16.",
+    "Duplicate issues #706-#711 were closed with state_reason=duplicate.",
+    "Branch-create Guard run 36225131683 was consumed; duplicate branch remained at base H0 with no implementation commit.",
+    "Claim Activation reactivate GREEN commit 681fe08139d5b021ab3137bd78c673085797221b reconciled #705 into cleanup-only RECOVERING state.",
+    "Remote Guard run 36225501363 authorized terminal duplicate-cleanup checkpoint mutation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance duplicate #705 to ISSUE_CLOSE_PENDING, obtain bound finalization proof, close/read back as duplicate of #696, then atomically persist CLOSED + RELEASED"
 }
