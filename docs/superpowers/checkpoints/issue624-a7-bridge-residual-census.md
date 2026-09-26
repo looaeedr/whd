@@ -71,3 +71,29 @@ Expected pre-implementation result: first assertion RED because the ten NO_CALLE
 ## DT-4..DT-6
 
 Pending implementation + focused/broader acceptance. A7 must update this artifact with terminal evidence before closure.
+
+
+## DT-4 — broader runtime/facade readback correction
+
+Broader acceptance run `36246541254` disproved two DT-1 classifications. The names
+`_phase6_refresh_sticky_structure_tree` and `_phase6_install_keyboard_shortcuts`
+have no direct Bridge caller, but they are live compatibility ports consumed through
+`gui_modules/application/fold_designer_adapter.py` via the composition namespace.
+
+Observed evidence:
+
+- owner-boundary slice before GUI readback: `83 passed, 2 skipped`
+- original Bridge / GUI compatibility step: `22 failed, 25 passed`
+- repeated failure root:
+  `Fold Designer composition port is unavailable: _phase6_install_keyboard_shortcuts`
+  and `_phase6_refresh_sticky_structure_tree`
+
+Corrected classification:
+
+- `_phase6_refresh_sticky_structure_tree`: `KEEP_COMPATIBILITY_PORT`
+- `_phase6_install_keyboard_shortcuts`: `KEEP_COMPATIBILITY_PORT`
+- remaining eight helpers from DT-1: `NO_CALLER`
+
+The correction preserves the A7 rule that repository/facade/runtime readback outranks
+Bridge-local occurrence count. It does not restore the other eight dead helpers and
+does not transfer scheduler/workspace ownership back into Bridge.

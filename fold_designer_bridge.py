@@ -4684,6 +4684,42 @@ def _phase6_mark_ready(self):
     self._phase6_sync_ready = True
 
 
+
+def _phase6_refresh_sticky_structure_tree(self):
+    """Compatibility port retained for WorkspaceShell composition callbacks."""
+    host = getattr(self, "structure_tree_host", None)
+    spacer = getattr(self, "structure_tree_spacer", None)
+    try:
+        if host is not None:
+            manager = str(host.winfo_manager() or "")
+            if manager == "place":
+                host.place_forget()
+            elif manager == "pack":
+                host.pack_forget()
+            elif manager == "grid":
+                host.grid_remove()
+        if spacer is not None:
+            manager = str(spacer.winfo_manager() or "")
+            if manager == "pack":
+                spacer.pack_forget()
+            elif manager == "grid":
+                spacer.grid_remove()
+            elif manager == "place":
+                spacer.place_forget()
+    except Exception:
+        return
+
+
+def _phase6_install_keyboard_shortcuts(self):
+    """Compatibility port; command_router remains the keyboard binding owner."""
+    return install_fold_designer_keyboard_shortcuts(
+        self,
+        on_save=lambda event: _phase6_keyboard_save(self, event),
+        on_open=lambda event: _phase6_keyboard_open(self, event),
+        on_fullscreen=lambda event: _phase6_keyboard_fullscreen(self, event),
+    )
+
+
 def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
     # Atomic lifecycle root: enter INITIALIZING before predecessor construction can
     # emit traced callbacks, then install accepted owners in one deterministic order.

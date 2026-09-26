@@ -15,8 +15,6 @@ P7_R_A_PROVEN_NO_CALLER = {
     "_phase6_final_scene_set_preview_enabled",
     "_phase6_commit_output_draw_stock",
     "_phase6_export_selected_dxf_from_3d",
-    "_phase6_refresh_sticky_structure_tree",
-    "_phase6_install_keyboard_shortcuts",
     "_phase6_toggle_parameter_panel",
     "_phase6_save_settings_context_as_defaults",
 }
@@ -111,3 +109,17 @@ def test_p7_r_a_does_not_create_second_composition_root_or_reverse_import():
         source = (ROOT / rel).read_text(encoding="utf-8")
         assert "from fold_designer_bridge import" not in source
         assert "import fold_designer_bridge" not in source
+
+
+def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
+    funcs = _top_functions(BRIDGE)
+    for name in (
+        "_phase6_refresh_sticky_structure_tree",
+        "_phase6_install_keyboard_shortcuts",
+    ):
+        assert name in funcs
+    adapter = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'required("_phase6_refresh_sticky_structure_tree")' in adapter
+    assert 'required("_phase6_install_keyboard_shortcuts")' in adapter
