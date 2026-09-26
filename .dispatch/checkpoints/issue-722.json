@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "722",
   "branch": "governance/issue722-trusted-takeover-parser-fix-20260926",
-  "head_sha": "aa17f3332f71a891aa4f322a3be35720d4b18895",
+  "head_sha": "b312fe699a10897ec6fed6a5bd3e856eb7ae6d8c",
   "state": "RUNNING",
-  "next_action": "Implement the minimal trusted Remote Guard fix for real multiline WHD_USER_DIRECTED_TAKEOVER_V1 parsing and single-object JSON handoff; align the stale main Remote Guard Skill and durable pitfall guidance, then rerun focused GREEN.",
+  "next_action": "Run broader process regressions and workflow syntax/readback at b312fe69; if GREEN, open/merge the main PR, then run a trusted-main normal-multiline WHD_USER_DIRECTED_TAKEOVER_V1 live smoke and complete finalization.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,10 @@
     "Branch-create Guard run 36241280327 GREEN was consumed by creating governance/issue722-trusted-takeover-parser-fix-20260926 at exact main base 3edcc0899278c75daadff4eaceeeeeafe0b95cdc.",
     "Focused RED at exact H0: issue722 transport + issue540 contract = 2 failed / 7 passed; both failures are exact double-backslash newline/JSON handoff assertions.",
     "RED tests committed at aa17f3332f71a891aa4f322a3be35720d4b18895 under Remote Guard run 36241927159.",
-    "H0→RED-head pair reconciliation authorized by Remote Guard run 36241976578."
+    "H0→RED-head pair reconciliation authorized by Remote Guard run 36241976578.",
+    "Implementation commit b312fe699a10897ec6fed6a5bd3e856eb7ae6d8c fixes real-newline parsing and writes one valid JSON object for --user-authority-json without weakening exact identity matching.",
+    "Focused GREEN at exact implementation head: tests/process/test_issue722_trusted_interactive_takeover_transport.py + test_issue540_main_remote_guard_contract.py = 9 passed in 0.40s.",
+    "Post-implementation durable pair reconciliation authorized by Remote Guard run 36242453574 / request 5846321309."
   ],
   "master_issue": null,
   "chain_state": "NONE",

@@ -9,15 +9,15 @@
   "work_branch": "governance/issue722-trusted-takeover-parser-fix-20260926",
   "claimed_at": "2026-09-26T12:11:25Z",
   "base_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
-  "head_sha": "aa17f3332f71a891aa4f322a3be35720d4b18895",
-  "phase": "RED",
-  "last_update": "2026-09-26T12:27:37.598354Z",
+  "head_sha": "b312fe699a10897ec6fed6a5bd3e856eb7ae6d8c",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T12:58:59.132601Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Implement the minimal trusted Remote Guard fix for real multiline WHD_USER_DIRECTED_TAKEOVER_V1 parsing and single-object JSON handoff; align the stale main Remote Guard Skill and durable pitfall guidance, then rerun focused GREEN.",
+  "next_action": "Run broader process regressions and workflow syntax/readback at b312fe69; if GREEN, open/merge the main PR, then run a trusted-main normal-multiline WHD_USER_DIRECTED_TAKEOVER_V1 live smoke and complete finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-722.json",
   "guard_transaction": {
@@ -43,13 +43,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36241976578,
-    "request_comment_id": 5846264313,
-    "result_comment_id": 5846265582,
+    "run_id": 36242453574,
+    "request_comment_id": 5846321309,
+    "result_comment_id": 5846322678,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to RED head aa17f3332f71a891aa4f322a3be35720d4b18895"
+    "mutation": "post-implementation atomic claim+checkpoint reconciliation to b312fe69 after focused GREEN 9/9"
   }
 }
