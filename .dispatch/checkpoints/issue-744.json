@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "744",
   "branch": "governance/issue744-terminal-checkpoint-repair-20260927",
-  "head_sha": "2d9a6ae5e4d3fff465f7a0e35fad20e94c1855ef",
+  "head_sha": "1b5ba471cc4dfb6f4253ac3e0e3017395266c016",
   "state": "RUNNING",
-  "next_action": "Persist trusted terminal-checkpoint-repair contract to required Skills/AI pitfall, remove temporary QA workflow, then PR/deploy/read back on main before repairing #733.",
+  "next_action": "Remove temporary #744 QA workflow, then pr-write/merge to main and fresh-read deployed repair before using terminal-checkpoint-repair on #733.",
   "run_id": 36255643465,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "Post-RED reconciliation Guard 36255490940 GREEN.",
     "Implementation HEAD 2d9a6ae5e4d3fff465f7a0e35fad20e94c1855ef.",
     "Run 36255643465 SUCCESS.",
-    "Post-implementation reconciliation Guard 36255721628 GREEN."
+    "Post-implementation reconciliation Guard 36255721628 GREEN.",
+    "Durable Skill/AI writeback HEAD 1b5ba471cc4dfb6f4253ac3e0e3017395266c016.",
+    "Post-writeback reconciliation Guard 36255901888 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
