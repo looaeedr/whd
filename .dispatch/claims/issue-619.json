@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T00:40:00Z",
   "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
-  "phase": "RED",
-  "last_update": "2026-09-26T01:55:00Z",
+  "head_sha": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T02:06:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Correct B4 acceptance harness only: replace the stale implementation-detail expectation that apply_profile_plan must receive render=False with a transaction-order assertion, and exclude the baseline-confirmed pre-existing selector-menubutton node from B4 expanded acceptance. Then rerun expanded Ubuntu+Xvfb acceptance on the exact new head.",
+  "next_action": "Remove the two #619 one-shot QA workflows (.github/workflows/qa-issue619-b4-atomic-live-switch.yml and .github/workflows/qa-issue619-b4-baseline-compare.yml), then perform tested→cleaned drift audit proving the cleanup commit changes only those workflow files before terminalizing #619 and handing off to #622.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-619.json",
   "predecessor": {
@@ -93,17 +93,21 @@
     "Remaining failure #1 is B4's own stale unit assertion requiring ('profile', False); the first-bad bisect proved render=False is the regression source, so acceptance must verify transaction order rather than that rejected implementation detail.",
     "Remaining failure #2 is test_real_tk_part_selector_menu_opens_part_and_delete_shares_selector_row; exact B4 baseline run 36209439724 already failed it, so it is pre-existing debt outside B4.",
     "Expanded artifact 10894134567 / sha256:45bd34fc6b81efab638cc519e025c2f4cd28b1872751c6a94302735a13ca8e21.",
-    "Terminal reconciliation authorized by Guard 36209989189."
+    "Terminal reconciliation authorized by Guard 36209989189.",
+    "Acceptance-harness correction commit 5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104 replaces the invalid render=False implementation-detail assertion with transaction-order assertions and deselects only the baseline-confirmed pre-existing selector-menubutton node.",
+    "Exact expanded run 36210098531 SUCCESS on 5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104: 58 passed, 1 deselected, 0 failed in 68.74s.",
+    "Expanded artifact 10894204794 / sha256:a325900ee0d7caceb0c7853ef8e0016d0180f7a72b36a88279caa7c162ad7837.",
+    "Final expanded GREEN head reconciliation authorized by Guard 36210549847."
   ],
   "remote_qa": {
-    "run_id": 36209867923,
-    "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
+    "run_id": 36210098531,
+    "head_sha": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
     "status": "completed",
-    "conclusion": "failure",
+    "conclusion": "success",
     "workflow": ".github/workflows/qa-issue619-b4-atomic-live-switch.yml",
-    "job_id": 108313977906,
-    "artifact_id": 10894134567,
-    "artifact_digest": "sha256:45bd34fc6b81efab638cc519e025c2f4cd28b1872751c6a94302735a13ca8e21"
+    "job_id": 108314640089,
+    "artifact_id": 10894204794,
+    "artifact_digest": "sha256:a325900ee0d7caceb0c7853ef8e0016d0180f7a72b36a88279caa7c162ad7837"
   },
   "red_evidence": {
     "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
@@ -117,19 +121,21 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36209989189,
-    "request_comment_id": 5842155897,
+    "run_id": 36210549847,
+    "request_comment_id": 5842226495,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "reconcile regression-fix expanded acceptance terminal evidence"
+    "mutation": "reconcile final expanded GREEN head"
   },
   "green_evidence": {
-    "head_sha": "7a52d091a03e6c88f26e05d432daf1ce94ac0efa",
-    "run_id": 36207365473,
-    "summary": "7 passed / 0 failed in 9.46s",
-    "artifact_id": 10894002855,
-    "contract": "Exact 金庫型→受電箱 3D-visible path emits exactly one finalize-stage authoritative Receiving scene commit."
+    "head_sha": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
+    "run_id": 36210098531,
+    "job_id": 108314640089,
+    "summary": "58 passed / 1 deselected / 0 failed in 68.74s",
+    "artifact_id": 10894204794,
+    "artifact_digest": "sha256:a325900ee0d7caceb0c7853ef8e0016d0180f7a72b36a88279caa7c162ad7837",
+    "contract": "B4 exact atomic family live-switch + expanded live-switch/export/combined acceptance GREEN; selector-menubutton node deselected only because exact B4 baseline independently proves it pre-existing."
   }
 }

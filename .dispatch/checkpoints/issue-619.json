@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
+  "head_sha": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
   "state": "RUNNING",
-  "next_action": "Correct B4 acceptance harness only: replace the stale implementation-detail expectation that apply_profile_plan must receive render=False with a transaction-order assertion, and exclude the baseline-confirmed pre-existing selector-menubutton node from B4 expanded acceptance. Then rerun expanded Ubuntu+Xvfb acceptance on the exact new head.",
+  "next_action": "Remove the two #619 one-shot QA workflows (.github/workflows/qa-issue619-b4-atomic-live-switch.yml and .github/workflows/qa-issue619-b4-baseline-compare.yml), then perform tested→cleaned drift audit proving the cleanup commit changes only those workflow files before terminalizing #619 and handing off to #622.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -54,6 +54,10 @@
     "Regression-fix expanded run 36209867923: 57 PASS / 2 FAIL.",
     "UI-R3, Export, and combined W/D are GREEN; only one stale B4 test assertion plus one baseline-confirmed unrelated selector debt remain.",
     "Artifact 10894134567 preserves the exact result.",
-    "Terminal reconciliation authorized by Guard 36209989189."
+    "Terminal reconciliation authorized by Guard 36209989189.",
+    "Final expanded B4 run 36210098531 on head 5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104 is GREEN: 58 passed, 1 deselected, 0 failed in 68.74s.",
+    "Artifact 10894204794 preserves final expanded acceptance evidence.",
+    "The sole deselected selector-menubutton node is baseline-confirmed pre-existing by run 36209439724.",
+    "Final expanded GREEN reconciliation authorized by Guard 36210549847."
   ]
 }
