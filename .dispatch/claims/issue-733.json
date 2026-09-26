@@ -9,9 +9,9 @@
   "work_branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
   "claimed_at": "2026-09-26T15:20:00Z",
   "base_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
-  "head_sha": "384b3bd31d62f3747be5c7d7bac9bb24b3e984b2",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-26T15:52:10Z",
+  "head_sha": "66472cb4a8e66dc851a292e8ecd33d5aa69313a6",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T15:55:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Remove temporary .github/workflows/qa-issue733-batch-parity.yml under fresh commit Guard; reconcile closing HEAD; update PR #734 batch scope; merge non-force to cleanup and fresh-read parity.",
+  "next_action": "Update PR #734 metadata to batch parity scope under fresh pr-write Guard, verify mergeable exact closing HEAD, merge non-force to cleanup/2d-3d-sync, then fresh-read parity and finalize.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-733.json",
   "evidence": [
@@ -31,6 +31,8 @@
     "Initial combined QA 36253164791: 2 failed / 36 passed.",
     "Repair commit 384b3bd31d62f3747be5c7d7bac9bb24b3e984b2 under Guard 36253265197.",
     "Combined batch QA 36253372146 SUCCESS.",
-    "Post-repair reconciliation Guard 36253414352 GREEN / result 5847635356."
+    "Post-repair reconciliation Guard 36253414352 GREEN / result 5847635356.",
+    "Temporary batch QA workflow removed by commit 66472cb4a8e66dc851a292e8ecd33d5aa69313a6 under Guard 36253541167.",
+    "Post-cleanup reconciliation Guard 36253577009 GREEN / result 5847656534."
   ]
 }

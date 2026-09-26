@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "733",
   "branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
-  "head_sha": "384b3bd31d62f3747be5c7d7bac9bb24b3e984b2",
+  "head_sha": "66472cb4a8e66dc851a292e8ecd33d5aa69313a6",
   "state": "RUNNING",
-  "next_action": "Remove temporary .github/workflows/qa-issue733-batch-parity.yml under fresh commit Guard; reconcile closing HEAD; update PR #734 batch scope; merge non-force to cleanup and fresh-read parity.",
+  "next_action": "Update PR #734 metadata to batch parity scope under fresh pr-write Guard, verify mergeable exact closing HEAD, merge non-force to cleanup/2d-3d-sync, then fresh-read parity and finalize.",
   "run_id": 36253372146,
   "job_id": 108435463578,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Batch parity candidate 804bd463e107e135db6d54b7c6df9355d09b4ebb.",
     "Minimal parity repair 384b3bd31d62f3747be5c7d7bac9bb24b3e984b2.",
     "Combined batch QA 36253372146 SUCCESS.",
-    "Post-repair coordination reconciliation Guard 36253414352 GREEN."
+    "Post-repair coordination reconciliation Guard 36253414352 GREEN.",
+    "Temporary QA workflow cleanup HEAD 66472cb4a8e66dc851a292e8ecd33d5aa69313a6.",
+    "Post-cleanup reconciliation Guard 36253577009 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
