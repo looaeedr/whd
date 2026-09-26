@@ -17,13 +17,15 @@
     "No-op smoke branch exists at 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
     "Trusted-main smoke run 36257298364 SUCCESS with receipt 5848102610 result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN.",
     "Smoke verified owner-authored user authority comment 5848100625 reached execution_claim_guard.py through deployed workflow.",
-    "Disposable smoke acceptance is complete; entering exact ISSUE_CLOSE_PENDING checkpoint."
+    "Disposable smoke acceptance is complete; entering exact ISSUE_CLOSE_PENDING checkpoint.",
+    "Finalization proof VALID fingerprint d2efeeeebf001526f3a057463e15610b18bee0557ffe526010bbf4fa1c73c2e0.",
+    "Issue #749 fresh readback closed/completed at 2026-09-26T17:00:14Z."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "authorize/verify finalization proof on this exact checkpoint; close/readback #749; then RELEASE_HANDOFF_PENDING"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff"
 }
