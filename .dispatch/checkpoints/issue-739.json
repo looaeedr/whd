@@ -4,7 +4,7 @@
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
   "head_sha": "57d8da8d95eee2062e5383496b76f6c70f546673",
   "state": "RUNNING",
-  "next_action": "Persist COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1 Skill/pitfall contract on latest cleanup head, reconcile main drift, deploy to main, then prove #733 final closure auto-consumes prior write and atomically RELEASED/CLOSED.",
+  "next_action": "Hotfix deployed Remote Guard embedded Python imports (subprocess, urllib.parse), run focused #739 write-readback + #733 live Guard regression, then two-parent sync to current main and open replacement PR.",
   "run_id": 36260033199,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -47,7 +47,9 @@
     "Two-parent current-main sync HEAD 57d8da8d95eee2062e5383496b76f6c70f546673.",
     "Reconciliation Guard 36260334180 GREEN.",
     "Runtime cleanup closing HEAD 57d8da8d95eee2062e5383496b76f6c70f546673.",
-    "Closing-head reconciliation 36260334180 GREEN."
+    "Closing-head reconciliation 36260334180 GREEN.",
+    "Hotfix target: Remote Guard embedded Python import closure only; no change to write/pr-write classifier semantics.",
+    "Bootstrap reactivate preserves branch HEAD 57d8da8d95eee2062e5383496b76f6c70f546673 and RUNNING state."
   ],
   "master_issue": null,
   "chain_state": "NONE",
