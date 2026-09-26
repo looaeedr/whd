@@ -9,14 +9,18 @@
   "work_branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
   "claimed_at": "2026-09-26T18:14:00Z",
   "base_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
-  "head_sha": "008c47ef3d49340539bf5907049316f2c33b8288",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T18:19:00Z",
+  "head_sha": "3d46f5436f1534853139630acec08867ecc84e82",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T18:23:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Add temporary focused QA workflow for #759, assert exactly two subprocess/urllib imports, run #739 write/pr-write and protected #643/#731 regressions, then remove QA workflow and integrate exact closing head to cleanup/2d-3d-sync.",
+  "remote_qa": {
+    "run_id": 36262323655,
+    "head_sha": "3d46f5436f1534853139630acec08867ecc84e82",
+    "status": "success"
+  },
+  "next_action": "Remove temporary #759 QA workflow under Guard, reconcile exact closing HEAD, create guarded PR to cleanup/2d-3d-sync, merge/read back production, close/release #759, then resume #692 final parity acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-759.json",
   "evidence": [
@@ -29,6 +33,8 @@
     "Branch-create Guard 36261986123 GREEN / result 5848669657; branch created exact from production X 15ebde03c86d01c0f8f6e6b70479a957ec22ac5f.",
     "Four-file commit Guard 36262049939 GREEN / result 5848675747.",
     "Selective #757 parity commit 008c47ef3d49340539bf5907049316f2c33b8288; Remote Guard now contains 2x import subprocess + 2x import urllib.parse and three authority blocks are present.",
-    "No automatic workflow runs exist for 008c47ef3d49340539bf5907049316f2c33b8288; temporary focused QA required."
+    "No automatic workflow runs exist for 008c47ef3d49340539bf5907049316f2c33b8288; temporary focused QA required.",
+    "QA HEAD 3d46f5436f1534853139630acec08867ecc84e82.",
+    "Run 36262323655 GREEN: 50 PASS / 0 FAIL including import-count authority assertions and #739/#643/#731 protected regressions."
   ]
 }
