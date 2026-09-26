@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
-  "state": "RUNNING",
-  "next_action": "Remove the two #619 one-shot QA workflows (.github/workflows/qa-issue619-b4-atomic-live-switch.yml and .github/workflows/qa-issue619-b4-baseline-compare.yml), then perform tested→cleaned drift audit proving the cleanup commit changes only those workflow files before terminalizing #619 and handing off to #622.",
-  "run_id": null,
-  "job_id": null,
+  "head_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36210098531,
+  "job_id": 108314640089,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -58,6 +58,18 @@
     "Final expanded B4 run 36210098531 on head 5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104 is GREEN: 58 passed, 1 deselected, 0 failed in 68.74s.",
     "Artifact 10894204794 preserves final expanded acceptance evidence.",
     "The sole deselected selector-menubutton node is baseline-confirmed pre-existing by run 36209439724.",
-    "Final expanded GREEN reconciliation authorized by Guard 36210549847."
-  ]
+    "Final expanded GREEN reconciliation authorized by Guard 36210549847.",
+    "One-shot #619 workflows deleted at cleaned head aa9c25aa44283f325445311b013b26086467395b under Guard 36210628537.",
+    "Drift audit: tested head 5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104 -> cleaned head aa9c25aa44283f325445311b013b26086467395b changes only two workflow deletions; production/test drift=false.",
+    "Final accepted QA remains run 36210098531: 58 passed, 1 baseline-justified deselected, 0 failed.",
+    "Successor #622 fresh-read open; #614/#615/#616 are closed/completed; chain_state=NEXT_CHILD_EXECUTABLE.",
+    "Guard 36210699934 authorizes cleaned-head reconciliation and terminal checkpoint handoff."
+  ],
+  "master_issue": "628",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "622",
+  "chain_next_action": "Create/activate #622 B5 claim on the shared work-order branch at accepted #619 cleaned head aa9c25aa44283f325445311b013b26086467395b; consume independent terminal evidence from #614, #615, and #619 before Combined Acceptance and durable writeback.",
+  "chain_reason": "B4 final expanded acceptance is GREEN, one-shot workflows are cleaned with zero production/test drift, and #622 is the dependency successor required by Master #628.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance closure_state to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back #619, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff to #622"
 }
