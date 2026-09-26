@@ -3,8 +3,8 @@
   "issue": "756",
   "branch": "governance/issue756-postdrift-coord-write-parity-20260927",
   "head_sha": "ed1d03cf432d7daa5e654e573904a2333e1a0d83",
-  "state": "RUNNING",
-  "next_action": "Obtain pr-write Guard for exact closing HEAD ed1d03cf432d7daa5e654e573904a2333e1a0d83, create PR to cleanup/2d-3d-sync, verify durable PR readback, merge non-force, and fresh-read production capability.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36261175119,
   "job_id": null,
   "log_cursor": null,
@@ -21,13 +21,17 @@
     "QA HEAD 0dc9803390b29ef1c02e69b6914ace86c4fe26b2.",
     "Run 36261175119 GREEN: focused 16 PASS + protected 34 PASS, 0 FAIL.",
     "Closing HEAD ed1d03cf432d7daa5e654e573904a2333e1a0d83 after removal of temporary QA workflow only.",
-    "Tested→closing drift audit: only .github/workflows/qa-issue756-postdrift-coord-write-parity.yml removed; implementation blobs unchanged."
+    "Tested→closing drift audit: only .github/workflows/qa-issue756-postdrift-coord-write-parity.yml removed; implementation blobs unchanged.",
+    "PR #758 merged to production at 15ebde03c86d01c0f8f6e6b70479a957ec22ac5f.",
+    "Acceptance comment 5848601468 result=ACCEPTED.",
+    "QA run 36261175119: focused 16 PASS + protected 34 PASS, 0 FAIL.",
+    "Production readback confirms #755 coord-write durable-readback capability present."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "692",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "692",
+  "chain_next_action": "Resume #692 live main↔cleanup parity acceptance after #756 is closed/completed and RELEASED.",
+  "chain_reason": "Post-#753 main drift #755 has been selectively propagated and accepted in production.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof for #756, close/read back Issue #756, then persist RELEASE_HANDOFF_PENDING and final CLOSED + RELEASED."
 }
