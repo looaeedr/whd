@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "733",
   "branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
-  "head_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
+  "head_sha": "aca6cc16103c25b0f5f968134f26aca200570986",
   "state": "RUNNING",
-  "next_action": "Create cleanup-based parity branch, apply compatible-equivalent #731 fix while preserving cleanup-specific changes, run #731 + #643 focused QA, then guarded integrate to cleanup/2d-3d-sync.",
-  "run_id": null,
+  "next_action": "Open guarded parity PR to cleanup/2d-3d-sync, merge exact HEAD after readback, then fresh-read cleanup parity and finalize #733.",
+  "run_id": 36251717894,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -13,7 +13,9 @@
   "evidence": [
     "Authority: #731 / PR #732 / main deployment 641639ff675fc0ea2a13c7a9123337de250d4170.",
     "Parity rule: #692.",
-    "Frozen cleanup baseline: 91931e518bea241d129d7327e1d163cb7a1ffd92."
+    "Frozen cleanup baseline: 91931e518bea241d129d7327e1d163cb7a1ffd92.",
+    "Parity implementation commit aca6cc16103c25b0f5f968134f26aca200570986; focused QA run 36251717894 SUCCESS.",
+    "Post-commit reconciliation Guard run 36251749732 GREEN / result comment 5847439786."
   ],
   "master_issue": null,
   "chain_state": "NONE",

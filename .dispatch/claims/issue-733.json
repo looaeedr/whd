@@ -9,19 +9,22 @@
   "work_branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
   "claimed_at": "2026-09-26T15:20:00Z",
   "base_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
-  "head_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T15:20:00Z",
+  "head_sha": "aca6cc16103c25b0f5f968134f26aca200570986",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T15:23:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create cleanup-based parity branch, apply compatible-equivalent #731 fix while preserving cleanup-specific changes, run #731 + #643 focused QA, then guarded integrate to cleanup/2d-3d-sync.",
+  "next_action": "Open guarded parity PR to cleanup/2d-3d-sync, merge exact HEAD after readback, then fresh-read cleanup parity and finalize #733.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-733.json",
   "evidence": [
     "Authority: #731 / PR #732 / main deployment 641639ff675fc0ea2a13c7a9123337de250d4170.",
     "Parity rule: #692.",
-    "Frozen cleanup baseline: 91931e518bea241d129d7327e1d163cb7a1ffd92."
+    "Frozen cleanup baseline: 91931e518bea241d129d7327e1d163cb7a1ffd92.",
+    "Live post-main smoke: branch-create Guard run 36251598650 GREEN; without reactivate, next commit Guard run 36251633978 GREEN, proving trusted auto-consume.",
+    "Parity implementation commit aca6cc16103c25b0f5f968134f26aca200570986; focused QA run 36251717894 SUCCESS.",
+    "Post-commit reconciliation Guard run 36251749732 GREEN / result comment 5847439786."
   ]
 }
