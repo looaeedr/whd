@@ -707,3 +707,18 @@ batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌�
 
 這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。
 
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
+
+若 active claim 對應的 checkpoint 已是 terminal，但 checkpoint JSON 因 closure lifecycle 欄位非法而無法被 canonical loader 解析，禁止用 ordinary Remote Guard、一般 `reactivate`、手寫 coord commit 或先 release claim 繞過。
+
+唯一合法 recovery 是 default/trusted `main` 上 Claim Activation 的固定 `transition=terminal-checkpoint-repair`：
+
+1. prior claim 與 prior checkpoint 都必須存在，並用 exact blob SHA 綁定 current `coord/dispatch-claims` parent；
+2. candidate claim blob 必須與 prior claim **byte-for-byte 相同**，owner / executor / branch / head / phase 不得順便改；
+3. prior checkpoint 必須由 `tools/continuity_controller.py::repair_malformed_terminal_checkpoint` 判定為可窄修復的 `TERMINAL_SUCCESS` malformed closure lifecycle；
+4. candidate checkpoint 必須逐欄等於 canonical repair 結果：保持 issue / branch / head / continuity state 不變，只正規化為 `closure_state=FINALIZATION_PENDING` 與 canonical `closure_next_action`；
+5. 不得藉 repair 跳到 `CLOSED`、`RELEASED`、改寫 evidence/identity 或處理其他任意 malformed JSON；
+6. exact coord parent CAS drift 立即 FAIL；repair GREEN 後必須 fresh-read candidate pair，再回 canonical finalization progression。
+
+此 transition 是 process-state migration repair，不是 takeover、不是 generic checkpoint editor。Primary regression：`tests/process/test_issue744_terminal_checkpoint_repair_transport.py`；governance repair：#744。
+

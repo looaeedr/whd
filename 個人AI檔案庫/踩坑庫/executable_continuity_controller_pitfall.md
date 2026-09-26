@@ -171,3 +171,23 @@ GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consu
 
 ## Interactive liveness / provenance gap
 #646 暴露 scheduler 有 heartbeat、chatgpt_interactive 沒有對稱 runtime liveness，且 generic executor_source 無法指出哪個聊天室。Required follow-up：interactive heartbeat；conversation/chat identity + invocation identity；scheduler lane + invocation identity；heartbeat不得取代 ownership authority。
+
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_PITFALL_V1
+
+### 事故
+
+#733 在 code/parity 已完成後，terminal checkpoint 被寫成不存在的 `closure_state=READY_FOR_FINALIZATION`。結果三條既有路全部正確 fail closed：
+
+- Remote Finalization 無法 parse checkpoint；
+- ordinary Remote Guard 回 `ACTIVE_CLAIM_REQUIRES_CHECKPOINT`；
+- Claim Activation `reactivate` 拒絕 active claim 搭 terminal checkpoint。
+
+### 永久規則
+
+這種狀態不能手改 `coord/dispatch-claims`、不能把 terminal checkpoint 降回 RUNNING、不能先把 claim RELEASED，也不能擴大 ordinary `reactivate`。
+
+唯一 recovery：
+`repair_malformed_terminal_checkpoint` 先對 raw prior payload做窄 canonical normalization，trusted Claim Activation `terminal-checkpoint-repair` 再用 exact prior claim/checkpoint blob + coord parent CAS 原子換成 candidate pair。
+
+Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 issue/branch/head/`TERMINAL_SUCCESS`，把 malformed closure lifecycle 正規化成 `FINALIZATION_PENDING`。任何其他 drift 或已合法 closure state 一律拒絕。Repair 之後仍必須重新走 Remote Finalization → Issue close/readback → atomic CLOSED + RELEASED。
+
