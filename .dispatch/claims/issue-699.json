@@ -1,0 +1,40 @@
+{
+  "issue": 699,
+  "issue_url": "https://github.com/looaeedr/whd/issues/699",
+  "worker": "chatgpt.work3.260927.a4",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.work3.699.20260927T0255",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue699-turn-exit-poweroff-close-recovery-20260927",
+  "claimed_at": "2026-09-26T18:55:40Z",
+  "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T18:55:40Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "slot_id": "worker.slot.3",
+  "slot_binding": {
+    "schema": "WHD_WORK_SLOT_BINDING_V1",
+    "slot_id": "worker.slot.3",
+    "command": "/工作3 699",
+    "execution_authority": "EXECUTE_TICKET",
+    "bound_at": "2026-09-26T18:55:40Z",
+    "binding_scope": "issue-699-only"
+  },
+  "next_action": "Create the issue #699 work branch from exact accepted #697 closing head, then establish RED-STOP-20/21 characterization without changing historical #687-#693 authority.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-699.json",
+  "evidence": [
+    "authorization_source=user explicit /工作3 699",
+    "execution_intent=EXECUTE_TICKET",
+    "purpose=complete Issue #699 normal path for unresolved/ambiguous operation turn-exit, power-off, and irreversible Issue-close recovery",
+    "authorized_scope=looaeedr/whd Issue #699 + worker.slot.3 + required claim/branch/Guard/test/PR/QA/closure mutations",
+    "prohibited_scope=no automatic execution of #700/#701/#702 or unrelated open Issues; no takeover of foreign live owner",
+    "resume_authority=NONE",
+    "Predecessor #697 durable acceptance explicitly unblocks #699; exact accepted closing head=03da7a28d0aa04fae85fd9a92f13c0a8129af83e.",
+    "worker.slot.3 fresh-read had no durable binding before activation; Issue #699 claim/checkpoint were absent."
+  ]
+}
