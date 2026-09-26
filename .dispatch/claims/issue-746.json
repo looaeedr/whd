@@ -9,20 +9,22 @@
   "work_branch": "deploy/issue746-turn-exit-readback-main-20260927",
   "claimed_at": "2026-09-26T16:25:40Z",
   "base_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
-  "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T16:25:40Z",
+  "head_sha": "8352e8f4673ad4409e51a259099ec0f8dcd7cd25",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T16:30:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain branch-create Guard, create deploy/issue746-turn-exit-readback-main-20260927 from exact main@6091bf003aae085d396f7e61f165e3f6a0e58260, port only #698 Turn Exit durable-readback parity while preserving newer main changes, run focused contract, merge to main, fresh-read deployed parity, close/release helper, then return to #680.",
+  "next_action": "Create and merge exact helper PR deploy/issue746-turn-exit-readback-main-20260927 -> main under fresh local pr-write guards; fresh-read main workflow parity; close/release #746; return to #680.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-746.json",
   "evidence": [
     "Parent #698 GREEN at ec27e4a8f6960b2f62df658d3d1713c1653bae04; cleanup integrated via PR #745 merge 99456152941a0fea34e6492eca65c5d1bd166035.",
     "Helper purpose is trusted-main deployment only; no cleanup/product stack.",
-    "User authority derives from /排程B 680 and follow-up to resolve the exact #698 blocker."
+    "User authority derives from /排程B 680 and follow-up to resolve the exact #698 blocker.",
+    "Trusted-main deployment commit 8352e8f4673ad4409e51a259099ec0f8dcd7cd25 changes only .github/workflows/whd-turn-exit-gate.yml.",
+    "RED_STOP_19_DEPLOYMENT_CONTRACT_GREEN=PASS on exact helper head."
   ]
 }
