@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "621",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "20b2d429af398027386153c861e3c8e610f4ccef",
+  "head_sha": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
   "state": "RUNNING",
-  "next_action": "Continue #621 P7-R-E from 20b2d429af398027386153c861e3c8e610f4ccef: characterize and extract solve_world_backprojected_endcap_relief into a bounded EndCap solver owner while preserving one generic collision/backprojection path, Certified Registry authority, true-thickness/legal-contact semantics, existing public entrypoints and zero manufacturing_api reverse import; then run EndCap/collision/manufacturing regressions.",
+  "next_action": "Run #621 P7-R-E exact-head combined local regression at 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f covering structural anti-regrowth, generic collision/backprojection, Divider relief, EndCap world relief, manufacturing dependency, Certified Registry and physical/joint acceptance; if GREEN, dispatch exact-head remote QA and continue through cleanup/terminal closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,8 @@
     "Active Phase 7 chain must preserve one generic collision/backprojection algorithm path and zero manufacturing_api reverse import.",
     "Generic collision owner accepted at 0d1ee7b5; 48 tests passed; reconciliation Guard 36222627764 GREEN.",
     "P7-R-E Divider relief owner slice: RED 1 failed/1 passed because ae_engine.divider_relief_solver was absent; GREEN DividerFrontFoldReliefCandidate/build/verify orchestration moved behind assembly_collision facade at 2b83d0ec3122e8d43958bd0e19d1191d3dbbf05a with generic ownership/backprojection/true-thickness classification injected, preserving one generic algorithm path and zero manufacturing_api reverse import. Focused structural 2 passed; broader Divider/collision/persistence regression 72 passed, 4 skipped, 0 failed. Original commit Guard 36222846779 GREEN expired before reconciliation; owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 comment 5844066815 bound exact prior run/request/files and recovery Guard 36225181479 GREEN. One nonfunctional EOF blank-line diff-check warning remains to clean under a fresh Guard.",
-    "Divider owner cleanup complete at 20b2d429af398027386153c861e3c8e610f4ccef: removed one nonfunctional EOF blank line from ae_engine/divider_relief_solver.py under commit Guard 36225253547 GREEN; focused 4 passed; git diff --check and cached diff-check GREEN. Post-commit reconciliation Guard 36225311053 GREEN."
+    "Divider owner cleanup complete at 20b2d429af398027386153c861e3c8e610f4ccef: removed one nonfunctional EOF blank line from ae_engine/divider_relief_solver.py under commit Guard 36225253547 GREEN; focused 4 passed; git diff --check and cached diff-check GREEN. Post-commit reconciliation Guard 36225311053 GREEN.",
+    "P7-R-E EndCap world-relief owner slice: RED 1 failed/2 passed because ae_engine.endcap_world_relief_solver was absent; GREEN solve_world_backprojected_endcap_relief orchestration moved behind assembly_collision facade at 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f with shared helpers/result types injected at runtime. Focused structural 3 passed; broader EndCap/Certified Registry/world-backprojection/assembly integration regression 97 passed, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36225400960 GREEN; post-commit reconciliation Guard 36225566301 GREEN."
   ],
   "chain_state": "NONE",
   "next_issue": null,
