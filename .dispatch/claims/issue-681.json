@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T04:55:28Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T05:08:20Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T05:12:25Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Open PR for exact head, monitor remote QA to terminal, then integrate and complete WI-3 closure.",
+  "next_action": "Advance terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, authorize and verify finalization proof, close/read back Issue #681, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-681.json",
   "green_candidate": {
@@ -23,5 +23,21 @@
     "focused": "tests/process/test_issue681_poweroff_gate.py = 32 passed",
     "governance": "16 authority/governance tests passed",
     "diff_check": "GREEN"
+  },
+  "integration": {
+    "pr": 695,
+    "state": "merged",
+    "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
+    "base": "cleanup/2d-3d-sync",
+    "merge_commit_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+    "production_head": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931"
+  },
+  "remote_qa": {
+    "run_id": 36220004151,
+    "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap",
+    "evidence": "bootstrap-governance PASS on PR #695"
   }
 }

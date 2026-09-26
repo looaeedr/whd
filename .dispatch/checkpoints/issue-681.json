@@ -1,15 +1,12 @@
 {
-  "version": 1,
-  "issue": "681",
-  "branch": "work/issue681-poweroff-gate-core-20260926",
-  "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
-  "state": "RUNNING",
-  "next_action": "Open PR for exact head, monitor remote QA to terminal, then integrate and complete WI-3 closure.",
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
+  "branch": "work/issue681-poweroff-gate-core-20260926",
+  "chain_next_action": null,
+  "chain_reason": null,
+  "chain_state": "NONE",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff",
+  "closure_state": "FINALIZATION_PENDING",
   "evidence": [
     "Requirement Authority: WHD HA safe-shutdown spec v1.4 and approved RED package v5/v5.1.",
     "Dependency #678 fresh-read closed/completed with claim RELEASED and checkpoint CLOSED.",
@@ -21,8 +18,20 @@
     "Authority/governance acceptance: 16 related tests passed; combined local suite = 48 passed / 0 failed.",
     "git diff --check GREEN; evaluator remains side-effect-free and authority map now declares workstation-poweroff-safety CURRENT owner.",
     "Implementation commit 05f2d61db443973945ff014fb710644f79224dfb pushed to work/issue681-poweroff-gate-core-20260926.",
-    "Changed files: tools/workstation_poweroff_gate.py; tests/process/test_issue681_poweroff_gate.py; canonical authority map writeback."
+    "Changed files: tools/workstation_poweroff_gate.py; tests/process/test_issue681_poweroff_gate.py; canonical authority map writeback.",
+    "PR #695 merged/closed; production target cleanup/2d-3d-sync fresh-read HEAD=3c048f5e2adc3f0bc99b1c60b3aae85ab8893931.",
+    "Remote QA run 36220004151 completed success on exact head 05f2d61db443973945ff014fb710644f79224dfb; bootstrap-governance PASS.",
+    "Local acceptance: tests/process/test_issue681_poweroff_gate.py = 32 passed; related authority/governance = 16 passed; combined = 48 passed / 0 failed.",
+    "AI Library writeback installed workstation-poweroff-safety CURRENT owner and fail-closed taxonomy."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
+  "issue": "681",
+  "job_id": null,
+  "log_cursor": null,
+  "master_issue": null,
+  "next_action": null,
+  "next_issue": null,
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
 }
