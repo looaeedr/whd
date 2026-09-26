@@ -4,7 +4,7 @@
   "branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
   "head_sha": "66472cb4a8e66dc851a292e8ecd33d5aa69313a6",
   "state": "RUNNING",
-  "next_action": "Update PR #734 metadata to batch parity scope under fresh pr-write Guard, verify mergeable exact closing HEAD, merge non-force to cleanup/2d-3d-sync, then fresh-read parity and finalize.",
+  "next_action": "Run canonical finalization for #733 using post-integration parity readback; close Issue; atomically release claim with CLOSED checkpoint; record #692 batch parity result.",
   "run_id": 36253372146,
   "job_id": 108435463578,
   "log_cursor": null,
@@ -16,7 +16,10 @@
     "Combined batch QA 36253372146 SUCCESS.",
     "Post-repair coordination reconciliation Guard 36253414352 GREEN.",
     "Temporary QA workflow cleanup HEAD 66472cb4a8e66dc851a292e8ecd33d5aa69313a6.",
-    "Post-cleanup reconciliation Guard 36253577009 GREEN."
+    "Post-cleanup reconciliation Guard 36253577009 GREEN.",
+    "PR #734 merged=true, exact closing head 66472cb4a8e66dc851a292e8ecd33d5aa69313a6.",
+    "Production cleanup HEAD 6285834d83bd840ba9655c8a5cccecbae7f0ed38 post-integration readback complete.",
+    "All audited batch parity artifacts read back present."
   ],
   "master_issue": null,
   "chain_state": "NONE",
