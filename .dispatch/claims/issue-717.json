@@ -1,0 +1,21 @@
+{
+  "issue": 717,
+  "issue_url": "https://github.com/looaeedr/whd/issues/717",
+  "worker": "chatgpt.sol260926.issue717.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue717.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue717-scheduler-slot-handoff-20260926",
+  "claimed_at": "2026-09-26T08:56:09Z",
+  "base_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
+  "head_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T08:56:09Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Create branch, add RED contract tests for scheduler work-slot handoff receiver semantics, then minimally update 排程模擬 and validate; after merge synchronize live A/B prompts without changing cadence, owner, timing mode, or enabled state.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-717.json",
+  "execution_intent": "UPDATE_ONLY"
+}
