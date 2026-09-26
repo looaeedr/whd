@@ -3,8 +3,8 @@
   "issue": "749",
   "branch": "governance/issue749-remote-guard-smoke",
   "head_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
-  "state": "RUNNING",
-  "next_action": "Synthetic stale fixture is armed: obtain exact owner-authored WHD_USER_DIRECTED_TAKEOVER_V1 for a distinct smoke worker, run trusted-main Remote Guard claim-takeover, consume exact CAS, then close/release this fixture.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,13 +14,15 @@
     "Disposable #737 post-deploy trusted-main smoke fixture.",
     "No product mutation; fixture exists only to exercise trusted Remote Guard interactive takeover authority handoff.",
     "Synthetic stale timing is deliberate test-fixture state only.",
-    "No-op smoke branch exists at 2a43b89fd15e504c2bbbca9b2db7797c75768724."
+    "No-op smoke branch exists at 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Trusted-main smoke run 36257298364 SUCCESS with receipt 5848102610 result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN.",
+    "Smoke verified owner-authored user authority comment 5848100625 reached execution_claim_guard.py through deployed workflow."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
