@@ -134,3 +134,22 @@ Regression：`tests/process/test_issue731_branch_create_auto_consume.py`。
 Focused RED：run `36250856862`。
 Focused GREEN：run `36251018227`。
 
+
+
+## MAIN_TO_X_BATCH_FIRST_PARITY_V1 — per-fix helper fragmentation
+
+### 事故
+#731 修補已進 main 後，第一次處理 main→`cleanup/2d-3d-sync` parity 時，執行者看到兩分支 diverged，立即把問題縮成「只搬 #731」，並另開 per-fix parity helper。這雖然比 blind full-main merge 安全，但漏了更高一層的問題：**沒有先 census 同批 accepted governance changes，也沒有先判斷 bounded batch 是否能一次 non-force 整合**。結果會造成 per-fix helper fragmentation、重複 claim/Guard/QA，以及 main/X governance history 長期碎片化。
+
+### 永久規則
+- main→X parity 一律 **batch-first**。
+- diverged 只代表要做 BATCH_FEASIBILITY_AUDIT，不代表直接 cherry-pick。
+- 先 census eligible accepted governance set，再做 merge-base/overlap/conflict/protected/active-chain audit。
+- 安全時一次 bounded non-force batch integration。
+- selective compatible-equivalent 是 **fallback only**；必須 durable 記錄 excluded commits/files 與原因。
+- 同一 batch 能共用 owner 時，不得預設 one-fix-one-helper。
+- blind full-main merge 仍禁止；batch 必須受授權 scope 約束。
+- X 更新後不得倒灌 active frozen chains；`FROZEN_X_BASE_SHA` 不變。
+
+Governance owner：#736。Parent parity rule：#692。
+
