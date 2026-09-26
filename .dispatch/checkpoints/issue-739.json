@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
-  "head_sha": "7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e",
+  "head_sha": "c36d2ff775b9e3f0558e560bb7e793724c0d5fa0",
   "state": "RUNNING",
-  "next_action": "Bootstrap reactivate after durable PR #750 creation, then create canonical two-parent merge sync against current main and merge PR #750.",
+  "next_action": "Restore the eight current-main artifacts accidentally reverted by the first merge-sync tree; preserve only the six intended #739 deltas, rerun protected regressions, then merge PR #750.",
   "run_id": 36258017721,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -25,7 +25,8 @@
     "QA-head reconciliation Guard 36258055525 GREEN.",
     "Final closing HEAD 7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e.",
     "Final-head reconciliation Guard 36258170717 GREEN.",
-    "Bootstrap reactivate required only to clear pre-deployment #739 pr-write transaction after durable PR #750 creation."
+    "Bootstrap reactivate required only to clear pre-deployment #739 pr-write transaction after durable PR #750 creation.",
+    "RECOVERING from invalid first merge-sync tree c36d2ff775b9e3f0558e560bb7e793724c0d5fa0; restore eight non-#739 main artifacts before deployment."
   ],
   "master_issue": null,
   "chain_state": "NONE",
