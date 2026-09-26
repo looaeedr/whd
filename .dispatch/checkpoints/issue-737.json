@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "737",
-  "branch": "governance/issue737-remote-guard-authority-handoff",
+  "branch": "governance/issue737-remote-guard-authority-handoff-r2",
   "head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
   "state": "RUNNING",
-  "next_action": "Post-deploy acceptance only: run a safe trusted-main interactive claim-takeover smoke that exercises the forwarded --user-authority-evidence without taking over unrelated work; then terminalize #737 through canonical finalization.",
+  "next_action": "All #737 acceptance is GREEN. Terminalize on exact accepted r2 owner identity, then run canonical finalization/close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,10 @@
     "PR #742 merged to main as 6091bf003aae085d396f7e61f165e3f6a0e58260.",
     "Trusted main workflow readback contains the #737 authority handoff fix.",
     "Exact main focused/adjacent regressions: 11 passed / 0 failed.",
-    "Run 36254769186 used old main and is excluded from post-deploy smoke acceptance."
+    "Run 36254769186 used old main and is excluded from post-deploy smoke acceptance.",
+    "Post-deploy trusted-main smoke helper #749 closed/released cleanly.",
+    "Run 36257298364 / receipt 5848102610 GREEN proves deployed authority handoff reaches execution_claim_guard.py.",
+    "Finalization owner branch normalized to accepted r2 branch at 535ae4160e6937bccc85aa73402c3f5efafc11b4."
   ],
   "master_issue": null,
   "chain_state": "NONE",

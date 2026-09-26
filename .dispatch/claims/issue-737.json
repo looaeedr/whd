@@ -6,20 +6,18 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chatgpt.sol260927.issue737.takeover1",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue737-remote-guard-authority-handoff",
+  "work_branch": "governance/issue737-remote-guard-authority-handoff-r2",
   "claimed_at": "2026-09-26T15:29:55Z",
   "base_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
   "head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
   "phase": "GREEN",
-  "last_update": "2026-09-26T16:20:00Z",
+  "last_update": "2026-09-26T17:04:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
-  "delegated_branches": [
-    "governance/issue737-remote-guard-authority-handoff-r2"
-  ],
+  "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Post-deploy acceptance only: run a safe trusted-main interactive claim-takeover smoke that exercises the forwarded --user-authority-evidence without taking over unrelated work; then terminalize #737 through canonical finalization.",
+  "next_action": "All #737 acceptance is GREEN. Terminalize on exact accepted r2 owner identity, then run canonical finalization/close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-737.json",
   "evidence": [
@@ -44,7 +42,11 @@
     "PR #742 merged to trusted main as 6091bf003aae085d396f7e61f165e3f6a0e58260.",
     "Fresh main readback: workflow blob 5464aa7a3520e95e446759e84c8559320781333f contains --user-authority-evidence /tmp/user-authority.json in chat claim-takeover guard_args.",
     "Exact main regression: issue737 + issue722 + issue540 = 11 passed / 0 failed; git diff --check GREEN.",
-    "Pre-merge smoke run 36254769186 is NOT accepted as post-deploy smoke because orchestrator_head_sha=0d8a36b6... (old main); remaining smoke must use deployed main 6091bf00...."
+    "Pre-merge smoke run 36254769186 is NOT accepted as post-deploy smoke because orchestrator_head_sha=0d8a36b6... (old main); remaining smoke must use deployed main 6091bf00....",
+    "Post-deploy live trusted-main smoke helper #749 closed/completed with claim RELEASED and checkpoint CLOSED.",
+    "Trusted-main smoke run 36257298364 / receipt 5848102610: result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN on orchestrator/head 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Smoke log proves owner-authored authority comment 5848100625 was forwarded through stale_claim_takeover.py and execution_claim_guard.py, satisfying #737 live acceptance.",
+    "Owning branch normalized from original recovery precursor to accepted delegated r2 branch at exact accepted head 535ae4160e6937bccc85aa73402c3f5efafc11b4 for finalization identity correctness."
   ],
   "last_guard": {
     "action": "claim-takeover",
