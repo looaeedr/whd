@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "780",
+  "branch": "integration/issue780-phase7-current-x-20260927",
+  "head_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
+  "state": "RUNNING",
+  "next_action": "Obtain exact branch-create Guard, create integration/issue780-phase7-current-x-20260927 from current cleanup/2d-3d-sync@5a29aacdc39805e6950362a8880f1513318389f0, then construct a two-parent integration merge with sealed #626 head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, resolving only 09_WHD_Canonical_Authority_Map.md while preserving both current-X governance authority and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Integration helper starts from exact current X, not from sealed chain.",
+    "Exact sealed parent is ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6.",
+    "Conflict scope is exactly 09_WHD_Canonical_Authority_Map.md.",
+    "No production behavior change is authorized."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
