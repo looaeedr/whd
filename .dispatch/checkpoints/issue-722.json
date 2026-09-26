@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "722",
   "branch": "governance/issue722-trusted-takeover-parser-fix-20260926",
-  "head_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
+  "head_sha": "aa17f3332f71a891aa4f322a3be35720d4b18895",
   "state": "RUNNING",
-  "next_action": "Commit the focused RED tests that reproduce the trusted interactive takeover newline and JSON handoff defects, then reconcile H0->H1 and implement the minimal workflow/Skill/pitfall fix.",
+  "next_action": "Implement the minimal trusted Remote Guard fix for real multiline WHD_USER_DIRECTED_TAKEOVER_V1 parsing and single-object JSON handoff; align the stale main Remote Guard Skill and durable pitfall guidance, then rerun focused GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "Live workaround evidence: #687 run 36239397376 failed with user authority JSON Extra data, proving the transport is still malformed.",
     "Scope is limited to trusted Remote Guard parser/JSON handoff plus focused regression tests; no application behavior or scheduler cadence changes.",
     "Branch-create Guard run 36241280327 GREEN was consumed by creating governance/issue722-trusted-takeover-parser-fix-20260926 at exact main base 3edcc0899278c75daadff4eaceeeeeafe0b95cdc.",
-    "Focused RED at exact H0: issue722 transport + issue540 contract = 2 failed / 7 passed; both failures are exact double-backslash newline/JSON handoff assertions."
+    "Focused RED at exact H0: issue722 transport + issue540 contract = 2 failed / 7 passed; both failures are exact double-backslash newline/JSON handoff assertions.",
+    "RED tests committed at aa17f3332f71a891aa4f322a3be35720d4b18895 under Remote Guard run 36241927159.",
+    "H0→RED-head pair reconciliation authorized by Remote Guard run 36241976578."
   ],
   "master_issue": null,
   "chain_state": "NONE",
