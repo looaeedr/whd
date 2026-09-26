@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "issue": "698",
+  "branch": "work/issue698-remote-guard-readback-parity-20260926",
+  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "state": "RUNNING",
+  "next_action": "Run RED-STOP-19 focused characterization against the trusted turn-exit durable-readback producer, prove non-commit Guard actions lack producer parity, then implement A3 adapters without modifying execution_claim_guard classifier semantics.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: REQ-MUTATING-TOOLCALL-CRASH-RECOVERY-01 / #685 comment 5843640299.",
+    "Approved RED: RED-STOP-19 / amendment RED approval #685 comment 5843692950 / breakdown approval #685 comment 5843715446.",
+    "A2 predecessor #697 accepted pending chain closure; durable #697 state explicitly unblocks successors #698/#699/#700.",
+    "Stacked base is #697 closing head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e because production cleanup/2d-3d-sync has diverged and does not yet contain A2.",
+    "Parallel scope is restricted to whd-turn-exit-gate durable-readback producer + A3 process tests; #686 classifier/local-Guard scope and #719 Remote Guard parser scope excluded."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

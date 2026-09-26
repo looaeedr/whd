@@ -1,0 +1,40 @@
+{
+  "issue": 698,
+  "issue_url": "https://github.com/looaeedr/whd/issues/698",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.260926.1840.b698",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue698-remote-guard-readback-parity-20260926",
+  "claimed_at": "2026-09-26T10:40:00Z",
+  "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T10:40:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Run RED-STOP-19 focused characterization against the trusted turn-exit durable-readback producer, prove non-commit Guard actions lack producer parity, then implement A3 adapters without modifying execution_claim_guard classifier semantics.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-698.json",
+  "evidence": {
+    "execution_mode": "SCHEDULER_LANE",
+    "entrypoint": "interactive:/排程B",
+    "predecessor_issue": 697,
+    "predecessor_acceptance": "ACCEPTED_PENDING_CHAIN_CLOSURE",
+    "predecessor_head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+    "approved_red_ids": [
+      "RED-STOP-19"
+    ],
+    "planned_changed_files": [
+      ".github/workflows/whd-turn-exit-gate.yml",
+      "tests/process/test_issue698_remote_guard_durable_readback_parity.py"
+    ],
+    "parallel_scope_exclusions": [
+      "tools/execution_claim_guard.py",
+      ".github/workflows/whd-remote-execution-guard.yml",
+      ".agents/skills/engineering/派工/SKILL.md",
+      ".agents/skills/engineering/remote-execution-guard/SKILL.md"
+    ]
+  }
+}
