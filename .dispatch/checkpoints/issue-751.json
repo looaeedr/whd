@@ -3,8 +3,8 @@
   "issue": "751",
   "branch": "deploy/issue751-claim-handoff-main-20260927",
   "head_sha": "9d7b476e105b81711c1ac4a7440751cc96e7e1b6",
-  "state": "RUNNING",
-  "next_action": "Fresh pr-write Guard at exact deploy head 9d7b476e105b81711c1ac4a7440751cc96e7e1b6, merge PR #752 to main, fresh-read claim-handoff parity, close/release #751, terminalize parent #680 helper reservation, then close/release #680.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,13 +18,15 @@
     "Focused trusted-main claim-handoff acceptance: 2 passed / 0 failed.",
     "Reactivate used only to atomically advance unchanged active owner/branch from main base H0 to existing deploy H1 after local-Guard commit.",
     "Deploy branch synchronized with current main via merge commit 9d7b476e105b81711c1ac4a7440751cc96e7e1b6.",
-    "Post-merge acceptance 10 passed / 0 failed; PR #752 mergeable=true and changed_files=2."
+    "Post-merge acceptance 10 passed / 0 failed; PR #752 mergeable=true and changed_files=2.",
+    "Trusted-main deployment complete via PR #752 merge 4355938c49e5feec0961fb0e4073d7aa101b2396.",
+    "Fresh readback confirms claim-handoff parity on main."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize finalization proof, close #751, fresh-read, then atomic CLOSED + RELEASED."
 }
