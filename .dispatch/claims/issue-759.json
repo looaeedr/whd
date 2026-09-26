@@ -9,9 +9,9 @@
   "work_branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
   "claimed_at": "2026-09-26T18:14:00Z",
   "base_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
-  "head_sha": "3d46f5436f1534853139630acec08867ecc84e82",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T18:23:00Z",
+  "head_sha": "7b8a5110a30729a56f91895415192378e0ac8ce3",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-26T18:24:35Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "3d46f5436f1534853139630acec08867ecc84e82",
     "status": "success"
   },
-  "next_action": "Remove temporary #759 QA workflow under Guard, reconcile exact closing HEAD, create guarded PR to cleanup/2d-3d-sync, merge/read back production, close/release #759, then resume #692 final parity acceptance.",
+  "next_action": "Obtain pr-write Guard for exact closing HEAD 7b8a5110a30729a56f91895415192378e0ac8ce3, create/merge PR to cleanup/2d-3d-sync, fresh-read #757 parity artifacts, then close/release #759 and resume #692 final parity acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-759.json",
   "evidence": [
@@ -35,6 +35,9 @@
     "Selective #757 parity commit 008c47ef3d49340539bf5907049316f2c33b8288; Remote Guard now contains 2x import subprocess + 2x import urllib.parse and three authority blocks are present.",
     "No automatic workflow runs exist for 008c47ef3d49340539bf5907049316f2c33b8288; temporary focused QA required.",
     "QA HEAD 3d46f5436f1534853139630acec08867ecc84e82.",
-    "Run 36262323655 GREEN: 50 PASS / 0 FAIL including import-count authority assertions and #739/#643/#731 protected regressions."
+    "Run 36262323655 GREEN: 50 PASS / 0 FAIL including import-count authority assertions and #739/#643/#731 protected regressions.",
+    "QA run 36262323655 GREEN: 50 PASS / 0 FAIL.",
+    "Temporary QA deletion Guard 36262410644 GREEN / result 5848720433.",
+    "Closing HEAD 7b8a5110a30729a56f91895415192378e0ac8ce3 removes only .github/workflows/qa-issue759-final-postdrift-imports.yml; implementation commit 008c47ef3d49340539bf5907049316f2c33b8288 remains unchanged."
   ]
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "759",
   "branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
-  "head_sha": "3d46f5436f1534853139630acec08867ecc84e82",
+  "head_sha": "7b8a5110a30729a56f91895415192378e0ac8ce3",
   "state": "RUNNING",
-  "next_action": "Remove temporary #759 QA workflow under Guard, reconcile exact closing HEAD, create guarded PR to cleanup/2d-3d-sync, merge/read back production, close/release #759, then resume #692 final parity acceptance.",
+  "next_action": "Obtain pr-write Guard for exact closing HEAD 7b8a5110a30729a56f91895415192378e0ac8ce3, create/merge PR to cleanup/2d-3d-sync, fresh-read #757 parity artifacts, then close/release #759 and resume #692 final parity acceptance.",
   "run_id": 36262323655,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,9 @@
     "Selective #757 parity HEAD 008c47ef3d49340539bf5907049316f2c33b8288 under Guard 36262049939.",
     "No automatic CI run exists for this HEAD; focused temporary QA required.",
     "QA HEAD 3d46f5436f1534853139630acec08867ecc84e82.",
-    "Run 36262323655 GREEN: 50 PASS / 0 FAIL."
+    "Run 36262323655 GREEN: 50 PASS / 0 FAIL.",
+    "Closing HEAD 7b8a5110a30729a56f91895415192378e0ac8ce3 after temporary QA removal only.",
+    "Authoritative QA run 36262323655 remains GREEN: 50 PASS / 0 FAIL."
   ],
   "master_issue": null,
   "chain_state": "NONE",
