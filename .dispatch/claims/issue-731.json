@@ -9,14 +9,14 @@
   "work_branch": "governance/issue731-branch-create-auto-consume-20260926",
   "claimed_at": "2026-09-26T15:04:00Z",
   "base_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
-  "head_sha": "f9ce121f4f586f455158546b326e234ba093603e",
+  "head_sha": "0161dfb1b3476e4a9c98d0581596613ed6d318d5",
   "phase": "GREEN",
-  "last_update": "2026-09-26T15:11:20Z",
+  "last_update": "2026-09-26T15:14:20Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Durable writeback to Guard/dispatch skill guidance and execution-claim pitfall, then guarded PR/deploy to main and compatible propagation to cleanup/2d-3d-sync.",
+  "next_action": "Open guarded PR to main, merge after exact readback/checks, then propagate compatible-equivalent accepted artifacts to cleanup/2d-3d-sync and close #731.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-731.json",
   "evidence": [
@@ -28,7 +28,9 @@
     "Post-RED reconciliation Guard GREEN run 36250904594 / result comment 5847339508.",
     "Implementation f9ce121f4f586f455158546b326e234ba093603e wires exact live branch readback into canonical branch-create transaction classification.",
     "Focused QA run 36251018227 terminal SUCCESS, including #731 regression and existing #643 transaction gate.",
-    "Post-implementation reconciliation Guard GREEN run 36251037035 / result comment 5847355374."
+    "Post-implementation reconciliation Guard GREEN run 36251037035 / result comment 5847355374.",
+    "Durable Skill/AI writeback commit 0161dfb1b3476e4a9c98d0581596613ed6d318d5; focused QA run 36251168771 SUCCESS.",
+    "Post-writeback reconciliation Guard GREEN run 36251184673 / result comment 5847373188."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
