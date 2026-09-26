@@ -1,0 +1,46 @@
+{
+  "issue": 623,
+  "issue_url": "https://github.com/looaeedr/whd/issues/623",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.a623.20260926T1141",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "claimed_at": "2026-09-26T11:41:00Z",
+  "base_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+  "head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T11:41:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "expected_parent_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+  "master_issue": 627,
+  "task_id": "A6",
+  "parent_issue": 627,
+  "predecessor": {
+    "issues": [
+      620,
+      621
+    ],
+    "accepted_head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+    "issue620_state": "closed/completed",
+    "issue621_state": "closed/completed"
+  },
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Characterize the current _phase6_resolve_explicit_joint_reliefs pipeline at the accepted A5 head, then add focused P7-R-F RED tests for bounded stage ownership without changing manufacturing truth.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-623.json",
+  "evidence": [
+    "User invoked /排程A for Issue #623, establishing SCHEDULER_LANE execution mode.",
+    "Issue #623 fresh-read open with Approved RED ID P7-R-F and accepted Phase 7 v1.2 authority.",
+    "Predecessor #620 fresh-read closed/completed.",
+    "Predecessor #621 fresh-read closed/completed with claim RELEASED and checkpoint TERMINAL_SUCCESS/CLOSED at accepted head 8e80e460160a9b238ee53d201a1ff88ee47439d3.",
+    "Phase 7 work-order branch fresh-read at exact accepted A5 head 8e80e460160a9b238ee53d201a1ff88ee47439d3; no rebase/merge from newer X.",
+    "A lane live 00/20/40 profile fresh-read consistent; all entrypoints enabled; lane owner scheduler.6ab13fa557fc8191935c671214b865e2.",
+    "No prior #623 claim/checkpoint exists; slot_id is UNBOUND."
+  ]
+}

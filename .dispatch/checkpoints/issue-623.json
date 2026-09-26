@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "623",
+  "branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+  "state": "RUNNING",
+  "next_action": "Characterize the current _phase6_resolve_explicit_joint_reliefs pipeline at the accepted A5 head, then add focused P7-R-F RED tests for bounded stage ownership without changing manufacturing truth.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 7 v1.2 spec + approved RED/breakdown; owning Issue #623 P7-R-F fresh-read open.",
+    "Predecessors #620 and #621 are closed/completed; A6 authoritative parent is accepted A5 head 8e80e460160a9b238ee53d201a1ff88ee47439d3.",
+    "Execution mode SCHEDULER_LANE via explicit /排程A; durable owner scheduler.6ab13fa557fc8191935c671214b865e2; actual invocation source chatgpt_interactive.",
+    "Master lineage is #627/A6 but active RUNNING checkpoint intentionally carries no chain continuation metadata; that metadata is terminal-only.",
+    "No planned work-slot handoff exists for #623; slot_id=UNBOUND."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
