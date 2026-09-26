@@ -11,10 +11,10 @@
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "619da824bb589fa8261aec75efff7361633d152b",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T23:22:30Z",
+  "last_update": "2026-09-26T23:26:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Advance terminal checkpoint closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh Guard, then run canonical finalization proof and close/read back Issue #686.",
+  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint, verify FINALIZATION_PROOF_VALID, close Issue #686, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-686.json",
   "slot_id": "worker.slot.1",
@@ -58,15 +58,18 @@
     "PR #741 merged to cleanup/2d-3d-sync at 5a29aacdc39805e6950362a8880f1513318389f0.",
     "Canonical pr-write durable readback for Guard run 36279125488 classified CONSUMED from PR #741 merged_at=2026-09-26T23:20:51Z.",
     "Remote Guard cross-scope caller run 36279202358 failed AMBIGUOUS before readback; canonical local classifier proved the prior pr-write transaction CONSUMED.",
-    "Local canonical execution_claim_guard GREEN authorized this terminal coordination pair write."
+    "Local canonical execution_claim_guard GREEN authorized this terminal coordination pair write.",
+    "Closure advance Guard run=36279416517 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
-    "mode": "local",
+    "mode": "remote",
+    "run_id": 36279416517,
+    "request_comment_id": 5850886885,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter terminal finalization after production integration"
+    "mutation": "advance #686 closure to ISSUE_CLOSE_PENDING"
   },
   "remote_qa": {
     "run_id": 36278818776,
