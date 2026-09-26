@@ -31,13 +31,15 @@
     "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Guard run 36276847482.",
     "Remote Finalization run 36276961037 terminal success; bound artifact 10916528982; FINALIZATION_PROOF_VALID.",
     "Issue #764 closed/completed and fresh-read confirmed.",
-    "Closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard run 36277019922."
+    "Closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard run 36277019922.",
+    "Final atomic release Guard run 36277071321.",
+    "Final atomic transaction: checkpoint CLOSED + claim RELEASED; chain_state=NONE."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff exists"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

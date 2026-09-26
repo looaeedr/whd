@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T22:03:07Z",
   "base_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
   "head_sha": "141123445c00d4dbef637d95ba5d756c30db58e0",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T22:40:16Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T22:41:16Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Atomically persist checkpoint closure_state=CLOSED and claim phase=RELEASED; no successor/chain handoff exists for #764.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-764.json",
   "evidence": [
@@ -50,6 +50,8 @@
     "ISSUE_CLOSE_PENDING advance Guard run=36276847482 request=5850522692 receipt=5850524231",
     "Remote Finalization run=36276961037 result=GREEN reason=FINALIZATION_PROOF_VALID artifact=10916528982 request=5850539180",
     "Issue #764 fresh-read closed/completed",
-    "RELEASE_HANDOFF_PENDING advance Guard run=36277019922 request=5850547213 receipt=5850548643"
+    "RELEASE_HANDOFF_PENDING advance Guard run=36277019922 request=5850547213 receipt=5850548643",
+    "Final atomic release Guard run=36277071321 request=5850554527 receipt=5850556411",
+    "Final atomic transaction: checkpoint CLOSED + claim RELEASED; no successor/chain handoff."
   ]
 }
