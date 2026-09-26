@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import tempfile
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
