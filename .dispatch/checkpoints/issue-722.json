@@ -4,7 +4,7 @@
   "branch": "governance/issue722-trusted-takeover-parser-fix-20260926",
   "head_sha": "b312fe699a10897ec6fed6a5bd3e856eb7ae6d8c",
   "state": "RUNNING",
-  "next_action": "Run broader process regressions and workflow syntax/readback at b312fe69; if GREEN, open/merge the main PR, then run a trusted-main normal-multiline WHD_USER_DIRECTED_TAKEOVER_V1 live smoke and complete finalization.",
+  "next_action": "Re-run trusted-main normal-multiline WHD_USER_DIRECTED_TAKEOVER_V1 smoke after consuming PR-write transaction; then reconcile early auto-close through canonical finalization and release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,10 @@
     "H0→RED-head pair reconciliation authorized by Remote Guard run 36241976578.",
     "Implementation commit b312fe699a10897ec6fed6a5bd3e856eb7ae6d8c fixes real-newline parsing and writes one valid JSON object for --user-authority-json without weakening exact identity matching.",
     "Focused GREEN at exact implementation head: tests/process/test_issue722_trusted_interactive_takeover_transport.py + test_issue540_main_remote_guard_contract.py = 9 passed in 0.40s.",
-    "Post-implementation durable pair reconciliation authorized by Remote Guard run 36242453574 / request 5846321309."
+    "Post-implementation durable pair reconciliation authorized by Remote Guard run 36242453574 / request 5846321309.",
+    "Broader tests/process at b312fe69: 583 passed / 1 failed; the sole issue423 failure reproduces unchanged on frozen main base 3edcc089, so it is baseline debt unrelated to #722.",
+    "PR-write Guard run 36243857000 was consumed by PR #726 at exact b312fe69; PR merged to main as 407766cba2405b4f4b6a6cc014b0ac27180a7f24.",
+    "First post-merge smoke run 36244052613 was intentionally blocked before parser by unconsumed pr-write transaction; durable reconciliation now records that transaction as consumed before retry."
   ],
   "master_issue": null,
   "chain_state": "NONE",
