@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T15:29:30Z",
   "base_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
   "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T17:13:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T17:14:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
     "status": "success"
   },
-  "next_action": "Final release handoff: atomically persist checkpoint closure_state=CLOSED and claim phase=RELEASED for #690, preserving successor #692 under Master #693.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-690.json",
   "evidence": [
@@ -47,7 +47,8 @@
     "Acceptance handoff coordination write Guard GREEN run 36258079751 / result comment 5848194642.",
     "Trusted finalization proof GREEN run 36258162080; receipt reason FINALIZATION_PROOF_VALID bound to checkpoint e0e32e69d1ff1322cb3f88fcd7be81becf959c15 and fingerprint 774ef8d60b6d61fb4bcb6958c341be038e6bfd7826830d4f44172313b5eb029d.",
     "Issue #690 fresh readback confirmed closed/completed at 2026-09-26T17:12:39Z.",
-    "Release-handoff transition Guard GREEN run 36258223976 / result comment 5848211738."
+    "Release-handoff transition Guard GREEN run 36258223976 / result comment 5848211738.",
+    "Final closure coordination mutation authorized by Remote Guard run 36258276346 / result comment 5848217997."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
@@ -63,5 +64,28 @@
       "test": "tests/process/test_issue690_closure_drift_classification.py",
       "result": "4_FAIL_EXPECTED_RED"
     }
+  },
+  "release_handoff": {
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T17:12:39Z"
+    },
+    "finalization_run_id": 36258162080,
+    "finalization_artifact_id": 10911740542,
+    "successor_issue": 692,
+    "successor_state": "open",
+    "closure_owner_issue": 693
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36258276346,
+    "request_comment_id": 5848216689,
+    "result_comment_id": 5848217997,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
+    "consumed": true,
+    "mutation": "atomic final closure: checkpoint CLOSED + claim RELEASED + #693 chain handoff to #692"
   }
 }
