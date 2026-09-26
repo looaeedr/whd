@@ -9,12 +9,18 @@
   "work_branch": "work/issue678-red-evidence-anchor-20260926",
   "claimed_at": "2026-09-26T03:13:11Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T03:13:11Z",
+  "head_sha": "53762da04d4b3d3a9d1ebd9f632e4130e7aa6894",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T03:36:54Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard for the exact work branch, create it from the frozen baseline, then durableize the approved RED evidence without production behavior changes.",
+  "next_action": "Dispatch remote QA/reproduction on exact repository-owned evidence HEAD; then complete PR/integration/closure without changing production behavior.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-678.json"
+  "checkpoint": ".dispatch/checkpoints/issue-678.json",
+  "green_candidate": {
+    "head_sha": "53762da04d4b3d3a9d1ebd9f632e4130e7aa6894",
+    "local_reproduction": "docs/superpowers/verification/issue678-poweroff-red/reproduce.py --repo-root <repo>",
+    "conclusion": "success",
+    "summary": "v4 current+anti-false-green checks true; v5 28/28 current RED and 28/28 adversarial RED reproduced"
+  }
 }

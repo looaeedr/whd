@@ -2,19 +2,22 @@
   "version": 1,
   "issue": "678",
   "branch": "work/issue678-red-evidence-anchor-20260926",
-  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "head_sha": "53762da04d4b3d3a9d1ebd9f632e4130e7aa6894",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard for the exact work branch, create it from the frozen baseline, then durableize the approved RED evidence without production behavior changes.",
+  "next_action": "Dispatch remote QA/reproduction on exact repository-owned evidence HEAD; then complete PR/integration/closure without changing production behavior.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Requirement Authority: user approved WHD HA safe-shutdown requirement RED and the WI breakdown after the R0 bookkeeping correction.",
-    "Owning Issue #678 is WI-0 Repository-owned RED Evidence Anchor.",
+    "Requirement Authority: user approved WHD HA safe-shutdown requirement RED and WI breakdown after R0 bookkeeping correction.",
     "Frozen production target cleanup/2d-3d-sync HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
-    "No production behavior change is permitted in WI-0."
+    "Evidence-only commit 53762da04d4b3d3a9d1ebd9f632e4130e7aa6894 is direct child of frozen baseline and changes only docs/superpowers/verification/issue678-poweroff-red/**.",
+    "Local repository-owned reproduction completed exit 0 on exact HEAD 53762da04d4b3d3a9d1ebd9f632e4130e7aa6894.",
+    "v4 checks: current RED=true, expected failures observed=true, anti-false-green RED=true, anti-false-green expected failures observed=true.",
+    "v5 checks: 28 current behavioral RED=true, expected failures observed=true, 28 adversarial RED=true, adversarial expected failures observed=true.",
+    "No tools/** or product source changed."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
