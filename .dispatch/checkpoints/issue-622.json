@@ -30,10 +30,12 @@
     "Duplicate guard 36213600876 failed closed because 36213239802 was pending consumption; no ambiguity was accepted.",
     "Trusted Remote Finalization run 36213747863 GREEN with FINALIZATION_PROOF_VALID; artifact 10896223604.",
     "Issue #622 remote readback confirmed closed/completed at 2026-09-26T03:06:56Z.",
-    "Post-close Guard 36213824328 GREEN consumed: ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Post-close Guard 36213824328 GREEN consumed: ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard 36213882795 GREEN consumed; checkpoint CLOSED + claim RELEASED atomically persisted.",
+    "Master #628 remains NEXT_CHILD_EXECUTABLE and must be closed only after fresh all-child readback + its own owning finalization proof."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "obtain final release Guard; atomically persist checkpoint CLOSED + claim RELEASED, preserving NEXT_CHILD_EXECUTABLE -> Master #628",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "628",
