@@ -36,6 +36,9 @@
     "PR #752 merged to trusted main at 4355938c49e5feec0961fb0e4073d7aa101b2396.",
     "Fresh main readback proves claim-handoff supported by canonical tool and trusted Remote Guard parser.",
     "Issue #751 fresh-read closed/completed at 2026-09-26T17:34:36Z.",
-    "Final atomic child transaction: checkpoint CLOSED + claim RELEASED."
+    "Final atomic child transaction: checkpoint CLOSED + claim RELEASED.",
+    "Issue #751 fresh-read closed/completed.",
+    "FINALIZATION_PROOF_VALID on exact terminal checkpoint.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ]
 }

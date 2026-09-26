@@ -22,7 +22,9 @@
     "Trusted-main deployment complete via PR #752 merge 4355938c49e5feec0961fb0e4073d7aa101b2396.",
     "Fresh readback confirms claim-handoff parity on main.",
     "Issue #751 closed/completed after verified finalization proof.",
-    "Final atomic child transaction: checkpoint CLOSED + claim RELEASED."
+    "Final atomic child transaction: checkpoint CLOSED + claim RELEASED.",
+    "Issue #751 closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
