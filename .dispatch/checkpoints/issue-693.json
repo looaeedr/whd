@@ -16,7 +16,9 @@
     "Execution intent: EXECUTE_TICKET scoped to #693 closure-owner duties.",
     "Base/head authority: frozen #693 X base 87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
     "First delegated closure target: #687 acceptance comment 5846013270 / handoff comment 5846028517.",
-    "worker.slot.2 remains bound to #687; #693 claim is UNBOUND slot provenance."
+    "worker.slot.2 remains bound to #687; #693 claim is UNBOUND slot provenance.",
+    "Scheduler A takeover: canonical stale evaluator EXECUTOR_STUCK and local claim-takeover Guard GREEN.",
+    "Owner CAS only; branch/head/state/next_action remain unchanged."
   ],
   "master_issue": null,
   "chain_state": "NONE",

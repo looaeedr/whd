@@ -1,17 +1,17 @@
 {
   "issue": 693,
   "issue_url": "https://github.com/looaeedr/whd/issues/693",
-  "worker": "chatgpt.sol260926.work2.693.1",
-  "executor_source": "chat",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260926.work2.693.1",
+  "invocation_identity": "chat.schedulerA.693.20260927T0248",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue693-combined-acceptance-20260926",
   "claimed_at": "2026-09-26T12:20:00Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T12:20:00Z",
+  "last_update": "2026-09-26T18:50:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -25,6 +25,25 @@
     "Authorized scope: Issue #693 plus #687 closure transaction explicitly handed off to #693 by comment 5846028517.",
     "Runtime provenance: invoked from worker.slot.2 context, but #693 slot_id remains UNBOUND while worker.slot.2 is durably bound to #687.",
     "Prohibited scope: no implicit worker.slot.2 rebinding, no unrelated child implementation, no bypass of finalization/Guard/claim gates.",
-    "Frozen work-order authority: #693 FROZEN_X_BASE_SHA=87eb35b3f5ae5211673c941cb56c4c4343fa5405."
-  ]
+    "Frozen work-order authority: #693 FROZEN_X_BASE_SHA=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "Interactive /排程A 693 selected durable A lane; physical invocation remains chatgpt_interactive.",
+    "Canonical stale evaluator: EXECUTOR_STUCK, stale_seconds=23355, no active exact run, no delegated work.",
+    "Local execution_claim_guard action=claim-takeover GREEN on exact claim/blob/branch/head.",
+    "Single owner CAS preserves #693 branch/head/checkpoint/next_action."
+  ],
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "previous_worker": "chatgpt.sol260926.work2.693.1",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "requesting_executor_source": "scheduler",
+    "observed_stale_seconds": 23355,
+    "observed_live_head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "user_authority_comment_id": null,
+    "taken_over_at": "2026-09-26T18:50:00Z",
+    "guard_mode": "local",
+    "guard_result": "GREEN"
+  }
 }
