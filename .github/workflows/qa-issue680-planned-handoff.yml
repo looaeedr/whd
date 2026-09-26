@@ -1,0 +1,24 @@
+name: WHD｜工單 #680｜Planned Handoff RED 驗證
+run-name: "WHD｜工單 #680｜Planned Handoff Scheduler Receiver RED"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red-characterization:
+    name: Planned Handoff RED 特性測試
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 執行 #680 Planned Handoff RED 測試
+        run: python -m pytest -q tests/process/test_issue680_planned_handoff_scheduler_receiver.py
