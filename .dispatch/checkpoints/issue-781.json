@@ -11,7 +11,8 @@
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent #774 bootstrap helper."
+    "Parent #774 bootstrap helper.",
+    "Reactivated after consumed branch-create receipt to rotate claim blob before commit Guard."
   ],
   "master_issue": null,
   "chain_state": "NONE",
