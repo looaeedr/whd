@@ -3,8 +3,8 @@
   "issue": "671",
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
-  "state": "RUNNING",
-  "next_action": "Terminalize accepted #671 as TERMINAL_SUCCESS / FINALIZATION_PENDING, then run owning finalization, close/read back Issue #671, and atomically release the claim.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -48,6 +48,11 @@
     "#617 acceptance dependency fresh-read fully terminal: Issue closed/completed, claim RELEASED, checkpoint closure_state=CLOSED; finalization run 36206629673 GREEN.",
     "Historical pr-write run 36203114061 consumed by durable PR #676 readback: OPEN, base=cleanup/2d-3d-sync, head=a2c81648be02c3b4710b6a80893e9cb890c95537.",
     "Guard run 36206936679 GREEN consumed to reconcile #671 durable state and advance to PR #676 integration.",
-    "Merge Guard run 36207041037 consumed exactly once by merge of PR #676; cleanup/2d-3d-sync fresh-read HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405."
-  ]
+    "Merge Guard run 36207041037 consumed exactly once by merge of PR #676; cleanup/2d-3d-sync fresh-read HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "PR #676 merged/closed; cleanup/2d-3d-sync fresh-read production HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "#617 final acceptance dependency is fully released: Issue closed/completed, claim RELEASED, checkpoint CLOSED, finalization run 36206629673 GREEN.",
+    "Terminalization Guard run 36207210917 GREEN consumed to persist #671 TERMINAL_SUCCESS / FINALIZATION_PENDING."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING under a fresh Guard, then run bound trusted finalization proof for #671 at a2c81648be02c3b4710b6a80893e9cb890c95537; if GREEN, close/read back #671, then atomically persist checkpoint CLOSED + claim RELEASED."
 }
