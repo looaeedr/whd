@@ -21,13 +21,14 @@
     "Work commit 31043ce5aae50b61dbed6c47fec750cfacb67462 authorized by Remote Guard run 36241001765.",
     "H0→H1 pair reconciliation authorized by Remote Guard run 36241058448.",
     "PR #723 merged; production target cleanup/2d-3d-sync fresh-read at 04b2a9808acbaba49e5fb60434f7218cd565c421.",
-    "Acceptance complete: focused 61 passed / 0 failed, Phase6 preflight GREEN, PR CI Knowledge Governance Bootstrap GREEN."
+    "Acceptance complete: focused 61 passed / 0 failed, Phase6 preflight GREEN, PR CI Knowledge Governance Bootstrap GREEN.",
+    "Closure advanced adjacent FINALIZATION_PENDING → ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING, then authorize and verify bound finalization proof before closing Issue #721."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize and verify bound finalization proof on this exact checkpoint; do not mutate checkpoint before Issue #721 close/readback."
 }
