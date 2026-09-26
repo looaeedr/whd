@@ -17,7 +17,9 @@
     "Active RUNNING checkpoint intentionally carries no terminal chain continuation metadata.",
     "DT-0 + P7-R-G RED commit exists at 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6.",
     "Legacy post-commit recovery comment 5848923776 accepted by Guard 36264117035.",
-    "Claim/checkpoint HEAD reconciliation only; ownership remains scheduler.6ab13fa557fc8191935c671214b865e2 pending canonical B takeover."
+    "Claim/checkpoint HEAD reconciliation only; ownership remains scheduler.6ab13fa557fc8191935c671214b865e2 pending canonical B takeover.",
+    "Takeover Guard 36264722019 GREEN; durable owner transfers from scheduler.6ab13fa557fc8191935c671214b865e2 to scheduler.e58ea936e7d0b12bd0d475314709d6f1.",
+    "Resume exact RED checkpoint at head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6."
   ],
   "master_issue": null,
   "chain_state": "NONE",

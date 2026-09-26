@@ -1,17 +1,17 @@
 {
   "issue": 625,
   "issue_url": "https://github.com/looaeedr/whd/issues/625",
-  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.a625.20260926T1448",
+  "invocation_identity": "chat.b625.20260927T0303+08",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T14:48:10Z",
   "base_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
   "head_sha": "6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6",
   "phase": "RED",
-  "last_update": "2026-09-26T18:53:23Z",
+  "last_update": "2026-09-26T19:03:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
@@ -43,6 +43,9 @@
     "Prior commit Guard 36249957529 GREEN for the exact 3-file P7-R-G RED/DT-0 scope.",
     "Live work-order branch advanced by direct child commit 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6.",
     "Owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 comment 5848923776 binds the historical post-expiry commit to prior Guard run/request/files.",
-    "Reconciliation Guard 36264117035 GREEN with REMOTE_GUARD_RECONCILE_ONLY; this coordination write only aligns claim/checkpoint HEAD and advances to RED."
+    "Reconciliation Guard 36264117035 GREEN with REMOTE_GUARD_RECONCILE_ONLY; this coordination write only aligns claim/checkpoint HEAD and advances to RED.",
+    "B-lane scheduler simulation explicitly authorized by user command /排程B 625.",
+    "Canonical takeover Guard 36264722019 GREEN: EXECUTOR_STUCK, stale_seconds=628, no active exact run, prior A-lane runtime liveness missing.",
+    "Ownership transfer keeps exact work branch/head/base and resumes the existing RED checkpoint; no duplicate Issue or work branch created."
   ]
 }
