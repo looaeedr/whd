@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T21:57:30Z",
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
-  "head_sha": "e181735e1d499b1edd845751898b1b292c379a6f",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T22:31:30Z",
+  "head_sha": "1c23a669d8364a488e0202ec9b14e167860e8632",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T22:38:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -30,12 +30,12 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36276492724,
+    "run_id": 36276781249,
     "head_sha": "e181735e1d499b1edd845751898b1b292c379a6f",
     "status": "completed",
-    "conclusion": "success"
+    "conclusion": "failure"
   },
-  "next_action": "Run broader Phase 7 cross-target acceptance at exact head e181735e1d499b1edd845751898b1b292c379a6f: structural owner census, reverse-import/duplicate-owner/second-composition-root/full-app-dependency gates, Headless/Xvfb, manufacturing/DXF reopen, Save/Reload where touched, and protected config invariants. Only after all GREEN, write CURRENT AI Library ownership maps and proceed to non-force production integration/readback.",
+  "next_action": "Repair stale #367 persistence ownership contract so A7-proven NO_CALLER removals _phase6_commit_output_draw_stock and _phase6_export_selected_dxf_from_3d are allowed absent while controller methods remain authoritative; then rerun exact persistence, Xvfb, and protected-input gates before AI Library writeback.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -54,6 +54,12 @@
     "A9 terminal-evidence backfill commit e181735e1d499b1edd845751898b1b292c379a6f consumed commit Guard 36275577099 GREEN.",
     "Canonical P7-B/C/D/E DT-1..DT-6 and P7-B/C/D/E target-completion artifacts are now durable on the work-order branch.",
     "Exact A9 combined machine gate run 36276492724 SUCCESS at head e181735e1d499b1edd845751898b1b292c379a6f: 1 passed; A9_COMBINED_TARGET_CENSUS=GREEN.",
-    "Post-commit reconciliation Guard 36276541528 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-commit reconciliation Guard 36276541528 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "A9 broader orchestration commit 1c23a669d8364a488e0202ec9b14e167860e8632 consumed commit Guard 36276703998 GREEN; workflow checks out fixed TESTED_SHA e181735e1d499b1edd845751898b1b292c379a6f.",
+    "Broader run 36276781249 terminal FAILURE only in Save/Reload persistence step; structural/owner gate 54 passed and manufacturing/collision/DXF reopen 95 passed, 2 warnings.",
+    "Persistence step: 20 passed / 1 failed; sole failure tests/test_issue367_t3_project_persistence_owner.py expected two A7-proven NO_CALLER Bridge helpers to remain.",
+    "Fresh source/search readback proves fold_designer_bridge.py contains neither _phase6_commit_output_draw_stock nor _phase6_export_selected_dxf_from_3d; A7 accepted completion explicitly records both as removed NO_CALLER helpers.",
+    "Broader artifact 10916508911 uploaded.",
+    "Post-orchestration reconciliation Guard 36276895064 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ]
 }
