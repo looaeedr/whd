@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "616",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "469d4340461bd2ab4967590fdf669c6fbf219c99",
-  "state": "RUNNING",
-  "next_action": "Instrument the authoritative Final Scene requested_draw visible-commit seam with ordered diagnostic records only, without changing runtime behavior; then rerun the exact #616 Xvfb diagnostic to identify the first bad visible commit.",
-  "run_id": null,
-  "job_id": null,
+  "head_sha": "c876d89f7a685be687764c9d8ee9d994a121a583",
+  "state": "WAITING_REMOTE",
+  "next_action": "Lock exact GitHub Actions run 36203544143 at head_sha c876d89f7a685be687764c9d8ee9d994a121a583 to terminal. If the diagnostic passes, consume the artifact to identify the first bad visible commit; if it fails, classify only the exact failed assertion and repair diagnostic instrumentation without changing B4 runtime behavior.",
+  "run_id": 36203544143,
+  "job_id": 108295096877,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -20,7 +20,10 @@
     "Exact UI-R3 Xvfb run 36202612565 created for head 469d4340461bd2ab4967590fdf669c6fbf219c99.",
     "Exact UI-R3 run 36202612565 completed FAILURE; environment/setup GREEN, test body executed, diagnostic seam missing ordered records.",
     "Artifact 10892532760 uploaded; next step is instrumentation-only at the authoritative Final Scene requested_draw seam, with no behavior fix in B3.",
-    "Remote Guard run 36203260623 GREEN authorizes this terminal RED classification pair write."
+    "Remote Guard run 36203260623 GREEN authorizes this terminal RED classification pair write.",
+    "Instrumentation-only commit c876d89f7a685be687764c9d8ee9d994a121a583 added transition-stage and visible-commit diagnostics without changing family-switch sequencing.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36203570828.",
+    "Exact UI-R3 run 36203544143 locked at c876d89f7a685be687764c9d8ee9d994a121a583."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
