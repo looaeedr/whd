@@ -18,6 +18,17 @@ whd_schema: WHD_DOC_META_V1
 - `EXECUTE_TICKET`：不得把 arbitrary open/unblocked Issue 當 successor；但當前 ticket 的 canonical durable chain state 若明確為 `NEXT_CHILD_EXECUTABLE`，或明確指定 exact closure/successor owner，必須在完成本票 closure handoff 後自動 claim/start exact `next_issue`，不得停在 ticket 邊界。
 - `EXECUTE_CHAIN` / `SCHEDULER_LANE`：可依 broader accepted chain/lane authority主動 continuation；但它們不是 canonical `NEXT_CHILD_EXECUTABLE` handoff 唯一允許的 mode。
 
+
+### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
+
+本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
+
+- fresh runtime、scheduled/work-slot re-entry、stream/connection interruption、`Resume stream unavailable`，或使用者明確要求 **`GitHub durable state重新接`** 時，任何 mutation / waiting / blocker / completion 判定前先 fresh reconstruction。
+- 至少 fresh-read owning Issue、claim blob+payload、checkpoint blob+payload、work branch HEAD、production target HEAD，以及 durable state 指向的 exact PR/run/Guard/closure/chain evidence。
+- reconstruction 完成前**不得靠聊天記憶**補 owner、HEAD、run_id、closure state 或 next_action；不得宣告無工作、等待、卡住或完成。
+- reconstruction 得到 executable non-terminal state 後，同一 invocation 立即沿 canonical **exact next_action** 繼續；「已重新接回」只是 checkpoint observation，不是停止點。
+- 本入口只 bridge canonical gate，不自行建立第二套 durable parser 或較寬的 stop condition。
+
 ### TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
 
 派工不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
