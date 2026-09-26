@@ -1,0 +1,64 @@
+name: "WHD｜#619 B4｜基線三項回歸對照"
+run-name: "WHD｜#619 B4｜81468 基線三項回歸對照"
+
+on:
+  push:
+    branches:
+      - work/issue628-receiving-rear-panel-overlay-live-switch-20260924
+    paths:
+      - '.github/workflows/qa-issue619-b4-baseline-compare.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline_compare:
+    name: "B4 起點 Ubuntu＋Xvfb 對照"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "Checkout B4 起點 exact SHA"
+        uses: actions/checkout@v4
+        with:
+          ref: 81468a8103fd5045160e0f16e9458317acee584b
+          fetch-depth: 0
+
+      - name: "安裝 Xvfb 與 Python 相依套件"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -q pytest pytest-json-report matplotlib numpy shapely ezdxf -r requirements.txt
+
+      - name: "執行 expanded gate 三項失敗案例"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue619-baseline
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          set +e
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue517_receiving_live_switch_ui_export_marking.py::test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory \
+            tests/test_phase6_ui_state_regressions.py::test_real_tk_part_selector_menu_opens_part_and_delete_shares_selector_row \
+            tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch \
+            --tb=short \
+            --json-report --json-report-file=/tmp/issue619-baseline/report.json
+          status=$?
+          set -e
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          printf 'pytest_exit=%s\nconfig_before=%s\nconfig_after=%s\n' "$status" "$before" "$after" > /tmp/issue619-baseline/summary.txt
+          git diff -- config.ini > /tmp/issue619-baseline/config.diff || true
+          exit "$status"
+
+      - name: "上傳基線對照證據"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue619-b4-baseline-three-regressions
+          path: |
+            /tmp/issue619-baseline/report.json
+            /tmp/issue619-baseline/summary.txt
+            /tmp/issue619-baseline/config.diff
+          if-no-files-found: error
