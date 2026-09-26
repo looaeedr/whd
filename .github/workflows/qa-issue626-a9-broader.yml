@@ -1,0 +1,150 @@
+name: "WHD｜#626 A9｜Phase 7 Broader Acceptance"
+run-name: "WHD｜#626 A9｜跨目標結構／Xvfb／DXF／Save-Reload 驗收"
+
+on:
+  push:
+    branches:
+      - work/issue627-phase7-large-module-decomposition-20260924
+    paths:
+      - '.github/workflows/qa-issue626-a9-broader.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue626-a9-broader
+  cancel-in-progress: false
+
+jobs:
+  broader:
+    name: "A9｜Phase 7 broader acceptance"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TESTED_SHA: e181735e1d499b1edd845751898b1b292c379a6f
+    steps:
+      - name: "反讀固定 TESTED_SHA"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TESTED_SHA }}
+          fetch-depth: 0
+
+      - name: "設定 Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: "安裝驗收相依"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf numpy
+
+      - name: "鎖定 tested SHA 與受保護輸入"
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${TESTED_SHA}"
+          echo "ORCHESTRATION_SHA=${{ github.sha }}"
+          echo "TESTED_SHA=${TESTED_SHA}"
+          sha256sum config.ini > /tmp/a9-config-before.sha256
+          find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/a9-dxf-before.sha256
+          test -s /tmp/a9-dxf-before.sha256
+          git diff --check
+
+      - name: "Combined target census + live owner structural gates"
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          pytest -q --tb=short --junitxml=a9-structural.xml             tests/test_issue626_phase7_combined_acceptance.py             tests/test_issue617_phase7_a2_door_layout_controller.py             tests/test_issue618_phase7_a3_dxf_serialization.py             tests/test_issue618_phase7_a3_baseline_resources.py             tests/test_issue618_phase7_a3_legacy_scene_adapter.py             tests/test_issue620_phase7_a4_manufacturing_facade.py             tests/test_issue621_phase7_a5_collision_owners.py             tests/test_issue623_phase7_a6_explicit_joint_pipeline.py             tests/test_issue624_phase7_a7_bridge_residual_reduction.py             tests/test_issue625_phase7_a8_settings_presentation_decision.py             tests/test_phase6_bridge_domain_ownership.py             tests/test_clean_break_layout.py             tests/process/test_issue533_c1_anti_regrowth.py
+
+      - name: "驗證七目標 ownership invariant census"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("docs/superpowers/checkpoints")
+          files={
+            "A":"issue624-a7-target-completion.json",
+            "B":"issue617-a2-target-completion.json",
+            "C":"issue618-a3-target-completion.json",
+            "D":"issue620-a4-target-completion.json",
+            "E":"issue621-a5-target-completion.json",
+            "F":"issue623-a6-target-completion.json",
+            "G":"issue625-a8-target-completion.json",
+          }
+          data={k:json.loads((root/v).read_text(encoding="utf-8")) for k,v in files.items()}
+          for key in "ABCDF":
+              inv=data[key].get("invariants",{})
+              assert inv.get("reverse_import",0)==0, (key,inv)
+              assert inv.get("duplicate_owner_path",0)==0, (key,inv)
+              assert inv.get("second_composition_root",0)==0, (key,inv)
+              assert inv.get("full_app_dependency",False) is False, (key,inv)
+          inv=data["E"].get("invariants",{})
+          assert inv.get("reverse_import_to_manufacturing_api",0)==0, inv
+          assert inv.get("duplicate_owner_path",0)==0, inv
+          assert inv.get("second_composition_root",0)==0, inv
+          assert inv.get("full_app_dependency",False) is False, inv
+          assert inv.get("one_generic_algorithm_path",False) is True, inv
+          st=data["G"].get("structural",{})
+          assert st.get("second_settings_owner",0)==0, st
+          assert st.get("second_composition_root",0)==0, st
+          assert st.get("reverse_import",0)==0, st
+          assert st.get("transaction_state_owner_drift",0)==0, st
+          print("A9_STRUCTURAL_CENSUS_GREEN=1")
+          PY
+
+      - name: "Manufacturing／collision／DXF reopen"
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          pytest -q --tb=short --junitxml=a9-manufacturing.xml             tests/test_manufacturing_api.py             tests/test_manufacturing_api_finished_face_contract.py             tests/test_manufacturing_policy_boundary.py             tests/test_assembly_collision.py             tests/test_assembly_collision_integration.py             tests/test_resolved_manufacturing_geometry.py             tests/test_resolved_manufacturing_export.py             tests/test_dxf_acceptance.py             tests/test_multipart_dxf_acceptance.py             tests/test_receiving_door_dxf_roundtrip.py             tests/test_engineering_drawing_integration.py
+
+      - name: "Save／Reload persistence regression"
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          pytest -q --tb=short --junitxml=a9-persistence.xml             tests/test_issue41_persistence_parity.py             tests/test_dm6_save_reload_semantic_determinism.py             tests/test_dm7_topology_persistence.py             tests/test_issue99_dual_view_parity_persistence.py             tests/test_issue367_t3_project_persistence_owner.py
+
+      - name: "Xvfb GUI／Bridge／Settings／Door regression"
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          xvfb-run -a pytest -q --tb=short --junitxml=a9-xvfb.xml             tests/test_original_fold_designer_bridge.py             tests/test_phase6_settings_center_bridge.py             tests/test_issue293_t5_part_editor_routing.py             tests/test_multi_door_layout.py             tests/test_phase6_settings_panel_ownership.py
+
+      - name: "驗證受保護 config／baseline DXF 未變"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini > /tmp/a9-config-after.sha256
+          find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/a9-dxf-after.sha256
+          diff -u /tmp/a9-config-before.sha256 /tmp/a9-config-after.sha256
+          diff -u /tmp/a9-dxf-before.sha256 /tmp/a9-dxf-after.sha256
+          git diff --check
+          echo "A9_PROTECTED_INPUTS_GREEN=1"
+
+      - name: "上傳 A9 broader acceptance evidence"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue626-a9-broader-${{ github.sha }}
+          path: |
+            a9-structural.xml
+            a9-manufacturing.xml
+            a9-persistence.xml
+            a9-xvfb.xml
+          if-no-files-found: warn
+          retention-days: 14
