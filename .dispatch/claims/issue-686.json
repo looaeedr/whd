@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T03:32:54Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "619da824bb589fa8261aec75efff7361633d152b",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-26T23:19:03.162308Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T23:22:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Fresh-read current cleanup/2d-3d-sync and PR #741 mergeability, run exact drift audit from accepted QA head db28c392 to cleaned head 619da824, obtain pr-write Guard for the clean PR merge, merge #741, read back production parity, then enter terminal closure/release.",
+  "next_action": "Advance terminal checkpoint closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh Guard, then run canonical finalization proof and close/read back Issue #686.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-686.json",
   "slot_id": "worker.slot.1",
@@ -54,17 +54,19 @@
     "Temporary QA workflow cleanup Guard run=36278970197 GREEN.",
     "Cleanup commit=619da824bb589fa8261aec75efff7361633d152b removed only .github/workflows/qa-issue686-local-guard.yml.",
     "Post-cleanup focused regression=74 passed / 0 failed.",
-    "Cleanup-head pair reconciliation Guard run=36279029098 GREEN."
+    "Cleanup-head pair reconciliation Guard run=36279029098 GREEN.",
+    "PR #741 merged to cleanup/2d-3d-sync at 5a29aacdc39805e6950362a8880f1513318389f0.",
+    "Canonical pr-write durable readback for Guard run 36279125488 classified CONSUMED from PR #741 merged_at=2026-09-26T23:20:51Z.",
+    "Remote Guard cross-scope caller run 36279202358 failed AMBIGUOUS before readback; canonical local classifier proved the prior pr-write transaction CONSUMED.",
+    "Local canonical execution_claim_guard GREEN authorized this terminal coordination pair write."
   ],
   "last_guard": {
     "action": "write",
-    "mode": "remote",
-    "run_id": 36279029098,
-    "request_comment_id": 5850829882,
+    "mode": "local",
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #686 pair to cleaned head 619da824"
+    "mutation": "enter terminal finalization after production integration"
   },
   "remote_qa": {
     "run_id": 36278818776,

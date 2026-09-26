@@ -3,8 +3,8 @@
   "issue": "686",
   "branch": "governance/issue686-local-guard-postcommit-parity-20260926",
   "head_sha": "619da824bb589fa8261aec75efff7361633d152b",
-  "state": "RUNNING",
-  "next_action": "Fresh-read current cleanup/2d-3d-sync and PR #741 mergeability, run exact drift audit from accepted QA head db28c392 to cleaned head 619da824, obtain pr-write Guard for the clean PR merge, merge #741, read back production parity, then enter terminal closure/release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36278818776,
   "job_id": 108506622998,
   "log_cursor": null,
@@ -39,8 +39,11 @@
     "Temporary QA workflow cleanup Guard run 36278970197 GREEN.",
     "Cleanup commit 619da824bb589fa8261aec75efff7361633d152b removed only the temporary #686 QA workflow.",
     "Post-cleanup focused regression: 74 passed / 0 failed.",
-    "Cleanup-head pair reconciliation Guard run 36279029098 GREEN."
+    "Cleanup-head pair reconciliation Guard run 36279029098 GREEN.",
+    "PR #741 merged to cleanup/2d-3d-sync at 5a29aacdc39805e6950362a8880f1513318389f0.",
+    "Canonical pr-write durable readback classified Guard run 36279125488 as CONSUMED from exact PR #741 merge event.",
+    "Local canonical Guard GREEN authorized terminal checkpoint transition."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
