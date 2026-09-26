@@ -73,3 +73,28 @@ def test_p7_r_d_endcap_request_resolution_has_bounded_owner():
         'fold_designer_bridge',
     ):
         assert forbidden not in owner_source
+
+
+def test_p7_r_d_render_data_orchestration_has_bounded_owner():
+    from ae_engine import manufacturing_api
+
+    owner = importlib.import_module('ae_engine.manufacturing_render')
+    facade_source = inspect.getsource(manufacturing_api.build_part_render_data)
+    assert '_manufacturing_render.build_part_render_data' in facade_source
+    assert 'build_part_scene=build_part_scene' in facade_source
+    assert 'recursive_build_part_render_data=build_part_render_data' in facade_source
+    assert 'resolved_assembly_relief_cuts' not in facade_source
+    assert 'solve_boxbody_endcap_relief' not in facade_source
+
+    owner_source = inspect.getsource(owner)
+    assert 'def build_part_render_data' in owner_source
+    assert 'resolved_assembly_relief_cuts' in owner_source
+    assert 'solve_boxbody_endcap_relief' in owner_source
+    for forbidden in (
+        'from .manufacturing_api import',
+        'import manufacturing_api',
+        '\nfrom gui',
+        '\nimport gui',
+        'fold_designer_bridge',
+    ):
+        assert forbidden not in owner_source
