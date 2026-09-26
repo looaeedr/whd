@@ -3,8 +3,8 @@
   "issue": "763",
   "branch": "deploy/issue763-turn-exit-continuity-main-20260927",
   "head_sha": "76c28be26fe911871b9cb1df2a009f2b5ec3c605",
-  "state": "RUNNING",
-  "next_action": "Fresh-read current main; if base is unchanged, create PR for exact two-file trusted deploy; if main drifted, merge current main into helper branch, rerun trusted-domain acceptance, then PR/merge/readback and close/release #763.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,13 +15,16 @@
     "Trusted deployment base main@f19c59c2596a278f8f6bf455e079b4a3dd1c5607.",
     "Exact deploy scope: continuity_controller.py + whd-turn-exit-gate.yml only.",
     "Bounded trusted deploy commit 76c28be26fe911871b9cb1df2a009f2b5ec3c605.",
-    "Trusted-domain acceptance 68 passed / 0 failed; main has no workstation_poweroff_gate reference."
+    "Trusted-domain acceptance 68 passed / 0 failed; main has no workstation_poweroff_gate reference.",
+    "PR #765 merged to main at b6febcfc641beab1b015946671ace7642ab6de48.",
+    "Exact trusted readback proved both deployed blobs equal #693 source.",
+    "Closure write Guard GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize finalization proof, close #763, fresh-read, then atomic CLOSED + RELEASED."
 }
