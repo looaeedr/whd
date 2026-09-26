@@ -17,13 +17,15 @@
     "Preflight evidence GREEN.",
     "Duplicate/no-op verified against merged PR #725 and target b90f2ee4304726e7eb22b24b708c8fa37ffa8d55.",
     "Focused handler-prefix contract fresh-run: 5 passed / 0 failed.",
-    "No changed files on governance/issue727-handler-issue-prefix."
+    "No changed files on governance/issue727-handler-issue-prefix.",
+    "Issue #727 closed as duplicate after finalization proof verification.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Authorize and verify finalization proof, close #727 as duplicate, read back closed state, then release claim."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

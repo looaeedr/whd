@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T13:05:00Z",
   "base_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
   "head_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T13:07:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T13:09:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Verify duplicate/no-op finalization proof, close #727 as duplicate of #724/#725, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-727.json",
   "evidence": [
@@ -28,6 +28,9 @@
     "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_handler_prefix_preflight.md.",
     "Fresh target b90f2ee4304726e7eb22b24b708c8fa37ffa8d55 already contains REPORT_HANDLER_IDENTITY_PREFIX_V1 in 工作槽, 排程模擬, and 寫排程 via merged PR #725 / Issue #724.",
     "Fresh verification: tests/process/test_issue724_report_handler_identity_prefix.py = 5 passed / 0 failed.",
-    "No repository content mutation is required for #727; this Issue is a duplicate/no-op verification ticket."
+    "No repository content mutation is required for #727; this Issue is a duplicate/no-op verification ticket.",
+    "Issue #727 fresh-read closed/duplicate at 2026-09-26T13:08:52Z.",
+    "Finalization proof verified on exact terminal checkpoint before Issue close.",
+    "No repository content mutation required; #724 / PR #725 already delivered requested behavior."
   ]
 }
