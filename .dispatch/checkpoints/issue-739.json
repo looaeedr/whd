@@ -4,7 +4,7 @@
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
   "head_sha": "7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e",
   "state": "RUNNING",
-  "next_action": "Fresh drift audit; obtain pr-write Guard; create and merge PR to main; fresh-read trusted deployment.",
+  "next_action": "Bootstrap reactivate after durable PR #750 creation, then create canonical two-parent merge sync against current main and merge PR #750.",
   "run_id": 36258017721,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -24,7 +24,8 @@
     "Current-main compatibility regression run 36258017721 SUCCESS at 86e8786900c04ce9cdf622fe2babe509216bc403.",
     "QA-head reconciliation Guard 36258055525 GREEN.",
     "Final closing HEAD 7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e.",
-    "Final-head reconciliation Guard 36258170717 GREEN."
+    "Final-head reconciliation Guard 36258170717 GREEN.",
+    "Bootstrap reactivate required only to clear pre-deployment #739 pr-write transaction after durable PR #750 creation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
