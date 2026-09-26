@@ -2,16 +2,19 @@
   "version": 1,
   "issue": "774",
   "branch": "governance/issue774-guard-scope-grouping-20260927",
-  "head_sha": "1de50f9a63ae6f61c1614ae757a31bd471f27ac8",
+  "head_sha": "5102d9b6220c7834b6fbe44b893198d6ee442c3f",
   "state": "RUNNING",
-  "next_action": "Create guarded branch and establish RED for exact changed-file scoped Guard grouping.",
+  "next_action": "Create guarded PR to X, merge, deploy trusted-main parity, then retry #772 final atomic release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent #768 follow-up for #772 sequential closure Guard ambiguity."
+    "Changed-file scoped transaction grouping implemented.",
+    "Trusted workflow passes expected_changed_files.",
+    "46 focused tests PASS; 103 adjacent tests PASS.",
+    "work commit=5102d9b6220c7834b6fbe44b893198d6ee442c3f"
   ],
   "master_issue": null,
   "chain_state": "NONE",
