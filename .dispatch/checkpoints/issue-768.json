@@ -11,17 +11,18 @@
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Hard gate merged to X at 1de50f9a63ae6f61c1614ae757a31bd471f27ac8.",
-    "Trusted Remote Guard parity helper #772 CLOSED + RELEASED.",
-    "#762 closure deadlock regression repaired and final CLOSED + RELEASED verified.",
-    "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID for exact #768 checkpoint.",
-    "Issue #768 fresh close/readback completed."
+    "Hard gate merged to X.",
+    "Trusted Remote Guard parity deployed to main.",
+    "Helper #772 CLOSED + RELEASED.",
+    "#762 regression case CLOSED + RELEASED.",
+    "Issue #768 fresh-read closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #768."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
