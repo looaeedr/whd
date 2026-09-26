@@ -224,6 +224,12 @@ python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --
 
 prior receipt 不能直接重用成 claim write；一般 production/test/Skill `write` 也不能使用此 exception。驗證任一不符即 fail closed，分類 `REMOTE_GUARD_STALE_IDENTITY_AFTER_AUTHORIZED_COMMIT` 或更窄 root cause，禁止旁路。
 
+##### LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_V1
+
+若 historical mutation 的 prior GREEN identity 全部仍 exact，但 commit timestamp 已落在 receipt window 外，普通 reconciliation 仍必須 RED；唯一 recovery 是 repository owner 在 owning Issue 發出 `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`，再由 trusted Remote Guard fixed-schema `legacy_reconcile_recovery_comment_id` 傳入 canonical guard。
+
+此 recovery 只允許放寬 historical receipt-time-window；`issue / worker / executor_source / branch / current claim blob / H0→H1 direct child / prior run_id / prior request_comment_id / changed-file set` 仍須 exact。wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 全部 fail closed。它不是 stale takeover、不是 stale-head bypass，也不得 replay 原 implementation。
+
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
 
@@ -644,3 +650,19 @@ EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保
 6. repair 完成後才回 ordinary Guard / post-commit reconciliation；work-branch HEAD drift不得塞進 bootstrap repair。
 
 此 transition 是 migration repair，不是 takeover、不是 stale-head bypass，也不改 ownership。
+
+## LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_RECOVERY_V1
+
+當 ordinary post-commit reconciliation 已證明 historical request + GREEN receipt、current claim blob、H0→H1 direct child、changed files 等 identity 全部一致，**唯一不符只是歷史 commit timestamp 超出 receipt window**，不得直接延長 TTL、重播舊 GREEN 或手改 claim。
+
+唯一合法 migration path：
+1. repository owner 在 owning Issue 留 fixed `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1` comment；
+2. comment exact 綁 `issue / worker / executor_source / branch / claim_head_sha / live_head_sha / prior_guard_run_id / prior_request_comment_id / changed_file...`；
+3. trusted Remote Guard 的 `action=write` 只可帶 `legacy_reconcile_recovery_comment_id`，fresh fetch exact comment 並驗 owner + Issue + marker；
+4. canonical `execution_claim_guard.py` 重新驗所有 ordinary reconciliation identity；只有 receipt-time-window check 可由該 exact owner recovery authority取代；
+5. wrong owner/source/branch/blob/head/run/request/files、non-direct child、malformed authority 一律 fail closed；
+6. GREEN 只授權 coordination claim/checkpoint reconciliation，不重播原 implementation mutation。
+
+若修正同時變更 trusted workflow，必須先完成 focused regression + Skill/AI Library writeback，再把 accepted workflow 部署到 default branch `main` 並 fresh-read；**main 尚未部署前不得用 branch-only recovery 去處理被阻塞的 production Issue**。
+
+Primary regression：`tests/process/test_issue675_legacy_expired_postcommit_recovery.py`；governance repair：#675。
