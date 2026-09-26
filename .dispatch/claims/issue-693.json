@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-26T12:20:00Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "d347198b23cb451883772c0b2fb0835dcfc79b9a",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T22:18:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T22:19:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Authorize finalization proof for exact #693 branch/head, close #693 completed, fresh-read closed state, atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-693.json",
   "evidence": [
@@ -60,7 +60,10 @@
     "Fresh production readback: #693 head d347198b23cb451883772c0b2fb0835dcfc79b9a is ancestor of cleanup.",
     "Fresh production manifest blob equals work-branch manifest blob 007141f7f80b02b942cbf3712e3319649de8eadc.",
     "Governance parity GREEN/PARITY_PROVEN/10 artifacts; trusted helper #763 terminal; unknown divergence NONE.",
-    "Closure write Guard GREEN."
+    "Closure write Guard GREEN.",
+    "Issue #693 fresh-read closed/completed after verified finalization proof.",
+    "Fresh final canonical write Guard GREEN after coord race.",
+    "Final atomic parent transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
