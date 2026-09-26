@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "693",
   "branch": "work/issue693-combined-acceptance-20260926",
-  "head_sha": "32ae049cbfe51780af5b1d18cbfbfd638c64bf26",
+  "head_sha": "cea45ae780f64c89646edcecb68c807f7075dca3",
   "state": "RUNNING",
-  "next_action": "Run full tests/process at exact #693 writeback head, verify all approved RED/REG contracts, evaluate production-source vs trusted-main governance parity, deploy only required trusted deltas, finalize trusted workflow deployment/readback manifest, then integrate #693 to cleanup and close/release.",
+  "next_action": "Evaluate #693 source-tree versus trusted main with governance_parity_gate; deploy only required trusted governance deltas if parity is not GREEN; finalize deployment/readback manifest; then open/merge #693 integration PR to cleanup and close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,9 @@
     "Post-drift merge commit 64a64d4a0ee8adae81396eaef52c16db97b57d4f.",
     "Post-drift focused acceptance 91 passed / 0 failed; current-cleanup net delta remains 13 accepted substantive files.",
     "17-target writeback commit 32ae049cbfe51780af5b1d18cbfbfd638c64bf26.",
-    "Writeback contract regression 44 passed / 0 failed."
+    "Writeback contract regression 44 passed / 0 failed.",
+    "Final drift merge cea45ae780f64c89646edcecb68c807f7075dca3.",
+    "Post-conflict focused acceptance 71 passed / 0 failed; full H3 suite 786 passed / 2 baseline failures reproduced on fresh cleanup."
   ],
   "master_issue": null,
   "chain_state": "NONE",
