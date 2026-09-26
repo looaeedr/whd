@@ -9,31 +9,28 @@
   "work_branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
   "claimed_at": "2026-09-26T15:20:00Z",
   "base_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
-  "head_sha": "804bd463e107e135db6d54b7c6df9355d09b4ebb",
-  "phase": "RED",
-  "last_update": "2026-09-26T15:48:40Z",
+  "head_sha": "384b3bd31d62f3747be5c7d7bac9bb24b3e984b2",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-26T15:52:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36253164791,
-    "head_sha": "804bd463e107e135db6d54b7c6df9355d09b4ebb",
+    "run_id": 36253372146,
+    "head_sha": "384b3bd31d62f3747be5c7d7bac9bb24b3e984b2",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "Repair two batch parity failures: adapt #675 regression fixture to X-required claim_blob_sha/recovery_reason identity and align cleanup Remote Guard interactive authority JSON newline with trusted main #722 fix; rerun combined QA.",
+  "next_action": "Remove temporary .github/workflows/qa-issue733-batch-parity.yml under fresh commit Guard; reconcile closing HEAD; update PR #734 batch scope; merge non-force to cleanup and fresh-read parity.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-733.json",
   "evidence": [
-    "Authority: #731 / PR #732 / main deployment 641639ff675fc0ea2a13c7a9123337de250d4170.",
-    "Parity rule: #692.",
-    "Frozen cleanup baseline: 91931e518bea241d129d7327e1d163cb7a1ffd92.",
-    "Live post-main smoke: branch-create Guard run 36251598650 GREEN; without reactivate, next commit Guard run 36251633978 GREEN, proving trusted auto-consume.",
-    "Parity implementation commit aca6cc16103c25b0f5f968134f26aca200570986; focused QA run 36251717894 SUCCESS.",
-    "Post-commit reconciliation Guard run 36251749732 GREEN / result comment 5847439786.",
-    "PR-write Guard run 36251791591 was consumed by durable PR readback: PR #734 exists open with base cleanup/2d-3d-sync and head governance/issue733-branch-create-auto-consume-cleanup-parity-20260926@aca6cc16103c25b0f5f968134f26aca200570986.",
-    "Scope promoted by #692 batch audit comment 5847579290 and #733 scope comment 5847579524.",
-    "Batch commit 804bd463e107e135db6d54b7c6df9355d09b4ebb under Guard run 36253072108.",
-    "Combined QA run 36253164791: 2 failed, 36 passed. #675 failure is X-stricter recovery fixture mismatch; #722 failure proves cleanup workflow still writes literal \\\\n instead of newline."
+    "Authority: #692 batch parity; cleanup frozen baseline 91931e518bea241d129d7327e1d163cb7a1ffd92.",
+    "PR-write Guard 36251791591 action-complete via durable PR #734 readback; reactivate workaround was used before generic pr-write auto-consume repair #739.",
+    "Batch commit 804bd463e107e135db6d54b7c6df9355d09b4ebb under Guard 36253072108.",
+    "Initial combined QA 36253164791: 2 failed / 36 passed.",
+    "Repair commit 384b3bd31d62f3747be5c7d7bac9bb24b3e984b2 under Guard 36253265197.",
+    "Combined batch QA 36253372146 SUCCESS.",
+    "Post-repair reconciliation Guard 36253414352 GREEN / result 5847635356."
   ]
 }
