@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
-  "head_sha": "c36d2ff775b9e3f0558e560bb7e793724c0d5fa0",
+  "head_sha": "2e8fd112fc658ed0bda0d04eabc289faf5a75a67",
   "state": "RUNNING",
-  "next_action": "Restore the eight current-main artifacts accidentally reverted by the first merge-sync tree; preserve only the six intended #739 deltas, rerun protected regressions, then merge PR #750.",
+  "next_action": "Fresh-read PR #750 mergeability; obtain fresh pr-write Guard for exact repaired head; merge to main; verify deployed #739 live readback; then finish #739 and resume #733 release.",
   "run_id": 36258017721,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -26,7 +26,9 @@
     "Final closing HEAD 7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e.",
     "Final-head reconciliation Guard 36258170717 GREEN.",
     "Bootstrap reactivate required only to clear pre-deployment #739 pr-write transaction after durable PR #750 creation.",
-    "RECOVERING from invalid first merge-sync tree c36d2ff775b9e3f0558e560bb7e793724c0d5fa0; restore eight non-#739 main artifacts before deployment."
+    "RECOVERING from invalid first merge-sync tree c36d2ff775b9e3f0558e560bb7e793724c0d5fa0; restore eight non-#739 main artifacts before deployment.",
+    "Repair HEAD 2e8fd112fc658ed0bda0d04eabc289faf5a75a67 restores non-#739 current-main artifacts.",
+    "Repair-head reconciliation Guard 36258753951 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
