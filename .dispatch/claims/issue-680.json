@@ -9,12 +9,12 @@
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "head_sha": "cd3202ae142288aa579ee479f5d463f50e6fee7a",
+  "head_sha": "6d51e184726b02f758f11a1975bd57bd1bfe2b05",
   "phase": "GREEN",
-  "last_update": "2026-09-26T15:32:40Z",
+  "last_update": "2026-09-26T15:46:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Complete required WI-2 writeback and deployment readiness: write planned-handoff vs stale-takeover + scheduler readiness ownership into canonical AI Library/usage references under Guard, rerun focused QA, then integrate verified branch into cleanup/2d-3d-sync and deploy trusted claim-handoff parser to main before closing #680.",
+  "next_action": "Rerun focused #680 QA at exact writeback head 6d51e184726b02f758f11a1975bd57bd1bfe2b05; if GREEN, integrate verified branch into cleanup/2d-3d-sync, deploy trusted claim-handoff parser to main, then close/release #680.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -68,14 +68,9 @@
     "H5→H6 coordination reconciliation authorized by Remote Guard 36251897863.",
     "Executable/parser acceptance test commit cd3202ae142288aa579ee479f5d463f50e6fee7a consumed Guard 36252035776.",
     "Focused acceptance run 36252089259 at exact head cd3202ae142288aa579ee479f5d463f50e6fee7a completed success; pytest execution step succeeded.",
-    "H6→H7 coordination reconciliation authorized by Remote Guard 36252135973."
+    "H6→H7 coordination reconciliation authorized by Remote Guard 36252135973.",
+    "WI-2 writeback committed at 6d51e184726b02f758f11a1975bd57bd1bfe2b05 by consuming Remote Guard run 36252366116.",
+    "Post-writeback H7→H8 pair reconciliation authorized by Remote Guard run 36253008023."
   ],
-  "remote_qa": {
-    "run_id": 36252089259,
-    "head_sha": "cd3202ae142288aa579ee479f5d463f50e6fee7a",
-    "status": "completed",
-    "conclusion": "success",
-    "workflow": ".github/workflows/qa-issue680-planned-handoff.yml",
-    "job_id": 108431896088
-  }
+  "remote_qa": null
 }
