@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "693",
   "branch": "work/issue693-combined-acceptance-20260926",
-  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "head_sha": "226a081a7630a34375daa3d4a6047211a6ce6ae9",
   "state": "RUNNING",
-  "next_action": "Combined Acceptance: fresh-census child #687/#688/#689/#690/#691/#692 ancestry and substantive deltas against current cleanup/main; integrate only accepted substantive artifacts into #693 branch, exclude temporary QA workflows, run combined RED/REG acceptance, complete 17-target durable writeback/readback, then deploy/drift-audit/close/release.",
+  "next_action": "Merge current cleanup/2d-3d-sync into #693 integration branch, preserve accepted child substantive deltas, resolve drift, rerun combined acceptance/regressions, complete all 17 required writeback targets/readback, then deploy/finalize/close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,7 +20,9 @@
     "Scheduler A takeover: canonical stale evaluator EXECUTOR_STUCK and local claim-takeover Guard GREEN.",
     "Owner CAS only; branch/head/state/next_action remain unchanged.",
     "Resume reconstructed from GitHub durable state only.",
-    "All six declared child blockers are terminal; stale #687 closure next_action superseded by Combined Acceptance."
+    "All six declared child blockers are terminal; stale #687 closure next_action superseded by Combined Acceptance.",
+    "Combined child integration commit 226a081a7630a34375daa3d4a6047211a6ce6ae9.",
+    "Pre-commit combined acceptance 77 passed / 0 failed; temporary child QA workflows excluded."
   ],
   "master_issue": null,
   "chain_state": "NONE",
