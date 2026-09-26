@@ -4,7 +4,7 @@
   "branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "head_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
   "state": "RUNNING",
-  "next_action": "Run canonical branch-create Guard, create/read back the exact work branch, then write the RED regression for terminal scheduler turn exit without READY_WORK_CENSUS proof.",
+  "next_action": "Write and run the focused RED regression proving terminal/CLOSED scheduler turn exit currently passes without a READY_WORK_CENSUS machine proof.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,9 @@
   "evidence": [
     "user authorized executable hard gate for recurring scheduler continuation",
     "Issue #769 created as machine consumer gate; #764 remains census producer owner",
-    "production target cleanup/2d-3d-sync exact base 90a4939328c4b863e88f9272f4dfa3d9a25743a6"
+    "production target cleanup/2d-3d-sync exact base 90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+    "fresh compare proves work branch exists and is identical to base; branch-create is complete",
+    "Issue #764 fresh durable state is terminal CLOSED+RELEASED; PR #770 merged census producer contract into cleanup"
   ],
   "master_issue": null,
   "chain_state": "NONE",
