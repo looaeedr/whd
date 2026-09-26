@@ -81,3 +81,23 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - runtime heartbeat maximum TTL 與 same-lane mutex 統一為 **<=300 秒**；不得另造 420 秒 prompt-only 判斷。
 - user-directed interactive takeover 的 trusted Remote Guard 必須 fresh-read owner-authored `WHD_USER_DIRECTED_TAKEOVER_V1` 並傳給 canonical stale evaluator。
 - `/排程A` / `/排程B` activation 只 enable exact selected lane matching recurring entrypoints；post-update fresh readback，不改 cadence/prompt/title/owner，不碰另一 lane。
+
+## EXECUTION_INTENT_ROUTING_PITFALL_V1
+
+### 事故
+
+2026-09-26 重新檢查 WHD scheduler / Skill 更新流程時，發現「更新控制面」與「執行工單」容易被同一套 continuity/dispatch wording 混在一起：
+
+- 使用者只是要求修改排程 prompt、Skill、Issue body 或治理規則；
+- runtime 卻因看到 open/unblocked Issue、空工作槽、next_action 或可用 Guard，順手取得 claim、建立 implementation branch，甚至自動接 successor；
+- scheduler prompt 又把 drift/reconciliation/takeover capability 寫得像每輪固定前置 phase，造成正常工單也繞進 recovery。
+
+### 永久規則
+
+1. Scheduler authoring / automation update 預設是 `UPDATE_ONLY`；完成條件是 requested update + minimum validation/readback。
+2. `UPDATE_ONLY` 不授權 implementation claim、implementation branch、successor chain 或 scheduler lane execution。
+3. `/排程A` / `/排程B` 與真正 scheduled invocation 才是 `SCHEDULER_LANE` execution entrypoint。
+4. `open / unblocked Issue`、空 work slot、Guard 可用、next_action 存在都不是 execution authority。
+5. `NORMAL_PATH_FIRST`：正常 implementation 只走 `claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`。
+6. `RECOVERY_IS_EXCEPTION_NOT_PHASE`：takeover / reactivate / reconciliation / legacy repair 僅由 fresh machine evidence 觸發；condition 修復後立即回 normal path。
+7. 修改 live recurring automation prompt 時只改本次 scope；cadence、enabled、lane owner 若未被使用者點名就保持原值，並 post-update fresh readback。

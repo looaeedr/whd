@@ -9,6 +9,19 @@ whd_schema: WHD_DOC_META_V1
 
 # 寫排程
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+本 Skill 的 scheduler authoring / automation update 預設為 `UPDATE_ONLY`。建立、改名、改 cadence、改 prompt、補 hard gate 或修 automation 設定，只授權該 automation update + 必要 validation/readback。
+
+更新 automation 不授權 claim Issue、建立 implementation branch 或執行 successor chain。只有使用者另外明確啟動 `/排程A` / `/排程B`、scheduled invocation 真正觸發，或明確要求施工，才交給對應 execution mode。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+本 Skill 內的 drift / expired receipt / unconsumed GREEN / reconciliation 條款描述的是**被寫入 scheduler runtime 的 recovery capability**，不是 authoring update 自己要逐條執行的固定 phase。只有 runtime fresh machine evidence 命中條件時才進 recovery。
+
+`POST_UPDATE_READBACK` 是 `UPDATE_ONLY` 的正常完成 gate；readback GREEN 後 authoring 任務完成，不得順手啟動 scheduler lane 施工或 unrelated Issue。
+
+
 本 Skill 擁有「怎麼建立／修改 WHD recurring scheduler / automation prompt」的 authoring contract。它**不**擁有派工狀態機、execution claim、Remote Guard、Remote QA、continuity state 或 Issue closure；這些一律 bridge 回既有 canonical Skill / executable authority。
 
 目標不是把 prompt 寫得很長，而是避免每次「縮短、補一句、改名稱、改 cadence」時不小心刪掉真正的 safety / continuity contract。
@@ -83,6 +96,34 @@ whd_schema: WHD_DOC_META_V1
 ## 4. Scheduler Prompt 必備契約
 
 施工型 scheduler prompt 至少必須清楚包含以下語意；標題可調整，但責任不能刪：
+
+### 4.0 REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+所有新建或修改的 WHD scheduler prompt 都必須要求：每次 wake fresh-reconstruct `lane owner + active Issue + exact claim worker` 後，任何 user-visible status、progress、heartbeat 或 CHECKPOINT 回報，在全域 Skill announcement gate 之後，**該回報區塊的第一行**固定輸出：
+
+```text
+【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
+```
+
+- scheduler lane 已持有 active Issue 時，`handler` 使用可辨識的 `排程A / 排程B`，`owner` 必須是 fresh-read exact lane owner / claim worker，`issue` 必須是 exact active Issue。
+- 尚未選出或尚未 claim 工單時，`issue=NONE`；legacy identity 無法建立 explicit binding 時用 `UNBOUND`，不得猜 Issue。
+- 發現 foreign owner 時不得把目前 scheduler lane 冒充處理者；回報 exact foreign owner，並在後續 detail 保留 requested lane / entrypoint。
+- replacement prompt 必須保留 `REPORT_HANDLER_IDENTITY_PREFIX_V1` 與上述模板；post-update readback 要驗證兩者存在，**不得刪除**來縮短 prompt。
+- prefix 只是 user-visible provenance，**不建立 execution authority**、不改 ownership、也不取代 claim / Guard / liveness / continuity gate。
+
+
+
+### 4.0A READY_WORK_CENSUS_V1
+
+所有新建或修改的 WHD scheduler prompt 都必須保留以下 no-work hard gate：
+
+- `NO_MATCHING_HANDOFF != NO_WORK`；沒有 matching planned handoff 時仍必須進 ordinary discovery。
+- 建立 `READY_WORK_CENSUS_V1`，fresh-read 並列出 `candidate executable leaves`；每張候選必須有 **fresh durable exclusion evidence**。
+- 合法 exclusion 至少能區分 `FOREIGN_LIVE_OWNER`、`DEPENDENCY_BLOCKED`、`ACTIVE_EXACT_RUN`、`AUTHORITY_MISMATCH`、`SHARED_SCOPE_CONFLICT`，但實際 evaluator/語意 owner 仍由 live《派工》與 Guard 擁有。
+- 遇到 `unclaimed + dependency-unblocked + scheduler-authorized` candidate 時必須 `MUST_CLAIM` → canonical claim path；不得回 NO_WORK。
+- 只有所有候選都被合法排除後才可輸出 `NO_EXECUTABLE_WORK`。沒有 handoff、UNBOUND、單一 foreign owner 都不足以證明 NO_WORK。
+- replacement prompt 的 post-update readback 必須驗證 `READY_WORK_CENSUS_V1`、`NO_MATCHING_HANDOFF != NO_WORK`、`NO_EXECUTABLE_WORK` 仍存在，**不得刪除**來縮短 prompt。
+- 此 contract **不建立 execution authority**、不改 lane owner、不改 claim ownership，也不改 cadence / enabled / takeover semantics。
 
 ### 4.1 SKILL_FIRST_HARD_GATE
 

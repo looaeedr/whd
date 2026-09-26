@@ -177,3 +177,42 @@ GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consu
 症狀：historical work commit 已存在、claim/checkpoint 尚停在 H0；H1 又確實是 H0 direct child、changed files 也與 prior GREEN Guard 完全一致，但 commit timestamp 晚於該 receipt 的 `expires_at`。ordinary post-commit reconciliation 會正確 FAIL，不能因「看起來就是那顆 commit」直接補 claim HEAD。
 
 修復規則：只走 `LEGACY_POSTCOMMIT_RECONCILIATION_REPAIR_V1`。owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1` 必須 exact 綁 current claim blob、H0/H1、prior Guard run/request 與 actual changed files；trusted Remote Guard 再 fresh-read GitHub durable evidence。只允許 direct-child、唯一 expired matching receipt，且只做 claim/checkpoint HEAD reconciliation。任何 identity drift、merge/multi-hop、extra file 或 multiple candidate 都 fail closed。此 escape hatch 不得取代 normal receipt-window discipline。
+
+## EXECUTION_INTENT_SCOPE_EXPANSION_PITFALL_V1
+
+### 事故
+
+Continuity 的「non-terminal 不能停」與 Master chain 的「NEXT_CHILD_EXECUTABLE 要續做」若缺少 execution-intent boundary，會把正確的持續執行規則錯用到 `UPDATE_ONLY` 或單票 `EXECUTE_TICKET`：
+
+- 更新一條規則後因 repo 還有 open Issue 而自動開始施工；
+- 單票 closure 完成後只因 dependency graph 有 successor 就自動 claim 下一張；
+- recovery capability 被當成每張票固定 lifecycle phase。
+
+### 永久規則
+
+- Continuity 只能延續已授權 execution mode，不能創造 execution authority。
+- `UPDATE_ONLY` 不進 continuity execution state machine。
+- `EXECUTE_TICKET` 只 resume / close 當前 ticket，不因 successor 可見而擴張 scope。
+- 只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 才能把 `NEXT_CHILD_EXECUTABLE` 當成跨 ticket continuation authority。
+- `ISSUE_EXISTENCE_IS_NOT_EXECUTION_AUTHORITY`：open/unblocked Issue、空工作槽、next_action、Guard availability 皆不足以啟動新 scope。
+- `RECOVERY_IS_EXCEPTION_NOT_PHASE`：`RECOVERING` 只在 fresh machine evidence 證明 failure/drift/interruption 後存在；修復後立即回 `RUNNING` normal path。
+- 這些規則不放寬 claim/Guard/finalization safety；它們只限制 scope expansion 與 recovery routing。
+
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_PITFALL_V1
+
+### 事故
+
+#733 在 code/parity 已完成後，terminal checkpoint 被寫成不存在的 `closure_state=READY_FOR_FINALIZATION`。結果三條既有路全部正確 fail closed：
+
+- Remote Finalization 無法 parse checkpoint；
+- ordinary Remote Guard 回 `ACTIVE_CLAIM_REQUIRES_CHECKPOINT`；
+- Claim Activation `reactivate` 拒絕 active claim 搭 terminal checkpoint。
+
+### 永久規則
+
+這種狀態不能手改 `coord/dispatch-claims`、不能把 terminal checkpoint 降回 RUNNING、不能先把 claim RELEASED，也不能擴大 ordinary `reactivate`。
+
+唯一 recovery：
+`repair_malformed_terminal_checkpoint` 先對 raw prior payload做窄 canonical normalization，trusted Claim Activation `terminal-checkpoint-repair` 再用 exact prior claim/checkpoint blob + coord parent CAS 原子換成 candidate pair。
+
+Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 issue/branch/head/`TERMINAL_SUCCESS`，把 malformed closure lifecycle 正規化成 `FINALIZATION_PENDING`。任何其他 drift 或已合法 closure state 一律拒絕。Repair 之後仍必須重新走 Remote Finalization → Issue close/readback → atomic CLOSED + RELEASED。

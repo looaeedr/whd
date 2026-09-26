@@ -9,6 +9,22 @@ whd_schema: WHD_DOC_META_V1
 
 # Executable Continuity Controller
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+Continuity 只延續**已授權 execution mode**，不能把 observation 或 update 自動升級成施工。
+
+- `UPDATE_ONLY 不進 continuity execution state machine`：update 完成 + 必要 readback 後即可結束該 update scope；不得因 repo 另有 open Issue 或 ready successor 進入 RUNNING。
+- `EXECUTE_TICKET`：只 resume exact owning ticket；本票 terminal/closure 後不擴張 scope。
+- 只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 才可把 `NEXT_CHILD_EXECUTABLE` 解讀為本輪 successor continuation。
+- 不得因 open / unblocked successor 自動升級 execution scope。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+`RECOVERING` 是 fresh machine evidence 已證明 failure/drift/interruption 後的暫時 state，不是每張票都要走的 lifecycle phase。沒有 recovery evidence 時直接維持/回到 RUNNING normal path；condition 修復後立即離開 RECOVERING。
+
+本節優先限制後文 Master-chain continuation：若進入 continuity 時沒有 chain/lane execution authority，就不得只因 checkpoint 或 dependency graph 可看到 successor 而啟動它。
+
+
 ## EXECUTION_SCOPE_AUTHORITY_GATE_V1
 
 Continuity is allowed to continue **only inside an already-authorized execution scope**. It must never create authority for a new phase, architecture, ownership boundary, or task chain.
@@ -517,3 +533,14 @@ Equivalent duplicate GREEN 只有 mutation-relevant identity 完全一致才 ded
 
 ### INTERACTIVE_RUNTIME_LIVENESS_AND_PROVENANCE_REQUIREMENT_V1
 這是 required governance follow-up，不得假稱 machine 已完成：chatgpt_interactive active owner 必須補可機讀 heartbeat/liveness；durable provenance 必須辨識 interactive 的 specific conversation/chat identity + invocation identity，以及 scheduler 的 scheduler_lane + invocation_identity。generic executor_source 只能表示類型，不能取代 exact provenance；heartbeat 也不能取代 claim/checkpoint/Guard authority。
+
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
+
+Terminal checkpoint 的 malformed closure lifecycle 不可用一般 activation 或 ordinary Guard 修補，因兩者都應 fail closed。Canonical recovery 由兩層共同擁有：
+
+- pure repair authority：`tools/continuity_controller.py::repair_malformed_terminal_checkpoint`；
+- trusted CAS transport：`.github/workflows/whd-remote-claim-activation.yml` 的 `transition=terminal-checkpoint-repair`。
+
+Repair 只接受 exact `issue + branch + head_sha + TERMINAL_SUCCESS` identity，且 prior closure state 必須是非法值；合法 closure state、非 terminal state、wrong owner/head、unknown fields 都必須拒絕。輸出固定為同一 terminal identity + `FINALIZATION_PENDING` + canonical closure next action。
+
+Trusted transport 必須 exact bind `prior_claim_blob_sha + prior_checkpoint_blob_sha + coord_parent_sha`；candidate claim byte-for-byte unchanged，candidate checkpoint 必須等於 pure repair 的 canonical payload。它不能 release claim、不能 close issue、不能取代 fresh Remote Finalization。Repair 完成後流程重新進入正常 closure transaction。
