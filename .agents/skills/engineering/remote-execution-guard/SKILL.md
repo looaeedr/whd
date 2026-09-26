@@ -107,7 +107,7 @@ GREEN receipt 只授權建立該 exact branch 一次。
 
 <!-- REMOTE_GUARD_CLAIM_TAKEOVER_V1 -->
 
-trusted Remote Guard transport 仍只允許 scheduler stale-owner recovery；canonical local guard 另外支援 owner 明確授權的 stale scheduler/chat → interactive takeover。interactive self-takeover 永遠 fail closed。
+trusted Remote Guard transport 同時支援 scheduler stale-owner recovery 與 owner 明確授權的 interactive user-directed takeover；兩者都必須走 canonical stale evaluator + execution claim guard。interactive self-takeover 永遠 fail closed。
 
 Request 前必須 fresh-read：
 - exact active claim blob；
@@ -115,6 +115,13 @@ Request 前必須 fresh-read：
 - claim 有 `remote_qa.run_id` 時的 exact remote run fresh status/updated_at。
 
 trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。machine decision 只有 `EXECUTOR_STUCK` 或 `ORPHANED_SCHEDULER_OWNER` 可再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt；Remote Guard request 的 exact machine syntax 是 `action=claim-takeover`。
+
+Interactive user-directed takeover 額外硬閘門：
+- request 使用 `executor_source=chat`；
+- `takeover_worker` 必須是 exact `chatgpt.<instance-token>`；
+- trusted workflow fresh-read owning Issue comments，選 repository-owner authored、exact issue/requesting_worker/previous_worker 的 `WHD_USER_DIRECTED_TAKEOVER_V1`；
+- workflow 傳給 `tools/stale_claim_takeover.py --requesting-executor-source chat --user-authority-json ...`；
+- 缺 authority、過期、identity mismatch、active exact run、active delegated work 或 evaluator non-actionable 都 FAIL。
 
 對 foreign scheduler claim，trusted workflow 在 evaluator 前必須 fresh-read owning Issue comments，使用 `tools/scheduler_runtime_liveness.py` 選出 repository-owner authored、exact `issue + scheduler_lane` 的最新 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` comment，並把 current exact `claim_blob_sha` 一起傳給 stale evaluator。selector 回 MISSING 可進 orphan grace 判定；malformed relevant heartbeat、claim/blob/branch/head identity drift一律 fail closed。
 
@@ -404,7 +411,7 @@ Guard recovery 固定順序：fresh exact identity → classify transaction → 
 
 Equivalent duplicate GREEN exact-equivalent 才 deterministic dedupe；shadow replay拒絕。Stale/takeover前先做 pending Guard recovery、live drift reconciliation、delegated/helper/proof traversal、same-key helper reuse，最後才交 canonical stale evaluator。
 
-Interactive user-directed takeover使用 WHD_USER_DIRECTED_TAKEOVER_V1 + canonical local evaluator/guard；trusted Remote Guard claim-takeover仍 scheduler-only，禁止把聊天室偽裝成 scheduler。
+Interactive user-directed takeover 使用 WHD_USER_DIRECTED_TAKEOVER_V1 + canonical evaluator/guard；trusted Remote Guard 允許 executor_source=chat，但必須保留 exact chat provenance，禁止把聊天室偽裝成 scheduler。
 
 Required follow-up：interactive heartbeat/liveness；chat conversation identity + invocation identity；scheduler lane + invocation identity。generic executor_source 不足以回答 exact executor。
 
