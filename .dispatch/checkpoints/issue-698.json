@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "698",
   "branch": "work/issue698-remote-guard-readback-parity-20260926",
-  "head_sha": "b32526f1a21f16764c5f512ca8a0263595e67b61",
+  "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
   "state": "RUNNING",
-  "next_action": "Repair the one-shot #698 QA instrumentation so pytest is available, rerun RED-STOP-19 against b32526f1..., and accept RED only if the focused assertion fails on trusted turn-exit commit-only durable-readback parity.",
-  "run_id": 36237372292,
-  "job_id": null,
+  "next_action": "Implement RED-STOP-19 by expanding the trusted whd-turn-exit-gate durable-readback producer to all seven canonical Guard actions while keeping tools/execution_claim_guard.py as the semantic classifier owner; rerun focused QA to GREEN.",
+  "run_id": 36237519280,
+  "job_id": 108391892637,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -19,7 +19,10 @@
     "Branch-create Guard run 36236982762 GREEN; live branch readback proved exact head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e and is durably reconciled before the next Guard.",
     "RED characterization commit b32526f1a21f16764c5f512ca8a0263595e67b61 was guarded by run 36237323041 and changed only the focused A3 test + one-shot QA workflow.",
     "Initial QA run 36237372292 is NOT accepted RED evidence: pytest was unavailable, so the RED-STOP-19 assertion never executed.",
-    "Post-commit reconciliation Guard run 36237389400 GREEN with REMOTE_GUARD_RECONCILE_ONLY for the exact claim+checkpoint pair."
+    "Post-commit reconciliation Guard run 36237389400 GREEN with REMOTE_GUARD_RECONCILE_ONLY for the exact claim+checkpoint pair.",
+    "Instrumentation repair commit 37c98050dc25aecca9f092dd21370e4c08ffba67 was guarded by run 36237501002 and changed only the one-shot QA workflow.",
+    "VALID RED: QA run 36237519280 executed pytest and failed exactly at RED-STOP-19 with AssertionError 'trusted durable-readback producer is still commit-only'; 1 failed.",
+    "Post-instrumentation reconciliation Guard run 36237537824 GREEN for the exact claim+checkpoint pair."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
