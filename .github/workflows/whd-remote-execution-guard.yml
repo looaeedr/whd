@@ -243,15 +243,19 @@ jobs:
               gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/issues/${RG_ISSUE}/comments?per_page=100" > /tmp/remote-guard-comments.json
               gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=all&head=${GITHUB_REPOSITORY_OWNER}:${RG_BRANCH}&per_page=100" > /tmp/remote-guard-pulls.json
               RG_EFFECTIVE_LIVE_HEAD="$effective_live_head" python - <<'PY'
+          import base64
           import datetime as dt
           import json
           import os
+          import subprocess
+          import urllib.parse
           from pathlib import Path
 
           from tools.execution_claim_guard import (
               assert_remote_guard_request_permitted,
               classify_guard_transaction,
               durable_branch_create_readbacks_from_live_branch,
+              durable_coord_write_readbacks_from_live_commits,
               durable_pr_write_readbacks_from_live_pulls,
               exact_remote_guard_receipts_from_comments,
           )
@@ -288,6 +292,114 @@ jobs:
               head_sha=claim["head_sha"],
               claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
           )
+          def gh_json(endpoint, *, paginate=False):
+              args = ["gh", "api"]
+              if paginate:
+                  args.extend(["--paginate", "--slurp"])
+              args.append(endpoint)
+              proc = subprocess.run(
+                  args,
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              )
+              return json.loads(proc.stdout)
+
+          coord_observations = {}
+          repository = os.environ["GITHUB_REPOSITORY"]
+          for receipt in receipts:
+              if str(receipt.get("action") or "") != "write":
+                  continue
+              issue = receipt.get("issue")
+              if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
+                  continue
+              claim_path = f".dispatch/claims/issue-{issue}.json"
+              checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
+              allowed_paths = {claim_path, checkpoint_path}
+              raw_files = receipt.get("changed_files")
+              if not isinstance(raw_files, list) or not raw_files:
+                  continue
+              changed_files = tuple(sorted(str(path) for path in raw_files))
+              if len(changed_files) != len(set(changed_files)):
+                  continue
+              if any(path not in allowed_paths for path in changed_files):
+                  continue
+
+              candidate_sets = []
+              for path in changed_files:
+                  query = urllib.parse.urlencode(
+                      {
+                          "sha": "coord/dispatch-claims",
+                          "path": path,
+                          "since": str(receipt.get("issued_at") or ""),
+                          "until": str(receipt.get("expires_at") or ""),
+                          "per_page": "100",
+                      }
+                  )
+                  raw_pages = gh_json(
+                      f"repos/{repository}/commits?{query}",
+                      paginate=True,
+                  )
+                  commits = []
+                  for page in raw_pages:
+                      if isinstance(page, list):
+                          commits.extend(
+                              item for item in page if isinstance(item, dict)
+                          )
+                      elif isinstance(page, dict):
+                          commits.append(page)
+                  candidate_sets.append(
+                      {str(item.get("sha") or "") for item in commits if item.get("sha")}
+                  )
+
+              candidate_shas = (
+                  set.intersection(*candidate_sets) if candidate_sets else set()
+              )
+              for sha in sorted(candidate_shas):
+                  if sha in coord_observations:
+                      continue
+                  detail = gh_json(f"repos/{repository}/commits/{sha}")
+                  detail_files = [
+                      str(item.get("filename") or "")
+                      for item in detail.get("files", [])
+                      if isinstance(item, dict)
+                  ]
+                  targets = {}
+                  for path in changed_files:
+                      encoded_path = urllib.parse.quote(path, safe="/")
+                      query = urllib.parse.urlencode({"ref": sha})
+                      content = gh_json(
+                          f"repos/{repository}/contents/{encoded_path}?{query}"
+                      )
+                      encoded_content = str(content.get("content") or "").replace("\n", "")
+                      try:
+                          payload = json.loads(
+                              base64.b64decode(encoded_content).decode("utf-8")
+                          )
+                      except (ValueError, UnicodeDecodeError):
+                          payload = None
+                      targets[path] = {
+                          "blob_sha": content.get("sha"),
+                          "payload": payload,
+                      }
+                  metadata = detail.get("commit")
+                  committer = (
+                      metadata.get("committer")
+                      if isinstance(metadata, dict)
+                      else None
+                  )
+                  coord_observations[sha] = {
+                      "sha": sha,
+                      "committed_at": (
+                          committer.get("date")
+                          if isinstance(committer, dict)
+                          else None
+                      ),
+                      "changed_files": detail_files,
+                      "targets": targets,
+                  }
+
+          live_coord_commits = list(coord_observations.values())
           branch_create_readbacks = durable_branch_create_readbacks_from_live_branch(
               receipts,
               live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
@@ -296,6 +408,10 @@ jobs:
               receipts,
               live_pulls=pulls,
               expected_base_branch=claim["production_target"],
+          )
+          coord_write_readbacks = durable_coord_write_readbacks_from_live_commits(
+              receipts,
+              live_coord_commits=live_coord_commits,
           )
           decision = classify_guard_transaction(
               receipts=receipts,
@@ -307,7 +423,7 @@ jobs:
               live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
               current_claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
               now=dt.datetime.now(dt.timezone.utc),
-              durable_readbacks=branch_create_readbacks + pr_write_readbacks,
+              durable_readbacks=branch_create_readbacks + pr_write_readbacks + coord_write_readbacks,
           )
           assert_remote_guard_request_permitted(decision)
           if decision.state.value == "EXPIRED_UNCONSUMED":
