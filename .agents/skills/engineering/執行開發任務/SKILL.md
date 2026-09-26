@@ -10,6 +10,16 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
+
 依使用者已核准的規格或工單實作，不重新發明需求。
 
 ## 1. 開始前
