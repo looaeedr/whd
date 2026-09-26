@@ -22,13 +22,14 @@
     "Second pr-write attempt 36245570613 failed closed while first transaction lacked durable consume evidence; no mutation replay.",
     "GUARD_CONSUMPTION_READBACK_V1: merge pr-write run 36245946610 consumed by exact PR #729 merged readback; production target=91931e518bea241d129d7327e1d163cb7a1ffd92, reconciled=true.",
     "Terminal acceptance established only after PR #729 merge/readback and exact merge-Guard consumption.",
-    "Closure begins at FINALIZATION_PENDING per canonical closure transaction."
+    "Closure begins at FINALIZATION_PENDING per canonical closure transaction.",
+    "Advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING before finalization proof; this checkpoint must remain immutable until Issue close/readback."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING before minting finalization proof."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify finalization proof against this exact checkpoint, then close/read back Issue #728 without mutating checkpoint before close."
 }
