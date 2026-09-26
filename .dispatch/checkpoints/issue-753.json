@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "753",
+  "branch": "governance/issue753-batch-main-x-parity-20260927",
+  "head_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard, create/read back governance/issue753-batch-main-x-parity-20260927 from exact cleanup HEAD 79efd748107db7578105fd0ca920f2436a3ff67a, then apply one bounded compatible-equivalent batch for current trusted main 378bda50abe24fece6d3f9d047f7f3a394b72265 without blind main merge.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent owner #692; batch-first selective compatible-equivalent propagation only.",
+    "Exact production base 79efd748107db7578105fd0ca920f2436a3ff67a.",
+    "Trusted observation authority main 378bda50abe24fece6d3f9d047f7f3a394b72265.",
+    "Do not merge updated X into active frozen work-order chains."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

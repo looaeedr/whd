@@ -1,0 +1,30 @@
+{
+  "issue": 753,
+  "issue_url": "https://github.com/looaeedr/whd/issues/753",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.b753.20260927.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue753-batch-main-x-parity-20260927",
+  "claimed_at": "2026-09-27T13:30:00Z",
+  "base_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
+  "head_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T13:30:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Guard, create/read back governance/issue753-batch-main-x-parity-20260927 from exact cleanup HEAD 79efd748107db7578105fd0ca920f2436a3ff67a, then apply one bounded compatible-equivalent batch for current trusted main 378bda50abe24fece6d3f9d047f7f3a394b72265 without blind main merge.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-753.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user invoked /排程B #692 and explicitly demanded continuation; #753 is the single batch helper required by #692.",
+    "Parent #692 batch-first amendment forbids per-fix helpers and blind full-main merge.",
+    "Current production X HEAD: 79efd748107db7578105fd0ca920f2436a3ff67a.",
+    "Current trusted main HEAD: 378bda50abe24fece6d3f9d047f7f3a394b72265.",
+    "Current main delta since prior parity anchor 0d8a36b686630e00284a67465da82b1401231254 spans 18 commits and touches #737/#739/#744 governance artifacts.",
+    "Helper scope remains one bounded batch; frozen #692 child lineage is not rebased/merged with new X."
+  ]
+}
