@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "764",
   "branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
-  "head_sha": "8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb",
+  "head_sha": "141123445c00d4dbef637d95ba5d756c30db58e0",
   "state": "RUNNING",
-  "next_action": "Delete .github/workflows/qa-issue764-scheduler-skill-contract.yml under exact Guard, reconcile the resulting head, then proceed to PR/QA/integration.",
+  "next_action": "Fresh-compare cleaned branch to cleanup/2d-3d-sync; if diff is exactly 排程模擬, 寫排程, and scheduler contract test, proceed to canonical PR/integration.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "pair reconciliation authorized by Guard run=36275453697",
     "Skill fix commit 8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb.",
     "GREEN run 36275579479: 6 passed in 0.16s on exact fix head.",
-    "pair reconciliation authorized by Guard run=36275613755"
+    "pair reconciliation authorized by Guard run=36275613755",
+    "temporary QA workflow deleted at 141123445c00d4dbef637d95ba5d756c30db58e0",
+    "post-cleanup pair reconciliation authorized by Guard run=36275747390"
   ],
   "master_issue": null,
   "chain_state": "NONE",

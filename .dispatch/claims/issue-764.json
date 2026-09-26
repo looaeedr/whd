@@ -9,15 +9,15 @@
   "work_branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
   "claimed_at": "2026-09-26T22:03:07Z",
   "base_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
-  "head_sha": "8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb",
+  "head_sha": "141123445c00d4dbef637d95ba5d756c30db58e0",
   "phase": "GREEN",
-  "last_update": "2026-09-26T22:14:28Z",
+  "last_update": "2026-09-26T22:16:53Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Delete the temporary #764 QA workflow under Guard, reconcile the cleanup head, then open the canonical PR to cleanup/2d-3d-sync with only the two Skill changes plus the scheduler contract test.",
+  "next_action": "Fresh-compare the cleaned #764 branch against cleanup/2d-3d-sync, verify only the two Skill files plus scheduler contract test remain, then create the canonical PR and complete integration/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-764.json",
   "evidence": [
@@ -36,6 +36,8 @@
     "post-QA pair reconciliation Guard run=36275453697 request=5850346123",
     "Skill fix commit=8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb",
     "GREEN run=36275579479 exact_head=8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb result=6 passed, 0 failed",
-    "GREEN post-commit reconciliation Guard run=36275613755 request=5850366083"
+    "GREEN post-commit reconciliation Guard run=36275613755 request=5850366083",
+    "temporary QA workflow removed at head=141123445c00d4dbef637d95ba5d756c30db58e0",
+    "post-cleanup pair reconciliation Guard run=36275747390 request=5850381375"
   ]
 }
