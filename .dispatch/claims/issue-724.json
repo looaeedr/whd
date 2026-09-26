@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T12:37:34Z",
   "base_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
   "head_sha": "8cb01ac0d07850e0427295450026f75eab3ebd8b",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T15:24:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T15:26:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for standalone #724; no successor handoff.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-724.json",
   "evidence": [
@@ -39,7 +39,8 @@
     "Current cleanup/2d-3d-sync HEAD 91931e518bea241d129d7327e1d163cb7a1ffd92 contains #724 accepted head 8cb01ac0d07850e0427295450026f75eab3ebd8b.",
     "Live recurring automation readback confirms REPORT_HANDLER_IDENTITY_PREFIX_V1 on 00/20/40/B15/B45; no cadence/lane/enabled mutation was performed during this takeover.",
     "Local finalization proof verified for exact ISSUE_CLOSE_PENDING checkpoint fingerprint 174f00d611968448c0be5e7f69ed9153a9fbb11ca687029c5b6bd2eedf8b01cf.",
-    "Issue #724 fresh readback: closed/completed at 2026-09-26T15:22:59Z."
+    "Issue #724 fresh readback: closed/completed at 2026-09-26T15:22:59Z.",
+    "Final atomic standalone closure: checkpoint CLOSED and claim RELEASED; Issue #724 already fresh-read closed/completed; no successor handoff."
   ],
   "last_guard": {
     "action": "claim-takeover",
@@ -69,5 +70,15 @@
     "local_guard_result": "GREEN",
     "local_guard_reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "taken_over_at": "2026-09-26T15:15:55.497868Z"
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "pr_number": 725,
+    "integration_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
+    "accepted_head_sha": "8cb01ac0d07850e0427295450026f75eab3ebd8b",
+    "production_readback_head": "91931e518bea241d129d7327e1d163cb7a1ffd92",
+    "finalization_checkpoint_fingerprint": "174f00d611968448c0be5e7f69ed9153a9fbb11ca687029c5b6bd2eedf8b01cf",
+    "live_automation_prefix_readback": "PASS"
   }
 }
