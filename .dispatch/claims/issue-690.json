@@ -11,7 +11,7 @@
   "base_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
   "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
   "phase": "GREEN",
-  "last_update": "2026-09-26T17:05:00Z",
+  "last_update": "2026-09-26T17:11:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
     "status": "success"
   },
-  "next_action": "Durably reconcile tested head d2c04ef30b9aec258e042b6ea4f4fd790149aa56, publish updated #690 acceptance evidence, then execute finalization/close/readback/release handoff.",
+  "next_action": "Issue Closure owner #693 must consume T4 acceptance comment 5848183633, mint fresh finalization proof for exact #690 checkpoint/head d2c04ef30b9aec258e042b6ea4f4fd790149aa56, close/readback #690, then atomically persist CLOSED + RELEASED and continue chain to #692.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-690.json",
   "evidence": [
@@ -42,7 +42,9 @@
     "Concurrent same-owner implementation produced dce687cc then duplicate 9c1fe13c; run 36255000073 GREEN but duplicate definition required cleanup before deployment.",
     "Cleanup commit d2c04ef30b9aec258e042b6ea4f4fd790149aa56 removed the duplicate malformed-terminal repair definition while preserving the accepted implementation.",
     "Branch-native QA run 36255296146 at d2c04ef30b9aec258e042b6ea4f4fd790149aa56 completed SUCCESS.",
-    "Remote Guard run 36255339592 returned GREEN with REMOTE_GUARD_RECONCILE_ONLY because shared claim/checkpoint still pointed to 9c1fe13c; canonical pair reconciliation to d2c04ef3 is required."
+    "Remote Guard run 36255339592 returned GREEN with REMOTE_GUARD_RECONCILE_ONLY because shared claim/checkpoint still pointed to 9c1fe13c; canonical pair reconciliation to d2c04ef3 is required.",
+    "T4 acceptance evidence V2 published in #690 comment 5848183633 for accepted head d2c04ef30b9aec258e042b6ea4f4fd790149aa56 and QA run 36255296146.",
+    "Acceptance handoff coordination write Guard GREEN run 36258079751 / result comment 5848194642."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",

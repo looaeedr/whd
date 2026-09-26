@@ -3,8 +3,8 @@
   "issue": "690",
   "branch": "work/issue690-closure-drift-classification-20260926",
   "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
-  "state": "RUNNING",
-  "next_action": "Publish updated #690 acceptance evidence for d2c04ef30b9aec258e042b6ea4f4fd790149aa56, then advance terminal/finalization transaction through ISSUE_CLOSE_PENDING, close/readback, and atomic CLOSED + RELEASED.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36255296146,
   "job_id": null,
   "log_cursor": null,
@@ -24,13 +24,15 @@
     "Malformed-terminal implementation reached 9c1fe13c and QA run 36255000073 GREEN, then duplicate definition was identified.",
     "Cleanup commit d2c04ef30b9aec258e042b6ea4f4fd790149aa56 removed the duplicate definition.",
     "Run 36255296146 at d2c04ef30b9aec258e042b6ea4f4fd790149aa56 completed SUCCESS.",
-    "Remote Guard run 36255339592 requested canonical claim/checkpoint pair reconciliation because durable HEAD remained 9c1fe13c."
+    "Remote Guard run 36255339592 requested canonical claim/checkpoint pair reconciliation because durable HEAD remained 9c1fe13c.",
+    "T4 acceptance evidence V2 comment 5848183633 binds accepted head d2c04ef30b9aec258e042b6ea4f4fd790149aa56 and final QA run 36255296146.",
+    "Acceptance handoff Guard GREEN run 36258079751 / result comment 5848194642."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "693",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "692",
+  "chain_next_action": "After #690 is CLOSED + RELEASED, continue #693 chain with #692 / T6 Governance production ↔ trusted deployment parity gate.",
+  "chain_reason": "T4/#690 accepted at d2c04ef30b9aec258e042b6ea4f4fd790149aa56; next approved child in the #693 work-order chain is #692.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Issue Closure owner #693 must consume T4 acceptance comment 5848183633, mint fresh finalization proof bound to exact checkpoint/head d2c04ef30b9aec258e042b6ea4f4fd790149aa56, close/read back #690 as completed, then atomically persist checkpoint CLOSED + claim RELEASED and hand off to #692."
 }
