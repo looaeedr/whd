@@ -11,13 +11,15 @@
   "base_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
   "head_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
   "phase": "GREEN",
-  "last_update": "2026-09-26T15:40:48.580521Z",
+  "last_update": "2026-09-26T15:56:06.346745Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "governance/issue737-remote-guard-authority-handoff-r2"
+  ],
   "remote_qa": null,
-  "next_action": "Obtain fresh commit Guard for exact workflow+regression files, commit/push work branch, reconcile H0->H1 claim head, then create guarded PR to main and monitor CI.",
+  "next_action": "Create delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at exact H0 641639ff..., then use trusted Remote Guard commit for the exact workflow+regression patch, reconcile H0->H1 via its durable receipt, and PR that recovery branch to main.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-737.json",
   "evidence": [
@@ -29,7 +31,10 @@
     "Focused RED: tests/process/test_issue737_remote_guard_user_authority_handoff.py = 2 failed / 0 passed before implementation.",
     "Minimal fix: chat claim-takeover guard_args now forwards the already-selected /tmp/user-authority.json via --user-authority-evidence; scheduler path unchanged.",
     "Focused GREEN: issue737 + issue722 + issue540 Remote Guard regressions = 11 passed / 0 failed in 0.51s.",
-    "git diff --check GREEN."
+    "git diff --check GREEN.",
+    "Original implementation commit fdc5a91f1eb6ccd49e9ba1bf0b2787f62c1bc66d is correct and 11/11 focused regressions pass, but it was authorized by local-only Guard before #686 local durable parity is deployed, so canonical H0->H1 reconciliation cannot consume it.",
+    "Existing #686 owns that systemic local-Guard parity gap; #686 PR #741 is open but further mutation is currently blocked by pr-write durable-readback parity. #737 therefore uses a delegated recovery branch, not a bypass.",
+    "Recovery branch must replay only the exact two-file accepted patch from H0 and must use trusted Remote Guard for the commit so canonical post-commit reconciliation has a durable receipt."
   ],
   "last_guard": {
     "action": "write",
@@ -37,6 +42,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #737 RED/GREEN progress"
+    "mutation": "authorize #737 delegated recovery branch metadata"
   }
 }

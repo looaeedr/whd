@@ -4,7 +4,7 @@
   "branch": "governance/issue737-remote-guard-authority-handoff",
   "head_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
   "state": "RUNNING",
-  "next_action": "Obtain fresh commit Guard for exact workflow+regression files, commit/push work branch, reconcile H0->H1 claim head, then create guarded PR to main and monitor CI.",
+  "next_action": "Create delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at exact H0 641639ff..., then use trusted Remote Guard commit for the exact workflow+regression patch, reconcile H0->H1 via its durable receipt, and PR that recovery branch to main.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "Focused RED: tests/process/test_issue737_remote_guard_user_authority_handoff.py = 2 failed / 0 passed before implementation.",
     "Minimal fix: chat claim-takeover guard_args now forwards the already-selected /tmp/user-authority.json via --user-authority-evidence; scheduler path unchanged.",
     "Focused GREEN: issue737 + issue722 + issue540 Remote Guard regressions = 11 passed / 0 failed in 0.51s.",
-    "git diff --check GREEN."
+    "git diff --check GREEN.",
+    "Recovery routing: original local-Guarded H1 cannot be canonically reconciled until #686 deploys; use delegated r2 from exact H0 with trusted Remote Guard commit.",
+    "Do not mutate or PR the unreconciled original branch fdc5a91f...; preserve it as evidence only."
   ],
   "master_issue": null,
   "chain_state": "NONE",
