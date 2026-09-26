@@ -4,7 +4,7 @@
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
   "head_sha": "cfbd977efd97fe8aa8163de213dd19687129104e",
   "state": "RUNNING",
-  "next_action": "Fix the single order-sensitive assertion in #739 write auto-consume focused test, rerun focused/protected QA to GREEN, then deploy trusted write durable-readback to main.",
+  "next_action": "Canonicalize write durable-readback changed_files ordering, rerun #739 write QA to GREEN, then deploy to main and resume #733 release.",
   "run_id": 36259797684,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -34,7 +34,10 @@
     "Post-RED reconciliation Guard 36259555108 GREEN.",
     "Implementation HEAD cfbd977efd97fe8aa8163de213dd19687129104e.",
     "QA 36259797684 protected regressions GREEN; one focused assertion is order-sensitive only.",
-    "Post-implementation reconciliation Guard 36259865499 GREEN."
+    "Post-implementation reconciliation Guard 36259865499 GREEN.",
+    "Write implementation HEAD cfbd977efd97fe8aa8163de213dd19687129104e.",
+    "QA 36259797684 only fails changed_files canonical ordering; protected regressions GREEN.",
+    "Implementation-head reconciliation Guard 36259865499 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
