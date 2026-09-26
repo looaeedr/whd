@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "763",
   "branch": "deploy/issue763-turn-exit-continuity-main-20260927",
-  "head_sha": "f19c59c2596a278f8f6bf455e079b4a3dd1c5607",
+  "head_sha": "76c28be26fe911871b9cb1df2a009f2b5ec3c605",
   "state": "RUNNING",
-  "next_action": "Create guarded main-based deploy branch; port only tools/continuity_controller.py and .github/workflows/whd-turn-exit-gate.yml from #693 H4 while preserving trusted-main behavior; run focused acceptance; merge to main; fresh-read exact trusted blobs; close/release #763 and return to #693.",
+  "next_action": "Fresh-read current main; if base is unchanged, create PR for exact two-file trusted deploy; if main drifted, merge current main into helper branch, rerun trusted-domain acceptance, then PR/merge/readback and close/release #763.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,9 @@
   "evidence": [
     "Parent #693 / helper_key issue693-turn-exit-continuity-main-deploy.",
     "Trusted deployment base main@f19c59c2596a278f8f6bf455e079b4a3dd1c5607.",
-    "Exact deploy scope: continuity_controller.py + whd-turn-exit-gate.yml only."
+    "Exact deploy scope: continuity_controller.py + whd-turn-exit-gate.yml only.",
+    "Bounded trusted deploy commit 76c28be26fe911871b9cb1df2a009f2b5ec3c605.",
+    "Trusted-domain acceptance 68 passed / 0 failed; main has no workstation_poweroff_gate reference."
   ],
   "master_issue": null,
   "chain_state": "NONE",
