@@ -5,8 +5,8 @@
   "chain_next_action": null,
   "chain_reason": null,
   "chain_state": "NONE",
-  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #678",
-  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then discover next executable WI",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
   "evidence": [
     "Requirement Authority: user approved WHD HA safe-shutdown requirement RED and WI breakdown after R0 bookkeeping correction.",
     "Frozen production target cleanup/2d-3d-sync HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
@@ -19,7 +19,8 @@
     "Remote QA run 36215728721 completed success on exact head 59918556f55f849433b156f6a4c48e39e9faad06; bootstrap-governance PASS.",
     "Repository-owned reproduce.py completed exit 0 after governance metadata fix.",
     "WI-0 changes only docs/superpowers/verification/issue678-poweroff-red/**; no production behavior changed.",
-    "Closure advanced after PR #694 merged and remote governance check passed."
+    "Closure advanced after PR #694 merged and remote governance check passed.",
+    "Owning Issue #678 fresh-read closed/completed at 2026-09-26T03:53:27Z."
   ],
   "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
   "issue": "678",
