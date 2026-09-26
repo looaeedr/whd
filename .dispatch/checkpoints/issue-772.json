@@ -2,16 +2,18 @@
   "version": 1,
   "issue": "772",
   "branch": "trusted/issue772-deploy-guard-consume-hardening-20260927",
-  "head_sha": "b6febcfc641beab1b015946671ace7642ab6de48",
+  "head_sha": "368ff293d9d78b45b7791f7f698cec784dbbcfaf",
   "state": "RUNNING",
-  "next_action": "Create guarded helper branch from trusted main and deploy exact accepted guard/test source.",
+  "next_action": "Create guarded PR to main, merge, fresh-read exact source blob parity, then retry #762 final atomic release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent #768 requires trusted-main parity before #762 retry."
+    "Parent #768 requires trusted-main parity before #762 retry.",
+    "19 focused tests passed.",
+    "trusted helper commit=368ff293d9d78b45b7791f7f698cec784dbbcfaf"
   ],
   "master_issue": null,
   "chain_state": "NONE",
