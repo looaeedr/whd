@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "392fcb6a4ca2d8b8d6098a7715b1f13d40bdfa9b",
+  "head_sha": "7a52d091a03e6c88f26e05d432daf1ce94ac0efa",
   "state": "RUNNING",
-  "next_action": "Remove temporary call-stack instrumentation; guard programmatic ui_text_size projection so Phase6SettingsPanel trace cannot call _phase6_apply_ui_text_size/renderer during baseline commit; retain commit-stage profile render suppression and scheduler batching; rerun exact #619 Xvfb acceptance.",
+  "next_action": "Expand #619 exact-head regression to existing Receiving live-switch / 3D baseline / protected-config coverage; if GREEN, delete the one-shot #619 workflow, audit tested-to-cleaned drift, transition terminal, then close/release and hand off to #622.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -29,7 +29,10 @@
     "Post-commit pair reconciliation authorized by Guard 36206920272.",
     "Stack diagnostic exact run 36207188252 traces the commit-stage render to ui_text_size_var.set -> panel trace -> _phase6_apply_ui_text_size -> renderer.render.",
     "Artifact 10894776048 holds the bounded diagnostic evidence.",
-    "Post-commit reconciliation authorized by Guard 36207208348."
+    "Post-commit reconciliation authorized by Guard 36207208348.",
+    "Root fix exact run 36207365473 completed SUCCESS: 7 passed in 9.46s on head 7a52d091a03e6c88f26e05d432daf1ce94ac0efa.",
+    "Artifact 10894002855 proves the exact UI-R3 atomic visible-commit contract.",
+    "Post-commit reconciliation authorized by Guard 36207383255."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
