@@ -27,13 +27,15 @@
     "QA run 36261175119: focused 16 PASS + protected 34 PASS, 0 FAIL.",
     "Production readback confirms #755 coord-write durable-readback capability present.",
     "Trusted Remote Finalization run 36261604650 GREEN; checkpoint fingerprint 904b36d0a594f93cb8ba328c3bf784f7232121690474a9daec15995a97c694be; artifact 10912432753.",
-    "Issue #756 remote close readback: state=closed, state_reason=completed, closed_at=2026-09-26T18:11:04Z."
+    "Issue #756 remote close readback: state=closed, state_reason=completed, closed_at=2026-09-26T18:11:04Z.",
+    "Release handoff durable commit d5745582d3943be16d2d053ecdc9ca81c14910a2.",
+    "Final closure target: #756 CLOSED + RELEASED; chain NEXT_CHILD_EXECUTABLE -> #692."
   ],
   "master_issue": "692",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "692",
   "chain_next_action": "Resume #692 live main↔cleanup parity acceptance after #756 is closed/completed and RELEASED.",
   "chain_reason": "Post-#753 main drift #755 has been selectively propagated and accepted in production.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist final checkpoint CLOSED + claim RELEASED, verify durable readback, then resume #692 live parity acceptance."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
