@@ -181,6 +181,20 @@ planned handoff 不得退化成 stale takeover；交接必須 fresh-read exact c
 - `EXECUTE_TICKET` 只處理明確指定 slot/Issue。
 - `EXECUTE_CHAIN` / `SCHEDULER_LANE` 只有在既有 chain/lane authority 已成立時才可把 terminal slot rotation 到 canonical successor。
 
+## REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+工作槽產生任何 user-visible 狀態、progress、CHECKPOINT 或「怎麼了／進度？」回報時，遵守全域 Skill announcement gate 後，**每一個回報區塊的第一行**固定先輸出：
+
+```text
+【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
+```
+
+- explicit slot 的 `handler` 固定使用 `工作1 / 工作2 / 工作3`；exact durable identity 固定由 `slot_id=worker.slot.1|worker.slot.2|worker.slot.3` 表示。
+- `owner` 必須 fresh-read `claim_owner`；沒有 claim 才可寫 `NONE`。不得從聊天室、slot 名稱或 Issue 猜 owner。
+- `issue` 必須來自 explicit durable slot binding：已證明空槽用 `NONE`；legacy／沒有 explicit binding 用 `UNBOUND`，**不得猜**。
+- `/工作槽 狀態` 聚合回報時，工作1/2/3 每個 slot block 都先輸出自己的 prefix，再接詳細 projection。
+- query-only 仍是 query-only；prefix 只提供 provenance，**不建立 execution authority**、不改 claim ownership、也不代表 runtime 已證明 live。
+
 ## 8. Status projection
 
 `/工作1 狀態` 至少回讀：

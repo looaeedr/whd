@@ -294,6 +294,20 @@ LANE_RESUME_ESTABLISHED =
 
 Equivalent duplicate GREEN 的 canonical/shadow 規則完全服從 live authority；不得因「我是同一 A/B lane」重播 shadow receipt。
 
+## REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+`/排程A` / `/排程B` 的任何 user-visible 狀態、progress、CHECKPOINT 回報，在全域 Skill announcement gate 之後，**每一個回報區塊的第一行**固定先輸出：
+
+```text
+【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
+```
+
+- same-lane active claim：`handler=排程A|排程B`，`owner=lane_owner`（亦即 exact `claim_worker`），`issue=claim_issue`。
+- 尚未建立 claim、仍在合法 discovery：可顯示 `handler=排程A|排程B`、`owner=lane_owner`、`issue=NONE`；不得預先猜票。
+- 若 fresh-read 發現 **foreign** live owner，prefix 必須把 `handler` 與 `owner` 顯示為 exact foreign `claim_worker`；selected lane 只能留在後續 `lane=` 欄位，**不得冒充處理者**。
+- `claim_issue` / `claim_worker` / `lane_owner` 必須來自本輪 fresh durable readback；聊天室 title、`NEW排程A/B` 或記憶不得作來源。
+- prefix 只提供 provenance，**不建立 execution authority**、不改 claim ownership、不取代 liveness / Guard / checkpoint gate。
+
 ## 8. Turn output
 
 每次 `/排程A` / `/排程B` 至少可反讀：
