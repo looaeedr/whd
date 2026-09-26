@@ -9,18 +9,18 @@
   "work_branch": "work/issue690-closure-drift-classification-20260926",
   "claimed_at": "2026-09-26T15:29:30Z",
   "base_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
-  "head_sha": "9c1fe13c412f9b5e4ae5d5f0dd6e2782fa892072",
+  "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
   "phase": "GREEN",
-  "last_update": "2026-09-26T16:21:00Z",
+  "last_update": "2026-09-26T17:05:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36255000073,
-    "head_sha": "9c1fe13c412f9b5e4ae5d5f0dd6e2782fa892072",
+    "run_id": 36255296146,
+    "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
     "status": "success"
   },
-  "next_action": "Remove duplicate repair_malformed_terminal_checkpoint definition while preserving accepted dce687cc implementation; rerun focused/protected QA, then deploy accepted #690 repair.",
+  "next_action": "Durably reconcile tested head d2c04ef30b9aec258e042b6ea4f4fd790149aa56, publish updated #690 acceptance evidence, then execute finalization/close/readback/release handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-690.json",
   "evidence": [
@@ -36,12 +36,13 @@
     "Branch-native QA run 36252738223 terminal SUCCESS: focused 4 PASS + protected closure regressions 33 PASS / 0 FAIL.",
     "Tested-head reconciliation Guard GREEN run 36252802760 / result comment 5847563288.",
     "Scope extension accepted via #690 comment 5847783558 from #733 malformed terminal checkpoint closure-state case.",
-    "RED commit 286bc3e3ee92a1945f54300ee5b31485173d205d adds narrow malformed-terminal repair tests.",
-    "Post-RED reconciliation Guard GREEN run 36254818647 / result comment 5847805300.",
-    "Malformed terminal checkpoint RED commit 286bc3e3ee92a1945f54300ee5b31485173d205d.",
+    "RED commit 286bc3e3ee92a1945f54300ee5b31485173d205d adds narrow malformed terminal repair tests.",
     "Run 36254781251 expected RED: focused failed; protected regressions remained GREEN.",
     "Post-RED reconciliation Guard 36254818647 GREEN / result 5847805300.",
-    "Concurrent same-owner implementation produced dce687cc then duplicate 9c1fe13c; run 36255000073 GREEN but duplicate definition must be cleaned before deployment."
+    "Concurrent same-owner implementation produced dce687cc then duplicate 9c1fe13c; run 36255000073 GREEN but duplicate definition required cleanup before deployment.",
+    "Cleanup commit d2c04ef30b9aec258e042b6ea4f4fd790149aa56 removed the duplicate malformed-terminal repair definition while preserving the accepted implementation.",
+    "Branch-native QA run 36255296146 at d2c04ef30b9aec258e042b6ea4f4fd790149aa56 completed SUCCESS.",
+    "Remote Guard run 36255339592 returned GREEN with REMOTE_GUARD_RECONCILE_ONLY because shared claim/checkpoint still pointed to 9c1fe13c; canonical pair reconciliation to d2c04ef3 is required."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
