@@ -35,3 +35,19 @@ jobs:
         run: python -m pip install -q pytest
       - name: Run #691 focused parity contract
         run: python -m pytest tests/process/test_issue691_turn_exit_scheduler_end_parity.py -q
+      - name: Run broader continuity and scheduler regressions
+        run: |
+          python -m pytest \
+            tests/process/test_continuity_controller.py \
+            tests/process/test_issue286_turn_exit_bridge_contract.py \
+            tests/process/test_issue321_turn_exit_enforcement.py \
+            tests/process/test_issue326_scheduled_wakeup_continuity_contract.py \
+            tests/process/test_issue473_master_chain_turn_exit_gate.py \
+            tests/process/test_issue578_scheduler_runtime_liveness.py \
+            tests/process/test_issue641_closing_turn_exit_red.py \
+            tests/process/test_issue644_trusted_turn_exit_gate.py \
+            tests/process/test_issue667_force_takeover_liveness.py \
+            tests/process/test_issue689_takeover_substantive_action_gate.py \
+            tests/process/test_scheduler_simulation_skill_contract.py \
+            tests/process/test_write_scheduler_skill_contract.py \
+            -q
