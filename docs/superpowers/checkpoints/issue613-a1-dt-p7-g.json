@@ -1,86 +1,69 @@
 {
   "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
-  "issue": 613,
+  "issue": 625,
   "master_issue": 627,
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "characterization_head": "10ec9a52eff1b8495042270445755e59b6a329c2",
   "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "production_target": "cleanup/2d-3d-sync",
   "production_behavior_change": 0,
   "target_id": "P7-G",
   "source": {
     "path": "phase6_settings_panel.py",
-    "blob_sha": "8f786022bf71a12d3263e688ef12d2bd5aad004f",
-    "loc": 1279,
-    "top_level_symbol_count": 8,
-    "largest_symbols": [
-      "Phase6SettingsPanel:1120",
-      "build_choice_menubutton:37"
-    ]
+    "owner": "Phase6SettingsPanel",
+    "ownership": "Tk/UI presentation only; domain settings draft/transaction authority remains callback-owned"
   },
   "current_owner_map": [
-    "Phase6SettingsPanel Settings presentation"
+    "Phase6SettingsPanel — Settings presentation",
+    "phase6_settings_center — SettingSpec/schema and settings context",
+    "application composition callback ports — transaction/state mutation"
   ],
   "current_tests": [
     "tests/test_phase6_settings_panel_ownership.py",
-    "tests/test_phase6_settings_center_gui_contract.py"
+    "tests/test_phase6_settings_center_gui_contract.py",
+    "tests/test_issue625_phase7_a8_settings_presentation_decision.py"
   ],
   "dt_0_characterization": {
     "status": "COMPLETE",
+    "presentation_clusters": [
+      "structure presentation callbacks",
+      "corner presentation callbacks",
+      "endcap FW presentation callback",
+      "baseline/global settings presentation"
+    ],
     "direct_callers": [
       "fold_designer_bridge.py imports Phase6SettingsPanel/settings helpers",
       "application composition supplies callback ports"
     ],
     "dynamic_callers": [
-      "Tk widget commands and callback ports"
-    ],
-    "imports": [
-      "phase6_settings_center",
-      "tkinter",
-      "ttk",
-      "whd_theme"
-    ],
-    "reverse_imports": [
-      "fold_designer_bridge.py"
+      "Tk widget commands",
+      "callback ports supplied by composition"
     ],
     "state_reads": [
-      "values_snapshot/specs/context/baseline getters",
-      "presentation page/cache state"
+      "values_snapshot",
+      "specs_provider",
+      "context_extension_projection",
+      "baseline model/query getters"
     ],
     "state_writes": [
-      "Tk variables/page cache/presentation state; domain commits delegated through callback ports"
+      "Tk variables/page cache/presentation state only",
+      "domain mutations delegated through stage/flush/save and structure/corner/endcap callback ports"
     ],
-    "largest_spans": [
-      "Phase6SettingsPanel:1120",
-      "build_choice_menubutton:37"
-    ],
-    "current_owner_map": [
-      "Phase6SettingsPanel Settings presentation"
-    ],
-    "current_tests": [
-      "tests/test_phase6_settings_panel_ownership.py",
-      "tests/test_phase6_settings_center_gui_contract.py"
+    "protected_authority": [
+      "Settings transaction/state authority must not move into presentation",
+      "no second Settings state machine or panel owner"
     ]
   },
-  "dt_1_remove_or_inline": {
-    "status": "PENDING"
-  },
+  "dt_1_remove_or_inline": {"status": "PENDING"},
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "PENDING",
+    "candidate": "Phase6SettingsPanel / existing Settings composition services"
   },
-  "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
-  },
-  "dt_4_variant_k": {
-    "status": "PENDING"
-  },
-  "dt_5_variant_e": {
-    "status": "PENDING"
-  },
+  "dt_3_bounded_owner_ports": {"status": "PENDING"},
+  "dt_4_variant_k": {"status": "PENDING", "variant": "KEEP_CURRENT_BOUNDARY"},
+  "dt_5_variant_e": {"status": "PENDING", "variant": "DEEPEN_EXISTING_OWNER"},
   "dt_6_decision": {
     "status": "PENDING",
-    "allowed_decisions": [
-      "DEEPEN_EXISTING_OWNER",
-      "KEEP_CURRENT_BOUNDARY"
-    ]
+    "allowed_decisions": ["DEEPEN_EXISTING_OWNER", "KEEP_CURRENT_BOUNDARY"]
   }
 }
