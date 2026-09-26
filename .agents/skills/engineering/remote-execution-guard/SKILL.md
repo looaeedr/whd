@@ -434,3 +434,18 @@ Canonical implementation：`tools.execution_claim_guard.durable_branch_create_re
 Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到 legacy `claim exists + checkpoint missing` 時，不重送普通 Guard，也不人工補檔；改路由 trusted `.github/workflows/whd-remote-claim-activation.yml` 的 `legacy-checkpoint-repair`。
 
 該 repair 只允許 unchanged claim blob + 新 canonical checkpoint 的 atomic CAS。成功後普通 Remote Guard 才重新取得合法 checkpoint authority。任何 claim identity/head/phase 變更仍走既有 guarded reconciliation，不屬 legacy repair。
+
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
+
+`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
+
+- prior receipt 為 exact GREEN `action=pr-write`；
+- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
+- PR `base.ref == claim.production_target`；
+- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
+- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
+
+只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+

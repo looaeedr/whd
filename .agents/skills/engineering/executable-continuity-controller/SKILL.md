@@ -517,15 +517,3 @@ Equivalent duplicate GREEN 只有 mutation-relevant identity 完全一致才 ded
 
 ### INTERACTIVE_RUNTIME_LIVENESS_AND_PROVENANCE_REQUIREMENT_V1
 這是 required governance follow-up，不得假稱 machine 已完成：chatgpt_interactive active owner 必須補可機讀 heartbeat/liveness；durable provenance 必須辨識 interactive 的 specific conversation/chat identity + invocation identity，以及 scheduler 的 scheduler_lane + invocation_identity。generic executor_source 只能表示類型，不能取代 exact provenance；heartbeat 也不能取代 claim/checkpoint/Guard authority。
-
-## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
-
-Terminal checkpoint 的 malformed closure lifecycle 不可用一般 activation 或 ordinary Guard 修補，因兩者都應 fail closed。Canonical recovery 由兩層共同擁有：
-
-- pure repair authority：`tools/continuity_controller.py::repair_malformed_terminal_checkpoint`；
-- trusted CAS transport：`.github/workflows/whd-remote-claim-activation.yml` 的 `transition=terminal-checkpoint-repair`。
-
-Repair 只接受 exact `issue + branch + head_sha + TERMINAL_SUCCESS` identity，且 prior closure state 必須是非法值；合法 closure state、非 terminal state、wrong owner/head、unknown fields 都必須拒絕。輸出固定為同一 terminal identity + `FINALIZATION_PENDING` + canonical closure next action。
-
-Trusted transport 必須 exact bind `prior_claim_blob_sha + prior_checkpoint_blob_sha + coord_parent_sha`；candidate claim byte-for-byte unchanged，candidate checkpoint 必須等於 pure repair 的 canonical payload。它不能 release claim、不能 close issue、不能取代 fresh Remote Finalization。Repair 完成後流程重新進入正常 closure transaction。
-

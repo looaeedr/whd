@@ -152,4 +152,18 @@ Focused GREEN：run `36251018227`。
 - X 更新後不得倒灌 active frozen chains；`FROZEN_X_BASE_SHA` 不變。
 
 Governance owner：#736。Parent parity rule：#692。
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1（2026-09-26）
+
+### 事故
+#733 的 PR #734 已 durable 建立／後續已 durable merge，但 `pr-write` GREEN 沒有 action-specific readback，因此下一顆 Guard 被 `PENDING_GUARD_TRANSACTION` 擋住，只能靠 reactivate workaround。
+
+### 永久規則
+- **PR existence alone 不足以 consume**，因為 PR 可能在 Guard 前就存在。
+- 只接受 exact branch/head/base，且 create/merge/close timestamp 落在 exact GREEN receipt window 的 durable event。
+- 多個 exact candidate 固定 ambiguous/fail closed。
+- 不使用 `updated_at` 證明 metadata mutation，避免 CI/check/comment 等非目標更新誤消耗 authority。
+- metadata-only PR write 在沒有更窄 postcondition 前維持 explicit reconciliation。
+- 這條規則只補 `pr-write` durable readback，不放寬 commit/write/dispatch/takeover。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Owner：#739。
 
