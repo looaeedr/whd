@@ -23,7 +23,7 @@ def receipt(run_id: int, files, *, action="write"):
         "issued_at":"2026-09-26T22:50:00Z","expires_at":"2026-09-26T23:30:00Z",
     }
 
-def classify(receipts, expected):
+def classify(receipts, expected, *, expected_action="write"):
     return guard.classify_guard_transaction(
         receipts=receipts,current_issue=ISSUE,current_worker=WORKER,
         current_executor_source="chat",current_branch=BRANCH,
@@ -31,6 +31,7 @@ def classify(receipts, expected):
         current_claim_blob_sha=BLOB,
         now=datetime.fromisoformat("2026-09-26T23:00:00+00:00"),
         expected_changed_files=expected,
+        expected_action=expected_action,
     )
 
 def test_issue774_different_historical_scope_does_not_contaminate_current_pair():
@@ -47,13 +48,35 @@ def test_issue774_checkpoint_scope_can_select_checkpoint_transaction():
     assert decision.state is guard.GuardTransactionState.PENDING
     assert decision.guard_run_ids == (3,)
 
-def test_issue774_same_scope_conflicting_action_remains_ambiguous():
+def test_issue774_different_action_same_scope_does_not_contaminate_current_write():
     a=receipt(5,(CLAIM,CP),action="write")
     b=receipt(6,(CLAIM,CP),action="commit")
-    decision=classify([a,b],(CLAIM,CP))
-    assert decision.state is guard.GuardTransactionState.AMBIGUOUS
+    decision=classify([a,b],(CLAIM,CP),expected_action="write")
+    assert decision.state is guard.GuardTransactionState.PENDING
+    assert decision.guard_run_ids == (5,)
 
 def test_issue774_trusted_workflow_passes_current_changed_file_scope():
     text=(Path(__file__).resolve().parents[2]/".github/workflows/whd-remote-execution-guard.yml").read_text(encoding="utf-8")
     assert 'Path("/tmp/remote-guard-changed-files.txt")' in text
     assert "expected_changed_files=requested_changed_files" in text
+
+def test_issue774_different_historical_action_does_not_contaminate_current_write():
+    old_pr=receipt(7,(),action="pr-write")
+    current_pair=receipt(8,(CLAIM,CP),action="write")
+    decision=classify([old_pr,current_pair],(CLAIM,CP),expected_action="write")
+    assert decision.state is guard.GuardTransactionState.PENDING
+    assert decision.guard_run_ids == (8,)
+
+def test_issue774_only_historical_other_action_allows_fresh_current_action():
+    old_pr=receipt(9,(),action="pr-write")
+    decision=classify([old_pr],(CLAIM,CP),expected_action="write")
+    assert decision.state is guard.GuardTransactionState.NONE
+
+def test_issue774_same_action_scope_mismatch_still_fails_closed():
+    old_write=receipt(10,(CP,),action="write")
+    decision=classify([old_write],(CLAIM,CP),expected_action="write")
+    assert decision.state is guard.GuardTransactionState.AMBIGUOUS
+
+def test_issue774_trusted_workflow_passes_current_action():
+    text=(Path(__file__).resolve().parents[2]/".github/workflows/whd-remote-execution-guard.yml").read_text(encoding="utf-8")
+    assert 'expected_action=os.environ["RG_ACTION"]' in text

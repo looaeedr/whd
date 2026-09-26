@@ -504,6 +504,7 @@ jobs:
               now=dt.datetime.now(dt.timezone.utc),
               durable_readbacks=branch_create_readbacks + pr_write_readbacks + coord_write_readbacks,
               expected_changed_files=requested_changed_files,
+              expected_action=os.environ["RG_ACTION"],
           )
           assert_remote_guard_request_permitted(decision)
           if decision.state.value == "EXPIRED_UNCONSUMED":

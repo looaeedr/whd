@@ -580,6 +580,7 @@ def classify_guard_transaction(
     now: datetime,
     durable_readbacks: Iterable[Mapping[str, object]] = (),
     expected_changed_files: Iterable[str] | None = None,
+    expected_action: str | None = None,
 ) -> GuardTransactionDecision:
     """Classify one exact Remote Guard mutation, deduping equivalent GREEN receipts."""
 
@@ -599,18 +600,26 @@ def classify_guard_transaction(
     ]
     if not all_green:
         return GuardTransactionDecision(GuardTransactionState.NONE)
-    green = [
+    action_green = [
         item
         for item in all_green
+        if expected_action is None
+        or str(item.get("action") or "") == expected_action
+    ]
+    if not action_green:
+        return GuardTransactionDecision(GuardTransactionState.NONE)
+    green = [
+        item
+        for item in action_green
         if expected_scope is None or _guard_tx_files(item) == expected_scope
     ]
     if not green:
-        run_ids = tuple(sorted(_guard_tx_run_id(item) for item in all_green))
+        run_ids = tuple(sorted(_guard_tx_run_id(item) for item in action_green))
         return GuardTransactionDecision(
             GuardTransactionState.AMBIGUOUS,
             guard_run_ids=run_ids,
             required_next_action="FAIL_CLOSED",
-            reason="GREEN Guard receipts exist but none match expected changed-file scope",
+            reason="GREEN Guard receipts for current action exist but none match expected changed-file scope",
         )
 
     members: list[
