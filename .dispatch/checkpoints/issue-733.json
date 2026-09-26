@@ -27,6 +27,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "READY_FOR_FINALIZATION",
-  "closure_next_action": "Run trusted Remote Finalization; close/readback Issue #733; final atomic RELEASED/CLOSED writeback."
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
