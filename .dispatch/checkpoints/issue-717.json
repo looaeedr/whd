@@ -19,8 +19,9 @@
     "PR #718 merged; production cleanup/2d-3d-sync HEAD=76b2adb7379f73b23001c4730c08b5402acafafb.",
     "Remote governance run 36231688524 completed success on exact GREEN head.",
     "Live A 00/20/40 and B B15/B45 prompts synchronized; post-update readback preserved enabled=true, cadence, timing mode, title and lane owner.",
-    "Acceptance evidence comment=5844871583; UPDATE_ONLY scope complete; successor_activated=false."
+    "Acceptance evidence comment=5844871583; UPDATE_ONLY scope complete; successor_activated=false.",
+    "Closure advanced after PR #718 merge, exact-head remote QA success, and live A/B prompt sync readback."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back Issue #717, then atomically persist checkpoint CLOSED + claim RELEASED; successor_activated=false"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #717"
 }
