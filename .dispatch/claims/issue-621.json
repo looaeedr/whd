@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T05:58:30Z",
   "base_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
-  "head_sha": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+  "head_sha": "f9b7439f03d60fc0f9bb6929d8b566b21ce2291c",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T07:06:00Z",
+  "last_update": "2026-09-26T07:11:34Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
@@ -19,8 +19,19 @@
   "task_id": "A5",
   "parent_issue": 627,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Dispatch exact-head #621 A5 remote QA for TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f using a one-shot workflow that explicitly checks out TESTED_SHA; then consume orchestration drift, verify remote GREEN, clean workflow, and continue terminal closure.",
+  "remote_qa": {
+    "run_id": 36225921203,
+    "job_id": 108359824682,
+    "workflow": ".github/workflows/qa-issue621-a5-final.yml",
+    "status": "completed",
+    "conclusion": "success",
+    "orchestration_sha": "f9b7439f03d60fc0f9bb6929d8b566b21ce2291c",
+    "tested_sha": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+    "artifact_id": 10900347678,
+    "artifact_digest": "sha256:743e74e9c39461cda2e651ac33d41482aba8d84b9f7912d68dd6aa673e9e349a",
+    "protected_inputs": "GREEN"
+  },
+  "next_action": "Remove one-shot .github/workflows/qa-issue621-a5-final.yml under a fresh commit Guard, reconcile cleaned head, compare TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f to cleaned head and prove zero production/test blob drift; if clean, terminalize #621 and continue bound finalization/Issue close/release handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-621.json",
   "predecessor": {
@@ -38,16 +49,17 @@
     "P7-R-E Divider relief owner slice: RED 1 failed/1 passed because ae_engine.divider_relief_solver was absent; GREEN DividerFrontFoldReliefCandidate/build/verify orchestration moved behind assembly_collision facade at 2b83d0ec3122e8d43958bd0e19d1191d3dbbf05a with generic ownership/backprojection/true-thickness classification injected, preserving one generic algorithm path and zero manufacturing_api reverse import. Focused structural 2 passed; broader Divider/collision/persistence regression 72 passed, 4 skipped, 0 failed. Original commit Guard 36222846779 GREEN expired before reconciliation; owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 comment 5844066815 bound exact prior run/request/files and recovery Guard 36225181479 GREEN. One nonfunctional EOF blank-line diff-check warning remains to clean under a fresh Guard.",
     "Divider owner cleanup complete at 20b2d429af398027386153c861e3c8e610f4ccef: removed one nonfunctional EOF blank line from ae_engine/divider_relief_solver.py under commit Guard 36225253547 GREEN; focused 4 passed; git diff --check and cached diff-check GREEN. Post-commit reconciliation Guard 36225311053 GREEN.",
     "P7-R-E EndCap world-relief owner slice: RED 1 failed/2 passed because ae_engine.endcap_world_relief_solver was absent; GREEN solve_world_backprojected_endcap_relief orchestration moved behind assembly_collision facade at 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f with shared helpers/result types injected at runtime. Focused structural 3 passed; broader EndCap/Certified Registry/world-backprojection/assembly integration regression 97 passed, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36225400960 GREEN; post-commit reconciliation Guard 36225566301 GREEN.",
-    "Phase repair: prior phase QA was invalid for canonical execution_claim_guard ACTIVE_PHASES; reactivating the same owner/head/checkpoint to legal phase IMPLEMENTING without changing tested code or checkpoint identity."
+    "Phase repair: prior phase QA was invalid for canonical execution_claim_guard ACTIVE_PHASES; reactivating the same owner/head/checkpoint to legal phase IMPLEMENTING without changing tested code or checkpoint identity.",
+    "Exact-head remote QA GREEN for #621 P7-R-E: one-shot orchestration f9b7439f03d60fc0f9bb6929d8b566b21ce2291c explicitly checked out TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f. Run 36225921203 / job 108359824682 completed success; structural+anti-regrowth, Generic collision/Divider relief, EndCap world relief/Registry and protected-input verification steps all SUCCESS. Artifact 10900347678 digest sha256:743e74e9c39461cda2e651ac33d41482aba8d84b9f7912d68dd6aa673e9e349a. Workflow commit Guard 36225871924 GREEN; orchestration reconciliation Guard 36226020041 GREEN. Exact-head combined local gate at TESTED_SHA was 122 passed, 4 skipped, 0 failed; git diff --check GREEN."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36225566301,
-    "request_comment_id": 5844111394,
+    "run_id": 36226020041,
+    "request_comment_id": 5844164539,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "post-commit claim+checkpoint reconciliation to EndCap owner head"
+    "mutation": "post-commit reconciliation to remote-QA orchestration head"
   },
   "local_validation": {
     "divider_owner": {
@@ -62,6 +74,11 @@
       "focused": "3 passed",
       "broader": "97 passed",
       "py_compile": "GREEN",
+      "diff_check": "GREEN"
+    },
+    "combined": {
+      "tested_sha": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+      "result": "122 passed, 4 skipped, 0 failed",
       "diff_check": "GREEN"
     }
   }
