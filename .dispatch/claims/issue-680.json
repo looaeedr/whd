@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "0cb219c7d0ab741c0fdfa12b46cc882ac98ef945",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T17:10:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T17:38:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run exact post-merge focused acceptance at 0cb219c7d0ab741c0fdfa12b46cc882ac98ef945, obtain fresh pr-write Guard, merge PR #740 into cleanup/2d-3d-sync, fresh-read integration, then verify/deploy claim-handoff parser parity to main before closure.",
+  "next_action": "Authorize finalization proof, close #680 completed, fresh-read closed state, atomically set checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -75,7 +75,10 @@
     "Reconciled prior pr-write transaction after #698 parity deployment; next permitted mutation is a fresh merge pr-write.",
     "Local commit Guard GREEN over exact 41-file merge-resolution scope; merge commit 0cb219c7d0ab741c0fdfa12b46cc882ac98ef945 pushed.",
     "Drift resolution preserved cleanup governance + #680 planned-handoff semantics and repaired corrupted #680 AI Library writeback to clean UTF-8.",
-    "Pre-commit drift acceptance: #680/#698/#731 focused contracts = 12 passed / 0 failed; UTF-8 marker sanity GREEN; git diff --check GREEN."
+    "Pre-commit drift acceptance: #680/#698/#731 focused contracts = 12 passed / 0 failed; UTF-8 marker sanity GREEN; git diff --check GREEN.",
+    "PR #740 merged #680 implementation into cleanup at 79efd748107db7578105fd0ca920f2436a3ff67a.",
+    "Helper #751 closed/completed with claim RELEASED and checkpoint CLOSED; helper reservation terminalized.",
+    "Trusted main deployment PR #752 merged at 4355938c49e5feec0961fb0e4073d7aa101b2396; fresh main readback proves claim-handoff tool/parser parity."
   ],
   "remote_qa": null,
   "guard_readbacks": [
@@ -96,7 +99,7 @@
     {
       "relationship": "helper",
       "helper_key": "issue680-claim-handoff-main-deploy",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
       "reservation_token": "issue680-claim-handoff-main-deploy-20260927a",
       "reserved_at": "2026-09-26T17:15:15Z",
