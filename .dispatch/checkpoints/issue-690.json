@@ -26,13 +26,16 @@
     "Run 36255296146 at d2c04ef30b9aec258e042b6ea4f4fd790149aa56 completed SUCCESS.",
     "Remote Guard run 36255339592 requested canonical claim/checkpoint pair reconciliation because durable HEAD remained 9c1fe13c.",
     "T4 acceptance evidence V2 comment 5848183633 binds accepted head d2c04ef30b9aec258e042b6ea4f4fd790149aa56 and final QA run 36255296146.",
-    "Acceptance handoff Guard GREEN run 36258079751 / result comment 5848194642."
+    "Acceptance handoff Guard GREEN run 36258079751 / result comment 5848194642.",
+    "Trusted finalization proof GREEN run 36258162080 with exact checkpoint fingerprint 774ef8d60b6d61fb4bcb6958c341be038e6bfd7826830d4f44172313b5eb029d.",
+    "Issue #690 fresh readback confirmed closed/completed at 2026-09-26T17:12:39Z.",
+    "Release-handoff transition Guard GREEN run 36258223976 / result comment 5848211738."
   ],
   "master_issue": "693",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "692",
   "chain_next_action": "After #690 is CLOSED + RELEASED, continue #693 chain with #692 / T6 Governance production ↔ trusted deployment parity gate.",
   "chain_reason": "T4/#690 accepted at d2c04ef30b9aec258e042b6ea4f4fd790149aa56; next approved child in the #693 work-order chain is #692.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Issue Closure owner #693 must consume T4 acceptance comment 5848183633, mint fresh finalization proof bound to exact checkpoint/head d2c04ef30b9aec258e042b6ea4f4fd790149aa56, close/read back #690 as completed, then atomically persist checkpoint CLOSED + claim RELEASED and hand off to #692."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist #690 checkpoint closure_state=CLOSED and shared claim phase=RELEASED in one coordination commit, preserving Master #693 successor handoff to #692."
 }
