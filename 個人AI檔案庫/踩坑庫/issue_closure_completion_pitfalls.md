@@ -144,3 +144,12 @@ Executable owner：`tools/continuity_controller.py`；regression：`tests/proces
 2026-09-23 發生 marker-only false finalization：terminal checkpoint 與 code integration 本身有效，但 scheduler 在沒有 trusted executor run / proof artifact 的情況下，把手寫 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 留在 Issue comment後直接關單。這不符合 `OWNING_FINALIZATION_GUARD_V2`。
 
 永久規則：no-shell scheduler 必須使用窄作用域 `.github/workflows/whd-remote-finalization.yml`；workflow fixed-schema 綁 issue/worker/branch/head/checkpoint blob+fingerprint/claim blob/authority，只能跑 canonical authorize+verify。合法 closure evidence 是 terminal workflow run + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + uploaded proof artifact。marker/comment-only 一律分類 `INVALID_FINALIZATION_EVIDENCE`；誤關票必須 reopen → repair capability/process-state → fresh proof → close/readback。
+
+## MALFORMED_TERMINAL_CHECKPOINT_CLOSURE_PITFALL_V1
+
+#733 證明「code integrated, process incomplete」還可能進一步卡在 malformed terminal checkpoint：checkpoint 已 `TERMINAL_SUCCESS`，但 closure lifecycle 值不屬於 canonical enum，導致 finalization、ordinary Guard 與一般 reactivate 都無法合法前進。
+
+這時禁止直接編輯 durable checkpoint。唯一合法入口是 trusted Claim Activation `transition=terminal-checkpoint-repair`，exact 綁 prior claim/checkpoint blob 與 coord parent；candidate claim 必須 byte-identical，candidate checkpoint 必須等於 `repair_malformed_terminal_checkpoint()` 的 canonical repair 結果，且只能回到 `FINALIZATION_PENDING`。
+
+Repair 只是恢復 closure transaction 的可執行狀態；它不代表 Issue 已關、不代表 claim 已 RELEASED，也不能取代 fresh finalization proof。之後仍照 `FINALIZATION_PENDING → ISSUE_CLOSE_PENDING → proof → close/readback → RELEASE_HANDOFF_PENDING → CLOSED + RELEASED` 完整收尾。
+

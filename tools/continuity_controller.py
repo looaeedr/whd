@@ -516,6 +516,89 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
         raise CheckpointError("checkpoint contains invalid field values") from exc
 
 
+def repair_malformed_terminal_checkpoint(
+    payload: object,
+    *,
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+) -> Checkpoint:
+    """Narrowly normalize a malformed terminal closure lifecycle.
+
+    This recovery exists only for a terminal-success checkpoint whose owner identity
+    is exact and whose malformed closure lifecycle is the sole schema defect. It
+    never rewrites issue/branch/head/state, never releases a claim, and never jumps
+    directly to CLOSED.
+    """
+
+    if not isinstance(payload, dict):
+        raise CheckpointError("malformed terminal repair requires a JSON object")
+
+    issue = _require_text("expected_issue", expected_issue)
+    branch = _require_text("expected_branch", expected_branch)
+    head_sha = _require_text("expected_head_sha", expected_head_sha)
+
+    if payload.get("version") != CHECKPOINT_VERSION:
+        raise CheckpointError("malformed terminal repair requires current checkpoint version")
+    if str(payload.get("issue") or "").strip() != issue:
+        raise CheckpointError("malformed terminal repair issue identity drift")
+    if str(payload.get("branch") or "").strip() != branch:
+        raise CheckpointError("malformed terminal repair branch identity drift")
+    if str(payload.get("head_sha") or "").strip() != head_sha:
+        raise CheckpointError("malformed terminal repair HEAD identity drift")
+    if payload.get("state") != ContinuityState.TERMINAL_SUCCESS.value:
+        raise CheckpointError("malformed terminal repair requires TERMINAL_SUCCESS")
+
+    raw_closure_state = payload.get("closure_state")
+    if raw_closure_state in {state.value for state in ClosureState}:
+        raise CheckpointError(
+            "malformed terminal repair requires an invalid closure lifecycle value"
+        )
+
+    allowed = {
+        "version",
+        "issue",
+        "branch",
+        "head_sha",
+        "state",
+        "next_action",
+        "run_id",
+        "job_id",
+        "log_cursor",
+        "blocked_count",
+        "blocked_last_notified_at",
+        "evidence",
+        "master_issue",
+        "chain_state",
+        "next_issue",
+        "chain_next_action",
+        "chain_reason",
+        "closure_state",
+        "closure_next_action",
+    }
+    unknown = set(payload) - allowed
+    if unknown:
+        raise CheckpointError(
+            f"malformed terminal repair refuses unknown fields: {sorted(unknown)}"
+        )
+
+    candidate = dict(payload)
+    candidate["closure_state"] = ClosureState.FINALIZATION_PENDING.value
+    candidate["closure_next_action"] = DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION
+    checkpoint = checkpoint_from_payload(candidate)
+
+    if (
+        checkpoint.issue != issue
+        or checkpoint.branch != branch
+        or checkpoint.head_sha != head_sha
+        or checkpoint.state is not ContinuityState.TERMINAL_SUCCESS
+    ):
+        raise CheckpointError("malformed terminal repair changed owner identity")
+    if checkpoint.closure_state is not ClosureState.FINALIZATION_PENDING:
+        raise CheckpointError("malformed terminal repair did not normalize to FINALIZATION_PENDING")
+    return checkpoint
+
+
 def load_checkpoint(path: Path) -> Checkpoint:
     path = Path(path)
     try:
