@@ -465,7 +465,7 @@ jobs:
           if not candidates:
               raise SystemExit("missing matching WHD_USER_DIRECTED_TAKEOVER_V1")
           selected = max(candidates, key=lambda item: (str(item.get("created_at") or ""), int(item.get("id") or 0)))
-          Path("/tmp/user-authority.json").write_text(json.dumps(selected, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          Path("/tmp/user-authority.json").write_text(json.dumps(selected, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
                 user_authority_arg=(--user-authority-json /tmp/user-authority.json)
               fi
