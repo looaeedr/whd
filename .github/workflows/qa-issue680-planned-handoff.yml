@@ -2,6 +2,12 @@ name: WHD｜工單 #680｜Planned Handoff RED 驗證
 run-name: "WHD｜工單 #680｜Planned Handoff Scheduler Receiver RED"
 
 on:
+  push:
+    branches:
+      - work/issue680-planned-handoff-scheduler-receiver-20260926
+    paths:
+      - tests/process/test_issue680_planned_handoff_scheduler_receiver.py
+      - .github/workflows/qa-issue680-planned-handoff.yml
   workflow_dispatch:
 
 permissions:
