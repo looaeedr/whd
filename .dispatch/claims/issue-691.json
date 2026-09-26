@@ -9,14 +9,18 @@
   "work_branch": "work/issue691-turn-exit-scheduler-end-20260926",
   "claimed_at": "2026-09-26T14:42:00Z",
   "base_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-  "head_sha": "a26e1f1bbe0c93d26947e1ad8f3896c896701a05",
+  "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
   "phase": "GREEN",
-  "last_update": "2026-09-26T15:10:40.832025Z",
+  "last_update": "2026-09-26T15:17:27.969699Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run broader continuity/turn-exit/scheduler regression on exact head a26e1f1b, then perform acceptance/drift audit and hand terminal closure to #693.",
+  "remote_qa": {
+    "run_id": 36251331964,
+    "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
+    "status": "success"
+  },
+  "next_action": "Publish #691 T3 acceptance evidence for RED-STOP-08/12/13, then hand terminal ISSUE_CLOSE_PENDING state to Issue Closure owner #693.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-691.json",
   "evidence": [
@@ -34,7 +38,10 @@
     "Post-implementation reconciliation Guard GREEN run 36250782205 / result comment 5847325306.",
     "Fix commit a26e1f1bbe0c93d26947e1ad8f3896c896701a05 added missing re import.",
     "Focused branch-native QA run 36250946336 terminal SUCCESS at exact head a26e1f1bbe0c93d26947e1ad8f3896c896701a05.",
-    "Post-fix reconciliation Guard GREEN run 36251008760 / result comment 5847352182."
+    "Post-fix reconciliation Guard GREEN run 36251008760 / result comment 5847352182.",
+    "Broader QA workflow commit 48cd6521d59531cc04ea7ab12fbe49c595eb69e8.",
+    "Branch-native QA run 36251331964 terminal SUCCESS at exact head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8: focused 6 PASS + broader 112 PASS / 0 FAIL.",
+    "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
