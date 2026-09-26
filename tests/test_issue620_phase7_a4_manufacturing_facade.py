@@ -49,3 +49,27 @@ def test_p7_r_d_dxf_export_sink_has_bounded_owner():
         'fold_designer_bridge',
     ):
         assert forbidden not in owner_source
+
+
+def test_p7_r_d_endcap_request_resolution_has_bounded_owner():
+    from ae_engine import manufacturing_api
+
+    owner = importlib.import_module('ae_engine.manufacturing_requests')
+    assert manufacturing_api.ResolvedEndCapRequest is owner.ResolvedEndCapRequest
+
+    facade_source = inspect.getsource(manufacturing_api.resolve_endcap_request)
+    assert '_manufacturing_requests.resolve_endcap_request' in facade_source
+    assert 'fold_profile_x' not in facade_source
+    assert 'resolve_endcap_policy_assembly_semantics' in facade_source
+
+    owner_source = inspect.getsource(owner)
+    assert 'class ResolvedEndCapRequest' in owner_source
+    assert 'def resolve_endcap_request' in owner_source
+    assert 'fold_profile_x' in owner_source
+    for forbidden in (
+        'from .manufacturing_api import',
+        'import manufacturing_api',
+        'gui',
+        'fold_designer_bridge',
+    ):
+        assert forbidden not in owner_source
