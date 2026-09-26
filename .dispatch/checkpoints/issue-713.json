@@ -1,26 +1,24 @@
-[Reading 22 lines from start (total: 22 lines, 0 remaining)]
-
 {
   "version": 1,
   "issue": "713",
   "branch": "work/issue713-normal-path-governance-20260926",
-  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "head_sha": "aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4",
   "state": "RUNNING",
-  "next_action": "Create exact work branch, add RED routing contract tests for UPDATE_ONLY/NORMAL_PATH/RECOVERY_EXCEPTION, then update only the conflicting Skill entrypoints and run focused governance regression.",
+  "next_action": "Open PR for exact GREEN head aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4, run remote governance/CI, then merge and close/release #713; after merge, update live A/B automation prompts without changing cadence or enabled state.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "User explicitly authorized a standalone governance sweep/fix for Guard, Scheduler Simulation, work-slot/execution routing and related entrypoints.",
-    "Issue #713 is the standalone owning Issue.",
+    "User explicitly authorized standalone governance repair for Guard, Scheduler Simulation, work-slot/execution routing and related entrypoints.",
     "Phase6 Skill Preflight passed with all required Skills/references.",
-    "Fresh production target cleanup/2d-3d-sync HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28.",
-    "Normal path only: no recovery mechanism is pre-run without evidence."
+    "RED evidence durable on Issue #713 comment 5844371798: 10 intended failures / 0 harness errors.",
+    "GREEN head aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4: focused 10 passed; safety/governance regression 134 passed.",
+    "Knowledge governance bootstrap GREEN; git diff --check GREEN.",
+    "No tools/** executable code changed; seven Skill entrypoints + two pitfall ledgers + one contract test changed.",
+    "Fresh recovery condition: initial coord blobs were wrapper-contaminated; this update repairs them to pure JSON while syncing the GREEN work head."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
 }
-
-[executed on device: R5-2600 (5e85f914-bd06-4f87-8e61-34dd15a50b54)]
