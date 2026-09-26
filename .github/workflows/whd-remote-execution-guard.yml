@@ -54,7 +54,11 @@ jobs:
               "guard_authority_sha",
               "tested_target_sha",
           }
-          allowed_single = required_single | {"executor_source", "takeover_worker"}
+          allowed_single = required_single | {
+              "executor_source",
+              "takeover_worker",
+              "legacy_reconcile_recovery_comment_id",
+          }
           allowed_multi = {"changed_file"}
           singles = {}
           changed_files = []
@@ -104,6 +108,20 @@ jobs:
                   raise SystemExit("invalid takeover_worker")
           elif takeover_worker is not None:
               raise SystemExit("takeover_worker is only valid for claim-takeover")
+
+          legacy_recovery_comment_id = singles.get(
+              "legacy_reconcile_recovery_comment_id"
+          )
+          if legacy_recovery_comment_id is not None:
+              if singles["action"] != "write":
+                  raise SystemExit(
+                      "legacy_reconcile_recovery_comment_id is only valid for write"
+                  )
+              if (
+                  not legacy_recovery_comment_id.isdigit()
+                  or int(legacy_recovery_comment_id) <= 0
+              ):
+                  raise SystemExit("invalid legacy_reconcile_recovery_comment_id")
 
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
@@ -417,6 +435,43 @@ jobs:
           Path("/tmp/preflight-evidence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
+            legacy_recovery_arg=()
+            if [ -n "${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID:-}" ]; then
+              gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID}" > /tmp/legacy-postcommit-recovery.json
+              python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("/tmp/legacy-postcommit-recovery.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          user = payload.get("user")
+          if (
+              not isinstance(user, dict)
+              or user.get("login") != os.environ["GITHUB_REPOSITORY_OWNER"]
+          ):
+              raise SystemExit(
+                  "legacy recovery comment must be repository-owner authored"
+              )
+          body = str(payload.get("body") or "").replace("\r\n", "\n")
+          if (
+              not body.split("\n")
+              or body.split("\n")[0].strip()
+              != "WHD_LEGACY_POSTCOMMIT_RECONCILE_V1"
+          ):
+              raise SystemExit("legacy recovery comment marker mismatch")
+          issue_url = str(payload.get("issue_url") or "")
+          if not issue_url.endswith(f"/issues/{os.environ['RG_ISSUE']}"):
+              raise SystemExit("legacy recovery comment issue mismatch")
+          PY
+              legacy_recovery_arg=(
+                --legacy-reconcile-recovery /tmp/legacy-postcommit-recovery.json
+              )
+            fi
+
             preflight_args=(
               python tools/phase6_skill_preflight.py
               --task "GitHub Actions remote QA scheduler execution claim guard workflow run_id"
@@ -445,6 +500,7 @@ jobs:
             else
               guard_args+=(--head-sha "$RG_HEAD_SHA")
             fi
+            guard_args+=("${legacy_recovery_arg[@]}")
             guard_args+=(--preflight-evidence /tmp/preflight-evidence.txt)
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")

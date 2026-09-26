@@ -99,3 +99,20 @@ evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接
 - candidate checkpoint 必須 canonical non-terminal 並 exact 綁 unchanged claim issue/branch/head。
 - coordination parent + prior claim blob 共同作 CAS identity；任何 drift fail closed。
 - repair 後的 branch HEAD drift仍走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得把 legacy repair 升格成 stale-head bypass。
+
+## LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_RECOVERY_V1（2026-09-26）
+
+### 事故
+#617 的歷史 mutation 已有 exact GREEN Guard request/receipt，H1 也是 claim H0 的直接子 commit且 changed files 完全吻合；但 commit timestamp 落在舊 receipt 的有效窗之外，因此 ordinary post-commit reconciliation 正確 RED。若直接放寬 receipt window，等於讓所有過期 GREEN 重新取得 mutation authority，會破壞 single-use / expiry contract。
+
+### 永久規則
+- ordinary `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1` 完全不改；沒有 recovery authority 時，過期 receipt 照舊 RED。
+- 唯一 migration 入口是 repository owner 在 owning Issue 留下 fixed-schema `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`。
+- recovery 必須 exact 綁 issue/worker/source/branch、claim H0、live H1、historical guard run id、request comment id、changed-file set。
+- canonical guard 必須先通過既有 current claim blob、direct-child H0→H1、historical request+GREEN receipt、base/head/tested-target/files identity；只有最後的 receipt-time-window check 可由 exact recovery authority取代。
+- wrong live head、wrong run/request、foreign owner/source、wrong files、non-direct child、malformed/foreign comment 一律 fail closed。
+- trusted Remote Guard 僅在 `action=write` 接受 `legacy_reconcile_recovery_comment_id`，fresh fetch exact comment 後驗 owner + issue + marker，再傳 `--legacy-reconcile-recovery`；禁止 arbitrary payload/shell。
+- recovery 只授權 coordination reconciliation，不重播原 implementation，也不把舊 GREEN receipt 升格為可重用 mutation token。
+- trusted workflow 必須先部署到 default branch `main` 並 readback，之後才能用於 #617/#671 的 live repair。
+
+Primary regression：`tests/process/test_issue675_legacy_expired_postcommit_recovery.py`。Governance owner：#675。

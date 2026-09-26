@@ -150,6 +150,15 @@ Request 前：
 
 任一 receipt/request/claim blob/parent/file scope/time-window 不吻合 → `REMOTE_GUARD_FAILED`，維持 blocker，不得偷改 claim。
 
+##### LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_V1
+
+只有歷史 mutation 已由 exact GREEN receipt 授權、但 commit timestamp 落在該 receipt window 之外的 legacy 半完成 transaction，才可使用 owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`。此 recovery **只放寬 historical receipt-time-window**，不放寬任何其他 identity。
+
+- owning Issue top-level comment 必須由 repository owner 發出，第一行 exact `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`；至少綁 `issue / worker / executor_source / branch / claim_head_sha(H0) / live_head_sha(H1) / prior_guard_run_id / prior_request_comment_id / changed_file`。
+- canonical guard 仍必須證明 current claim blob、owner/source/branch/base、H0→H1 direct child、prior request + GREEN receipt、exact run/request identity 與 commit changed-file set全部一致；wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 一律 fail closed。
+- trusted Remote Guard 只透過 fixed-schema `legacy_reconcile_recovery_comment_id` 取得 exact owner comment，驗 author/issue/marker 後傳入 `--legacy-reconcile-recovery`；不得接受自由文字或把 comment 本身當 mutation authority。
+- ordinary post-commit reconciliation 與正常 receipt-window 行為完全不變；此 recovery 不得用於一般 stale-head write、production/Skill mutation、takeover 或 replay implementation。新的 trusted workflow 必須先部署到 default branch `main` 並 fresh readback，之後才能用於 #617/#671 live repair。
+
 ### qa-dispatch / workflow-dispatch / pr-write
 同樣要求 fresh claim/blob/branch/head identity。receipt 只授權 request 中那一種 action。
 
