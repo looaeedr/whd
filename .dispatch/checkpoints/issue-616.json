@@ -39,13 +39,14 @@
     "Remote Guard run 36204323903 GREEN consumed to advance closure_state FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization run 36205350425 GREEN / FINALIZATION_PROOF_VALID; artifact 10893164788.",
     "Issue #616 remote readback confirmed closed/completed at 2026-09-26T00:36:34Z.",
-    "Post-close Guard run 36205496561 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Post-close Guard run 36205496561 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard run 36205589878 GREEN consumed; checkpoint CLOSED + claim RELEASED atomically persisted. #619 remains NEXT_CHILD_EXECUTABLE."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Obtain a fresh Guard and atomically persist checkpoint CLOSED + claim RELEASED + successor #619 handoff.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "619",
-  "chain_next_action": "After #616 close/release, activate/claim #619 B4 on accepted #616 cleaned lineage head 81468a8103fd5045160e0f16e9458317acee584b and consume B3 artifact 10892687398 as exact first-bad-visible-commit evidence before changing family-switch sequencing.",
-  "chain_reason": null
+  "chain_next_action": "Create/activate #619 B4 claim on the shared work-order branch at accepted #616 head 81468a8103fd5045160e0f16e9458317acee584b; consume B3 artifact 10892687398 before changing family-switch sequencing.",
+  "chain_reason": "Fresh #616 closure/readback complete; #619 is the dependency-unblocked successor required by Master #628."
 }
