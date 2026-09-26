@@ -28,13 +28,16 @@
     "First post-merge smoke run 36244052613 was intentionally blocked before parser by unconsumed pr-write transaction; durable reconciliation now records that transaction as consumed before retry.",
     "Trusted-main normal-multiline takeover transport smoke run 36244193891 reached tools/stale_claim_takeover.py and returned WAIT_ON_FOREIGN_RUNTIME with stale_seconds=59 and user_authority_comment_id=5846509781; parser/JSON transport succeeded and the safe refusal was expected because the owner was fresh.",
     "Issue #722 was reopened after PR #726 autoclose because durable finalization had not yet completed; early autoclose was treated as process-state drift, not completion evidence.",
-    "Terminal acceptance / ISSUE_CLOSE_PENDING coordination write authorized by Remote Guard run 36244365289 / request 5846547080."
+    "Terminal acceptance / ISSUE_CLOSE_PENDING coordination write authorized by Remote Guard run 36244365289 / request 5846547080.",
+    "Trusted remote finalization run 36244570398 succeeded with FINALIZATION_PROOF_VALID for checkpoint blob 10cc39a09aa47c55c88cb2cac474eaac9cdd9a24, fingerprint b4f493c7decea54a452a5ff9e18935ca58372319a849b5e1e3077b2513f107f4, claim blob 3bbb5d3b4f2cda1da711d7c29b31e3a7e38e1edc, artifact 10907480005.",
+    "Issue #722 close mutation completed and fresh GitHub readback confirmed state=closed, state_reason=completed at 2026-09-26T13:16:24Z.",
+    "ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING write authorized by Remote Guard run 36244667999 / request 5846582148."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint trusted remote finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint; then close/read back #722 completed and atomically persist checkpoint CLOSED + claim RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Persist the final atomic coordination mutation: checkpoint closure_state=CLOSED + claim phase=RELEASED in one commit, then fresh-read Issue/claim/checkpoint."
 }
