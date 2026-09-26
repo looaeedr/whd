@@ -4,9 +4,9 @@
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
   "state": "RUNNING",
-  "next_action": "Fresh-read the auto-triggered #622 B5 Combined run created by workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0; bind exact run_id+head into WAITING_REMOTE and actively poll it to terminal.",
-  "run_id": null,
-  "job_id": null,
+  "next_action": "Remove the one-shot #622 B5 Combined workflow, update CURRENT AI Library authority records for selector reachability / WorkspaceShell overlay / display-atomic family transition, then perform tested→closing drift audit proving zero production/test drift before closure.",
+  "run_id": 36212566772,
+  "job_id": 108322022667,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -16,7 +16,11 @@
     "Knowledge Preflight required skills/references are complete before B5 substantive work.",
     "B1/B2/B4 accepted lineage is non-diverged and all accepted heads are ancestors of the B5 candidate.",
     "B5 Combined workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0 is workflow-only.",
-    "Post-commit pair reconciliation authorized by Guard 36212583338."
+    "Post-commit pair reconciliation authorized by Guard 36212583338.",
+    "B5 Combined run 36212566772 SUCCESS on exact head fc9ad5fcc5c231888b9628eca31df8470affcbb0.",
+    "Headless 21 passed / 1 skipped; Xvfb 70 passed / 1 deselected / 0 failed; protected config invariant GREEN.",
+    "Artifact 10896610490 preserves final Combined acceptance evidence.",
+    "Guard 36212678802 authorizes transition from remote terminal GREEN back to RUNNING cleanup/writeback."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

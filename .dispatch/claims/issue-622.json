@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T02:35:38Z",
   "base_sha": "aa9c25aa44283f325445311b013b26086467395b",
   "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T02:44:09Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T02:45:31Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -27,7 +27,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read the auto-triggered #622 B5 Combined run created by workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0; bind exact run_id+head into WAITING_REMOTE and actively poll it to terminal.",
+  "next_action": "Remove the one-shot #622 B5 Combined workflow, update CURRENT AI Library authority records for selector reachability / WorkspaceShell overlay / display-atomic family transition, then perform tested→closing drift audit proving zero production/test drift before closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-622.json",
   "predecessor": {
@@ -54,17 +54,23 @@
     "B5 workflow changed-file Knowledge Preflight completed GREEN with monitoring-remote-qa, long-log-context-safe-execution, and executable-continuity-controller requirements satisfied.",
     "Actions naming guard completed GREEN for .github/workflows/qa-issue622-b5-combined.yml after BOM/run-name correction.",
     "B5 Combined one-shot workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0 changed only .github/workflows/qa-issue622-b5-combined.yml under commit Guard 36212366469.",
-    "Post-commit pair reconciliation authorized by Guard 36212583338."
+    "Post-commit pair reconciliation authorized by Guard 36212583338.",
+    "Exact B5 Combined run 36212566772 completed SUCCESS on fc9ad5fcc5c231888b9628eca31df8470affcbb0.",
+    "Headless owner/source gate: 21 passed, 1 skipped, 0 failed in 1.15s.",
+    "Xvfb combined user-path/export/persistence gate: 70 passed, 1 deselected, 0 failed in 80.37s; the deselected node is the baseline-confirmed legacy selector-menubutton debt already excluded by B4.",
+    "Protected config.ini invariant step completed GREEN.",
+    "Artifact 10896610490 / sha256:e3597583ad90b29b603728cc1d87f15e95ef56b3c08de44df0b189f0b4070fbf.",
+    "Terminal GREEN durable writeback authorized by Guard 36212678802."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36212583338,
-    "request_comment_id": 5842469833,
+    "run_id": 36212678802,
+    "request_comment_id": 5842487237,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-commit pair reconciliation to B5 Combined workflow head"
+    "mutation": "record terminal B5 Combined GREEN and continue cleanup/writeback"
   },
   "b5_lineage": {
     "b1_head": "c043e447afc0da533ef965fe82d175e75011d186",
@@ -72,5 +78,25 @@
     "b4_tested_head": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
     "b4_cleaned_head": "aa9c25aa44283f325445311b013b26086467395b",
     "all_ancestors_of_b5_head": true
+  },
+  "remote_qa": {
+    "run_id": 36212566772,
+    "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": ".github/workflows/qa-issue622-b5-combined.yml",
+    "job_id": 108322022667,
+    "artifact_id": 10896610490,
+    "artifact_digest": "sha256:e3597583ad90b29b603728cc1d87f15e95ef56b3c08de44df0b189f0b4070fbf"
+  },
+  "green_evidence": {
+    "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
+    "run_id": 36212566772,
+    "job_id": 108322022667,
+    "headless": "21 passed / 1 skipped / 0 failed in 1.15s",
+    "xvfb": "70 passed / 1 deselected / 0 failed in 80.37s",
+    "artifact_id": 10896610490,
+    "artifact_digest": "sha256:e3597583ad90b29b603728cc1d87f15e95ef56b3c08de44df0b189f0b4070fbf",
+    "contract": "B1 selector/BACK_OPENING + B2 WorkspaceShell overlay + B4 atomic family live-switch integrated on one exact head; lineage, export, persistence, protected config, and owner/source duplication gates all GREEN."
   }
 }
