@@ -18,13 +18,15 @@
     "Trusted-domain acceptance 68 passed / 0 failed; main has no workstation_poweroff_gate reference.",
     "PR #765 merged to main at b6febcfc641beab1b015946671ace7642ab6de48.",
     "Exact trusted readback proved both deployed blobs equal #693 source.",
-    "Closure write Guard GREEN."
+    "Closure write Guard GREEN.",
+    "Issue #763 closed/completed after verified finalization proof.",
+    "Final atomic child transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Authorize finalization proof, close #763, fresh-read, then atomic CLOSED + RELEASED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
