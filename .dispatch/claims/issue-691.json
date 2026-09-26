@@ -9,14 +9,14 @@
   "work_branch": "work/issue691-turn-exit-scheduler-end-20260926",
   "claimed_at": "2026-09-26T14:42:00Z",
   "base_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-  "head_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T14:55:30Z",
+  "head_sha": "9c084e69041cb168bd31a96954d9df937aee5359",
+  "phase": "RED",
+  "last_update": "2026-09-26T15:00:47.286777Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run Phase6 Preflight for #691 RED-STOP-08/12/13, prove local/remote turn-exit parity and scheduler END exact-receipt binding, then implement the canonical machine gate.",
+  "next_action": "Implement RED-STOP-08/12/13: local live durable turn-exit parity, exact scheduler END receipt binding, and trusted END verification; rerun branch-native focused QA to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-691.json",
   "evidence": [
@@ -25,15 +25,24 @@
     "Dependencies satisfied: #687 and #689 are closed/completed with claims RELEASED.",
     "Inherited accepted work-order HEAD: #689 accepted head 6647ce01e1834e8c1eb8c5d15d30896187c69397; do not restart from newer production X.",
     "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance.",
-    "Branch-create Guard GREEN run 36249643634 / result comment 5847183670 consumed by exact branch readback at 6647ce01e1834e8c1eb8c5d15d30896187c69397; branch creation is non-substantive."
+    "Branch-create Guard GREEN run 36249643634 / result comment 5847183670 consumed by exact branch readback at 6647ce01e1834e8c1eb8c5d15d30896187c69397; branch creation is non-substantive.",
+    "First substantive action: RED commit 9c084e69041cb168bd31a96954d9df937aee5359 under Guard run 36250304277 / result comment 5847266347.",
+    "Branch-native QA run 36250376673 terminal failure with 5 expected RED failures for RED-STOP-08/12/13; no harness failures.",
+    "Post-RED reconciliation Guard GREEN run 36250437614 / result comment 5847283342."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
-    "state": "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION",
+    "state": "SUBSTANTIVE_ACTION_COMPLETED",
     "acquired_via": "fresh-create",
     "branch_create_guard_run_id": 36249643634,
     "branch_create_result_comment_id": 5847183670,
     "branch_readback_head_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-    "first_substantive_action": null
+    "first_substantive_action": {
+      "kind": "RED_TEST_CREATED_AND_EXECUTED",
+      "head_sha": "9c084e69041cb168bd31a96954d9df937aee5359",
+      "workflow_run_id": 36250376673,
+      "test": "tests/process/test_issue691_turn_exit_scheduler_end_parity.py",
+      "result": "5_FAIL_EXPECTED_RED"
+    }
   }
 }
