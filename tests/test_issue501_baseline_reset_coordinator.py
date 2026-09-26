@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
 from pathlib import Path
+from types import SimpleNamespace
 
 
 BRIDGE = Path("fold_designer_bridge.py")
@@ -105,3 +107,55 @@ def test_issue501_semantic_owner_stays_transaction_controller():
     coordinator = _coordinator_method_source("apply_baseline_transition")
     assert "commit_family_model_transition(" not in baseline
     assert "self._transactions.commit_family_model_transition(" in coordinator
+
+
+def test_issue619_baseline_transition_batches_visible_updates_until_finalize():
+    from gui_modules.application.fold_designer_settings_coordinator import (
+        Phase6FoldDesignerSettingsCoordinator,
+    )
+    from tests.test_issue498_settings_application_coordinator import _ports
+
+    events = []
+
+    class Transactions:
+        def commit_family_model_transition(self, *args, **kwargs):
+            return SimpleNamespace(family_values={"w": 800}, assembly_type="WRAP")
+
+        def commit_settings(self, values):
+            return dict(values)
+
+    ports = _ports()
+    ports = dataclasses.replace(
+        ports,
+        project_ui_values=lambda values, **kwargs: events.append(
+            ("project", kwargs.get("baseline_stage"))
+        ),
+        apply_profile_plan=lambda values, **kwargs: events.append(
+            ("profile", kwargs.get("render"))
+        ),
+        sync_derived_parts=lambda: events.append(("derived", None)),
+        refresh_topology=lambda **kwargs: events.append(("topology", kwargs.get("reason"))),
+        refresh_persistent_controls=lambda: events.append(("controls", None)),
+        project_status=lambda **kwargs: events.append(("status", None)),
+        submit_update_intent=lambda payload: events.append(("intent", payload.get("reason"))),
+    )
+    coordinator = Phase6FoldDesignerSettingsCoordinator(
+        transactions=Transactions(),
+        ports=ports,
+        begin_update_batch=lambda: events.append(("batch", "begin")) or True,
+        end_update_batch=lambda commit=True: events.append(("batch", "commit" if commit else "abort")),
+    )
+
+    result = coordinator.apply_baseline_transition(
+        new_model="受電箱",
+        old_model="金庫型",
+        new_editable=False,
+        old_editable=False,
+    )
+
+    assert result is not None
+    assert events[0] == ("batch", "begin")
+    assert events[-1] == ("batch", "commit")
+    assert events.index(("project", "finalize")) < events.index(("intent", "baseline"))
+    assert events.index(("intent", "baseline")) < len(events) - 1
+    assert ("profile", False) in events

@@ -160,18 +160,26 @@ class Phase6FoldDesignerSettingsCoordinator:
     this owner without moving Settings semantics or domain calculations.
     """
 
-    __slots__ = ("_transactions", "_ports")
+    __slots__ = ("_transactions", "_ports", "_begin_update_batch", "_end_update_batch")
 
     def __init__(
         self,
         *,
         transactions: "Phase6SettingsTransactionController",
         ports: Phase6SettingsApplicationPorts,
+        begin_update_batch: PortCallable | None = None,
+        end_update_batch: PortCallable | None = None,
     ):
         if not isinstance(ports, Phase6SettingsApplicationPorts):
             raise TypeError("ports must be Phase6SettingsApplicationPorts")
         self._transactions = transactions
         self._ports = ports
+        self._begin_update_batch = (
+            begin_update_batch if callable(begin_update_batch) else lambda: False
+        )
+        self._end_update_batch = (
+            end_update_batch if callable(end_update_batch) else lambda _commit=True: False
+        )
 
     def apply_updates(
         self,
@@ -293,7 +301,7 @@ class Phase6FoldDesignerSettingsCoordinator:
         available_parts=(),
         previous_non_receiving_structure=None,
     ):
-        """Apply one family/model transition while preserving semantic ownership."""
+        """Apply one family/model transition as one visible-update transaction."""
         plan = None
         try:
             plan = self._transactions.commit_family_model_transition(
@@ -308,59 +316,66 @@ class Phase6FoldDesignerSettingsCoordinator:
         except Exception:
             plan = None
 
-        committed = {}
-        if plan is not None:
-            if getattr(plan, "family_values", None):
-                committed = dict(
-                    self._transactions.commit_settings(plan.family_values) or {}
+        batch_started = bool(self._begin_update_batch())
+        batch_complete = False
+        try:
+            committed = {}
+            if plan is not None:
+                if getattr(plan, "family_values", None):
+                    committed = dict(
+                        self._transactions.commit_settings(plan.family_values) or {}
+                    )
+                self._ports.project_ui_values(
+                    committed,
+                    baseline_transition=plan,
+                    baseline_stage="commit",
+                    new_model=str(new_model or ""),
+                    old_model=str(old_model or ""),
+                    new_editable=bool(new_editable),
+                    old_editable=bool(old_editable),
                 )
+                if committed:
+                    self._ports.apply_profile_plan(
+                        committed,
+                        reset_box_profile=True,
+                        render=False,
+                    )
+
             self._ports.project_ui_values(
-                committed,
+                {},
                 baseline_transition=plan,
-                baseline_stage="commit",
+                baseline_stage="state",
                 new_model=str(new_model or ""),
                 old_model=str(old_model or ""),
                 new_editable=bool(new_editable),
                 old_editable=bool(old_editable),
             )
-            if committed:
-                self._ports.apply_profile_plan(
-                    committed,
-                    reset_box_profile=True,
-                    render=False,
-                )
-
-        self._ports.project_ui_values(
-            {},
-            baseline_transition=plan,
-            baseline_stage="state",
-            new_model=str(new_model or ""),
-            old_model=str(old_model or ""),
-            new_editable=bool(new_editable),
-            old_editable=bool(old_editable),
-        )
-        self._ports.sync_derived_parts()
-        self._ports.refresh_topology(reason="baseline")
-        self._ports.refresh_persistent_controls()
-        self._ports.project_ui_values(
-            {},
-            baseline_transition=plan,
-            baseline_stage="finalize",
-            new_model=str(new_model or ""),
-            old_model=str(old_model or ""),
-            new_editable=bool(new_editable),
-            old_editable=bool(old_editable),
-        )
-        self._ports.project_status(
-            message=(
-                "自訂：沿用目前資料並即時同步主畫面"
-                if bool(new_editable)
-                else "已選基準型號；截角修改即時同步主畫面"
-            ),
-            settings=True,
-        )
-        self._ports.submit_update_intent({"reason": "baseline", "force": True})
-        return plan
+            self._ports.sync_derived_parts()
+            self._ports.refresh_topology(reason="baseline")
+            self._ports.refresh_persistent_controls()
+            self._ports.project_ui_values(
+                {},
+                baseline_transition=plan,
+                baseline_stage="finalize",
+                new_model=str(new_model or ""),
+                old_model=str(old_model or ""),
+                new_editable=bool(new_editable),
+                old_editable=bool(old_editable),
+            )
+            self._ports.project_status(
+                message=(
+                    "自訂：沿用目前資料並即時同步主畫面"
+                    if bool(new_editable)
+                    else "已選基準型號；截角修改即時同步主畫面"
+                ),
+                settings=True,
+            )
+            self._ports.submit_update_intent({"reason": "baseline", "force": True})
+            batch_complete = True
+            return plan
+        finally:
+            if batch_started:
+                self._end_update_batch(batch_complete)
 
     def reset_factory_settings(self, factory_defaults) -> bool:
         """Restore immutable factory Settings through the canonical transaction seam."""

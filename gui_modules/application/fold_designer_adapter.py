@@ -72,6 +72,7 @@ from gui_modules.application.fold_designer_settings_coordinator import (
     Phase6FoldDesignerSettingsCoordinator,
     Phase6SettingsApplicationPorts,
 )
+from gui_modules.application.command_router import _Phase6UpdateScheduler
 from gui_modules.parts.panels.divider import collect_divider_input
 from gui_modules.parts.panels.door import collect_door_input
 from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
@@ -1399,9 +1400,31 @@ class Phase6FoldDesignerComposition:
     def settings_coordinator(self, ports: Phase6SettingsApplicationPorts):
         """Return the single Phase 5 Settings application sequencing owner."""
         if self._settings_coordinator is None:
+            app = self.app
+
+            def begin_update_batch():
+                scheduler = getattr(app, "_phase6_update_scheduler", None)
+                if not isinstance(scheduler, _Phase6UpdateScheduler):
+                    scheduler = _Phase6UpdateScheduler(app)
+                    app._phase6_update_scheduler = scheduler
+                scheduler.begin()
+                return True
+
+            def end_update_batch(commit=True):
+                scheduler = getattr(app, "_phase6_update_scheduler", None)
+                if not isinstance(scheduler, _Phase6UpdateScheduler):
+                    return False
+                scheduler.end()
+                if bool(commit):
+                    return scheduler.flush_now()
+                scheduler.cancel_pending()
+                return False
+
             self._settings_coordinator = Phase6FoldDesignerSettingsCoordinator(
                 transactions=self.settings_transactions(),
                 ports=ports,
+                begin_update_batch=begin_update_batch,
+                end_update_batch=end_update_batch,
             )
         return self._settings_coordinator
 
