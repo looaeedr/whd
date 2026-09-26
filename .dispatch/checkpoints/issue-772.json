@@ -11,17 +11,17 @@
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "PR #773 merged to trusted main at 33503143a8fbcc4f787bb2783e9e11f9c3b1ea74.",
-    "Trusted main blob parity with accepted #768 source confirmed.",
-    "#762 final release succeeded with new Remote Guard authority.",
-    "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID for exact #772 checkpoint.",
-    "Issue #772 fresh close/readback completed."
+    "PR #773 merged to trusted main.",
+    "Exact trusted blob parity confirmed.",
+    "#762 final release succeeded under repaired Guard.",
+    "Issue #772 fresh-read closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #772, then return to parent #768."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
