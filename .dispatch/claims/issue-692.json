@@ -9,14 +9,18 @@
   "work_branch": "work/issue692-governance-parity-gate-20260927",
   "claimed_at": "2026-09-27T13:00:00Z",
   "base_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
-  "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T13:19:00Z",
+  "head_sha": "49679a4ee2652aa3de684242d4afa4aeec08bbca",
+  "phase": "RED",
+  "last_update": "2026-09-26T17:22:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Obtain branch-create Guard for work/issue692-governance-parity-gate-20260927 at accepted predecessor HEAD d2c04ef30b9aec258e042b6ea4f4fd790149aa56, create/read back branch, then establish RED-STOP-15 parity gate against current main and cleanup/2d-3d-sync without absorbing newer X into the frozen child lineage.",
+  "remote_qa": {
+    "run_id": 36258767397,
+    "head_sha": "49679a4ee2652aa3de684242d4afa4aeec08bbca",
+    "status": "failure"
+  },
+  "next_action": "Implement tools/governance_parity_gate.py to satisfy RED-STOP-15: exact machine identities, required governance domains, fail-closed unknown divergence, explicit compatible-equivalent reason, and durable deployment/readback evidence; then rerun exact branch-native QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-692.json",
   "evidence": [
@@ -28,6 +32,9 @@
     "Authoritative child base follows predecessor accepted HEAD d2c04ef30b9aec258e042b6ea4f4fd790149aa56; current cleanup HEAD 79efd748107db7578105fd0ca920f2436a3ff67a is observation/integration authority only.",
     "Current main HEAD 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
     "#692 has no pre-existing claim/checkpoint or branch; parallel-scope census found no existing owner for #692.",
-    "Initial fresh-create activation run 36258546768 failed closed because non-terminal RUNNING checkpoint incorrectly carried terminal-only Master-chain continuation metadata; no coordination mutation occurred."
+    "Initial fresh-create activation run 36258546768 failed closed because non-terminal RUNNING checkpoint incorrectly carried terminal-only Master-chain continuation metadata; no coordination mutation occurred.",
+    "Branch-create Guard GREEN run 36258619008 / result comment 5848258245; branch readback exact at d2c04ef30b9aec258e042b6ea4f4fd790149aa56.",
+    "RED commit 49679a4ee2652aa3de684242d4afa4aeec08bbca added #692 focused contract and Traditional-Chinese QA workflow.",
+    "RED run 36258767397 terminal expected failure: 5 failed / 0 passed; every failure is RED-STOP-15 executable governance parity owner missing."
   ]
 }
