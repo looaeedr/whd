@@ -21,8 +21,9 @@
     "PR #716 merged/closed; production cleanup/2d-3d-sync fresh-read HEAD=a81bb714c91737d3d509a072b486a0a47e0c302a.",
     "Remote governance run 36230365730 completed success on exact head 3f197eb3b45a183a61db5f5034aac79996ce09b4.",
     "Exact local acceptance: focused 11 passed; repo-level skill/regression bundle 70 passed; final Skill preflight GREEN.",
-    "UPDATE_ONLY scope complete; no existing implementation Issue was bound or started."
+    "UPDATE_ONLY scope complete; no existing implementation Issue was bound or started.",
+    "Closure advanced after PR #716 merged and exact-head remote governance QA passed."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #715"
 }
