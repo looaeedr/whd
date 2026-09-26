@@ -1,17 +1,17 @@
 {
   "issue": 671,
   "issue_url": "https://github.com/looaeedr/whd/issues/671",
-  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "executor_source": "scheduler",
+  "worker": "chatgpt.sol260926.issue671",
+  "executor_source": "chat",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.issue671.20260925T1724Z",
+  "invocation_identity": "chatgpt.sol260926.issue671",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T23:58:30Z",
+  "last_update": "2026-09-26T00:43:42Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
@@ -125,5 +125,19 @@
     "child_checkpoint_blob_sha": "fd1ca62fcb59c4b756c89fb4cc92a8334208fa87",
     "main_legacy_checkpoint_repair_live": true,
     "main_head": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb"
+  },
+  "stale_takeover": {
+    "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "previous_executor_source": "scheduler",
+    "observed_stale_seconds": 2814,
+    "observed_live_head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
+    "user_authority_comment_id": 5841632190,
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "exact_remote_run_id": 36202879027,
+    "exact_remote_run_status": "completed",
+    "exact_remote_run_conclusion": "success",
+    "evidence": "WHD_USER_DIRECTED_TAKEOVER_V1 + canonical stale evaluator + canonical claim-takeover guard GREEN",
+    "taken_over_at": "2026-09-26T08:43:42+08:00"
   }
 }
