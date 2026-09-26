@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "756",
   "branch": "governance/issue756-postdrift-coord-write-parity-20260927",
-  "head_sha": "e82261e705ac97dc4ce2f7e6ff199405647710b4",
+  "head_sha": "d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard, create exact branch from cleanup/2d-3d-sync e82261e705ac97dc4ce2f7e6ff199405647710b4, selectively port trusted PR #755 coordination-write durable readback, run focused/protected regressions, integrate to X, close/release helper, then resume #692.",
+  "next_action": "Add temporary focused QA workflow for #756, run #739 coordination-write auto-consume plus protected #739/#643/#731 regressions, then remove QA workflow and integrate exact closing head to cleanup/2d-3d-sync.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "Parent #692 live parity acceptance.",
     "Exact X base e82261e705ac97dc4ce2f7e6ff199405647710b4.",
     "Trusted observation authority main 785e834bb360ea4c8d31984821a520ef76bf4249.",
-    "Selective PR #755 parity only; no blind main merge."
+    "Selective PR #755 parity only; no blind main merge.",
+    "Branch-create Guard 36260745527 GREEN.",
+    "Selective parity commit d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8 under Guard 36260971469.",
+    "No existing workflow run was created for d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8; temporary focused QA required."
   ],
   "master_issue": null,
   "chain_state": "NONE",
