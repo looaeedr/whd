@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Issue #678 — Power-Off Requirement RED Durable Anchor
 
 Status: repository-owned evidence candidate for WI-0.
