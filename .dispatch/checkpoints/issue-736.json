@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "736",
+  "branch": "governance/issue736-main-x-batch-first-20260926",
+  "head_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
+  "state": "RUNNING",
+  "next_action": "Establish RED proving current governance lacks batch-first main→X parity audit, then implement Skill/X-governance/pitfall contract and focused regression.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Authority: user directive 2026-09-26 requiring batch-first main→X parity decision.",
+    "Current main baseline: 641639ff675fc0ea2a13c7a9123337de250d4170.",
+    "Durable target files: 派工 Skill + X governance spec + execution-claim pitfall + focused contract test."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
