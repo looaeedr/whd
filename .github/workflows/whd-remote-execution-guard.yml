@@ -780,6 +780,8 @@ jobs:
           import datetime as dt
           import json
           import os
+          import subprocess
+          import urllib.parse
           from pathlib import Path
 
           request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))

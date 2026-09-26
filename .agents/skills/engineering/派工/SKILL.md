@@ -792,3 +792,16 @@ batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌�
 只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
 
 Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+
+## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1
+
+對 shared coordination 的 `action=write`，GREEN receipt 不得只靠「目前檔案看起來已更新」判定 consumed。trusted Remote Guard 必須從 `coord/dispatch-claims` fresh-read receipt window 內的 exact commit，且只接受該 Issue 的 claim/checkpoint 路徑。
+
+可 auto-consume 的 durable readback 必須同時成立：
+- commit 的 changed-file set 與 receipt 完全相同；
+- target claim/checkpoint blob 可在該 commit 精確讀回；
+- claim payload 的 issue / worker / executor_source / work_branch / head_sha 與 receipt 一致；
+- checkpoint payload的 issue / branch / head_sha 與 receipt 一致；
+- receipt window 內只能有一顆 exact matching coordination commit；多顆或零顆皆 fail closed。
+
+Canonical implementation：`tools.execution_claim_guard.durable_coord_write_readbacks_from_live_commits`。trusted workflow 必須把它與 branch-create / pr-write readbacks 一起餵給 transaction classifier。這條規則不放寬一般 repository write/commit。

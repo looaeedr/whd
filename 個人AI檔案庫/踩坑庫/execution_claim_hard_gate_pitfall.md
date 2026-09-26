@@ -165,3 +165,18 @@ Governance owner：#736。Parent parity rule：#692。
 - 這條規則只補 `pr-write` durable readback，不放寬 commit/write/dispatch/takeover。
 
 Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Owner：#739。
+
+## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1（#739）
+
+### 事故
+#733 的 checkpoint write Guard `36256476555` 已 GREEN，且 mutation 已 durable 落成 coordination commit `7618128f...`，但 trusted Remote Guard 未投影 coordination write readback，下一顆 Guard 因 `PENDING_GUARD_TRANSACTION` 被擋。
+
+### 永久規則
+- coordination `action=write` 只接受 receipt window 內的 exact commit 作 durable proof；
+- changed-files 必須 exact match該 Issue claim/checkpoint scope；
+- commit 上讀回的 claim/checkpoint payload 必須與 receipt owner/branch/head identity 一致；
+- 多個 matching commits 必須 ambiguous/fail closed；
+- 成功 readback 才可投影 `mutation_applied=true / reconciled=true / target_changed=true`；
+- 不得用 current file existence、時間猜測或人工「看起來做完」取代 durable proof。
+
+Regression：`tests/process/test_issue739_write_auto_consume.py`。
