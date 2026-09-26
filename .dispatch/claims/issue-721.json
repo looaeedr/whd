@@ -9,15 +9,15 @@
   "work_branch": "governance/issue721-task-start-authority-v1",
   "claimed_at": "2026-09-26T11:55:00Z",
   "base_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
-  "head_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T11:55:00Z",
+  "head_sha": "31043ce5aae50b61dbed6c47fec750cfacb67462",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T12:10:24Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run branch-create guard, create governance/issue721-task-start-authority-v1 from exact cleanup/2d-3d-sync HEAD, then add RED contract and minimal Skill bridges.",
+  "next_action": "Create PR from governance/issue721-task-start-authority-v1 to cleanup/2d-3d-sync, validate exact PR head, merge after guarded pr-write, then close/release #721.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-721.json",
   "evidence": [
@@ -25,6 +25,22 @@
     "Purpose: add canonical startup authorization/purpose/scope declaration contract; no platform safety bypass.",
     "Authorized scope: 執行開發任務 canonical owner plus 派工/排程模擬/遠端執行守門 bridges and necessary contract tests.",
     "Prohibited scope: no unrelated issue execution, no product implementation, no Guard/claim/finalization weakening.",
-    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_issue721_preflight_evidence.md."
-  ]
+    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_issue721_preflight_evidence.md.",
+    "RED baseline: tests/process/test_issue721_task_start_authority_declaration.py = 5 failed before implementation.",
+    "GREEN: issue721 contract = 5 passed; dependent governance regression = 56 passed; total focused = 61 passed / 0 failed.",
+    "Phase6 Skill mutation preflight GREEN and git diff --check GREEN.",
+    "Commit mutation authorized by Remote Guard run 36241001765 and produced direct-child head 31043ce5aae50b61dbed6c47fec750cfacb67462.",
+    "Post-commit claim/checkpoint reconciliation authorized by Remote Guard run 36241058448."
+  ],
+  "last_guard": {
+    "action": "write",
+    "run_id": 36241058448,
+    "request_comment_id": 5846152344,
+    "result_comment_id": 5846153405,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
+    "consumed": true,
+    "mutation": "reconcile claim/checkpoint head to startup authority declaration commit"
+  }
 }
