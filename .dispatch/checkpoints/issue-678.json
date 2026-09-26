@@ -1,15 +1,12 @@
 {
-  "version": 1,
-  "issue": "678",
-  "branch": "work/issue678-red-evidence-anchor-20260926",
-  "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
-  "state": "RUNNING",
-  "next_action": "Poll PR #694 checks on exact head 59918556f55f849433b156f6a4c48e39e9faad06; if GREEN, integrate WI-0 into cleanup/2d-3d-sync and complete closure/release.",
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
+  "branch": "work/issue678-red-evidence-anchor-20260926",
+  "chain_next_action": null,
+  "chain_reason": null,
+  "chain_state": "NONE",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff",
+  "closure_state": "FINALIZATION_PENDING",
   "evidence": [
     "Requirement Authority: user approved WHD HA safe-shutdown requirement RED and WI breakdown after R0 bookkeeping correction.",
     "Frozen production target cleanup/2d-3d-sync HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
@@ -17,8 +14,20 @@
     "Knowledge governance bootstrap GREEN after adding WHD_DOC_META_V1 metadata.",
     "Repository-owned reproduce.py completed exit 0 after metadata fix.",
     "v4 current/expected/anti-false-green checks all true; v5 28 current behavioral + 28 adversarial checks all true.",
-    "PR #694 is the exact integration surface for WI-0."
+    "PR #694 is the exact integration surface for WI-0.",
+    "PR #694 merged/closed; production target cleanup/2d-3d-sync fresh-read HEAD=cb0c6ada73d4bee15572c42220f03993a93554fc.",
+    "Remote QA run 36215728721 completed success on exact head 59918556f55f849433b156f6a4c48e39e9faad06; bootstrap-governance PASS.",
+    "Repository-owned reproduce.py completed exit 0 after governance metadata fix.",
+    "WI-0 changes only docs/superpowers/verification/issue678-poweroff-red/**; no production behavior changed."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
+  "issue": "678",
+  "job_id": null,
+  "log_cursor": null,
+  "master_issue": null,
+  "next_action": null,
+  "next_issue": null,
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
 }

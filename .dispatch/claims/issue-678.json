@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T03:13:11Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T03:44:44Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T03:49:52Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Poll PR #694 checks on exact head 59918556f55f849433b156f6a4c48e39e9faad06; if GREEN, integrate WI-0 into cleanup/2d-3d-sync and complete closure/release.",
+  "next_action": "Advance terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, authorize and verify finalization proof, close/read back Issue #678, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-678.json",
   "green_candidate": {
@@ -22,5 +22,21 @@
     "local_reproduction": "docs/superpowers/verification/issue678-poweroff-red/reproduce.py --repo-root <repo>",
     "conclusion": "success",
     "summary": "governance bootstrap GREEN; v4 current+anti-false-green and v5 28 current+28 adversarial RED reproduced after metadata fix"
+  },
+  "integration": {
+    "pr": 694,
+    "state": "merged",
+    "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
+    "base": "cleanup/2d-3d-sync",
+    "merge_commit_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+    "production_head": "cb0c6ada73d4bee15572c42220f03993a93554fc"
+  },
+  "remote_qa": {
+    "run_id": 36215728721,
+    "head_sha": "59918556f55f849433b156f6a4c48e39e9faad06",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap",
+    "evidence": "bootstrap-governance PASS on PR #694"
   }
 }
