@@ -4,7 +4,7 @@
   "branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
   "head_sha": "141123445c00d4dbef637d95ba5d756c30db58e0",
   "state": "RUNNING",
-  "next_action": "Fresh-compare cleaned branch to cleanup/2d-3d-sync; if diff is exactly 排程模擬, 寫排程, and scheduler contract test, proceed to canonical PR/integration.",
+  "next_action": "Merge PR #770 into cleanup/2d-3d-sync under a fresh exact pr-write Guard, then fresh-read production head and enter canonical terminal closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -21,7 +21,10 @@
     "GREEN run 36275579479: 6 passed in 0.16s on exact fix head.",
     "pair reconciliation authorized by Guard run=36275613755",
     "temporary QA workflow deleted at 141123445c00d4dbef637d95ba5d756c30db58e0",
-    "post-cleanup pair reconciliation authorized by Guard run=36275747390"
+    "post-cleanup pair reconciliation authorized by Guard run=36275747390",
+    "PR #770 exists at exact head 141123445c00d4dbef637d95ba5d756c30db58e0 and targets cleanup/2d-3d-sync.",
+    "PR #770 mergeable_state=clean after fresh recompute.",
+    "coord progress write authorized by Guard run 36276663230."
   ],
   "master_issue": null,
   "chain_state": "NONE",
