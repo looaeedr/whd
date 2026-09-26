@@ -44,6 +44,8 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
 
 <!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->
+<!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
+<!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
 
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=CURRENT path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
@@ -66,6 +68,22 @@ whd_schema: WHD_DOC_META_V1
 - `fold-designer-bridge-ownership` 只擁有 composition/bootstrap/presentation owner boundary；不得覆蓋 geometry、manufacturing、Registry formula、project persistence 等 domain CURRENT owner。
 - `pitfall-ledger` 的 routing ownership 留在本 Map；實際 pitfall artifacts 全部保持 REFERENCE / incident evidence，不建立平行 process/domain CURRENT。
 - 日期化 acceptance、migration、combined guard 與 ticket provenance 留在 `docs/superpowers/verification/`、`docs/superpowers/checkpoints/`、Git history 或 GitHub Issue，不進本 Map 的 normative body。
+
+### local-durability-machine
+
+- Executable CURRENT owner：`tools/local_durability_gate.py`。
+- 只根據 fresh local-machine snapshot 分類 `LOCAL_CLEAN_SYNCED / LOCAL_DIRTY_RECOVERABLE / LOCAL_DIRTY_CONFLICT / LOCAL_UNPUSHED / LOCAL_MUTATION_IN_PROGRESS / LOCAL_MACHINE_UNAVAILABLE`。
+- Remote clean state 不得覆蓋 dirty / unknown local truth；local evidence 不完整時 fail closed 為 `LOCAL_DIRTY_CONFLICT / LOCAL_STATE_CONFLICT`。
+- `LOCAL_MACHINE_UNAVAILABLE` 必須投影 `ERROR / LOCAL_MACHINE_UNREACHABLE`，不得假裝 remote clean 或與 conflict 混用。
+- 此 owner 不負責 planned handoff、scheduler takeover 或 power-off aggregation。
+
+### interactive-runtime-liveness
+
+- Executable CURRENT owner：`tools/interactive_runtime_liveness.py`。
+- Interactive markers 固定為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1` / `WHD_INTERACTIVE_RUNTIME_END_V1`。
+- Heartbeat / END 必須綁 exact `issue + slot_id + worker + invocation_identity + conversation_identity + claim_blob_sha + branch + head_sha + executor_source=chat`；END identity drift fail closed。
+- `conversation_identity=UNAVAILABLE` 不構成有效 interactive liveness evidence；generic `executor_source=chat` 也不能取代 exact provenance。
+- Scheduler 的 `WHD_SCHEDULER_RUNTIME_*` 仍由 `tools/scheduler_runtime_liveness.py` 獨立擁有；兩者不得互相冒充。
 
 ### workstation-poweroff-safety
 
@@ -109,4 +127,4 @@ whd_schema: WHD_DOC_META_V1
 - trusted remote finalization：.github/workflows/whd-remote-finalization.yml
 - orchestration responsibility：.agents/skills/engineering/派工/SKILL.md
 
-Prompt/Skill/AI Library不得複製第二套 state machine。Capability gap：interactive heartbeat/liveness + exact provenance（chat conversation+invocation；scheduler lane+invocation）仍需 machine owner補齊；generic executor_source 不等於已解決。
+Prompt/Skill/AI Library不得複製第二套 state machine。Interactive heartbeat/liveness + exact provenance 已由 `tools/interactive_runtime_liveness.py` 擁有；scheduler lane + invocation 仍由 `tools/scheduler_runtime_liveness.py` 擁有。兩者 namespace / identity 不得混用；generic executor_source 永遠不等於 exact runtime provenance。

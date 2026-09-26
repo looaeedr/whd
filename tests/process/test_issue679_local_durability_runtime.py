@@ -275,3 +275,38 @@ def test_interactive_owner_does_not_import_scheduler_liveness_owner():
     mod = _interactive_module()
     source = Path(mod.__file__).read_text(encoding="utf-8")
     assert "scheduler_runtime_liveness" not in source
+
+
+def test_authority_map_routes_local_and_interactive_owners_uniquely():
+    root = Path(__file__).resolve().parents[2]
+    authority = (
+        root
+        / "個人AI檔案庫"
+        / "第二層_專案與SOP"
+        / "09_WHD_Canonical_Authority_Map.md"
+    ).read_text(encoding="utf-8")
+    assert authority.count(
+        "contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py"
+    ) == 1
+    assert authority.count(
+        "contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py"
+    ) == 1
+    assert (
+        "Interactive heartbeat/liveness + exact provenance 已由 "
+        "`tools/interactive_runtime_liveness.py` 擁有"
+    ) in authority
+
+
+def test_scheduled_resume_keeps_scheduler_and_interactive_namespaces_distinct():
+    root = Path(__file__).resolve().parents[2]
+    scheduled = (
+        root
+        / "個人AI檔案庫"
+        / "第二層_專案與SOP"
+        / "11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md"
+    ).read_text(encoding="utf-8")
+    assert "`tools/scheduler_runtime_liveness.py`" in scheduled
+    assert "`tools/interactive_runtime_liveness.py`" in scheduled
+    assert "兩個獨立 namespace" in scheduled
+    assert "WHD_INTERACTIVE_RUNTIME_LIVENESS_V1" in scheduled
+    assert "WHD_INTERACTIVE_RUNTIME_END_V1" in scheduled
