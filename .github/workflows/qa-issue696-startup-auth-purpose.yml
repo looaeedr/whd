@@ -1,0 +1,31 @@
+name: WHD #696 A1 啟動授權／目的遠端驗收
+run-name: "WHD｜#696 A1｜啟動授權／目的 focused QA"
+
+on:
+  push:
+    branches:
+      - work/issue696-startup-auth-purpose-20260926
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: A1 啟動契約遠端驗收
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出驗收版本
+        uses: actions/checkout@v4
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝 pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: 執行 A1 與 continuity 回歸
+        run: |
+          python -m pytest -q --confcutdir=tests/process \
+            tests/process/test_issue696_startup_authorization_purpose.py \
+            tests/process/test_continuity_controller.py \
+            tests/process/test_issue321_turn_exit_enforcement.py
+          echo "ISSUE696_A1_REMOTE_GREEN=PASS"
