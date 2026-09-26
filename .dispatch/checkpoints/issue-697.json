@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "697",
+  "branch": "work/issue697-operation-transaction-core-20260926",
+  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "state": "RUNNING",
+  "next_action": "create guarded A2 branch, materialize approved RED-STOP-17/18 tests, run exact RED, then implement the minimum canonical operation transaction core + resume-first gate",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Amendment RED-STOP-17 and RED-STOP-18 approved via #685 comment 5843692950.",
+    "Canonical amendment breakdown approved via #685 comment 5843715446.",
+    "Canonical publication map #685 comment 5843730476 lists #697 as independent next_executable.",
+    "Owning implementation Issue #697 fresh-read open and unclaimed.",
+    "A1 #696 is accepted-pending-chain-closure and does not block A2."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
