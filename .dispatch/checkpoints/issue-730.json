@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "730",
+  "branch": "governance/issue730-ready-work-census",
+  "head_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
+  "state": "RUNNING",
+  "next_action": "Create guarded branch, add RED contract for READY_WORK_CENSUS_V1 / NO_MATCHING_HANDOFF != NO_WORK, implement in 排程模擬/寫排程/派工, run focused regression, merge and close.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement authority: Issue #730 + explicit user instruction.",
+    "Execution mode: UPDATE_ONLY.",
+    "Base/head: cleanup/2d-3d-sync@91931e518bea241d129d7327e1d163cb7a1ffd92.",
+    "Preflight evidence: C:\\Users\\Public\\whd_scheduler_no_work_preflight.md."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

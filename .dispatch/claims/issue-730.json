@@ -1,0 +1,28 @@
+{
+  "issue": 730,
+  "issue_url": "https://github.com/looaeedr/whd/issues/730",
+  "worker": "chatgpt.issue730.20260926a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue730.20260926a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue730-ready-work-census",
+  "claimed_at": "2026-09-26T13:58:30Z",
+  "base_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
+  "head_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T13:58:30Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded branch, add RED contract for READY_WORK_CENSUS_V1 / NO_MATCHING_HANDOFF != NO_WORK, implement in 排程模擬/寫排程/派工, run focused regression, merge and close.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-730.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user-authorized UPDATE_ONLY governance change.",
+    "Phase6 Skill mutation preflight GREEN.",
+    "Scope excludes product implementation, cadence changes, lane ownership changes, and unrelated claim mutation."
+  ]
+}
