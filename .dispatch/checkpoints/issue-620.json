@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "620",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "147a4f630a9c6c0a8b8b6d4353492c8233dc5c23",
+  "head_sha": "1e8bd74f0aad5a767feb9bd39fa201bc2e7504de",
   "state": "RUNNING",
-  "next_action": "Continue #620 P7-R-D from 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23: characterize and extract the manufacturing export pipeline behind a bounded owner while preserving generate_part/save_part_render_data_dxf/save_resolved_manufacturing_geometry_dxf public contracts, then regress actual DXF reopen and reverse-import invariants before request/render owner slices.",
+  "next_action": "Continue #620 P7-R-D from 1e8bd74f0aad5a767feb9bd39fa201bc2e7504de: characterize and extract request resolution / render-data building into bounded owners behind manufacturing_api public facade, preserve public datatypes/entrypoints and existing monkeypatch seams, keep UI/Bridge imports out, then run structural + actual DXF regression before exact-head remote QA.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,8 @@
     "Requirement Authority: user-approved Phase 7 v1.2 specification + approved RED/breakdown; owning Issue #620 P7-R-D fresh-read open.",
     "Predecessor #618 accepted head acc38cd39ab548f802f6d18445ac8ca23550c335 is the authoritative A4 parent under Master #627.",
     "Active Phase 7 chain must not chase current cleanup/2d-3d-sync; frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b.",
-    "P7-R-D verification-owner slice: RED 1 failed because ae_engine.manufacturing_verification was absent; GREEN owner module + manufacturing_api thin verification facades at 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23. Focused characterization 1 passed; broader manufacturing/DXF/reopen regression 60 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219274264 GREEN; post-commit reconciliation Guard 36219410250 GREEN."
+    "P7-R-D verification-owner slice: RED 1 failed because ae_engine.manufacturing_verification was absent; GREEN owner module + manufacturing_api thin verification facades at 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23. Focused characterization 1 passed; broader manufacturing/DXF/reopen regression 60 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219274264 GREEN; post-commit reconciliation Guard 36219410250 GREEN.",
+    "P7-R-D export-sink slice: RED 1 failed/1 passed because ae_engine.manufacturing_export was absent; GREEN bounded DXF sink/naming/physical-part export owner at 1e8bd74f0aad5a767feb9bd39fa201bc2e7504de. Focused export/compatibility 13 passed after preserving manufacturing_api.save_part_render_data_dxf monkeypatch seam; broader manufacturing/DXF/reopen regression 67 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219505473 GREEN; post-commit reconciliation Guard 36219728283 GREEN."
   ],
   "chain_state": "NONE",
   "next_issue": null,
