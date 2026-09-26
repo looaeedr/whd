@@ -3,8 +3,8 @@
   "issue": "675",
   "branch": "governance/issue675-legacy-expired-postcommit-reconcile-20260926",
   "head_sha": "c1449a162c1322ef8a21d3d444882517db88f0c3",
-  "state": "RUNNING",
-  "next_action": "Create and validate the #675 deployment PR to main, merge the accepted trusted workflow, fresh-read main, then return to #671/#617.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -23,7 +23,11 @@
     "Post-commit pair reconciliation authorized by Guard run 36204866149.",
     "Skill/AI Library writeback committed at c1449a162c1322ef8a21d3d444882517db88f0c3.",
     "Expanded writeback preflight GREEN; focused/dispatch/Skill regression = 46 passed.",
-    "Post-writeback pair reconciliation authorized by Guard run 36205398973."
+    "Post-writeback pair reconciliation authorized by Guard run 36205398973.",
+    "PR #677 merged to main at cf6d2906fddcf2478020cdc7ef841211fca1ae34.",
+    "Fresh main readback confirms legacy recovery transport in trusted Remote Guard, canonical guard parser, and durable Skill contract.",
+    "Issue #675 fresh readback = closed/completed.",
+    "Atomic closure releases #675 claim and marks checkpoint TERMINAL_SUCCESS/CLOSED."
   ],
   "chain_state": "NONE",
   "next_issue": null,
