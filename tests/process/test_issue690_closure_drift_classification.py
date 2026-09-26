@@ -102,3 +102,66 @@ def test_reg_stop_02_closed_checkpoint_requires_released_claim_for_consistency()
         claim_state={"phase": "RELEASED"},
     )
     assert released.classification is classification.CONSISTENT
+
+
+def _malformed_terminal_payload() -> dict[str, object]:
+    return {
+        "version": 1,
+        "issue": "733",
+        "branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
+        "head_sha": "6" * 40,
+        "state": "TERMINAL_SUCCESS",
+        "next_action": None,
+        "run_id": 36253372146,
+        "job_id": 108435463578,
+        "log_cursor": None,
+        "blocked_count": 0,
+        "blocked_last_notified_at": None,
+        "evidence": ["batch parity accepted"],
+        "master_issue": None,
+        "chain_state": "NONE",
+        "next_issue": None,
+        "chain_next_action": None,
+        "chain_reason": None,
+        "closure_state": "READY_FOR_FINALIZATION",
+        "closure_next_action": "run trusted finalization",
+    }
+
+
+def test_malformed_terminal_checkpoint_has_narrow_canonical_repair() -> None:
+    repair = getattr(continuity, "repair_malformed_terminal_checkpoint", None)
+    assert callable(repair), "RED: malformed terminal checkpoint repair API is missing"
+    repaired = repair(
+        _malformed_terminal_payload(),
+        expected_issue="733",
+        expected_branch="governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
+        expected_head_sha="6" * 40,
+    )
+    assert repaired.state is continuity.ContinuityState.TERMINAL_SUCCESS
+    assert repaired.closure_state is continuity.ClosureState.FINALIZATION_PENDING
+    assert repaired.issue == "733"
+    assert repaired.branch.endswith("20260926")
+    assert repaired.head_sha == "6" * 40
+
+
+@pytest.mark.parametrize("field,value", [
+    ("state", "RUNNING"),
+    ("issue", "999"),
+    ("branch", "other"),
+    ("head_sha", "7" * 40),
+    ("closure_state", "CLOSED"),
+])
+def test_malformed_terminal_checkpoint_repair_fails_closed_on_noncanonical_drift(
+    field: str, value: object
+) -> None:
+    repair = getattr(continuity, "repair_malformed_terminal_checkpoint", None)
+    assert callable(repair), "RED: malformed terminal checkpoint repair API is missing"
+    payload = _malformed_terminal_payload()
+    payload[field] = value
+    with pytest.raises(continuity.CheckpointError):
+        repair(
+            payload,
+            expected_issue="733",
+            expected_branch="governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
+            expected_head_sha="6" * 40,
+        )
