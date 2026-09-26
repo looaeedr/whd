@@ -1,23 +1,23 @@
 {
   "issue": 749,
   "issue_url": "https://github.com/looaeedr/whd/issues/749",
-  "worker": "chatgpt.sol260927.issue749.fixtureowner",
+  "worker": "chatgpt.sol260927.issue749.smoketakeover",
   "executor_source": "chat",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260927.issue749.fixtureowner",
+  "invocation_identity": "chatgpt.sol260927.issue749.smoketakeover",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "governance/issue749-remote-guard-smoke",
   "claimed_at": "2026-09-26T16:38:00Z",
   "base_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
   "head_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T16:38:00Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T16:58:30Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "issue737-live-smoke",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Synthetic stale fixture is armed: obtain exact owner-authored WHD_USER_DIRECTED_TAKEOVER_V1 for a distinct smoke worker, run trusted-main Remote Guard claim-takeover, consume exact CAS, then close/release this fixture.",
+  "next_action": "Smoke acceptance complete; terminalize disposable #749 fixture, close/readback, then atomically CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-749.json",
   "evidence": [
@@ -25,6 +25,36 @@
     "Fixture baseline trusted main 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
     "No application/test/Skill/product mutation is authorized.",
     "Synthetic smoke fixture timestamps claimed_at/last_update intentionally set to 2026-09-26T16:38:00Z solely to exercise stale takeover; they are not production provenance.",
-    "No-op branch governance/issue749-remote-guard-smoke exists at exact trusted main 2a43b89fd15e504c2bbbca9b2db7797c75768724."
-  ]
+    "No-op branch governance/issue749-remote-guard-smoke exists at exact trusted main 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Post-deploy trusted-main smoke run 36257298364 completed success on orchestrator/head 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Smoke receipt 5848102610 result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN; authority comment 5848100625 was forwarded through stale evaluator into execution_claim_guard.py."
+  ],
+  "stale_takeover": {
+    "actionable": true,
+    "classification": "EXECUTOR_STUCK",
+    "prior_claim_blob_sha": "3a7f019ecc13f0fbaa39fae0ea3da0a2f0a01118",
+    "prior_worker": "chatgpt.sol260927.issue749.fixtureowner",
+    "prior_executor_source": "chat",
+    "requesting_worker": "chatgpt.sol260927.issue749.smoketakeover",
+    "requesting_executor_source": "chat",
+    "stale_seconds": 1158,
+    "stale_after_seconds": 600,
+    "observed_live_head_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
+    "user_authority_comment_id": 5848100625,
+    "remote_guard_run_id": 36257298364,
+    "remote_guard_result": "GREEN",
+    "remote_guard_reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "taken_over_at": "2026-09-26T16:58:30Z"
+  },
+  "last_guard": {
+    "action": "claim-takeover",
+    "mode": "remote",
+    "run_id": 36257298364,
+    "request_comment_id": 5848100976,
+    "result_comment_id": 5848102610,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "CAS fixtureowner -> smoketakeover"
+  }
 }
