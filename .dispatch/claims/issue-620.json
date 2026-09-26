@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T04:50:00Z",
   "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
-  "head_sha": "1e8bd74f0aad5a767feb9bd39fa201bc2e7504de",
+  "head_sha": "785efb1edf5a524a64dcbfe331ba74c28abb57a8",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T05:05:00Z",
+  "last_update": "2026-09-26T05:11:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
@@ -20,7 +20,7 @@
   "parent_issue": 627,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Continue #620 P7-R-D from 1e8bd74f0aad5a767feb9bd39fa201bc2e7504de: characterize and extract request resolution / render-data building into bounded owners behind manufacturing_api public facade, preserve public datatypes/entrypoints and existing monkeypatch seams, keep UI/Bridge imports out, then run structural + actual DXF regression before exact-head remote QA.",
+  "next_action": "Continue #620 P7-R-D from 785efb1edf5a524a64dcbfe331ba74c28abb57a8: characterize build_part_render_data / PartRenderData orchestration and extract a bounded render-data owner while preserving manufacturing_api public datatypes/entrypoints, monkeypatch seams, canonical geometry authority, and zero UI/Bridge reverse imports; then run structural + manufacturing/DXF regression before exact-head remote QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-620.json",
   "predecessor": {
@@ -35,17 +35,18 @@
     "Work-order lineage authority: predecessor #618 is closed/completed with claim RELEASED and checkpoint TERMINAL_SUCCESS/CLOSED at accepted head acc38cd39ab548f802f6d18445ac8ca23550c335.",
     "Master #627 handoff is NEXT_CHILD_EXECUTABLE -> #620 A4; production target cleanup/2d-3d-sync is observation/integration authority only and current production head cb0c6ada73d4bee15572c42220f03993a93554fc is not a child base.",
     "P7-R-D verification-owner slice: RED 1 failed because ae_engine.manufacturing_verification was absent; GREEN owner module + manufacturing_api thin verification facades at 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23. Focused characterization 1 passed; broader manufacturing/DXF/reopen regression 60 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219274264 GREEN; post-commit reconciliation Guard 36219410250 GREEN.",
-    "P7-R-D export-sink slice: RED 1 failed/1 passed because ae_engine.manufacturing_export was absent; GREEN bounded DXF sink/naming/physical-part export owner at 1e8bd74f0aad5a767feb9bd39fa201bc2e7504de. Focused export/compatibility 13 passed after preserving manufacturing_api.save_part_render_data_dxf monkeypatch seam; broader manufacturing/DXF/reopen regression 67 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219505473 GREEN; post-commit reconciliation Guard 36219728283 GREEN."
+    "P7-R-D export-sink slice: RED 1 failed/1 passed because ae_engine.manufacturing_export was absent; GREEN bounded DXF sink/naming/physical-part export owner at 1e8bd74f0aad5a767feb9bd39fa201bc2e7504de. Focused export/compatibility 13 passed after preserving manufacturing_api.save_part_render_data_dxf monkeypatch seam; broader manufacturing/DXF/reopen regression 67 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219505473 GREEN; post-commit reconciliation Guard 36219728283 GREEN.",
+    "P7-R-D EndCap request-owner slice: RED 1 failed/2 passed because ae_engine.manufacturing_requests was absent; GREEN ResolvedEndCapRequest ownership + precedence resolver moved behind manufacturing_api thin facade at 785efb1edf5a524a64dcbfe331ba74c28abb57a8. Characterization 3 passed; broader EndCap/corner/manufacturing regression 59 passed, 11 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219821454 GREEN; post-commit reconciliation Guard 36220071538 GREEN."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36219728283,
-    "request_comment_id": 5843387339,
+    "run_id": 36220071538,
+    "request_comment_id": 5843427209,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to #620 export-sink head"
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to #620 request-owner head"
   },
   "local_validation": {
     "verification_owner": {
@@ -60,6 +61,13 @@
       "characterization": "2 tests: 1 RED/1 control, then GREEN",
       "focused": "13 passed",
       "broader": "67 passed, 5 skipped",
+      "py_compile": "GREEN",
+      "diff_check": "GREEN"
+    },
+    "request_owner": {
+      "head_sha": "785efb1edf5a524a64dcbfe331ba74c28abb57a8",
+      "characterization": "3 passed",
+      "broader": "59 passed, 11 skipped",
       "py_compile": "GREEN",
       "diff_check": "GREEN"
     }
