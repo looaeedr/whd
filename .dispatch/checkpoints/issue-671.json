@@ -4,7 +4,7 @@
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "state": "RUNNING",
-  "next_action": "Obtain a fresh pr-write Guard and merge PR #676 into cleanup/2d-3d-sync; fresh-read target integration, then enter #671 terminal finalization/closure.",
+  "next_action": "Terminalize accepted #671 as TERMINAL_SUCCESS / FINALIZATION_PENDING, then run owning finalization, close/read back Issue #671, and atomically release the claim.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -47,6 +47,7 @@
     "Cleanup reconciliation Guard run 36203041547 GREEN consumed to bind claim/checkpoint to cleaned HEAD.",
     "#617 acceptance dependency fresh-read fully terminal: Issue closed/completed, claim RELEASED, checkpoint closure_state=CLOSED; finalization run 36206629673 GREEN.",
     "Historical pr-write run 36203114061 consumed by durable PR #676 readback: OPEN, base=cleanup/2d-3d-sync, head=a2c81648be02c3b4710b6a80893e9cb890c95537.",
-    "Guard run 36206936679 GREEN consumed to reconcile #671 durable state and advance to PR #676 integration."
+    "Guard run 36206936679 GREEN consumed to reconcile #671 durable state and advance to PR #676 integration.",
+    "Merge Guard run 36207041037 consumed exactly once by merge of PR #676; cleanup/2d-3d-sync fresh-read HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405."
   ]
 }
