@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "756",
   "branch": "governance/issue756-postdrift-coord-write-parity-20260927",
-  "head_sha": "0dc9803390b29ef1c02e69b6914ace86c4fe26b2",
+  "head_sha": "ed1d03cf432d7daa5e654e573904a2333e1a0d83",
   "state": "RUNNING",
-  "next_action": "Remove temporary #756 QA workflow under Guard, reconcile exact closing HEAD, create/merge guarded PR to cleanup/2d-3d-sync, verify production readback, then close/release #756 and resume #692.",
+  "next_action": "Obtain pr-write Guard for exact closing HEAD ed1d03cf432d7daa5e654e573904a2333e1a0d83, create PR to cleanup/2d-3d-sync, verify durable PR readback, merge non-force, and fresh-read production capability.",
   "run_id": 36261175119,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "Selective parity commit d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8 under Guard 36260971469.",
     "No existing workflow run was created for d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8; temporary focused QA required.",
     "QA HEAD 0dc9803390b29ef1c02e69b6914ace86c4fe26b2.",
-    "Run 36261175119 GREEN: focused 16 PASS + protected 34 PASS, 0 FAIL."
+    "Run 36261175119 GREEN: focused 16 PASS + protected 34 PASS, 0 FAIL.",
+    "Closing HEAD ed1d03cf432d7daa5e654e573904a2333e1a0d83 after removal of temporary QA workflow only.",
+    "Tested→closing drift audit: only .github/workflows/qa-issue756-postdrift-coord-write-parity.yml removed; implementation blobs unchanged."
   ],
   "master_issue": null,
   "chain_state": "NONE",

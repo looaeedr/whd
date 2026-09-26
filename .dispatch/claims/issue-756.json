@@ -9,9 +9,9 @@
   "work_branch": "governance/issue756-postdrift-coord-write-parity-20260927",
   "claimed_at": "2026-09-26T17:54:10Z",
   "base_sha": "e82261e705ac97dc4ce2f7e6ff199405647710b4",
-  "head_sha": "0dc9803390b29ef1c02e69b6914ace86c4fe26b2",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T18:03:20Z",
+  "head_sha": "ed1d03cf432d7daa5e654e573904a2333e1a0d83",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-26T18:04:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "0dc9803390b29ef1c02e69b6914ace86c4fe26b2",
     "status": "success"
   },
-  "next_action": "Remove temporary #756 QA workflow under Guard, reconcile exact closing HEAD, create/merge guarded PR to cleanup/2d-3d-sync, verify production readback, then close/release #756 and resume #692.",
+  "next_action": "Obtain pr-write Guard for exact closing HEAD ed1d03cf432d7daa5e654e573904a2333e1a0d83, create PR to cleanup/2d-3d-sync, verify durable PR readback, merge non-force, and fresh-read production capability.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-756.json",
   "evidence": [
@@ -35,6 +35,9 @@
     "Selective parity commit d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8 adds #755 coordination-write durable readback helper/wiring/regression without blind main merge.",
     "No branch-native CI exists for d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8; focused QA must be added temporarily.",
     "Focused QA run 36261175119 SUCCESS at 0dc9803390b29ef1c02e69b6914ace86c4fe26b2.",
-    "#755 coordination-write suite: 16 PASS; protected #739/#643/#731 regressions: 34 PASS; 0 FAIL."
+    "#755 coordination-write suite: 16 PASS; protected #739/#643/#731 regressions: 34 PASS; 0 FAIL.",
+    "Temporary QA workflow deletion Guard GREEN run 36261254520 / result 5848576450.",
+    "Closing commit ed1d03cf432d7daa5e654e573904a2333e1a0d83 removes only .github/workflows/qa-issue756-postdrift-coord-write-parity.yml.",
+    "Tested implementation remains d097f51d2ab9b2676d8a9c9e2b62202ca96f59b8; QA run 36261175119 remains authoritative: 16 + 34 PASS."
   ]
 }
