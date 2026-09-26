@@ -1,4 +1,4 @@
-name: WHD Remote Execution Guard
+name: WHD 遠端執行守門
 run-name: "WHD｜工單 #${{ github.event.issue.number }}｜${{ !startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1') && '非守門請求' || contains(github.event.comment.body, 'executor_source=scheduler') && '排程接手' || contains(github.event.comment.body, 'executor_source=chat') && '聊天室接手' || '來源未標記' }}"
 
 on:
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   guard:
+    name: 遠端執行守門
     if: >-
       github.event.issue.pull_request == null &&
       startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1')
@@ -19,12 +20,12 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout trusted workflow repository
+      - name: 取出 trusted workflow repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Parse fixed-schema request
+      - name: 解析固定格式守門請求
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
           EVENT_ISSUE: ${{ github.event.issue.number }}
@@ -201,7 +202,7 @@ jobs:
                   fh.write(value + "\n")
           PY
 
-      - name: Execute canonical remote guard
+      - name: 執行 canonical 遠端守門
         id: remote_guard
         shell: bash
         env:
@@ -397,7 +398,7 @@ jobs:
               elif isinstance(item, dict):
                   comments.append(item)
           def parse_fields(body):
-              lines = body.replace("\\r\\n", "\\n").split("\\n")
+              lines = body.replace("\r\n", "\n").split("\n")
               if not lines or lines[0].strip() != "WHD_USER_DIRECTED_TAKEOVER_V1":
                   return None
               fields = {}
@@ -419,7 +420,7 @@ jobs:
           if not candidates:
               raise SystemExit("missing matching WHD_USER_DIRECTED_TAKEOVER_V1")
           selected = max(candidates, key=lambda item: (str(item.get("created_at") or ""), int(item.get("id") or 0)))
-          Path("/tmp/user-authority.json").write_text(json.dumps(selected, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          Path("/tmp/user-authority.json").write_text(json.dumps(selected, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
                 user_authority_arg=(--user-authority-json /tmp/user-authority.json)
               fi
@@ -624,7 +625,7 @@ jobs:
             echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Publish machine-readable receipt
+      - name: 發布機器可讀守門 receipt
         if: always() && hashFiles('remote-guard-artifact/remote-guard-receipt.json') != ''
         uses: actions/github-script@v7
         with:
@@ -653,7 +654,7 @@ jobs:
               ].join('\n'),
             });
 
-      - name: Upload guard receipt
+      - name: 上傳守門 receipt
         if: always() && hashFiles('remote-guard-artifact/remote-guard-receipt.json') != ''
         uses: actions/upload-artifact@v4
         with:
@@ -662,6 +663,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Enforce terminal guard result
+      - name: 強制檢查守門終態結果
         if: steps.remote_guard.outputs.result != 'GREEN'
         run: exit 1
