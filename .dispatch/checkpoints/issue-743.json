@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "743",
+  "branch": "governance/issue743-multihop-reconcile-20260926",
+  "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
+  "state": "RUNNING",
+  "next_action": "Establish RED proving current guard rejects exact same-owner guarded H0→H1→H2 reconciliation; then implement bounded multi-hop reconciliation without weakening direct-child/merge-sync gates.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Authority: user continuation of #733/#690 repair.",
+    "Target: trusted main multi-hop reconciliation capability.",
+    "Immediate recovery target after deployment: #690."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

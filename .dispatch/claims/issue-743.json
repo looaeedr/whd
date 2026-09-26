@@ -1,0 +1,27 @@
+{
+  "issue": 743,
+  "issue_url": "https://github.com/looaeedr/whd/issues/743",
+  "worker": "chatgpt.sol260926.issue743.multihop1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue743.multihop1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue743-multihop-reconcile-20260926",
+  "claimed_at": "2026-09-26T16:22:00Z",
+  "base_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
+  "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T16:22:00Z",
+  "production_target": "main",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Establish RED proving current guard rejects exact same-owner guarded H0→H1→H2 reconciliation; then implement bounded multi-hop reconciliation without weakening direct-child/merge-sync gates.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-743.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user directed continuation of the #733/#690 repair chain.",
+    "Immediate blocker evidence: #690 claim H0=286bc3e3..., live H2=9c1fe13c..., ordinary reconciliation run 36255060142 failed because live head is not direct child or production merge-sync.",
+    "Trusted main authority at start: 6091bf003aae085d396f7e61f165e3f6a0e58260."
+  ]
+}
