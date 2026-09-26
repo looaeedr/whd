@@ -91,5 +91,17 @@
       "head_sha": "6d51e184726b02f758f11a1975bd57bd1bfe2b05",
       "observed_by_turn_exit_run_id": 36256250077
     }
+  ],
+  "delegated_work": [
+    {
+      "relationship": "helper",
+      "helper_key": "issue680-claim-handoff-main-deploy",
+      "state": "RESERVING",
+      "reserved_by": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+      "reservation_token": "issue680-claim-handoff-main-deploy-20260927a",
+      "reserved_at": "2026-09-26T17:15:15Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
+    }
   ]
 }
