@@ -18,8 +18,9 @@
     "PR #714 merged to cleanup/2d-3d-sync at fa1b105daed90684db8e0b7500c0a81894cc0c55.",
     "Remote QA run 36228428292 completed success on exact work head.",
     "Live A/B automation prompts 00/20/40/B15/B45 updated in UPDATE_ONLY mode; cadence and disabled state preserved.",
-    "No tools/** executable code changed; safety Guard/takeover/finalization machine behavior remained intact."
+    "No tools/** executable code changed; safety Guard/takeover/finalization machine behavior remained intact.",
+    "Closure advanced after PR #714 merge, remote QA success, and live A/B prompt readback."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/read back #713, then atomically persist CLOSED + RELEASED. Do not activate successor."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #713"
 }
