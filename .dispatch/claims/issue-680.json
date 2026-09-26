@@ -9,12 +9,12 @@
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "head_sha": "1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b",
+  "head_sha": "a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf",
   "phase": "RED",
-  "last_update": "2026-09-26T15:03:00Z",
+  "last_update": "2026-09-26T15:12:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Fix only .github/workflows/qa-issue680-planned-handoff.yml to install pytest before executing RED characterization, under a fresh commit Guard; reconcile H2→H3 and monitor the auto-created #680 RED run to terminal.",
+  "next_action": "Use the valid RED run 36250631028 at exact head a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf as characterization evidence; inspect the exact test contract, implement the minimum planned-handoff scheduler receiver semantics under fresh commit Guard, then rerun focused QA to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -53,7 +53,10 @@
     "Direct workflow_dispatch of branch-only .github/workflows/qa-issue680-planned-handoff.yml returned GitHub 404 because that workflow is not on default branch; next action uses an exact branch push trigger.",
     "Workflow trigger commit 1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b consumed commit Guard 36250370465.",
     "H1→H2 pair reconciliation Guard 36250453566 GREEN.",
-    "Auto-created #680 RED run 36250425966 reached exact head 1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b but failed before test execution because pytest was not installed; invalid RED, rerun required."
+    "Auto-created #680 RED run 36250425966 reached exact head 1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b but failed before test execution because pytest was not installed; invalid RED, rerun required.",
+    "Workflow dependency repair commit a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf consumed commit Guard 36250584829.",
+    "Post-commit H2→H3 claim/checkpoint reconciliation authorized by Remote Guard run 36251095059.",
+    "RED run 36250631028 executed pytest successfully and failed in the test step; environment bootstrap is no longer the blocker."
   ],
   "remote_qa": null
 }

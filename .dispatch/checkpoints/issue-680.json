@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "680",
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
-  "head_sha": "1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b",
+  "head_sha": "a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf",
   "state": "RUNNING",
-  "next_action": "Fix only .github/workflows/qa-issue680-planned-handoff.yml to install pytest before executing RED characterization, under a fresh commit Guard; reconcile H2→H3 and monitor the auto-created #680 RED run to terminal.",
+  "next_action": "Use the valid RED run 36250631028 at exact head a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf as characterization evidence; inspect the exact test contract, implement the minimum planned-handoff scheduler receiver semantics under fresh commit Guard, then rerun focused QA to GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,10 @@
     "Run 36250084689 terminal success; full collection 3573; artifact 10907744881. This proves dispatch/readback only, not WI-2 RED acceptance.",
     "Next canonical action: make #680 QA workflow branch-push-triggerable, then run true RED at exact next head.",
     "H1→H2 reconciliation Guard 36250453566 GREEN.",
-    "Run 36250425966 invalid RED: pytest missing before test execution; fix QA dependency and rerun."
+    "Run 36250425966 invalid RED: pytest missing before test execution; fix QA dependency and rerun.",
+    "Workflow dependency repair committed at a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf.",
+    "H2→H3 reconciliation Guard 36251095059 GREEN.",
+    "Run 36250631028 reached pytest execution and failed in characterization step; valid RED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
