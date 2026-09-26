@@ -1,0 +1,25 @@
+[Reading 21 lines from start (total: 21 lines, 0 remaining)]
+
+{
+  "version": 1,
+  "issue": "679",
+  "branch": "work/issue679-local-durability-runtime-boundary-20260926",
+  "head_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard for the exact WI-1 branch, create it from current cleanup/2d-3d-sync, then run focused R1 characterization for local durability + interactive runtime END without reusing scheduler liveness ownership.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: Issue #679 / spec v1.4 §4 §8 §13 / Approved RED R1.",
+    "Predecessor #678 fresh-read closed/completed; durable RED evidence anchor integrated.",
+    "Fresh production target cleanup/2d-3d-sync HEAD=3c048f5e2adc3f0bc99b1c60b3aae85ab8893931.",
+    "Issue #680 and #681 have independent active claims; WI-1 claims no ownership over those branches."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
+
+[executed on device: R5-2600 (5e85f914-bd06-4f87-8e61-34dd15a50b54)]

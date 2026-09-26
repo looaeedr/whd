@@ -1,0 +1,24 @@
+[Reading 20 lines from start (total: 20 lines, 0 remaining)]
+
+{
+  "issue": 679,
+  "issue_url": "https://github.com/looaeedr/whd/issues/679",
+  "worker": "chatgpt.sol260926.wi1.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.wi1.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue679-local-durability-runtime-boundary-20260926",
+  "claimed_at": "2026-09-26T05:56:06Z",
+  "base_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+  "head_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T05:56:06Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Obtain branch-create Guard for the exact WI-1 branch, create it from current cleanup/2d-3d-sync, then run focused R1 characterization for local durability + interactive runtime END without reusing scheduler liveness ownership.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-679.json"
+}
+
+[executed on device: R5-2600 (5e85f914-bd06-4f87-8e61-34dd15a50b54)]
