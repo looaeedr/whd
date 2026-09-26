@@ -707,6 +707,20 @@ batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌�
 
 這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。
 
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
+
+`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
+
+- prior receipt 為 exact GREEN `action=pr-write`；
+- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
+- PR `base.ref == claim.production_target`；
+- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
+- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
+
+只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+
 ## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
 
 若 active claim 對應的 checkpoint 已是 terminal，但 checkpoint JSON 因 closure lifecycle 欄位非法而無法被 canonical loader 解析，禁止用 ordinary Remote Guard、一般 `reactivate`、手寫 coord commit 或先 release claim 繞過。
