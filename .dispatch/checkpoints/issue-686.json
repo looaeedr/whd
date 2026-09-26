@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "686",
   "branch": "governance/issue686-local-guard-postcommit-parity-20260926",
-  "head_sha": "db28c392d0d828ed2f299e0131370ddbf49e9e3b",
+  "head_sha": "619da824bb589fa8261aec75efff7361633d152b",
   "state": "RUNNING",
-  "next_action": "Remove the temporary qa-issue686-local-guard workflow under a fresh Guard, rerun focused regression on the cleaned head, reconcile claim/checkpoint, then fresh drift-audit PR #741 for merge and close/release #686.",
+  "next_action": "Fresh-read current cleanup/2d-3d-sync and PR #741 mergeability, run exact drift audit from accepted QA head db28c392 to cleaned head 619da824, obtain pr-write Guard for the clean PR merge, merge #741, read back production parity, then enter terminal closure/release.",
   "run_id": 36278818776,
   "job_id": 108506622998,
   "log_cursor": null,
@@ -35,7 +35,11 @@
     "Two-parent sync commit db28c392d0d828ed2f299e0131370ddbf49e9e3b resolved the only conflict by retaining current production pitfall content plus #686 local-Guard parity writeback.",
     "Merged-tree focused regression: 74 passed / 0 failed.",
     "PR #741 pull_request QA run 36278818776 / job 108506622998 terminal SUCCESS: 74 passed / 0 failed.",
-    "Post-commit pair reconciliation Guard run 36278843390 GREEN."
+    "Post-commit pair reconciliation Guard run 36278843390 GREEN.",
+    "Temporary QA workflow cleanup Guard run 36278970197 GREEN.",
+    "Cleanup commit 619da824bb589fa8261aec75efff7361633d152b removed only the temporary #686 QA workflow.",
+    "Post-cleanup focused regression: 74 passed / 0 failed.",
+    "Cleanup-head pair reconciliation Guard run 36279029098 GREEN."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

@@ -9,12 +9,12 @@
   "work_branch": "governance/issue686-local-guard-postcommit-parity-20260926",
   "claimed_at": "2026-09-26T03:32:54Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "head_sha": "db28c392d0d828ed2f299e0131370ddbf49e9e3b",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T23:16:23.973497Z",
+  "head_sha": "619da824bb589fa8261aec75efff7361633d152b",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-26T23:19:03.162308Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Remove the temporary qa-issue686-local-guard workflow under a fresh Guard, rerun focused regression on the cleaned head, reconcile claim/checkpoint, then fresh drift-audit PR #741 for merge and close/release #686.",
+  "next_action": "Fresh-read current cleanup/2d-3d-sync and PR #741 mergeability, run exact drift audit from accepted QA head db28c392 to cleaned head 619da824, obtain pr-write Guard for the clean PR merge, merge #741, read back production parity, then enter terminal closure/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-686.json",
   "slot_id": "worker.slot.1",
@@ -50,17 +50,21 @@
     "Two-parent sync commit=db28c392d0d828ed2f299e0131370ddbf49e9e3b; work delta vs production parent remained exactly the 6 #686 authorized files.",
     "Focused merged-tree local regression=74 passed / 0 failed.",
     "PR #741 synchronize created QA run=36278818776; job=108506622998; terminal success; pytest=74 passed / 0 failed.",
-    "Post-commit pair reconciliation Guard run=36278843390 GREEN."
+    "Post-commit pair reconciliation Guard run=36278843390 GREEN.",
+    "Temporary QA workflow cleanup Guard run=36278970197 GREEN.",
+    "Cleanup commit=619da824bb589fa8261aec75efff7361633d152b removed only .github/workflows/qa-issue686-local-guard.yml.",
+    "Post-cleanup focused regression=74 passed / 0 failed.",
+    "Cleanup-head pair reconciliation Guard run=36279029098 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36278843390,
-    "request_comment_id": 5850803185,
+    "run_id": 36279029098,
+    "request_comment_id": 5850829882,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #686 claim/checkpoint HEAD to db28c392 after guarded merge-sync"
+    "mutation": "reconcile #686 pair to cleaned head 619da824"
   },
   "remote_qa": {
     "run_id": 36278818776,
