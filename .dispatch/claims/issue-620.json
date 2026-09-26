@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T04:50:00Z",
   "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
-  "head_sha": "785efb1edf5a524a64dcbfe331ba74c28abb57a8",
+  "head_sha": "883c40401e37f4303cb01172ce78fc865e026310",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T05:11:55Z",
+  "last_update": "2026-09-26T05:38:37Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
@@ -20,7 +20,7 @@
   "parent_issue": 627,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Continue #620 P7-R-D from 785efb1edf5a524a64dcbfe331ba74c28abb57a8: characterize build_part_render_data / PartRenderData orchestration and extract a bounded render-data owner while preserving manufacturing_api public datatypes/entrypoints, monkeypatch seams, canonical geometry authority, and zero UI/Bridge reverse imports; then run structural + manufacturing/DXF regression before exact-head remote QA.",
+  "next_action": "Run exact-head remote QA for #620 P7-R-D on tested SHA 883c40401e37f4303cb01172ce78fc865e026310, including public API compatibility, facade structural/reverse-import guards, manufacturing policy/API/export, assembly-collision and actual DXF reopen coverage; bind run_id+tested_sha durably, then if GREEN perform tested-to-cleaned drift audit, terminalize #620 and hand off Master #627 to #621 A5.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-620.json",
   "predecessor": {
@@ -36,17 +36,18 @@
     "Master #627 handoff is NEXT_CHILD_EXECUTABLE -> #620 A4; production target cleanup/2d-3d-sync is observation/integration authority only and current production head cb0c6ada73d4bee15572c42220f03993a93554fc is not a child base.",
     "P7-R-D verification-owner slice: RED 1 failed because ae_engine.manufacturing_verification was absent; GREEN owner module + manufacturing_api thin verification facades at 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23. Focused characterization 1 passed; broader manufacturing/DXF/reopen regression 60 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219274264 GREEN; post-commit reconciliation Guard 36219410250 GREEN.",
     "P7-R-D export-sink slice: RED 1 failed/1 passed because ae_engine.manufacturing_export was absent; GREEN bounded DXF sink/naming/physical-part export owner at 1e8bd74f0aad5a767feb9bd39fa201bc2e7504de. Focused export/compatibility 13 passed after preserving manufacturing_api.save_part_render_data_dxf monkeypatch seam; broader manufacturing/DXF/reopen regression 67 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219505473 GREEN; post-commit reconciliation Guard 36219728283 GREEN.",
-    "P7-R-D EndCap request-owner slice: RED 1 failed/2 passed because ae_engine.manufacturing_requests was absent; GREEN ResolvedEndCapRequest ownership + precedence resolver moved behind manufacturing_api thin facade at 785efb1edf5a524a64dcbfe331ba74c28abb57a8. Characterization 3 passed; broader EndCap/corner/manufacturing regression 59 passed, 11 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219821454 GREEN; post-commit reconciliation Guard 36220071538 GREEN."
+    "P7-R-D EndCap request-owner slice: RED 1 failed/2 passed because ae_engine.manufacturing_requests was absent; GREEN ResolvedEndCapRequest ownership + precedence resolver moved behind manufacturing_api thin facade at 785efb1edf5a524a64dcbfe331ba74c28abb57a8. Characterization 3 passed; broader EndCap/corner/manufacturing regression 59 passed, 11 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219821454 GREEN; post-commit reconciliation Guard 36220071538 GREEN.",
+    "P7-R-D render-owner slice: RED 1 failed/3 passed because ae_engine.manufacturing_render was absent; GREEN build_part_render_data orchestration moved behind manufacturing_api thin facade at 883c40401e37f4303cb01172ce78fc865e026310. Structural test was refined from a false-positive bare 'gui' substring (matched fold_guides) to import-specific reverse-import checks without changing production semantics. Focused facade 4 passed; broader manufacturing/assembly-collision/EndCap/BoxBody/DXF regression 122 passed, 7 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36220204130 GREEN; post-commit reconciliation Guard 36221395401 GREEN."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36220071538,
-    "request_comment_id": 5843427209,
+    "run_id": 36221395401,
+    "request_comment_id": 5843586086,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to #620 request-owner head"
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to #620 render-owner head"
   },
   "local_validation": {
     "verification_owner": {
@@ -68,6 +69,13 @@
       "head_sha": "785efb1edf5a524a64dcbfe331ba74c28abb57a8",
       "characterization": "3 passed",
       "broader": "59 passed, 11 skipped",
+      "py_compile": "GREEN",
+      "diff_check": "GREEN"
+    },
+    "render_owner": {
+      "head_sha": "883c40401e37f4303cb01172ce78fc865e026310",
+      "characterization": "4 tests: initial owner-absence RED, then GREEN",
+      "broader": "122 passed, 7 skipped",
       "py_compile": "GREEN",
       "diff_check": "GREEN"
     }
