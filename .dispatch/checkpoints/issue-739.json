@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
-  "head_sha": "86e8786900c04ce9cdf622fe2babe509216bc403",
+  "head_sha": "7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e",
   "state": "RUNNING",
-  "next_action": "Remove temporary #739 QA workflow, reconcile final closing head, then pr-write/merge to main and fresh-read deployment.",
+  "next_action": "Fresh drift audit; obtain pr-write Guard; create and merge PR to main; fresh-read trusted deployment.",
   "run_id": 36258017721,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -22,7 +22,9 @@
     "Compatibility closing HEAD e70b83bc9f5b2ff2964be863d3788db77df5b72b.",
     "Post-compatibility reconciliation Guard 36257901502 GREEN.",
     "Current-main compatibility regression run 36258017721 SUCCESS at 86e8786900c04ce9cdf622fe2babe509216bc403.",
-    "QA-head reconciliation Guard 36258055525 GREEN."
+    "QA-head reconciliation Guard 36258055525 GREEN.",
+    "Final closing HEAD 7f30fae2331ff4569f0a8d0cb86ee54f46f6f93e.",
+    "Final-head reconciliation Guard 36258170717 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
