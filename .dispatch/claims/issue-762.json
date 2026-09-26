@@ -1,0 +1,33 @@
+{
+  "issue": 762,
+  "issue_url": "https://github.com/looaeedr/whd/issues/762",
+  "worker": "chatgpt.issue762.20260927a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue762.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue762-successor-continuation-regression-20260927",
+  "claimed_at": "2026-09-26T22:00:00Z",
+  "base_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "head_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T22:00:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded governance branch, add regression tests for NEXT_CHILD_EXECUTABLE continuation, then align 執行開發任務/派工/工作槽 with the pre-existing Master-chain turn-exit hard gate.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-762.json",
+  "evidence": [
+    "authorization_source=user correction: work slots already must auto-continue canonical successor; repair regression rather than add exception",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=restore NEXT_CHILD_EXECUTABLE auto-continuation contract broken by #712/#713/#715 routing text",
+    "authorized_scope=Issue #762 governance Skill/test changes only",
+    "prohibited_scope=no unrelated Issue execution; no arbitrary open-Issue discovery; no weakening claim/Guard/finalization gates",
+    "resume_authority=NONE",
+    "fresh X base=0374e9d35bcd8b02ceb6486002c203347a45b19b",
+    "root-cause commits: 0ddd4db2 (#712), aaf38b04 (#713), 3f197eb3 (#715)"
+  ]
+}
