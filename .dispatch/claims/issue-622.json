@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T02:35:38Z",
   "base_sha": "aa9c25aa44283f325445311b013b26086467395b",
-  "head_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T02:35:38Z",
+  "last_update": "2026-09-26T02:44:09Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -27,7 +27,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read B1/B2/B4 terminal evidence and accepted ancestry, then run B5 source-owner duplication/protected-scope scan and build the exact Combined Acceptance matrix before any B5 writeback.",
+  "next_action": "Fresh-read the auto-triggered #622 B5 Combined run created by workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0; bind exact run_id+head into WAITING_REMOTE and actively poll it to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-622.json",
   "predecessor": {
@@ -48,6 +48,29 @@
     "Blocking issues #614, #615, and #619 fresh-read closed/completed.",
     "Predecessor #619 durable handoff is claim RELEASED + checkpoint CLOSED with NEXT_CHILD_EXECUTABLE -> #622.",
     "Shared work-order branch fresh HEAD is aa9c25aa44283f325445311b013b26086467395b.",
-    "B5 Phase6 Knowledge Preflight completed with all required skills/references green in .scratch/issue622-b5-preflight-evidence.txt."
-  ]
+    "B5 Phase6 Knowledge Preflight completed with all required skills/references green in .scratch/issue622-b5-preflight-evidence.txt.",
+    "Trusted successor activation run 36212214015 completed GREEN for #622 owner chatgpt.sol260926.b5a.",
+    "Fresh ancestry check: B1 c043e447..., B2 952fb35d..., and B4 cleaned aa9c25aa... are all ancestors of the B5 lineage.",
+    "B5 workflow changed-file Knowledge Preflight completed GREEN with monitoring-remote-qa, long-log-context-safe-execution, and executable-continuity-controller requirements satisfied.",
+    "Actions naming guard completed GREEN for .github/workflows/qa-issue622-b5-combined.yml after BOM/run-name correction.",
+    "B5 Combined one-shot workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0 changed only .github/workflows/qa-issue622-b5-combined.yml under commit Guard 36212366469.",
+    "Post-commit pair reconciliation authorized by Guard 36212583338."
+  ],
+  "last_guard": {
+    "action": "write",
+    "run_id": 36212583338,
+    "request_comment_id": 5842469833,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
+    "consumed": true,
+    "mutation": "post-commit pair reconciliation to B5 Combined workflow head"
+  },
+  "b5_lineage": {
+    "b1_head": "c043e447afc0da533ef965fe82d175e75011d186",
+    "b2_head": "952fb35d185530feea5fce81069e6a48d980f12d",
+    "b4_tested_head": "5d9d9b3058e0cdcd2ffcafa4bdc0f3d29fef2104",
+    "b4_cleaned_head": "aa9c25aa44283f325445311b013b26086467395b",
+    "all_ancestors_of_b5_head": true
+  }
 }

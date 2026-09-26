@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "622",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
   "state": "RUNNING",
-  "next_action": "Fresh-read B1/B2/B4 terminal evidence and accepted ancestry, then run B5 source-owner duplication/protected-scope scan and build the exact Combined Acceptance matrix before any B5 writeback.",
+  "next_action": "Fresh-read the auto-triggered #622 B5 Combined run created by workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0; bind exact run_id+head into WAITING_REMOTE and actively poll it to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,10 @@
   "evidence": [
     "B5 successor activation candidate created only after #614/#615/#619 closed/completed readback.",
     "Current shared accepted head at activation is aa9c25aa44283f325445311b013b26086467395b.",
-    "Knowledge Preflight required skills/references are complete before B5 substantive work."
+    "Knowledge Preflight required skills/references are complete before B5 substantive work.",
+    "B1/B2/B4 accepted lineage is non-diverged and all accepted heads are ancestors of the B5 candidate.",
+    "B5 Combined workflow commit fc9ad5fcc5c231888b9628eca31df8470affcbb0 is workflow-only.",
+    "Post-commit pair reconciliation authorized by Guard 36212583338."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
