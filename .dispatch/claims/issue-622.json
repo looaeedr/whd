@@ -1,0 +1,53 @@
+{
+  "issue": 622,
+  "issue_url": "https://github.com/looaeedr/whd/issues/622",
+  "worker": "chatgpt.sol260926.b5a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.b622.20260926T023538Z",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "claimed_at": "2026-09-26T02:35:38Z",
+  "base_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "head_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T02:35:38Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "master_issue": 628,
+  "task_id": "B5",
+  "parent_issue": 628,
+  "expected_parent_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "chain_head": "aa9c25aa44283f325445311b013b26086467395b",
+  "approved_red_ids": [
+    "UI-R1",
+    "UI-R2",
+    "UI-R3"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Fresh-read B1/B2/B4 terminal evidence and accepted ancestry, then run B5 source-owner duplication/protected-scope scan and build the exact Combined Acceptance matrix before any B5 writeback.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-622.json",
+  "predecessor": {
+    "issues": [
+      614,
+      615,
+      619
+    ],
+    "states": [
+      "closed/completed",
+      "closed/completed",
+      "closed/completed"
+    ],
+    "accepted_shared_head": "aa9c25aa44283f325445311b013b26086467395b"
+  },
+  "evidence": [
+    "Issue #622 fresh-read open/ready-for-agent; no prior claim or checkpoint exists on coord/dispatch-claims.",
+    "Blocking issues #614, #615, and #619 fresh-read closed/completed.",
+    "Predecessor #619 durable handoff is claim RELEASED + checkpoint CLOSED with NEXT_CHILD_EXECUTABLE -> #622.",
+    "Shared work-order branch fresh HEAD is aa9c25aa44283f325445311b013b26086467395b.",
+    "B5 Phase6 Knowledge Preflight completed with all required skills/references green in .scratch/issue622-b5-preflight-evidence.txt."
+  ]
+}

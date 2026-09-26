@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "622",
+  "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "head_sha": "aa9c25aa44283f325445311b013b26086467395b",
+  "state": "RUNNING",
+  "next_action": "Fresh-read B1/B2/B4 terminal evidence and accepted ancestry, then run B5 source-owner duplication/protected-scope scan and build the exact Combined Acceptance matrix before any B5 writeback.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "B5 successor activation candidate created only after #614/#615/#619 closed/completed readback.",
+    "Current shared accepted head at activation is aa9c25aa44283f325445311b013b26086467395b.",
+    "Knowledge Preflight required skills/references are complete before B5 substantive work."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
