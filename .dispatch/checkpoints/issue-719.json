@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "719",
   "branch": "governance/issue719-deploy-interactive-takeover-main-20260926",
-  "head_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
+  "head_sha": "bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9",
   "state": "RUNNING",
-  "next_action": "Mint a fresh commit Guard for .github/workflows/whd-remote-execution-guard.yml and apply only the accepted #667 interactive claim-takeover transport delta onto the trusted-main deployment branch.",
+  "next_action": "Run exact diff/readback validation on bfda3db8..., then obtain pr-write Guard and open/merge the trusted-main deployment PR; after main readback, use the deployed interactive takeover path to take over #680.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,10 @@
     "Trusted main Remote Guard parser is stale and rejects executor_source=chat claim-takeover before evaluator execution.",
     "Helper scope is limited to trusted main Remote Guard parser/evaluator transport parity; no scheduler cadence or application changes.",
     "Branch-create Guard run 36234759292 GREEN was consumed by creating governance/issue719-deploy-interactive-takeover-main-20260926 at exact cf6d2906fddcf2478020cdc7ef841211fca1ae34.",
-    "Fresh branch readback proved branch_exists=true and exact head; failed commit Guard run 36234931899 exposed missing durable consume/reconciliation and performed no mutation."
+    "Fresh branch readback proved branch_exists=true and exact head; failed commit Guard run 36234931899 exposed missing durable consume/reconciliation and performed no mutation.",
+    "Commit Guard run 36235111542 completed success and authorized only .github/workflows/whd-remote-execution-guard.yml.",
+    "Authorized commit bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9 applied the accepted interactive takeover transport delta while preserving later trusted-main recovery behavior.",
+    "Post-commit pair reconciliation Guard run 36235224456 completed success for exact live head bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

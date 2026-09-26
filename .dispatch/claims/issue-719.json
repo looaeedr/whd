@@ -9,22 +9,25 @@
   "work_branch": "governance/issue719-deploy-interactive-takeover-main-20260926",
   "claimed_at": "2026-09-26T10:04:35Z",
   "base_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
-  "head_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T10:09:42.869170Z",
+  "head_sha": "bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T10:15:27Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Mint a fresh commit Guard for .github/workflows/whd-remote-execution-guard.yml and apply only the accepted #667 interactive claim-takeover transport delta onto the trusted-main deployment branch.",
+  "next_action": "Run exact diff/readback validation on bfda3db8..., then obtain pr-write Guard and open/merge the trusted-main deployment PR; after main readback, use the deployed interactive takeover path to take over #680.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-719.json",
   "guard_transaction": {
     "schema": "WHD_GUARD_TRANSACTION_READBACK_V1",
-    "guard_run_id": 36234759292,
-    "action": "branch-create",
+    "guard_run_id": 36235224456,
+    "action": "write",
     "mutation_applied": true,
-    "branch_exists": true,
-    "branch_head_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
+    "target_changed": true,
     "reconciled": true,
-    "evidence": "fresh branch readback matched the exact GREEN receipt; subsequent commit Guard attempt 36234931899 correctly rejected until this durable reconciliation"
+    "changed_files": [
+      ".dispatch/claims/issue-719.json",
+      ".dispatch/checkpoints/issue-719.json"
+    ],
+    "evidence": "post-commit reconciliation Guard completed success; exact branch readback head=bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9"
   }
 }
