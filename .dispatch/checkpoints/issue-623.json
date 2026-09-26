@@ -33,13 +33,14 @@
     "Canonical P7-F DT artifact is terminal: DT-1..DT-6 COMPLETE, DT-6 decision EXTRACT_TO_DEEP_OWNER, result ACCEPTED.",
     "WHD_PHASE7_TARGET_COMPLETION_V1 artifact docs/superpowers/checkpoints/issue623-a6-target-completion.json read back result=ACCEPTED with reverse_import=0, duplicate_path=0, duplicate_owner=0, second_composition_root=0, full_app_dependency=false.",
     "ASCG/documentation commit 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d authorized by Remote Guard run 36242298621; post-commit terminalization reconciliation authorized by Remote Guard run 36242430109.",
-    "Successor #624 fresh-read open with no shared claim/checkpoint; Master #627 handoff may advance to NEXT_CHILD_EXECUTABLE -> #624 only after #623 closure transaction completes."
+    "Successor #624 fresh-read open with no shared claim/checkpoint; Master #627 handoff may advance to NEXT_CHILD_EXECUTABLE -> #624 only after #623 closure transaction completes.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36242508096."
   ],
   "master_issue": "627",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "624",
   "chain_next_action": "Activate/claim #624 Phase 7 A7 on accepted #623 head 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d and execute approved P7-R-A residual fold_designer_bridge owner reduction; preserve the Phase 7 frozen work-order lineage and do not chase current production X.",
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Fresh-guard closure advance to ISSUE_CLOSE_PENDING, then mint trusted finalization proof bound to this exact terminal checkpoint before closing Issue #623."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted finalization proof bound to this exact checkpoint blob/fingerprint; only then close #623, read back closed/completed, and release claim with #624 handoff."
 }
