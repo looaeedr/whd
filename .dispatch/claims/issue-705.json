@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-26T06:47:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-26T07:00:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T08:06:22Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "duplicate publication repair: terminalize #705 without implementation, close as duplicate of #696, atomically release claim/checkpoint",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-705.json",
   "last_guard": {
@@ -34,5 +34,14 @@
     "duplicate_issue": 705,
     "classification": "DUPLICATE_PUBLICATION",
     "implementation_prohibited": true
+  },
+  "release": {
+    "state": "RELEASED",
+    "reason": "DUPLICATE_PUBLICATION",
+    "canonical_issue": 696,
+    "closed_issue_state": "closed",
+    "closed_issue_reason": "duplicate",
+    "finalization_run_id": 36228753716,
+    "finalization_artifact_id": 10901517192
   }
 }
