@@ -1,0 +1,30 @@
+{
+  "issue": 737,
+  "issue_url": "https://github.com/looaeedr/whd/issues/737",
+  "worker": "chatgpt.sol260926.issue737.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue737.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue737-remote-guard-authority-handoff",
+  "claimed_at": "2026-09-26T15:29:55Z",
+  "base_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
+  "head_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T15:29:55Z",
+  "production_target": "main",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded work branch from exact main baseline, add focused RED for missing user-authority-evidence handoff, then implement minimal trusted workflow fix and run focused GREEN.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-737.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: authorization_source=user explicit instruction '先補起來'; execution_intent=EXECUTE_TICKET.",
+    "Purpose: repair trusted Remote Guard interactive claim-takeover authority-evidence handoff.",
+    "Authorized scope: trusted Remote Guard workflow, focused regression test, deploy/readback/live smoke.",
+    "Prohibited scope: no stale threshold, ownership, scheduler cadence/enabled, UI/geometry changes.",
+    "Proven RED evidence: #724 Remote Guard run 36251095244 reached stale evaluator EXECUTOR_STUCK/actionable=true then failed execution_claim_guard with missing owner-authored user authority evidence."
+  ]
+}

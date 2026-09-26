@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "737",
+  "branch": "governance/issue737-remote-guard-authority-handoff",
+  "head_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
+  "state": "RUNNING",
+  "next_action": "Create guarded work branch from exact main baseline, add focused RED for missing user-authority-evidence handoff, then implement minimal trusted workflow fix and run focused GREEN.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: Issue #737 + explicit user instruction.",
+    "Trusted main baseline: 641639ff675fc0ea2a13c7a9123337de250d4170.",
+    "Live RED: #724 Remote Guard run 36251095244 fails at execution_claim_guard because --user-authority-evidence is not forwarded."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
