@@ -4,8 +4,8 @@
   "branch": "work/issue690-closure-drift-classification-20260926",
   "head_sha": "286bc3e3ee92a1945f54300ee5b31485173d205d",
   "state": "RUNNING",
-  "next_action": "Implement deterministic fail-closed repair for malformed terminal checkpoint closure_state=READY_FOR_FINALIZATION, preserving issue/branch/head/state identity and forbidding arbitrary rewrite or RELEASED jump; then rerun #690 focused/protected QA.",
-  "run_id": null,
+  "next_action": "Implement narrow malformed terminal checkpoint repair API; preserve exact issue/branch/head/state identity and normalize only invalid closure lifecycle to FINALIZATION_PENDING; rerun focused/protected regressions.",
+  "run_id": 36254781251,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -24,7 +24,9 @@
     "Tested-head reconciliation Guard GREEN run 36252802760 / result comment 5847563288.",
     "Scope extension #733 accepted into #690 via comment 5847783558.",
     "RED commit 286bc3e3ee92a1945f54300ee5b31485173d205d adds malformed terminal checkpoint repair coverage.",
-    "Post-RED reconciliation Guard GREEN run 36254818647 / result comment 5847805300."
+    "Post-RED reconciliation Guard GREEN run 36254818647 / result comment 5847805300.",
+    "Malformed terminal checkpoint RED at 286bc3e3ee92a1945f54300ee5b31485173d205d; run 36254781251 expected failure.",
+    "Post-RED reconciliation Guard 36254818647 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
