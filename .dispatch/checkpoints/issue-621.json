@@ -22,12 +22,13 @@
     "One-shot A5 QA workflow removed in cleanup commit 8e80e460160a9b238ee53d201a1ff88ee47439d3 under Remote Guard run 36230440766.",
     "Post-cleanup claim/checkpoint pair reconciliation authorized by Remote Guard run 36230560452.",
     "Tested-head → closing-head drift audit GREEN: TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f tree=7354fe6c5a4199061048696505d49a27a5b8a13d; closing HEAD 8e80e460160a9b238ee53d201a1ff88ee47439d3 tree=7354fe6c5a4199061048696505d49a27a5b8a13d; diff empty.",
-    "Terminalization coordination write authorized by Remote Guard run 36230661835."
+    "Terminalization coordination write authorized by Remote Guard run 36230661835.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36230707655."
   ],
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance terminal checkpoint to ISSUE_CLOSE_PENDING, authorize/verify bound finalization proof, then close/read back Issue #621"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "obtain bound trusted finalization proof, close/read back Issue #621, then persist RELEASE_HANDOFF_PENDING and final CLOSED + RELEASED"
 }
