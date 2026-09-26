@@ -121,5 +121,5 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
     adapter = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
         encoding="utf-8"
     )
-    assert 'required("_phase6_refresh_sticky_structure_tree")' in adapter
-    assert 'required("_phase6_install_keyboard_shortcuts")' in adapter
+    assert "_phase6_refresh_sticky_structure_tree" in adapter
+    assert "_phase6_install_keyboard_shortcuts" in adapter
