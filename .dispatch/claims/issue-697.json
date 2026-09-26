@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T07:18:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-26T08:55:00Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T08:58:00.434477Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,19 +24,19 @@
     "failed": 0,
     "marker": "ISSUE697_A2_REGRESSION_GREEN=PASS"
   },
-  "next_action": "Audit tested head 3969ac5d0ffdffa975824921b85b1168713abc21 to closing head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e; require cleanup-only workflow deletion with zero production/test drift, then terminalize A2.",
+  "next_action": "A2 accepted pending amendment-chain closure by #702. Successors #698/#699/#700 are unblocked by A2 evidence; do not auto-claim from this ticket closure without explicit chain/scheduler execution authority.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-697.json",
   "last_guard": {
-    "action": "commit",
-    "run_id": 36227080734,
-    "request_comment_id": 5844284813,
-    "result_comment_id": 5844285912,
+    "action": "write",
+    "run_id": 36231339593,
+    "request_comment_id": 5844789722,
+    "result_comment_id": 5844790936,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+    "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "expanded existing one-shot A2 workflow at 3969ac5d0ffdffa975824921b85b1168713abc21"
+    "mutation": "record A2 accepted-pending-chain-closure after cleanup zero-drift audit"
   },
   "red_evidence": {
     "run_id": 36226621311,
@@ -76,5 +76,28 @@
     "prior_cleanup_guard_run_id": 36227256106,
     "prior_reconcile_guard_run_id": 36227371332,
     "failed_new_owner_reconcile_run_id": 36231154918
+  },
+  "acceptance": {
+    "red_ids": [
+      "RED-STOP-17",
+      "RED-STOP-18"
+    ],
+    "tested_head_sha": "3969ac5d0ffdffa975824921b85b1168713abc21",
+    "closing_head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+    "focused_green": "7 passed / 0 failed",
+    "remote_regression": "53 passed / 0 failed",
+    "remote_run_id": 36227111155,
+    "cleanup_diff": [
+      "D .github/workflows/qa-issue697-operation-transaction.yml"
+    ],
+    "production_test_drift": [],
+    "diff_check": "GREEN",
+    "closure_owner_issue": 702,
+    "successors": [
+      698,
+      699,
+      700
+    ],
+    "state": "ACCEPTED_PENDING_CHAIN_CLOSURE"
   }
 }
