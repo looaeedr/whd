@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "618",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "cc2f78a9ee012cc04da60a336686881df62f409f",
+  "head_sha": "015ebc6430f1397566ffb8f442b89d62c2a3271c",
   "state": "RUNNING",
-  "next_action": "Continue #618 A3 DT-0~DT-6 from cc2f78a9ee012cc04da60a336686881df62f409f: characterize legacy stretched scene adapters and remaining ae.py compatibility surface, decide MOVE vs KEEP with caller evidence, then run exact DXF reopen/manufacturing regression and remote QA.",
+  "next_action": "Remove trailing whitespace from ae_engine/baseline_scene_adapters.py under a fresh commit Guard, require git diff --check GREEN, rerun the 100-test affected regression, then continue P7-C DT for door/endcap/indicator stretched adapters.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,7 +24,8 @@
     "Fresh guarded commit 7fadcaf4e9c4331182a48e85d2721e585bba522e created at 2026-09-26T02:43:49Z and non-force pushed as direct child of c20bb25c334003d2e8439bf636b3a193b6debc78.",
     "Post-commit pair reconciliation Remote Guard run 36212621328 / request 5842476348 GREEN; trusted guard verified direct-child changed-file identity and prior GREEN receipt window.",
     "Baseline source/cache owner commit 4e62133bf515e79b32d53a1942b79c12d92707b0 is a direct child of 7fadcaf4e9c4331182a48e85d2721e585bba522e; pre-mutation Remote Guard 36213030391 GREEN, post-commit reconciliation Guard 36213075044 GREEN.",
-    "Baseline resource/path ownership moved behind ae.py compatibility facades at cc2f78a9ee012cc04da60a336686881df62f409f; local focused/resource regression 34 passed, broader baseline/stretched/DXF regression 75 passed, py_compile and diff-check GREEN; commit Guard 36213684551 GREEN and reconciliation Guard 36213737275 GREEN."
+    "Baseline resource/path ownership moved behind ae.py compatibility facades at cc2f78a9ee012cc04da60a336686881df62f409f; local focused/resource regression 34 passed, broader baseline/stretched/DXF regression 75 passed, py_compile and diff-check GREEN; commit Guard 36213684551 GREEN and reconciliation Guard 36213737275 GREEN.",
+    "Legacy Box Body baseline-to-scene adapter moved to bounded ae_engine/baseline_scene_adapters.py at 015ebc6430f1397566ffb8f442b89d62c2a3271c; affected regression 100 passed and py_compile GREEN. Commit Guard 36214053992 GREEN; post-commit reconciliation Guard 36214113775 GREEN. A trailing-whitespace-only cleanup is required before broader acceptance."
   ],
   "chain_state": "NONE",
   "next_issue": null,
