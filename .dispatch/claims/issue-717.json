@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T08:56:09Z",
   "base_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
   "head_sha": "557e6b10bd89a5b2aede13e6cf481264e200e976",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T09:03:06Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T09:09:42Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Open PR for exact GREEN head 557e6b10bd89a5b2aede13e6cf481264e200e976, run remote governance QA, merge, then synchronize live A/B prompts without changing cadence/lane owner/timing/enabled; close/release #717 with successor_activated=false.",
+  "next_action": "Advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, verify bound finalization proof, close/read back #717, then atomically persist checkpoint CLOSED + claim RELEASED; successor_activated=false.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-717.json",
   "execution_intent": "UPDATE_ONLY",
@@ -28,5 +28,35 @@
     "preflight": "GREEN",
     "diff_check": "GREEN",
     "scope": "2 repo files"
+  },
+  "integration": {
+    "pr": 718,
+    "state": "merged",
+    "head_sha": "557e6b10bd89a5b2aede13e6cf481264e200e976",
+    "base": "cleanup/2d-3d-sync",
+    "merge_commit_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
+    "production_head": "76b2adb7379f73b23001c4730c08b5402acafafb"
+  },
+  "remote_qa": {
+    "run_id": 36231688524,
+    "head_sha": "557e6b10bd89a5b2aede13e6cf481264e200e976",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap"
+  },
+  "live_prompt_sync": {
+    "entrypoints": [
+      "00",
+      "20",
+      "40",
+      "B15",
+      "B45"
+    ],
+    "result": "SUCCESS",
+    "enabled_preserved": true,
+    "cadence_preserved": true,
+    "lane_owner_preserved": true,
+    "timing_mode_preserved": true,
+    "acceptance_comment_id": 5844871583
   }
 }
