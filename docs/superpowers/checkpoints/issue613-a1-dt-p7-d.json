@@ -69,25 +69,79 @@
     ]
   },
   "dt_1_remove_or_inline": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "EXTRACT_REQUIRED",
+    "evidence": [
+      "Verification, DXF export, request precedence and render orchestration are live manufacturing facade responsibilities.",
+      "Keeping them in manufacturing_api.py preserves multiple deep responsibilities behind one public facade."
+    ]
   },
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "DEEP_OWNER_SELECTED",
+    "owners": [
+      "ae_engine/manufacturing_verification.py",
+      "ae_engine/manufacturing_export.py",
+      "ae_engine/manufacturing_requests.py",
+      "ae_engine/manufacturing_render.py"
+    ]
   },
   "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "full_app_dependency": false,
+    "reverse_import_to_gui": false,
+    "ports": [
+      "thin public manufacturing_api facades",
+      "verification request/result",
+      "DXF export sink",
+      "resolved request precedence",
+      "render-data orchestration"
+    ]
   },
   "dt_4_variant_k": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "REJECTED",
+    "evidence": [
+      "Baseline manufacturing_api.py remained a mixed verification/export/request/render owner."
+    ]
   },
   "dt_5_variant_e": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "DEEPEN_EXISTING_OWNER",
+    "result": "GREEN",
+    "implementation_head": "883c40401e37f4303cb01172ce78fc865e026310",
+    "remote_qa_run_id": 36221637524,
+    "evidence": [
+      "structural/anti-regrowth SUCCESS",
+      "manufacturing/policy/collision SUCCESS",
+      "DXF export/reopen SUCCESS",
+      "protected-input verification SUCCESS"
+    ]
   },
   "dt_6_decision": {
-    "status": "PENDING",
+    "status": "COMPLETE",
     "allowed_decisions": [
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
-    ]
+    ],
+    "decision": "DEEPEN_EXISTING_OWNER",
+    "result": "ACCEPTED",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue620-a4-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "ae_engine/manufacturing_api.py — thin public facade",
+    "ae_engine/manufacturing_verification.py — verification owner",
+    "ae_engine/manufacturing_export.py — export/naming/physical-part sink owner",
+    "ae_engine/manufacturing_requests.py — resolved request/precedence owner",
+    "ae_engine/manufacturing_render.py — render-data orchestration owner"
+  ],
+  "terminal_evidence": {
+    "issue": 620,
+    "accepted_head": "a21dabe56e99201a106edac14460e8731ee435b4",
+    "implementation_head": "883c40401e37f4303cb01172ce78fc865e026310",
+    "qa_orchestration_head": "9f0c0670b8070cce1f5e7dcd8be9be7b3952e9c3",
+    "remote_qa_run_id": 36221637524,
+    "tested_to_closing_drift": "ZERO_PRODUCTION_TEST_BLOB_DRIFT"
   }
 }

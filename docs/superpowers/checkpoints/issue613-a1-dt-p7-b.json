@@ -69,25 +69,74 @@
     ]
   },
   "dt_1_remove_or_inline": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "EXTRACT_REQUIRED",
+    "evidence": [
+      "Door Layout state/remainder/remap/commit logic is live application state and cannot be deleted.",
+      "Inlining into Tk presentation would recreate duplicate mutation ownership."
+    ]
   },
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "EXISTING_APPLICATION_LAYER_SELECTED",
+    "owner": "gui_modules/application/door_layout_controller.py::Phase6DoorLayoutController"
   },
   "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "full_app_dependency": false,
+    "reverse_import_to_gui": false,
+    "ports": [
+      "numeric layout state",
+      "width/height commit planning",
+      "remainder recompute",
+      "owned-data remap",
+      "immutable transition result"
+    ]
   },
   "dt_4_variant_k": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "REJECTED",
+    "evidence": [
+      "Baseline Phase6ApplicationHost retained 12 substantial Door Layout transaction/state methods."
+    ]
   },
   "dt_5_variant_e": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "DEEPEN_EXISTING_OWNER",
+    "result": "GREEN",
+    "remote_qa_run_id": 36012764771,
+    "evidence": [
+      "focused 20 passed",
+      "Xvfb 29 passed",
+      "reverse_import=0",
+      "duplicate_owner_path=0",
+      "second_composition_root=0",
+      "full_app_dependency=false"
+    ]
   },
   "dt_6_decision": {
-    "status": "PENDING",
+    "status": "COMPLETE",
     "allowed_decisions": [
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
-    ]
+    ],
+    "decision": "DEEPEN_EXISTING_OWNER",
+    "result": "ACCEPTED",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue617-a2-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "gui.py::Phase6ApplicationHost — thin application host/composition surface",
+    "gui_modules/application/door_layout_controller.py::Phase6DoorLayoutController — Door Layout state/transaction owner",
+    "gui_modules/parts/panels/door.py — presentation owner",
+    "gui_modules/application/render_snapshots.py + gui_modules/rendering/door_view.py — render acquisition/presentation owners"
+  ],
+  "terminal_evidence": {
+    "issue": 617,
+    "accepted_head": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+    "tested_head": "5039d99208e247b6470581839308b3e89bf46674",
+    "behavioral_closing_head": "7127129081c21732d49aa07f37823fb0f708700d",
+    "focused_xvfb_run_id": 36012764771,
+    "tested_to_closing_drift": "PASS_WORKFLOW_DELETION_ONLY"
   }
 }

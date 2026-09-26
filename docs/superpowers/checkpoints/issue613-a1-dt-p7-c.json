@@ -70,25 +70,77 @@
     ]
   },
   "dt_1_remove_or_inline": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "EXTRACT_REQUIRED",
+    "evidence": [
+      "DXF serialization, baseline resource/source ownership and baseline-to-scene adapters are live and cannot be deleted.",
+      "Keeping all responsibilities in ae.py preserves a mixed compatibility/resource/serialization owner."
+    ]
   },
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "DEEP_OWNER_SELECTED",
+    "owners": [
+      "ae_engine/dxf_serialization.py",
+      "ae_engine/baseline_source.py",
+      "ae_engine/baseline_resources.py",
+      "ae_engine/baseline_scene_adapters.py"
+    ]
   },
   "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "full_app_dependency": false,
+    "reverse_import_to_gui": false,
+    "ports": [
+      "ae.py thin compatibility facade",
+      "bounded DXF serialization",
+      "baseline source/resource lookup",
+      "baseline-to-scene adapters"
+    ]
   },
   "dt_4_variant_k": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "REJECTED",
+    "evidence": [
+      "Baseline boundary retained mixed DXF/resource/scene responsibilities in ae.py."
+    ]
   },
   "dt_5_variant_e": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "DEEPEN_EXISTING_OWNER",
+    "result": "GREEN",
+    "implementation_head": "508478cdbfcb82bc2cf115991f1bc64d75c1ad00",
+    "remote_qa_run_id": 36215728523,
+    "evidence": [
+      "97 passed, 0 failed, 0 skipped",
+      "protected config.ini GREEN",
+      "baseline DXF invariants GREEN"
+    ]
   },
   "dt_6_decision": {
-    "status": "PENDING",
+    "status": "COMPLETE",
     "allowed_decisions": [
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
-    ]
+    ],
+    "decision": "DEEPEN_EXISTING_OWNER",
+    "result": "ACCEPTED",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue618-a3-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "ae_engine/ae.py — legacy/public compatibility facade",
+    "ae_engine/dxf_serialization.py — DXF serialization owner",
+    "ae_engine/baseline_source.py + ae_engine/baseline_resources.py — baseline source/cache/resource owners",
+    "ae_engine/baseline_scene_adapters.py — baseline-to-scene adapter owner"
+  ],
+  "terminal_evidence": {
+    "issue": 618,
+    "accepted_head": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+    "implementation_head": "508478cdbfcb82bc2cf115991f1bc64d75c1ad00",
+    "qa_head": "180bdc988f81b8c8f974b213cbd89c6b92dcac32",
+    "remote_qa_run_id": 36215728523,
+    "remote_qa": "97 passed, 0 failed, 0 skipped",
+    "cleaned_tree_equivalent_to_implementation": true
   }
 }

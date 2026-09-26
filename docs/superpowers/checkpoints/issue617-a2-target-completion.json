@@ -30,5 +30,16 @@
     "second_composition_root": 0,
     "full_app_dependency": false
   },
-  "next_action": "terminal checkpoint and finalization proof"
+  "next_action": "terminal checkpoint and finalization proof",
+  "target_id": "P7-B",
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "accepted_head": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+  "canonical_dt_artifact": "docs/superpowers/checkpoints/issue613-a1-dt-p7-b.json",
+  "dt_decision": "DEEPEN_EXISTING_OWNER",
+  "terminal_predicates": {
+    "dt_0_through_dt_6_complete": true,
+    "structural_counts_zero": true,
+    "affected_acceptance_green": true,
+    "old_application_transaction_concentration_reduced": true
+  }
 }

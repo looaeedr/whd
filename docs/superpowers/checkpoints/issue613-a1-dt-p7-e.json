@@ -64,25 +64,76 @@
     ]
   },
   "dt_1_remove_or_inline": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "EXTRACT_REQUIRED",
+    "evidence": [
+      "Generic collision/backprojection, Divider relief and EndCap world-relief solver paths are live and cannot be deleted.",
+      "Keeping all orchestration in assembly_collision.py preserves a mixed solver owner."
+    ]
   },
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "DEEP_OWNER_SELECTED",
+    "owners": [
+      "ae_engine/collision_backprojection.py",
+      "ae_engine/divider_relief_solver.py",
+      "ae_engine/endcap_world_relief_solver.py"
+    ]
   },
   "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "full_app_dependency": false,
+    "reverse_import_to_manufacturing_api": false,
+    "one_generic_algorithm_path": true,
+    "ports": [
+      "generic collision/backprojection",
+      "Divider relief candidate/build/verify",
+      "EndCap world-relief solver"
+    ]
   },
   "dt_4_variant_k": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "REJECTED",
+    "evidence": [
+      "Baseline assembly_collision.py retained generic plus part-specific Divider/EndCap orchestration."
+    ]
   },
   "dt_5_variant_e": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "DEEPEN_EXISTING_OWNER",
+    "result": "GREEN",
+    "implementation_head": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+    "remote_qa_run_id": 36225921203,
+    "evidence": [
+      "122 passed, 4 skipped, 0 failed",
+      "one generic algorithm path preserved",
+      "zero manufacturing_api reverse import"
+    ]
   },
   "dt_6_decision": {
-    "status": "PENDING",
+    "status": "COMPLETE",
     "allowed_decisions": [
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
-    ]
+    ],
+    "decision": "DEEPEN_EXISTING_OWNER",
+    "result": "ACCEPTED",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue621-a5-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "ae_engine/assembly_collision.py — thin shared collision/backprojection compatibility facade",
+    "ae_engine/collision_backprojection.py — generic collision/backprojection owner",
+    "ae_engine/divider_relief_solver.py — Divider relief solver owner",
+    "ae_engine/endcap_world_relief_solver.py — EndCap world-relief solver owner"
+  ],
+  "terminal_evidence": {
+    "issue": 621,
+    "accepted_head": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+    "implementation_head": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+    "qa_orchestration_head": "f9b7439f03d60fc0f9bb6929d8b566b21ce2291c",
+    "remote_qa_run_id": 36225921203,
+    "remote_qa": "122 passed, 4 skipped, 0 failed",
+    "tested_to_closing_drift": "EMPTY_TREE_DIFF"
   }
 }
