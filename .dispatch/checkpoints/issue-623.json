@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "623",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+  "head_sha": "91a86a8f0eaf7c993471e5db3009a41aeb7574bc",
   "state": "RUNNING",
-  "next_action": "Characterize the current _phase6_resolve_explicit_joint_reliefs pipeline at the accepted A5 head, then add focused P7-R-F RED tests for bounded stage ownership without changing manufacturing truth.",
+  "next_action": "Run exact P7-R-F focused RED at 91a86a8f0eaf7c993471e5db3009a41aeb7574bc; confirm failure is bounded-pipeline absence rather than collection/environment error, then implement canonical seven-stage owner.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,9 @@
     "Predecessors #620 and #621 are closed/completed; A6 authoritative parent is accepted A5 head 8e80e460160a9b238ee53d201a1ff88ee47439d3.",
     "Execution mode SCHEDULER_LANE via explicit /排程A; durable owner scheduler.6ab13fa557fc8191935c671214b865e2; actual invocation source chatgpt_interactive.",
     "Master lineage is #627/A6 but active RUNNING checkpoint intentionally carries no chain continuation metadata; that metadata is terminal-only.",
-    "No planned work-slot handoff exists for #623; slot_id=UNBOUND."
+    "No planned work-slot handoff exists for #623; slot_id=UNBOUND.",
+    "P7-R-F RED test commit 91a86a8f0eaf7c993471e5db3009a41aeb7574bc authorized by Remote Guard run 36240075597.",
+    "Post-RED claim+checkpoint reconciliation authorized by Remote Guard run 36240132080."
   ],
   "master_issue": null,
   "chain_state": "NONE",
