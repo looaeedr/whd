@@ -24,8 +24,10 @@
     "UPDATE_ONLY scope complete; no existing implementation Issue was bound or started.",
     "Closure advanced after PR #716 merged and exact-head remote governance QA passed.",
     "Owning Issue #715 fresh-read closed/completed at 2026-09-26T08:43:18Z.",
-    "Bound finalization proof remained VALID before close."
+    "Bound finalization proof remained VALID before close.",
+    "Final atomic release prepared after closed/completed Issue readback and valid bound finalization proof.",
+    "UPDATE_ONLY scope complete; successor_activated=false."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; successor_activated=false"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
