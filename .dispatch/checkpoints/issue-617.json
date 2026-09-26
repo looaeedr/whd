@@ -20,13 +20,14 @@
     "WHD_PHASE7_TARGET_COMPLETION_V1 at c20bb25c334003d2e8439bf636b3a193b6debc78 is ACCEPTED for #617/P7-B with reverse_import=0, duplicate_owner_path=0, second_composition_root=0, full_app_dependency=false.",
     "User-directed takeover completed: claim owner chatgpt.sol260926.issue617, classification ORPHANED_SCHEDULER_OWNER, authority comment 5841672435.",
     "Remote Guard run 36206414886 GREEN consumed to transition accepted A2 into TERMINAL_SUCCESS / FINALIZATION_PENDING.",
-    "Master #627 handoff resolved from live child state: #613 closed/completed; #618 open and unclaimed => NEXT_CHILD_EXECUTABLE."
+    "Master #627 handoff resolved from live child state: #613 closed/completed; #618 open and unclaimed => NEXT_CHILD_EXECUTABLE.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36206534675."
   ],
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "618",
   "chain_next_action": "Activate and claim #618 A3 on accepted #617 head c20bb25c334003d2e8439bf636b3a193b6debc78, then execute approved P7-R-C scope; do not merge production until Master integration gate.",
   "chain_reason": "Master #627 live dependency readback: #613 is closed/completed; #618 is OPEN, blocked only by #613, and has no shared claim.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Run trusted owning finalization proof for #617 at c20bb25c334003d2e8439bf636b3a193b6debc78, advance closure to ISSUE_CLOSE_PENDING, close/read back #617, then atomically release claim and hand off Master #627 to executable child #618.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof for #617 at c20bb25c334003d2e8439bf636b3a193b6debc78; if GREEN, close/read back #617, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED + Master #627 -> #618 handoff.",
   "master_issue": "627"
 }
