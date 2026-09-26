@@ -27,3 +27,30 @@ def test_p7_r_e_generic_planar_collision_has_single_bounded_owner():
         'import manufacturing_api',
     ):
         assert forbidden not in owner_source
+
+
+def test_p7_r_e_divider_relief_has_bounded_owner():
+    from ae_engine import assembly_collision
+
+    owner = importlib.import_module('ae_engine.divider_relief_solver')
+    assert assembly_collision.DividerFrontFoldReliefCandidate is owner.DividerFrontFoldReliefCandidate
+
+    build_source = inspect.getsource(assembly_collision.build_divider_front_fold_relief_candidate)
+    verify_source = inspect.getsource(assembly_collision.verify_divider_front_fold_relief)
+    front_source = inspect.getsource(assembly_collision._divider_front_fold_segments)
+    assert '_divider_relief_solver.build_divider_front_fold_relief_candidate' in build_source
+    assert '_divider_relief_solver.verify_divider_front_fold_relief' in verify_source
+    assert '_divider_relief_solver.divider_front_fold_segments' in front_source
+    assert 'shapely' not in build_source
+    assert 'physical_footprint_2d' not in verify_source
+
+    owner_source = inspect.getsource(owner)
+    assert 'class DividerFrontFoldReliefCandidate' in owner_source
+    assert 'def build_divider_front_fold_relief_candidate' in owner_source
+    assert 'def verify_divider_front_fold_relief' in owner_source
+    for forbidden in (
+        'from .assembly_collision import',
+        'from .manufacturing_api import',
+        'import manufacturing_api',
+    ):
+        assert forbidden not in owner_source
