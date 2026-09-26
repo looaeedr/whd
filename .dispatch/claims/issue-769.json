@@ -1,0 +1,29 @@
+{
+  "issue": 769,
+  "issue_url": "https://github.com/looaeedr/whd/issues/769",
+  "worker": "chatgpt.sol260927.issue769.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue769.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
+  "claimed_at": "2026-09-26T22:33:00Z",
+  "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+  "head_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T22:33:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run canonical branch-create Guard for governance/issue769-terminal-scheduler-census-hard-gate-20260927 from exact cleanup/2d-3d-sync base, then create/read back the work branch and write RED regression first.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-769.json",
+  "evidence": [
+    "authorization_source=user explicitly requested executable hard gate after documentation-only gap was identified",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=make scheduler terminal/CLOSED turn exit require fresh READY_WORK_CENSUS machine proof",
+    "authorized_scope=Issue #769 only: continuity controller + focused tests + executable continuity Skill + continuity pitfall",
+    "prohibited_scope=do not touch #764-owned 排程模擬/寫排程/scheduler census contract files; no cadence/lane/takeover/work-slot/product changes",
+    "fresh production target=cleanup/2d-3d-sync@90a4939328c4b863e88f9272f4dfa3d9a25743a6"
+  ]
+}
