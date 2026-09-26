@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "625",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6",
+  "head_sha": "828384c1ff76f0b7f8664753ccb271cef2de8bb0",
   "state": "RUNNING",
-  "next_action": "Run the focused P7-R-G RED against exact head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6 via GitHub Actions; expected failure is the unresolved DT-6 terminal decision only. Then complete DT-1..DT-5 evidence and choose exactly DEEPEN_EXISTING_OWNER or KEEP_CURRENT_BOUNDARY without moving Settings transaction/state authority.",
+  "next_action": "Fix the one-shot P7-R-G RED workflow dependency by installing python3-tk, rerun against the reconciled head, and require exactly 1 failed / 3 passed with only test_p7_r_g_requires_terminal_deletion_test_decision failing before DT-6 is written.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,10 @@
     "Legacy post-commit recovery comment 5848923776 accepted by Guard 36264117035.",
     "Claim/checkpoint HEAD reconciliation only; ownership remains scheduler.6ab13fa557fc8191935c671214b865e2 pending canonical B takeover.",
     "Takeover Guard 36264722019 GREEN; durable owner transfers from scheduler.6ab13fa557fc8191935c671214b865e2 to scheduler.e58ea936e7d0b12bd0d475314709d6f1.",
-    "Resume exact RED checkpoint at head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6."
+    "Resume exact RED checkpoint at head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6.",
+    "One-shot P7-R-G workflow exists at 828384c1ff76f0b7f8664753ccb271cef2de8bb0.",
+    "Run 36264989741 is QA infrastructure failure (ModuleNotFoundError: tkinter), not a decision RED.",
+    "Reconciliation Guard 36273473646 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

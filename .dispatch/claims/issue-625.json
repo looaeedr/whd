@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T14:48:10Z",
   "base_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
-  "head_sha": "6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6",
+  "head_sha": "828384c1ff76f0b7f8664753ccb271cef2de8bb0",
   "phase": "RED",
-  "last_update": "2026-09-26T19:03:55Z",
+  "last_update": "2026-09-26T21:35:52Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
@@ -30,7 +30,7 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run the focused P7-R-G RED against exact head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6 via GitHub Actions; expected failure is the unresolved DT-6 terminal decision only. Then complete DT-1..DT-5 evidence and choose exactly DEEPEN_EXISTING_OWNER or KEEP_CURRENT_BOUNDARY without moving Settings transaction/state authority.",
+  "next_action": "Fix the one-shot P7-R-G RED workflow dependency by installing python3-tk, rerun against the reconciled head, and require exactly 1 failed / 3 passed with only test_p7_r_g_requires_terminal_deletion_test_decision failing before DT-6 is written.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-625.json",
   "evidence": [
@@ -46,6 +46,9 @@
     "Reconciliation Guard 36264117035 GREEN with REMOTE_GUARD_RECONCILE_ONLY; this coordination write only aligns claim/checkpoint HEAD and advances to RED.",
     "B-lane scheduler simulation explicitly authorized by user command /排程B 625.",
     "Canonical takeover Guard 36264722019 GREEN: EXECUTOR_STUCK, stale_seconds=628, no active exact run, prior A-lane runtime liveness missing.",
-    "Ownership transfer keeps exact work branch/head/base and resumes the existing RED checkpoint; no duplicate Issue or work branch created."
+    "Ownership transfer keeps exact work branch/head/base and resumes the existing RED checkpoint; no duplicate Issue or work branch created.",
+    "One-shot P7-R-G RED workflow commit advanced work branch to 828384c1ff76f0b7f8664753ccb271cef2de8bb0 under commit Guard 36264858726 GREEN.",
+    "Workflow run 36264989741 failed before test collection because python3-tk was missing; no P7-R-G assertion result was produced.",
+    "Reconciliation Guard 36273473646 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact head 828384c1ff76f0b7f8664753ccb271cef2de8bb0."
   ]
 }
