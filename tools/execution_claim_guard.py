@@ -200,7 +200,6 @@ def durable_branch_create_readbacks_from_live_branch(
             continue
         if str(receipt.get("tested_target_sha") or "") != live_head:
             continue
-
         readbacks.append(
             {
                 "guard_run_id": _guard_tx_run_id(receipt),
@@ -213,7 +212,6 @@ def durable_branch_create_readbacks_from_live_branch(
             }
         )
     return readbacks
-
 
 def durable_pr_write_readbacks_from_live_pulls(
     receipts: Iterable[Mapping[str, object]],
@@ -313,9 +311,30 @@ def durable_coord_write_readbacks_from_live_commits(
     repository writes and ambiguous multiple matches remain fail-closed.
     """
 
-    commits = [item for item in live_coord_commits if isinstance(item, Mapping)]
+    receipt_list = [item for item in receipts if isinstance(item, Mapping)]
+
+    # GitHub list endpoints can surface the same commit through multiple path/page
+    # observations. Ambiguity is about distinct durable mutations, not duplicate
+    # observations of one commit, so normalize by commit SHA before matching.
+    commits_by_sha: dict[str, Mapping[str, object]] = {}
+    for item in live_coord_commits:
+        if not isinstance(item, Mapping):
+            continue
+        sha = str(item.get("sha") or "")
+        if _SHA_RE.fullmatch(sha):
+            commits_by_sha.setdefault(sha, item)
+    commits = list(commits_by_sha.values())
+
+    write_receipts = [
+        item
+        for item in receipt_list
+        if item.get("schema") == "WHD_REMOTE_GUARD_RECEIPT_V1"
+        and item.get("result") == "GREEN"
+        and str(item.get("action") or "") == "write"
+    ]
+
     readbacks: list[dict[str, object]] = []
-    for receipt in receipts:
+    for receipt in receipt_list:
         if receipt.get("schema") != "WHD_REMOTE_GUARD_RECEIPT_V1":
             continue
         if receipt.get("result") != "GREEN":
@@ -348,6 +367,44 @@ def durable_coord_write_readbacks_from_live_commits(
 
         issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
         expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+
+        # A later GREEN coordination-write receipt on the same exact owner lineage
+        # starts a new transaction. Seal the historical receipt at that boundary so
+        # later legal closure/reconciliation writes cannot retroactively make an
+        # already-consumed receipt ambiguous. True duplicate commits before the next
+        # transaction boundary still fail closed below.
+        lineage = (
+            issue,
+            worker,
+            executor_source,
+            branch,
+            head_sha,
+            str(receipt.get("claim_blob_sha") or ""),
+        )
+        later_boundaries: list[datetime] = []
+        for candidate in write_receipts:
+            if candidate is receipt:
+                continue
+            candidate_lineage = (
+                candidate.get("issue"),
+                str(candidate.get("worker") or ""),
+                str(candidate.get("executor_source") or ""),
+                str(candidate.get("branch") or ""),
+                str(candidate.get("head_sha") or ""),
+                str(candidate.get("claim_blob_sha") or ""),
+            )
+            if candidate_lineage != lineage:
+                continue
+            try:
+                candidate_issued = _guard_tx_timestamp(
+                    candidate.get("issued_at"), "issued_at"
+                )
+            except ExecutionClaimError:
+                continue
+            if candidate_issued > issued_at:
+                later_boundaries.append(candidate_issued)
+        next_transaction_at = min(later_boundaries) if later_boundaries else None
+
         matches: list[tuple[Mapping[str, object], datetime]] = []
         for commit in commits:
             commit_sha = str(commit.get("sha") or "")
@@ -360,6 +417,8 @@ def durable_coord_write_readbacks_from_live_commits(
             except ExecutionClaimError:
                 continue
             if not (issued_at <= committed_at <= expires_at):
+                continue
+            if next_transaction_at is not None and committed_at >= next_transaction_at:
                 continue
 
             raw_files = commit.get("changed_files")
@@ -1299,8 +1358,29 @@ def _load_raw_claim_payload(path: Path) -> dict[str, object]:
     return payload
 
 
-def _load_legacy_postcommit_recovery(
-    path: Path,
+def _load_legacy_postcommit_recovery(path: Path | None) -> dict[str, object]:
+    if path is None:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery evidence is required"
+        )
+    try:
+        payload = json.loads(
+            Path(path).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(
+            f"legacy postcommit reconciliation recovery evidence invalid: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery evidence root must be object"
+        )
+    return payload
+
+
+def _assert_legacy_postcommit_reconcile_authority(
+    path: Path | None,
     *,
     issue: int,
     worker: str,
@@ -1308,114 +1388,122 @@ def _load_legacy_postcommit_recovery(
     branch: str,
     claim_head_sha: str,
     live_head_sha: str,
-) -> dict[str, object]:
-    try:
-        payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
+    current_claim_blob: str,
+    prior_guard_run_id: int,
+    prior_request_comment_id: int,
+    commit_file_set: tuple[str, ...],
+) -> None:
+    payload = _load_legacy_postcommit_recovery(path)
+    comment_id = payload.get("id")
+    if isinstance(comment_id, bool) or not isinstance(comment_id, int) or comment_id <= 0:
         raise ExecutionClaimError(
-            f"legacy post-commit recovery evidence not found: {path}"
-        ) from exc
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ExecutionClaimError(
-            f"legacy post-commit recovery evidence invalid: {exc}"
-        ) from exc
-    if not isinstance(payload, dict):
-        raise ExecutionClaimError(
-            "legacy post-commit recovery evidence root must be an object"
+            "legacy postcommit reconciliation recovery comment id is invalid"
         )
-
     user = payload.get("user")
     if not isinstance(user, dict) or str(user.get("login") or "") != "looaeedr":
         raise ExecutionClaimError(
-            "legacy post-commit recovery authority must be authored by repository owner"
+            "legacy postcommit reconciliation recovery must be owner-authored"
         )
     body = payload.get("body")
     if not isinstance(body, str):
         raise ExecutionClaimError(
-            "legacy post-commit recovery authority body is missing"
+            "legacy postcommit reconciliation recovery comment body is missing"
         )
-
     lines = body.replace("\r\n", "\n").split("\n")
     if not lines or lines[0].strip() != "WHD_LEGACY_POSTCOMMIT_RECONCILE_V1":
         raise ExecutionClaimError(
-            "legacy post-commit recovery authority marker mismatch"
+            "legacy postcommit reconciliation recovery marker mismatch"
         )
 
-    required_single = {
+    required = {
         "issue",
         "worker",
         "executor_source",
         "branch",
+        "claim_blob_sha",
         "claim_head_sha",
         "live_head_sha",
         "prior_guard_run_id",
         "prior_request_comment_id",
+        "recovery_reason",
     }
-    singles: dict[str, str] = {}
+    fields: dict[str, str] = {}
     changed_files: list[str] = []
     for raw in lines[1:]:
         if not raw.strip():
             continue
         if "=" not in raw:
             raise ExecutionClaimError(
-                "legacy post-commit recovery authority contains malformed line"
+                "legacy postcommit reconciliation recovery contains malformed line"
             )
         key, value = raw.split("=", 1)
-        key = key.strip()
-        value = value.strip()
+        key, value = key.strip(), value.strip()
         if key == "changed_file":
-            if not value or value in changed_files:
+            if not value:
                 raise ExecutionClaimError(
-                    "legacy post-commit recovery changed_file is blank or duplicated"
+                    "legacy postcommit reconciliation recovery changed_file is blank"
                 )
             changed_files.append(value)
-        elif key in required_single:
-            if key in singles:
-                raise ExecutionClaimError(
-                    "legacy post-commit recovery authority contains duplicate key"
-                )
-            singles[key] = value
-        else:
+            continue
+        if key not in required or key in fields or not value:
             raise ExecutionClaimError(
-                "legacy post-commit recovery authority contains unsupported key"
+                "legacy postcommit reconciliation recovery contains unsupported/duplicate key"
             )
+        fields[key] = value
 
-    if set(singles) != required_single or not changed_files:
+    if set(fields) != required or not changed_files:
         raise ExecutionClaimError(
-            "legacy post-commit recovery authority is missing required keys"
+            "legacy postcommit reconciliation recovery is missing required identity"
         )
-
-    expected = {
-        "issue": str(issue),
-        "worker": worker,
-        "executor_source": executor_source,
-        "branch": branch,
-        "claim_head_sha": claim_head_sha,
-        "live_head_sha": live_head_sha,
-    }
-    for key, value in expected.items():
-        if singles[key] != value:
-            raise ExecutionClaimError(
-                f"legacy post-commit recovery authority {key} mismatch"
-            )
-
+    if len(changed_files) != len(set(changed_files)):
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery changed_file is ambiguous"
+        )
+    if fields["issue"] != str(issue):
+        raise ExecutionClaimError("legacy postcommit reconciliation recovery issue mismatch")
+    if fields["worker"] != worker:
+        raise ExecutionClaimError("legacy postcommit reconciliation recovery worker mismatch")
+    if fields["executor_source"] != executor_source:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery executor_source mismatch"
+        )
+    if fields["branch"] != branch:
+        raise ExecutionClaimError("legacy postcommit reconciliation recovery branch mismatch")
+    if _validate_sha(fields["claim_blob_sha"], "legacy recovery claim blob SHA") != current_claim_blob:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery claim blob mismatch"
+        )
+    if _validate_sha(fields["claim_head_sha"], "legacy recovery claim HEAD") != claim_head_sha:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery claim head mismatch"
+        )
+    if _validate_sha(fields["live_head_sha"], "legacy recovery live HEAD") != live_head_sha:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery live head mismatch"
+        )
     try:
-        guard_run_id = int(singles["prior_guard_run_id"])
-        request_comment_id = int(singles["prior_request_comment_id"])
+        recovery_run_id = int(fields["prior_guard_run_id"])
+        recovery_request_id = int(fields["prior_request_comment_id"])
     except ValueError as exc:
         raise ExecutionClaimError(
-            "legacy post-commit recovery guard/request identity is invalid"
+            "legacy postcommit reconciliation recovery prior identity is invalid"
         ) from exc
-    if guard_run_id <= 0 or request_comment_id <= 0:
+    if recovery_run_id != prior_guard_run_id or recovery_run_id <= 0:
         raise ExecutionClaimError(
-            "legacy post-commit recovery guard/request identity must be positive"
+            "legacy postcommit reconciliation recovery prior guard run mismatch"
         )
-
-    return {
-        "prior_guard_run_id": guard_run_id,
-        "prior_request_comment_id": request_comment_id,
-        "changed_files": tuple(sorted(changed_files)),
-    }
+    if recovery_request_id != prior_request_comment_id or recovery_request_id <= 0:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery prior request mismatch"
+        )
+    if fields["recovery_reason"] != "LEGACY_RECEIPT_WINDOW_EXPIRED_AFTER_MUTATION":
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery reason mismatch"
+        )
+    if tuple(sorted(changed_files)) != commit_file_set:
+        raise ExecutionClaimError(
+            "legacy postcommit reconciliation recovery changed-file mismatch"
+        )
 
 
 def _assert_post_commit_claim_head_reconciliation(
@@ -1586,19 +1674,7 @@ def _assert_post_commit_claim_head_reconciliation(
     current_claim_blob = _git_blob_sha(path)
     raw_source = str(raw_claim.get("executor_source") or "").strip()
     expected_executor_source = "scheduler" if raw_source == "scheduler" else "chat"
-    recovery = (
-        _load_legacy_postcommit_recovery(
-            legacy_reconcile_recovery,
-            issue=issue,
-            worker=worker,
-            executor_source=expected_executor_source,
-            branch=branch,
-            claim_head_sha=claim.head_sha,
-            live_head_sha=expected_live_head_sha,
-        )
-        if legacy_reconcile_recovery is not None
-        else None
-    )
+    expired_legacy_candidates: list[tuple[int, int]] = []
 
     for comment in comments:
         receipt = _parse_remote_guard_receipt_comment(comment)
@@ -1674,23 +1750,43 @@ def _assert_post_commit_claim_head_reconciliation(
         if issued_epoch <= commit_epoch <= expires_epoch:
             return
 
-        if recovery is not None:
-            run_id = receipt.get("run_id")
-            if (
-                not isinstance(run_id, bool)
-                and isinstance(run_id, int)
-                and run_id == recovery["prior_guard_run_id"]
-                and request_comment_id == recovery["prior_request_comment_id"]
-                and receipt_file_set == commit_file_set
-                and recovery["changed_files"] == commit_file_set
-            ):
-                return
+        run_id = receipt.get("run_id")
+        if (
+            is_direct_child
+            and merge_production_parent is None
+            and issued_epoch <= expires_epoch < commit_epoch
+            and receipt_file_set == commit_file_set
+            and not isinstance(run_id, bool)
+            and isinstance(run_id, int)
+            and run_id > 0
+        ):
+            expired_legacy_candidates.append((run_id, request_comment_id))
 
-    if recovery is not None:
-        raise ExecutionClaimError(
-            "legacy post-commit recovery does not bind to an exact prior GREEN guard "
-            "run/request/changed-file set"
+    if legacy_reconcile_recovery is not None:
+        if not is_direct_child or merge_production_parent is not None:
+            raise ExecutionClaimError(
+                "legacy postcommit reconciliation recovery is restricted to a single direct-child commit"
+            )
+        if len(expired_legacy_candidates) != 1:
+            raise ExecutionClaimError(
+                "legacy postcommit reconciliation recovery requires exactly one matching expired prior GREEN receipt"
+            )
+        prior_guard_run_id, prior_request_comment_id = expired_legacy_candidates[0]
+        _assert_legacy_postcommit_reconcile_authority(
+            legacy_reconcile_recovery,
+            issue=issue,
+            worker=worker,
+            executor_source=expected_executor_source,
+            branch=branch,
+            claim_head_sha=claim.head_sha,
+            live_head_sha=expected_live_head_sha,
+            current_claim_blob=current_claim_blob,
+            prior_guard_run_id=prior_guard_run_id,
+            prior_request_comment_id=prior_request_comment_id,
+            commit_file_set=commit_file_set,
         )
+        return
+
     raise ExecutionClaimError(
         "post-commit claim-head reconciliation lacks a matching prior GREEN mutation receipt "
         "bound to the current claim blob, direct child commit, changed-file set, and receipt window"
@@ -2283,7 +2379,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--legacy-reconcile-recovery",
         type=Path,
-        help="owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 GitHub issue-comment JSON; only relaxes the historical receipt-time window",
+        help="owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 issue-comment JSON; narrow legacy out-of-window reconciliation only",
     )
     return parser
 
