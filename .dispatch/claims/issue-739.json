@@ -9,19 +9,19 @@
   "work_branch": "governance/issue739-pr-write-auto-consume-20260926",
   "claimed_at": "2026-09-26T15:46:10Z",
   "base_sha": "0d8a36b686630e00284a67465da82b1401231254",
-  "head_sha": "ff5639d23912050dbc673a99190c93ca9cddf734",
-  "phase": "RED",
-  "last_update": "2026-09-26T16:01:00Z",
+  "head_sha": "c5a6918fea47c724ca1216db8b130c9e6a9e7728",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T16:52:35Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36253873887,
-    "head_sha": "ff5639d23912050dbc673a99190c93ca9cddf734",
+    "run_id": 36254085966,
+    "head_sha": "c5a6918fea47c724ca1216db8b130c9e6a9e7728",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "Implement exact pr-write durable readback using exact branch/head/base plus created_at/merged_at/closed_at event inside GREEN receipt window; wire trusted workflow; rerun #739/#643/#731.",
+  "next_action": "Remove temporary #739 QA workflow, perform drift audit, then pr-write/merge to main and fresh-read trusted pr-write durable-readback deployment.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-739.json",
   "evidence": [
@@ -29,6 +29,9 @@
     "Safe contract refinement: pre-existing PR existence alone must NOT auto-consume; require a durable create/merge/close event inside receipt window.",
     "RED commit ff5639d23912050dbc673a99190c93ca9cddf734 under Guard 36253795899.",
     "Focused RED run 36253873887 failed as expected.",
-    "Post-RED reconciliation Guard 36253913828 GREEN / result 5847698874."
+    "Post-RED reconciliation Guard 36253913828 GREEN / result 5847698874.",
+    "Implementation commit c5a6918fea47c724ca1216db8b130c9e6a9e7728 adds exact pr-write durable readback + trusted workflow wiring.",
+    "GREEN QA run 36254085966 SUCCESS.",
+    "Post-implementation reconciliation Guard 36256998709 GREEN / result 5848066974."
   ]
 }
