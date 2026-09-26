@@ -82,6 +82,26 @@
       ]
     },
     {
+      "id": "work-slot-routing",
+      "keywords": [
+        "/工作1",
+        "/工作2",
+        "/工作3",
+        "/工作槽",
+        "工作槽",
+        "工作1",
+        "工作2",
+        "工作3"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/工作槽/**"
+      ],
+      "required_skills": [
+        "工作槽"
+      ],
+      "required_references": []
+    },
+    {
       "id": "deterministic-repo-migration",
       "keywords": [
         "deterministic repo migration",
