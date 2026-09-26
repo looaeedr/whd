@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T11:55:00Z",
   "base_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
   "head_sha": "31043ce5aae50b61dbed6c47fec750cfacb67462",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T12:17:25Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T12:18:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED after closed/completed Issue #721 readback.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-721.json",
   "evidence": [
@@ -32,7 +32,9 @@
     "Commit mutation authorized by Remote Guard run 36241001765 and produced direct-child head 31043ce5aae50b61dbed6c47fec750cfacb67462.",
     "Post-commit claim/checkpoint reconciliation authorized by Remote Guard run 36241058448.",
     "PR #723 merged at production target cleanup/2d-3d-sync merge commit 04b2a9808acbaba49e5fb60434f7218cd565c421.",
-    "Production target fresh-read at exact merge commit 04b2a9808acbaba49e5fb60434f7218cd565c421; entering terminal closure transaction."
+    "Production target fresh-read at exact merge commit 04b2a9808acbaba49e5fb60434f7218cd565c421; entering terminal closure transaction.",
+    "Issue #721 closed/completed readback confirmed; UPDATE_ONLY has no successor handoff.",
+    "Final atomic coordination transaction releases claim with checkpoint CLOSED."
   ],
   "last_guard": {
     "action": "write",

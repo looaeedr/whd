@@ -23,13 +23,14 @@
     "PR #723 merged; production target cleanup/2d-3d-sync fresh-read at 04b2a9808acbaba49e5fb60434f7218cd565c421.",
     "Acceptance complete: focused 61 passed / 0 failed, Phase6 preflight GREEN, PR CI Knowledge Governance Bootstrap GREEN.",
     "Closure advanced adjacent FINALIZATION_PENDING → ISSUE_CLOSE_PENDING.",
-    "Issue #721 fresh-read closed/completed at 2026-09-26T12:17:05Z after bound finalization proof verification."
+    "Issue #721 fresh-read closed/completed at 2026-09-26T12:17:05Z after bound finalization proof verification.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED; no successor for UPDATE_ONLY."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff for UPDATE_ONLY."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
