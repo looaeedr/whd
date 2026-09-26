@@ -17,6 +17,15 @@ Guard 只驗證已授權 mutation；它不建立 execution authority、也不選
 - `UPDATE_ONLY` 若只更新 automation/control-plane，Remote Guard 不得藉此 discovery/claim implementation work。
 - `EXECUTE_TICKET / EXECUTE_CHAIN / SCHEDULER_LANE` 已由上層取得 authority 後，Guard 才驗該 exact mutation。
 
+## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+Remote Guard 不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- Remote Guard request 前，上層 execution entrypoint 必須已完成 canonical startup declaration，且其 authorized scope 與目前 issue / worker / branch / HEAD / changed-file mutation 不衝突。
+- declaration 缺失或 scope mismatch 時，不得用 Guard request、receipt 或 recovery capability 替它補授權；回上層 authority 修正。
+- **Guard 不建立 execution authority**。Guard GREEN 仍只授權 request 綁定的單次 mutation，不會擴大 declaration、execution intent 或 successor scope。
+- 本 Skill 只消費／核對既有 authority，不複製六欄 schema、不建立第二套 parser；machine Guard 的既有 fail-closed identity 規則完全不放寬。
+
 ### RECOVERY_IS_EXCEPTION_NOT_PHASE
 
 Remote Guard 的 takeover、post-commit reconciliation、invalid-phase repair、legacy checkpoint repair 都只在 fresh machine evidence 命中對應 recovery condition 時使用。normal path 的 clean mutation只跑該 mutation真正需要的 prewrite Guard；不得因 recovery capability 存在而預先 mint recovery receipt。

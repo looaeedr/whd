@@ -18,6 +18,15 @@ whd_schema: WHD_DOC_META_V1
 - `EXECUTE_TICKET`：只完成當前 ticket；ticket closure 後不自動 claim successor。
 - `EXECUTE_CHAIN` / `SCHEDULER_LANE`：只有這兩種 mode 才允許 terminal child 依 canonical chain authority接續 successor。
 
+### TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+派工不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- Skill invocation announcement 後、Phase6 Preflight / claim / branch / Guard / repository mutation 前，先完成 canonical user-visible declaration。
+- 新 claim / checkpoint 的第一個 durable writeback 必須保存同義六欄 evidence；派工只保存／核對，不改寫其語意。
+- `UPDATE_ONLY` 專屬治理 claim 只授權該 update transaction；不得因 claim pool、open Issue、工作槽或 successor 存在而擴張 scope。
+- declaration 缺失或與 owning Issue / execution intent 衝突時，先回 canonical owner 修正；不得由派工自行發明較寬 authority。
+
 #### NORMAL_PATH_FIRST
 
 單張正常 implementation 工單的 canonical 主幹固定為：
