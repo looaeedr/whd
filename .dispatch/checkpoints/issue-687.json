@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "687",
   "branch": "work/issue687-continuous-legal-stop-r2-20260926",
-  "head_sha": "e817d59dda7aef10dd52f1c08e080c120c61e2e7",
+  "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
   "state": "RUNNING",
-  "next_action": "run approved RED-STOP-01 through RED-STOP-05 at e817d59dda7aef10dd52f1c08e080c120c61e2e7, then implement the minimum stop-eligibility machine gate",
+  "next_action": "run focused RED-STOP-01 through RED-STOP-05 plus affected continuity regressions at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; if GREEN, continue T1 QA and durable acceptance",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "Old work branch work/issue687-continuous-legal-stop-20260926@f04034f7027ec9677b04db3af01f5564fb9a0371 is isolated because no prior Remote Guard receipt exists for that commit.",
     "Recovery branch work/issue687-continuous-legal-stop-r2-20260926 was created at H0 under Remote Guard run 36219286656.",
     "Approved RED test commit e817d59dda7aef10dd52f1c08e080c120c61e2e7 was authorized by Remote Guard run 36219724177.",
-    "Post-commit claim+checkpoint reconciliation was authorized by Remote Guard run 36219788102."
+    "Post-RED claim+checkpoint reconciliation was authorized by Remote Guard run 36219788102.",
+    "Implementation commit fc75000d1d3115331923a1a1bc3c34f6bbdbddbc was authorized by Remote Guard run 36220551411.",
+    "Implementation-head claim+checkpoint reconciliation was authorized by Remote Guard run 36225468359 and consumed in one atomic coordination commit."
   ],
   "master_issue": null,
   "chain_state": "NONE",

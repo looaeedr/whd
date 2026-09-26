@@ -9,13 +9,13 @@
   "work_branch": "work/issue687-continuous-legal-stop-r2-20260926",
   "claimed_at": "2026-09-26T03:40:08Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "head_sha": "e817d59dda7aef10dd52f1c08e080c120c61e2e7",
-  "phase": "RED",
-  "last_update": "2026-09-26T05:07:29Z",
+  "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T07:00:53Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "run approved RED-STOP-01 through RED-STOP-05 at e817d59dda7aef10dd52f1c08e080c120c61e2e7, then implement the minimum stop-eligibility machine gate",
+  "next_action": "run focused RED-STOP-01 through RED-STOP-05 plus affected continuity regressions at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; if GREEN, continue T1 QA and durable acceptance",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-687.json",
   "recovery": {
@@ -29,22 +29,33 @@
     "branch_create_result_comment_id": 5843334839,
     "branch_create_readback": "work/issue687-continuous-legal-stop-r2-20260926 exists at 87eb35b3f5ae5211673c941cb56c4c4343fa5405"
   },
-  "last_guard": {
-    "action": "write",
-    "run_id": 36219788102,
-    "request_comment_id": 5843394745,
-    "result_comment_id": 5843395868,
-    "result": "GREEN",
-    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-    "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to approved RED head e817d59dda7aef10dd52f1c08e080c120c61e2e7"
-  },
   "red_commit": {
     "head_sha": "e817d59dda7aef10dd52f1c08e080c120c61e2e7",
     "changed_file": "tests/process/test_issue687_stop_eligibility_machine_gate.py",
     "guard_run_id": 36219724177,
     "guard_request_comment_id": 5843386673,
     "guard_result_comment_id": 5843387958
+  },
+  "implementation_commit": {
+    "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+    "changed_files": [
+      "tools/continuity_controller.py",
+      "tests/process/test_continuity_controller.py",
+      "tests/process/test_issue321_turn_exit_enforcement.py"
+    ],
+    "guard_run_id": 36220551411,
+    "guard_request_comment_id": 5843489905,
+    "guard_result_comment_id": 5843491000
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36225468359,
+    "request_comment_id": 5844100585,
+    "result_comment_id": 5844101866,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+    "consumed": true,
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to implementation head fc75000d1d3115331923a1a1bc3c34f6bbdbddbc"
   }
 }
