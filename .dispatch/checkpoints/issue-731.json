@@ -12,7 +12,8 @@
   "blocked_last_notified_at": null,
   "evidence": [
     "Requirement Authority: user directive 2026-09-26 to fix repeated branch-create GREEN consume stall.",
-    "Baseline main HEAD: 407766cba2405b4f4b6a6cc014b0ac27180a7f24."
+    "Baseline main HEAD: 407766cba2405b4f4b6a6cc014b0ac27180a7f24.",
+    "Exact branch readback: governance/issue731-branch-create-auto-consume-20260926 exists at 407766cba2405b4f4b6a6cc014b0ac27180a7f24 under Guard run 36250701375."
   ],
   "master_issue": null,
   "chain_state": "NONE",
