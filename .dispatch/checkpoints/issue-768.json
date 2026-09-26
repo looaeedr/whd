@@ -3,27 +3,24 @@
   "issue": "768",
   "branch": "governance/issue768-durable-reentry-hard-gate-20260927",
   "head_sha": "70922cdaaf79d4e59a81233f81ab3d8519b8120a",
-  "state": "RUNNING",
-  "next_action": "Create guarded PR to cleanup/2d-3d-sync; verify CI/readback; merge; deploy trusted-main guard parity; then repair #762 final release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "User requested hard gate + GitHub durable state重新接.",
-    "#762 closure deadlocked at final CLOSED+RELEASED write due historical receipt ambiguity.",
-    "Machine guard fixes duplicate observation by commit SHA and seals historical receipt at next same-lineage GREEN write transaction.",
-    "True duplicate commits within one transaction window remain fail-closed.",
-    "GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1 bridged through execution/dispatch/work-slot/scheduler entrypoints.",
-    "126 tests passed; Phase6 preflight all required skills/references GREEN.",
-    "work commit=70922cdaaf79d4e59a81233f81ab3d8519b8120a"
+    "Hard gate merged to X at 1de50f9a63ae6f61c1614ae757a31bd471f27ac8.",
+    "Trusted Remote Guard parity helper #772 CLOSED + RELEASED.",
+    "#762 closure deadlock regression repaired and final CLOSED + RELEASED verified.",
+    "126 adjacent tests passed; Phase6 preflight GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/readback #768, then atomically CLOSED+RELEASED."
 }
