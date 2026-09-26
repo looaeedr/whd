@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "680",
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
-  "head_sha": "8728a7c11b19927749b9153446eedfbb01996a1b",
+  "head_sha": "208df0670554213be0d2b8d2c071c6e64192631a",
   "state": "RUNNING",
-  "next_action": "Implement WI-2 planned executor handoff contract on frozen lineage: dispatch owns sender authority, Remote Guard recognizes distinct claim-handoff identity, and 排程模擬 validates exact scheduler receiver identity; rerun #680 focused QA to GREEN.",
+  "next_action": "Under a fresh commit Guard, update only .github/workflows/qa-issue680-planned-handoff.yml push paths so the exact WI-2 implementation files trigger focused QA; push once, lock the auto-created run at the new head to terminal, then reconcile and evaluate GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -32,7 +32,10 @@
     "Run 36250631028 reached pytest execution and failed in characterization step; valid RED.",
     "RED owner correction commit 8728a7c11b19927749b9153446eedfbb01996a1b.",
     "H3→H4 reconciliation Guard 36251314801 GREEN.",
-    "Valid RED run 36251298009 terminal failure after pytest execution."
+    "Valid RED run 36251298009 terminal failure after pytest execution.",
+    "WI-2 implementation committed at 208df0670554213be0d2b8d2c071c6e64192631a under Guard 36251419208.",
+    "H4→H5 reconciliation Guard 36251705385 GREEN.",
+    "Focused QA workflow push filter does not yet include implementation paths; next action is exact QA trigger repair, not implementation replay."
   ],
   "master_issue": null,
   "chain_state": "NONE",
