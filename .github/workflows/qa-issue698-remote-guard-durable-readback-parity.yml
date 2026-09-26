@@ -1,0 +1,21 @@
+name: "QA #698 A3 Remote Guard Durable Readback Parity"
+
+on:
+  push:
+    branches:
+      - work/issue698-remote-guard-readback-parity-20260926
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run RED-STOP-19 focused characterization
+        run: python -m pytest -q tests/process/test_issue698_remote_guard_durable_readback_parity.py
