@@ -17,10 +17,12 @@
     "Fresh duplicate census classified #712 and #713 as the same UPDATE_ONLY / execution-intent governance scope; canonical continuation is #713.",
     "Live #712 branch is 0ddd4db2f7d667028959643f3cbd83a2e50c1adc while the prior durable checkpoint remained at H0; Issue #712 contains no durable Guard/RED comment evidence for that commit.",
     "The #712 commit is preserved on its branch as noncanonical reference evidence only; duplicate repair does not accept or integrate it.",
-    "Duplicate #712 closure advanced to ISSUE_CLOSE_PENDING after durable live-H1 reconciliation; canonical owner remains #713."
+    "Duplicate #712 closure advanced to ISSUE_CLOSE_PENDING after durable live-H1 reconciliation; canonical owner remains #713.",
+    "Trusted finalization run 36229044199 completed success with FINALIZATION_PROOF_VALID; artifact 10902171270.",
+    "GitHub Issue #712 fresh readback: state=closed, state_reason=duplicate; canonical implementation owner is #713."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "obtain bound trusted finalization proof for duplicate #712, close/read back as duplicate of #713, then persist RELEASE_HANDOFF_PENDING and final CLOSED + RELEASED",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint closure_state=CLOSED + shared claim phase=RELEASED for duplicate #712; no successor handoff",
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
