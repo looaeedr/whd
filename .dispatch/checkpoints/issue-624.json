@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "624",
+  "branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "head_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
+  "state": "RUNNING",
+  "next_action": "Run fresh P7-R-A deletion-test characterization for the remaining fold_designer_bridge compatibility/deep-owner cluster, then remove only NO_CALLER/SUPERSEDED ownership while preserving Part Editor transaction ordering, scheduler ownership, bootstrap/lifecycle/install-order, and legacy host compatibility.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 7 v1.2 spec + approved RED/breakdown; owning Issue #624 P7-R-A fresh-read open.",
+    "Predecessor #623 closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED at accepted head 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d.",
+    "Execution mode SCHEDULER_LANE continues under A lane owner scheduler.6ab13fa557fc8191935c671214b865e2.",
+    "Active RUNNING checkpoint intentionally carries no terminal chain continuation metadata."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
