@@ -10,6 +10,75 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+
+### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
+
+本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
+
+- fresh runtime、scheduled/work-slot re-entry、stream/connection interruption、`Resume stream unavailable`，或使用者明確要求 **`GitHub durable state重新接`** 時，任何 mutation / waiting / blocker / completion 判定前先 fresh reconstruction。
+- 至少 fresh-read owning Issue、claim blob+payload、checkpoint blob+payload、work branch HEAD、production target HEAD，以及 durable state 指向的 exact PR/run/Guard/closure/chain evidence。
+- reconstruction 完成前**不得靠聊天記憶**補 owner、HEAD、run_id、closure state 或 next_action；不得宣告無工作、等待、卡住或完成。
+- reconstruction 得到 executable non-terminal state 後，同一 invocation 立即沿 canonical **exact next_action** 繼續；「已重新接回」只是 checkpoint observation，不是停止點。
+- 本入口只 bridge canonical gate，不自行建立第二套 durable parser 或較寬的 stop condition。
+
+
+## EXECUTION_INTENT_ROUTING_V1
+
+本 Skill 是 WHD execution intent 的 canonical routing authority。任何 claim / implementation branch / successor continuation 前，先把本輪 intent 分成且只分成一種：
+
+- `UPDATE_ONLY`：只修改使用者點名的 automation / scheduler 設定、Skill、Issue body、prompt、spec、governance text 或其他控制面，並完成該更新必要的驗證與 readback。
+- `EXECUTE_TICKET`：使用者明確要求做／修／實作／接手／繼續／收掉一張具體工單，授權該 ticket 的完整 normal path；若該 ticket 的 canonical durable chain state 明確進入 `NEXT_CHILD_EXECUTABLE` 或指定 exact closure/successor owner，該 handoff/continuation 視為完成本次已授權工作鏈的一部分，必須自動續接 exact next issue，而不是要求使用者重新下令。
+- `EXECUTE_CHAIN`：使用者明確要求整條工單鏈持續施工，child terminal 後才可依 canonical successor authority 接下一張。
+- `SCHEDULER_LANE`：真正 scheduled invocation 或使用者明確輸入 `/排程A` / `/排程B`；可依 lane contract discovery/resume work。
+
+### UPDATE_DOES_NOT_IMPLY_EXECUTION
+
+`UPDATE_ONLY` 不得取得或恢復 implementation execution claim；不得建立 implementation branch；不得自動進入 successor / next child。更新完成條件是該更新本身 + 必要驗證/readback。
+
+若被更新的 surface 本身位於受治理 repository，專案規則仍可要求建立**專屬 update/governance owning Issue + update branch + claim**；這只授權該更新 transaction，不得因此擴張成產品 implementation 或其他 open Issue 的施工。
+
+### ISSUE_EXISTENCE_IS_NOT_EXECUTION_AUTHORITY
+
+Issue open、dependency unblocked、工作槽空閒、存在 next_action、或某個 Guard/runner 可用，都只代表「可能可執行」，不等於本輪已獲 execution authority。沒有 explicit execution mode 時不得因上述條件自行升級為 `EXECUTE_TICKET` / `EXECUTE_CHAIN` / `SCHEDULER_LANE`。
+
+### NORMAL_PATH_FIRST
+
+進入 `EXECUTE_TICKET` 後，預設只走最短 canonical happy path：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+finalization proof、claim/head bookkeeping 與必要 Guard 仍是各 boundary 的 safety gate，但不得把 recovery action 當成固定 phase。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+`takeover / reactivate / reconciliation / legacy repair / replay recovery` 只在 fresh machine evidence 證明對應 drift、衝突、中斷、expired/unconsumed receipt 或 half-terminal state 時啟動。沒有 evidence 就留在 normal path；recovery condition 修復後立即回 normal path，不得持續停留在 recovery mode。
+
+普通 freshness/readback/Guard precondition 是正常安全檢查，不等於已進 recovery。
+
+## TASK_START_AUTHORITY_DECLARATION_V1
+
+本 Skill 是 WHD「開工先說清楚授權、目的與範圍」的唯一 canonical owner。`AGENTS.md::SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1` 仍擁有第一個 user-visible 行；**在該 Skill 公告後**，且在任何 Phase6 Knowledge Preflight、Guard、claim、branch 或 repository mutation 前，立即輸出一份 user-visible startup declaration：
+
+```text
+TASK_START_AUTHORITY_DECLARATION_V1
+authorization_source=<本輪真實使用者指示／accepted spec／owning authority>
+execution_intent=<UPDATE_ONLY|EXECUTE_TICKET|EXECUTE_CHAIN|SCHEDULER_LANE>
+purpose=<本輪要完成的具體結果>
+authorized_scope=<repo / issue / branch / lane / allowed mutation boundary>
+prohibited_scope=<本輪不得自行擴張的工作與 mutation>
+resume_authority=<NONE | exact issue + checkpoint + branch + HEAD + next_action [+ run_id/head_sha]>
+```
+
+硬規則：
+
+1. `authorization_source` 必須指出真實可反讀 authority；不得把 open Issue、空工作槽、Guard GREEN、模型推測或「看起來該做」寫成使用者授權。
+2. fresh task 固定 `resume_authority=NONE`；續跑則必須列 exact durable identity。缺失、stale 或 drift 時先 fresh reconstruct，不得假填 resume authority。
+3. `UPDATE_ONLY` 的 `authorized_scope` 只包含使用者點名的更新 transaction 與必要驗證；其他 open Issue / ready leaf / successor 一律仍在 `prohibited_scope`，不得因此擴張 execution scope。
+4. `EXECUTE_TICKET` 不授權 arbitrary Issue discovery；但若該 ticket 的 canonical durable chain state 已明確給出 `NEXT_CHILD_EXECUTABLE` / exact `next_issue` / exact closure owner，沿該 handoff 自動續接屬於原授權鏈的 completion，不是 scope expansion。`EXECUTE_CHAIN` 只授權 accepted chain；`SCHEDULER_LANE` 只授權該 lane contract 允許的 discovery/resume boundary。選出 exact executable leaf 後，第一個 durable claim/checkpoint 必須保存 exact issue/branch/HEAD/next_action。
+5. 第一個 durable owning Issue / claim / checkpoint writeback 必須保存同義的 `authorization_source / execution_intent / purpose / authorized_scope / prohibited_scope / resume_authority` evidence，讓下一 Runtime 不靠聊天記憶也能重建。
+6. declaration 是 provenance 與 scope boundary，**不是安全檢查的 bypass**；平台安全檢查、Phase6 Preflight、execution claim Guard、finalization gate 與其他專案 hard gate 全部照常執行。
+7. 下游 Skill 只能 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`，不得建立第二套欄位、第二個 parser 或更寬鬆的授權語意。
+
 依使用者已核准的規格或工單實作，不重新發明需求。
 
 ## 1. 開始前
@@ -280,3 +349,13 @@ WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-basel
 若沒有獨立 progress producer 正在推進，禁止把「輪詢」當工作本身。此時必須回 RUNNING / RECOVERING，直接執行能產生下一個 state change 的實作、trigger、修復或驗證 prerequisite。
 
 使用者不是 scheduler，也不是 executor；不得靠使用者反覆輸入「輪／繼續」才讓工作往前。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_execute_task`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain TASK_START authority/purpose declaration and resume-first continuity contract.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

@@ -10,6 +10,53 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+### EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+派工不自行推導 execution intent；先服從 `執行開發任務::EXECUTION_INTENT_ROUTING_V1`。
+
+- `UPDATE_ONLY`：只處理被點名的 update transaction；不得因其他 Issue open/unblocked、claim pool 有空位或 child dependency 解鎖而自動開工。
+- `EXECUTE_TICKET`：不得把 arbitrary open/unblocked Issue 當 successor；但當前 ticket 的 canonical durable chain state 若明確為 `NEXT_CHILD_EXECUTABLE`，或明確指定 exact closure/successor owner，必須在完成本票 closure handoff 後自動 claim/start exact `next_issue`，不得停在 ticket 邊界。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE`：可依 broader accepted chain/lane authority主動 continuation；但它們不是 canonical `NEXT_CHILD_EXECUTABLE` handoff 唯一允許的 mode。
+
+
+### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
+
+本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
+
+- fresh runtime、scheduled/work-slot re-entry、stream/connection interruption、`Resume stream unavailable`，或使用者明確要求 **`GitHub durable state重新接`** 時，任何 mutation / waiting / blocker / completion 判定前先 fresh reconstruction。
+- 至少 fresh-read owning Issue、claim blob+payload、checkpoint blob+payload、work branch HEAD、production target HEAD，以及 durable state 指向的 exact PR/run/Guard/closure/chain evidence。
+- reconstruction 完成前**不得靠聊天記憶**補 owner、HEAD、run_id、closure state 或 next_action；不得宣告無工作、等待、卡住或完成。
+- reconstruction 得到 executable non-terminal state 後，同一 invocation 立即沿 canonical **exact next_action** 繼續；「已重新接回」只是 checkpoint observation，不是停止點。
+- 本入口只 bridge canonical gate，不自行建立第二套 durable parser 或較寬的 stop condition。
+
+### TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+派工不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- Skill invocation announcement 後、Phase6 Preflight / claim / branch / Guard / repository mutation 前，先完成 canonical user-visible declaration。
+- 新 claim / checkpoint 的第一個 durable writeback 必須保存同義六欄 evidence；派工只保存／核對，不改寫其語意。
+- `UPDATE_ONLY` 專屬治理 claim 只授權該 update transaction；不得因 claim pool、open Issue、工作槽或 successor 存在而擴張 scope。
+- declaration 缺失或與 owning Issue / execution intent 衝突時，先回 canonical owner 修正；不得由派工自行發明較寬 authority。
+
+#### NORMAL_PATH_FIRST
+
+單張正常 implementation 工單的 canonical 主幹固定為：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+Guard/finalization safety gate 仍保留，但不得預防性執行 takeover / reactivate / reconciliation / legacy repair。只有 fresh machine evidence 證明異常條件時，才暫時分支到 recovery。
+
+#### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+takeover、reactivate、claim/head reconciliation、legacy-checkpoint repair、expired receipt repair 都是 evidence-triggered recovery。正常票不先跑 recovery 再開始施工；fresh machine evidence 顯示 clean/一致時立即沿 normal path。
+
+#### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
+
+工作槽只表示可並行容量／occupancy／routing identity。空工作槽、open / unblocked Issue、沒有 claim 的 ready leaf 都不構成 execution authority。只有本輪已是 `EXECUTE_TICKET`、`EXECUTE_CHAIN` 或 `SCHEDULER_LANE` 時，工作槽才能用來選擇/隔離已授權工作。
+
+本節只禁止沒有 durable chain authority 的任意跨票 discovery；不得覆蓋後文 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`。若 current ticket 已 durable 進入 `NEXT_CHILD_EXECUTABLE` 或 exact closure/successor handoff，`EXECUTE_TICKET` 也必須同輪續接 exact `next_issue`；這是完成原授權鏈，不是擴張 scope。
+
+
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
@@ -574,7 +621,7 @@ Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeov
 2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 300 秒時退讓；heartbeat age > 300 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
 3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
 4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
-5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。 若 pending action 是 `branch-create`，先 fresh-read remote branch；branch 已存在且 HEAD exact match 時，由 trusted Guard 的 canonical branch-create durable-readback auto-consume 路徑判成 `CONSUMED`，不得靠 reactivate/換 claim blob 來清掉 transaction。
 6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
 7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
 8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
@@ -674,3 +721,122 @@ EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保
 7. GREEN 只授權 reconciliation metadata：原子把 claim/checkpoint HEAD 從 H0 推到既有 H1；不得重播 production mutation、不得改 ownership，也不得把此 recovery 當一般 receipt-window bypass。
 
 這是 legacy migration escape hatch，不是 normal path；新 mutation 仍必須在 Guard receipt window 內完成。
+
+
+## WHD_WORK_EXECUTOR_HANDOFF_V1
+
+Planned executor handoff 是《派工》shared execution claim authority 的受控 ownership transition，**不是 stale takeover**。sender 必須 fresh-read exact Issue / claim blob / checkpoint / branch HEAD，使用 canonical checkpoint fingerprint，建立 exact-bound handoff identity：
+
+```text
+issue=<exact>
+from_worker=<current exact claim worker>
+to_worker=<exact scheduler lane worker>
+target_lane=A|B
+handoff_generation=<positive monotonically increasing integer>
+claim_blob=<exact current shared claim blob>
+branch=<exact work branch>
+head_sha=<exact branch/claim HEAD>
+checkpoint_fingerprint=<canonical continuity checkpoint fingerprint>
+next_action=<exact current non-null next_action>
+```
+
+固定規則：
+
+1. planned transition 一律使用 Guard action=`claim-handoff`；**不得**改走 `claim-takeover`、不得等 stale TTL、不得要求 stale/orphan classification。
+2. `to_worker` 必須與 `target_lane` exact 對應；A/B exact lane identity 由《排程模擬》CURRENT authority 提供，不得由聊天室名稱猜測。
+3. Guard GREEN 是 single-use，只授權將同一 shared claim 的 worker CAS 從 `from_worker` 改成 `to_worker`；branch/base/head/checkpoint/slot_id/next_action 保持原 identity，executor provenance 依 live schema保留。
+4. CAS 前再次 fresh-read claim blob / branch HEAD / checkpoint fingerprint / next_action / generation；任一 drift → `WORK_EXECUTOR_HANDOFF_IDENTITY_MISMATCH`，receipt 失效且不得 mutation。
+5. CAS 後立即 fresh-read，必須證明 worker 已是 exact `to_worker` 且 branch/head/checkpoint/next_action仍與 handoff identity一致；才可標記 receiver-ready。
+6. receiver-ready 後 target scheduler 在下一個合法 invocation **直接 resume exact checkpoint / next_action**；不得把已完成 planned handoff 重新分類成 stale takeover。
+7. handoff generation 防 replay；舊 generation、錯 claim blob、錯 checkpoint fingerprint、錯 next_action 一律 fail closed。
+8. 本 contract 不建立第二套 continuity/checkpoint state machine；fingerprint 與 next_action 語意仍由 canonical executable-continuity-controller 擁有。
+## MAIN_TO_X_BATCH_FIRST_PARITY_V1
+
+當 default/trusted `main` 上已有一批已驗收治理修補，且依 parity 要求必須同步到 `X = cleanup/2d-3d-sync` 時，固定採 **BATCH_FEASIBILITY_AUDIT → batch integration 優先 → selective fallback**，不得預設逐顆同步。
+
+### BATCH_FEASIBILITY_AUDIT
+
+任何 per-fix cherry-pick、copy、compatible-equivalent 或 helper ticket 之前，先 fresh-read：
+
+- `main` exact HEAD；
+- `X` exact HEAD；
+- merge-base / ahead-behind / changed-file overlap；
+- 待同步的 accepted governance commit/artifact set；
+- protected/config/workflow/Skill/AI Library drift；
+- 目前 active Master chains 的 `FROZEN_X_BASE_SHA` 與 isolation 約束。
+
+先回答「這批**符合 parity scope 的 accepted main governance changes**是否能作一次 bounded、non-force 的 batch integration」。
+
+### SELECTIVE_PROPAGATION_FALLBACK_ONLY
+
+只有 fresh evidence 證明 batch integration 不安全時，才可退回 selective compatible-equivalent propagation。合法理由至少包含其中一項：
+
+- 真正 merge conflict；
+- main 夾帶不在本次授權 scope 的 unrelated/unauthorized commit；
+- 會破壞 protected/config invariant；
+- 會把 sibling/active-chain 尚未允許的 lineage 污染帶進 X；
+- trusted-only artifact 在 X 不應成為 authority，需要 compatible-equivalent 而非原樣複製。
+
+fallback 必須 durable 記錄 exact excluded commits/files、原因、替代 artifact identity 與 post-write readback。不得只寫「diverged，所以 cherry-pick」。
+
+### NO_PER_FIX_HELPER_DEFAULT
+
+同一批 main→X parity 能由一個 batch audit / integration owner 處理時，**不得預設一個 fix 開一張 parity helper**。優先 reuse 現有 parity owner（例如 #692 類 owner）並一次 census 全部 eligible governance changes；只有存在不同 authority、不同 blocker 或不可共用 acceptance boundary 時才拆 helper。
+
+### Active-chain isolation 仍優先
+
+batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌進 active chain**。active chain 仍固定沿自己的 `FROZEN_X_BASE_SHA → WORK_ORDER_ACCEPTED_HEAD` 演進，直到原 chain 完成後才在 Integration Acceptance 面對新的 X。
+
+這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。
+
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
+
+若 active claim 對應的 checkpoint 已是 terminal，但 checkpoint JSON 因 closure lifecycle 欄位非法而無法被 canonical loader 解析，禁止用 ordinary Remote Guard、一般 `reactivate`、手寫 coord commit 或先 release claim 繞過。
+
+唯一合法 recovery 是 default/trusted `main` 上 Claim Activation 的固定 `transition=terminal-checkpoint-repair`：
+
+1. prior claim 與 prior checkpoint 都必須存在，並用 exact blob SHA 綁定 current `coord/dispatch-claims` parent；
+2. candidate claim blob 必須與 prior claim **byte-for-byte 相同**，owner / executor / branch / head / phase 不得順便改；
+3. prior checkpoint 必須由 `tools/continuity_controller.py::repair_malformed_terminal_checkpoint` 判定為可窄修復的 `TERMINAL_SUCCESS` malformed closure lifecycle；
+4. candidate checkpoint 必須逐欄等於 canonical repair 結果：保持 issue / branch / head / continuity state 不變，只正規化為 `closure_state=FINALIZATION_PENDING` 與 canonical `closure_next_action`；
+5. 不得藉 repair 跳到 `CLOSED`、`RELEASED`、改寫 evidence/identity 或處理其他任意 malformed JSON；
+6. exact coord parent CAS drift 立即 FAIL；repair GREEN 後必須 fresh-read candidate pair，再回 canonical finalization progression。
+
+此 transition 是 process-state migration repair，不是 takeover、不是 generic checkpoint editor。Primary regression：`tests/process/test_issue744_terminal_checkpoint_repair_transport.py`；governance repair：#744。
+
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
+
+`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
+
+- prior receipt 為 exact GREEN `action=pr-write`；
+- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
+- PR `base.ref == claim.production_target`；
+- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
+- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
+
+只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+
+## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1
+
+對 shared coordination 的 `action=write`，GREEN receipt 不得只靠「目前檔案看起來已更新」判定 consumed。trusted Remote Guard 必須從 `coord/dispatch-claims` fresh-read receipt window 內的 exact commit，且只接受該 Issue 的 claim/checkpoint 路徑。
+
+可 auto-consume 的 durable readback 必須同時成立：
+- commit 的 changed-file set 與 receipt 完全相同；
+- target claim/checkpoint blob 可在該 commit 精確讀回；
+- claim payload 的 issue / worker / executor_source / work_branch / head_sha 與 receipt 一致；
+- checkpoint payload的 issue / branch / head_sha 與 receipt 一致；
+- receipt window 內只能有一顆 exact matching coordination commit；多顆或零顆皆 fail closed。
+
+Canonical implementation：`tools.execution_claim_guard.durable_coord_write_readbacks_from_live_commits`。trusted workflow 必須把它與 branch-create / pr-write readbacks 一起餵給 transaction classifier。這條規則不放寬一般 repository write/commit。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_dispatch`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain shared claim ownership, guarded takeover/handoff, and durable checkpoint routing.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
