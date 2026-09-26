@@ -696,3 +696,42 @@ EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保
 7. GREEN 只授權 reconciliation metadata：原子把 claim/checkpoint HEAD 從 H0 推到既有 H1；不得重播 production mutation、不得改 ownership，也不得把此 recovery 當一般 receipt-window bypass。
 
 這是 legacy migration escape hatch，不是 normal path；新 mutation 仍必須在 Guard receipt window 內完成。
+
+## MAIN_TO_X_BATCH_FIRST_PARITY_V1
+
+當 default/trusted `main` 上已有一批已驗收治理修補，且依 parity 要求必須同步到 `X = cleanup/2d-3d-sync` 時，固定採 **BATCH_FEASIBILITY_AUDIT → batch integration 優先 → selective fallback**，不得預設逐顆同步。
+
+### BATCH_FEASIBILITY_AUDIT
+
+任何 per-fix cherry-pick、copy、compatible-equivalent 或 helper ticket 之前，先 fresh-read：
+
+- `main` exact HEAD；
+- `X` exact HEAD；
+- merge-base / ahead-behind / changed-file overlap；
+- 待同步的 accepted governance commit/artifact set；
+- protected/config/workflow/Skill/AI Library drift；
+- 目前 active Master chains 的 `FROZEN_X_BASE_SHA` 與 isolation 約束。
+
+先回答「這批**符合 parity scope 的 accepted main governance changes**是否能作一次 bounded、non-force 的 batch integration」。
+
+### SELECTIVE_PROPAGATION_FALLBACK_ONLY
+
+只有 fresh evidence 證明 batch integration 不安全時，才可退回 selective compatible-equivalent propagation。合法理由至少包含其中一項：
+
+- 真正 merge conflict；
+- main 夾帶不在本次授權 scope 的 unrelated/unauthorized commit；
+- 會破壞 protected/config invariant；
+- 會把 sibling/active-chain 尚未允許的 lineage 污染帶進 X；
+- trusted-only artifact 在 X 不應成為 authority，需要 compatible-equivalent 而非原樣複製。
+
+fallback 必須 durable 記錄 exact excluded commits/files、原因、替代 artifact identity 與 post-write readback。不得只寫「diverged，所以 cherry-pick」。
+
+### NO_PER_FIX_HELPER_DEFAULT
+
+同一批 main→X parity 能由一個 batch audit / integration owner 處理時，**不得預設一個 fix 開一張 parity helper**。優先 reuse 現有 parity owner（例如 #692 類 owner）並一次 census 全部 eligible governance changes；只有存在不同 authority、不同 blocker 或不可共用 acceptance boundary 時才拆 helper。
+
+### Active-chain isolation 仍優先
+
+batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌進 active chain**。active chain 仍固定沿自己的 `FROZEN_X_BASE_SHA → WORK_ORDER_ACCEPTED_HEAD` 演進，直到原 chain 完成後才在 Integration Acceptance 面對新的 X。
+
+這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。

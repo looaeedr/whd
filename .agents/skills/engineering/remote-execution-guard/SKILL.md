@@ -448,3 +448,12 @@ Canonical implementation：`tools.execution_claim_guard.durable_branch_create_re
 Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到 legacy `claim exists + checkpoint missing` 時，不重送普通 Guard，也不人工補檔；改路由 trusted `.github/workflows/whd-remote-claim-activation.yml` 的 `legacy-checkpoint-repair`。
 
 該 repair 只允許 unchanged claim blob + 新 canonical checkpoint 的 atomic CAS。成功後普通 Remote Guard 才重新取得合法 checkpoint authority。任何 claim identity/head/phase 變更仍走既有 guarded reconciliation，不屬 legacy repair。
+
+##### LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_V1
+
+只有歷史 mutation 已由 exact GREEN receipt 授權、但 commit timestamp 落在該 receipt window 之外的 legacy 半完成 transaction，才可使用 owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`。此 recovery **只放寬 historical receipt-time-window**，不放寬任何其他 identity。
+
+- owning Issue top-level comment 必須由 repository owner 發出，第一行 exact `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`；至少綁 `issue / worker / executor_source / branch / claim_head_sha(H0) / live_head_sha(H1) / prior_guard_run_id / prior_request_comment_id / changed_file`。
+- canonical guard 仍必須證明 current claim blob、owner/source/branch/base、H0→H1 direct child、prior request + GREEN receipt、exact run/request identity 與 commit changed-file set全部一致；wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 一律 fail closed。
+- trusted Remote Guard 只透過 fixed-schema `legacy_reconcile_recovery_comment_id` 取得 exact owner comment，驗 author/issue/marker 後傳入 `--legacy-reconcile-recovery`；不得接受自由文字或把 comment 本身當 mutation authority。
+- ordinary post-commit reconciliation 與正常 receipt-window 行為完全不變；此 recovery 不得用於一般 stale-head write、production/Skill mutation、takeover 或 replay implementation。新的 trusted workflow 必須先部署到 default branch `main` 並 fresh readback，之後才能用於 #617/#671 live repair。
