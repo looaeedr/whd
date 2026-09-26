@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "762",
   "branch": "governance/issue762-successor-continuation-regression-20260927",
-  "head_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "head_sha": "9752e0b460843c4c69120a5cd8b20858d39156b8",
   "state": "RUNNING",
-  "next_action": "Create guarded governance branch and establish RED contract tests proving EXECUTE_TICKET/work-slot cannot stop when canonical durable state is NEXT_CHILD_EXECUTABLE.",
+  "next_action": "Create guarded PR to cleanup/2d-3d-sync, verify CI/readback, merge, then perform canonical closure/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,10 @@
   "evidence": [
     "User corrected prior interpretation: successor continuation was already canonical.",
     "Existing 派工 MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1 requires immediate claim/start next_issue for NEXT_CHILD_EXECUTABLE.",
-    "#715 introduced conflicting 工作槽 text that prevents auto successor continuation."
+    "#712/#713/#715 introduced conflicting routing text.",
+    "Issue #762 regression fix commit 9752e0b460843c4c69120a5cd8b20858d39156b8.",
+    "Focused governance regression: 31 passed / 0 failed.",
+    "Phase6 preflight all required skills/references GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
