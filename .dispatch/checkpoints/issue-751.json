@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "751",
+  "branch": "deploy/issue751-claim-handoff-main-20260927",
+  "head_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
+  "state": "RUNNING",
+  "next_action": "Create guarded deploy branch from exact main base; port only #680 claim-handoff trusted executable/parser dependencies; run focused contract; merge to main; fresh-read deployed parity; close/release #751 and return to #680.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #680 / helper_key issue680-claim-handoff-main-deploy.",
+    "Trusted deployment base main@2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Scope limited to #680 claim-handoff executable/parser parity required on trusted main."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
