@@ -22,6 +22,7 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from . import manufacturing_verification as _manufacturing_verification
+from . import manufacturing_export as _manufacturing_export
 from .contracts import (
     FinalMaterialCollisionPart,
     BasePlatePartSpec,
@@ -2146,31 +2147,13 @@ def save_part_render_data_dxf(
     *,
     overwrite: bool = False,
 ) -> str:
-    """Serialize an already-built authoritative FinalScene to DXF.
-
-    This function deliberately does *not* rebuild PartSpec geometry.  It is the
-    shared sink for 2D/3D/export consumers that already hold PartRenderData.
-    """
-    destination = Path(output_path)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.exists() and not overwrite:
-        raise FileExistsError(str(destination))
-
-    safe_stem = re.sub(r'[<>:"/\\|?*]', '_', destination.stem)
-    fd, temp_name = tempfile.mkstemp(
-        prefix=f".{safe_stem}.tmp-",
-        suffix=destination.suffix or ".dxf",
-        dir=str(destination.parent),
+    """Serialize an already-built authoritative FinalScene to DXF."""
+    return _manufacturing_export.save_part_render_data_dxf(
+        render_data.scene,
+        output_path,
+        serializer=save_scene_dxf,
+        overwrite=overwrite,
     )
-    os.close(fd)
-    temp_path = Path(temp_name)
-    try:
-        save_scene_dxf(str(temp_path), render_data.scene)
-        os.replace(temp_path, destination)
-    except Exception:
-        temp_path.unlink(missing_ok=True)
-        raise
-    return str(destination)
 
 def _door_export(spec: DoorPartSpec, filepath: str, context: ManufacturingContext):
     _validate_door_part_indicator_fit(spec, context)
@@ -2433,56 +2416,23 @@ _BOX_BODY_PHYSICAL_PIECE_ROLES = frozenset({
 
 
 def _safe_dxf_part_stem(part_id: str) -> str:
-    """Map one stable part id to a Windows-safe default DXF filename stem."""
-    value = str(part_id or "").strip()
-    if not value:
-        raise ValueError("physical part id is empty")
-    return re.sub(r'[<>:"/\\\\|?*]', "_", value)
+    return _manufacturing_export.safe_dxf_part_stem(part_id)
 
 
 def _resolved_physical_dxf_stem(part_id: str) -> str:
-    """Keep Box Body physical-piece filenames distinct from dynamic part IDs."""
-    value = str(part_id or "").strip()
-    root, sep, role = value.partition(":")
-    if (
-        sep
-        and root == "box_body"
-        and ":" not in role
-        and role in _BOX_BODY_PHYSICAL_PIECE_ROLES
-    ):
-        return f"box_body__{_safe_dxf_part_stem(role)}"
-    return _safe_dxf_part_stem(value)
+    return _manufacturing_export.resolved_physical_dxf_stem(
+        part_id, box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES
+    )
 
 
 def _resolved_physical_render_parts(resolved_geometry):
-    """Return ordered (stable_part_id, render_data) rows from canonical resolved state."""
-    rows = []
-    for part in tuple(getattr(resolved_geometry, "parts", ()) or ()):
-        key = str(getattr(part, "part_key", "") or "").strip()
-        if not key:
-            raise ValueError("resolved manufacturing part missing part_key")
-        render_data = getattr(part, "render_data", None)
-        if render_data is None:
-            raise ValueError(f"resolved manufacturing part missing render_data: {key}")
-        pieces = tuple(getattr(render_data, "pieces", ()) or ())
-        if pieces:
-            for index, piece in enumerate(pieces, start=1):
-                piece_render = getattr(piece, "render_data", None)
-                if piece_render is None:
-                    raise ValueError(f"resolved piece missing render_data: {key}#{index}")
-                piece_key = str(
-                    getattr(piece, "key", "")
-                    or getattr(piece, "piece_key", "")
-                    or f"piece{index}"
-                ).strip()
-                rows.append((f"{key}:{piece_key}", piece_render))
-        else:
-            rows.append((key, render_data))
-    return tuple(rows)
+    return _manufacturing_export.resolved_physical_render_parts(resolved_geometry)
 
 
 def _resolved_physical_dxf_filename(part_id: str) -> str:
-    return f"{_resolved_physical_dxf_stem(part_id)}.dxf"
+    return _manufacturing_export.resolved_physical_dxf_filename(
+        part_id, box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES
+    )
 
 
 def save_resolved_manufacturing_geometry_dxf(
@@ -2491,34 +2441,18 @@ def save_resolved_manufacturing_geometry_dxf(
     *,
     overwrite: bool = False,
 ) -> dict[str, str]:
-    """Export exact canonical physical parts to stable per-part DXF files.
-
-    Stable part IDs remain domain IDs (including ':' separators).  Only the
-    filesystem filename is sanitized for Windows compatibility.
-    """
-    root = Path(output_dir)
-    root.mkdir(parents=True, exist_ok=True)
-    outputs: dict[str, str] = {}
-    for part_id, render_data in _resolved_physical_render_parts(resolved_geometry):
-        path = root / _resolved_physical_dxf_filename(part_id)
-        outputs[part_id] = save_part_render_data_dxf(
-            render_data, path, overwrite=overwrite
-        )
-    return outputs
+    """Export exact canonical physical parts to stable per-part DXF files."""
+    return _manufacturing_export.save_resolved_manufacturing_geometry_dxf(
+        resolved_geometry,
+        output_dir,
+        save_part_render_data_dxf=save_part_render_data_dxf,
+        box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
+        overwrite=overwrite,
+    )
 
 
 def resolved_manufacturing_nc_capability() -> dict[str, object]:
-    """Report the current repository's production NC sink capability explicitly.
-
-    PHASE6 currently has no production NC writer at the canonical FinalScene
-    boundary.  Returning an explicit capability record prevents callers from
-    inventing a second geometry path merely to claim NC support.
-    """
-    return {
-        "available": False,
-        "reason": "production NC sink is not implemented at the ResolvedManufacturingGeometry boundary",
-        "canonical_input": "ResolvedManufacturingGeometry",
-    }
+    return _manufacturing_export.resolved_manufacturing_nc_capability()
 
 
 def verify_saved_part_render_data_dxf(
