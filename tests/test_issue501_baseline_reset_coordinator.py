@@ -158,4 +158,8 @@ def test_issue619_baseline_transition_batches_visible_updates_until_finalize():
     assert events[-1] == ("batch", "commit")
     assert events.index(("project", "finalize")) < events.index(("intent", "baseline"))
     assert events.index(("intent", "baseline")) < len(events) - 1
-    assert ("profile", False) in events
+    profile_index = next(
+        index for index, event in enumerate(events) if event[0] == "profile"
+    )
+    assert events.index(("project", "commit")) < profile_index
+    assert profile_index < events.index(("project", "finalize"))

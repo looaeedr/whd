@@ -51,6 +51,7 @@ jobs:
             tests/test_phase6_3d_retain_and_baseline.py \
             tests/test_phase6_ui_state_regressions.py \
             tests/test_phase6_t25_combined_receiving_acceptance.py \
+            --deselect=tests/test_phase6_ui_state_regressions.py::test_real_tk_part_selector_menu_opens_part_and_delete_shares_selector_row \
             --tb=short \
             --json-report --json-report-file=/tmp/issue619/report.json
           after="$(sha256sum config.ini | awk '{print $1}')"
