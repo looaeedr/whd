@@ -14,13 +14,14 @@
     "PR #778 merged to trusted main.",
     "Changed-file grouping parity confirmed.",
     "Action-scope bootstrap live on main ae75066c74339f728a676b1c923fd5366331ae76.",
-    "Focused tests 50 PASS."
+    "Focused tests 50 PASS.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/readback #776, then atomically CLOSED+RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize and verify finalization proof, close/readback #776, then atomically persist CLOSED+RELEASED."
 }
