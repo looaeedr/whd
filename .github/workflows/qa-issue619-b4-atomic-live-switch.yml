@@ -1,0 +1,57 @@
+name: "WHD｜#619｜B4 原子家庭切換"
+run-name: "WHD｜#619｜B4 原子家庭切換"
+
+on:
+  push:
+    branches:
+      - work/issue628-receiving-rear-panel-overlay-live-switch-20260924
+    paths:
+      - 'tests/test_issue619_atomic_family_live_switch.py'
+      - 'tests/test_issue501_baseline_reset_coordinator.py'
+      - 'gui_modules/application/fold_designer_settings_coordinator.py'
+      - 'fold_designer_bridge.py'
+      - 'gui_modules/application/fold_designer_adapter.py'
+      - 'phase6_final_scene_renderer.py'
+      - '.github/workflows/qa-issue619-b4-atomic-live-switch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "UI-R3 金庫型→受電箱原子可見提交"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "Checkout exact candidate"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Install Xvfb and Python dependencies"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -q pytest pytest-json-report matplotlib numpy shapely ezdxf -r requirements.txt
+
+      - name: "Run #619 atomic live-switch acceptance"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue619
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue619_atomic_family_live_switch.py \
+            tests/test_issue501_baseline_reset_coordinator.py \
+            --tb=short \
+            --json-report --json-report-file=/tmp/issue619/report.json
+
+      - name: "Upload #619 acceptance evidence"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue619-ui-r3-atomic-live-switch
+          path: /tmp/issue619/report.json
+          if-no-files-found: error
