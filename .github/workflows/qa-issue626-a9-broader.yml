@@ -7,6 +7,7 @@ on:
       - work/issue627-phase7-large-module-decomposition-20260924
     paths:
       - '.github/workflows/qa-issue626-a9-broader.yml'
+      - 'tests/test_issue367_t3_project_persistence_owner.py'
 
 permissions:
   contents: read
@@ -21,9 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      TESTED_SHA: e181735e1d499b1edd845751898b1b292c379a6f
+      TESTED_SHA: ${{ github.sha }}
     steps:
-      - name: "反讀固定 TESTED_SHA"
+      - name: "反讀本次 exact QA 修正版"
         uses: actions/checkout@v4
         with:
           ref: ${{ env.TESTED_SHA }}
