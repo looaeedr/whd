@@ -9,12 +9,12 @@
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "head_sha": "208df0670554213be0d2b8d2c071c6e64192631a",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T15:23:10Z",
+  "head_sha": "3d56c78e3765222fdfe1c25ae51d81d14ba7bb8c",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T15:27:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Under a fresh commit Guard, update only .github/workflows/qa-issue680-planned-handoff.yml push paths so the exact WI-2 implementation files trigger focused QA; push once, lock the auto-created run at the new head to terminal, then reconcile and evaluate GREEN.",
+  "next_action": "Run fresh acceptance on exact GREEN head 3d56c78e3765222fdfe1c25ae51d81d14ba7bb8c: verify guarded claim-handoff executable/parser contract beyond marker tests, then perform frozen-lineage drift/integration readiness against current cleanup/2d-3d-sync without merging current X into the active branch.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -62,7 +62,17 @@
     "Exact RED run 36251298009 executed pytest and failed after canonical sender owner correction; this is the valid WI-2 RED baseline.",
     "WI-2 implementation commit 208df0670554213be0d2b8d2c071c6e64192631a consumed Remote Guard 36251419208.",
     "Implementation scope: 派工, 排程模擬, remote-execution-guard Skill, execution_claim_guard.py, trusted Remote Guard workflow.",
-    "H4→H5 coordination reconciliation authorized by Remote Guard 36251705385."
+    "H4→H5 coordination reconciliation authorized by Remote Guard 36251705385.",
+    "QA trigger commit 3d56c78e3765222fdfe1c25ae51d81d14ba7bb8c consumed Remote Guard 36251832195 using current trusted authority 641639ff675fc0ea2a13c7a9123337de250d4170.",
+    "Focused QA run 36251881373 at exact head 3d56c78e3765222fdfe1c25ae51d81d14ba7bb8c completed success; pytest execution step succeeded.",
+    "H5→H6 coordination reconciliation authorized by Remote Guard 36251897863."
   ],
-  "remote_qa": null
+  "remote_qa": {
+    "run_id": 36251881373,
+    "head_sha": "3d56c78e3765222fdfe1c25ae51d81d14ba7bb8c",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": ".github/workflows/qa-issue680-planned-handoff.yml",
+    "job_id": 108431321356
+  }
 }
