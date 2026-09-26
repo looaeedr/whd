@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T00:40:00Z",
   "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "head_sha": "e308170aa4c2fa5878eb56f250cb4919d53e0186",
+  "head_sha": "372bf25f74e7006c9701f472d77596d39a9bce45",
   "phase": "RED",
-  "last_update": "2026-09-26T00:49:00Z",
+  "last_update": "2026-09-26T01:02:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Diagnose the remaining commit-stage visible render on head e308170aa4c2fa5878eb56f250cb4919d53e0186 by tracing sync_derived_parts, refresh_topology, refresh_persistent_controls, and nested update/render paths before baseline_stage=finalize; patch only the actual pre-finalize effect seam, then rerun exact #619 Xvfb acceptance.",
+  "next_action": "Instrument the requested_draw visible-commit hook with a bounded Python call stack on the remaining commit-stage record, rerun exact #619 Xvfb to identify the synchronous pre-finalize render caller, then remove that temporary stack field and patch only the actual caller.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-619.json",
   "predecessor": {
@@ -52,17 +52,21 @@
     "Production candidate e308170aa4c2fa5878eb56f250cb4919d53e0186 added render=False to commit-stage apply_profile_plan under Guard 36206133227.",
     "Exact Xvfb run 36206167411 still FAILED 1 / passed 5: the same commit-stage invalid visible commit remains, proving apply_profile_plan render suppression alone is insufficient.",
     "Failure artifact 10893049706 / sha256:47b79724e6013f2dbe37015df7a8d83bc6cc64227ad966942b509419149cea22.",
-    "Post-commit pair reconciliation authorized by Guard 36206184000."
+    "Post-commit pair reconciliation authorized by Guard 36206184000.",
+    "Second B4 candidate 372bf25f74e7006c9701f472d77596d39a9bce45 batches the baseline transaction in the canonical _Phase6UpdateScheduler.",
+    "Exact run 36206900499 FAILED 1 / passed 6; the added scheduler/coordinator regression passed but the live UI still emitted the same commit-stage invalid scene followed by finalize-stage valid scene.",
+    "Artifact 10894900242 / sha256:0ad9f7c82ecd802ca6a77e8bf264c1c51d6f4c3de54dad9377a8f543a4264834.",
+    "Post-commit pair reconciliation authorized by Guard 36206920272."
   ],
   "remote_qa": {
-    "run_id": 36206167411,
-    "head_sha": "e308170aa4c2fa5878eb56f250cb4919d53e0186",
+    "run_id": 36206900499,
+    "head_sha": "372bf25f74e7006c9701f472d77596d39a9bce45",
     "status": "completed",
     "conclusion": "failure",
     "workflow": ".github/workflows/qa-issue619-b4-atomic-live-switch.yml",
-    "job_id": 108303059739,
-    "artifact_id": 10893049706,
-    "artifact_digest": "sha256:47b79724e6013f2dbe37015df7a8d83bc6cc64227ad966942b509419149cea22"
+    "job_id": 108305229445,
+    "artifact_id": 10894900242,
+    "artifact_digest": "sha256:0ad9f7c82ecd802ca6a77e8bf264c1c51d6f4c3de54dad9377a8f543a4264834"
   },
   "red_evidence": {
     "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
@@ -76,12 +80,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36206184000,
-    "request_comment_id": 5841668187,
+    "run_id": 36206920272,
+    "request_comment_id": 5841755692,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to first B4 implementation head"
+    "mutation": "reconcile second B4 candidate failure"
   }
 }

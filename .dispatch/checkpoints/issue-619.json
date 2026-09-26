@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "e308170aa4c2fa5878eb56f250cb4919d53e0186",
+  "head_sha": "372bf25f74e7006c9701f472d77596d39a9bce45",
   "state": "RUNNING",
-  "next_action": "Diagnose the remaining commit-stage visible render on head e308170aa4c2fa5878eb56f250cb4919d53e0186 by tracing sync_derived_parts, refresh_topology, refresh_persistent_controls, and nested update/render paths before baseline_stage=finalize; patch only the actual pre-finalize effect seam, then rerun exact #619 Xvfb acceptance.",
+  "next_action": "Instrument the requested_draw visible-commit hook with a bounded Python call stack on the remaining commit-stage record, rerun exact #619 Xvfb to identify the synchronous pre-finalize render caller, then remove that temporary stack field and patch only the actual caller.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,11 @@
     "B4 implementation candidate e308170aa4c2fa5878eb56f250cb4919d53e0186 suppresses apply_profile_plan rendering during baseline commit.",
     "Exact run 36206167411 still fails the atomic visible-commit assertion with the same 2-record commit/finalize sequence; 5 companion tests pass.",
     "Artifact 10893049706 records the failed candidate.",
-    "Post-commit pair reconciliation authorized by Guard 36206184000."
+    "Post-commit pair reconciliation authorized by Guard 36206184000.",
+    "Second B4 candidate 372bf25f74e7006c9701f472d77596d39a9bce45 uses canonical update-scheduler batching across baseline commit/state/finalize.",
+    "Exact run 36206900499 still failed only the atomic visible-commit assertion; 6 companion/coordinator tests passed.",
+    "Artifact 10894900242 records the remaining commit-stage render.",
+    "Post-commit pair reconciliation authorized by Guard 36206920272."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
