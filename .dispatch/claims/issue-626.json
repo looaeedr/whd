@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T21:57:30Z",
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
-  "head_sha": "d8b332229c5fbaa299dc125f7a72c8603db232e8",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T22:09:00Z",
+  "head_sha": "e1c4e3f213c81aa46c006e048b9363a092d4a562",
+  "phase": "RED",
+  "last_update": "2026-09-26T22:12:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -30,7 +30,7 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fix the A9 one-shot combined RED workflow by installing python3-tk, rerun the exact combined target census, and require PHASE_NOT_COMPLETE caused by canonical P7-B/C/D/E DT-6/target-completion gaps before backfilling accepted durable evidence.",
+  "next_action": "Backfill accepted durable Phase 7 evidence into canonical P7-B/C/D/E DT artifacts and create missing P7-C/D/E WHD_PHASE7_TARGET_COMPLETION_V1 artifacts, then rerun the exact A9 combined machine gate to GREEN before broader cross-target acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -42,6 +42,9 @@
     "Phase 7 frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b.",
     "A9 combined-census test and one-shot RED workflow committed at d8b332229c5fbaa299dc125f7a72c8603db232e8 under Guard 36275232018 GREEN.",
     "Initial A9 RED run 36275271829 failed before test collection because python3-tk was missing; this is QA infrastructure failure, not PHASE_NOT_COMPLETE evidence.",
-    "Reconciliation Guard 36275307168 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact head d8b332229c5fbaa299dc125f7a72c8603db232e8."
+    "Reconciliation Guard 36275307168 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact head d8b332229c5fbaa299dc125f7a72c8603db232e8.",
+    "A9 expected RED run 36275434824 completed SUCCESS at exact head e1c4e3f213c81aa46c006e048b9363a092d4a562; inner pytest failed closed with PHASE_NOT_COMPLETE.",
+    "Machine RED identified canonical P7-B/C/D/E DT-6 not COMPLETE/ACCEPTED and missing P7-C/D/E target-completion artifacts; no production behavior failure was reported.",
+    "Reconciliation Guard 36275490998 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact head e1c4e3f213c81aa46c006e048b9363a092d4a562."
   ]
 }

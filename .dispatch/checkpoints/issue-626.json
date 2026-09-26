@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "626",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "d8b332229c5fbaa299dc125f7a72c8603db232e8",
+  "head_sha": "e1c4e3f213c81aa46c006e048b9363a092d4a562",
   "state": "RUNNING",
-  "next_action": "Fix the A9 one-shot combined RED workflow by installing python3-tk, rerun the exact combined target census, and require PHASE_NOT_COMPLETE caused by canonical P7-B/C/D/E DT-6/target-completion gaps before backfilling accepted durable evidence.",
+  "next_action": "Backfill accepted durable Phase 7 evidence into canonical P7-B/C/D/E DT artifacts and create missing P7-C/D/E WHD_PHASE7_TARGET_COMPLETION_V1 artifacts, then rerun the exact A9 combined machine gate to GREEN before broader cross-target acceptance.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "A9 is the explicit Combined Acceptance + AI Library writeback + integration/closure owner.",
     "A9 machine-census harness exists at d8b332229c5fbaa299dc125f7a72c8603db232e8.",
     "Run 36275271829 did not reach A9 assertions due missing tkinter.",
-    "Reconciliation Guard 36275307168 GREEN."
+    "Reconciliation Guard 36275307168 GREEN.",
+    "A9 machine RED run 36275434824 proved PHASE_NOT_COMPLETE exclusively from canonical evidence gaps B/C/D/E.",
+    "Reconciliation Guard 36275490998 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
