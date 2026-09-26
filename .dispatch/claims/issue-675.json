@@ -9,12 +9,12 @@
   "work_branch": "governance/issue675-legacy-expired-postcommit-reconcile-20260926",
   "claimed_at": "2026-09-25T23:44:32Z",
   "base_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
-  "head_sha": "dd5d17d236fd7f12e425a55f9d47503e1ea95b94",
-  "phase": "RED",
-  "last_update": "2026-09-26T00:16:52Z",
+  "head_sha": "c86fe57c130cebc095ec30e0af2a4a7e03fcbe84",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T00:26:47Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Implement the narrow owner-authored legacy expired post-commit reconciliation recovery in the canonical guard + trusted Remote Guard transport, then run the focused #675 suite to GREEN.",
+  "next_action": "Write back #675 recovery contract to the required Skill / AI Library, re-run focused regression, then deploy the accepted trusted Remote Guard workflow to main before returning to #671/#617.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-675.json",
   "parent_issue": 671,
@@ -45,12 +45,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36202961207,
-    "request_comment_id": 5841255578,
+    "run_id": 36204866149,
+    "request_comment_id": 5841500534,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to #675 RED head"
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to #675 implementation GREEN head"
   },
   "stale_takeover": {
     "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -62,5 +62,12 @@
     "actionable": true,
     "evidence": "WHD_USER_DIRECTED_TAKEOVER_V1 + canonical stale_claim_takeover.py + canonical execution_claim_guard.py action=claim-takeover GREEN",
     "taken_over_at": "2026-09-26T08:16:52+08:00"
+  },
+  "green_evidence": {
+    "head_sha": "c86fe57c130cebc095ec30e0af2a4a7e03fcbe84",
+    "focused_pytest": "5 passed",
+    "targeted_regression": "25 passed",
+    "py_compile": "GREEN",
+    "commit_guard_run_id": 36204732707
   }
 }
