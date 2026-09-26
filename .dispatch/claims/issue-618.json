@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T01:00:46Z",
   "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
-  "head_sha": "015ebc6430f1397566ffb8f442b89d62c2a3271c",
+  "head_sha": "2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T03:13:12Z",
+  "last_update": "2026-09-26T03:19:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
@@ -20,7 +20,7 @@
   "parent_issue": 627,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Remove trailing whitespace from ae_engine/baseline_scene_adapters.py under a fresh commit Guard, require git diff --check GREEN, rerun the 100-test affected regression, then continue P7-C DT for door/endcap/indicator stretched adapters.",
+  "next_action": "Continue #618 P7-C DT from 2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76: characterize door/endcap/indicator stretched adapters, move only bounded compatibility adaptation behind stable seams, preserve canonical geometry truth, then run exact DXF reopen/manufacturing regression and remote QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-618.json",
   "predecessor": {
@@ -43,13 +43,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36214113775,
-    "request_comment_id": 5842671216,
+    "run_id": 36214450974,
+    "request_comment_id": 5842712443,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to #618 legacy box-body adapter head"
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to #618 whitespace-clean head"
   },
   "evidence": [
     "Interactive stale takeover completed for #618: canonical evaluator classified prior chat owner EXECUTOR_STUCK at stale_seconds=5045; authority comment 5842349343; shared claim CAS transferred to chatgpt.sol260926.issue618.a3.",
@@ -62,7 +62,8 @@
     "Post-commit pair reconciliation Remote Guard run 36212621328 / request 5842476348 GREEN; trusted guard verified direct-child changed-file identity and prior GREEN receipt window.",
     "Baseline source/cache owner commit 4e62133bf515e79b32d53a1942b79c12d92707b0 is a direct child of 7fadcaf4e9c4331182a48e85d2721e585bba522e; pre-mutation Remote Guard 36213030391 GREEN, post-commit reconciliation Guard 36213075044 GREEN.",
     "Baseline resource/path ownership moved behind ae.py compatibility facades at cc2f78a9ee012cc04da60a336686881df62f409f; local focused/resource regression 34 passed, broader baseline/stretched/DXF regression 75 passed, py_compile and diff-check GREEN; commit Guard 36213684551 GREEN and reconciliation Guard 36213737275 GREEN.",
-    "Legacy Box Body baseline-to-scene adapter moved to bounded ae_engine/baseline_scene_adapters.py at 015ebc6430f1397566ffb8f442b89d62c2a3271c; affected regression 100 passed and py_compile GREEN. Commit Guard 36214053992 GREEN; post-commit reconciliation Guard 36214113775 GREEN. A trailing-whitespace-only cleanup is required before broader acceptance."
+    "Legacy Box Body baseline-to-scene adapter moved to bounded ae_engine/baseline_scene_adapters.py at 015ebc6430f1397566ffb8f442b89d62c2a3271c; affected regression 100 passed and py_compile GREEN. Commit Guard 36214053992 GREEN; post-commit reconciliation Guard 36214113775 GREEN. A trailing-whitespace-only cleanup is required before broader acceptance.",
+    "Whitespace-only cleanup after legacy Box Body adapter extraction landed at 2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76; git diff --check GREEN, ignore-all-space diff empty, affected regression 100 passed, py_compile GREEN. Cleanup commit Guard 36214388672 GREEN; post-commit reconciliation Guard 36214450974 GREEN."
   ],
   "local_validation": {
     "red": "2 failed: bounded dxf_serialization owner absent",
@@ -79,10 +80,11 @@
       "diff_check": "GREEN"
     },
     "legacy_box_body_adapter": {
-      "head_sha": "015ebc6430f1397566ffb8f442b89d62c2a3271c",
+      "head_sha": "2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76",
       "broader": "100 passed",
       "py_compile": "GREEN",
-      "diff_check": "PENDING_WHITESPACE_CLEANUP"
+      "diff_check": "GREEN",
+      "ignore_all_space": "NO_SEMANTIC_DIFF"
     }
   }
 }
