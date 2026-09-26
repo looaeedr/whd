@@ -326,3 +326,27 @@ The following decisions are CURRENT ownership-routing evidence after Phase 6 v1.
 - **B6 / #531 Facade compatibility audit**：all 69 baseline facade entries were accounted; accepted final facade count is **45** (24 removed), reverse-import Bridge count is 0, second composition root count is 0, and facade non-growth remains enforced.
 
 The facade counts above are **architecture ratchet/provenance evidence only**. They are not mechanical, manufacturing, persistence, Registry, or geometry truth. Later changes must continue to obey the permanent C1 machine guard rather than copy these numbers into a second policy source.
+
+## Receiving Family Switch 顯示原子性（CURRENT，#622 B5）
+
+Receiving / Vault family transition 的 semantic authority 仍是既有 `commit_family_model_transition(...)` / Settings transaction owner；跨 owner effect ordering 仍由 `gui_modules/application/fold_designer_settings_coordinator.py::Phase6FoldDesignerSettingsCoordinator` 擁有。本契約**不搬移** family、geometry、manufacturing、workspace identity 或 project persistence authority。
+
+### DISPLAY_ATOMIC_FAMILY_TRANSITION
+
+Family switch 必須同時具備 state atomicity 與 display atomicity：
+
+- transition 進行中的 programmatic UI projection（包含 Tk `StringVar.set()`、文字倍率 `ui_text_size` projection、selector/settings mirror refresh）不得自行觸發 renderer/publish，產生 pre-finalize 可見 scene；
+- profile/workspace/derived-part/settings effects 全部完成後，才允許一次 final authoritative visible scene commit；
+- exact operator path 的可見 commit invariant 固定為：**intermediate visible commits = 0；final authoritative visible commits = 1**；
+- 不得以 `sleep`、延遲 callback、renderer-only masking、重畫第二次蓋掉第一幀等 workaround 冒充原子性；應在 application/coordinator transaction boundary 抑制／批次化 programmatic presentation side effects；
+- final commit 的 physical inventory、family dimensions、selector semantics 與 canonical state 必須一致；invalid inventory/family snapshot 不得短暫對操作員可見。
+
+### Workspace overlay / selector ownership bridge
+
+- Settings / Registry Diagnostics 的 non-shrinking overlay host 由 `WorkspaceShellOwner` 擁有；Bridge 只做 thin compatibility/bootstrap handoff。
+- Receiving 後面板 selector 的「直接可達且唯一一份 projection」是 adapter/presentation seam；它只提交 canonical family state，不形成新的 physical-part 或 manufacturing owner。
+- 上述 UI sequencing / presentation 規則不得反向建立 manufacturing formula、DXF geometry 或 MARKING authority。
+
+### Accepted provenance
+
+#622 B5 Combined Acceptance run `36212566772` @ `fc9ad5fcc5c231888b9628eca31df8470affcbb0` 驗證 B1 selector、B2 WorkspaceShell overlay、B4 display-atomic family transition 在同一 exact head 上整合 GREEN。Run 僅作 provenance，不取代本節 stable ownership boundary。
