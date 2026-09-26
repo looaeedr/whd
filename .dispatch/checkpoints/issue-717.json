@@ -20,8 +20,10 @@
     "Remote governance run 36231688524 completed success on exact GREEN head.",
     "Live A 00/20/40 and B B15/B45 prompts synchronized; post-update readback preserved enabled=true, cadence, timing mode, title and lane owner.",
     "Acceptance evidence comment=5844871583; UPDATE_ONLY scope complete; successor_activated=false.",
-    "Closure advanced after PR #718 merge, exact-head remote QA success, and live A/B prompt sync readback."
+    "Closure advanced after PR #718 merge, exact-head remote QA success, and live A/B prompt sync readback.",
+    "Owning Issue #717 fresh-read closed/completed at 2026-09-26T10:30:00Z.",
+    "Bound finalization proof VALID: run 36235927152 / artifact 10904246998 / checkpoint fingerprint f6badb7fab8d04c51a3a0198ce588b722244df594238c97ba06d4a7894c64d35."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #717"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; successor_activated=false"
 }
