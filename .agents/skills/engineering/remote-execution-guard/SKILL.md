@@ -158,6 +158,14 @@ Request 前：
 
 任一 receipt/request/claim blob/parent/file scope/time-window 不吻合 → `REMOTE_GUARD_FAILED`，維持 blocker，不得偷改 claim。
 
+#### LOCAL_GUARD_DURABLE_PARITY_V1
+
+Remote Guard 的 receipt reconciliation 保持不變；local Guard parity 由 canonical `tools/execution_claim_guard.py` + 《派工》擁有，不建立第二套 ownership authority。
+
+當 local Guard 可用時，呼叫端只有在能把該次 local GREEN 持久化成 owning Issue 上唯一的 `WHD_LOCAL_GUARD_RECONCILE_V1` durable proof 時，才可讓 mutation 使用 local path。commit 後 reconciliation 必須把 fresh-fetched proof JSON 透過 `--local-guard-proof` 交給 canonical guard；machine gate exact 驗 issue/worker/source/branch/base/current claim blob/H0/H1/actual changed-file set，並限制 H1 為 H0 的單一 direct child。
+
+無 durable local proof 能力時，`LOCAL_GUARD_AVAILABLE` 不代表可以留下只有 stdout 的 GREEN；該 mutation 應改走 Remote Guard，以免 commit 成功後無 durable authority 可 reconcile。duplicate/malformed/stale/mismatched local proof 一律 fail closed，不得 fallback 成「相信聊天紀錄」。
+
 ### qa-dispatch / workflow-dispatch / pr-write
 同樣要求 fresh claim/blob/branch/head identity。receipt 只授權 request 中那一種 action。
 

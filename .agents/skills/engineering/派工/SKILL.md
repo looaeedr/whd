@@ -224,6 +224,20 @@ python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --
 
 prior receipt 不能直接重用成 claim write；一般 production/test/Skill `write` 也不能使用此 exception。驗證任一不符即 fail closed，分類 `REMOTE_GUARD_STALE_IDENTITY_AFTER_AUTHORIZED_COMMIT` 或更窄 root cause，禁止旁路。
 
+#### LOCAL_GUARD_POSTCOMMIT_RECONCILIATION_V1
+
+本機可直接執行 canonical `tools/execution_claim_guard.py` 時仍可優先使用 local Guard，但 **stdout GREEN 本身不是 durable reconciliation authority**。若 local Guard 授權的 `write|commit` 讓 work branch 從 H0 前進到 H1，必須先在 owning Issue 持久化唯一一張 repository-owner authored `WHD_LOCAL_GUARD_RECONCILE_V1`，再做 claim/checkpoint reconciliation。
+
+durable proof 必須 exact 綁：
+- `issue / worker / executor_source / action / branch / base_sha`；
+- current `claim_blob_sha`、`claim_head_sha=H0`、`live_head_sha=H1`；
+- `local_guard_result=EXECUTION_CLAIM_GUARD_GREEN`；
+- H1 的完整 actual `changed_file` set。
+
+canonical machine gate 以 `--local-guard-proof <fresh-fetched-comment-json>` 消耗該證據，並 fresh-read owning Issue comments 驗證該 proof 真正 durable 存在且 matching proof **唯一**。local proof path 只接受 H1 為 H0 的單一 direct child；foreign owner、錯 blob/branch/head/file、merge/multi-hop、malformed proof、proof 不在 Issue、或 duplicate/equivalent proof 一律 fail closed。
+
+local proof GREEN 只授權緊接的 exact claim/checkpoint reconciliation；不得當 session token，也不得取代下一次 mutation 的新 Guard。若 runtime 無法把 local Guard 結果 durable 化，該 mutation 改走 Remote Guard，不得留下只有 stdout 的 prewrite GREEN。
+
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
 
