@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "678",
+  "branch": "work/issue678-red-evidence-anchor-20260926",
+  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard for the exact work branch, create it from the frozen baseline, then durableize the approved RED evidence without production behavior changes.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user approved WHD HA safe-shutdown requirement RED and the WI breakdown after the R0 bookkeeping correction.",
+    "Owning Issue #678 is WI-0 Repository-owned RED Evidence Anchor.",
+    "Frozen production target cleanup/2d-3d-sync HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "No production behavior change is permitted in WI-0."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
