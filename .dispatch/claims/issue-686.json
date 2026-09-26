@@ -1,0 +1,20 @@
+{
+  "issue": 686,
+  "issue_url": "https://github.com/looaeedr/whd/issues/686",
+  "worker": "chatgpt.sol260926.issue686.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue686.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue686-local-guard-postcommit-parity-20260926",
+  "claimed_at": "2026-09-26T03:32:54Z",
+  "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T03:32:54Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Run Phase6 Preflight for the exact governance repair scope, prove RED for local-Guarded post-commit reconciliation, then implement with Remote Guard-backed commits.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-686.json"
+}

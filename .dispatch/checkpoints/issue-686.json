@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "686",
+  "branch": "governance/issue686-local-guard-postcommit-parity-20260926",
+  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "state": "RUNNING",
+  "next_action": "Run Phase6 Preflight for the exact governance repair scope, prove RED for local-Guarded post-commit reconciliation, then implement with Remote Guard-backed commits.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: #686 blocks #678 because local Guard is preferred but current post-commit reconciliation consumes only Remote Guard receipts.",
+    "Frozen production target cleanup/2d-3d-sync HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "Blocking #678 live work HEAD=53762da04d4b3d3a9d1ebd9f632e4130e7aa6894 while its claim/checkpoint remain at the frozen H0."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
