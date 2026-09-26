@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Remove temporary write-auto-consume QA workflow, audit overlap against current main, deploy write durable-readback to main, then resume #733 final CLOSED+RELEASED.",
+  "next_action": "Persist write durable-readback governance contract, remove temporary QA workflow, reconcile current main drift, deploy to main, then resume #733 final CLOSED+RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-739.json",
   "evidence": [
@@ -59,6 +59,9 @@
     "Implementation-head reconciliation Guard 36259865499 GREEN / result 5848406603.",
     "Canonical ordering fix 23801dd1e68e570054243a35c1a4f7fb9bd1f7aa under Guard 36259995533.",
     "GREEN QA 36260033199 SUCCESS: focused write durable-readback + protected #739/#643/#731 regressions.",
-    "Post-GREEN reconciliation Guard 36260068375 GREEN / result 5848430693."
+    "Post-GREEN reconciliation Guard 36260068375 GREEN / result 5848430693.",
+    "Canonical changed_files ordering fix 23801dd1e68e570054243a35c1a4f7fb9bd1f7aa.",
+    "GREEN QA 36260033199 SUCCESS: #739 write suite + protected #739/#643/#731 regressions.",
+    "GREEN-head reconciliation canonical receipt 36260068375 / result 5848430693."
   ]
 }

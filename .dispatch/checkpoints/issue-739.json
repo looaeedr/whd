@@ -4,7 +4,7 @@
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
   "head_sha": "23801dd1e68e570054243a35c1a4f7fb9bd1f7aa",
   "state": "RUNNING",
-  "next_action": "Remove temporary write-auto-consume QA workflow, audit overlap against current main, deploy write durable-readback to main, then resume #733 final CLOSED+RELEASED.",
+  "next_action": "Persist write durable-readback governance contract, remove temporary QA workflow, reconcile current main drift, deploy to main, then resume #733 final CLOSED+RELEASED.",
   "run_id": 36260033199,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -40,7 +40,10 @@
     "Implementation-head reconciliation Guard 36259865499 GREEN.",
     "GREEN write auto-consume HEAD 23801dd1e68e570054243a35c1a4f7fb9bd1f7aa.",
     "QA 36260033199 SUCCESS.",
-    "Post-GREEN reconciliation Guard 36260068375 GREEN."
+    "Post-GREEN reconciliation Guard 36260068375 GREEN.",
+    "Write auto-consume GREEN HEAD 23801dd1e68e570054243a35c1a4f7fb9bd1f7aa.",
+    "QA 36260033199 SUCCESS.",
+    "GREEN-head reconciliation 36260068375 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
