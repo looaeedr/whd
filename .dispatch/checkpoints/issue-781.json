@@ -2,17 +2,17 @@
   "version": 1,
   "issue": "781",
   "branch": "trusted/issue781-action-scope-bootstrap-main-20260927",
-  "head_sha": "0e4ce41c752debe2605c749e2ae312dbfb037ef5",
+  "head_sha": "11481a9a0a89ed6b65db62ab3595ad06a1012093",
   "state": "RUNNING",
-  "next_action": "Create guarded helper branch and apply exact action-scope delta.",
+  "next_action": "Create guarded PR to trusted main, merge, verify action-scope parity, then retry #774/#776.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent #774 bootstrap helper.",
-    "Reactivated after consumed branch-create receipt to rotate claim blob before commit Guard."
+    "helper commit=11481a9a0a89ed6b65db62ab3595ad06a1012093",
+    "50 focused tests passed"
   ],
   "master_issue": null,
   "chain_state": "NONE",

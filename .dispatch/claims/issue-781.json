@@ -9,25 +9,24 @@
   "work_branch": "trusted/issue781-action-scope-bootstrap-main-20260927",
   "claimed_at": "2026-09-26T23:35:00Z",
   "base_sha": "0e4ce41c752debe2605c749e2ae312dbfb037ef5",
-  "head_sha": "0e4ce41c752debe2605c749e2ae312dbfb037ef5",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T23:38:00Z",
+  "head_sha": "11481a9a0a89ed6b65db62ab3595ad06a1012093",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T23:41:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "issue774",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Reactivated after consuming branch-create receipt; retry guarded commit with fresh claim blob, then PR/merge trusted main.",
+  "next_action": "Create guarded PR to trusted main, merge, verify action-scope parity, then retry #774/#776 closure writes.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-781.json",
   "evidence": [
     "authorization_source=#774 parent authority",
     "execution_intent=EXECUTE_TICKET",
     "purpose=bootstrap action-scoped Guard identity to trusted main",
-    "authorized_scope=Issue #781 exact three-file trusted deploy only",
-    "prohibited_scope=no unrelated main changes",
-    "resume_authority=NONE",
-    "fresh main=0e4ce41c752debe2605c749e2ae312dbfb037ef5",
-    "reactivate_reason=rotate claim blob after consumed branch-create receipt so old classifier does not conflate action identities"
+    "reactivated claim blob=9dfbeb43fbd3e4aa07e16b5a7207919a75005bce",
+    "commit Guard run 36280165162 GREEN",
+    "helper commit=11481a9a0a89ed6b65db62ab3595ad06a1012093",
+    "focused tests=50 passed / 0 failed"
   ]
 }
