@@ -1,0 +1,30 @@
+{
+  "issue": 759,
+  "issue_url": "https://github.com/looaeedr/whd/issues/759",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.b759.20260927.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
+  "claimed_at": "2026-09-26T18:14:00Z",
+  "base_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
+  "head_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T18:14:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Guard, create exact branch from current cleanup, apply the bounded four-file #757 parity patch, run focused Remote Guard regressions, integrate to cleanup, close/release #759, then resume #692 final parity acceptance.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-759.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: /排程B #692 remains the user-authorized parent execution scope.",
+    "#756 is closed/completed + RELEASED with NEXT_CHILD_EXECUTABLE -> #692.",
+    "Post-#756 trusted drift: main=f19c59c2596a278f8f6bf455e079b4a3dd1c5607; production X=15ebde03c86d01c0f8f6e6b70479a957ec22ac5f.",
+    "Exact live census: X has only one import subprocess + one import urllib.parse in trusted Remote Guard while main has two of each.",
+    "Exact live census: X lacks COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1 blocks in remote-execution-guard Skill, 派工 Skill, and execution_claim_hard_gate_pitfall.md.",
+    "This helper is one bounded final post-drift batch for #757 only; no blind main merge and no frozen #692 backmerge."
+  ]
+}
