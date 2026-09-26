@@ -1,0 +1,30 @@
+{
+  "issue": 727,
+  "issue_url": "https://github.com/looaeedr/whd/issues/727",
+  "worker": "chatgpt.issue727.20260926a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue727.20260926a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue727-handler-issue-prefix",
+  "claimed_at": "2026-09-26T13:05:00Z",
+  "base_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
+  "head_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T13:05:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Activate claim/checkpoint pair, create branch, add shared handler+issue report prefix contract to 工作槽/排程模擬/寫排程, run focused contract tests, then PR/merge/close.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-727.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: authorization_source=user explicit request; execution_intent=UPDATE_ONLY.",
+    "Purpose: every user-visible status/progress report starts with who is handling which Issue.",
+    "Authorized scope: 工作槽, 排程模擬, 寫排程 Skills plus necessary contract test.",
+    "Prohibited scope: no claim-owner change, no scheduler lane-owner/cadence change, no unrelated Issue execution.",
+    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_handler_prefix_preflight.md."
+  ]
+}
