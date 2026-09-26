@@ -3,8 +3,8 @@
   "issue": "689",
   "branch": "work/issue689-takeover-substantive-action-20260926",
   "head_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-  "state": "RUNNING",
-  "next_action": "Update canonical Skill/AI guidance for authority-progress semantics, run broader #689 governance regression, then hand terminal acceptance to #693 closure owner.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,13 +20,15 @@
     "Focused #689 RED established: 11 expected failures proving AuthorityProgressState/AuthorityProgress/substantive-action consumer/turn-exit binding are absent.",
     "Post-RED reconciliation Guard GREEN run 36246755511 / result comment 5846830289.",
     "Implementation 6647ce01e1834e8c1eb8c5d15d30896187c69397 passed 47 focused/regression tests.",
-    "Post-implementation reconciliation Guard GREEN run 36247113580 / result comment 5846874377."
+    "Post-implementation reconciliation Guard GREEN run 36247113580 / result comment 5846874377.",
+    "T2 acceptance evidence comment 5846900578: 47 PASS focused/regression; 100 PASS broader takeover/turn-exit; tests/process 606 PASS / 2 pre-existing baseline failures; baseline recheck reproduced same 2 failures.",
+    "Acceptance handoff Guard GREEN run 36247345264 / result comment 5846904212."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Issue Closure owner #693 must consume T2 acceptance comment 5846900578, mint fresh finalization proof bound to exact checkpoint/head 6647ce01e1834e8c1eb8c5d15d30896187c69397, close/read back #689 as completed, then atomically persist checkpoint CLOSED + claim RELEASED."
 }
