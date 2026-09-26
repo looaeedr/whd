@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "620",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
+  "head_sha": "147a4f630a9c6c0a8b8b6d4353492c8233dc5c23",
   "state": "RUNNING",
-  "next_action": "Run #620 Phase6 Knowledge Preflight on accepted #618 head acc38cd39ab548f802f6d18445ac8ca23550c335, characterize P7-R-D DT boundaries for manufacturing_api.py public facade versus request resolution, render-data builders, export pipeline and verification, then execute the first evidence-backed RED/production/test mutation without importing UI/Bridge or duplicating manufacturing truth.",
+  "next_action": "Continue #620 P7-R-D from 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23: characterize and extract the manufacturing export pipeline behind a bounded owner while preserving generate_part/save_part_render_data_dxf/save_resolved_manufacturing_geometry_dxf public contracts, then regress actual DXF reopen and reverse-import invariants before request/render owner slices.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,8 @@
   "evidence": [
     "Requirement Authority: user-approved Phase 7 v1.2 specification + approved RED/breakdown; owning Issue #620 P7-R-D fresh-read open.",
     "Predecessor #618 accepted head acc38cd39ab548f802f6d18445ac8ca23550c335 is the authoritative A4 parent under Master #627.",
-    "Active Phase 7 chain must not chase current cleanup/2d-3d-sync; frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b."
+    "Active Phase 7 chain must not chase current cleanup/2d-3d-sync; frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b.",
+    "P7-R-D verification-owner slice: RED 1 failed because ae_engine.manufacturing_verification was absent; GREEN owner module + manufacturing_api thin verification facades at 147a4f630a9c6c0a8b8b6d4353492c8233dc5c23. Focused characterization 1 passed; broader manufacturing/DXF/reopen regression 60 passed, 5 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36219274264 GREEN; post-commit reconciliation Guard 36219410250 GREEN."
   ],
   "chain_state": "NONE",
   "next_issue": null,
