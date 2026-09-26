@@ -1,17 +1,17 @@
 {
   "issue": 618,
   "issue_url": "https://github.com/looaeedr/whd/issues/618",
-  "worker": "chatgpt.sol260926.issue618",
+  "worker": "chatgpt.sol260926.issue618.a3",
   "executor_source": "chat",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260926.issue618",
+  "invocation_identity": "chatgpt.sol260926.issue618.a3",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T01:00:46Z",
   "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T01:00:46Z",
+  "last_update": "2026-09-26T02:26:02Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
@@ -29,5 +29,16 @@
     "claim_phase": "RELEASED",
     "checkpoint_state": "TERMINAL_SUCCESS",
     "closure_state": "CLOSED"
+  },
+  "stale_takeover": {
+    "previous_worker": "chatgpt.sol260926.issue618",
+    "previous_executor_source": "chat",
+    "observed_stale_seconds": 5045,
+    "observed_live_head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+    "user_authority_comment_id": 5842349343,
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "evidence": "WHD_USER_DIRECTED_TAKEOVER_V1 + canonical stale_claim_takeover.py + canonical execution_claim_guard.py action=claim-takeover GREEN",
+    "taken_over_at": "2026-09-26T02:26:02Z"
   }
 }
