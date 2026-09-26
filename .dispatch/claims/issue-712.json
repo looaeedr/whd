@@ -9,12 +9,21 @@
   "work_branch": "work/issue712-execution-mode-normal-path-20260926",
   "claimed_at": "2026-09-26T07:41:15Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T07:41:15Z",
+  "head_sha": "0ddd4db2f7d667028959643f3cbd83a2e50c1adc",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-26T08:07:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Create the governance branch, add focused RED for UPDATE_ONLY vs execution modes and NORMAL_PATH_FIRST/RECOVERY exception semantics, then implement the minimal Skill/routing changes.",
+  "next_action": "duplicate publication repair: preserve #712 branch commit as evidence only, close #712 as duplicate of canonical #713, then release coordination state",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-712.json"
+  "checkpoint": ".dispatch/checkpoints/issue-712.json",
+  "duplicate_repair": {
+    "canonical_issue": 713,
+    "duplicate_issue": 712,
+    "classification": "DUPLICATE_PUBLICATION_WITH_NONCANONICAL_WORK",
+    "implementation_prohibited": true,
+    "preserved_branch": "work/issue712-execution-mode-normal-path-20260926",
+    "preserved_head_sha": "0ddd4db2f7d667028959643f3cbd83a2e50c1adc",
+    "integration_status": "NOT_ACCEPTED_NOT_INTEGRATED"
+  }
 }
