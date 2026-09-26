@@ -9,12 +9,12 @@
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "head_sha": "6d51e184726b02f758f11a1975bd57bd1bfe2b05",
+  "head_sha": "0cb219c7d0ab741c0fdfa12b46cc882ac98ef945",
   "phase": "GREEN",
-  "last_update": "2026-09-26T16:41:30Z",
+  "last_update": "2026-09-26T17:10:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Fresh local pr-write Guard against exact #680 head 6d51e184726b02f758f11a1975bd57bd1bfe2b05, merge existing PR #740 into cleanup/2d-3d-sync, fresh-read integration, then verify/deploy trusted claim-handoff parser to main before closing #680.",
+  "next_action": "Run exact post-merge focused acceptance at 0cb219c7d0ab741c0fdfa12b46cc882ac98ef945, obtain fresh pr-write Guard, merge PR #740 into cleanup/2d-3d-sync, fresh-read integration, then verify/deploy claim-handoff parser parity to main before closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -72,7 +72,10 @@
     "WI-2 writeback committed at 6d51e184726b02f758f11a1975bd57bd1bfe2b05 by consuming Remote Guard run 36252366116.",
     "Post-writeback H7→H8 pair reconciliation authorized by Remote Guard run 36253008023.",
     "Trusted Turn Exit run 36256250077 fresh-read PR #740 and classified prior pr-write GREEN run 36253134944 as MUTATION_DONE_RECONCILE_ONLY; durable PR creation already happened, replay forbidden.",
-    "Reconciled prior pr-write transaction after #698 parity deployment; next permitted mutation is a fresh merge pr-write."
+    "Reconciled prior pr-write transaction after #698 parity deployment; next permitted mutation is a fresh merge pr-write.",
+    "Local commit Guard GREEN over exact 41-file merge-resolution scope; merge commit 0cb219c7d0ab741c0fdfa12b46cc882ac98ef945 pushed.",
+    "Drift resolution preserved cleanup governance + #680 planned-handoff semantics and repaired corrupted #680 AI Library writeback to clean UTF-8.",
+    "Pre-commit drift acceptance: #680/#698/#731 focused contracts = 12 passed / 0 failed; UTF-8 marker sanity GREEN; git diff --check GREEN."
   ],
   "remote_qa": null,
   "guard_readbacks": [

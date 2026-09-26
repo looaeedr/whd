@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "680",
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
-  "head_sha": "6d51e184726b02f758f11a1975bd57bd1bfe2b05",
+  "head_sha": "0cb219c7d0ab741c0fdfa12b46cc882ac98ef945",
   "state": "RUNNING",
-  "next_action": "Fresh local pr-write Guard against exact #680 head 6d51e184726b02f758f11a1975bd57bd1bfe2b05, merge existing PR #740 into cleanup/2d-3d-sync, fresh-read integration, then verify/deploy trusted claim-handoff parser to main before closing #680.",
+  "next_action": "Run exact post-merge focused acceptance at 0cb219c7d0ab741c0fdfa12b46cc882ac98ef945, obtain fresh pr-write Guard, merge PR #740 into cleanup/2d-3d-sync, fresh-read integration, then verify/deploy claim-handoff parser parity to main before closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -45,7 +45,9 @@
     "WI-2 writeback commit 6d51e184726b02f758f11a1975bd57bd1bfe2b05.",
     "H7→H8 pair reconciliation authorized by Remote Guard run 36253008023.",
     "Trusted Turn Exit run 36256250077 classified #740 PR creation as MUTATION_DONE_RECONCILE_ONLY.",
-    "Prior pr-write transaction reconciled; fresh merge Guard is now the exact next action."
+    "Prior pr-write transaction reconciled; fresh merge Guard is now the exact next action.",
+    "Merge-resolution commit 0cb219c7d0ab741c0fdfa12b46cc882ac98ef945 after resolving current cleanup drift.",
+    "Pre-commit focused contracts 12 passed / 0 failed; UTF-8 #680 writeback repaired and verified."
   ],
   "master_issue": null,
   "chain_state": "NONE",
