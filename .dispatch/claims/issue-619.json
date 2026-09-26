@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T00:40:00Z",
   "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "head_sha": "a59aa727640f03991c23409d95975d15080144a2",
-  "phase": "RED",
-  "last_update": "2026-09-26T01:38:00Z",
+  "head_sha": "d1df74aa6c0d70629c188deefd1e8f3a519f2c91",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-26T01:45:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Create and run a one-shot Ubuntu+Xvfb baseline comparison that checks out B4 starting head 81468a8103fd5045160e0f16e9458317acee584b and executes only the three expanded-gate failures from run 36207583989; classify each failure as pre-existing/stale-test versus B4-introduced before any production change.",
+  "next_action": "Poll exact baseline-comparison run 36209439724 on head d1df74aa6c0d70629c188deefd1e8f3a519f2c91 to terminal; then compare its three node outcomes with expanded run 36207583989 and classify pre-existing versus B4-introduced failures.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-619.json",
   "predecessor": {
@@ -69,17 +69,18 @@
     "Expanded run 36207583989 failed 3 tests: GUI batch export returned 0 vs 14 canonical files; legacy selector test expected 2 menubuttons but saw 1; combined Receiving snapshot expected W=800,D=350 but observed W=400,D=250.",
     "Focused atomic UI-R3 root fix remains independently GREEN on 7a52d091a03e6c88f26e05d432daf1ce94ac0efa (run 36207365473: 7 passed).",
     "Windows baseline attempt is non-authoritative for these Tk/Xvfb regressions: two tests skipped and the combined test failed earlier on a 1px canvas; exact Linux/Xvfb baseline comparison is required.",
-    "Post-workflow-commit pair reconciliation authorized by Remote Guard run 36207602937 / request 5841833065."
+    "Post-workflow-commit pair reconciliation authorized by Remote Guard run 36207602937 / request 5841833065.",
+    "One-shot baseline comparison workflow committed at d1df74aa6c0d70629c188deefd1e8f3a519f2c91 under Guard 36209402672.",
+    "Exact baseline comparison run 36209439724 checks out B4 starting head 81468a8103fd5045160e0f16e9458317acee584b under Ubuntu+Xvfb and runs only the three expanded-gate failures.",
+    "Post-commit pair reconciliation authorized by Guard 36209450427."
   ],
   "remote_qa": {
-    "run_id": 36207583989,
-    "head_sha": "a59aa727640f03991c23409d95975d15080144a2",
-    "status": "completed",
-    "conclusion": "failure",
-    "workflow": ".github/workflows/qa-issue619-b4-atomic-live-switch.yml",
-    "job_id": 108307258658,
-    "artifact_id": 10894961230,
-    "artifact_digest": "sha256:8d487f03956ef02ee5a11b339d01cc077c2d6014f08a4d721865aafb80300774"
+    "run_id": 36209439724,
+    "head_sha": "d1df74aa6c0d70629c188deefd1e8f3a519f2c91",
+    "status": "in_progress",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue619-b4-baseline-compare.yml",
+    "job_id": 108312735007
   },
   "red_evidence": {
     "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
@@ -93,13 +94,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36207602937,
-    "request_comment_id": 5841833065,
+    "run_id": 36209450427,
+    "request_comment_id": 5842078098,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
+    "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "reconcile expanded-acceptance workflow head and failed run"
+    "mutation": "reconcile baseline-compare workflow head and lock exact run"
   },
   "green_evidence": {
     "head_sha": "7a52d091a03e6c88f26e05d432daf1ce94ac0efa",
