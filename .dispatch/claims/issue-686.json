@@ -16,5 +16,14 @@
   "delegated_branches": [],
   "next_action": "Run Phase6 Preflight for the exact governance repair scope, prove RED for local-Guarded post-commit reconciliation, then implement with Remote Guard-backed commits.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-686.json"
+  "checkpoint": ".dispatch/checkpoints/issue-686.json",
+  "slot_id": "worker.slot.1",
+  "slot_binding": {
+    "schema": "WHD_WORK_SLOT_BINDING_V1",
+    "slot_id": "worker.slot.1",
+    "command": "/工作1 指派 #686",
+    "execution_authority": "EXECUTE_TICKET",
+    "bound_at": "2026-09-26T09:00:00Z",
+    "binding_scope": "issue-686-only"
+  }
 }
