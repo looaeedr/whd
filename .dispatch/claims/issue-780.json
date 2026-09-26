@@ -9,9 +9,9 @@
   "work_branch": "integration/issue780-phase7-current-x-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
+  "head_sha": "2c0005a524bc2e2c824608aa94e80bf8f7353966",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T23:38:30Z",
+  "last_update": "2026-09-26T23:45:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,7 +22,7 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain a fresh 54-file commit Guard on the rotated claim identity, create and non-force push the exact two-parent merge commit with parents current-X 5a29aacdc39805e6950362a8880f1513318389f0 and sealed Phase7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, preserving both current-X governance blocks and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 in 09_WHD_Canonical_Authority_Map.md; then reconcile and run integration QA.",
+  "next_action": "Run integration acceptance QA on exact two-parent merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966, including Phase7 combined ownership/structural tests, manufacturing/collision/DXF/persistence and Xvfb GUI coverage plus authority-map dual-marker readback; then remove temporary QA workflow, drift-audit closing head, pr-write into current cleanup non-force, production readback and helper closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -36,6 +36,11 @@
     "Read-only/local merge rehearsal against sealed Phase7 head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 produced exactly one conflict: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md.",
     "Conflict resolution is content-preserving concatenation: current-X ISSUE646/ISSUE680/ISSUE693 authority blocks plus sealed WHD_PHASE7_OWNERSHIP_WRITEBACK_V1; no production behavior edits.",
     "Staged rehearsal merge set is exactly 54 files and contains no extra paths.",
-    "First 54-file commit Guard 36280039082 failed closed only because prior branch-create receipt remained under the same claim identity; same-head reactivate rotates durable identity before retrying the same authorized merge scope."
+    "First 54-file commit Guard 36280039082 failed closed only because prior branch-create receipt remained under the same claim identity; same-head reactivate rotates durable identity before retrying the same authorized merge scope.",
+    "54-file commit Guard 36280328906 GREEN under rotated claim identity e48851ae8af2044e0bc1269a9f3beb172862e3c8.",
+    "Non-force integration merge commit 2c0005a524bc2e2c824608aa94e80bf8f7353966 pushed with exact parents 5a29aacdc39805e6950362a8880f1513318389f0 and ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6.",
+    "Merge commit contains exactly the 54 guarded paths; sole conflict resolution preserved ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 together.",
+    "Post-merge reconciliation Guard 36280386889 failed closed because canonical merge reconciliation interprets the non-claim parent as production parent; this production-root integration branch shape is not representable by that evaluator.",
+    "Canonical Claim Activation reactivate is used to resume the exact live authorized merge head without rewriting history."
   ]
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "780",
   "branch": "integration/issue780-phase7-current-x-20260927",
-  "head_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
+  "head_sha": "2c0005a524bc2e2c824608aa94e80bf8f7353966",
   "state": "RUNNING",
-  "next_action": "Obtain a fresh 54-file commit Guard on the rotated claim identity, create and non-force push the exact two-parent merge commit with parents current-X 5a29aacdc39805e6950362a8880f1513318389f0 and sealed Phase7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, preserving both current-X governance blocks and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 in 09_WHD_Canonical_Authority_Map.md; then reconcile and run integration QA.",
+  "next_action": "Run integration acceptance QA on exact two-parent merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966, including Phase7 combined ownership/structural tests, manufacturing/collision/DXF/persistence and Xvfb GUI coverage plus authority-map dual-marker readback; then remove temporary QA workflow, drift-audit closing head, pr-write into current cleanup non-force, production readback and helper closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,10 @@
     "Branch-create Guard 36279848593 GREEN and exact branch readback complete.",
     "Merge rehearsal: exactly one authority-map content conflict; resolution preserves both authority blocks unchanged.",
     "54-file staged set established; no merge commit/push has occurred yet.",
-    "Same-head reactivate rotates claim/checkpoint identity before fresh merge Guard."
+    "Same-head reactivate rotates claim/checkpoint identity before fresh merge Guard.",
+    "Authorized two-parent integration merge is live at 2c0005a524bc2e2c824608aa94e80bf8f7353966.",
+    "Exact parents: current X 5a29aacdc39805e6950362a8880f1513318389f0 + sealed Phase7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6.",
+    "Reconciliation evaluator cannot encode production-root integration merge shape; reactivate resumes durable pair at exact live head."
   ],
   "master_issue": null,
   "chain_state": "NONE",
