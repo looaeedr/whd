@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T01:00:46Z",
   "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
-  "head_sha": "e15efd9c98acc5c6ee33b39980986a2a4bf7736d",
+  "head_sha": "9e5a9df7f1fd05ed06e72bfb151d87714e53efb0",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T03:26:55Z",
+  "last_update": "2026-09-26T03:31:49Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
@@ -20,7 +20,7 @@
   "parent_issue": 627,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Continue #618 P7-R-C from e15efd9c98acc5c6ee33b39980986a2a4bf7736d: characterize and extract stretched Door baseline-to-scene adaptation into bounded ae_engine/baseline_scene_adapters.py ownership while preserving ae.py compatibility facade and canonical geometry; then regress Door/DXF paths and proceed to Indicator adapter.",
+  "next_action": "Continue #618 P7-R-C from 9e5a9df7f1fd05ed06e72bfb151d87714e53efb0: characterize and extract stretched Indicator Box baseline-to-scene adaptation into bounded ae_engine/baseline_scene_adapters.py ownership, preserve ae.py compatibility facade and current indicator-layout authority, then run affected DXF/manufacturing regression and exact-head remote QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-618.json",
   "predecessor": {
@@ -43,13 +43,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36214821219,
-    "request_comment_id": 5842763970,
+    "run_id": 36215074509,
+    "request_comment_id": 5842796812,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to #618 stretched EndCap adapter head"
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to #618 stretched Door adapter head"
   },
   "evidence": [
     "Interactive stale takeover completed for #618: canonical evaluator classified prior chat owner EXECUTOR_STUCK at stale_seconds=5045; authority comment 5842349343; shared claim CAS transferred to chatgpt.sol260926.issue618.a3.",
@@ -65,7 +65,8 @@
     "Legacy Box Body baseline-to-scene adapter moved to bounded ae_engine/baseline_scene_adapters.py at 015ebc6430f1397566ffb8f442b89d62c2a3271c; affected regression 100 passed and py_compile GREEN. Commit Guard 36214053992 GREEN; post-commit reconciliation Guard 36214113775 GREEN. A trailing-whitespace-only cleanup is required before broader acceptance.",
     "Whitespace-only cleanup after legacy Box Body adapter extraction landed at 2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76; git diff --check GREEN, ignore-all-space diff empty, affected regression 100 passed, py_compile GREEN. Cleanup commit Guard 36214388672 GREEN; post-commit reconciliation Guard 36214450974 GREEN.",
     "Trailing-whitespace cleanup commit 2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76 consumed prior commit Guard 36214388672; post-commit pair reconciliation Guard 36214450974 GREEN.",
-    "Stretched EndCap baseline-to-scene adapter moved behind ae.py facade at e15efd9c98acc5c6ee33b39980986a2a4bf7736d; characterization RED (1 failed/1 passed) became GREEN (2 passed), affected EndCap/baseline/DXF regression 80 passed, py_compile and git diff --check GREEN. Commit Guard 36214608885 GREEN; post-commit reconciliation Guard 36214821219 GREEN."
+    "Stretched EndCap baseline-to-scene adapter moved behind ae.py facade at e15efd9c98acc5c6ee33b39980986a2a4bf7736d; characterization RED (1 failed/1 passed) became GREEN (2 passed), affected EndCap/baseline/DXF regression 80 passed, py_compile and git diff --check GREEN. Commit Guard 36214608885 GREEN; post-commit reconciliation Guard 36214821219 GREEN.",
+    "Stretched Door baseline-to-scene adapter moved behind ae.py facade at 9e5a9df7f1fd05ed06e72bfb151d87714e53efb0; characterization RED (1 failed/2 passed) became GREEN (3 passed), affected Door/baseline/DXF regression 80 passed, py_compile and git diff --check GREEN. Commit Guard 36214907545 GREEN; post-commit reconciliation Guard 36215074509 GREEN."
   ],
   "local_validation": {
     "red": "2 failed: bounded dxf_serialization owner absent",
@@ -92,6 +93,13 @@
     "stretched_endcap_adapter": {
       "head_sha": "e15efd9c98acc5c6ee33b39980986a2a4bf7736d",
       "characterization": "2 passed",
+      "broader": "80 passed",
+      "py_compile": "GREEN",
+      "diff_check": "GREEN"
+    },
+    "stretched_door_adapter": {
+      "head_sha": "9e5a9df7f1fd05ed06e72bfb151d87714e53efb0",
+      "characterization": "3 passed",
       "broader": "80 passed",
       "py_compile": "GREEN",
       "diff_check": "GREEN"
