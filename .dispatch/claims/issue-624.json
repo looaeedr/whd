@@ -11,7 +11,7 @@
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
   "head_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T14:44:03Z",
+  "last_update": "2026-09-26T14:46:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -41,7 +41,7 @@
     "scope": "A7 broader Bridge compatibility + owner boundary verification after restoring dynamic FinalScene/Settings composition ports",
     "result": "owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings"
   },
-  "next_action": "Obtain trusted finalization proof bound to exact frozen ISSUE_CLOSE_PENDING checkpoint/claim/head; then close/readback #624 and atomically RELEASED + handoff #625.",
+  "next_action": "Persist #625 predecessor handoff comment, then perform final atomic checkpoint CLOSED + claim RELEASED + chain handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -64,14 +64,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36249501341,
-    "request_comment_id": 5847164781,
-    "result_comment_id": 5847166162,
+    "run_id": 36249637355,
+    "request_comment_id": 5847181698,
+    "result_comment_id": 5847182948,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after closed/completed readback"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
@@ -159,5 +159,20 @@
     "result": "ACCEPTED",
     "dt_decision": "DEEPEN_EXISTING_OWNER",
     "artifact_commit_sha": "10ec9a52eff1b8495042270445755e59b6a329c2"
+  },
+  "finalization": {
+    "request_comment_id": 5847175608,
+    "run_id": 36249588694,
+    "artifact_id": 10908214793,
+    "checkpoint_blob_sha": "9f5e69fb5fd2e716ee8b67e23d1c589a671f12fc",
+    "checkpoint_fingerprint": "e2b1bc39214e7d5fcc4e4903f456d5ae332a298e1b11a2ef983f0f4fa6604900",
+    "claim_blob_sha": "1450307f9827cad210170da64c0422e5df2937a3",
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID"
+  },
+  "issue_close_readback": {
+    "state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-26T14:45:59Z"
   }
 }
