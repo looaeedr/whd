@@ -1,0 +1,30 @@
+{
+  "issue": 756,
+  "issue_url": "https://github.com/looaeedr/whd/issues/756",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.b756.20260927.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue756-postdrift-coord-write-parity-20260927",
+  "claimed_at": "2026-09-26T17:54:10Z",
+  "base_sha": "e82261e705ac97dc4ce2f7e6ff199405647710b4",
+  "head_sha": "e82261e705ac97dc4ce2f7e6ff199405647710b4",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T17:54:10Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Guard, create exact branch from cleanup/2d-3d-sync e82261e705ac97dc4ce2f7e6ff199405647710b4, selectively port trusted PR #755 coordination-write durable readback, run focused/protected regressions, integrate to X, close/release helper, then resume #692.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-756.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: /排程B #692 remains the user-authorized parent execution scope.",
+    "#753 closed/completed and RELEASED; durable handoff returned to #692.",
+    "Post-#753 trusted drift: main=785e834bb360ea4c8d31984821a520ef76bf4249 adds PR #755 coordination-write durable readback.",
+    "Current production X=e82261e705ac97dc4ce2f7e6ff199405647710b4 lacks durable_coord_write_readbacks_from_live_commits and trusted workflow wiring.",
+    "This is one bounded post-drift batch successor, not per-fix helper splitting.",
+    "Frozen #692 implementation branch is not rebased/backmerged."
+  ]
+}

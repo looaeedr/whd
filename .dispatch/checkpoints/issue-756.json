@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "756",
+  "branch": "governance/issue756-postdrift-coord-write-parity-20260927",
+  "head_sha": "e82261e705ac97dc4ce2f7e6ff199405647710b4",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard, create exact branch from cleanup/2d-3d-sync e82261e705ac97dc4ce2f7e6ff199405647710b4, selectively port trusted PR #755 coordination-write durable readback, run focused/protected regressions, integrate to X, close/release helper, then resume #692.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #692 live parity acceptance.",
+    "Exact X base e82261e705ac97dc4ce2f7e6ff199405647710b4.",
+    "Trusted observation authority main 785e834bb360ea4c8d31984821a520ef76bf4249.",
+    "Selective PR #755 parity only; no blind main merge."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
