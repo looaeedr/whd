@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "687",
+  "branch": "work/issue687-continuous-legal-stop-20260926",
+  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "state": "RUNNING",
+  "next_action": "create guarded work branch, then implement RED-STOP-01 through RED-STOP-05",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement RED approved on 2026-09-26 via #685.",
+    "Breakdown approved on 2026-09-26; T1 owning Issue #687.",
+    "FROZEN_X_BASE_SHA=87eb35b3f5ae5211673c941cb56c4c4343fa5405."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
