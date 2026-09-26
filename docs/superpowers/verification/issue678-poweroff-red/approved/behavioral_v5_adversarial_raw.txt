@@ -1,0 +1,656 @@
+===== R3-PENDING =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_R3_pending_guard_blocks_safe ______________________
+test_whd_poweroff_behavioral_red_v5.py:127: in test_R3_pending_guard_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "PENDING_GUARD_TRANSACTION")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe
+1 failed in 0.20s
+
+
+===== R3-RECONCILE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R3_reconcile_guard_blocks_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:133: in test_R3_reconcile_guard_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "GUARD_RECONCILIATION_REQUIRED")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe
+1 failed in 0.20s
+
+
+===== R3-AMBIGUOUS =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R3_ambiguous_guard_blocks_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:139: in test_R3_ambiguous_guard_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "GUARD_AMBIGUOUS")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe
+1 failed in 0.21s
+
+
+===== R3-CONSUMED =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ test_R3_consumed_guard_does_not_block_safe __________________
+test_whd_poweroff_behavioral_red_v5.py:145: in test_R3_consumed_guard_does_not_block_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe
+1 failed in 0.42s
+
+
+===== R3-NONE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_R3_none_guard_does_not_block_safe ____________________
+test_whd_poweroff_behavioral_red_v5.py:151: in test_R3_none_guard_does_not_block_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe
+1 failed in 0.20s
+
+
+===== R4-READY =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R4_ready_scheduler_allows_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:158: in test_R4_ready_scheduler_allows_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(_base_slot())), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe
+1 failed in 0.20s
+
+
+===== R4-OWNER =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R4_owner_mismatch_blocks_safe ______________________
+test_whd_poweroff_behavioral_red_v5.py:164: in test_R4_owner_mismatch_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "CLAIM_OWNER_NOT_SCHEDULER")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe
+1 failed in 0.20s
+
+
+===== R4-UNVERIFIED =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_R4_scheduler_unverified_blocks_safe ___________________
+test_whd_poweroff_behavioral_red_v5.py:170: in test_R4_scheduler_unverified_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "SCHEDULER_ENABLEMENT_UNVERIFIED")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe
+1 failed in 0.20s
+
+
+===== R4-DISABLED =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_R4_scheduler_disabled_blocks_safe ____________________
+test_whd_poweroff_behavioral_red_v5.py:176: in test_R4_scheduler_disabled_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "SCHEDULER_DISABLED")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe
+1 failed in 0.22s
+
+
+===== R4-NEXT-ACTION =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R4_nonterminal_missing_next_action_blocks_safe _____________
+test_whd_poweroff_behavioral_red_v5.py:182: in test_R4_nonterminal_missing_next_action_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "CHECKPOINT_NEXT_ACTION_MISSING")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe
+1 failed in 0.21s
+
+
+===== R4-HEAD =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R4_checkpoint_head_mismatch_blocks_safe _________________
+test_whd_poweroff_behavioral_red_v5.py:188: in test_R4_checkpoint_head_mismatch_blocks_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "CHECKPOINT_HEAD_MISMATCH")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe
+1 failed in 0.20s
+
+
+===== R5-SAFE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_R5_all_safe_is_safe ___________________________
+test_whd_poweroff_behavioral_red_v5.py:195: in test_R5_all_safe_is_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(_base_slot())), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe - Ass...
+1 failed in 0.21s
+
+
+===== R5-NOT-SAFE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R5_local_mutation_is_not_safe ______________________
+test_whd_poweroff_behavioral_red_v5.py:201: in test_R5_local_mutation_is_not_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "LOCAL_MUTATION_IN_PROGRESS")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe
+1 failed in 0.21s
+
+
+===== R5-ERROR =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error
+EXPECTED_FAILURE_SUBSTRING: expected result=ERROR
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_R5_machine_unreachable_is_error _____________________
+test_whd_poweroff_behavioral_red_v5.py:207: in test_R5_machine_unreachable_is_error
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "ERROR", "LOCAL_MACHINE_UNREACHABLE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=ERROR, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'ERROR'
+E     
+E     - ERROR
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error
+1 failed in 0.20s
+
+
+===== R6-REQUEST =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt
+EXPECTED_FAILURE_SUBSTRING: assert True is False
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R6_request_id_change_invalidates_safe_receipt ______________
+test_whd_poweroff_behavioral_red_v5.py:216: in test_R6_request_id_change_invalidates_safe_receipt
+    assert out.get("valid") is False
+E   AssertionError: assert True is False
+E    +  where True = <built-in method get of dict object at 0x0000026B6D0A8500>('valid')
+E    +    where <built-in method get of dict object at 0x0000026B6D0A8500> = {'schema': 'WHD_POWER_OFF_SAFE_VALIDATION_V1', 'valid': True, 'reason': 'VALID'}.get
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt
+1 failed in 0.29s
+
+
+===== R6-REVISION =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt
+EXPECTED_FAILURE_SUBSTRING: assert True is False
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________ test_R6_evidence_revision_change_invalidates_safe_receipt __________
+test_whd_poweroff_behavioral_red_v5.py:224: in test_R6_evidence_revision_change_invalidates_safe_receipt
+    assert out.get("valid") is False
+E   AssertionError: assert True is False
+E    +  where True = <built-in method get of dict object at 0x0000024E09DEBF00>('valid')
+E    +    where <built-in method get of dict object at 0x0000024E09DEBF00> = {'schema': 'WHD_POWER_OFF_SAFE_VALIDATION_V1', 'valid': True, 'reason': 'VALID'}.get
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt
+1 failed in 0.26s
+
+
+===== R6-RECEIPT =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid
+EXPECTED_FAILURE_SUBSTRING: assert True is False
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R6_non_safe_receipt_is_invalid _____________________
+test_whd_poweroff_behavioral_red_v5.py:239: in test_R6_non_safe_receipt_is_invalid
+    assert out.get("valid") is False
+E   AssertionError: assert True is False
+E    +  where True = <built-in method get of dict object at 0x0000016C5C53C180>('valid')
+E    +    where <built-in method get of dict object at 0x0000016C5C53C180> = {'schema': 'WHD_POWER_OFF_SAFE_VALIDATION_V1', 'valid': True, 'reason': 'VALID'}.get
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid
+1 failed in 0.19s
+
+
+===== R6-DIRTY =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R6_new_dirty_file_invalidates_safe_state ________________
+test_whd_poweroff_behavioral_red_v5.py:246: in test_R6_new_dirty_file_invalidates_safe_state
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "LOCAL_DIRTY_NOT_DURABLE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state
+1 failed in 0.21s
+
+
+===== R6-GUARD =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R6_new_pending_guard_invalidates_safe_state _______________
+test_whd_poweroff_behavioral_red_v5.py:252: in test_R6_new_pending_guard_invalidates_safe_state
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "PENDING_GUARD_TRANSACTION")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state
+1 failed in 0.21s
+
+
+===== R6-OWNER =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R6_claim_owner_change_invalidates_safe_state ______________
+test_whd_poweroff_behavioral_red_v5.py:258: in test_R6_claim_owner_change_invalidates_safe_state
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "CLAIM_OWNER_NOT_SCHEDULER")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state
+1 failed in 0.20s
+
+
+===== R6-SCHEDULER =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R6_scheduler_disable_invalidates_safe_state _______________
+test_whd_poweroff_behavioral_red_v5.py:264: in test_R6_scheduler_disable_invalidates_safe_state
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "SCHEDULER_DISABLED")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state
+1 failed in 0.20s
+
+
+===== R6-HEAD =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R6_remote_head_advance_invalidates_safe_state ______________
+test_whd_poweroff_behavioral_red_v5.py:270: in test_R6_remote_head_advance_invalidates_safe_state
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s)), "NOT_SAFE", "CHECKPOINT_HEAD_MISMATCH")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state
+1 failed in 0.20s
+
+
+===== R10-ZERO =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________________ test_R10_zero_slots_is_safe _________________________
+test_whd_poweroff_behavioral_red_v5.py:277: in test_R10_zero_slots_is_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot()), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': []}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe - ...
+1 failed in 0.20s
+
+
+===== R10-ONE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_R10_one_local_safe_slot_is_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:282: in test_R10_one_local_safe_slot_is_safe
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(_base_slot())), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe
+1 failed in 0.20s
+
+
+===== R10-TWO =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_R10_two_local_safe_slots_are_safe ____________________
+test_whd_poweroff_behavioral_red_v5.py:287: in test_R10_two_local_safe_slots_are_safe
+    _assert_decision(
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1', 'worker.slot.2']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe
+1 failed in 0.20s
+
+
+===== R10-NOT-SAFE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe
+EXPECTED_FAILURE_SUBSTRING: one NOT_SAFE slot must prevent aggregate SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R10_one_not_safe_slot_blocks_aggregate_safe _______________
+test_whd_poweroff_behavioral_red_v5.py:298: in test_R10_one_not_safe_slot_blocks_aggregate_safe
+    assert out.get("result") != "SAFE", f"one NOT_SAFE slot must prevent aggregate SAFE, got {out}"
+E   AssertionError: one NOT_SAFE slot must prevent aggregate SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1', 'worker.slot.2']}
+E   assert 'SAFE' != 'SAFE'
+E    +  where 'SAFE' = <built-in method get of dict object at 0x00000208769B84C0>('result')
+E    +    where <built-in method get of dict object at 0x00000208769B84C0> = {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', ...}.get
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe
+1 failed in 0.19s
+
+
+===== R10-ERROR =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error
+OVERRIDE: SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error
+EXPECTED_FAILURE_SUBSTRING: expected result=ERROR
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R10_one_error_slot_makes_aggregate_error ________________
+test_whd_poweroff_behavioral_red_v5.py:306: in test_R10_one_error_slot_makes_aggregate_error
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(s1, s2)), "ERROR", "LOCAL_MACHINE_UNREACHABLE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=ERROR, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1', 'worker.slot.2']}
+E   assert 'SAFE' == 'ERROR'
+E     
+E     - ERROR
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error
+1 failed in 0.20s
+
+
+===== R10-NON-LOCAL =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown
+OVERRIDE: NOT_SAFE
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown
+EXPECTED_FAILURE_SUBSTRING: expected result=SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________ test_R10_non_local_dependent_slot_does_not_block_shutdown __________
+test_whd_poweroff_behavioral_red_v5.py:320: in test_R10_non_local_dependent_slot_does_not_block_shutdown
+    _assert_decision(_evaluate(gate, tmp_path, _snapshot(local, remote)), "SAFE")
+test_whd_poweroff_behavioral_red_v5.py:111: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'NOT_SAFE', 'reason': 'FAKE_ALWAYS_NOT_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'NOT_SAFE' == 'SAFE'
+E     
+E     - SAFE
+E     + NOT_SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown
+1 failed in 0.20s
+

@@ -1,0 +1,241 @@
+===== R0 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R0_poweroff_gate_production_owner_exists
+EXPECTED_FAILURE_SUBSTRING: R0_POWER_OFF_GATE_OWNER: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R0_poweroff_gate_production_owner_exists ________________
+test_whd_poweroff_requirement_red_v4.py:171: in test_R0_poweroff_gate_production_owner_exists
+    text = require_file("tools/workstation_poweroff_gate.py", requirement="R0_POWER_OFF_GATE_OWNER")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:42: in require_file
+    assert text is not None, f"{requirement}: missing production owner {path} at {REF}"
+E   AssertionError: R0_POWER_OFF_GATE_OWNER: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R0_poweroff_gate_production_owner_exists
+1 failed in 0.17s
+
+
+===== R0A =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R0A_planned_handoff_evaluator_contract_exists
+EXPECTED_FAILURE_SUBSTRING: R0A_PLANNED_HANDOFF_EVALUATOR: WHD_WORK_EXECUTOR_HANDOFF_V1 machine contract is absent from tools
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R0A_planned_handoff_evaluator_contract_exists ______________
+test_whd_poweroff_requirement_red_v4.py:177: in test_R0A_planned_handoff_evaluator_contract_exists
+    assert matches, (
+E   AssertionError: R0A_PLANNED_HANDOFF_EVALUATOR: WHD_WORK_EXECUTOR_HANDOFF_V1 machine contract is absent from tools at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert ''
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R0A_planned_handoff_evaluator_contract_exists
+1 failed in 0.17s
+
+
+===== R1 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R1_local_durability_classifier_maps_machine_unavailable
+EXPECTED_FAILURE_SUBSTRING: R1_LOCAL_DURABILITY: missing production owner tools/local_durability_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_R1_local_durability_classifier_maps_machine_unavailable _________
+test_whd_poweroff_requirement_red_v4.py:184: in test_R1_local_durability_classifier_maps_machine_unavailable
+    text = require_file("tools/local_durability_gate.py", requirement="R1_LOCAL_DURABILITY")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:42: in require_file
+    assert text is not None, f"{requirement}: missing production owner {path} at {REF}"
+E   AssertionError: R1_LOCAL_DURABILITY: missing production owner tools/local_durability_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R1_local_durability_classifier_maps_machine_unavailable
+1 failed in 0.17s
+
+
+===== R2 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R2_guard_exposes_distinct_planned_claim_handoff_action
+EXPECTED_FAILURE_SUBSTRING: R2_PLANNED_HANDOFF: execution_claim_guard has no distinct claim-handoff action
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________ test_R2_guard_exposes_distinct_planned_claim_handoff_action _________
+test_whd_poweroff_requirement_red_v4.py:191: in test_R2_guard_exposes_distinct_planned_claim_handoff_action
+    assert "claim-handoff" in actions, (
+E   AssertionError: R2_PLANNED_HANDOFF: execution_claim_guard has no distinct claim-handoff action; actual actions=['branch-create', 'claim-takeover', 'commit', 'pr-write', 'qa-dispatch', 'workflow-dispatch', 'write']
+E   assert 'claim-handoff' in {'branch-create', 'claim-takeover', 'commit', 'pr-write', 'qa-dispatch', 'workflow-dispatch', ...}
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R2_guard_exposes_distinct_planned_claim_handoff_action
+1 failed in 0.18s
+
+
+===== R3 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R3_guard_drain_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: R3_GUARD_DRAIN: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_R3_guard_drain_is_behavioral ______________________
+test_whd_poweroff_requirement_red_v4.py:198: in test_R3_guard_drain_is_behavioral
+    gate = _materialize_gate(tmp_path, requirement="R3_GUARD_DRAIN")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:76: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R3_GUARD_DRAIN: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R3_guard_drain_is_behavioral
+1 failed in 0.20s
+
+
+===== R4 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R4_scheduler_readiness_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: R4_SCHEDULER_READINESS: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_R4_scheduler_readiness_is_behavioral __________________
+test_whd_poweroff_requirement_red_v4.py:212: in test_R4_scheduler_readiness_is_behavioral
+    gate = _materialize_gate(tmp_path, requirement="R4_SCHEDULER_READINESS")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:76: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_SCHEDULER_READINESS: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R4_scheduler_readiness_is_behavioral
+1 failed in 0.20s
+
+
+===== R5 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R5_poweroff_truth_table_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: R5_POWER_OFF_TRISTATE: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ test_R5_poweroff_truth_table_is_behavioral __________________
+test_whd_poweroff_requirement_red_v4.py:240: in test_R5_poweroff_truth_table_is_behavioral
+    gate = _materialize_gate(tmp_path, requirement="R5_POWER_OFF_TRISTATE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:76: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R5_POWER_OFF_TRISTATE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R5_poweroff_truth_table_is_behavioral
+1 failed in 0.21s
+
+
+===== R6 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R6_safe_receipt_invalidation_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: R6_SAFE_INVALIDATION: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_R6_safe_receipt_invalidation_is_behavioral _______________
+test_whd_poweroff_requirement_red_v4.py:263: in test_R6_safe_receipt_invalidation_is_behavioral
+    gate = _materialize_gate(tmp_path, requirement="R6_SAFE_INVALIDATION")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:76: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_SAFE_INVALIDATION: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R6_safe_receipt_invalidation_is_behavioral
+1 failed in 0.18s
+
+
+===== R7 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R7_ha_projection_requires_current_request_bound_safe
+EXPECTED_FAILURE_SUBSTRING: R7_HA_CURRENT_REQUEST_SAFE: no HA-facing bridge or poweroff-gate owner exists
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________ test_R7_ha_projection_requires_current_request_bound_safe __________
+test_whd_poweroff_requirement_red_v4.py:280: in test_R7_ha_projection_requires_current_request_bound_safe
+    assert text, "R7_HA_CURRENT_REQUEST_SAFE: no HA-facing bridge or poweroff-gate owner exists"
+E   AssertionError: R7_HA_CURRENT_REQUEST_SAFE: no HA-facing bridge or poweroff-gate owner exists
+E   assert ''
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R7_ha_projection_requires_current_request_bound_safe
+1 failed in 0.25s
+
+
+===== R8 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R8_timeout_is_fail_closed_not_shutdown_fallback
+EXPECTED_FAILURE_SUBSTRING: R8_TIMEOUT_FAIL_CLOSED: no HA/poweroff machine owner exists to enforce timeout behavior
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________ test_R8_timeout_is_fail_closed_not_shutdown_fallback _____________
+test_whd_poweroff_requirement_red_v4.py:288: in test_R8_timeout_is_fail_closed_not_shutdown_fallback
+    assert text, "R8_TIMEOUT_FAIL_CLOSED: no HA/poweroff machine owner exists to enforce timeout behavior"
+E   AssertionError: R8_TIMEOUT_FAIL_CLOSED: no HA/poweroff machine owner exists to enforce timeout behavior
+E   assert ''
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R8_timeout_is_fail_closed_not_shutdown_fallback
+1 failed in 0.23s
+
+
+===== R9 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R9_outage_recovery_distinguishes_unknown_local_state_and_mutation
+EXPECTED_FAILURE_SUBSTRING: R9_OUTAGE_UNKNOWN_STATE: outage recovery cannot explicitly classify unknown local state/mutation
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_R9_outage_recovery_distinguishes_unknown_local_state_and_mutation ____
+test_whd_poweroff_requirement_red_v4.py:306: in test_R9_outage_recovery_distinguishes_unknown_local_state_and_mutation
+    assert not missing, (
+E   AssertionError: R9_OUTAGE_UNKNOWN_STATE: outage recovery cannot explicitly classify unknown local state/mutation; missing=['LOCAL_UNPERSISTED_STATE_UNKNOWN', 'UNKNOWN_MUTATION_OUTCOME']
+E   assert not ['LOCAL_UNPERSISTED_STATE_UNKNOWN', 'UNKNOWN_MUTATION_OUTCOME']
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R9_outage_recovery_distinguishes_unknown_local_state_and_mutation
+1 failed in 0.36s
+
+
+===== R10 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R10_multi_slot_aggregation_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: R10_MULTI_SLOT_AGGREGATION: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R10_multi_slot_aggregation_is_behavioral ________________
+test_whd_poweroff_requirement_red_v4.py:313: in test_R10_multi_slot_aggregation_is_behavioral
+    gate = _materialize_gate(tmp_path, requirement="R10_MULTI_SLOT_AGGREGATION")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_requirement_red_v4.py:76: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_MULTI_SLOT_AGGREGATION: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R10_multi_slot_aggregation_is_behavioral
+1 failed in 0.18s
+
+
+===== R11 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R11_real_shutdown_integration_requires_end_to_end_acceptance_gate
+EXPECTED_FAILURE_SUBSTRING: R11_REAL_SHUTDOWN_ACCEPTANCE: no HA/poweroff owner exists to gate real shutdown integration
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_R11_real_shutdown_integration_requires_end_to_end_acceptance_gate ____
+test_whd_poweroff_requirement_red_v4.py:336: in test_R11_real_shutdown_integration_requires_end_to_end_acceptance_gate
+    assert text, (
+E   AssertionError: R11_REAL_SHUTDOWN_ACCEPTANCE: no HA/poweroff owner exists to gate real shutdown integration
+E   assert ''
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R11_real_shutdown_integration_requires_end_to_end_acceptance_gate
+1 failed in 0.25s
+
