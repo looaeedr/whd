@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "626",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "02562d24639032bb38c4837fc412d3aa45098024",
+  "head_sha": "ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6",
   "state": "RUNNING",
-  "next_action": "Remove the disposable #626 combined RED/GREEN/broader QA workflows, prove tested→closing drift is workflow-deletion-only plus the accepted CURRENT authority writeback, then perform non-force integration into cleanup/2d-3d-sync and production readback before A9 terminal closure.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync, obtain exact pr-write Guard for closing head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, perform non-force integration, production readback of accepted Phase 7 owner/code/AI-Library state, then enter A9 terminal closure.",
   "run_id": 36277114074,
   "job_id": null,
   "log_cursor": null,
@@ -31,7 +31,9 @@
     "Protected config.ini/baseline DXF readback GREEN; artifact 10916659077.",
     "Reconciliation Guard 36277209156 GREEN.",
     "CURRENT AI Library writeback remote-read verified at exact commit/blob identities.",
-    "Reconciliation Guard 36278425013 GREEN; durable HEAD now advances to authority-writeback head."
+    "Reconciliation Guard 36278425013 GREEN; durable HEAD now advances to authority-writeback head.",
+    "Closing head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 differs from tested head only by accepted CURRENT authority writeback and disposable workflow deletion.",
+    "Closing-head reconciliation Guard 36278548074 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
