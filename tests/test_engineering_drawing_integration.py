@@ -98,7 +98,8 @@ def test_production_dxf_serializer_stays_on_original_manufacturing_scene():
     src = inspect.getsource(manufacturing_api.save_part_render_data_dxf)
     assert "build_engineering_drawing_projection" not in src
     assert "render_data.scene" in src
-    assert "_save_scene_dxf" in src
+    assert "save_scene_dxf" in src
+    assert "ae._save_scene_dxf" not in src
 
 
 def test_shared_finished_dimension_provider_is_the_2d_3d_authority():
