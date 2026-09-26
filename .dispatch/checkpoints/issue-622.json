@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "622",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "fc9ad5fcc5c231888b9628eca31df8470affcbb0",
-  "state": "RUNNING",
-  "next_action": "Remove the one-shot #622 B5 Combined workflow, update CURRENT AI Library authority records for selector reachability / WorkspaceShell overlay / display-atomic family transition, then perform tested→closing drift audit proving zero production/test drift before closure.",
+  "head_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36212566772,
   "job_id": 108322022667,
   "log_cursor": null,
@@ -20,8 +20,18 @@
     "B5 Combined run 36212566772 SUCCESS on exact head fc9ad5fcc5c231888b9628eca31df8470affcbb0.",
     "Headless 21 passed / 1 skipped; Xvfb 70 passed / 1 deselected / 0 failed; protected config invariant GREEN.",
     "Artifact 10896610490 preserves final Combined acceptance evidence.",
-    "Guard 36212678802 authorizes transition from remote terminal GREEN back to RUNNING cleanup/writeback."
+    "Guard 36212678802 authorizes transition from remote terminal GREEN back to RUNNING cleanup/writeback.",
+    "B5 Combined accepted run 36212566772 remains the tested evidence: Headless 21 passed/1 skipped; Xvfb 70 passed/1 deselected/0 failed.",
+    "Closing head 524ec6ac877449ea8f356daac2bfb2f6c3c5d048 contains only one-shot workflow cleanup and durable AI Library writeback; production/test drift=false.",
+    "Closing-head GitHub readback confirmed AI Library 06/11/12 durable contents and exact blob SHAs.",
+    "Master #628 is open and is the next executable process-state closure owner after #622 closes.",
+    "Guard 36213109370 authorized terminalization at the exact closing head."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance closure_state to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back #622, then atomically persist checkpoint CLOSED + claim RELEASED and continue to Master #628",
+  "master_issue": "628",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "628",
+  "chain_next_action": "After #622 is closed/completed and RELEASED/CLOSED, fresh-read all Master #628 children (#614/#615/#616/#619/#622), create/activate the Master closure owner if needed, and close/read back Master #628 only after its own owning finalization proof.",
+  "chain_reason": "B5 Combined acceptance, one-shot cleanup, AI Library writeback, and tested→closing zero-production/test-drift audit are complete; Master #628 remains open and becomes the next process-state closure owner."
 }
