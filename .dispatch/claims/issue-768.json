@@ -1,0 +1,33 @@
+{
+  "issue": 768,
+  "issue_url": "https://github.com/looaeedr/whd/issues/768",
+  "worker": "chatgpt.issue768.20260927a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue768.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue768-durable-reentry-hard-gate-20260927",
+  "claimed_at": "2026-09-26T22:30:00Z",
+  "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+  "head_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T22:30:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded branch; add RED tests for consumed historical coord receipts and GitHub durable-state reconstruction hard gate; implement; validate; merge; then repair #762 final closure.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-768.json",
+  "evidence": [
+    "authorization_source=user explicit hard-gate request",
+    "execution_intent=EXECUTE_TICKET",
+    "purpose=fix closure deadlock and make GitHub durable-state reconstruction mandatory on re-entry",
+    "authorized_scope=Issue #768 machine guard/tests/current skills and required trusted workflow parity",
+    "prohibited_scope=no unrelated Issue discovery; no weakening true ambiguity fail-closed",
+    "resume_authority=NONE",
+    "regression=#762 Remote Guard run 36276118092 ambiguous coordination write durable readback",
+    "fresh X base=90a4939328c4b863e88f9272f4dfa3d9a25743a6"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "768",
+  "branch": "governance/issue768-durable-reentry-hard-gate-20260927",
+  "head_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+  "state": "RUNNING",
+  "next_action": "Create guarded work branch and establish RED tests for receipt consume stability + GitHub durable-state reconstruction hard gate.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User requested hard gate + GitHub durable state re-entry.",
+    "#762 closure deadlocked at final CLOSED+RELEASED write due historical receipt ambiguity."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
