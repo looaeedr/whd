@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "688",
   "branch": "work/issue688-ticket-closure-owner-20260926",
-  "head_sha": "2e143da436ef9722577120eb3d475f10b16e6ee3",
+  "head_sha": "7a4a00e2449d3479244db64b90886f16dc2cdb5c",
   "state": "RUNNING",
   "next_action": "run broader T5 regressions: RED-STOP-14 topology behavior + existing two-stage breakdown contract + issue-closure ownership contract; then clean temporary QA workflow and hand off accepted head to #693",
   "run_id": null,
@@ -23,7 +23,9 @@
     "QA-head claim+checkpoint reconciliation was authorized by Remote Guard run 36226356222.",
     "Implementation commit 2e143da436ef9722577120eb3d475f10b16e6ee3 was authorized by Remote Guard run 36226462556.",
     "Focused GREEN run 36226544233 at exact implementation HEAD: 4 passed in 0.14s.",
-    "Implementation-head claim+checkpoint reconciliation was authorized by Remote Guard run 36226621222."
+    "Implementation-head claim+checkpoint reconciliation was authorized by Remote Guard run 36226621222.",
+    "One-shot focused QA workflow removed by cleanup commit 7a4a00e2449d3479244db64b90886f16dc2cdb5c under Remote Guard run 36231593457.",
+    "Cleanup-head claim+checkpoint reconciliation authorized by Remote Guard run 36236581620."
   ],
   "master_issue": null,
   "chain_state": "NONE",
