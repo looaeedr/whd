@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "697",
   "branch": "work/issue697-operation-transaction-core-20260926",
-  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "head_sha": "1ba4624f72ebe4fb984a728e75cf7d1e75917260",
   "state": "RUNNING",
-  "next_action": "commit approved RED-STOP-17/18 behavior tests plus one-shot RED/GREEN harness, run exact RED at the intended continuity/resume seam, then implement minimum GREEN",
+  "next_action": "implement minimum canonical OperationState/OperationTransaction checkpoint persistence and resume-first routing, then let exact A2 workflow rerun GREEN",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,9 @@
     "Canonical publication map #685 comment 5843730476 lists #697 as independent next_executable.",
     "Owning implementation Issue #697 fresh-read open and unclaimed.",
     "A1 #696 is accepted-pending-chain-closure and does not block A2.",
-    "Branch-create Guard run 36226395382 consumed; work branch created and read back identical to production base."
+    "Branch-create Guard run 36226395382 consumed; work branch created and read back identical to production base.",
+    "RED commit 1ba4624f72ebe4fb984a728e75cf7d1e75917260 authorized by Guard run 36226548072.",
+    "Exact RED run 36226621311 / job 108361798926: 7 failed at intended missing OperationState/OperationTransaction seam; no environment or collection error."
   ],
   "master_issue": null,
   "chain_state": "NONE",

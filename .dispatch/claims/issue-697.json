@@ -9,24 +9,31 @@
   "work_branch": "work/issue697-operation-transaction-core-20260926",
   "claimed_at": "2026-09-26T07:18:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "phase": "RED",
-  "last_update": "2026-09-26T07:20:00Z",
+  "head_sha": "1ba4624f72ebe4fb984a728e75cf7d1e75917260",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T07:24:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "commit approved RED-STOP-17/18 behavior tests plus one-shot RED/GREEN harness, run exact RED at the intended continuity/resume seam, then implement minimum GREEN",
+  "next_action": "implement minimum canonical OperationState/OperationTransaction checkpoint persistence and resume-first routing, then let exact A2 workflow rerun GREEN",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-697.json",
   "last_guard": {
-    "action": "branch-create",
-    "run_id": 36226395382,
-    "request_comment_id": 5844206421,
-    "result_comment_id": 5844207478,
+    "action": "commit",
+    "run_id": 36226548072,
+    "request_comment_id": 5844223876,
+    "result_comment_id": 5844225446,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
     "consumed": true,
-    "mutation": "created work/issue697-operation-transaction-core-20260926 at exact base/head 0c551eb1370ae6795d04ea693dd3a71dfad57b28"
+    "mutation": "committed RED-STOP-17/18 behavior test + one-shot harness at 1ba4624f72ebe4fb984a728e75cf7d1e75917260"
+  },
+  "red_evidence": {
+    "run_id": 36226621311,
+    "job_id": 108361798926,
+    "head_sha": "1ba4624f72ebe4fb984a728e75cf7d1e75917260",
+    "result": "7 failed, 0 collection/environment errors",
+    "seam": "missing canonical OperationState/OperationTransaction before resume-first routing"
   }
 }
