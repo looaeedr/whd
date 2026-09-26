@@ -4,7 +4,7 @@
   "branch": "governance/issue686-local-guard-postcommit-parity-20260926",
   "head_sha": "e35f8d18c804e7378b8061ce0b5dc153588d9bf8",
   "state": "RUNNING",
-  "next_action": "Obtain qa-dispatch Guard and run .github/workflows/qa-issue686-local-guard.yml at exact head e35f8d18, then monitor the locked run to terminal.",
+  "next_action": "Obtain fresh pr-write Guard, open PR from governance/issue686-local-guard-postcommit-parity-20260926 to cleanup/2d-3d-sync, then lock and monitor the pull_request-triggered qa-issue686-local-guard workflow to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -28,7 +28,9 @@
     "Workflow-head reconciliation Guard GREEN: request 5845968158 / result 5845969933 / run 36239591691.",
     "Broader local QA: 79 passed / 1 known baseline stale #540 assertion; same #540 assertion reproduced FAIL on production 76b2adb7.",
     "Consumed pending workflow commit Guard run 36239716831; workflow commit e35f8d18c804e7378b8061ce0b5dc153588d9bf8.",
-    "Workflow-head reconciliation Guard GREEN: request 5846132095 / result 5846133471 / run 36240907870."
+    "Workflow-head reconciliation Guard GREEN: request 5846132095 / result 5846133471 / run 36240907870.",
+    "Dependency takeover owner=chatgpt.sol260926.issue686.dep737; stale evaluator EXECUTOR_STUCK/actionable=true at stale_seconds=13170.",
+    "Prior no-effect qa-dispatch receipt expired; no QA run exists. Continue through PR pull_request trigger."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

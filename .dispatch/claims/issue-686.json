@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T03:32:54Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "e35f8d18c804e7378b8061ce0b5dc153588d9bf8",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-26T15:47:23Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T15:48:55.528536Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Fresh-read expired no-effect qa-dispatch Guard transaction, then obtain pr-write Guard, open PR to cleanup/2d-3d-sync, and monitor the pull_request-triggered #686 QA run to terminal.",
+  "next_action": "Obtain fresh pr-write Guard, open PR from governance/issue686-local-guard-postcommit-parity-20260926 to cleanup/2d-3d-sync, then lock and monitor the pull_request-triggered qa-issue686-local-guard workflow to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-686.json",
   "slot_id": "worker.slot.1",
@@ -46,6 +46,17 @@
     "reason": "no active exact run and no durable progress for 13170s (threshold=600s); no exact remote run is claimed"
   },
   "evidence": [
-    "Dependency takeover for #737: #686 exact stale evaluator classified prior worker EXECUTOR_STUCK/actionable=true at stale_seconds=13170; local claim-takeover Guard GREEN with owner authority comment 5847598450."
-  ]
+    "Dependency takeover for #737: #686 exact stale evaluator classified prior worker EXECUTOR_STUCK/actionable=true at stale_seconds=13170; local claim-takeover Guard GREEN with owner authority comment 5847598450.",
+    "Dependency takeover continued same accepted #686 head without replaying implementation.",
+    "Prior qa-dispatch GREEN run 36240994996 produced no workflow run because workflow_dispatch returned 404; receipt expired at 2026-09-26T12:48:43.513657Z.",
+    "Fresh legal continuation is pr-write -> PR; qa-issue686-local-guard.yml runs from pull_request trigger."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "local",
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "repair #686 stale next_action after dependency takeover"
+  }
 }
