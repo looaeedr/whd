@@ -32,6 +32,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance the exact accepted #687 checkpoint to ISSUE_CLOSE_PENDING without minting finalization proof; then Issue Closure owner #693 must mint fresh proof, close/read back #687, and atomically persist CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Issue Closure owner #693 must consume accepted T1 evidence comment 5846013270, mint a fresh finalization proof bound to #687/fc75000d1d3115331923a1a1bc3c34f6bbdbddbc and this exact checkpoint, close/read back #687 as completed, then atomically persist checkpoint CLOSED + claim RELEASED."
 }

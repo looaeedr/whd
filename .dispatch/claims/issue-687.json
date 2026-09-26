@@ -11,11 +11,11 @@
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
   "phase": "GREEN",
-  "last_update": "2026-09-26T11:49:15.406259Z",
+  "last_update": "2026-09-26T11:50:00.592095Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Advance #687 accepted checkpoint to ISSUE_CLOSE_PENDING, then hand exact T1 evidence to Issue Closure owner #693; do not integrate frozen T1 branch directly into cleanup/2d-3d-sync.",
+  "next_action": "Issue Closure owner #693 must consume T1 acceptance comment 5846013270, run fresh #687 finalization proof on the exact ISSUE_CLOSE_PENDING checkpoint, close/readback #687, then atomically persist CLOSED + RELEASED; do not integrate frozen T1 branch directly into cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-687.json",
   "recovery": {
