@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "721",
+  "branch": "governance/issue721-task-start-authority-v1",
+  "head_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
+  "state": "RUNNING",
+  "next_action": "Run branch-create guard, create governance/issue721-task-start-authority-v1 from exact cleanup/2d-3d-sync HEAD, then add RED contract and minimal Skill bridges.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: GitHub Issue #721 + explicit user instruction to add TASK_START_AUTHORITY_DECLARATION_V1.",
+    "Execution mode: UPDATE_ONLY.",
+    "Base/head authority: cleanup/2d-3d-sync@76b2adb7379f73b23001c4730c08b5402acafafb.",
+    "Preflight evidence: C:\\Users\\Public\\whd_issue721_preflight_evidence.md GREEN."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

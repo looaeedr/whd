@@ -1,0 +1,30 @@
+{
+  "issue": 721,
+  "issue_url": "https://github.com/looaeedr/whd/issues/721",
+  "worker": "chatgpt.issue721.20260926a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue721.20260926a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue721-task-start-authority-v1",
+  "claimed_at": "2026-09-26T11:55:00Z",
+  "base_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
+  "head_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T11:55:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run branch-create guard, create governance/issue721-task-start-authority-v1 from exact cleanup/2d-3d-sync HEAD, then add RED contract and minimal Skill bridges.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-721.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1 startup declaration: authorization_source=user explicit instruction '加進去'; execution_intent=UPDATE_ONLY.",
+    "Purpose: add canonical startup authorization/purpose/scope declaration contract; no platform safety bypass.",
+    "Authorized scope: 執行開發任務 canonical owner plus 派工/排程模擬/遠端執行守門 bridges and necessary contract tests.",
+    "Prohibited scope: no unrelated issue execution, no product implementation, no Guard/claim/finalization weakening.",
+    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_issue721_preflight_evidence.md."
+  ]
+}
