@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "698",
   "branch": "work/issue698-remote-guard-readback-parity-20260926",
-  "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
+  "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
   "state": "RUNNING",
-  "next_action": "Implement RED-STOP-19 by expanding the trusted whd-turn-exit-gate durable-readback producer to all seven canonical Guard actions while keeping tools/execution_claim_guard.py as the semantic classifier owner; rerun focused QA to GREEN.",
-  "run_id": 36237519280,
-  "job_id": 108391892637,
+  "next_action": "Integrate exact GREEN head ec27e4a8f6960b2f62df658d3d1713c1653bae04 into cleanup/2d-3d-sync, deploy trusted whd-turn-exit-gate durable-readback parity to main, fresh-read deployed parity, then hand control back to blocked #680.",
+  "run_id": 36255080858,
+  "job_id": 108440214060,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -22,7 +22,9 @@
     "Post-commit reconciliation Guard run 36237389400 GREEN with REMOTE_GUARD_RECONCILE_ONLY for the exact claim+checkpoint pair.",
     "Instrumentation repair commit 37c98050dc25aecca9f092dd21370e4c08ffba67 was guarded by run 36237501002 and changed only the one-shot QA workflow.",
     "VALID RED: QA run 36237519280 executed pytest and failed exactly at RED-STOP-19 with AssertionError 'trusted durable-readback producer is still commit-only'; 1 failed.",
-    "Post-instrumentation reconciliation Guard run 36237537824 GREEN for the exact claim+checkpoint pair."
+    "Post-instrumentation reconciliation Guard run 36237537824 GREEN for the exact claim+checkpoint pair.",
+    "RED-STOP-19 implementation commit ec27e4a8f6960b2f62df658d3d1713c1653bae04.",
+    "Focused QA run 36255080858 completed/success at exact head; focused pytest 3 passed."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

@@ -9,12 +9,12 @@
   "work_branch": "work/issue698-remote-guard-readback-parity-20260926",
   "claimed_at": "2026-09-26T10:40:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
-  "phase": "RED",
-  "last_update": "2026-09-26T11:02:30Z",
+  "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T16:21:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Implement RED-STOP-19 by expanding the trusted whd-turn-exit-gate durable-readback producer to all seven canonical Guard actions while keeping tools/execution_claim_guard.py as the semantic classifier owner; rerun focused QA to GREEN.",
+  "next_action": "Integrate exact GREEN head ec27e4a8f6960b2f62df658d3d1713c1653bae04 into cleanup/2d-3d-sync, deploy trusted whd-turn-exit-gate durable-readback parity to main, fresh-read deployed parity, then hand control back to blocked #680.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-698.json",
   "evidence": {
@@ -35,7 +35,16 @@
       ".github/workflows/whd-remote-execution-guard.yml",
       ".agents/skills/engineering/派工/SKILL.md",
       ".agents/skills/engineering/remote-execution-guard/SKILL.md"
-    ]
+    ],
+    "red_evidence": {},
+    "green_evidence": {
+      "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
+      "qa_run_id": 36255080858,
+      "job_id": 108440214060,
+      "conclusion": "success",
+      "pytest": "3 passed",
+      "status": "GREEN"
+    }
   },
   "guard_readbacks": [
     {
@@ -75,13 +84,11 @@
     }
   ],
   "last_guard": {
-    "action": "write",
-    "run_id": 36237537824,
-    "request_comment_id": 5845693451,
+    "action": "commit",
     "result": "GREEN",
-    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "reason": "LOCAL_EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "post-instrumentation exact claim+checkpoint reconciliation"
+    "mutation": "RED-STOP-19 implementation commit ec27e4a8"
   },
   "red_evidence": {
     "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
