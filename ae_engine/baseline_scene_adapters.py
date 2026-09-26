@@ -448,3 +448,419 @@ def get_stretched_end_cap_data(
 
 
     return SceneData(scene=scene, params=params)
+
+
+def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
+                            gap_w_val=None, gap_h_val=None,
+                            fl_val=None, fr_val=None, ft_val=None, fb_val=None, indicator_hole=None, door_indicator=None, door_indicator_offset=None,
+                            frame_edges=None, indicator_window_groups=None, corner_policy=None,
+                            nameplate_center_datum_top=None, *, deps):
+    """
+    載入門基準檔 DXF (門.dxf)，進行拉伸，過濾孔洞，並回傳幾何資料與反推得到的參數
+    """
+    CirclePrimitive = deps["CirclePrimitive"]
+    DoorIndicatorContext = deps["DoorIndicatorContext"]
+    DrawingScene = deps["DrawingScene"]
+    FW = deps["FW"]
+    SceneData = deps["SceneData"]
+    Vec2 = deps["Vec2"]
+    _baseline_cutting_bounds = deps["_baseline_cutting_bounds"]
+    _baseline_entity_layer = deps["_baseline_entity_layer"]
+    _iter_baseline_entities = deps["_iter_baseline_entities"]
+    _make_door_geometry = deps["_make_door_geometry"]
+    baseline_expected_path = deps["baseline_expected_path"]
+    baseline_part_path = deps["baseline_part_path"]
+    build_door_result = deps["build_door_result"]
+    build_finished_reference_guide = deps["build_finished_reference_guide"]
+    build_unknown_door_result = deps["build_unknown_door_result"]
+    calculate_door_finished_size = deps["calculate_door_finished_size"]
+    door_fold_bottom_def = deps["door_fold_bottom_def"]
+    door_fold_left_def = deps["door_fold_left_def"]
+    door_fold_right_def = deps["door_fold_right_def"]
+    door_fold_top_def = deps["door_fold_top_def"]
+    door_gap_h_def = deps["door_gap_h_def"]
+    door_gap_w_def = deps["door_gap_w_def"]
+    identify_door_baseline_nameplate_circles = deps["identify_door_baseline_nameplate_circles"]
+    indicator_shared_baseline_part_path = deps["indicator_shared_baseline_part_path"]
+    indicator_small_door_window_geometry = deps["indicator_small_door_window_geometry"]
+    resolve_door_indicator_layout = deps["resolve_door_indicator_layout"]
+    source_loader = deps["source_loader"]
+
+    is_indicator_small_door = indicator_window_groups is not None
+    filename = "小門.dxf" if is_indicator_small_door else "門.dxf"
+    if is_indicator_small_door:
+        dxf_path = indicator_shared_baseline_part_path(filename)
+        expected = indicator_shared_baseline_part_path(filename, require_exists=False)
+    else:
+        dxf_path = baseline_part_path(model_name, filename)
+        expected = baseline_expected_path(model_name, filename)
+    if not dxf_path:
+        raise FileNotFoundError(f"找不到基準 DXF 檔案: {expected}")
+
+    doc = source_loader(dxf_path)
+    msp = doc.modelspace()
+
+    # 1. 基準原點/尺寸只由 structural CUTTING 決定。MARKING / BLIND_HOLE /
+    # DATUM 即使落在板外，也不得改變孔位映射的座標原點。
+    bounds = _baseline_cutting_bounds(msp)
+    if bounds is None:
+        raise ValueError("門基準檔中無有效 CUTTING 幾何，無法分析尺寸。")
+    min_x, min_y, max_x, max_y = bounds
+    W_base_dxf = max_x - min_x
+    H_base_dxf = max_y - min_y
+
+    # 2. 獲取基準折彎線 (BEND)
+    bend_lines = msp.query('LINE[layer=="BEND"]')
+    vertical_bends = []
+    horizontal_bends = []
+
+    for line in bend_lines:
+        x1, y1 = line.dxf.start.x - min_x, line.dxf.start.y - min_y
+        x2, y2 = line.dxf.end.x - min_x, line.dxf.end.y - min_y
+        if abs(x1 - x2) < 0.1:
+            vertical_bends.append((x1 + x2) / 2.0)
+        elif abs(y1 - y2) < 0.1:
+            horizontal_bends.append((y1 + y2) / 2.0)
+
+    vertical_bends = sorted(list(set(round(x, 2) for x in vertical_bends)))
+    horizontal_bends = sorted(list(set(round(y, 2) for y in horizontal_bends)))
+
+    if len(vertical_bends) == 2 and len(horizontal_bends) == 2:
+        X1, X2 = vertical_bends
+        Y1, Y2 = horizontal_bends
+        fl_b = X1
+        fr_b = W_base_dxf - X2
+        fb_b = Y1
+        ft_b = H_base_dxf - Y2
+    else:
+        # 基準檔無折彎線 (例如門.dxf 在 layer '0')，採用預設值作為基準折邊
+        fl_b = door_fold_left_def
+        fr_b = door_fold_right_def
+        fb_b = door_fold_bottom_def
+        ft_b = door_fold_top_def
+        X1 = fl_b
+        X2 = W_base_dxf - fr_b
+        Y1 = fb_b
+        Y2 = H_base_dxf - ft_b
+
+    # 新折邊沿用傳入值（若有）或基準值
+    fl_n = fl_val if fl_val is not None else fl_b
+    fr_n = fr_val if fr_val is not None else fr_b
+    ft_n = ft_val if ft_val is not None else ft_b
+    fb_n = fb_val if fb_val is not None else fb_b
+
+    gw_n = gap_w_val if gap_w_val is not None else door_gap_w_def
+    gh_n = gap_h_val if gap_h_val is not None else door_gap_h_def
+    fw_n = FW_val if FW_val is not None else FW
+
+    # 計算新尺寸
+    finished_w, finished_h = calculate_door_finished_size(
+        W_val, H_val, fw_n, gw_n, gh_n, T_val, frame_edges=frame_edges
+    )
+    new_W_dxf = finished_w - 2 * T_val + fl_n + fr_n
+    new_H_dxf = finished_h - 2 * T_val + ft_n + fb_n
+
+    X1_new = fl_n
+    X2_new = new_W_dxf - fr_n
+    Y1_new = fb_n
+    Y2_new = new_H_dxf - ft_n
+
+    # 建立映射參考線
+    ref_x = [0.0, X1, W_base_dxf/2.0, X2, W_base_dxf]
+    new_ref_x = [0.0, X1_new, new_W_dxf/2.0, X2_new, new_W_dxf]
+
+    ref_y = [0.0, Y1, H_base_dxf/2.0, Y2, H_base_dxf]
+    new_ref_y = [0.0, Y1_new, new_H_dxf/2.0, Y2_new, new_H_dxf]
+    # 寬的部份(上下折邊)兩端留肉延伸一個 T_val
+    pts_base = [
+        (fl_b - 2.0,            0.0),
+        (W_base_dxf - fr_b + 2.0, 0.0),
+        (W_base_dxf - fr_b + 2.0, fb_b),
+        (W_base_dxf,            fb_b),
+        (W_base_dxf,            H_base_dxf - ft_b),
+        (W_base_dxf - fr_b + 2.0, H_base_dxf - ft_b),
+        (W_base_dxf - fr_b + 2.0, H_base_dxf),
+        (fl_b - 2.0,            H_base_dxf),
+        (fl_b - 2.0,            H_base_dxf - ft_b),
+        (0.0,                   H_base_dxf - ft_b),
+        (0.0,                   fb_b),
+        (fl_b - 2.0,            fb_b),
+        (fl_b - 2.0,            0.0)
+    ]
+
+    # 結構外框與 BEND 一律走同一 topology builder。已知基準盤若解鎖
+    # 細參數，只替換結構截角；基準孔/標記仍由後續 mapper 保留。
+    if corner_policy is None:
+        door_outline, door_bends, _ = _make_door_geometry(
+            W_val, H_val, T_val, fw_n, gw_n, gh_n, fl_n, fr_n, ft_n, fb_n,
+            frame_edges=frame_edges,
+        )
+        pts_new = [(pt.x, pt.y) for pt in door_outline]
+    else:
+        door_result = build_unknown_door_result(
+            w=W_val, h=H_val, t=T_val, fw=fw_n, gap_w=gw_n, gap_h=gh_n,
+            fold_left=fl_n, fold_right=fr_n, fold_top=ft_n, fold_bottom=fb_n,
+            corner_policy=corner_policy, frame_edges=frame_edges,
+        )
+        door_bends = list(door_result.bends)
+        pts_new = [(pt.x, pt.y) for pt in door_result.outline]
+
+    # 頂點映射
+    for idx, (bx, by) in enumerate(pts_base):
+        ref_x.append(bx)
+        new_ref_x.append(pts_new[idx][0])
+        ref_y.append(by)
+        new_ref_y.append(pts_new[idx][1])
+
+    def map_x(x):
+        dists = [abs(x - rx) for rx in ref_x]
+        idx = dists.index(min(dists))
+        return new_ref_x[idx] + (x - ref_x[idx])
+
+    def map_y(y):
+        dists = [abs(y - ry) for ry in ref_y]
+        idx = dists.index(min(dists))
+        return new_ref_y[idx] + (y - ref_y[idx])
+
+    scene = DrawingScene()
+    params = {
+        'door_fold_l': fl_n, 'door_fold_r': fr_n, 'door_fold_t': ft_n, 'door_fold_b': fb_n,
+        'finished_w': finished_w, 'finished_h': finished_h,
+        'total_width': new_W_dxf, 'total_depth': new_H_dxf,
+    }
+    metadata = {}
+
+    # 加入共用幾何引擎產生的主外輪廓與折彎線。
+    scene.add_polyline(pts_new, layer='CUTTING', closed=True)
+    for segment in door_bends:
+        scene.add_line(segment.p1, segment.p2, layer='BEND')
+
+    # Baseline feature identity is established once before coordinate mapping.
+    # The DXF entity handle is only a parser key; downstream identity is the
+    # stable ``door:nameplate_mount:*`` feature ID.
+    nameplate_ids = identify_door_baseline_nameplate_circles([
+        (getattr(ent.dxf, "handle", ""), _baseline_entity_layer(ent),
+         float(ent.dxf.center.x - min_x), float(ent.dxf.center.y - min_y), float(ent.dxf.radius))
+        for ent in _iter_baseline_entities(msp) if ent.dxftype() == "CIRCLE"
+    ]) if not is_indicator_small_door else {}
+
+    # Use the same finished-face guide as generic Door features. This is the
+    # canonical local-coordinate contract; family datum overrides never alter
+    # the Door origin or axis directions.
+    reference_result = build_unknown_door_result(
+        w=W_val, h=H_val, t=T_val, fw=fw_n, gap_w=gw_n, gap_h=gh_n,
+        fold_left=fl_n, fold_right=fr_n, fold_top=ft_n, fold_bottom=fb_n,
+        corner_policy=corner_policy, frame_edges=frame_edges,
+    ) if corner_policy is not None else build_door_result(
+        w=W_val, h=H_val, t=T_val, fw=fw_n, gap_w=gw_n, gap_h=gh_n,
+        fold_left=fl_n, fold_right=fr_n, fold_top=ft_n, fold_bottom=fb_n,
+        frame_edges=frame_edges,
+    )
+    finished_guide = build_finished_reference_guide(
+        "door", reference_result, finished_width=float(finished_w), finished_height=float(finished_h)
+    )
+
+    # 載入基準檔內的其他圖元 (排除舊的外框與折彎線)
+    def is_boundary(p1, p2):
+        # 門板外廓基準點特徵座標 (容許誤差)
+        x_vals = [0.0, W_base_dxf, fl_b - 2.0, W_base_dxf - fr_b + 2.0]
+        y_vals = [0.0, H_base_dxf, fb_b, H_base_dxf - ft_b]
+        # 直線垂直且在邊界 X 上
+        if abs(p1[0] - p2[0]) < 0.5:
+            if any(abs(p1[0] - xv) < 1.0 for xv in x_vals):
+                return True
+        # 直線水平且在邊界 Y 上
+        if abs(p1[1] - p2[1]) < 0.5:
+            if any(abs(p1[1] - yv) < 1.0 for yv in y_vals):
+                return True
+        return False
+
+    for ent in _iter_baseline_entities(msp):
+        # Operation ownership is authoritative. Explicit MARKING/BLIND_HOLE/DATUM
+        # layers beat entity color; color 211 remains only as a legacy layer-0 fallback.
+        tgt_layer = _baseline_entity_layer(ent)
+        if tgt_layer in {'BEND', 'CHECK', 'STOCK'}:
+            continue
+
+        # 排除 3D 造型的面域 region 圖元
+        if ent.dxftype() == 'REGION':
+            continue
+
+        # 進行控制點映射與邊界過濾
+        if ent.dxftype() == 'LINE':
+            start_pt = (ent.dxf.start.x - min_x, ent.dxf.start.y - min_y)
+            end_pt = (ent.dxf.end.x - min_x, ent.dxf.end.y - min_y)
+            # 如果是外廓邊界，過濾不畫 (避免跟公式化產生的外輪廓重疊)
+            if is_boundary(start_pt, end_pt):
+                continue
+            p1 = (map_x(start_pt[0]), map_y(start_pt[1]))
+            p2 = (map_x(end_pt[0]), map_y(end_pt[1]))
+            scene.add_line(p1, p2, layer=tgt_layer)
+        elif ent.dxftype() == 'LWPOLYLINE':
+            pts = list(ent.get_points())
+            local_pts = [(float(pt[0]) - min_x, float(pt[1]) - min_y) for pt in pts]
+            if len(local_pts) == 2:
+                # 兩點多段線，等同於 LINE 處理。
+                if is_boundary(local_pts[0], local_pts[1]):
+                    continue
+            elif local_pts:
+                # Never classify CUTTING by vertex count: rounded/slot/handle
+                # profiles routinely contain >10 vertices.  Suppress only a
+                # mapped legacy structural outline whose bounds span the sheet.
+                xs = [p[0] for p in local_pts]; ys = [p[1] for p in local_pts]
+                tol = 1.0
+                spans_sheet = (
+                    min(xs) <= tol and min(ys) <= tol
+                    and max(xs) >= W_base_dxf - tol
+                    and max(ys) >= H_base_dxf - tol
+                )
+                if bool(ent.closed) and spans_sheet:
+                    continue
+            pts_mapped = [(map_x(x), map_y(y)) for x, y in local_pts]
+            scene.add_polyline(pts_mapped, layer=tgt_layer, closed=ent.closed)
+        elif ent.dxftype() == 'CIRCLE':
+            cx = ent.dxf.center.x - min_x
+            cy = ent.dxf.center.y - min_y
+            cx_new, cy_new = map_x(cx), map_y(cy)
+            handle = str(getattr(ent.dxf, "handle", "") or "")
+            source_id = nameplate_ids.get(handle)
+            source_type = "nameplate_mount" if source_id else None
+            if source_id and nameplate_center_datum_top is not None:
+                datum = float(nameplate_center_datum_top)
+                if datum < 0.0 or datum > float(finished_h):
+                    raise ValueError("Door nameplate top datum must be inside finished face")
+                cy_new = float(finished_guide.min_point.y) + float(finished_h) - datum
+            scene.add_circle(
+                (cx_new, cy_new), ent.dxf.radius, layer=tgt_layer,
+                source_type=source_type, source_id=source_id,
+            )
+        elif ent.dxftype() == 'ARC':
+            if ent.dxf.radius > 50:
+                continue
+            pts_flattened = []
+            for pt in ent.flattening(0.5):
+                pts_flattened.append((map_x(pt[0] - min_x), map_y(pt[1] - min_y)))
+            scene.add_polyline(pts_flattened, layer=tgt_layer, closed=False)
+
+    # === 指示燈小門視窗：由零件角色判斷，不依賴任何 shared folder/model 名稱 ===
+    if indicator_window_groups is not None:
+        window = indicator_small_door_window_geometry(
+            indicator_window_groups,
+            total_width=new_W_dxf, total_height=new_H_dxf,
+            fold_left=fl_n, fold_right=fr_n, fold_top=ft_n, fold_bottom=fb_n,
+            thickness=T_val,
+        )
+        win_x_min = window['x_min']
+        win_x_max = window['x_max']
+        win_y_min = window['y_min']
+        win_y_max = window['y_max']
+        r_win = window['radius']
+        import math
+        pts_window = []
+        # 右下角
+        cx, cy = win_x_max - r_win, win_y_min + r_win
+        for ang in range(270, 361, 5):
+            rad = math.radians(ang)
+            pts_window.append((cx + r_win * math.cos(rad), cy + r_win * math.sin(rad)))
+        # 右上角
+        cx, cy = win_x_max - r_win, win_y_max - r_win
+        for ang in range(0, 91, 5):
+            rad = math.radians(ang)
+            pts_window.append((cx + r_win * math.cos(rad), cy + r_win * math.sin(rad)))
+        # 左上角
+        cx, cy = win_x_min + r_win, win_y_max - r_win
+        for ang in range(90, 181, 5):
+            rad = math.radians(ang)
+            pts_window.append((cx + r_win * math.cos(rad), cy + r_win * math.sin(rad)))
+        # 左下角
+        cx, cy = win_x_min + r_win, win_y_min + r_win
+        for ang in range(180, 271, 5):
+            rad = math.radians(ang)
+            pts_window.append((cx + r_win * math.cos(rad), cy + r_win * math.sin(rad)))
+
+        scene.add_polyline(pts_window, layer='CUTTING', closed=True)
+        # ========================================
+
+
+    if indicator_hole is not None:
+        hw, hh = indicator_hole
+        hole_offset = Vec2(*(door_indicator_offset or (0.0, 0.0)))
+        cx_hole = fl_n + (new_W_dxf - fl_n - fr_n) / 2.0 + hole_offset.x
+        # 先計算預設的垂直置中位置，再套用使用者偏移。
+        cy_hole = fb_n + (new_H_dxf - fb_n - ft_n) / 2.0 + hole_offset.y
+
+        # 找出名牌孔（小圓孔 R<=2）的最大 Y，確保開孔頂端至少留 20mm
+        nameplate_y_max = None
+        for primitive in scene.primitives:
+            if isinstance(primitive, CirclePrimitive) and primitive.radius <= 2.0:
+                ccy = primitive.center.y
+                if nameplate_y_max is None or ccy > nameplate_y_max:
+                    nameplate_y_max = ccy
+        if nameplate_y_max is not None:
+            clearance = 20.0
+            hole_top = cy_hole + hh / 2.0
+            if hole_top > nameplate_y_max - clearance:
+                # 向下移動使頂端不超過名牌孔下方 20mm
+                cy_hole = nameplate_y_max - clearance - hh / 2.0
+
+        pts_hole = [
+            (cx_hole - hw/2.0, cy_hole - hh/2.0),
+            (cx_hole + hw/2.0, cy_hole - hh/2.0),
+            (cx_hole + hw/2.0, cy_hole + hh/2.0),
+            (cx_hole - hw/2.0, cy_hole + hh/2.0)
+        ]
+        scene.add_polyline(pts_hole, layer='CUTTING', closed=True)
+
+    if door_indicator is not None:
+        layer_groups = tuple(int(v) for v in door_indicator)
+        finished_width_n = new_W_dxf - fl_n - fr_n
+        finished_height_n = new_H_dxf - fb_n - ft_n
+        base_context = DoorIndicatorContext(
+            finished_width=finished_width_n,
+            finished_height=finished_height_n,
+            left_fold=fl_n,
+            bottom_fold=fb_n,
+        )
+        center = base_context.group_center(layer_groups) + Vec2(*(door_indicator_offset or (0.0, 0.0)))
+        indicator_context = DoorIndicatorContext(
+            finished_width=finished_width_n,
+            finished_height=finished_height_n,
+            left_fold=fl_n,
+            bottom_fold=fb_n,
+            center_override=center,
+        )
+        indicator_layout = resolve_door_indicator_layout(indicator_context, layer_groups)
+
+        # Preserve legacy nameplate avoidance, but use the resolved interaction envelope.
+        nameplate_y_max = None
+        for primitive in scene.primitives:
+            if isinstance(primitive, CirclePrimitive) and primitive.radius <= 2.0:
+                ccy = primitive.center.y
+                if nameplate_y_max is None or ccy > nameplate_y_max:
+                    nameplate_y_max = ccy
+        if nameplate_y_max is not None:
+            clearance = 20.0
+            allowed_top = nameplate_y_max - clearance
+            if indicator_layout.interaction_bounds.max_y > allowed_top:
+                shift_y = allowed_top - indicator_layout.interaction_bounds.max_y
+                center = Vec2(center.x, center.y + shift_y)
+                indicator_context = DoorIndicatorContext(
+                    finished_width=finished_width_n,
+                    finished_height=finished_height_n,
+                    left_fold=fl_n,
+                    bottom_fold=fb_n,
+                    center_override=center,
+                )
+                indicator_layout = resolve_door_indicator_layout(indicator_context, layer_groups)
+
+        metadata['door_indicator_layout'] = indicator_layout
+        for feature in indicator_layout.features:
+            scene.add_circle(feature.center, feature.radius, layer=feature.layer)
+            if feature.add_centerline:
+                scene.add_line(
+                    (feature.center.x - feature.radius, feature.center.y),
+                    (feature.center.x + feature.radius, feature.center.y),
+                    layer=feature.layer,
+                )
+
+    return SceneData(scene=scene, params=params, metadata=metadata)
