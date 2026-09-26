@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "737",
   "branch": "governance/issue737-remote-guard-authority-handoff",
-  "head_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
+  "head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
   "state": "RUNNING",
-  "next_action": "Create delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at exact H0 641639ff..., then use trusted Remote Guard commit for the exact workflow+regression patch, reconcile H0->H1 via its durable receipt, and PR that recovery branch to main.",
+  "next_action": "Create guarded PR from delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at accepted head 535ae416... to current main; validate/read back CI and merge; then fresh-read trusted main and run interactive takeover smoke.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,10 @@
     "Focused GREEN: issue737 + issue722 + issue540 Remote Guard regressions = 11 passed / 0 failed in 0.51s.",
     "git diff --check GREEN.",
     "Recovery routing: original local-Guarded H1 cannot be canonically reconciled until #686 deploys; use delegated r2 from exact H0 with trusted Remote Guard commit.",
-    "Do not mutate or PR the unreconciled original branch fdc5a91f...; preserve it as evidence only."
+    "Do not mutate or PR the unreconciled original branch fdc5a91f...; preserve it as evidence only.",
+    "Remote commit Guard run 36253759426 authorized exact two-file r2 mutation.",
+    "Accepted r2 H1 535ae4160e6937bccc85aa73402c3f5efafc11b4 with 11/11 focused regressions GREEN.",
+    "Post-commit reconciliation Guard run 36253985900 authorized atomic claim+checkpoint HEAD reconciliation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
