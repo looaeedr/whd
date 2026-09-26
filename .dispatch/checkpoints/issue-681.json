@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "681",
   "branch": "work/issue681-poweroff-gate-core-20260926",
-  "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+  "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
   "state": "RUNNING",
-  "next_action": "Guard commit of tools/workstation_poweroff_gate.py + focused regression + authority map writeback; push exact head and run remote QA/PR checks.",
+  "next_action": "Open PR for exact head, monitor remote QA to terminal, then integrate and complete WI-3 closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "All 28 failures were intended requirement RED because canonical owner tools/workstation_poweroff_gate.py is missing.",
     "WI-3 focused acceptance: tests/process/test_issue681_poweroff_gate.py = 32 passed.",
     "Authority/governance acceptance: 16 related tests passed; combined local suite = 48 passed / 0 failed.",
-    "git diff --check GREEN; evaluator remains side-effect-free and authority map now declares workstation-poweroff-safety CURRENT owner."
+    "git diff --check GREEN; evaluator remains side-effect-free and authority map now declares workstation-poweroff-safety CURRENT owner.",
+    "Implementation commit 05f2d61db443973945ff014fb710644f79224dfb pushed to work/issue681-poweroff-gate-core-20260926.",
+    "Changed files: tools/workstation_poweroff_gate.py; tests/process/test_issue681_poweroff_gate.py; canonical authority map writeback."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
