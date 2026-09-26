@@ -9,19 +9,19 @@
   "work_branch": "governance/issue739-pr-write-auto-consume-20260926",
   "claimed_at": "2026-09-26T15:46:10Z",
   "base_sha": "0d8a36b686630e00284a67465da82b1401231254",
-  "head_sha": "2e8fd112fc658ed0bda0d04eabc289faf5a75a67",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T17:22:20Z",
+  "head_sha": "5d567ddbf067c0b2e76cbc5a6a54ab59bb3602a1",
+  "phase": "RED",
+  "last_update": "2026-09-26T17:36:10Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36258017721,
-    "head_sha": "86e8786900c04ce9cdf622fe2babe509216bc403",
+    "run_id": 36259517323,
+    "head_sha": "5d567ddbf067c0b2e76cbc5a6a54ab59bb3602a1",
     "status": "completed",
-    "conclusion": "success"
+    "conclusion": "failure_expected_red"
   },
-  "next_action": "Fresh-read PR #750 mergeability; obtain fresh pr-write Guard for exact repaired head; merge to main; verify deployed #739 live readback; then finish #739 and resume #733 release.",
+  "next_action": "Implement exact coordination action=write durable-readback builder plus trusted Remote Guard wiring; run focused/protected QA to GREEN; deploy to main; resume #733 final atomic CLOSED+RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-739.json",
   "evidence": [
@@ -45,6 +45,11 @@
     "First two-parent sync c36d2ff775b9e3f0558e560bb7e793724c0d5fa0 used the old work tree and therefore reverted eight non-#739 current-main artifacts; reconciliation run 36258470089 correctly failed closed. Reactivate only to enter explicit RECOVERING state before guarded repair.",
     "Eight non-#739 main artifacts restored exactly at repair commit 2e8fd112fc658ed0bda0d04eabc289faf5a75a67.",
     "main→work audit after repair: behind_by=0 and exactly six intended #739 files remain.",
-    "Repair-head reconciliation Guard 36258753951 GREEN / result 5848274056."
+    "Repair-head reconciliation Guard 36258753951 GREEN / result 5848274056.",
+    "Scope amendment WHD_SCOPE_AMENDMENT_WRITE_DURABLE_READBACK_V1 comment 5848337011.",
+    "First live post-#750 Guard 36259341045 GREEN proves deployed pr-write durable readback consumed prior pr-write transaction without reactivate/TTL.",
+    "Write-readback RED commit 5d567ddbf067c0b2e76cbc5a6a54ab59bb3602a1 under Guard 36259341045.",
+    "RED QA 36259517323: focused write durable-readback FAIL as expected; protected #739/#643/#731 regressions GREEN.",
+    "Post-RED reconciliation Guard 36259555108 GREEN / result 5848369102."
   ]
 }
