@@ -3,8 +3,8 @@
   "issue": "753",
   "branch": "governance/issue753-batch-main-x-parity-20260927",
   "head_sha": "87b3cd48893781eb863201145f802694a5def9fe",
-  "state": "RUNNING",
-  "next_action": "Obtain exact pr-write Guard for helper HEAD 87b3cd48893781eb863201145f802694a5def9fe, create PR to cleanup/2d-3d-sync, verify exact durable PR readback, then merge non-force and fresh-read production parity.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36259672018,
   "job_id": null,
   "log_cursor": null,
@@ -19,13 +19,18 @@
     "Focused QA run 36259672018 SUCCESS: 44 passed / 0 failed.",
     "#751 main drift classified compatible-equivalent because X is the source of claim-handoff parity.",
     "Temporary QA workflow removed at cleanup HEAD 87b3cd48893781eb863201145f802694a5def9fe under Guard run 36259827162.",
-    "Production X unchanged at 79efd748107db7578105fd0ca920f2436a3ff67a; helper remains direct descendant and PR-ready."
+    "Production X unchanged at 79efd748107db7578105fd0ca920f2436a3ff67a; helper remains direct descendant and PR-ready.",
+    "PR #754 merged into cleanup/2d-3d-sync: merge commit e82261e705ac97dc4ce2f7e6ff199405647710b4.",
+    "Batch acceptance comment 5848442813 result=ACCEPTED.",
+    "Focused QA run 36259672018: 44 PASS / 0 FAIL.",
+    "Fresh production readback cleanup/2d-3d-sync=e82261e705ac97dc4ce2f7e6ff199405647710b4; trusted main=4355938c49e5feec0961fb0e4073d7aa101b2396.",
+    "Terminal closure owner #753; after CLOSED+RELEASED resume parent #692."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "692",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "692",
+  "chain_next_action": "Resume #692 live main↔cleanup governance parity acceptance after #753 is closed/completed and claim RELEASED.",
+  "chain_reason": "Single batch helper #753 completed accepted production parity propagation; parent #692 remains open for final live parity acceptance.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof for #753, close/read back Issue #753, then atomically persist RELEASE_HANDOFF_PENDING and final CLOSED + RELEASED."
 }

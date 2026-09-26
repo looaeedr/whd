@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T13:30:00Z",
   "base_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
   "head_sha": "87b3cd48893781eb863201145f802694a5def9fe",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T17:41:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T17:46:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "success",
     "cleanup_head_sha": "87b3cd48893781eb863201145f802694a5def9fe"
   },
-  "next_action": "Obtain exact pr-write Guard for helper HEAD 87b3cd48893781eb863201145f802694a5def9fe, create PR to cleanup/2d-3d-sync, verify exact durable PR readback, then merge non-force and fresh-read production parity.",
+  "next_action": "Run trusted Remote Finalization for exact #753 terminal checkpoint, close/read back #753, then atomically persist CLOSED + RELEASED and resume parent #692 live parity acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-753.json",
   "evidence": [
@@ -38,6 +38,10 @@
     "main advanced to 4355938c49e5feec0961fb0e4073d7aa101b2396 with #751 claim-handoff parity; #751 is reverse X→main deployment and X already contains compatible claim-handoff identity fields, classified COMPATIBLE_EQUIVALENT_SOURCE_X.",
     "Temporary QA workflow deletion Guard GREEN run 36259827162 / result 5848402617.",
     "Cleanup commit 87b3cd48893781eb863201145f802694a5def9fe removes only .github/workflows/qa-issue753-batch-parity.yml; accepted batch files unchanged.",
-    "Fresh production readback: cleanup/2d-3d-sync remains 79efd748107db7578105fd0ca920f2436a3ff67a; trusted main remains 4355938c49e5feec0961fb0e4073d7aa101b2396."
+    "Fresh production readback: cleanup/2d-3d-sync remains 79efd748107db7578105fd0ca920f2436a3ff67a; trusted main remains 4355938c49e5feec0961fb0e4073d7aa101b2396.",
+    "PR #754 merged to cleanup/2d-3d-sync at e82261e705ac97dc4ce2f7e6ff199405647710b4; merged_at=2026-09-26T17:43:31Z.",
+    "WHD_BATCH_PARITY_ACCEPTANCE_V1 comment 5848442813: ACCEPTED; focused QA run 36259672018 = 44 PASS / 0 FAIL.",
+    "Fresh production readback cleanup/2d-3d-sync=e82261e705ac97dc4ce2f7e6ff199405647710b4.",
+    "Entering canonical terminal closure transaction; parent handoff target is #692."
   ]
 }
