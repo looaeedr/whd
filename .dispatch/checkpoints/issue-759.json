@@ -25,13 +25,16 @@
     "Acceptance comment 5848747188 result=ACCEPTED.",
     "Same-head claim reactivation is intentional identity rotation away from late duplicate pr-write receipts; checkpoint remains RUNNING with closure_state=CLOSED sentinel until terminal write.",
     "Terminalization write Guard 36262757127 GREEN.",
-    "Accepted production readback complete; entering ISSUE_CLOSE_PENDING."
+    "Accepted production readback complete; entering ISSUE_CLOSE_PENDING.",
+    "Trusted finalization 36262962436 SUCCESS.",
+    "Issue #759 read back closed/completed.",
+    "Release-handoff transition Guard 36263057913 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint, close/read back Issue #759, then advance release handoff and atomically persist CLOSED + RELEASED + successor #692."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED + successor #692 handoff."
 }
