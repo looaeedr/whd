@@ -10,7 +10,7 @@
   "claimed_at": "2026-09-26T15:46:10Z",
   "base_sha": "0d8a36b686630e00284a67465da82b1401231254",
   "head_sha": "57d8da8d95eee2062e5383496b76f6c70f546673",
-  "phase": "CLOSING",
+  "phase": "CLEANUP",
   "last_update": "2026-09-26T17:49:10Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Obtain pr-write Guard for current-main-compatible write auto-consume head, create/merge deployment PR to main, fresh-read deployment, then resume #733 final CLOSED+RELEASED.",
+  "next_action": "Persist COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1 Skill/pitfall contract on latest cleanup head, reconcile main drift, deploy to main, then prove #733 final closure auto-consumes prior write and atomically RELEASED/CLOSED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-739.json",
   "evidence": [
@@ -65,6 +65,8 @@
     "GREEN-head reconciliation canonical receipt 36260068375 / result 5848430693.",
     "Current-main-compatible two-parent sync 57d8da8d95eee2062e5383496b76f6c70f546673 parents 23801dd1e68e570054243a35c1a4f7fb9bd1f7aa + 4355938c49e5feec0961fb0e4073d7aa101b2396.",
     "main→work delta after sync is exactly tool/workflow/write regression test; temporary QA absent.",
-    "Two-parent reconciliation Guard 36260334180 GREEN / result 5848462314."
+    "Two-parent reconciliation Guard 36260334180 GREEN / result 5848462314.",
+    "Runtime cleanup closing HEAD 57d8da8d95eee2062e5383496b76f6c70f546673 preserves write auto-consume implementation and removes temporary QA.",
+    "Closing-head reconciliation Guard 36260334180 GREEN / result 5848462314."
   ]
 }
