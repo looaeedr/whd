@@ -14,7 +14,9 @@
     "Requirement Authority: #685 / approval comment 5842691532.",
     "Blocked-by #687 satisfied: #687 closed/completed and claim RELEASED.",
     "Inherited accepted work-order HEAD: fc75000d1d3115331923a1a1bc3c34f6bbdbddbc.",
-    "Runtime provenance: work2 continuation under #693 chain; active child continuation metadata intentionally omitted until terminal."
+    "Runtime provenance: work2 continuation under #693 chain; active child continuation metadata intentionally omitted until terminal.",
+    "Exact branch readback: work/issue689-takeover-substantive-action-20260926 exists at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc under Guard run 36244663372.",
+    "Authority is acquired but first substantive action remains pending; branch creation/Guard/heartbeat/progress are non-substantive."
   ],
   "master_issue": null,
   "chain_state": "NONE",

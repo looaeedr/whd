@@ -11,7 +11,7 @@
   "base_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
   "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T12:50:00Z",
+  "last_update": "2026-09-26T13:23:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,6 +24,16 @@
     "Execution intent: EXECUTE_CHAIN limited to #693 child dependency #689.",
     "Dependency readback: #687 is closed/completed and RELEASED, so #689 is the first executable child.",
     "Work-order lineage base: accepted #687 head fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; do not restart from newer production X.",
-    "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance."
-  ]
+    "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance.",
+    "Branch-create Guard GREEN run 36244663372 consumed by exact branch readback at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; branch creation does not count as substantive action."
+  ],
+  "authority_progress": {
+    "schema": "WHD_AUTHORITY_PROGRESS_V1",
+    "state": "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION",
+    "acquired_via": "fresh-create+branch-create",
+    "branch_create_guard_run_id": 36244663372,
+    "branch_create_result_comment_id": 5846582874,
+    "branch_readback_head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+    "first_substantive_action": null
+  }
 }
