@@ -19,13 +19,14 @@
     "Phase6 preflight all required skills/references GREEN.",
     "PR #767 merged to X at 90a4939328c4b863e88f9272f4dfa3d9a25743a6.",
     "Fresh production readback confirms X current HEAD includes merge.",
-    "Knowledge Governance Bootstrap run 36275676033 SUCCESS."
+    "Knowledge Governance Bootstrap run 36275676033 SUCCESS.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance exact terminal checkpoint to ISSUE_CLOSE_PENDING; then authorize and verify finalization proof before closing Issue #762."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize and verify finalization proof for exact #762 checkpoint, close Issue #762, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING."
 }
