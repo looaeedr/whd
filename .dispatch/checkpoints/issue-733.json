@@ -22,13 +22,16 @@
     "All audited batch parity artifacts read back present.",
     "Terminalization authorized by Remote Guard run 36254383872 / result 5847753926 after production merge/readback.",
     "Malformed terminal checkpoint repaired by trusted terminal-checkpoint-repair activation commit 4e497fcb5dd419496a5d11226e073c240353eab3.",
-    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36256476555 / result 5848005557."
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36256476555 / result 5848005557.",
+    "Remote Finalization proof run 36256554140 SUCCESS for exact ISSUE_CLOSE_PENDING checkpoint.",
+    "Issue #733 fresh-read closed/completed after proof.",
+    "Production write durable-readback live proof: Guard 36261716152 GREEN on main@f19c59c2596a278f8f6bf455e079b4a3dd1c5607; prior coordination write 36256476555 auto-consumed without TTL/reactivate."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof on this exact checkpoint, close/read back Issue #733, then advance to RELEASE_HANDOFF_PENDING"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED and record #692 parity completion"
 }
