@@ -9,13 +9,13 @@
   "work_branch": "work/issue688-ticket-closure-owner-20260926",
   "claimed_at": "2026-09-26T03:57:41Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T07:08:50Z",
+  "head_sha": "d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8",
+  "phase": "RED",
+  "last_update": "2026-09-26T07:13:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "run RED-STOP-14 behavior test on the exact ticket-schema publication contract, then implement the minimum mandatory Issue Closure owner machine validation",
+  "next_action": "execute tests/process/test_issue688_ticket_closure_owner_contract.py at RED head d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8 and record intended RED-STOP-14 failure before production implementation",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-688.json",
   "stale_takeover": {
@@ -34,14 +34,21 @@
     "taken_over_at": "2026-09-26T07:08:50Z"
   },
   "last_guard": {
-    "action": "claim-takeover",
-    "run_id": 36225878825,
-    "request_comment_id": 5844148295,
-    "result_comment_id": 5844149690,
+    "action": "write",
+    "run_id": 36226128723,
+    "request_comment_id": 5844176637,
+    "result_comment_id": 5844178157,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
     "consumed": true,
-    "mutation": "CAS execution claim ownership to scheduler A lane; checkpoint/head unchanged"
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to RED head d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8"
+  },
+  "red_commit": {
+    "head_sha": "d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8",
+    "changed_file": "tests/process/test_issue688_ticket_closure_owner_contract.py",
+    "guard_run_id": 36226065907,
+    "guard_request_comment_id": 5844169680,
+    "guard_result_comment_id": 5844170739
   }
 }
