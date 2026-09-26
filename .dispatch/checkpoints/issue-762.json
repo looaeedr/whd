@@ -20,13 +20,15 @@
     "PR #767 merged to X at 90a4939328c4b863e88f9272f4dfa3d9a25743a6.",
     "Fresh production readback confirms X current HEAD includes merge.",
     "Knowledge Governance Bootstrap run 36275676033 SUCCESS.",
-    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID for exact issue/branch/head/checkpoint.",
+    "Issue #762 fresh-read closed/completed at 2026-09-26T22:21:49Z."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Authorize and verify finalization proof for exact #762 checkpoint, close Issue #762, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint closure_state=CLOSED and claim phase=RELEASED for Issue #762."
 }
