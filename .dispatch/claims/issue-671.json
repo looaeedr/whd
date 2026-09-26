@@ -11,20 +11,20 @@
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-26T00:43:42Z",
+  "last_update": "2026-09-26T01:01:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
+  "next_action": "Obtain a fresh pr-write Guard and merge PR #676 into cleanup/2d-3d-sync; fresh-read target integration, then enter #671 terminal finalization/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36203041547,
-    "request_comment_id": 5841264380,
+    "run_id": 36206936679,
+    "request_comment_id": 5841757128,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconciled tested head to cleaned head after one-shot workflow removal"
+    "mutation": "reconcile #617 terminal release + PR #676 creation readback and advance #671 to integration"
   },
   "red_evidence": {
     "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
@@ -92,6 +92,31 @@
       "pr_base": "cleanup/2d-3d-sync",
       "merge_commit_sha": "3b250e911fe728fa21507fe6b144b5add2abb7c1",
       "observed_at": "2026-09-25T18:30:30Z"
+    },
+    {
+      "guard_run_id": 36203114061,
+      "action": "pr-write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [],
+      "pr_readback": true,
+      "pr_number": 676,
+      "pr_state": "open",
+      "pr_head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
+      "pr_base": "cleanup/2d-3d-sync",
+      "observed_at": "2026-09-26T01:01:30Z"
+    },
+    {
+      "guard_run_id": 36206936679,
+      "action": "write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [
+        ".dispatch/claims/issue-671.json",
+        ".dispatch/checkpoints/issue-671.json"
+      ],
+      "target_changed": true,
+      "observed_at": "2026-09-26T01:01:30Z"
     }
   ],
   "integration": {
@@ -139,5 +164,22 @@
     "exact_remote_run_conclusion": "success",
     "evidence": "WHD_USER_DIRECTED_TAKEOVER_V1 + canonical stale evaluator + canonical claim-takeover guard GREEN",
     "taken_over_at": "2026-09-26T08:43:42+08:00"
+  },
+  "blocked_issue_release": {
+    "issue": 617,
+    "claim_phase": "RELEASED",
+    "closure_state": "CLOSED",
+    "finalization_run_id": 36206629673,
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "child_claim_blob_sha": "b86f7ad37bb892b58ca30f7988ef95fd119e44db",
+    "child_checkpoint_blob_sha": "de79ec1a805230bd93dd2d60a2b0f1b1e1f8219c"
+  },
+  "followup_pr": {
+    "number": 676,
+    "state": "open",
+    "base": "cleanup/2d-3d-sync",
+    "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
+    "mergeable": true
   }
 }

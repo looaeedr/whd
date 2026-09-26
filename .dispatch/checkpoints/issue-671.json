@@ -4,7 +4,7 @@
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "state": "RUNNING",
-  "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
+  "next_action": "Obtain a fresh pr-write Guard and merge PR #676 into cleanup/2d-3d-sync; fresh-read target integration, then enter #671 terminal finalization/closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -44,6 +44,9 @@
     "Post-commit reconciliation Guard run 36202919416 GREEN consumed to bind claim/checkpoint to exact tested HEAD.",
     "Tested-to-cleaned compare d5a749fc77ad0cb9459eef08907dc16fbcad11b4..a2c81648be02c3b4710b6a80893e9cb890c95537 shows exactly one removed file: .github/workflows/qa-issue671-legacy-checkpoint-repair.yml.",
     "Cleaned HEAD a2c81648be02c3b4710b6a80893e9cb890c95537 has no diff from implementation HEAD 417d6ea39282c570fbf161b2333f6a065e58a634.",
-    "Cleanup reconciliation Guard run 36203041547 GREEN consumed to bind claim/checkpoint to cleaned HEAD."
+    "Cleanup reconciliation Guard run 36203041547 GREEN consumed to bind claim/checkpoint to cleaned HEAD.",
+    "#617 acceptance dependency fresh-read fully terminal: Issue closed/completed, claim RELEASED, checkpoint closure_state=CLOSED; finalization run 36206629673 GREEN.",
+    "Historical pr-write run 36203114061 consumed by durable PR #676 readback: OPEN, base=cleanup/2d-3d-sync, head=a2c81648be02c3b4710b6a80893e9cb890c95537.",
+    "Guard run 36206936679 GREEN consumed to reconcile #671 durable state and advance to PR #676 integration."
   ]
 }
