@@ -1427,6 +1427,40 @@ def plan_closure_drift_repair(
     )
 
 
+def reconcile_issue_close_operation(
+    operation: OperationTransaction,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+) -> OperationTransaction:
+    """Reconcile one exact GitHub Issue-close operation from fresh Issue readback."""
+
+    if not isinstance(operation, OperationTransaction):
+        raise CheckpointError("issue close reconciliation requires OperationTransaction")
+    if operation.operation_type != "github-issue-close":
+        raise CheckpointError(
+            "issue close reconciliation requires operation_type='github-issue-close'"
+        )
+
+    state = str(issue_state or "").strip().lower()
+    reason = str(issue_state_reason or "").strip().lower()
+
+    if state == "closed" and reason == "completed":
+        return replace(operation, state=OperationState.RECONCILED)
+
+    if state == "open" and not reason:
+        if operation.state in {OperationState.PREPARED, OperationState.AUTHORIZED}:
+            return operation
+        raise CheckpointError(
+            "ISSUE_CLOSE_READBACK_AMBIGUOUS: open Issue conflicts with observed close effect"
+        )
+
+    raise CheckpointError(
+        "ISSUE_CLOSE_READBACK_AMBIGUOUS: "
+        f"state={issue_state!r} state_reason={issue_state_reason!r}"
+    )
+
+
 def assert_turn_exitable(
     checkpoint: Checkpoint,
     *,
@@ -1437,6 +1471,16 @@ def assert_turn_exitable(
     authority_progress: object | None = None,
 ) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
+
+    if (
+        checkpoint.operation is not None
+        and checkpoint.operation.state in UNRESOLVED_OPERATION_STATES
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: UNRESOLVED_OPERATION "
+            f"operation_id={checkpoint.operation.operation_id!r} "
+            f"state={checkpoint.operation.state.value!r}"
+        )
 
     normalized_authority = _normalize_authority_progress(authority_progress)
     if normalized_authority is None:

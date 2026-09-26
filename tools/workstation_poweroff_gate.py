@@ -78,6 +78,12 @@ def _slot_decision(slot: dict[str, Any]) -> tuple[str, str]:
     if not bool(slot.get("checkpoint_head_matches_remote", False)):
         return "NOT_SAFE", "CHECKPOINT_HEAD_MISMATCH"
 
+    operation_state = _text(slot.get("operation_state"))
+    if operation_state in {"PREPARED", "AUTHORIZED", "EFFECT_OBSERVED", "AMBIGUOUS"}:
+        return "NOT_SAFE", "UNRESOLVED_OPERATION"
+    if operation_state and operation_state not in {"NOT_STARTED", "RECONCILED"}:
+        return "ERROR", "OPERATION_STATE_UNKNOWN"
+
     guard = _text(slot.get("guard_transaction"))
     if guard == "PENDING":
         return "NOT_SAFE", "PENDING_GUARD_TRANSACTION"
