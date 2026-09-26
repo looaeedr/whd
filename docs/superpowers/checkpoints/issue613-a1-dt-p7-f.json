@@ -65,25 +65,94 @@
     ]
   },
   "dt_1_remove_or_inline": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "EXTRACT_REQUIRED",
+    "evidence": [
+      "Baseline _phase6_resolve_explicit_joint_reliefs is an active manufacturing-service path and cannot be deleted or inlined without collapsing distinct responsibilities.",
+      "P7-R-F intended RED run 36240254751 proved the approved bounded owner was absent on the baseline lineage."
+    ]
   },
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "DEEP_OWNER_SELECTED",
+    "owner": "phase6_explicit_joint_pipeline.py",
+    "rationale": "Explicit-joint orchestration remains inside the canonical manufacturing architecture while leaving geometry/collision truth in existing injected owners."
   },
   "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "stages": [
+      "normalize_candidate_inventory",
+      "decide_owner_registry",
+      "query_world_geometry",
+      "solve_explicit_joint_candidate",
+      "apply_resolved_cut",
+      "assemble_diagnostics_evidence",
+      "assemble_mutation_result"
+    ],
+    "contracts": [
+      "ExplicitJointPipelineOps",
+      "ExplicitJointPipelineRequest",
+      "ExplicitJointCandidateInventory",
+      "ExplicitJointOwnerDecision"
+    ],
+    "full_app_dependency": false,
+    "unrestricted_self_or_app_stage_parameter": false,
+    "reverse_import_to_phase6_manufacturing_geometry": false,
+    "reverse_import_to_fold_designer_bridge": false
   },
   "dt_4_variant_k": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "RED",
+    "evidence": {
+      "run_id": 36240254751,
+      "head_sha": "6357af54c588e2d3c1fa57254050072311fc530a",
+      "summary": "3 failed in 2.16s because the approved bounded phase6_explicit_joint_pipeline owner did not exist."
+    }
   },
   "dt_5_variant_e": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "EXTRACT_TO_DEEP_OWNER",
+    "result": "GREEN",
+    "implementation_head": "c295ad64e5c3fb3b75f1776dca452ce89de5e9ef",
+    "focused_run": {
+      "run_id": 36241015388,
+      "result": "GREEN",
+      "summary": "3 passed in 3.04s"
+    },
+    "broader_run": {
+      "run_id": 36241909307,
+      "result": "GREEN",
+      "summary": "111 passed, 2 warnings in 7.95s",
+      "scope": "manufacturing/collision/backprojection/API/resolved export/DXF acceptance"
+    }
   },
   "dt_6_decision": {
-    "status": "PENDING",
+    "status": "COMPLETE",
     "allowed_decisions": [
+      "KEEP_CURRENT_BOUNDARY",
       "DEEPEN_EXISTING_OWNER",
-      "KEEP_CURRENT_BOUNDARY"
-    ]
+      "EXTRACT_TO_DEEP_OWNER",
+      "ADD_BOUNDED_APPLICATION_COORDINATOR",
+      "SPEC_BLOCKED"
+    ],
+    "decision": "EXTRACT_TO_DEEP_OWNER",
+    "result": "ACCEPTED",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue623-a6-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "phase6_manufacturing_geometry.py::_phase6_resolve_explicit_joint_reliefs — thin compatibility/manufacturing facade",
+    "phase6_explicit_joint_pipeline.py — bounded explicit-joint orchestration owner",
+    "ae_engine.assembly_collision — canonical collision/backprojection solver truth",
+    "phase6_manufacturing_geometry.py helpers injected through ExplicitJointPipelineOps — canonical world/cut geometry truth"
+  ],
+  "terminal_evidence": {
+    "issue": 623,
+    "implementation_head": "c295ad64e5c3fb3b75f1776dca452ce89de5e9ef",
+    "tested_head": "d843ce5c89ff0c7c36c5ed1286b77c2514730707",
+    "behavioral_closing_head": "5a22ebcda31890f6a44724566a3a53cfcb73b980",
+    "focused_run_id": 36241015388,
+    "broader_run_id": 36241909307,
+    "tested_to_closing_drift": "PASS_WORKFLOW_DELETION_ONLY"
   }
 }

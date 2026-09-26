@@ -1,0 +1,132 @@
+{
+  "schema": "WHD_PHASE7_TARGET_COMPLETION_V1",
+  "issue": 623,
+  "master_issue": 627,
+  "target_id": "P7-F",
+  "target": "P7-F",
+  "task_id": "A6",
+  "result": "ACCEPTED",
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "implementation_head": "c295ad64e5c3fb3b75f1776dca452ce89de5e9ef",
+  "tested_head": "d843ce5c89ff0c7c36c5ed1286b77c2514730707",
+  "closing_head": "5a22ebcda31890f6a44724566a3a53cfcb73b980",
+  "canonical_dt_artifact": "docs/superpowers/checkpoints/issue613-a1-dt-p7-f.json",
+  "dt_decision": "EXTRACT_TO_DEEP_OWNER",
+  "responsibilities_before": [
+    "One ~494-line _phase6_resolve_explicit_joint_reliefs body owned candidate inventory, ownership/registry decisions, world queries, piece/generic solving, cut application, diagnostics/evidence, and mutation result assembly."
+  ],
+  "responsibilities_after": [
+    "normalize/candidate inventory",
+    "registry-owner decision",
+    "world geometry query",
+    "explicit-joint solve",
+    "resolved-cut apply",
+    "diagnostics/evidence assembly",
+    "mutation result assembly"
+  ],
+  "old_implementation_removed": true,
+  "compatibility_entries": {
+    "public_required": [
+      "phase6_manufacturing_geometry.py::_phase6_resolve_explicit_joint_reliefs thin facade"
+    ],
+    "legacy_required": [],
+    "internal_only": [
+      "phase6_explicit_joint_pipeline.py internal piece-side-wrap and generic-joint solver helpers"
+    ],
+    "no_caller_removed": [],
+    "superseded_removed": [
+      "monolithic ~494-line _phase6_resolve_explicit_joint_reliefs implementation body"
+    ]
+  },
+  "structural": {
+    "reverse_import": 0,
+    "duplicate_path": 0,
+    "duplicate_owner": 0,
+    "second_composition_root": 0,
+    "full_app_dependency": false,
+    "stage_count": 7,
+    "stage_names": [
+      "normalize_candidate_inventory",
+      "decide_owner_registry",
+      "query_world_geometry",
+      "solve_explicit_joint_candidate",
+      "apply_resolved_cut",
+      "assemble_diagnostics_evidence",
+      "assemble_mutation_result"
+    ],
+    "unrestricted_self_or_app_stage_parameter": false
+  },
+  "invariants": {
+    "reverse_import": 0,
+    "duplicate_owner_path": 0,
+    "second_composition_root": 0,
+    "full_app_dependency": false
+  },
+  "locality": {
+    "improved": true,
+    "facade_role": "thin orchestration/compatibility entrypoint",
+    "deep_owner": "phase6_explicit_joint_pipeline.py",
+    "deep_owner_total_lines": 854,
+    "largest_specialized_solver_spans": {
+      "piece_side_wrap": 284,
+      "generic_joint": 229
+    },
+    "top_level_resolve_span": 42,
+    "verdict": "PASS_RESPONSIBILITY_LOCALITY_IMPROVED_NOT_LOC_GAMING",
+    "evidence": "The new file is not accepted for LOC reduction; acceptance is based on seven bounded stages, thin facade, explicit Ops ports, no full-app dependency, zero reverse imports, and preserved single collision/geometry truth."
+  },
+  "tests": {
+    "focused": {
+      "status": "GREEN",
+      "run_id": 36241015388,
+      "job_id": 108401395307,
+      "head_sha": "c295ad64e5c3fb3b75f1776dca452ce89de5e9ef",
+      "summary": "3 passed in 3.04s"
+    },
+    "xvfb": {
+      "status": "GREEN",
+      "run_id": 36241909307,
+      "head_sha": "d843ce5c89ff0c7c36c5ed1286b77c2514730707",
+      "summary": "Broader acceptance executed under xvfb-run."
+    },
+    "physical_dxf": {
+      "status": "GREEN",
+      "run_id": 36241909307,
+      "summary": "DXF acceptance, multipart DXF acceptance, receiving-door DXF round-trip, resolved export, manufacturing and collision suites included in 111-pass run."
+    },
+    "save_reload": {
+      "status": "NOT_AFFECTED",
+      "reason": "A6 changes manufacturing pipeline ownership only; project persistence/save-reload ownership and formats are unchanged."
+    },
+    "broader": {
+      "status": "GREEN",
+      "run_id": 36241909307,
+      "job_id": 108403896927,
+      "summary": "111 passed, 2 warnings in 7.95s"
+    }
+  },
+  "drift_audit": {
+    "tested_head": "d843ce5c89ff0c7c36c5ed1286b77c2514730707",
+    "closing_head": "5a22ebcda31890f6a44724566a3a53cfcb73b980",
+    "ahead_by": 1,
+    "behind_by": 0,
+    "files": [
+      {
+        "path": ".github/workflows/qa-issue623-a6-broader-regression.yml",
+        "status": "removed"
+      },
+      {
+        "path": ".github/workflows/qa-issue623-a6-explicit-joint-pipeline.yml",
+        "status": "removed"
+      }
+    ],
+    "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+  },
+  "terminal_predicates": {
+    "dt_0_through_dt_6_complete": true,
+    "structural_counts_zero": true,
+    "affected_acceptance_green": true,
+    "old_implementation_removed_or_downgraded": true
+  },
+  "next_action": "terminal checkpoint and finalization proof"
+}
