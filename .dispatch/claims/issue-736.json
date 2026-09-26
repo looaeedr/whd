@@ -9,19 +9,19 @@
   "work_branch": "governance/issue736-main-x-batch-first-20260926",
   "claimed_at": "2026-09-26T15:28:00Z",
   "base_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
-  "head_sha": "11eb3150aacb284232b1a655e7742298f6389468",
-  "phase": "RED",
-  "last_update": "2026-09-26T15:31:20Z",
+  "head_sha": "2cb70120c4a180e49bbbf49f5f126dce32c0b99d",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T15:34:30Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36252184803,
-    "head_sha": "11eb3150aacb284232b1a655e7742298f6389468",
+    "run_id": 36252372110,
+    "head_sha": "2cb70120c4a180e49bbbf49f5f126dce32c0b99d",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "Implement MAIN_TO_X_BATCH_FIRST_PARITY_V1 in 派工 Skill, X governance spec and execution-claim pitfall; rerun focused #736 + #643 to GREEN.",
+  "next_action": "Open guarded PR from governance/issue736-main-x-batch-first-20260926 to main, merge non-force after readback, then verify MAIN_TO_X_BATCH_FIRST_PARITY_V1 on main and hand off to #692 batch audit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-736.json",
   "evidence": [
@@ -33,6 +33,9 @@
     "Branch-create Guard GREEN run 36252077244 auto-consumed by exact live branch readback; no reactivate required.",
     "RED commit 11eb3150aacb284232b1a655e7742298f6389468 under Guard run 36252116534.",
     "Focused RED run 36252184803 completed failure as expected.",
-    "Post-RED reconciliation Guard GREEN run 36252214489 / result comment 5847494155."
+    "Post-RED reconciliation Guard GREEN run 36252214489 / result comment 5847494155.",
+    "Implementation commit 2cb70120c4a180e49bbbf49f5f126dce32c0b99d under Guard run 36252297224.",
+    "Focused GREEN run 36252372110 completed success (#736 + #643).",
+    "Post-implementation reconciliation Guard GREEN run 36252399708 / result comment 5847516113."
   ]
 }
