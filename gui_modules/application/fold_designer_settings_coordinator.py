@@ -327,6 +327,7 @@ class Phase6FoldDesignerSettingsCoordinator:
                 self._ports.apply_profile_plan(
                     committed,
                     reset_box_profile=True,
+                    render=False,
                 )
 
         self._ports.project_ui_values(
