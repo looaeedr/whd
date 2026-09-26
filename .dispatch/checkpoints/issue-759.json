@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "759",
   "branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
-  "head_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
+  "head_sha": "008c47ef3d49340539bf5907049316f2c33b8288",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard, create exact branch from current cleanup, apply the bounded four-file #757 parity patch, run focused Remote Guard regressions, integrate to cleanup, close/release #759, then resume #692 final parity acceptance.",
+  "next_action": "Add temporary focused QA workflow for #759, assert exactly two subprocess/urllib imports, run #739 write/pr-write and protected #643/#731 regressions, then remove QA workflow and integrate exact closing head to cleanup/2d-3d-sync.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Parent #692 live parity acceptance.",
     "Exact X base 15ebde03c86d01c0f8f6e6b70479a957ec22ac5f.",
     "Trusted observation authority main f19c59c2596a278f8f6bf455e079b4a3dd1c5607.",
-    "Scope exactly four #757 parity files; preserve X-specific governance additions."
+    "Scope exactly four #757 parity files; preserve X-specific governance additions.",
+    "Selective #757 parity HEAD 008c47ef3d49340539bf5907049316f2c33b8288 under Guard 36262049939.",
+    "No automatic CI run exists for this HEAD; focused temporary QA required."
   ],
   "master_issue": null,
   "chain_state": "NONE",

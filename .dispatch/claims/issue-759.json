@@ -9,14 +9,14 @@
   "work_branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
   "claimed_at": "2026-09-26T18:14:00Z",
   "base_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
-  "head_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T18:14:00Z",
+  "head_sha": "008c47ef3d49340539bf5907049316f2c33b8288",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T18:19:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain branch-create Guard, create exact branch from current cleanup, apply the bounded four-file #757 parity patch, run focused Remote Guard regressions, integrate to cleanup, close/release #759, then resume #692 final parity acceptance.",
+  "next_action": "Add temporary focused QA workflow for #759, assert exactly two subprocess/urllib imports, run #739 write/pr-write and protected #643/#731 regressions, then remove QA workflow and integrate exact closing head to cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-759.json",
   "evidence": [
@@ -25,6 +25,10 @@
     "Post-#756 trusted drift: main=f19c59c2596a278f8f6bf455e079b4a3dd1c5607; production X=15ebde03c86d01c0f8f6e6b70479a957ec22ac5f.",
     "Exact live census: X has only one import subprocess + one import urllib.parse in trusted Remote Guard while main has two of each.",
     "Exact live census: X lacks COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1 blocks in remote-execution-guard Skill, 派工 Skill, and execution_claim_hard_gate_pitfall.md.",
-    "This helper is one bounded final post-drift batch for #757 only; no blind main merge and no frozen #692 backmerge."
+    "This helper is one bounded final post-drift batch for #757 only; no blind main merge and no frozen #692 backmerge.",
+    "Branch-create Guard 36261986123 GREEN / result 5848669657; branch created exact from production X 15ebde03c86d01c0f8f6e6b70479a957ec22ac5f.",
+    "Four-file commit Guard 36262049939 GREEN / result 5848675747.",
+    "Selective #757 parity commit 008c47ef3d49340539bf5907049316f2c33b8288; Remote Guard now contains 2x import subprocess + 2x import urllib.parse and three authority blocks are present.",
+    "No automatic workflow runs exist for 008c47ef3d49340539bf5907049316f2c33b8288; temporary focused QA required."
   ]
 }
