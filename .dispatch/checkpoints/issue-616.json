@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "616",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "c876d89f7a685be687764c9d8ee9d994a121a583",
-  "state": "RUNNING",
-  "next_action": "Move the #616 diagnostic recorder to the exact Phase6FinalSceneRenderer requested_draw visible-commit seam so every visible commit is recorded, preserving transition-stage tracking and without changing family-switch behavior; then rerun the exact Xvfb diagnostic.",
-  "run_id": null,
+  "head_sha": "5a26755432ec99ad6aa9f3f9543a646f1af4c8f2",
+  "state": "WAITING_REMOTE",
+  "next_action": "Lock exact GitHub Actions run 36203907306 at head_sha 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2 to terminal; consume the durable diagnostic artifact on success to identify the first invalid visible commit, otherwise classify the exact failed assertion before any further instrumentation change.",
+  "run_id": 36203907306,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -25,7 +25,10 @@
     "Post-commit pair reconciliation authorized by Remote Guard run 36203570828.",
     "Exact UI-R3 run 36203544143 locked at c876d89f7a685be687764c9d8ee9d994a121a583.",
     "Run 36203544143 terminal FAILURE: ordered records now exist, but no invalid intermediate commit was observed; authoritative requested_draw seam is not fully covered by adapter-level recorder.",
-    "Remote Guard run 36203670469 GREEN authorizes terminal classification and RUNNING handoff to deeper requested_draw instrumentation."
+    "Remote Guard run 36203670469 GREEN authorizes terminal classification and RUNNING handoff to deeper requested_draw instrumentation.",
+    "Exact requested_draw instrumentation commit 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2 is the current work HEAD.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36203922233.",
+    "Exact UI-R3 run 36203907306 locked at 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
