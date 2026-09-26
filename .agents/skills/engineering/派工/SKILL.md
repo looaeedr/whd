@@ -10,6 +10,16 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
+
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
