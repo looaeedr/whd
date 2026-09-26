@@ -10,12 +10,29 @@
   "claimed_at": "2026-09-26T06:47:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T06:47:00Z",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-26T07:00:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "create guarded work branch, run RED-STOP-16 contract test, then implement the canonical startup Authorization/Purpose entry contract",
+  "next_action": "duplicate publication repair: terminalize #705 without implementation, close as duplicate of #696, atomically release claim/checkpoint",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-705.json"
+  "checkpoint": ".dispatch/checkpoints/issue-705.json",
+  "last_guard": {
+    "action": "branch-create",
+    "run_id": 36225131683,
+    "request_comment_id": 5844062252,
+    "result_comment_id": 5844063285,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+    "consumed": true,
+    "mutation": "duplicate branch created at H0; no implementation commit; cleanup/release only"
+  },
+  "duplicate_repair": {
+    "canonical_issue": 696,
+    "duplicate_issue": 705,
+    "classification": "DUPLICATE_PUBLICATION",
+    "implementation_prohibited": true
+  }
 }
