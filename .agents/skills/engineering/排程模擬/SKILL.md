@@ -9,6 +9,23 @@ whd_schema: WHD_DOC_META_V1
 
 # 排程模擬
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+本 Skill 是明確 execution entrypoint：`/排程A` / `/排程B` = `SCHEDULER_LANE`。只有使用者輸入 exact command 才進此模式；普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式。
+
+### NORMAL_PATH_FIRST
+
+取得/恢復 lane authority 後，先沿 current exact next_action 的 normal path。若沒有 drift、pending receipt、foreign-live owner 或 half-terminal evidence，就不得先跑 takeover/reactivate/reconciliation。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+takeover、reconciliation、pending-Guard recovery 只在 fresh machine evidence 證明對應條件時啟動；condition 清掉後立即回 normal path。不能因 Skill「支援 recovery」就每輪預跑 recovery。
+
+### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
+
+scheduler lane / work slot 是 routing 與互斥 identity，不是 execution authority。空工作槽、open / unblocked Issue 本身不構成 execution authority；本 Skill 只有在 exact `/排程A` / `/排程B` 已建立 `SCHEDULER_LANE` mode 後，才可依 canonical discovery 選 executable leaf。
+
+
 這個 Skill 只處理 WHD A/B recurring lane 的**互動式接手與續跑**。它不是第三條 scheduler lane，也不是新的派工 authority。
 
 ## 0. Trigger
