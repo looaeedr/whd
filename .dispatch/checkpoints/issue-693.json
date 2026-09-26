@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "693",
   "branch": "work/issue693-combined-acceptance-20260926",
-  "head_sha": "226a081a7630a34375daa3d4a6047211a6ce6ae9",
+  "head_sha": "64a64d4a0ee8adae81396eaef52c16db97b57d4f",
   "state": "RUNNING",
-  "next_action": "Merge current cleanup/2d-3d-sync into #693 integration branch, preserve accepted child substantive deltas, resolve drift, rerun combined acceptance/regressions, complete all 17 required writeback targets/readback, then deploy/finalize/close/release.",
+  "next_action": "Complete #693 required 17-target durable writeback/readback (actual update or explicit no-change reason), run full combined acceptance including tests/process and required RED/REG contracts, then create/merge integration PR to cleanup, verify production↔trusted parity, remove obsolete temporary QA artifacts in #693 scope, and close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,9 @@
     "Resume reconstructed from GitHub durable state only.",
     "All six declared child blockers are terminal; stale #687 closure next_action superseded by Combined Acceptance.",
     "Combined child integration commit 226a081a7630a34375daa3d4a6047211a6ce6ae9.",
-    "Pre-commit combined acceptance 77 passed / 0 failed; temporary child QA workflows excluded."
+    "Pre-commit combined acceptance 77 passed / 0 failed; temporary child QA workflows excluded.",
+    "Post-drift merge commit 64a64d4a0ee8adae81396eaef52c16db97b57d4f.",
+    "Post-drift focused acceptance 91 passed / 0 failed; current-cleanup net delta remains 13 accepted substantive files."
   ],
   "master_issue": null,
   "chain_state": "NONE",
