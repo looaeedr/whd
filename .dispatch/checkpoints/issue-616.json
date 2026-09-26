@@ -3,9 +3,9 @@
   "issue": "616",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "5a26755432ec99ad6aa9f3f9543a646f1af4c8f2",
-  "state": "WAITING_REMOTE",
-  "next_action": "Lock exact GitHub Actions run 36203907306 at head_sha 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2 to terminal; consume the durable diagnostic artifact on success to identify the first invalid visible commit, otherwise classify the exact failed assertion before any further instrumentation change.",
-  "run_id": 36203907306,
+  "state": "RUNNING",
+  "next_action": "Delete the one-shot #616 UI-R3 workflow from the work-order branch under a fresh commit Guard, then prove tested-head to cleaned-head drift is workflow deletion only; preserve the diagnostic instrumentation and test as B3 deliverables.",
+  "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -28,7 +28,10 @@
     "Remote Guard run 36203670469 GREEN authorizes terminal classification and RUNNING handoff to deeper requested_draw instrumentation.",
     "Exact requested_draw instrumentation commit 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2 is the current work HEAD.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36203922233.",
-    "Exact UI-R3 run 36203907306 locked at 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2."
+    "Exact UI-R3 run 36203907306 locked at 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2.",
+    "Run 36203907306 completed SUCCESS on exact requested_draw instrumentation head 5a26755432ec99ad6aa9f3f9543a646f1af4c8f2: 1 passed in 8.17s.",
+    "Artifact 10892687398 is the durable first-bad-visible-commit evidence for B4 consumption.",
+    "Remote Guard run 36204039251 GREEN authorizes terminal QA reconciliation and workflow-cleanup handoff."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
