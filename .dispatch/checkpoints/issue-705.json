@@ -16,13 +16,15 @@
     "Branch-create Guard run 36225131683 was consumed; duplicate branch remained at base H0 with no implementation commit.",
     "Claim Activation reactivate GREEN commit 681fe08139d5b021ab3137bd78c673085797221b reconciled #705 into cleanup-only RECOVERING state.",
     "Remote Guard run 36225501363 authorized terminal duplicate-cleanup checkpoint mutation.",
-    "Remote Guard run 36228699798 GREEN authorized FINALIZATION_PENDING → ISSUE_CLOSE_PENDING checkpoint write for duplicate closure."
+    "Remote Guard run 36228699798 GREEN authorized FINALIZATION_PENDING → ISSUE_CLOSE_PENDING checkpoint write for duplicate closure.",
+    "Trusted finalization run 36228753716 completed success with FINALIZATION_PROOF_VALID; artifact 10901517192.",
+    "GitHub Issue #705 fresh readback: state=closed, state_reason=duplicate, canonical owner remains #696."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "obtain bound trusted finalization proof for duplicate #705, close/read back as duplicate of #696, then atomically persist RELEASE_HANDOFF_PENDING → CLOSED + claim RELEASED"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint closure_state=CLOSED + shared claim phase=RELEASED for duplicate #705; no successor handoff"
 }
