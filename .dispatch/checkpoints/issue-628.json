@@ -21,10 +21,12 @@
     "Master closure-state Guard 36214199302 GREEN consumed: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Master trusted finalization run 36214266249 GREEN / FINALIZATION_PROOF_VALID; artifact 10896558145.",
     "Master #628 remote readback confirmed closed/completed at 2026-09-26T03:16:33Z.",
-    "Post-close Guard 36214317600 GREEN consumed: ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Post-close Guard 36214317600 GREEN consumed: ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard 36214370982 GREEN consumed; Master checkpoint CLOSED + claim RELEASED.",
+    "CHAIN_COMPLETE remains durable; no next child/process-state owner exists in Master #628 chain."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "obtain final release Guard; atomically persist checkpoint CLOSED + claim RELEASED",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "628",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
