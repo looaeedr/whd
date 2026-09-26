@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "751",
   "branch": "deploy/issue751-claim-handoff-main-20260927",
-  "head_sha": "0b76284e0dc8e8772e7b2e2a2a49a69ead341549",
+  "head_sha": "9d7b476e105b81711c1ac4a7440751cc96e7e1b6",
   "state": "RUNNING",
-  "next_action": "Create PR from deploy/issue751-claim-handoff-main-20260927 to main, merge after fresh pr-write Guard, fresh-read trusted-main claim-handoff parity, close/release #751, terminalize parent #680 helper reservation, then close/release #680.",
+  "next_action": "Fresh pr-write Guard at exact deploy head 9d7b476e105b81711c1ac4a7440751cc96e7e1b6, merge PR #752 to main, fresh-read claim-handoff parity, close/release #751, terminalize parent #680 helper reservation, then close/release #680.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,9 @@
     "Scope limited to #680 claim-handoff executable/parser parity required on trusted main.",
     "Bounded trusted-main deployment commit 0b76284e0dc8e8772e7b2e2a2a49a69ead341549.",
     "Focused trusted-main claim-handoff acceptance: 2 passed / 0 failed.",
-    "Reactivate used only to atomically advance unchanged active owner/branch from main base H0 to existing deploy H1 after local-Guard commit."
+    "Reactivate used only to atomically advance unchanged active owner/branch from main base H0 to existing deploy H1 after local-Guard commit.",
+    "Deploy branch synchronized with current main via merge commit 9d7b476e105b81711c1ac4a7440751cc96e7e1b6.",
+    "Post-merge acceptance 10 passed / 0 failed; PR #752 mergeable=true and changed_files=2."
   ],
   "master_issue": null,
   "chain_state": "NONE",
