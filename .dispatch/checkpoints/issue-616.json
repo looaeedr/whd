@@ -3,10 +3,10 @@
   "issue": "616",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "c876d89f7a685be687764c9d8ee9d994a121a583",
-  "state": "WAITING_REMOTE",
-  "next_action": "Lock exact GitHub Actions run 36203544143 at head_sha c876d89f7a685be687764c9d8ee9d994a121a583 to terminal. If the diagnostic passes, consume the artifact to identify the first bad visible commit; if it fails, classify only the exact failed assertion and repair diagnostic instrumentation without changing B4 runtime behavior.",
-  "run_id": 36203544143,
-  "job_id": 108295096877,
+  "state": "RUNNING",
+  "next_action": "Move the #616 diagnostic recorder to the exact Phase6FinalSceneRenderer requested_draw visible-commit seam so every visible commit is recorded, preserving transition-stage tracking and without changing family-switch behavior; then rerun the exact Xvfb diagnostic.",
+  "run_id": null,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -23,7 +23,9 @@
     "Remote Guard run 36203260623 GREEN authorizes this terminal RED classification pair write.",
     "Instrumentation-only commit c876d89f7a685be687764c9d8ee9d994a121a583 added transition-stage and visible-commit diagnostics without changing family-switch sequencing.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36203570828.",
-    "Exact UI-R3 run 36203544143 locked at c876d89f7a685be687764c9d8ee9d994a121a583."
+    "Exact UI-R3 run 36203544143 locked at c876d89f7a685be687764c9d8ee9d994a121a583.",
+    "Run 36203544143 terminal FAILURE: ordered records now exist, but no invalid intermediate commit was observed; authoritative requested_draw seam is not fully covered by adapter-level recorder.",
+    "Remote Guard run 36203670469 GREEN authorizes terminal classification and RUNNING handoff to deeper requested_draw instrumentation."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
