@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "699",
   "branch": "work/issue699-turn-exit-poweroff-close-recovery-20260927",
-  "head_sha": "897446f68d011f21c939f5fa0f55540e1039bb64",
+  "head_sha": "93d5a527a711178233f64619750ad3d14ba20a08",
   "state": "RUNNING",
-  "next_action": "Implement the minimal RED-STOP-20/21 production changes: make unresolved generic operations block turn exit and power-off SAFE, and add exact Issue-close live-readback reconciliation.",
+  "next_action": "Run final focused QA at exact HEAD 93d5a527..., then create/validate PR for Issue #699 without expanding to #700/#701/#702.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,10 @@
     "Exact execution lineage base is #697 closing head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e; current production X is observation-only and must not replace this sibling base.",
     "RED commit 897446f68d011f21c939f5fa0f55540e1039bb64 is the single direct child of H0 and changed only tests/process/test_issue699_turn_exit_poweroff_issue_close_recovery.py.",
     "RED evidence: 13 failed / 1 passed; turn-exit did not block unresolved operation, power-off returned SAFE, Issue-close reconciliation seam missing.",
-    "Fresh reconciliation authority: WHD_REMOTE_GUARD_RECEIPT_V1 run 36273440477 result=GREEN."
+    "Fresh reconciliation authority: WHD_REMOTE_GUARD_RECEIPT_V1 run 36273440477 result=GREEN.",
+    "H2=93d5a527a711178233f64619750ad3d14ba20a08 is the guarded GREEN implementation head.",
+    "Focused GREEN evidence: 151 passed / 0 failed in 5.29s.",
+    "Fresh H1->H2 reconciliation authority: run 36273716026 result=GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
