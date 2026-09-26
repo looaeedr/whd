@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "625",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+  "head_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
   "state": "RUNNING",
-  "next_action": "Promote A8 target completion to ACCEPTED with GREEN run 36273892831 evidence, remove the one-shot RED/GREEN workflows, drift-audit tested head 6603578386cc56b34bf79db82093706338cc92fd to closing head, then terminalize #625 and hand off #626.",
+  "next_action": "Enter #625 terminal closure transaction at accepted closing head, run trusted finalization, close/read back #625, atomically persist CLOSED + RELEASED, and hand successor #626 exact predecessor evidence.",
   "run_id": 36273892831,
   "job_id": null,
   "log_cursor": null,
@@ -28,7 +28,10 @@
     "Reconciliation Guard 36273655460 GREEN.",
     "P7-G DT-6 decision KEEP_CURRENT_BOUNDARY is complete at 6603578386cc56b34bf79db82093706338cc92fd.",
     "Behavioral QA 36273892831 SUCCESS: 37 passed / 6 skipped; Xvfb 23 passed.",
-    "Reconciliation Guard 36273983046 GREEN."
+    "Reconciliation Guard 36273983046 GREEN.",
+    "A8 target completion ACCEPTED at closing head 216269197d6956c2bd125bede5a6d76cc1fe395b.",
+    "Tested→closing drift audit PASS_EVIDENCE_AND_WORKFLOW_DELETION_ONLY.",
+    "Closing-head reconciliation Guard 36274224920 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
