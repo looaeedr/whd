@@ -3,10 +3,10 @@
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "d1df74aa6c0d70629c188deefd1e8f3a519f2c91",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll exact baseline-comparison run 36209439724 on head d1df74aa6c0d70629c188deefd1e8f3a519f2c91 to terminal; then compare its three node outcomes with expanded run 36207583989 and classify pre-existing versus B4-introduced failures.",
-  "run_id": 36209439724,
-  "job_id": 108312735007,
+  "state": "RUNNING",
+  "next_action": "Bisect the two B4-introduced expanded regressions under Ubuntu+Xvfb across B4 lineage commits (1f88f33e, e308170a, 372bf25f, 392fcb6a, 7a52d091) to find the first bad commit for GUI batch export and Receiving W/D snapshot; ignore the selector-menubutton failure as confirmed pre-existing at B4 base.",
+  "run_id": null,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -39,6 +39,10 @@
     "Post-workflow-commit pair reconciliation authorized by Guard 36207602937.",
     "One-shot baseline comparison workflow committed at d1df74aa6c0d70629c188deefd1e8f3a519f2c91.",
     "Locked remote QA run 36209439724 / job 108312735007; job checks out B4 baseline 81468a8103fd5045160e0f16e9458317acee584b and executes only the three expanded failures.",
-    "Post-commit pair reconciliation authorized by Guard 36209450427."
+    "Post-commit pair reconciliation authorized by Guard 36209450427.",
+    "Baseline comparison run 36209439724: 2 passed / 1 failed at exact B4 base 81468a8103fd5045160e0f16e9458317acee584b.",
+    "Export and combined W/D failures are newly introduced somewhere in B4 lineage; selector-menubutton failure is confirmed pre-existing at baseline.",
+    "Artifact 10894313835 preserves exact Ubuntu+Xvfb evidence.",
+    "Terminal reconciliation authorized by Guard 36209543730."
   ]
 }
