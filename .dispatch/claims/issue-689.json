@@ -1,0 +1,29 @@
+{
+  "issue": 689,
+  "issue_url": "https://github.com/looaeedr/whd/issues/689",
+  "worker": "chatgpt.sol260926.work2.689.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.work2.689.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue689-takeover-substantive-action-20260926",
+  "claimed_at": "2026-09-26T12:50:00Z",
+  "base_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+  "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T12:50:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run Phase6 Preflight for #689 RED-STOP-06/07, prove takeover/claim activation remains AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION until one valid substantive action is durably completed, then implement the canonical machine gate.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-689.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user explicitly instructed work2 to continue #693 closure chain.",
+    "Execution intent: EXECUTE_CHAIN limited to #693 child dependency #689.",
+    "Dependency readback: #687 is closed/completed and RELEASED, so #689 is the first executable child.",
+    "Work-order lineage base: accepted #687 head fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; do not restart from newer production X.",
+    "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance."
+  ]
+}

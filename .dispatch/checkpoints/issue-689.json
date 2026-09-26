@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "689",
+  "branch": "work/issue689-takeover-substantive-action-20260926",
+  "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+  "state": "RUNNING",
+  "next_action": "Run Phase6 Preflight for #689 RED-STOP-06/07, prove takeover/claim activation remains AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION until one valid substantive action is durably completed, then implement the canonical machine gate.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: #685 / approval comment 5842691532.",
+    "Blocked-by #687 satisfied: #687 closed/completed and claim RELEASED.",
+    "Inherited accepted work-order HEAD: fc75000d1d3115331923a1a1bc3c34f6bbdbddbc.",
+    "Runtime provenance: work2 continuation under #693 chain; active child continuation metadata intentionally omitted until terminal."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
