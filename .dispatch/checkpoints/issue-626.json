@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "626",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "77429fa487166e0598c2f00e4d5ff1fa2d837219",
+  "head_sha": "02562d24639032bb38c4837fc412d3aa45098024",
   "state": "RUNNING",
-  "next_action": "Write Phase 7 accepted owner map and KEEP_CURRENT_BOUNDARY decisions into CURRENT AI Library authority references, remote-read verify exact blobs, then perform non-force integration into cleanup/2d-3d-sync and production readback before A9 terminal closure.",
+  "next_action": "Remove the disposable #626 combined RED/GREEN/broader QA workflows, prove tested→closing drift is workflow-deletion-only plus the accepted CURRENT authority writeback, then perform non-force integration into cleanup/2d-3d-sync and production readback before A9 terminal closure.",
   "run_id": 36277114074,
   "job_id": null,
   "log_cursor": null,
@@ -29,7 +29,9 @@
     "Reconciliation Guard 36276895064 GREEN.",
     "A9 broader exact run 36277114074 SUCCESS: 54 structural + 95 manufacturing/DXF + 21 persistence + 85 Xvfb passed.",
     "Protected config.ini/baseline DXF readback GREEN; artifact 10916659077.",
-    "Reconciliation Guard 36277209156 GREEN."
+    "Reconciliation Guard 36277209156 GREEN.",
+    "CURRENT AI Library writeback remote-read verified at exact commit/blob identities.",
+    "Reconciliation Guard 36278425013 GREEN; durable HEAD now advances to authority-writeback head."
   ],
   "master_issue": null,
   "chain_state": "NONE",

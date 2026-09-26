@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T21:57:30Z",
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
-  "head_sha": "77429fa487166e0598c2f00e4d5ff1fa2d837219",
+  "head_sha": "02562d24639032bb38c4837fc412d3aa45098024",
   "phase": "GREEN",
-  "last_update": "2026-09-26T22:44:05Z",
+  "last_update": "2026-09-26T23:07:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -36,7 +36,7 @@
     "conclusion": "success",
     "artifact_id": 10916659077
   },
-  "next_action": "Write Phase 7 accepted owner map and KEEP_CURRENT_BOUNDARY decisions into CURRENT AI Library authority references, remote-read verify exact blobs, then perform non-force integration into cleanup/2d-3d-sync and production readback before A9 terminal closure.",
+  "next_action": "Remove the disposable #626 combined RED/GREEN/broader QA workflows, prove tested→closing drift is workflow-deletion-only plus the accepted CURRENT authority writeback, then perform non-force integration into cleanup/2d-3d-sync and production readback before A9 terminal closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -66,6 +66,10 @@
     "Exact broader run 36277114074 SUCCESS at head 77429fa487166e0598c2f00e4d5ff1fa2d837219: structural 54 passed; manufacturing/collision/DXF 95 passed, 2 warnings; persistence 21 passed; Xvfb 85 passed, 68 warnings.",
     "A9_STRUCTURAL_CENSUS_GREEN=1 and A9_PROTECTED_INPUTS_GREEN=1; config.ini and baseline DXF hashes unchanged.",
     "Broader artifact 10916659077.",
-    "Post-QA reconciliation Guard 36277209156 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-QA reconciliation Guard 36277209156 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Phase 7 CURRENT AI Library writeback committed atomically at 02562d24639032bb38c4837fc412d3aa45098024 under Guard 36278284845 GREEN.",
+    "Remote readback exact blobs: 09=4d396fa2f3ba23e4c1504effe39fc0fc0dde692b; 12=a9caad7c7f83cd984abbcd3fe5af26e4ddace865; 04=8116615328cc3af0b6e7b8d7b1a3af3c5ee25019; 11=3bd2ba73e944d5e2cf2f4e9df892e835607393cf.",
+    "All four CURRENT references contain WHD_PHASE7_OWNERSHIP_WRITEBACK_V1; applicable references preserve P7-G KEEP_CURRENT_BOUNDARY and Combined Acceptance provenance.",
+    "Reconciliation Guard 36278425013 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact live head 02562d24639032bb38c4837fc412d3aa45098024."
   ]
 }
