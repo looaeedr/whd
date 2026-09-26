@@ -85,3 +85,21 @@ whd_schema: WHD_DOC_META_V1
 - Development execution bridge: `.agents/skills/engineering/執行開發任務/SKILL.md`
 - Primary wake/executor: hourly ChatGPT scheduled re-entry
 - GitHub Actions schedule role: watchdog / lease / remote-state safety net only
+
+<!-- WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 -->
+## Phase 7 accepted ownership map
+
+Phase 7 Large Module Decomposition 的 CURRENT routing 結論如下。這些 rows 只描述穩定 owner boundary；ticket、run、commit 與 LOC 數字只作 provenance，不是 domain truth。
+
+- **P7-A / Fold Designer Bridge residual**：`fold_designer_bridge.py` 只保留 bounded bootstrap / lifecycle / legacy-host / evidence-backed compatibility surface。update scheduler owner 是 `gui_modules.application.command_router`；唯一 composition wiring root 是 `gui_modules/application/fold_designer_adapter.py::Phase6FoldDesignerComposition`；workspace/navigation 由 `phase6_workspace_navigation_controller.py` / `phase6_designer_workspace.py` 擁有；FinalScene 由 `phase6_final_scene_view.py` + composition adapter 擁有；Settings presentation 由 `phase6_settings_panel.py` +既有 Settings composition services 擁有。
+- **P7-B / Phase6ApplicationHost**：`gui.py::Phase6ApplicationHost` 是 thin application host/composition surface；Door Layout state/transaction owner 是 `gui_modules/application/door_layout_controller.py::Phase6DoorLayoutController`；Door presentation owner 是 `gui_modules/parts/panels/door.py`；render acquisition/presentation 由 `gui_modules/application/render_snapshots.py` + `gui_modules/rendering/door_view.py` 擁有。
+- **P7-C / ae.py**：`ae_engine/ae.py` 是 legacy/public compatibility facade；DXF serialization owner 是 `ae_engine/dxf_serialization.py`；baseline source/cache/resource owners 是 `ae_engine/baseline_source.py` + `ae_engine/baseline_resources.py`；baseline-to-scene adapter owner 是 `ae_engine/baseline_scene_adapters.py`。
+- **P7-D / manufacturing_api**：`ae_engine/manufacturing_api.py` 是 thin public facade；verification / export / request-precedence / render-data orchestration 分別由 `ae_engine/manufacturing_verification.py`、`ae_engine/manufacturing_export.py`、`ae_engine/manufacturing_requests.py`、`ae_engine/manufacturing_render.py` 擁有。
+- **P7-E / assembly_collision**：`ae_engine/assembly_collision.py` 是 thin shared collision/backprojection compatibility facade；generic collision/backprojection owner 是 `ae_engine/collision_backprojection.py`；Divider relief solver owner 是 `ae_engine/divider_relief_solver.py`；EndCap world-relief solver owner 是 `ae_engine/endcap_world_relief_solver.py`。
+- **P7-F / explicit-joint manufacturing**：`phase6_manufacturing_geometry.py::_phase6_resolve_explicit_joint_reliefs` 保持 thin compatibility/manufacturing facade；bounded explicit-joint orchestration owner 是 `phase6_explicit_joint_pipeline.py`；canonical collision/backprojection solver truth 仍在 `ae_engine.assembly_collision`；world/cut geometry truth 仍由 `phase6_manufacturing_geometry.py` 的 canonical helpers 透過 bounded ops 注入。
+- **P7-G / Settings presentation**：**KEEP_CURRENT_BOUNDARY**。CURRENT presentation owner 是 `phase6_settings_panel.py::Phase6SettingsPanel`；唯一 construction/wiring root 是 `Phase6FoldDesignerComposition`；`fold_designer_bridge.py` 僅保留 compatibility projection/dataflow delegates；canonical Settings mutation/state authority 留在既有 transaction/service/application owners；pure Settings→Profile planning owner 是 `phase6_settings_profile_projection.py`。
+
+永久 invariant：reverse-import Bridge = 0、duplicate production owner = 0、second composition root = 0、full-app service-bag owner interface = 0。後續變更若要搬移上述 owner，必須走 deletion-test / authority writeback / permanent guard；不得只靠 wrapper rename 或 facade forwarding 宣稱 ownership 已移動。
+
+Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#625；Combined Acceptance owner #626，combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
+
