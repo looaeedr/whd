@@ -432,7 +432,7 @@ def durable_coord_write_readbacks_from_live_commits(
                 "target_changed": True,
                 "coord_commit_sha": str(commit.get("sha") or ""),
                 "coord_committed_at": committed_at.isoformat(),
-                "changed_files": list(changed_files),
+                "changed_files": sorted(changed_files),
             }
         )
     return readbacks
