@@ -97,15 +97,18 @@ jobs:
               raise SystemExit("invalid executor_source")
           takeover_worker = singles.get("takeover_worker")
           if singles["action"] == "claim-takeover":
-              if executor_source != "scheduler":
-                  raise SystemExit("claim-takeover requires executor_source=scheduler")
               if takeover_worker is None:
                   raise SystemExit("claim-takeover requires takeover_worker")
-              if (
-                  not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", takeover_worker)
-                  or not takeover_worker.startswith("scheduler.")
-              ):
+              if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", takeover_worker):
                   raise SystemExit("invalid takeover_worker")
+              if executor_source == "scheduler":
+                  if not takeover_worker.startswith("scheduler."):
+                      raise SystemExit("scheduler takeover_worker must start with scheduler.")
+              elif executor_source == "chat":
+                  if not takeover_worker.startswith("chatgpt."):
+                      raise SystemExit("interactive takeover_worker must start with chatgpt.")
+              else:
+                  raise SystemExit("claim-takeover requires scheduler or chat executor_source")
           elif takeover_worker is not None:
               raise SystemExit("takeover_worker is only valid for claim-takeover")
 
@@ -316,8 +319,6 @@ jobs:
             elif [ "$RG_ACTION" = "claim-takeover" ]; then
               test -n "$current_branch_sha"
               test "$current_branch_sha" = "$RG_TESTED_TARGET_SHA"
-              test "$RG_EXECUTOR_SOURCE" = "scheduler"
-
               git fetch --no-tags origin "$current_branch_sha"
               takeover_live_commit_at="$(git show -s --format=%cI "$current_branch_sha")"
 
@@ -356,9 +357,14 @@ jobs:
               fi
 
               liveness_arg=(--claim-blob-sha "$RG_CLAIM_BLOB_SHA")
-              if [[ "$RG_WORKER" == scheduler.* ]]; then
-                rm -f /tmp/runtime-liveness.json /tmp/runtime-liveness.log /tmp/issue-comments.json
+              user_authority_arg=()
+              if [[ "$RG_WORKER" == scheduler.* || "$RG_EXECUTOR_SOURCE" == "chat" ]]; then
+                rm -f /tmp/issue-comments.json
                 gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/issues/${RG_ISSUE}/comments?per_page=100" > /tmp/issue-comments.json
+              fi
+
+              if [[ "$RG_WORKER" == scheduler.* ]]; then
+                rm -f /tmp/runtime-liveness.json /tmp/runtime-liveness.log
                 set +e
                 python tools/scheduler_runtime_liveness.py \
                   --comments-json /tmp/issue-comments.json \
@@ -377,13 +383,56 @@ jobs:
                 fi
               fi
 
+              if [ "$RG_EXECUTOR_SOURCE" = "chat" ]; then
+                rm -f /tmp/user-authority.json
+                python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          raw = json.loads(Path("/tmp/issue-comments.json").read_text(encoding="utf-8"))
+          comments = []
+          for item in raw:
+              if isinstance(item, list):
+                  comments.extend(entry for entry in item if isinstance(entry, dict))
+              elif isinstance(item, dict):
+                  comments.append(item)
+          def parse_fields(body):
+              lines = body.replace("\\r\\n", "\\n").split("\\n")
+              if not lines or lines[0].strip() != "WHD_USER_DIRECTED_TAKEOVER_V1":
+                  return None
+              fields = {}
+              for raw_line in lines[1:]:
+                  if not raw_line.strip() or "=" not in raw_line:
+                      continue
+                  key, value = raw_line.split("=", 1)
+                  fields[key.strip()] = value.strip()
+              return fields
+          candidates = []
+          for comment in comments:
+              user = comment.get("user")
+              body = comment.get("body")
+              if not isinstance(user, dict) or user.get("login") != os.environ["GITHUB_REPOSITORY_OWNER"] or not isinstance(body, str):
+                  continue
+              fields = parse_fields(body)
+              if fields is not None and fields.get("issue") == os.environ["RG_ISSUE"] and fields.get("requesting_worker") == os.environ["RG_TAKEOVER_WORKER"] and fields.get("previous_worker") == os.environ["RG_WORKER"] and fields.get("executor_source") == "chat":
+                  candidates.append(comment)
+          if not candidates:
+              raise SystemExit("missing matching WHD_USER_DIRECTED_TAKEOVER_V1")
+          selected = max(candidates, key=lambda item: (str(item.get("created_at") or ""), int(item.get("id") or 0)))
+          Path("/tmp/user-authority.json").write_text(json.dumps(selected, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          PY
+                user_authority_arg=(--user-authority-json /tmp/user-authority.json)
+              fi
+
               python tools/stale_claim_takeover.py \
                 --claim /tmp/execution-claim.json \
                 --live-head-sha "$current_branch_sha" \
                 --live-head-committed-at "$takeover_live_commit_at" \
                 --requesting-worker "$RG_TAKEOVER_WORKER" \
+                --requesting-executor-source "$RG_EXECUTOR_SOURCE" \
                 "${remote_arg[@]}" \
                 "${liveness_arg[@]}" \
+                "${user_authority_arg[@]}" \
                 --require-actionable \
                 --decision-out /tmp/stale-takeover-decision.json 2>&1 | tee /tmp/stale-takeover.log
             else
