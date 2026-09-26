@@ -466,6 +466,20 @@ def _phase6_settings_application_project_ui_values(
 ):
     values = dict(values or {})
     plan = baseline_transition
+    if baseline_stage == "commit" and plan is not None:
+        serial = int(getattr(self, "_phase6_visible_scene_transition_serial", 0) or 0) + 1
+        self._phase6_visible_scene_transition_serial = serial
+        self._phase6_visible_scene_transition_id = (
+            f"baseline:{serial}:{str(old_model or '')}->{str(new_model or '')}"
+        )
+        self._phase6_visible_scene_transition_stage = "commit"
+        self._phase6_visible_scene_transition_active = True
+        self._phase6_visible_scene_commit_records = []
+    elif (
+        baseline_stage in {"state", "finalize"}
+        and getattr(self, "_phase6_visible_scene_transition_active", False)
+    ):
+        self._phase6_visible_scene_transition_stage = str(baseline_stage)
     if bool(editor_commit) and editor_snapshot is not None:
         self._phase6_input_snapshot.update(dict(editor_snapshot or {}))
 
