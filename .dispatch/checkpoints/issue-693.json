@@ -4,7 +4,7 @@
   "branch": "work/issue693-combined-acceptance-20260926",
   "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "state": "RUNNING",
-  "next_action": "As Issue Closure owner, consume #687 acceptance comment 5846013270, mint fresh finalization proof bound to exact #687 ISSUE_CLOSE_PENDING checkpoint, close/read back #687, then atomically persist #687 checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Combined Acceptance: fresh-census child #687/#688/#689/#690/#691/#692 ancestry and substantive deltas against current cleanup/main; integrate only accepted substantive artifacts into #693 branch, exclude temporary QA workflows, run combined RED/REG acceptance, complete 17-target durable writeback/readback, then deploy/drift-audit/close/release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,9 @@
     "First delegated closure target: #687 acceptance comment 5846013270 / handoff comment 5846028517.",
     "worker.slot.2 remains bound to #687; #693 claim is UNBOUND slot provenance.",
     "Scheduler A takeover: canonical stale evaluator EXECUTOR_STUCK and local claim-takeover Guard GREEN.",
-    "Owner CAS only; branch/head/state/next_action remain unchanged."
+    "Owner CAS only; branch/head/state/next_action remain unchanged.",
+    "Resume reconstructed from GitHub durable state only.",
+    "All six declared child blockers are terminal; stale #687 closure next_action superseded by Combined Acceptance."
   ],
   "master_issue": null,
   "chain_state": "NONE",
