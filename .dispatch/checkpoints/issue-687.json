@@ -3,8 +3,8 @@
   "issue": "687",
   "branch": "work/issue687-continuous-legal-stop-r2-20260926",
   "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
-  "state": "RUNNING",
-  "next_action": "run focused RED-STOP-01 through RED-STOP-05 plus affected continuity regressions at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; if GREEN, continue T1 QA and durable acceptance",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,13 +19,19 @@
     "Approved RED test commit e817d59dda7aef10dd52f1c08e080c120c61e2e7 was authorized by Remote Guard run 36219724177.",
     "Post-RED claim+checkpoint reconciliation was authorized by Remote Guard run 36219788102.",
     "Implementation commit fc75000d1d3115331923a1a1bc3c34f6bbdbddbc was authorized by Remote Guard run 36220551411.",
-    "Implementation-head claim+checkpoint reconciliation was authorized by Remote Guard run 36225468359 and consumed in one atomic coordination commit."
+    "Implementation-head claim+checkpoint reconciliation was authorized by Remote Guard run 36225468359 and consumed in one atomic coordination commit.",
+    "Work slot 2 takeover accepted by canonical local stale evaluator: EXECUTOR_STUCK, stale_seconds=16783, user authority comment 5845926910.",
+    "Exact focused T1 suite at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc: 39 passed in 1.93s.",
+    "Broader continuity/turn-exit regression set: 88 passed in 1.96s.",
+    "Full tests/process at exact T1 HEAD: 593 passed / 2 failed in 44.93s; both failures reproduced unchanged on frozen base 87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "git diff --check clean; inline two-axis code review found 0 blocking Standards findings and 0 blocking Spec findings.",
+    "Durable T1 acceptance evidence comment: #687 issuecomment-5846013270."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance the exact accepted #687 checkpoint to ISSUE_CLOSE_PENDING without minting finalization proof; then Issue Closure owner #693 must mint fresh proof, close/read back #687, and atomically persist CLOSED + RELEASED."
 }
