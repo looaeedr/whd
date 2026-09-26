@@ -1,0 +1,48 @@
+name: "WHD｜工單 #623｜A6 明確接合管線 RED/GREEN 驗收"
+run-name: "WHD｜#623 A6｜明確接合製造管線階段化驗收"
+
+on:
+  push:
+    branches:
+      - work/issue627-phase7-large-module-decomposition-20260924
+    paths:
+      - 'phase6_manufacturing_geometry.py'
+      - 'phase6_explicit_joint_pipeline.py'
+      - 'tests/test_issue623_phase7_a6_explicit_joint_pipeline.py'
+      - '.github/workflows/qa-issue623-a6-explicit-joint-pipeline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "A6｜P7-R-F 聚焦驗收"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "簽出 A6 工單主分支"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "確認 Phase 7 A6 lineage"
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 8e80e460160a9b238ee53d201a1ff88ee47439d3 HEAD
+          echo "A6_PARENT=8e80e460160a9b238ee53d201a1ff88ee47439d3"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: "安裝聚焦測試相依"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib numpy -r requirements.txt
+
+      - name: "執行 P7-R-F 階段邊界測試"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue623_phase7_a6_explicit_joint_pipeline.py --tb=short
