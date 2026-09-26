@@ -68,4 +68,13 @@ The prior disposable extraction removed only **1 / 6** bodies and left **5 dupli
 
 Focused P7-R-G expected-RED run `36273585335` completed successfully as a RED harness with exactly **3 passed / 1 failed**. The sole failure was `test_p7_r_g_requires_terminal_deletion_test_decision`, because DT-6 was still `PENDING`. No other P7-G invariant failed.
 
-The next gate is fresh GREEN + Xvfb/settings behavior verification against this terminal DT artifact.
+## Behavioral acceptance
+
+- GREEN/Xvfb RUN `36273892831 @ 6603578386cc56b34bf79db82093706338cc92fd` — **SUCCESS**.
+- Focused owner/transaction/projection suite: **37 passed / 6 skipped**.
+- Xvfb Settings runtime suite: **23 passed**; 24 warnings were CJK glyph/font warnings only.
+- Settings transaction/state authority drift: **0**.
+- Production Settings implementation change: **0**.
+- One-shot RED rerun `36273892838` failed only because DT-6 was already COMPLETE; the disposable RED/GREEN workflows are removed in the closing evidence commit.
+
+**Final A8 result: ACCEPTED / KEEP_CURRENT_BOUNDARY.**

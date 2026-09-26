@@ -5,7 +5,7 @@
   "target_id": "P7-G",
   "target": "P7-G",
   "task_id": "A8",
-  "result": "PENDING_QA",
+  "result": "ACCEPTED",
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "predecessor_head": "10ec9a52eff1b8495042270445755e59b6a329c2",
   "decision_parent_head": "590448a911099d2bdb61aef09112dd6b6d3afc3c",
@@ -48,18 +48,28 @@
       "summary": "3 passed / 1 failed; only terminal DT-6 decision assertion failed"
     },
     "focused": {
-      "status": "PENDING"
+      "status": "GREEN",
+      "run_id": 36273892831,
+      "job_id": 108492816785,
+      "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+      "summary": "37 passed, 6 skipped in 3.26s"
     },
     "xvfb": {
-      "status": "PENDING"
+      "status": "GREEN",
+      "run_id": 36273892831,
+      "job_id": 108492816785,
+      "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+      "summary": "23 passed, 24 CJK font-glyph warnings in 4.18s"
     }
   },
   "terminal_predicates": {
     "dt_0_through_dt_6_complete": true,
-    "settings_behavior_green": false,
-    "xvfb_green": false,
+    "settings_behavior_green": true,
+    "xvfb_green": true,
     "production_change_zero": true,
-    "asgc_terminal": false
+    "asgc_terminal": true
   },
-  "next_action": "Run one-shot A8 GREEN/Xvfb workflow; if green, update this artifact to ACCEPTED with exact tested head/run evidence, remove one-shot workflows, drift-audit closing head, then terminalize #625 and hand off #626."
+  "next_action": "Closing-head drift audit after one-shot workflow deletion, then terminal checkpoint / trusted finalization / Issue close+release and successor #626 handoff.",
+  "implementation_head": "6603578386cc56b34bf79db82093706338cc92fd",
+  "tested_head": "6603578386cc56b34bf79db82093706338cc92fd"
 }

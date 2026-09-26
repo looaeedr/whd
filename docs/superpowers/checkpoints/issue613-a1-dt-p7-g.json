@@ -152,7 +152,7 @@
       "KEEP_CURRENT_BOUNDARY"
     ],
     "decision": "KEEP_CURRENT_BOUNDARY",
-    "result": "ACCEPTED_PENDING_BEHAVIORAL_QA",
+    "result": "ACCEPTED",
     "rationale": "The existing Settings presentation/composition boundary is already singular and bounded. No legal deep owner can absorb the scoped projection/dataflow group without contaminating presentation purity, pure projection ownership, or composition responsibility; the accepted #528 deletion-test preconditions remain materially unchanged.",
     "target_completion_artifact": "docs/superpowers/checkpoints/issue625-a8-target-completion.json"
   },
@@ -169,7 +169,19 @@
     "takeover_activation_run_id": 36264805425,
     "expected_red_run_id": 36273585335,
     "expected_red_summary": "3 passed / 1 failed; only test_p7_r_g_requires_terminal_deletion_test_decision failed",
-    "behavior_qa": "PENDING",
-    "production_change_required": false
+    "behavior_qa": {
+      "run_id": 36273892831,
+      "job_id": 108492816785,
+      "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+      "conclusion": "success",
+      "focused": "37 passed, 6 skipped in 3.26s",
+      "xvfb": "23 passed, 24 font-glyph warnings in 4.18s"
+    },
+    "production_change_required": false,
+    "red_harness_rerun": {
+      "run_id": 36273892838,
+      "conclusion": "failure",
+      "disposition": "EXPECTED_DISPOSABLE_HARNESS_AFTER_DT6_COMPLETE"
+    }
   }
 }
