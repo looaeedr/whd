@@ -7,6 +7,11 @@ on:
       - work/issue680-planned-handoff-scheduler-receiver-20260926
     paths:
       - tests/process/test_issue680_planned_handoff_scheduler_receiver.py
+      - .agents/skills/engineering/派工/SKILL.md
+      - .agents/skills/engineering/排程模擬/SKILL.md
+      - .agents/skills/engineering/remote-execution-guard/SKILL.md
+      - tools/execution_claim_guard.py
+      - .github/workflows/whd-remote-execution-guard.yml
       - .github/workflows/qa-issue680-planned-handoff.yml
   workflow_dispatch:
 
