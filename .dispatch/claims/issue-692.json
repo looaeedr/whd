@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T13:00:00Z",
   "base_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
   "head_sha": "6df7b6f4f06e3fa2318db20132b93c64ba9d3491",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T17:25:35Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T18:41:43Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "6df7b6f4f06e3fa2318db20132b93c64ba9d3491",
     "status": "success"
   },
-  "next_action": "Build and run live main↔cleanup parity census/manifest for the required governance domains against current refs; exact matches pass, any unequal artifact without explicit compatible-equivalent machine reason must fail closed. Then evaluate batch-first reconciliation and durable readback.",
+  "next_action": "Issue Closure owner #693 must mint fresh finalization proof bound to exact #692 ISSUE_CLOSE_PENDING checkpoint, close/read back #692, atomically persist #692 CLOSED + RELEASED, then continue #693 combined acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-692.json",
   "evidence": [
@@ -37,6 +37,10 @@
     "RED commit 49679a4ee2652aa3de684242d4afa4aeec08bbca added #692 focused contract and Traditional-Chinese QA workflow.",
     "RED run 36258767397 terminal expected failure: 5 failed / 0 passed; every failure is RED-STOP-15 executable governance parity owner missing.",
     "Implementation commit 6df7b6f4f06e3fa2318db20132b93c64ba9d3491 adds tools/governance_parity_gate.py.",
-    "Run 36258957622 completed success: 5 PASS / 0 FAIL for #692 focused parity contract."
+    "Run 36258957622 completed success: 5 PASS / 0 FAIL for #692 focused parity contract.",
+    "Live main↔cleanup governance manifest evaluated by tools/governance_parity_gate.py: GREEN / PARITY_PROVEN / 10 artifacts / all 5 required domains.",
+    "WHD_GOVERNANCE_PARITY_ACCEPTANCE_V1 comment 5848839836 result=ACCEPTED.",
+    "Terminalization write Guard 36263434194 GREEN.",
+    "Issue Closure owner is #693 per Issue #692 authority."
   ]
 }

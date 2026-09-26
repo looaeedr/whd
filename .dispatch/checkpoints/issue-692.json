@@ -3,8 +3,8 @@
   "issue": "692",
   "branch": "work/issue692-governance-parity-gate-20260927",
   "head_sha": "6df7b6f4f06e3fa2318db20132b93c64ba9d3491",
-  "state": "RUNNING",
-  "next_action": "Build and run live main↔cleanup parity census/manifest for the required governance domains against current refs; exact matches pass, any unequal artifact without explicit compatible-equivalent machine reason must fail closed. Then evaluate batch-first reconciliation and durable readback.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36258957622,
   "job_id": null,
   "log_cursor": null,
@@ -22,13 +22,18 @@
     "RED commit 49679a4ee2652aa3de684242d4afa4aeec08bbca.",
     "Run 36258767397 completed failure as expected RED: 5 tests fail solely because tools/governance_parity_gate.py is absent.",
     "Implementation commit 6df7b6f4f06e3fa2318db20132b93c64ba9d3491.",
-    "Run 36258957622 GREEN: 5 PASS / 0 FAIL."
+    "Run 36258957622 GREEN: 5 PASS / 0 FAIL.",
+    "Focused #692 contract run 36258957622: 5 PASS / 0 FAIL.",
+    "Live parity manifest GREEN / PARITY_PROVEN for production ef3c830f... vs trusted f19c59c2....",
+    "Acceptance comment 5848839836.",
+    "Terminalization Guard 36263434194 GREEN.",
+    "Closure delegated to Issue Closure owner #693."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Issue Closure owner #693: run bound trusted finalization on this exact checkpoint, close/read back #692, then atomically persist CLOSED + RELEASED and resume #693 combined acceptance."
 }
