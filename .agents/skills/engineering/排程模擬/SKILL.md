@@ -13,6 +13,15 @@ whd_schema: WHD_DOC_META_V1
 
 本 Skill 是明確 execution entrypoint：`/排程A` / `/排程B` = `SCHEDULER_LANE`。只有使用者輸入 exact command 才進此模式；普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式。
 
+## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+本 Skill 不建立第二套 startup declaration；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- exact `/排程A` / `/排程B` 建立 `SCHEDULER_LANE` 後，Skill 公告後立即聲明 authorization source、purpose、lane-level authorized/prohibited scope 與 `resume_authority`，再做 claim 或 mutation。
+- 若尚未選出 executable leaf，`authorized_scope` 只能寫 exact lane + canonical discovery boundary；不得預先聲稱某張 Issue 已授權。
+- discovery 後、第一個 claim / checkpoint mutation 前，把 exact issue / branch / HEAD / next_action 寫入 durable evidence；已有合法 same-lane claim 時，`resume_authority` 必須指向 exact checkpoint/next_action。
+- 其他 lane、unrelated ready leaf、空工作槽與 open Issue 都不能因 startup declaration 變成 execution authority。
+
 ### NORMAL_PATH_FIRST
 
 取得/恢復 lane authority 後，先沿 current exact next_action 的 normal path。若沒有 drift、pending receipt、foreign-live owner 或 half-terminal evidence，就不得先跑 takeover/reactivate/reconciliation。

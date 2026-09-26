@@ -43,6 +43,29 @@ finalization proof、claim/head bookkeeping 與必要 Guard 仍是各 boundary �
 
 普通 freshness/readback/Guard precondition 是正常安全檢查，不等於已進 recovery。
 
+## TASK_START_AUTHORITY_DECLARATION_V1
+
+本 Skill 是 WHD「開工先說清楚授權、目的與範圍」的唯一 canonical owner。`AGENTS.md::SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1` 仍擁有第一個 user-visible 行；**在該 Skill 公告後**，且在任何 Phase6 Knowledge Preflight、Guard、claim、branch 或 repository mutation 前，立即輸出一份 user-visible startup declaration：
+
+```text
+TASK_START_AUTHORITY_DECLARATION_V1
+authorization_source=<本輪真實使用者指示／accepted spec／owning authority>
+execution_intent=<UPDATE_ONLY|EXECUTE_TICKET|EXECUTE_CHAIN|SCHEDULER_LANE>
+purpose=<本輪要完成的具體結果>
+authorized_scope=<repo / issue / branch / lane / allowed mutation boundary>
+prohibited_scope=<本輪不得自行擴張的工作與 mutation>
+resume_authority=<NONE | exact issue + checkpoint + branch + HEAD + next_action [+ run_id/head_sha]>
+```
+
+硬規則：
+
+1. `authorization_source` 必須指出真實可反讀 authority；不得把 open Issue、空工作槽、Guard GREEN、模型推測或「看起來該做」寫成使用者授權。
+2. fresh task 固定 `resume_authority=NONE`；續跑則必須列 exact durable identity。缺失、stale 或 drift 時先 fresh reconstruct，不得假填 resume authority。
+3. `UPDATE_ONLY` 的 `authorized_scope` 只包含使用者點名的更新 transaction 與必要驗證；其他 open Issue / ready leaf / successor 一律仍在 `prohibited_scope`，不得因此擴張 execution scope。
+4. `EXECUTE_TICKET` 只授權該 ticket；`EXECUTE_CHAIN` 只授權 accepted chain；`SCHEDULER_LANE` 只授權該 lane contract 允許的 discovery/resume boundary。選出 exact executable leaf 後，第一個 durable claim/checkpoint 必須保存 exact issue/branch/HEAD/next_action。
+5. 第一個 durable owning Issue / claim / checkpoint writeback 必須保存同義的 `authorization_source / execution_intent / purpose / authorized_scope / prohibited_scope / resume_authority` evidence，讓下一 Runtime 不靠聊天記憶也能重建。
+6. declaration 是 provenance 與 scope boundary，**不是安全檢查的 bypass**；平台安全檢查、Phase6 Preflight、execution claim Guard、finalization gate 與其他專案 hard gate 全部照常執行。
+7. 下游 Skill 只能 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`，不得建立第二套欄位、第二個 parser 或更寬鬆的授權語意。
 
 依使用者已核准的規格或工單實作，不重新發明需求。
 
