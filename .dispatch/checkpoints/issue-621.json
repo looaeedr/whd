@@ -3,8 +3,8 @@
   "issue": "621",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
-  "state": "RUNNING",
-  "next_action": "Compare TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f to closing HEAD 8e80e460160a9b238ee53d201a1ff88ee47439d3 and prove zero production/test blob drift; if clean, terminalize #621 and execute bound finalization/Issue close/release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,12 +20,14 @@
     "P7-R-E EndCap world-relief owner slice: RED 1 failed/2 passed because ae_engine.endcap_world_relief_solver was absent; GREEN solve_world_backprojected_endcap_relief orchestration moved behind assembly_collision facade at 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f with shared helpers/result types injected at runtime. Focused structural 3 passed; broader EndCap/Certified Registry/world-backprojection/assembly integration regression 97 passed, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36225400960 GREEN; post-commit reconciliation Guard 36225566301 GREEN.",
     "Exact-head remote QA GREEN for #621 P7-R-E: one-shot orchestration f9b7439f03d60fc0f9bb6929d8b566b21ce2291c explicitly checked out TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f. Run 36225921203 / job 108359824682 completed success; structural+anti-regrowth, Generic collision/Divider relief, EndCap world relief/Registry and protected-input verification steps all SUCCESS. Artifact 10900347678 digest sha256:743e74e9c39461cda2e651ac33d41482aba8d84b9f7912d68dd6aa673e9e349a. Workflow commit Guard 36225871924 GREEN; orchestration reconciliation Guard 36226020041 GREEN. Exact-head combined local gate at TESTED_SHA was 122 passed, 4 skipped, 0 failed; git diff --check GREEN.",
     "One-shot A5 QA workflow removed in cleanup commit 8e80e460160a9b238ee53d201a1ff88ee47439d3 under Remote Guard run 36230440766.",
-    "Post-cleanup claim/checkpoint pair reconciliation authorized by Remote Guard run 36230560452."
+    "Post-cleanup claim/checkpoint pair reconciliation authorized by Remote Guard run 36230560452.",
+    "Tested-head → closing-head drift audit GREEN: TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f tree=7354fe6c5a4199061048696505d49a27a5b8a13d; closing HEAD 8e80e460160a9b238ee53d201a1ff88ee47439d3 tree=7354fe6c5a4199061048696505d49a27a5b8a13d; diff empty.",
+    "Terminalization coordination write authorized by Remote Guard run 36230661835."
   ],
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance terminal checkpoint to ISSUE_CLOSE_PENDING, authorize/verify bound finalization proof, then close/read back Issue #621"
 }

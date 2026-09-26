@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T05:58:30Z",
   "base_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
   "head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-26T08:42:08.749771Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T08:44:09.246303Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:743e74e9c39461cda2e651ac33d41482aba8d84b9f7912d68dd6aa673e9e349a",
     "protected_inputs": "GREEN"
   },
-  "next_action": "Compare TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f to closing HEAD 8e80e460160a9b238ee53d201a1ff88ee47439d3 and prove zero production/test blob drift; if clean, terminalize #621 and execute bound finalization/Issue close/release.",
+  "next_action": "Advance #621 terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, obtain bound trusted finalization proof, close/read back Issue #621, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-621.json",
   "predecessor": {
@@ -54,14 +54,14 @@
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36230560452,
-    "request_comment_id": 5844686425,
-    "result_comment_id": 5844687581,
+    "run_id": 36230661835,
+    "request_comment_id": 5844698530,
+    "result_comment_id": 5844699522,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-cleanup pair reconciliation to closing head 8e80e460160a9b238ee53d201a1ff88ee47439d3"
+    "mutation": "terminalize #621 after zero-drift audit"
   },
   "local_validation": {
     "divider_owner": {
