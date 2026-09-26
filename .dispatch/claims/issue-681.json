@@ -10,11 +10,18 @@
   "claimed_at": "2026-09-26T04:55:28Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "phase": "RED",
-  "last_update": "2026-09-26T04:59:44Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T05:06:13Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Implement tools/workstation_poweroff_gate.py against approved 28 behavioral cases, rerun focused GREEN, then commit/push and remote QA.",
+  "next_action": "Guard commit of tools/workstation_poweroff_gate.py + focused regression + authority map writeback; push exact head and run remote QA/PR checks.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-681.json"
+  "checkpoint": ".dispatch/checkpoints/issue-681.json",
+  "green_candidate": {
+    "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+    "local_tests": "48 passed / 0 failed",
+    "focused": "tests/process/test_issue681_poweroff_gate.py = 32 passed",
+    "governance": "16 authority/governance tests passed",
+    "diff_check": "GREEN"
+  }
 }
