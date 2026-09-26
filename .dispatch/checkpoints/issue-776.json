@@ -12,17 +12,17 @@
   "blocked_last_notified_at": null,
   "evidence": [
     "PR #778 merged to trusted main.",
-    "Changed-file grouping parity confirmed.",
-    "Action-scope bootstrap live on main ae75066c74339f728a676b1c923fd5366331ae76.",
-    "Focused tests 50 PASS.",
+    "Action-scope bootstrap live on main.",
     "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID.",
-    "Issue #776 fresh-read closed/completed."
+    "Issue #776 fresh-read closed/completed.",
+    "Local canonical Guard GREEN authorized final pair.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #776."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
