@@ -167,6 +167,49 @@ def _guard_tx_readback_proves_mutation(
     return False
 
 
+
+def durable_branch_create_readbacks_from_live_branch(
+    receipts: Iterable[Mapping[str, object]],
+    *,
+    live_branch_head_sha: str,
+) -> list[dict[str, object]]:
+    """Project exact live branch state into durable readback for branch-create GREEN.
+
+    A branch-create mutation is fully proven by the remote branch existing at the
+    exact guarded HEAD. Unlike commit/write actions, there is no additional
+    coordination mutation to reconcile before the receipt can be considered
+    consumed.
+    """
+
+    live_head = str(live_branch_head_sha or "").strip()
+    if not live_head:
+        return []
+
+    readbacks: list[dict[str, object]] = []
+    for receipt in receipts:
+        if receipt.get("schema") != "WHD_REMOTE_GUARD_RECEIPT_V1":
+            continue
+        if receipt.get("result") != "GREEN":
+            continue
+        if str(receipt.get("action") or "") != "branch-create":
+            continue
+        if str(receipt.get("head_sha") or "") != live_head:
+            continue
+        if str(receipt.get("tested_target_sha") or "") != live_head:
+            continue
+        readbacks.append(
+            {
+                "guard_run_id": _guard_tx_run_id(receipt),
+                "action": "branch-create",
+                "mutation_applied": True,
+                "reconciled": True,
+                "branch_exists": True,
+                "branch_head_sha": live_head,
+                "changed_files": list(_guard_tx_files(receipt)),
+            }
+        )
+    return readbacks
+
 def _guard_tx_equivalence_key(
     receipt: Mapping[str, object],
 ) -> tuple[object, ...]:

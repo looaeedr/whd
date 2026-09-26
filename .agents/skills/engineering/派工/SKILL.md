@@ -596,7 +596,7 @@ Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeov
 2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 300 秒時退讓；heartbeat age > 300 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
 3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
 4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
-5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。 若 pending action 是 `branch-create`，先 fresh-read remote branch；branch 已存在且 HEAD exact match 時，由 trusted Guard 的 canonical branch-create durable-readback auto-consume 路徑判成 `CONSUMED`，不得靠 reactivate/換 claim blob 來清掉 transaction。
 6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
 7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
 8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
