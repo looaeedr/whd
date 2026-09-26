@@ -1,0 +1,32 @@
+{
+  "issue": 764,
+  "issue_url": "https://github.com/looaeedr/whd/issues/764",
+  "worker": "chatgpt.issue764.20260927a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue764.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
+  "claimed_at": "2026-09-26T22:03:07Z",
+  "base_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "head_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T22:03:07Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded governance branch, establish RED contract for recurring scheduled invocation Skill loading, then minimally align 排程模擬 and 寫排程 and run focused contract GREEN.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-764.json",
+  "evidence": [
+    "authorization_source=user asked to durably fix the Skill layer after live A/B scheduler prompt repair",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=align recurring scheduler Skill SSoT with READY_WORK_CENSUS_V1 and every-wake 排程模擬 loading",
+    "authorized_scope=Issue #764: 排程模擬 + 寫排程 + scheduler no-work census contract test only",
+    "prohibited_scope=no 派工 mutation because live #762 owns overlapping 派工 scope; no unrelated implementation work; no cadence/owner/takeover changes",
+    "resume_authority=NONE",
+    "fresh X base=0374e9d35bcd8b02ceb6486002c203347a45b19b"
+  ]
+}

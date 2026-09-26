@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "764",
+  "branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
+  "head_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "state": "RUNNING",
+  "next_action": "Create guarded governance branch and establish RED contract proving real recurring A/B invocations are covered by 排程模擬 and generated scheduler prompts must fresh-read it every wake.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "排程模擬 already contains READY_WORK_CENSUS_V1 but frontmatter/Trigger is interactive-only.",
+    "寫排程 already propagates census tokens but does not require every-wake 排程模擬 loading.",
+    "Issue #762 currently owns 派工 changes, so #764 excludes 派工."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
