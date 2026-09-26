@@ -35,6 +35,58 @@ class ContinuityState(str, Enum):
     TERMINAL_FAILURE = "TERMINAL_FAILURE"
 
 
+class OperationState(str, Enum):
+    """Canonical lifecycle for one mutating operation transaction."""
+
+    NOT_STARTED = "NOT_STARTED"
+    PREPARED = "PREPARED"
+    AUTHORIZED = "AUTHORIZED"
+    EFFECT_OBSERVED = "EFFECT_OBSERVED"
+    RECONCILED = "RECONCILED"
+    AMBIGUOUS = "AMBIGUOUS"
+
+
+UNRESOLVED_OPERATION_STATES = frozenset(
+    {
+        OperationState.PREPARED,
+        OperationState.AUTHORIZED,
+        OperationState.EFFECT_OBSERVED,
+        OperationState.AMBIGUOUS,
+    }
+)
+
+
+@dataclass(frozen=True)
+class OperationTransaction:
+    """Durable mutation identity owned by the continuity checkpoint."""
+
+    operation_id: str
+    operation_type: str
+    state: OperationState
+    target: str
+    payload_hash: str
+    recovery_action: str
+
+    def __post_init__(self) -> None:
+        operation_id = _require_text("operation_id", self.operation_id)
+        operation_type = _require_text("operation_type", self.operation_type)
+        target = _require_text("operation target", self.target)
+        payload_hash = _require_text("operation payload_hash", self.payload_hash).lower()
+        recovery_action = _require_text("operation recovery_action", self.recovery_action)
+        try:
+            state = self.state if isinstance(self.state, OperationState) else OperationState(self.state)
+        except (TypeError, ValueError) as exc:
+            raise CheckpointError(f"invalid operation state: {self.state!r}") from exc
+        if len(payload_hash) != 64 or any(ch not in "0123456789abcdef" for ch in payload_hash):
+            raise CheckpointError("operation payload_hash must be 64 lowercase hex characters")
+        object.__setattr__(self, "operation_id", operation_id)
+        object.__setattr__(self, "operation_type", operation_type)
+        object.__setattr__(self, "state", state)
+        object.__setattr__(self, "target", target)
+        object.__setattr__(self, "payload_hash", payload_hash)
+        object.__setattr__(self, "recovery_action", recovery_action)
+
+
 class ScheduledResumeAction(str, Enum):
     """Wake-routing decisions derived from canonical continuity state."""
 
@@ -167,6 +219,7 @@ class Checkpoint:
     blocked_count: int = 0
     blocked_last_notified_at: str | None = None
     evidence: tuple[str, ...] = ()
+    operation: OperationTransaction | None = None
     master_issue: str | None = None
     chain_state: ChainContinuationState = ChainContinuationState.NONE
     next_issue: str | None = None
@@ -215,6 +268,9 @@ class Checkpoint:
         blocked_last_notified_at = _normalize_optional_utc_timestamp(
             self.blocked_last_notified_at
         )
+        operation = self.operation
+        if operation is not None and not isinstance(operation, OperationTransaction):
+            raise CheckpointError("operation must be OperationTransaction when present")
         _validate_positive_int("run_id", self.run_id)
         _validate_positive_int("job_id", self.job_id)
         _validate_nonnegative_int("blocked_count", self.blocked_count)
@@ -317,6 +373,7 @@ class Checkpoint:
         object.__setattr__(self, "closure_next_action", closure_next_action)
         object.__setattr__(self, "blocked_last_notified_at", blocked_last_notified_at)
         object.__setattr__(self, "evidence", tuple(normalized_evidence))
+        object.__setattr__(self, "operation", operation)
 
     @property
     def is_terminal(self) -> bool:
@@ -330,6 +387,11 @@ def scheduled_resume_action(checkpoint: Checkpoint) -> ScheduledResumeAction:
     the checkpoint and therefore cannot become a second workflow state machine.
     """
 
+    if (
+        checkpoint.operation is not None
+        and checkpoint.operation.state in UNRESOLVED_OPERATION_STATES
+    ):
+        return ScheduledResumeAction.CONTINUE_RECOVERY
     if checkpoint.is_terminal and checkpoint.closure_state is not ClosureState.CLOSED:
         return ScheduledResumeAction.CLOSING_HANDOFF
     if (
@@ -370,12 +432,63 @@ class FinalizationProof:
     checkpoint_fingerprint: str
 
 
+def _operation_to_payload(
+    operation: OperationTransaction | None,
+) -> dict[str, object] | None:
+    if operation is None:
+        return None
+    return {
+        "operation_id": operation.operation_id,
+        "operation_type": operation.operation_type,
+        "state": operation.state.value,
+        "target": operation.target,
+        "payload_hash": operation.payload_hash,
+        "recovery_action": operation.recovery_action,
+    }
+
+
+def _operation_from_payload(payload: object) -> OperationTransaction | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, dict):
+        raise CheckpointError("operation payload must be an object when present")
+    expected = {
+        "operation_id",
+        "operation_type",
+        "state",
+        "target",
+        "payload_hash",
+        "recovery_action",
+    }
+    if set(payload) != expected:
+        raise CheckpointError(
+            "invalid operation payload fields: "
+            f"expected={sorted(expected)!r} actual={sorted(payload)!r}"
+        )
+    try:
+        return OperationTransaction(
+            operation_id=payload["operation_id"],
+            operation_type=payload["operation_type"],
+            state=OperationState(payload["state"]),
+            target=payload["target"],
+            payload_hash=payload["payload_hash"],
+            recovery_action=payload["recovery_action"],
+        )
+    except KeyError as exc:
+        raise CheckpointError(
+            f"missing operation payload field: {exc.args[0]}"
+        ) from exc
+    except (TypeError, ValueError) as exc:
+        raise CheckpointError("operation payload contains invalid values") from exc
+
+
 def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     data = asdict(checkpoint)
     data["state"] = checkpoint.state.value
     data["chain_state"] = checkpoint.chain_state.value
     data["closure_state"] = checkpoint.closure_state.value
     data["evidence"] = list(checkpoint.evidence)
+    data["operation"] = _operation_to_payload(checkpoint.operation)
     return {"version": CHECKPOINT_VERSION, **data}
 
 
@@ -461,6 +574,7 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
         "blocked_count",
         "blocked_last_notified_at",
         "evidence",
+        "operation",
         "master_issue",
         "chain_state",
         "next_issue",
@@ -500,6 +614,7 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
             blocked_count=payload.get("blocked_count", 0),
             blocked_last_notified_at=payload.get("blocked_last_notified_at"),
             evidence=tuple(evidence),
+            operation=_operation_from_payload(payload.get("operation")),
             master_issue=payload.get("master_issue"),
             chain_state=ChainContinuationState(
                 payload.get("chain_state", ChainContinuationState.NONE.value)
@@ -539,6 +654,7 @@ def transition_checkpoint(
     blocked_count: int | object = _UNSET,
     blocked_last_notified_at: str | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
+    operation: OperationTransaction | None | object = _UNSET,
     master_issue: str | None | object = _UNSET,
     chain_state: ChainContinuationState | str | object = _UNSET,
     next_issue: str | None | object = _UNSET,
@@ -629,6 +745,7 @@ def transition_checkpoint(
         blocked_count=next_blocked_count,
         blocked_last_notified_at=next_blocked_last_notified_at,
         evidence=merged_evidence,
+        operation=checkpoint.operation if operation is _UNSET else operation,
         master_issue=checkpoint.master_issue if master_issue is _UNSET else master_issue,
         chain_state=checkpoint.chain_state if chain_state is _UNSET else chain_state,
         next_issue=checkpoint.next_issue if next_issue is _UNSET else next_issue,
