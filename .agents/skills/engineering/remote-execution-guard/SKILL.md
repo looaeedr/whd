@@ -475,3 +475,17 @@ GREEN receipt 必須把 `target_lane / to_worker / handoff_generation / checkpoi
 - canonical guard 仍必須證明 current claim blob、owner/source/branch/base、H0→H1 direct child、prior request + GREEN receipt、exact run/request identity 與 commit changed-file set全部一致；wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 一律 fail closed。
 - trusted Remote Guard 只透過 fixed-schema `legacy_reconcile_recovery_comment_id` 取得 exact owner comment，驗 author/issue/marker 後傳入 `--legacy-reconcile-recovery`；不得接受自由文字或把 comment 本身當 mutation authority。
 - ordinary post-commit reconciliation 與正常 receipt-window 行為完全不變；此 recovery 不得用於一般 stale-head write、production/Skill mutation、takeover 或 replay implementation。新的 trusted workflow 必須先部署到 default branch `main` 並 fresh readback，之後才能用於 #617/#671 live repair。
+
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
+
+`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
+
+- prior receipt 為 exact GREEN `action=pr-write`；
+- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
+- PR `base.ref == claim.production_target`；
+- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
+- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
+
+只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
