@@ -1,17 +1,17 @@
 {
   "issue": 621,
   "issue_url": "https://github.com/looaeedr/whd/issues/621",
-  "worker": "chatgpt.sol260926.issue621.a5",
+  "worker": "chatgpt.sol260926.cleanup.1",
   "executor_source": "chat",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260926.issue621.a5",
+  "invocation_identity": "chatgpt.sol260926.cleanup.1",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T05:58:30Z",
   "base_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
   "head_sha": "f9b7439f03d60fc0f9bb6929d8b566b21ce2291c",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T07:11:34Z",
+  "last_update": "2026-09-26T08:38:50.179999Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
@@ -81,5 +81,18 @@
       "result": "122 passed, 4 skipped, 0 failed",
       "diff_check": "GREEN"
     }
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "previous_worker": "chatgpt.sol260926.issue621.a5",
+    "previous_executor_source": "chat",
+    "requesting_worker": "chatgpt.sol260926.cleanup.1",
+    "requesting_executor_source": "chat",
+    "observed_stale_seconds": 5097,
+    "observed_live_head_sha": "f9b7439f03d60fc0f9bb6929d8b566b21ce2291c",
+    "user_authority_comment_id": 5844639639,
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "taken_over_at": "2026-09-26T08:38:50.179999Z"
   }
 }
