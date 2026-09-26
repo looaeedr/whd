@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "744",
+  "branch": "governance/issue744-terminal-checkpoint-repair-20260927",
+  "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
+  "state": "RUNNING",
+  "next_action": "Create RED proving trusted transport cannot atomically repair malformed terminal checkpoint; then implement narrow main-authority repair transition and deploy.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Authority: user-directed trusted repair transport for malformed terminal checkpoint.",
+    "Main baseline 6091bf003aae085d396f7e61f165e3f6a0e58260.",
+    "Must preserve exact prior claim and terminal checkpoint identity except canonical closure lifecycle normalization."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
