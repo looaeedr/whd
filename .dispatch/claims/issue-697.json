@@ -9,25 +9,34 @@
   "work_branch": "work/issue697-operation-transaction-core-20260926",
   "claimed_at": "2026-09-26T07:18:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "head_sha": "1ba4624f72ebe4fb984a728e75cf7d1e75917260",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T07:24:00Z",
+  "head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T07:28:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "implement minimum canonical OperationState/OperationTransaction checkpoint persistence and resume-first routing, then let exact A2 workflow rerun GREEN",
+  "remote_qa": {
+    "run_id": 36226816283,
+    "job_id": 108362339494,
+    "head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
+    "status": "completed",
+    "conclusion": "success",
+    "passed": 7,
+    "failed": 0,
+    "marker": "ISSUE697_A2_TESTS_GREEN=PASS"
+  },
+  "next_action": "expand the existing one-shot A2 workflow to include continuity/checkpoint-resume/turn-exit regressions, run exact remote QA on the resulting head, then cleanup workflow and drift-audit A2",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-697.json",
   "last_guard": {
     "action": "commit",
-    "run_id": 36226548072,
-    "request_comment_id": 5844223876,
-    "result_comment_id": 5844225446,
+    "run_id": 36226776008,
+    "request_comment_id": 5844250385,
+    "result_comment_id": 5844251597,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
     "consumed": true,
-    "mutation": "committed RED-STOP-17/18 behavior test + one-shot harness at 1ba4624f72ebe4fb984a728e75cf7d1e75917260"
+    "mutation": "committed A2 minimum GREEN implementation at ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1"
   },
   "red_evidence": {
     "run_id": 36226621311,
@@ -35,5 +44,13 @@
     "head_sha": "1ba4624f72ebe4fb984a728e75cf7d1e75917260",
     "result": "7 failed, 0 collection/environment errors",
     "seam": "missing canonical OperationState/OperationTransaction before resume-first routing"
+  },
+  "green_evidence": {
+    "run_id": 36226816283,
+    "job_id": 108362339494,
+    "head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
+    "result": "7 passed, 0 failed",
+    "marker": "ISSUE697_A2_TESTS_GREEN=PASS",
+    "broader_regression_pending": true
   }
 }
