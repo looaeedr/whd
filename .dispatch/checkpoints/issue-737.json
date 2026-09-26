@@ -4,7 +4,7 @@
   "branch": "governance/issue737-remote-guard-authority-handoff",
   "head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
   "state": "RUNNING",
-  "next_action": "Create guarded PR from delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at accepted head 535ae416... to current main; validate/read back CI and merge; then fresh-read trusted main and run interactive takeover smoke.",
+  "next_action": "Post-deploy acceptance only: run a safe trusted-main interactive claim-takeover smoke that exercises the forwarded --user-authority-evidence without taking over unrelated work; then terminalize #737 through canonical finalization.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,11 @@
     "Do not mutate or PR the unreconciled original branch fdc5a91f...; preserve it as evidence only.",
     "Remote commit Guard run 36253759426 authorized exact two-file r2 mutation.",
     "Accepted r2 H1 535ae4160e6937bccc85aa73402c3f5efafc11b4 with 11/11 focused regressions GREEN.",
-    "Post-commit reconciliation Guard run 36253985900 authorized atomic claim+checkpoint HEAD reconciliation."
+    "Post-commit reconciliation Guard run 36253985900 authorized atomic claim+checkpoint HEAD reconciliation.",
+    "PR #742 merged to main as 6091bf003aae085d396f7e61f165e3f6a0e58260.",
+    "Trusted main workflow readback contains the #737 authority handoff fix.",
+    "Exact main focused/adjacent regressions: 11 passed / 0 failed.",
+    "Run 36254769186 used old main and is excluded from post-deploy smoke acceptance."
   ],
   "master_issue": null,
   "chain_state": "NONE",
