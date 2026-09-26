@@ -27,13 +27,14 @@
     "git diff --check clean; inline two-axis code review found 0 blocking Standards findings and 0 blocking Spec findings.",
     "Durable T1 acceptance evidence comment: #687 issuecomment-5846013270.",
     "Remote finalization GREEN: run 36242524221; artifact 10906106509; FINALIZATION_PROOF_VALID for checkpoint fingerprint f9a6262f8a605b4b93e664f5f5fcd96cd0c35490ea7f898c73660a7b17f18335.",
-    "GitHub Issue #687 close mutation completed and fresh readback confirmed state=closed, state_reason=completed at 2026-09-26T12:38:32Z."
+    "GitHub Issue #687 close mutation completed and fresh readback confirmed state=closed, state_reason=completed at 2026-09-26T12:38:32Z.",
+    "Final atomic closure transaction pairs checkpoint CLOSED with shared claim RELEASED after trusted finalization and closed/completed readback."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint closure_state=CLOSED and shared claim phase=RELEASED after #687 closed/completed readback."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
