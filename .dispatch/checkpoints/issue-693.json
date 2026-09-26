@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "issue": "693",
+  "branch": "work/issue693-combined-acceptance-20260926",
+  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "state": "RUNNING",
+  "next_action": "As Issue Closure owner, consume #687 acceptance comment 5846013270, mint fresh finalization proof bound to exact #687 ISSUE_CLOSE_PENDING checkpoint, close/read back #687, then atomically persist #687 checkpoint CLOSED + claim RELEASED.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: Issue #693 / #685 approved chain.",
+    "Startup authorization: user explicitly instructed the work2 runtime identity to take ownership of #693.",
+    "Execution intent: EXECUTE_TICKET scoped to #693 closure-owner duties.",
+    "Base/head authority: frozen #693 X base 87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
+    "First delegated closure target: #687 acceptance comment 5846013270 / handoff comment 5846028517.",
+    "worker.slot.2 remains bound to #687; #693 claim is UNBOUND slot provenance."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

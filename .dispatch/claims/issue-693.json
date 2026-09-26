@@ -1,0 +1,30 @@
+{
+  "issue": 693,
+  "issue_url": "https://github.com/looaeedr/whd/issues/693",
+  "worker": "chatgpt.sol260926.work2.693.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.work2.693.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue693-combined-acceptance-20260926",
+  "claimed_at": "2026-09-26T12:20:00Z",
+  "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T12:20:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "As Issue Closure owner, consume #687 acceptance comment 5846013270, mint fresh finalization proof bound to exact #687 ISSUE_CLOSE_PENDING checkpoint, close/read back #687, then atomically persist #687 checkpoint CLOSED + claim RELEASED. Do not rebind worker.slot.2 away from #687 during this closure transaction.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-693.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1 startup declaration: authorization_source=user explicit instruction '用工作2的身份接手'; execution_intent=EXECUTE_TICKET for Issue #693 closure-owner duties.",
+    "Purpose: acquire canonical #693 Issue Closure / Combined Acceptance ownership so the work2 runtime identity can complete delegated child closure, starting with #687.",
+    "Authorized scope: Issue #693 plus #687 closure transaction explicitly handed off to #693 by comment 5846028517.",
+    "Runtime provenance: invoked from worker.slot.2 context, but #693 slot_id remains UNBOUND while worker.slot.2 is durably bound to #687.",
+    "Prohibited scope: no implicit worker.slot.2 rebinding, no unrelated child implementation, no bypass of finalization/Guard/claim gates.",
+    "Frozen work-order authority: #693 FROZEN_X_BASE_SHA=87eb35b3f5ae5211673c941cb56c4c4343fa5405."
+  ]
+}
