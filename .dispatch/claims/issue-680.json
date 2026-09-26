@@ -96,12 +96,12 @@
     {
       "relationship": "helper",
       "helper_key": "issue680-claim-handoff-main-deploy",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
       "reservation_token": "issue680-claim-handoff-main-deploy-20260927a",
       "reserved_at": "2026-09-26T17:15:15Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 751,
+      "child_claim_blob_sha": "d0fa2eb4fd6f09bb9560cf81e1adde927bdda250"
     }
   ]
 }
