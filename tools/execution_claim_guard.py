@@ -26,6 +26,7 @@ ALLOWED_ACTIONS = frozenset(
     {
         "branch-create",
         "claim-takeover",
+        "claim-handoff",
         "write",
         "commit",
         "qa-dispatch",
@@ -156,6 +157,8 @@ def _guard_tx_readback_proves_mutation(
         )
     if action == "claim-takeover":
         return readback.get("claim_cas_applied") is True
+    if action == "claim-handoff":
+        return readback.get("claim_handoff_cas_applied") is True
     if action in {"qa-dispatch", "workflow-dispatch"}:
         return (
             readback.get("run_created") is True
@@ -199,6 +202,11 @@ def _guard_tx_equivalence_key(
         _guard_tx_files(receipt),
         str(receipt.get("takeover_worker") or ""),
         takeover_identity,
+        str(receipt.get("target_lane") or ""),
+        str(receipt.get("to_worker") or ""),
+        str(receipt.get("handoff_generation") or ""),
+        str(receipt.get("checkpoint_fingerprint") or ""),
+        str(receipt.get("next_action") or ""),
     )
 
 

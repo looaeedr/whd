@@ -76,7 +76,7 @@ Issue comment 第一行固定：
 必要欄位：
 - `issue=<positive issue number>`
 - `worker=<claim owner identity>`
-- `action=<branch-create|claim-takeover|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
+- `action=<branch-create|claim-takeover|claim-handoff|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
 - `branch=<exact claimed/delegated branch>`
 - `base_sha=<40-char claim base SHA>`
 - `head_sha=<40-char current claimed HEAD>`
@@ -413,3 +413,22 @@ Required follow-up：interactive heartbeat/liveness；chat conversation identity
 Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到 legacy `claim exists + checkpoint missing` 時，不重送普通 Guard，也不人工補檔；改路由 trusted `.github/workflows/whd-remote-claim-activation.yml` 的 `legacy-checkpoint-repair`。
 
 該 repair 只允許 unchanged claim blob + 新 canonical checkpoint 的 atomic CAS。成功後普通 Remote Guard 才重新取得合法 checkpoint authority。任何 claim identity/head/phase 變更仍走既有 guarded reconciliation，不屬 legacy repair。
+
+
+## WHD_WORK_EXECUTOR_HANDOFF_V1 / claim-handoff
+
+Remote Guard 支援獨立 action=`claim-handoff` 作 planned ownership transfer；它與 `claim-takeover` 完全分離，不執行 stale evaluator。
+
+固定 request 除既有 common identity 外，`claim-handoff` 必須額外帶：
+
+- `target_lane=A|B`
+- `to_worker=<exact scheduler lane owner>`
+- `handoff_generation=<positive integer>`
+- `checkpoint_fingerprint=<64-hex canonical continuity fingerprint>`
+- `next_action=<exact nonblank checkpoint next_action>`
+
+`claim-handoff` 禁止 `takeover_worker`、禁止 `changed_file`。trusted workflow 必須 fresh-read exact claim/checkpoint/branch HEAD，使用 canonical executable-continuity-controller 計算 checkpoint fingerprint，並 exact 驗 `checkpoint_fingerprint + next_action + branch + head_sha + issue`。
+
+lane mapping 固定由 current scheduler authority驗證：A = `scheduler.6ab13fa557fc8191935c671214b865e2`；B = `scheduler.e58ea936e7d0b12bd0d475314709d6f1`。任何 mismatch fail closed。
+
+GREEN receipt 必須把 `target_lane / to_worker / handoff_generation / checkpoint_fingerprint / next_action` 全部綁入 receipt identity。receipt 只授權一次 exact shared-claim CAS；成功 readback 應以 `claim_handoff_cas_applied=true` 作 durable mutation proof。planned handoff 不等待 stale TTL，也不得借用 `claim-takeover` 的 stale/orphan evidence。
