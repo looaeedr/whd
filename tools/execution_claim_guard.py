@@ -1170,6 +1170,177 @@ def _assert_legacy_postcommit_reconcile_authority(
         )
 
 
+def _load_local_guard_proof(path: Path | None) -> dict[str, object]:
+    if path is None:
+        raise ExecutionClaimError("local Guard reconciliation proof is required")
+    try:
+        payload = json.loads(
+            Path(path).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(
+            f"local Guard reconciliation proof is invalid: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof root must be object"
+        )
+    return payload
+
+
+def _parse_local_guard_reconcile_body(body: str) -> tuple[dict[str, str], tuple[str, ...]]:
+    lines = body.replace("\r\n", "\n").split("\n")
+    if not lines or lines[0].strip() != "WHD_LOCAL_GUARD_RECONCILE_V1":
+        raise ExecutionClaimError("local Guard reconciliation proof marker mismatch")
+    required = {
+        "issue",
+        "worker",
+        "executor_source",
+        "action",
+        "branch",
+        "base_sha",
+        "claim_blob_sha",
+        "claim_head_sha",
+        "live_head_sha",
+        "local_guard_result",
+    }
+    fields: dict[str, str] = {}
+    changed_files: list[str] = []
+    for raw in lines[1:]:
+        if not raw.strip():
+            continue
+        if "=" not in raw:
+            raise ExecutionClaimError(
+                "local Guard reconciliation proof contains malformed line"
+            )
+        key, value = raw.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if key == "changed_file":
+            if not value:
+                raise ExecutionClaimError(
+                    "local Guard reconciliation proof changed_file is blank"
+                )
+            changed_files.append(value)
+            continue
+        if key not in required or key in fields or not value:
+            raise ExecutionClaimError(
+                "local Guard reconciliation proof contains unsupported/duplicate key"
+            )
+        fields[key] = value
+    if set(fields) != required or not changed_files:
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof is missing required identity"
+        )
+    if len(changed_files) != len(set(changed_files)):
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof changed_file is ambiguous"
+        )
+    return fields, tuple(sorted(changed_files))
+
+
+def _assert_local_guard_postcommit_proof(
+    path: Path | None,
+    *,
+    issue: int,
+    worker: str,
+    executor_source: str,
+    branch: str,
+    base_sha: str,
+    claim_head_sha: str,
+    live_head_sha: str,
+    current_claim_blob: str,
+    commit_file_set: tuple[str, ...],
+) -> None:
+    payload = _load_local_guard_proof(path)
+    comment_id = payload.get("id")
+    if isinstance(comment_id, bool) or not isinstance(comment_id, int) or comment_id <= 0:
+        raise ExecutionClaimError("local Guard reconciliation proof comment id is invalid")
+    user = payload.get("user")
+    if not isinstance(user, dict) or str(user.get("login") or "") != "looaeedr":
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof must be repository-owner authored"
+        )
+    body = payload.get("body")
+    if not isinstance(body, str):
+        raise ExecutionClaimError("local Guard reconciliation proof body is missing")
+    fields, proof_files = _parse_local_guard_reconcile_body(body)
+
+    expected = {
+        "issue": str(issue),
+        "worker": worker,
+        "executor_source": executor_source,
+        "branch": branch,
+        "base_sha": base_sha,
+        "claim_blob_sha": current_claim_blob,
+        "claim_head_sha": claim_head_sha,
+        "live_head_sha": live_head_sha,
+        "local_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+    }
+    for key, value in expected.items():
+        if fields[key] != value:
+            raise ExecutionClaimError(
+                f"local Guard reconciliation proof {key} mismatch"
+            )
+    if fields["action"] not in {"write", "commit"}:
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof action must be write or commit"
+        )
+    for key in ("base_sha", "claim_blob_sha", "claim_head_sha", "live_head_sha"):
+        _validate_sha(fields[key], f"local Guard reconciliation proof {key}")
+    if proof_files != commit_file_set:
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof changed-file mismatch"
+        )
+
+    durable_exact_ids: list[int] = []
+    durable_supplied = False
+    for comment in _github_issue_comments(issue):
+        c_user = comment.get("user")
+        c_body = comment.get("body")
+        c_id = comment.get("id")
+        if (
+            not isinstance(c_user, dict)
+            or c_user.get("login") != "looaeedr"
+            or not isinstance(c_body, str)
+            or not c_body.startswith("WHD_LOCAL_GUARD_RECONCILE_V1")
+        ):
+            continue
+        try:
+            c_fields, c_files = _parse_local_guard_reconcile_body(c_body)
+        except ExecutionClaimError as exc:
+            raise ExecutionClaimError(
+                f"local Guard reconciliation proof set contains malformed durable proof: {exc}"
+            ) from exc
+        if c_id == comment_id and c_body == body:
+            durable_supplied = True
+        if (
+            c_fields.get("issue") == str(issue)
+            and c_fields.get("worker") == worker
+            and c_fields.get("executor_source") == executor_source
+            and c_fields.get("branch") == branch
+            and c_fields.get("base_sha") == base_sha
+            and c_fields.get("claim_blob_sha") == current_claim_blob
+            and c_fields.get("claim_head_sha") == claim_head_sha
+            and c_fields.get("live_head_sha") == live_head_sha
+            and c_fields.get("local_guard_result") == "EXECUTION_CLAIM_GUARD_GREEN"
+            and c_fields.get("action") in {"write", "commit"}
+            and c_files == commit_file_set
+            and isinstance(c_id, int)
+            and c_id > 0
+        ):
+            durable_exact_ids.append(c_id)
+
+    if not durable_supplied:
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof is not durably present on owning Issue"
+        )
+    if durable_exact_ids != [comment_id]:
+        raise ExecutionClaimError(
+            "local Guard reconciliation proof is duplicate or ambiguous"
+        )
+
+
 def _assert_post_commit_claim_head_reconciliation(
     path: Path,
     *,
@@ -1181,6 +1352,7 @@ def _assert_post_commit_claim_head_reconciliation(
     expected_live_head_sha: str,
     changed_files: tuple[str, ...],
     legacy_reconcile_recovery: Path | None = None,
+    local_guard_proof: Path | None = None,
 ) -> None:
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
     expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
@@ -1451,9 +1623,29 @@ def _assert_post_commit_claim_head_reconciliation(
         )
         return
 
+    if local_guard_proof is not None:
+        if not is_direct_child or merge_production_parent is not None:
+            raise ExecutionClaimError(
+                "local Guard reconciliation proof is restricted to a single direct-child commit"
+            )
+        _assert_local_guard_postcommit_proof(
+            local_guard_proof,
+            issue=issue,
+            worker=worker,
+            executor_source=expected_executor_source,
+            branch=branch,
+            base_sha=claim.base_sha,
+            claim_head_sha=claim.head_sha,
+            live_head_sha=expected_live_head_sha,
+            current_claim_blob=current_claim_blob,
+            commit_file_set=commit_file_set,
+        )
+        return
+
     raise ExecutionClaimError(
         "post-commit claim-head reconciliation lacks a matching prior GREEN mutation receipt "
-        "bound to the current claim blob, direct child commit, changed-file set, and receipt window"
+        "or exact durable local Guard proof bound to the current claim blob, direct child "
+        "commit, and changed-file set"
     )
 
 
@@ -1888,6 +2080,7 @@ def assert_execution_claim(
     takeover_evidence: Path | None = None,
     user_authority_evidence: Path | None = None,
     legacy_reconcile_recovery: Path | None = None,
+    local_guard_proof: Path | None = None,
 ) -> ExecutionClaim:
     """Return the validated current claim or raise before one repository action."""
     if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
@@ -1977,6 +2170,7 @@ def assert_execution_claim(
                 expected_live_head_sha=expected_head_sha,
                 changed_files=normalized_changed_files,
                 legacy_reconcile_recovery=legacy_reconcile_recovery,
+                local_guard_proof=local_guard_proof,
             )
         else:
             raise ExecutionClaimError(
@@ -2045,6 +2239,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 issue-comment JSON; narrow legacy out-of-window reconciliation only",
     )
+    parser.add_argument(
+        "--local-guard-proof",
+        type=Path,
+        help="owner-authored WHD_LOCAL_GUARD_RECONCILE_V1 durable issue-comment JSON for exact local-Guard post-commit reconciliation",
+    )
     return parser
 
 
@@ -2064,6 +2263,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             takeover_evidence=args.takeover_evidence,
             user_authority_evidence=args.user_authority_evidence,
             legacy_reconcile_recovery=args.legacy_reconcile_recovery,
+            local_guard_proof=args.local_guard_proof,
         )
 
         normalized_changed_files = _normalize_changed_files(args.changed_file)
