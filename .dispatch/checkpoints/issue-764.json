@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "764",
   "branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
-  "head_sha": "4ccb5021558d84bea52e08ac462d0a4f738c124a",
+  "head_sha": "8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb",
   "state": "RUNNING",
-  "next_action": "Apply the minimal two-Skill fix for the exact RED failures, keep 派工 untouched because #762 owns it, then rerun tests/process/test_scheduler_no_work_census_contract.py at the new exact head.",
+  "next_action": "Delete .github/workflows/qa-issue764-scheduler-skill-contract.yml under exact Guard, reconcile the resulting head, then proceed to PR/QA/integration.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,10 @@
     "Failure 1: REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1 absent from 排程模擬.",
     "Failure 2: SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1 absent from 寫排程.",
     "Issue #762 currently owns 派工 changes; #764 must not modify 派工.",
-    "pair reconciliation authorized by Guard run=36275453697"
+    "pair reconciliation authorized by Guard run=36275453697",
+    "Skill fix commit 8ed16d5d4f9c7afe3f4d3a0be4747549ca32dcdb.",
+    "GREEN run 36275579479: 6 passed in 0.16s on exact fix head.",
+    "pair reconciliation authorized by Guard run=36275613755"
   ],
   "master_issue": null,
   "chain_state": "NONE",
