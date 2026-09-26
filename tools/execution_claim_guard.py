@@ -1022,6 +1022,125 @@ def _load_raw_claim_payload(path: Path) -> dict[str, object]:
     return payload
 
 
+def _load_legacy_postcommit_recovery(
+    path: Path,
+    *,
+    issue: int,
+    worker: str,
+    executor_source: str,
+    branch: str,
+    claim_head_sha: str,
+    live_head_sha: str,
+) -> dict[str, object]:
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ExecutionClaimError(
+            f"legacy post-commit recovery evidence not found: {path}"
+        ) from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(
+            f"legacy post-commit recovery evidence invalid: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "legacy post-commit recovery evidence root must be an object"
+        )
+
+    user = payload.get("user")
+    if not isinstance(user, dict) or str(user.get("login") or "") != "looaeedr":
+        raise ExecutionClaimError(
+            "legacy post-commit recovery authority must be authored by repository owner"
+        )
+    body = payload.get("body")
+    if not isinstance(body, str):
+        raise ExecutionClaimError(
+            "legacy post-commit recovery authority body is missing"
+        )
+
+    lines = body.replace("\r\n", "\n").split("\n")
+    if not lines or lines[0].strip() != "WHD_LEGACY_POSTCOMMIT_RECONCILE_V1":
+        raise ExecutionClaimError(
+            "legacy post-commit recovery authority marker mismatch"
+        )
+
+    required_single = {
+        "issue",
+        "worker",
+        "executor_source",
+        "branch",
+        "claim_head_sha",
+        "live_head_sha",
+        "prior_guard_run_id",
+        "prior_request_comment_id",
+    }
+    singles: dict[str, str] = {}
+    changed_files: list[str] = []
+    for raw in lines[1:]:
+        if not raw.strip():
+            continue
+        if "=" not in raw:
+            raise ExecutionClaimError(
+                "legacy post-commit recovery authority contains malformed line"
+            )
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if key == "changed_file":
+            if not value or value in changed_files:
+                raise ExecutionClaimError(
+                    "legacy post-commit recovery changed_file is blank or duplicated"
+                )
+            changed_files.append(value)
+        elif key in required_single:
+            if key in singles:
+                raise ExecutionClaimError(
+                    "legacy post-commit recovery authority contains duplicate key"
+                )
+            singles[key] = value
+        else:
+            raise ExecutionClaimError(
+                "legacy post-commit recovery authority contains unsupported key"
+            )
+
+    if set(singles) != required_single or not changed_files:
+        raise ExecutionClaimError(
+            "legacy post-commit recovery authority is missing required keys"
+        )
+
+    expected = {
+        "issue": str(issue),
+        "worker": worker,
+        "executor_source": executor_source,
+        "branch": branch,
+        "claim_head_sha": claim_head_sha,
+        "live_head_sha": live_head_sha,
+    }
+    for key, value in expected.items():
+        if singles[key] != value:
+            raise ExecutionClaimError(
+                f"legacy post-commit recovery authority {key} mismatch"
+            )
+
+    try:
+        guard_run_id = int(singles["prior_guard_run_id"])
+        request_comment_id = int(singles["prior_request_comment_id"])
+    except ValueError as exc:
+        raise ExecutionClaimError(
+            "legacy post-commit recovery guard/request identity is invalid"
+        ) from exc
+    if guard_run_id <= 0 or request_comment_id <= 0:
+        raise ExecutionClaimError(
+            "legacy post-commit recovery guard/request identity must be positive"
+        )
+
+    return {
+        "prior_guard_run_id": guard_run_id,
+        "prior_request_comment_id": request_comment_id,
+        "changed_files": tuple(sorted(changed_files)),
+    }
+
+
 def _assert_post_commit_claim_head_reconciliation(
     path: Path,
     *,
@@ -1032,6 +1151,7 @@ def _assert_post_commit_claim_head_reconciliation(
     branch: str,
     expected_live_head_sha: str,
     changed_files: tuple[str, ...],
+    legacy_reconcile_recovery: Path | None = None,
 ) -> None:
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
     expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
@@ -1189,6 +1309,19 @@ def _assert_post_commit_claim_head_reconciliation(
     current_claim_blob = _git_blob_sha(path)
     raw_source = str(raw_claim.get("executor_source") or "").strip()
     expected_executor_source = "scheduler" if raw_source == "scheduler" else "chat"
+    recovery = (
+        _load_legacy_postcommit_recovery(
+            legacy_reconcile_recovery,
+            issue=issue,
+            worker=worker,
+            executor_source=expected_executor_source,
+            branch=branch,
+            claim_head_sha=claim.head_sha,
+            live_head_sha=expected_live_head_sha,
+        )
+        if legacy_reconcile_recovery is not None
+        else None
+    )
 
     for comment in comments:
         receipt = _parse_remote_guard_receipt_comment(comment)
@@ -1264,6 +1397,23 @@ def _assert_post_commit_claim_head_reconciliation(
         if issued_epoch <= commit_epoch <= expires_epoch:
             return
 
+        if recovery is not None:
+            run_id = receipt.get("run_id")
+            if (
+                not isinstance(run_id, bool)
+                and isinstance(run_id, int)
+                and run_id == recovery["prior_guard_run_id"]
+                and request_comment_id == recovery["prior_request_comment_id"]
+                and receipt_file_set == commit_file_set
+                and recovery["changed_files"] == commit_file_set
+            ):
+                return
+
+    if recovery is not None:
+        raise ExecutionClaimError(
+            "legacy post-commit recovery does not bind to an exact prior GREEN guard "
+            "run/request/changed-file set"
+        )
     raise ExecutionClaimError(
         "post-commit claim-head reconciliation lacks a matching prior GREEN mutation receipt "
         "bound to the current claim blob, direct child commit, changed-file set, and receipt window"
@@ -1700,6 +1850,7 @@ def assert_execution_claim(
     preflight_evidence: Iterable[str] = (),
     takeover_evidence: Path | None = None,
     user_authority_evidence: Path | None = None,
+    legacy_reconcile_recovery: Path | None = None,
 ) -> ExecutionClaim:
     """Return the validated current claim or raise before one repository action."""
     if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
@@ -1788,6 +1939,7 @@ def assert_execution_claim(
                 branch=branch,
                 expected_live_head_sha=expected_head_sha,
                 changed_files=normalized_changed_files,
+                legacy_reconcile_recovery=legacy_reconcile_recovery,
             )
         else:
             raise ExecutionClaimError(
@@ -1851,6 +2003,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="owner-authored WHD_USER_DIRECTED_TAKEOVER_V1 GitHub issue-comment JSON; required for interactive takeover",
     )
+    parser.add_argument(
+        "--legacy-reconcile-recovery",
+        type=Path,
+        help="owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 GitHub issue-comment JSON; only relaxes the historical receipt-time window",
+    )
     return parser
 
 
@@ -1869,6 +2026,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             preflight_evidence=args.preflight_evidence,
             takeover_evidence=args.takeover_evidence,
             user_authority_evidence=args.user_authority_evidence,
+            legacy_reconcile_recovery=args.legacy_reconcile_recovery,
         )
 
         normalized_changed_files = _normalize_changed_files(args.changed_file)
