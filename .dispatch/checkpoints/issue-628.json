@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "628",
+  "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "head_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
+  "state": "RUNNING",
+  "next_action": "Fresh-read #614/#615/#616/#619/#622 as closed/completed, verify #622 RELEASED/CLOSED handoff and Master completion criteria, then terminalize Master #628 on the exact closing head with CHAIN_COMPLETE and run its own trusted finalization proof.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "All five required child issues are closed/completed on fresh readback.",
+    "#622 final release handoff is durable and points to Master #628.",
+    "Master process-state closure remains pending its own owning finalization proof."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

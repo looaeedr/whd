@@ -1,0 +1,47 @@
+{
+  "issue": 628,
+  "issue_url": "https://github.com/looaeedr/whd/issues/628",
+  "worker": "chatgpt.sol260926.master628a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.master628.20260926T031000Z",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "claimed_at": "2026-09-26T03:10:00Z",
+  "base_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
+  "head_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T03:10:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "master_issue": 628,
+  "task_id": "MASTER_CLOSURE",
+  "parent_issue": null,
+  "expected_parent_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
+  "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "chain_head": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
+  "approved_red_ids": [
+    "UI-R1",
+    "UI-R2",
+    "UI-R3"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Fresh-read #614/#615/#616/#619/#622 as closed/completed, verify #622 RELEASED/CLOSED handoff and Master completion criteria, then terminalize Master #628 on the exact closing head with CHAIN_COMPLETE and run its own trusted finalization proof.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-628.json",
+  "predecessor": {
+    "issue": 622,
+    "state": "closed/completed",
+    "claim_phase": "RELEASED",
+    "checkpoint_closure_state": "CLOSED",
+    "accepted_closing_head": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048"
+  },
+  "evidence": [
+    "Master #628 fresh-read open; no prior shared claim exists.",
+    "Required children #614/#615/#616/#619/#622 fresh-read closed/completed.",
+    "#622 durable handoff is claim RELEASED + checkpoint CLOSED with NEXT_CHILD_EXECUTABLE -> #628.",
+    "B5 Combined acceptance run 36212566772 SUCCESS; tested→closing production/test drift=false; AI Library writeback remote-read verified.",
+    "Master closure must use its own terminal checkpoint + trusted finalization proof before close."
+  ]
+}
