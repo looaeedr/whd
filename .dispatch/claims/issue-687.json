@@ -11,11 +11,11 @@
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "phase": "RECOVERING",
-  "last_update": "2026-09-26T04:53:29Z",
+  "last_update": "2026-09-26T04:59:59Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "create guarded recovery work branch from H0, then obtain Remote Guard before re-landing RED-STOP-01 through RED-STOP-05",
+  "next_action": "obtain exact commit Remote Guard for the approved T1 RED file, consume it, then reconcile claim/checkpoint to the resulting commit",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-687.json",
   "recovery": {
@@ -23,6 +23,10 @@
     "isolated_branch": "work/issue687-continuous-legal-stop-20260926",
     "isolated_head_sha": "f04034f7027ec9677b04db3af01f5564fb9a0371",
     "authorized_resume_head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-    "recovery_strategy": "reactivate_same_owner_new_branch_from_authorized_H0"
+    "recovery_strategy": "reactivate_same_owner_new_branch_from_authorized_H0",
+    "branch_create_guard_run_id": 36219286656,
+    "branch_create_request_comment_id": 5843333478,
+    "branch_create_result_comment_id": 5843334839,
+    "branch_create_readback": "work/issue687-continuous-legal-stop-r2-20260926 exists at 87eb35b3f5ae5211673c941cb56c4c4343fa5405"
   }
 }

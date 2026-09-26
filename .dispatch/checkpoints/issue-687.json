@@ -4,7 +4,7 @@
   "branch": "work/issue687-continuous-legal-stop-r2-20260926",
   "head_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "state": "RECOVERING",
-  "next_action": "create guarded recovery work branch from H0, then obtain Remote Guard before re-landing RED-STOP-01 through RED-STOP-05",
+  "next_action": "obtain exact commit Remote Guard for the approved T1 RED file, consume it, then reconcile claim/checkpoint to the resulting commit",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,8 @@
     "Breakdown approved on 2026-09-26; T1 owning Issue #687.",
     "FROZEN_X_BASE_SHA=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
     "Old work branch work/issue687-continuous-legal-stop-20260926@f04034f7027ec9677b04db3af01f5564fb9a0371 is isolated because no prior Remote Guard receipt exists for that commit.",
-    "Recovery keeps ownership and authorized HEAD H0 unchanged, and switches to a fresh branch before any new repo write."
+    "Recovery branch work/issue687-continuous-legal-stop-r2-20260926 was created at H0 under Remote Guard run 36219286656 / request 5843333478 / result 5843334839.",
+    "Fresh branch readback matched H0; next mutation is the approved T1 RED commit under a fresh exact Remote Guard."
   ],
   "master_issue": null,
   "chain_state": "NONE",
