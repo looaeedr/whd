@@ -9,12 +9,12 @@
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "head_sha": "a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf",
+  "head_sha": "8728a7c11b19927749b9153446eedfbb01996a1b",
   "phase": "RED",
-  "last_update": "2026-09-26T15:12:40Z",
+  "last_update": "2026-09-26T15:16:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Use the valid RED run 36250631028 at exact head a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf as characterization evidence; inspect the exact test contract, implement the minimum planned-handoff scheduler receiver semantics under fresh commit Guard, then rerun focused QA to GREEN.",
+  "next_action": "Implement WI-2 planned executor handoff contract on frozen lineage: dispatch owns sender authority, Remote Guard recognizes distinct claim-handoff identity, and 排程模擬 validates exact scheduler receiver identity; rerun #680 focused QA to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-680.json",
   "slot_id": "UNBOUND",
@@ -56,7 +56,10 @@
     "Auto-created #680 RED run 36250425966 reached exact head 1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b but failed before test execution because pytest was not installed; invalid RED, rerun required.",
     "Workflow dependency repair commit a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf consumed commit Guard 36250584829.",
     "Post-commit H2→H3 claim/checkpoint reconciliation authorized by Remote Guard run 36251095059.",
-    "RED run 36250631028 executed pytest successfully and failed in the test step; environment bootstrap is no longer the blocker."
+    "RED run 36250631028 executed pytest successfully and failed in the test step; environment bootstrap is no longer the blocker.",
+    "RED owner correction commit 8728a7c11b19927749b9153446eedfbb01996a1b consumed Guard 36251254502.",
+    "H3→H4 coordination reconciliation authorized by Guard 36251314801.",
+    "Exact RED run 36251298009 executed pytest and failed after canonical sender owner correction; this is the valid WI-2 RED baseline."
   ],
   "remote_qa": null
 }

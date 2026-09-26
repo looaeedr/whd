@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "680",
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
-  "head_sha": "a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf",
+  "head_sha": "8728a7c11b19927749b9153446eedfbb01996a1b",
   "state": "RUNNING",
-  "next_action": "Use the valid RED run 36250631028 at exact head a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf as characterization evidence; inspect the exact test contract, implement the minimum planned-handoff scheduler receiver semantics under fresh commit Guard, then rerun focused QA to GREEN.",
+  "next_action": "Implement WI-2 planned executor handoff contract on frozen lineage: dispatch owns sender authority, Remote Guard recognizes distinct claim-handoff identity, and 排程模擬 validates exact scheduler receiver identity; rerun #680 focused QA to GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -29,7 +29,10 @@
     "Run 36250425966 invalid RED: pytest missing before test execution; fix QA dependency and rerun.",
     "Workflow dependency repair committed at a48fd64f3f6ac0d3286669feb596c0b46e7eb5bf.",
     "H2→H3 reconciliation Guard 36251095059 GREEN.",
-    "Run 36250631028 reached pytest execution and failed in characterization step; valid RED."
+    "Run 36250631028 reached pytest execution and failed in characterization step; valid RED.",
+    "RED owner correction commit 8728a7c11b19927749b9153446eedfbb01996a1b.",
+    "H3→H4 reconciliation Guard 36251314801 GREEN.",
+    "Valid RED run 36251298009 terminal failure after pytest execution."
   ],
   "master_issue": null,
   "chain_state": "NONE",
