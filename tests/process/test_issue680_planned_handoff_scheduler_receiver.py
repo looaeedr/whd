@@ -2,7 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-WORK_SLOT = ROOT / ".agents" / "skills" / "engineering" / "工作槽" / "SKILL.md"
+DISPATCH = ROOT / ".agents" / "skills" / "engineering" / "派工" / "SKILL.md"
 SCHED_SIM = ROOT / ".agents" / "skills" / "engineering" / "排程模擬" / "SKILL.md"
 REMOTE_GUARD = ROOT / ".agents" / "skills" / "engineering" / "remote-execution-guard" / "SKILL.md"
 
@@ -14,7 +14,7 @@ def _read(path: Path) -> str:
 
 
 def test_planned_handoff_sender_contract_is_durable_and_distinct_from_stale_takeover() -> None:
-    text = _read(WORK_SLOT) + "\n" + _read(REMOTE_GUARD)
+    text = _read(DISPATCH) + "\n" + _read(REMOTE_GUARD)
     assert MARKER in text
     assert "claim-handoff" in text
     assert "checkpoint fingerprint" in text.lower() or "checkpoint_fingerprint" in text
