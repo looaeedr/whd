@@ -154,29 +154,124 @@ jobs:
                   receipts.append(receipt)
 
           live_head = os.environ["LIVE_HEAD"]
-          durable_readbacks = []
-          for receipt in receipts:
-              if receipt.get("action") != "commit":
-                  continue
-              if live_head == str(receipt.get("head_sha") or ""):
-                  continue
-              raw = subprocess.check_output(
-                  ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/commits/{live_head}"],
-                  text=True,
-              )
-              commit = json.loads(raw)
-              parents = commit.get("parents") or []
-              if len(parents) == 1 and parents[0].get("sha") == receipt.get("head_sha"):
-                  durable_readbacks.append({
-                      "guard_run_id": receipt.get("run_id"),
-                      "action": "commit",
-                      "mutation_applied": True,
+          GUARD_DURABLE_READBACK_ACTIONS = {
+              "branch-create",
+              "claim-takeover",
+              "write",
+              "commit",
+              "qa-dispatch",
+              "workflow-dispatch",
+              "pr-write",
+          }
+
+          def _gh_json(endpoint):
+              raw = subprocess.check_output(["gh", "api", endpoint], text=True)
+              return json.loads(raw)
+
+          def _iso_epoch(value):
+              return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+
+          def _build_guard_durable_readback(receipt):
+              action = str(receipt.get("action") or "")
+              if action not in GUARD_DURABLE_READBACK_ACTIONS:
+                  return None
+              changed_files = [str(item) for item in (receipt.get("changed_files") or [])]
+              readback = {
+                  "guard_run_id": receipt.get("run_id"),
+                  "action": action,
+                  "mutation_applied": True,
+                  "changed_files": changed_files,
+                  "reconciled": False,
+              }
+
+              if action == "branch-create":
+                  if live_head != str(receipt.get("head_sha") or ""):
+                      return None
+                  readback.update({
+                      "branch_exists": True,
+                      "branch_head_sha": live_head,
+                  })
+                  return readback
+
+              if action == "claim-takeover":
+                  takeover_worker = str(receipt.get("takeover_worker") or "")
+                  if not takeover_worker or str(claim.get("worker") or "") != takeover_worker:
+                      return None
+                  if str(claim.get("head_sha") or "") != str(receipt.get("head_sha") or ""):
+                      return None
+                  readback["claim_cas_applied"] = True
+                  return readback
+
+              if action == "write":
+                  target_changed = str(request.get("claim_blob_sha") or "") != str(receipt.get("claim_blob_sha") or "")
+                  if not target_changed and live_head != str(receipt.get("head_sha") or ""):
+                      commit = _gh_json(f"repos/{os.environ['GITHUB_REPOSITORY']}/commits/{live_head}")
+                      parents = commit.get("parents") or []
+                      observed = {str(item.get("filename") or "") for item in (commit.get("files") or [])}
+                      target_changed = (
+                          len(parents) == 1
+                          and parents[0].get("sha") == receipt.get("head_sha")
+                          and set(changed_files) == observed
+                      )
+                  if not target_changed:
+                      return None
+                  readback["target_changed"] = True
+                  return readback
+
+              if action == "commit":
+                  if live_head == str(receipt.get("head_sha") or ""):
+                      return None
+                  commit = _gh_json(f"repos/{os.environ['GITHUB_REPOSITORY']}/commits/{live_head}")
+                  parents = commit.get("parents") or []
+                  if len(parents) != 1 or parents[0].get("sha") != receipt.get("head_sha"):
+                      return None
+                  readback.update({
                       "changed_files": [item["filename"] for item in commit.get("files", [])],
                       "parent_sha": parents[0]["sha"],
                       "post_head_sha": live_head,
                       "committed_at": commit["commit"]["committer"]["date"],
-                      "reconciled": False,
                   })
+                  return readback
+
+              if action in {"qa-dispatch", "workflow-dispatch"}:
+                  remote = claim.get("remote_qa") if isinstance(claim.get("remote_qa"), dict) else {}
+                  run_id = remote.get("run_id")
+                  if not run_id or str(remote.get("head_sha") or "") != str(receipt.get("tested_target_sha") or ""):
+                      return None
+                  run = _gh_json(f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{int(run_id)}")
+                  if str(run.get("head_sha") or "") != str(receipt.get("tested_target_sha") or ""):
+                      return None
+                  if _iso_epoch(run.get("created_at")) < _iso_epoch(receipt.get("issued_at")):
+                      return None
+                  readback.update({
+                      "run_created": True,
+                      "run_head_sha": str(run.get("head_sha") or ""),
+                  })
+                  return readback
+
+              if action == "pr-write":
+                  owner = os.environ["GITHUB_REPOSITORY"].split("/", 1)[0]
+                  branch = str(receipt.get("branch") or "")
+                  pulls = _gh_json(
+                      f"repos/{os.environ['GITHUB_REPOSITORY']}/pulls?state=all&head={owner}:{branch}&per_page=100"
+                  )
+                  exact = [
+                      pr for pr in pulls
+                      if str((pr.get("head") or {}).get("ref") or "") == branch
+                      and str((pr.get("head") or {}).get("sha") or "") == str(receipt.get("head_sha") or "")
+                  ]
+                  if len(exact) != 1:
+                      return None
+                  readback["pr_readback"] = True
+                  return readback
+
+              return None
+
+          durable_readbacks = []
+          for receipt in receipts:
+              readback = _build_guard_durable_readback(receipt)
+              if readback is not None:
+                  durable_readbacks.append(readback)
 
           tx = classify_guard_transaction(
               receipts=receipts,

@@ -57,3 +57,21 @@ def test_red_stop_19_trusted_turn_exit_produces_all_guard_readback_shapes():
         "RED-STOP-19: producer evidence is not bridged into the existing "
         "execution_claim_guard classifier"
     )
+
+def test_red_stop_19_readbacks_are_action_bound_and_fail_closed():
+    text = TURN_EXIT_WORKFLOW.read_text(encoding="utf-8")
+    assert 'if action not in GUARD_DURABLE_READBACK_ACTIONS:' in text
+    assert 'if len(exact) != 1:' in text
+    assert 'str(run.get("head_sha") or "") != str(receipt.get("tested_target_sha") or "")' in text
+    assert 'parents[0].get("sha") != receipt.get("head_sha")' in text
+    assert 'str(claim.get("worker") or "") != takeover_worker' in text
+    assert 'set(changed_files) == observed' in text
+
+
+def test_red_stop_19_pr_write_uses_exact_head_and_branch_readback():
+    text = TURN_EXIT_WORKFLOW.read_text(encoding="utf-8")
+    section = text.split('if action == "pr-write":', 1)[1]
+    assert 'pulls?state=all&head=' in section
+    assert '(pr.get("head") or {}).get("ref")' in section
+    assert '(pr.get("head") or {}).get("sha")' in section
+    assert 'readback["pr_readback"] = True' in section
