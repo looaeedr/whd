@@ -4,7 +4,7 @@
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "head_sha": "81e9ab99ada9cb1bdacb35e382e2984068b0d691",
   "state": "RUNNING",
-  "next_action": "Poll exact A7 focused run 36244553368 to terminal. Accept intended RED only if removal assertion fails for the ten fresh NO_CALLER helpers while protected compatibility assertions remain GREEN; then delete exactly that proven-dead set.",
+  "next_action": "Delete exactly the ten P7-R-A fresh-census NO_CALLER helper definitions from fold_designer_bridge.py; preserve Part Editor activation ordering, command-router scheduler ownership, bootstrap/lifecycle/install-order, facade bindings, and no-reverse-import invariants. Then let exact A7 focused workflow rerun.",
   "run_id": 36244553368,
   "job_id": 108411194318,
   "log_cursor": null,
@@ -19,7 +19,10 @@
     "Post-RED claim+checkpoint reconciliation authorized by Remote Guard run 36244451198.",
     "A7 focused workflow commit 81e9ab99ada9cb1bdacb35e382e2984068b0d691 authorized by Remote Guard run 36244509981.",
     "Exact focused A7 run 36244553368 locked at workflow head 81e9ab99ada9cb1bdacb35e382e2984068b0d691.",
-    "Workflow-head claim+checkpoint reconciliation authorized by Remote Guard run 36244571529."
+    "Workflow-head claim+checkpoint reconciliation authorized by Remote Guard run 36244571529.",
+    "Exact P7-R-A focused RED run 36244553368 @ 81e9ab99ada9cb1bdacb35e382e2984068b0d691: 1 failed, 4 passed in 0.27s.",
+    "The sole RED failure is the ten fresh-census NO_CALLER Bridge helpers still present; Part Editor ordering, command-router scheduler ownership, lifecycle/install-order, and no-reverse-import assertions all passed.",
+    "Intended RED acceptance writeback authorized by Remote Guard run 36244639089."
   ],
   "master_issue": null,
   "chain_state": "NONE",

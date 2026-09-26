@@ -11,7 +11,7 @@
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
   "head_sha": "81e9ab99ada9cb1bdacb35e382e2984068b0d691",
   "phase": "RED",
-  "last_update": "2026-09-26T13:15:51Z",
+  "last_update": "2026-09-26T13:17:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -33,11 +33,12 @@
     "run_id": 36244553368,
     "job_id": 108411194318,
     "head_sha": "81e9ab99ada9cb1bdacb35e382e2984068b0d691",
-    "status": "in_progress",
-    "conclusion": null,
-    "scope": "P7-R-A focused residual Bridge deletion-test"
+    "status": "completed",
+    "conclusion": "failure",
+    "interpretation": "EXPECTED_RED",
+    "result": "1 failed, 4 passed in 0.27s; sole failure is the ten fresh NO_CALLER helpers still present"
   },
-  "next_action": "Poll exact A7 focused run 36244553368 to terminal. Accept intended RED only if removal assertion fails for the ten fresh NO_CALLER helpers while protected compatibility assertions remain GREEN; then delete exactly that proven-dead set.",
+  "next_action": "Delete exactly the ten P7-R-A fresh-census NO_CALLER helper definitions from fold_designer_bridge.py; preserve Part Editor activation ordering, command-router scheduler ownership, bootstrap/lifecycle/install-order, facade bindings, and no-reverse-import invariants. Then let exact A7 focused workflow rerun.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -60,14 +61,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36244571529,
-    "request_comment_id": 5846571208,
-    "result_comment_id": 5846572539,
+    "run_id": 36244639089,
+    "request_comment_id": 5846579153,
+    "result_comment_id": 5846580553,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "bind A7 focused workflow head and exact active RED run"
+    "mutation": "record intended P7-R-A RED terminal result and implementation next_action"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
