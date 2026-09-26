@@ -67,12 +67,12 @@
     {
       "relationship": "helper",
       "helper_key": "issue693-turn-exit-continuity-main-deploy",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue693-turn-exit-continuity-main-deploy-20260927a",
       "reserved_at": "2026-09-26T21:58:12Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 763,
+      "child_claim_blob_sha": "c0f4d0cd56951e3d8f1bcf51a8d51fed22e572d8"
     }
   ]
 }
