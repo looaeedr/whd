@@ -9,15 +9,15 @@
   "work_branch": "governance/issue724-report-handler-prefix-v1",
   "claimed_at": "2026-09-26T12:37:34Z",
   "base_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
-  "head_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T12:37:34Z",
+  "head_sha": "8cb01ac0d07850e0427295450026f75eab3ebd8b",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T12:49:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run branch-create Guard, create governance/issue724-report-handler-prefix-v1 from exact cleanup/2d-3d-sync HEAD, then add RED contract for handler/Issue report prefix.",
+  "next_action": "Create PR from governance/issue724-report-handler-prefix-v1 to cleanup/2d-3d-sync, validate CI, merge, then update live WHD recurring automation prompts with REPORT_HANDLER_IDENTITY_PREFIX_V1 and fresh-read post-update invariants.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-724.json",
   "evidence": [
@@ -25,6 +25,23 @@
     "Purpose: add user-visible handler/lane + exact Issue prefix to 工作槽, 排程模擬, and 寫排程 reports.",
     "Authorized scope: three Skill files plus necessary contract tests.",
     "Prohibited scope: no ownership semantics change, no scheduler cadence/enabled/lane changes, no unrelated issue execution.",
-    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_issue724_preflight_evidence.md."
-  ]
+    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_issue724_preflight_evidence.md.",
+    "RED: new handler identity prefix contract = 5 failed before implementation.",
+    "GREEN: focused + related Skill contracts = 30 passed / 0 failed.",
+    "Phase6 Skill mutation preflight GREEN; git diff --check GREEN.",
+    "Commit mutation authorized by Remote Guard run 36243019945; work head 8cb01ac0d07850e0427295450026f75eab3ebd8b.",
+    "Post-commit H0→H1 claim/checkpoint reconciliation authorized by Remote Guard run 36243067099.",
+    "User expanded UPDATE_ONLY scope to live WHD recurring scheduler prompts; cadence/timing/enabled/title/lane identity remain immutable."
+  ],
+  "last_guard": {
+    "action": "write",
+    "run_id": 36243067099,
+    "request_comment_id": 5846394048,
+    "result_comment_id": 5846395294,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
+    "consumed": true,
+    "mutation": "reconcile issue724 claim/checkpoint to report-prefix commit"
+  }
 }
