@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "763",
+  "branch": "deploy/issue763-turn-exit-continuity-main-20260927",
+  "head_sha": "f19c59c2596a278f8f6bf455e079b4a3dd1c5607",
+  "state": "RUNNING",
+  "next_action": "Create guarded main-based deploy branch; port only tools/continuity_controller.py and .github/workflows/whd-turn-exit-gate.yml from #693 H4 while preserving trusted-main behavior; run focused acceptance; merge to main; fresh-read exact trusted blobs; close/release #763 and return to #693.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #693 / helper_key issue693-turn-exit-continuity-main-deploy.",
+    "Trusted deployment base main@f19c59c2596a278f8f6bf455e079b4a3dd1c5607.",
+    "Exact deploy scope: continuity_controller.py + whd-turn-exit-gate.yml only."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
