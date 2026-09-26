@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T14:42:00Z",
   "base_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
   "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T15:25:35.157155Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T15:28:51.670244Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
     "status": "success"
   },
-  "next_action": "Issue Closure owner #693 must consume T3 acceptance comment 5847453298, mint fresh finalization proof for exact #691 checkpoint/head, close/readback #691, then atomically persist CLOSED + RELEASED and continue chain to #690.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-691.json",
   "evidence": [
@@ -43,7 +43,10 @@
     "Branch-native QA run 36251331964 terminal SUCCESS at exact head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8: focused 6 PASS + broader 112 PASS / 0 FAIL.",
     "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954.",
     "T3 acceptance evidence comment 5847453298: RED-STOP-08/12/13 GREEN; focused 6 PASS + broader 112 PASS / 0 FAIL at exact head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8.",
-    "Acceptance handoff Guard GREEN run 36251880950 / result comment 5847455426."
+    "Acceptance handoff Guard GREEN run 36251880950 / result comment 5847455426.",
+    "Trusted finalization run 36251993120 terminal SUCCESS with FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; artifact 10908993262; checkpoint fingerprint a05a1cee104c63835865f578953ab1aed2e480e796138300f6301a78d5cd5ac7.",
+    "GitHub Issue #691 close readback: state=closed, state_reason=completed, closed_at=2026-09-26T15:28:04Z.",
+    "Final closure coordination mutation authorized by Remote Guard run 36252067042 / result comment 5847477705."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
@@ -59,5 +62,28 @@
       "test": "tests/process/test_issue691_turn_exit_scheduler_end_parity.py",
       "result": "5_FAIL_EXPECTED_RED"
     }
+  },
+  "release_handoff": {
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T15:28:04Z"
+    },
+    "finalization_run_id": 36251993120,
+    "finalization_artifact_id": 10908993262,
+    "successor_issue": 690,
+    "successor_state": "open",
+    "closure_owner_issue": 693
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36252067042,
+    "request_comment_id": 5847476035,
+    "result_comment_id": 5847477705,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
+    "consumed": true,
+    "mutation": "atomic final closure: checkpoint CLOSED + claim RELEASED + #693 chain handoff to #690"
   }
 }

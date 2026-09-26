@@ -31,13 +31,17 @@
     "Run 36251331964 terminal SUCCESS: focused 6 PASS + broader 112 PASS / 0 FAIL.",
     "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954.",
     "T3 acceptance evidence comment 5847453298: exact tested head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8; focused 6 PASS; broader 112 PASS; RED-STOP-08/12/13 GREEN.",
-    "Acceptance handoff Guard GREEN run 36251880950 / result comment 5847455426."
+    "Acceptance handoff Guard GREEN run 36251880950 / result comment 5847455426.",
+    "Trusted finalization run 36251993120 terminal SUCCESS; artifact 10908993262; FINALIZATION_PROOF_VALID exact-bound to checkpoint blob de75508893ae977d89d3970f30975598cad0e389 and claim blob 16d5bce34b9d0f206c041714c0cc7157f51ddc9d.",
+    "GitHub Issue #691 close readback: state=closed, state_reason=completed, closed_at=2026-09-26T15:28:04Z.",
+    "Final closure coordination Guard GREEN run 36252067042 / result comment 5847477705.",
+    "Shared execution claim released atomically with checkpoint closure; chain handoff NEXT_CHILD_EXECUTABLE -> #690."
   ],
   "master_issue": "693",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "690",
-  "chain_next_action": "After #691 is CLOSED + RELEASED, continue #693 chain with #690 / T4 irreversible closure-process drift classification.",
-  "chain_reason": "T3/#691 accepted; next approved child in work-order is T4/#690.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Issue Closure owner #693 must consume T3 acceptance comment 5847453298, mint fresh finalization proof bound to exact checkpoint/head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8, close/read back #691 as completed, then atomically persist checkpoint CLOSED + claim RELEASED."
+  "chain_next_action": "As #693 closure/chain owner, fresh-read #690 dependency state and establish/resume its canonical claim/branch, then execute T4 RED-STOP-09/10/14 irreversible closure/process-state drift classification.",
+  "chain_reason": "T3/#691 closed and RELEASED; approved next work-order child is T4/#690.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
