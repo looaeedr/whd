@@ -1,0 +1,187 @@
+{
+  "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
+  "issue": 625,
+  "master_issue": 627,
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "characterization_head": "10ec9a52eff1b8495042270445755e59b6a329c2",
+  "decision_parent_head": "590448a911099d2bdb61aef09112dd6b6d3afc3c",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_behavior_change": 0,
+  "target_id": "P7-G",
+  "source": {
+    "path": "phase6_settings_panel.py",
+    "owner": "Phase6SettingsPanel",
+    "ownership": "Tk/UI presentation only; domain settings draft/transaction authority remains callback-owned"
+  },
+  "current_owner_map": [
+    "Phase6SettingsPanel — single Settings presentation owner",
+    "Phase6FoldDesignerComposition — single composition/wiring owner for the Settings panel and bounded callbacks",
+    "phase6_settings_center — SettingSpec/schema and settings context",
+    "Phase6SettingsTransactionService / existing application callback owners — canonical transaction/state mutation",
+    "fold_designer_bridge.py — retained Settings compatibility projection/dataflow seam only"
+  ],
+  "current_tests": [
+    "tests/test_issue625_phase7_a8_settings_presentation_decision.py",
+    "tests/test_issue445_settings_presentation_owner.py",
+    "tests/test_issue498_settings_application_coordinator.py",
+    "tests/test_issue500_settings_profile_projection.py",
+    "tests/test_issue502_editor_settings_commit_seam.py",
+    "tests/test_phase6_settings_panel_ownership.py",
+    "tests/test_phase6_settings_center_gui_contract.py"
+  ],
+  "dt_0_characterization": {
+    "status": "COMPLETE",
+    "presentation_clusters": [
+      "structure presentation callbacks",
+      "corner presentation callbacks",
+      "endcap FW / bottom-wrap presentation callbacks",
+      "baseline/global settings presentation",
+      "context-extension projection/render/sync compatibility seam"
+    ],
+    "direct_callers": [
+      "Phase6FoldDesignerComposition.settings_panel constructs the single Phase6SettingsPanel and supplies bounded callbacks",
+      "fold_designer_bridge.py supplies context-extension projection and mutation delegates through the composition callback surface"
+    ],
+    "dynamic_callers": [
+      "Tk widget commands owned by Phase6SettingsPanel",
+      "callback ports supplied by the single composition root"
+    ],
+    "state_reads": [
+      "values_snapshot",
+      "context_extension_projection",
+      "baseline model/query getters",
+      "canonical structure/corner/endcap read models supplied from existing owners"
+    ],
+    "state_writes": [
+      "Tk variables/page cache/presentation state inside Phase6SettingsPanel",
+      "domain mutations delegated through existing Settings transaction/application callback owners"
+    ],
+    "protected_authority": [
+      "Settings transaction/state authority must not move into presentation",
+      "no second Settings state machine or panel owner",
+      "no second composition root",
+      "pure phase6_settings_profile_projection owner must remain bridge/Tk/workspace/manufacturing free"
+    ],
+    "lineage_readback": {
+      "prior_formal_deletion_test_issue": 528,
+      "prior_formal_run_id": 35783860498,
+      "exact_six_total_span": 277,
+      "distinct_bridge_helper_dependencies": 16,
+      "current_targeted_bodies_source_identical_to_issue528": true,
+      "current_panel_blob_unchanged_from_issue528": true,
+      "current_profile_projection_blob_unchanged_from_issue528": true
+    }
+  },
+  "dt_1_remove_or_inline": {
+    "status": "COMPLETE",
+    "result": "KEEP_REQUIRED",
+    "evidence": [
+      "The six context-extension compatibility bodies remain live and are called through the single Settings composition callback surface; deleting them would remove current structure/corner/endcap projection or legacy widget-state synchronization.",
+      "Inlining the domain-heavy box/corner projection bodies into Phase6SettingsPanel would move canonical/domain dependencies into a presentation-only owner and violate permanent ownership tests.",
+      "Focused P7-R-G expected-RED run 36273585335 proved the current runtime boundary is otherwise valid: exactly 3 passed / 1 failed, with only terminal DT-6 still PENDING."
+    ]
+  },
+  "dt_2_existing_owner_candidate": {
+    "status": "COMPLETE",
+    "result": "NO_LEGAL_DEEP_DESTINATION_FOR_GROUP",
+    "candidate": "Phase6SettingsPanel / existing Phase6FoldDesignerComposition / phase6_settings_profile_projection.py",
+    "evidence": [
+      "Phase6SettingsPanel is already the single presentation owner and intentionally receives mutation through callback-only ports.",
+      "Phase6FoldDesignerComposition now centralizes Settings panel construction/wiring, but it is a composition root rather than a new home for domain projection algorithms.",
+      "phase6_settings_profile_projection.py remains a pure owner whose tests forbid bridge, Tk, workspace, renderer, or manufacturing dependencies.",
+      "The targeted exact-six bodies and structure/corner/endcap mutation delegates are source-identical to the accepted #528 deletion-test lineage, so no newly matured deep owner can absorb the group legally."
+    ]
+  },
+  "dt_3_bounded_owner_ports": {
+    "status": "COMPLETE",
+    "single_presentation_owner": "Phase6SettingsPanel",
+    "single_composition_root": "Phase6FoldDesignerComposition",
+    "mutation_ports": [
+      "endcap_fw_value_selected",
+      "box_structure_numeric_changed",
+      "box_back_panel_mode_changed",
+      "box_structure_toggle_advanced",
+      "bottom_wrap_commit",
+      "corner_pair_changed",
+      "corner_type_selected",
+      "corner_mode_selected",
+      "corner_target_changed"
+    ],
+    "projection_port": "context_extension_projection",
+    "sync_port": "sync_context_extension",
+    "transaction_state_authority_unchanged": true,
+    "second_settings_owner": false,
+    "second_composition_root": false,
+    "reverse_import_to_bridge_from_panel": false,
+    "pure_profile_projection_boundary_preserved": true
+  },
+  "dt_4_variant_k": {
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "GREEN",
+    "evidence": {
+      "prior_issue": 528,
+      "prior_run_id": 35783860498,
+      "prior_headless": "26 passed, 6 skipped",
+      "prior_xvfb": "11 passed",
+      "exact_six_total_span": 277,
+      "distinct_bridge_helper_dependencies": 16,
+      "current_source_identity": "all six compatibility bodies and all scoped structure/corner/endcap mutation delegates match the accepted #528 bodies",
+      "current_red_run_id": 36273585335,
+      "current_red_summary": "expected RED harness SUCCESS; exactly 3 passed / 1 failed, only DT-6 terminal-decision assertion failed"
+    }
+  },
+  "dt_5_variant_e": {
+    "status": "COMPLETE",
+    "variant": "DEEPEN_EXISTING_OWNER",
+    "result": "REJECTED",
+    "candidate_owner": "Phase6SettingsPanel / phase6_settings_profile_projection.py / Phase6FoldDesignerComposition",
+    "evidence": [
+      "Accepted #528 disposable Variant E could remove only 1 of 6 old bodies and left 5 duplicate paths.",
+      "The remaining box/corner projection bodies still require 16 distinct bridge/domain helper dependencies; moving them into Phase6SettingsPanel would violate presentation purity.",
+      "Moving those dependencies into phase6_settings_profile_projection.py would convert a pure projection owner into a callback/service bag or leave duplicate caller bodies.",
+      "Moving them into Phase6FoldDesignerComposition would deepen a composition root with domain projection implementation rather than improve responsibility locality.",
+      "Current targeted bodies and owner constraints are unchanged from #528, so the prior Variant-E structural failure remains applicable."
+    ]
+  },
+  "dt_6_decision": {
+    "status": "COMPLETE",
+    "allowed_decisions": [
+      "DEEPEN_EXISTING_OWNER",
+      "KEEP_CURRENT_BOUNDARY"
+    ],
+    "decision": "KEEP_CURRENT_BOUNDARY",
+    "result": "ACCEPTED",
+    "rationale": "The existing Settings presentation/composition boundary is already singular and bounded. No legal deep owner can absorb the scoped projection/dataflow group without contaminating presentation purity, pure projection ownership, or composition responsibility; the accepted #528 deletion-test preconditions remain materially unchanged.",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue625-a8-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "phase6_settings_panel.py::Phase6SettingsPanel — Settings Tk/UI presentation",
+    "gui_modules/application/fold_designer_adapter.py::Phase6FoldDesignerComposition — single Settings construction/wiring root",
+    "fold_designer_bridge.py — retained compatibility projection/dataflow delegates only",
+    "existing Settings transaction/service/application owners — canonical mutation/state authority",
+    "phase6_settings_profile_projection.py — pure Settings→Profile planning owner"
+  ],
+  "terminal_evidence": {
+    "issue": 625,
+    "takeover_guard_run_id": 36264722019,
+    "takeover_activation_run_id": 36264805425,
+    "expected_red_run_id": 36273585335,
+    "expected_red_summary": "3 passed / 1 failed; only test_p7_r_g_requires_terminal_deletion_test_decision failed",
+    "behavior_qa": {
+      "run_id": 36273892831,
+      "job_id": 108492816785,
+      "head_sha": "6603578386cc56b34bf79db82093706338cc92fd",
+      "conclusion": "success",
+      "focused": "37 passed, 6 skipped in 3.26s",
+      "xvfb": "23 passed, 24 font-glyph warnings in 4.18s"
+    },
+    "production_change_required": false,
+    "red_harness_rerun": {
+      "run_id": 36273892838,
+      "conclusion": "failure",
+      "disposition": "EXPECTED_DISPOSABLE_HARNESS_AFTER_DT6_COMPLETE"
+    }
+  }
+}
