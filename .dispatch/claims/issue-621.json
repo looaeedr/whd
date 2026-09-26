@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T05:58:30Z",
   "base_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
   "head_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T08:44:09.246303Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T08:49:38Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:743e74e9c39461cda2e651ac33d41482aba8d84b9f7912d68dd6aa673e9e349a",
     "protected_inputs": "GREEN"
   },
-  "next_action": "Advance #621 terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, obtain bound trusted finalization proof, close/read back Issue #621, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-621.json",
   "predecessor": {
@@ -96,5 +96,20 @@
     "user_authority_comment_id": 5844639639,
     "runtime_liveness_status": "NOT_APPLICABLE",
     "taken_over_at": "2026-09-26T08:38:50.179999Z"
+  },
+  "finalization": {
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "run_id": 36230924616,
+    "artifact_id": 10902710536,
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "final_release": {
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "successor_activated": false
   }
 }
