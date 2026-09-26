@@ -1,0 +1,32 @@
+name: WHD｜#692 T6｜治理 production↔trusted parity 驗收
+run-name: WHD｜#692 T6｜治理 production↔trusted parity 驗收
+
+on:
+  push:
+    branches:
+      - work/issue692-governance-parity-gate-20260927
+    paths:
+      - 'tests/process/test_issue692_governance_parity_gate.py'
+      - 'tools/governance_parity_gate.py'
+      - '.github/workflows/qa-issue692-governance-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: '#692 parity gate focused QA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出工單分支
+        uses: actions/checkout@v4
+      - name: 設定 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安裝 pytest
+        run: python -m pip install -q pytest
+      - name: 執行 RED-STOP-15 / GREEN parity gate 驗收
+        run: python -m pytest tests/process/test_issue692_governance_parity_gate.py -q
