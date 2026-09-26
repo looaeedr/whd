@@ -9,34 +9,34 @@
   "work_branch": "work/issue697-operation-transaction-core-20260926",
   "claimed_at": "2026-09-26T07:18:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T07:28:00Z",
+  "head_sha": "3969ac5d0ffdffa975824921b85b1168713abc21",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-26T07:34:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36226816283,
-    "job_id": 108362339494,
-    "head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
+    "run_id": 36227111155,
+    "job_id": 108363140084,
+    "head_sha": "3969ac5d0ffdffa975824921b85b1168713abc21",
     "status": "completed",
     "conclusion": "success",
-    "passed": 7,
+    "passed": 53,
     "failed": 0,
-    "marker": "ISSUE697_A2_TESTS_GREEN=PASS"
+    "marker": "ISSUE697_A2_REGRESSION_GREEN=PASS"
   },
-  "next_action": "expand the existing one-shot A2 workflow to include continuity/checkpoint-resume/turn-exit regressions, run exact remote QA on the resulting head, then cleanup workflow and drift-audit A2",
+  "next_action": "remove one-shot A2 QA workflow, reconcile closing head, verify only expected A2 production/test files remain, then mark A2 accepted-pending-chain-closure and hand off #698/#699/#700",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-697.json",
   "last_guard": {
     "action": "commit",
-    "run_id": 36226776008,
-    "request_comment_id": 5844250385,
-    "result_comment_id": 5844251597,
+    "run_id": 36227080734,
+    "request_comment_id": 5844284813,
+    "result_comment_id": 5844285912,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
     "consumed": true,
-    "mutation": "committed A2 minimum GREEN implementation at ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1"
+    "mutation": "expanded existing one-shot A2 workflow at 3969ac5d0ffdffa975824921b85b1168713abc21"
   },
   "red_evidence": {
     "run_id": 36226621311,
@@ -46,11 +46,14 @@
     "seam": "missing canonical OperationState/OperationTransaction before resume-first routing"
   },
   "green_evidence": {
-    "run_id": 36226816283,
-    "job_id": 108362339494,
-    "head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
-    "result": "7 passed, 0 failed",
-    "marker": "ISSUE697_A2_TESTS_GREEN=PASS",
-    "broader_regression_pending": true
+    "focused_run_id": 36226816283,
+    "focused_head_sha": "ddfc9b0d5fdc0d65b612aa119aa9f1c43d2966e1",
+    "focused_result": "7 passed, 0 failed",
+    "regression_run_id": 36227111155,
+    "regression_job_id": 108363140084,
+    "regression_head_sha": "3969ac5d0ffdffa975824921b85b1168713abc21",
+    "regression_result": "53 passed, 0 failed",
+    "regression_marker": "ISSUE697_A2_REGRESSION_GREEN=PASS",
+    "broader_regression_pending": false
   }
 }
