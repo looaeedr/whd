@@ -37,13 +37,15 @@
     "Entering ISSUE_CLOSE_PENDING with successor #626.",
     "Trusted finalization 36274462383 SUCCESS.",
     "Issue #625 read back closed/completed.",
-    "Release-handoff transition Guard 36274510527 GREEN."
+    "Release-handoff transition Guard 36274510527 GREEN.",
+    "Final release write Guard 36274596680 GREEN.",
+    "Checkpoint CLOSED atomically with claim RELEASED and successor #626 handoff."
   ],
   "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "626",
+  "chain_next_action": "Activate/claim #626 Phase 7 A9 on accepted #625 head 216269197d6956c2bd125bede5a6d76cc1fe395b and execute Combined Acceptance + ownership writeback + closure without auto-starting from this #625 execution.",
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED + durable predecessor handoff to successor #626."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
