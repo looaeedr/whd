@@ -47,6 +47,21 @@ scheduler lane / work slot 是 routing 與互斥 identity，不是 execution aut
 - `slot_id 必須原值保留`；不得把 worker.slot.1 改成 worker.slot.2，也不得清除既有 slot_id。
 - claim owner / executor provenance 仍依 live 派工與 handoff authority更新；slot_id 只是 durable provenance，不是第二套 ownership authority。
 
+### READY_WORK_CENSUS_V1
+
+`NO_MATCHING_HANDOFF != NO_WORK`。planned handoff receiver 只決定優先 routing；**沒有 matching handoff 不得直接推出沒有工作**。沒有 matching planned handoff 時，scheduler 必須繼續 ordinary dynamic discovery，建立本輪 `candidate executable leaves` census。
+
+宣告 `NO_EXECUTABLE_WORK` 前必須同時成立：
+
+1. fresh-read live Issue / claim / checkpoint / dependency / branch / exact run authority，列出所有 candidate executable leaves；
+2. 每張候選都有 **fresh durable exclusion evidence** 與 machine-readable exclusion classification；
+3. 合法 exclusion 至少包含：`FOREIGN_LIVE_OWNER`、`DEPENDENCY_BLOCKED`、`ACTIVE_EXACT_RUN`、`AUTHORITY_MISMATCH`、`SHARED_SCOPE_CONFLICT`；實際分類仍服從 live《派工》/ Guard authority，不得用聊天推測；
+4. `unclaimed + dependency-unblocked + scheduler-authorized` 的候選不得被排除；分類固定 `MUST_CLAIM`，必須進 canonical claim path 並完成 first substantive action；
+5. 只有 census 中所有候選都被合法排除，且沒有 matching planned handoff / same-lane resume / canonical successor，才可輸出 `NO_EXECUTABLE_WORK`；
+6. `沒有 matching handoff`、`slot_id=UNBOUND`、聊天室看不到工作、或某一張候選有 foreign owner，任何一項單獨都**不得**當成 NO_WORK 證明。
+
+`READY_WORK_CENSUS_V1` 只補「是否真的無可執行工作」的 provenance / exhaustive proof，**不建立 execution authority**、不改 lane owner、不改 claim ownership、不繞過 dependency / parallel-scope / Guard / takeover gate。
+
 #### WORK_SLOT_SUCCESSOR_REBIND_V1
 
 terminal child 後，**只有 SCHEDULER_LANE / chain authority** 已合法允許 successor continuation 時，terminal successor 可沿同一 slot_id rebind。

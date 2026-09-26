@@ -113,6 +113,18 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+### 4.0A READY_WORK_CENSUS_V1
+
+所有新建或修改的 WHD scheduler prompt 都必須保留以下 no-work hard gate：
+
+- `NO_MATCHING_HANDOFF != NO_WORK`；沒有 matching planned handoff 時仍必須進 ordinary discovery。
+- 建立 `READY_WORK_CENSUS_V1`，fresh-read 並列出 `candidate executable leaves`；每張候選必須有 **fresh durable exclusion evidence**。
+- 合法 exclusion 至少能區分 `FOREIGN_LIVE_OWNER`、`DEPENDENCY_BLOCKED`、`ACTIVE_EXACT_RUN`、`AUTHORITY_MISMATCH`、`SHARED_SCOPE_CONFLICT`，但實際 evaluator/語意 owner 仍由 live《派工》與 Guard 擁有。
+- 遇到 `unclaimed + dependency-unblocked + scheduler-authorized` candidate 時必須 `MUST_CLAIM` → canonical claim path；不得回 NO_WORK。
+- 只有所有候選都被合法排除後才可輸出 `NO_EXECUTABLE_WORK`。沒有 handoff、UNBOUND、單一 foreign owner 都不足以證明 NO_WORK。
+- replacement prompt 的 post-update readback 必須驗證 `READY_WORK_CENSUS_V1`、`NO_MATCHING_HANDOFF != NO_WORK`、`NO_EXECUTABLE_WORK` 仍存在，**不得刪除**來縮短 prompt。
+- 此 contract **不建立 execution authority**、不改 lane owner、不改 claim ownership，也不改 cadence / enabled / takeover semantics。
+
 ### 4.1 SKILL_FIRST_HARD_GATE
 
 在任何 Guard、claim、branch、PR、workflow、Issue、repository mutation、takeover、reconciliation 前：
