@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 
 from shapely.geometry.base import BaseGeometry
+from . import collision_backprojection as _collision_backprojection
 
 
 class AssemblyRole(str, Enum):
@@ -185,11 +186,10 @@ def default_boxbody_endcap_ownership() -> AssemblyOwnershipPolicy:
 
 
 def detect_planar_collision(*, box_body_material, endcap_material) -> CollisionRegion | None:
-    overlap = box_body_material.intersection(endcap_material)
-    if overlap.is_empty or float(overlap.area) <= 1e-9:
-        return None
-    return CollisionRegion(
-        region=overlap,
+    return _collision_backprojection.detect_planar_collision(
+        box_body_material=box_body_material,
+        endcap_material=endcap_material,
+        collision_region_factory=CollisionRegion,
         source_role=AssemblyRole.BOX_BODY,
         target_role=AssemblyRole.ENDCAP,
     )
@@ -202,27 +202,14 @@ def project_collision_to_endcap_relief(
     clearance: float = 0.0,
     min_area: float = 1e-6,
 ) -> ReliefCandidate | None:
-    if collision is None:
-        return None
-    if collision.target_role is not AssemblyRole.ENDCAP:
-        return None
-    if policy.endcap is not OwnershipAction.CUT:
-        return None
-
-    source_area = float(collision.region.area)
-    if source_area <= min_area:
-        return None
-
-    cut_polygon: BaseGeometry = collision.region
-    if clearance > 0.0:
-        cut_polygon = cut_polygon.buffer(float(clearance))
-    if cut_polygon.is_empty:
-        return None
-
-    return ReliefCandidate(
-        cut_polygon_2d=cut_polygon,
-        clearance=float(clearance),
-        source_collision_area=source_area,
+    return _collision_backprojection.project_collision_to_endcap_relief(
+        collision,
+        policy,
+        endcap_role=AssemblyRole.ENDCAP,
+        cut_action=OwnershipAction.CUT,
+        relief_candidate_factory=ReliefCandidate,
+        clearance=clearance,
+        min_area=min_area,
     )
 
 
