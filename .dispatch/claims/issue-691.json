@@ -11,7 +11,7 @@
   "base_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
   "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
   "phase": "GREEN",
-  "last_update": "2026-09-26T15:17:27.969699Z",
+  "last_update": "2026-09-26T15:25:35.157155Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
     "status": "success"
   },
-  "next_action": "Publish #691 T3 acceptance evidence for RED-STOP-08/12/13, then hand terminal ISSUE_CLOSE_PENDING state to Issue Closure owner #693.",
+  "next_action": "Issue Closure owner #693 must consume T3 acceptance comment 5847453298, mint fresh finalization proof for exact #691 checkpoint/head, close/readback #691, then atomically persist CLOSED + RELEASED and continue chain to #690.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-691.json",
   "evidence": [
@@ -41,7 +41,9 @@
     "Post-fix reconciliation Guard GREEN run 36251008760 / result comment 5847352182.",
     "Broader QA workflow commit 48cd6521d59531cc04ea7ab12fbe49c595eb69e8.",
     "Branch-native QA run 36251331964 terminal SUCCESS at exact head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8: focused 6 PASS + broader 112 PASS / 0 FAIL.",
-    "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954."
+    "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954.",
+    "T3 acceptance evidence comment 5847453298: RED-STOP-08/12/13 GREEN; focused 6 PASS + broader 112 PASS / 0 FAIL at exact head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8.",
+    "Acceptance handoff Guard GREEN run 36251880950 / result comment 5847455426."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",

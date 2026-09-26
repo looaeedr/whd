@@ -3,8 +3,8 @@
   "issue": "691",
   "branch": "work/issue691-turn-exit-scheduler-end-20260926",
   "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
-  "state": "RUNNING",
-  "next_action": "Publish #691 T3 acceptance evidence for RED-STOP-08/12/13, then hand terminal ISSUE_CLOSE_PENDING state to Issue Closure owner #693.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36251331964,
   "job_id": null,
   "log_cursor": null,
@@ -29,13 +29,15 @@
     "Reconciliation Guard GREEN run 36251008760 / result comment 5847352182.",
     "Broader QA exact head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8.",
     "Run 36251331964 terminal SUCCESS: focused 6 PASS + broader 112 PASS / 0 FAIL.",
-    "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954."
+    "Tested-head reconciliation Guard GREEN run 36251408656 / result comment 5847399954.",
+    "T3 acceptance evidence comment 5847453298: exact tested head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8; focused 6 PASS; broader 112 PASS; RED-STOP-08/12/13 GREEN.",
+    "Acceptance handoff Guard GREEN run 36251880950 / result comment 5847455426."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "693",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "690",
+  "chain_next_action": "After #691 is CLOSED + RELEASED, continue #693 chain with #690 / T4 irreversible closure-process drift classification.",
+  "chain_reason": "T3/#691 accepted; next approved child in work-order is T4/#690.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Issue Closure owner #693 must consume T3 acceptance comment 5847453298, mint fresh finalization proof bound to exact checkpoint/head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8, close/read back #691 as completed, then atomically persist checkpoint CLOSED + claim RELEASED."
 }
