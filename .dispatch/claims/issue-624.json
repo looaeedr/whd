@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "head_sha": "477dbbae1cfc0f6c56e5e6d41fc293933b60eb24",
+  "head_sha": "81e9ab99ada9cb1bdacb35e382e2984068b0d691",
   "phase": "RED",
-  "last_update": "2026-09-26T13:13:44Z",
+  "last_update": "2026-09-26T13:15:51Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -29,8 +29,15 @@
   "slot_id": "UNBOUND",
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create/run exact A7 focused P7-R-A RED at 477dbbae1cfc0f6c56e5e6d41fc293933b60eb24; accept RED only if the ten fresh NO_CALLER helpers remain while protected Part Editor ordering, command-router scheduler ownership, lifecycle/install-order, and no-reverse-import assertions stay GREEN.",
+  "remote_qa": {
+    "run_id": 36244553368,
+    "job_id": 108411194318,
+    "head_sha": "81e9ab99ada9cb1bdacb35e382e2984068b0d691",
+    "status": "in_progress",
+    "conclusion": null,
+    "scope": "P7-R-A focused residual Bridge deletion-test"
+  },
+  "next_action": "Poll exact A7 focused run 36244553368 to terminal. Accept intended RED only if removal assertion fails for the ten fresh NO_CALLER helpers while protected compatibility assertions remain GREEN; then delete exactly that proven-dead set.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -53,13 +60,20 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36244451198,
-    "request_comment_id": 5846557170,
-    "result_comment_id": 5846558476,
+    "run_id": 36244571529,
+    "request_comment_id": 5846571208,
+    "result_comment_id": 5846572539,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
+    "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "post-P7-R-A RED atomic claim+checkpoint reconciliation to 477dbbae1cfc0f6c56e5e6d41fc293933b60eb24"
+    "mutation": "bind A7 focused workflow head and exact active RED run"
+  },
+  "qa_workflow": {
+    "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
+    "commit_sha": "81e9ab99ada9cb1bdacb35e382e2984068b0d691",
+    "guard_run_id": 36244509981,
+    "guard_request_comment_id": 5846564247,
+    "guard_result_comment_id": 5846565851
   }
 }
