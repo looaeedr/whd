@@ -697,6 +697,34 @@ EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保
 
 這是 legacy migration escape hatch，不是 normal path；新 mutation 仍必須在 Guard receipt window 內完成。
 
+
+## WHD_WORK_EXECUTOR_HANDOFF_V1
+
+Planned executor handoff 是《派工》shared execution claim authority 的受控 ownership transition，**不是 stale takeover**。sender 必須 fresh-read exact Issue / claim blob / checkpoint / branch HEAD，使用 canonical checkpoint fingerprint，建立 exact-bound handoff identity：
+
+```text
+issue=<exact>
+from_worker=<current exact claim worker>
+to_worker=<exact scheduler lane worker>
+target_lane=A|B
+handoff_generation=<positive monotonically increasing integer>
+claim_blob=<exact current shared claim blob>
+branch=<exact work branch>
+head_sha=<exact branch/claim HEAD>
+checkpoint_fingerprint=<canonical continuity checkpoint fingerprint>
+next_action=<exact current non-null next_action>
+```
+
+固定規則：
+
+1. planned transition 一律使用 Guard action=`claim-handoff`；**不得**改走 `claim-takeover`、不得等 stale TTL、不得要求 stale/orphan classification。
+2. `to_worker` 必須與 `target_lane` exact 對應；A/B exact lane identity 由《排程模擬》CURRENT authority 提供，不得由聊天室名稱猜測。
+3. Guard GREEN 是 single-use，只授權將同一 shared claim 的 worker CAS 從 `from_worker` 改成 `to_worker`；branch/base/head/checkpoint/slot_id/next_action 保持原 identity，executor provenance 依 live schema保留。
+4. CAS 前再次 fresh-read claim blob / branch HEAD / checkpoint fingerprint / next_action / generation；任一 drift → `WORK_EXECUTOR_HANDOFF_IDENTITY_MISMATCH`，receipt 失效且不得 mutation。
+5. CAS 後立即 fresh-read，必須證明 worker 已是 exact `to_worker` 且 branch/head/checkpoint/next_action仍與 handoff identity一致；才可標記 receiver-ready。
+6. receiver-ready 後 target scheduler 在下一個合法 invocation **直接 resume exact checkpoint / next_action**；不得把已完成 planned handoff 重新分類成 stale takeover。
+7. handoff generation 防 replay；舊 generation、錯 claim blob、錯 checkpoint fingerprint、錯 next_action 一律 fail closed。
+8. 本 contract 不建立第二套 continuity/checkpoint state machine；fingerprint 與 next_action 語意仍由 canonical executable-continuity-controller 擁有。
 ## MAIN_TO_X_BATCH_FIRST_PARITY_V1
 
 當 default/trusted `main` 上已有一批已驗收治理修補，且依 parity 要求必須同步到 `X = cleanup/2d-3d-sync` 時，固定採 **BATCH_FEASIBILITY_AUDIT → batch integration 優先 → selective fallback**，不得預設逐顆同步。

@@ -58,6 +58,11 @@ jobs:
               "executor_source",
               "takeover_worker",
               "legacy_reconcile_recovery_comment_id",
+              "target_lane",
+              "to_worker",
+              "handoff_generation",
+              "checkpoint_fingerprint",
+              "next_action",
           }
           allowed_multi = {"changed_file"}
           singles = {}
@@ -112,11 +117,45 @@ jobs:
           elif takeover_worker is not None:
               raise SystemExit("takeover_worker is only valid for claim-takeover")
 
+          handoff_keys = {
+              "target_lane",
+              "to_worker",
+              "handoff_generation",
+              "checkpoint_fingerprint",
+              "next_action",
+          }
+          if singles["action"] == "claim-handoff":
+              missing_handoff = sorted(handoff_keys - set(singles))
+              if missing_handoff:
+                  raise SystemExit(f"claim-handoff missing keys: {missing_handoff}")
+              lane_workers = {
+                  "A": "scheduler.6ab13fa557fc8191935c671214b865e2",
+                  "B": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+              }
+              target_lane = singles["target_lane"]
+              if target_lane not in lane_workers:
+                  raise SystemExit("claim-handoff target_lane must be A or B")
+              if singles["to_worker"] != lane_workers[target_lane]:
+                  raise SystemExit("claim-handoff to_worker does not match target_lane")
+              if not re.fullmatch(r"[1-9][0-9]*", singles["handoff_generation"]):
+                  raise SystemExit("claim-handoff handoff_generation must be a positive integer")
+              if not re.fullmatch(r"[0-9a-f]{64}", singles["checkpoint_fingerprint"]):
+                  raise SystemExit("claim-handoff checkpoint_fingerprint must be 64 lowercase hex")
+              if not singles["next_action"].strip():
+                  raise SystemExit("claim-handoff next_action must be nonblank")
+          else:
+              unexpected_handoff = sorted(handoff_keys & set(singles))
+              if unexpected_handoff:
+                  raise SystemExit(
+                      f"planned handoff keys are only valid for claim-handoff: {unexpected_handoff}"
+                  )
+
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
           if singles["action"] not in {
               "branch-create",
               "claim-takeover",
+              "claim-handoff",
               "write",
               "commit",
               "qa-dispatch",
@@ -161,8 +200,8 @@ jobs:
                   normalized.append(value)
           if singles["action"] in {"write", "commit"} and not normalized:
               raise SystemExit("write/commit requires at least one changed_file")
-          if singles["action"] == "claim-takeover" and normalized:
-              raise SystemExit("claim-takeover must not carry changed_file")
+          if singles["action"] in {"claim-takeover", "claim-handoff"} and normalized:
+              raise SystemExit(f"{singles['action']} must not carry changed_file")
 
           legacy_recovery_id = singles.get("legacy_reconcile_recovery_comment_id")
           if legacy_recovery_id is not None:
@@ -243,6 +282,33 @@ jobs:
             effective_live_head="$current_branch_sha"
             if [ "$RG_ACTION" = "branch-create" ] && [ -z "$effective_live_head" ]; then
               effective_live_head="$claim_head_sha"
+            fi
+
+            if [ "$RG_ACTION" = "claim-handoff" ]; then
+              test -n "$current_branch_sha"
+              test "$current_branch_sha" = "$RG_HEAD_SHA"
+              python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from tools.continuity_controller import checkpoint_fingerprint, checkpoint_from_payload
+
+          payload = json.loads(
+              Path("/tmp/execution-checkpoint.json").read_text(encoding="utf-8")
+          )
+          checkpoint = checkpoint_from_payload(payload)
+          if checkpoint.issue != str(os.environ["RG_ISSUE"]):
+              raise SystemExit("claim-handoff checkpoint issue mismatch")
+          if checkpoint.branch != os.environ["RG_BRANCH"]:
+              raise SystemExit("claim-handoff checkpoint branch mismatch")
+          if checkpoint.head_sha != os.environ["RG_HEAD_SHA"]:
+              raise SystemExit("claim-handoff checkpoint head mismatch")
+          if checkpoint.next_action != os.environ["RG_NEXT_ACTION"]:
+              raise SystemExit("claim-handoff next_action mismatch")
+          if checkpoint_fingerprint(checkpoint) != os.environ["RG_CHECKPOINT_FINGERPRINT"]:
+              raise SystemExit("claim-handoff checkpoint_fingerprint mismatch")
+          PY
             fi
 
             if [ "$effective_live_head" = "$claim_head_sha" ]; then
@@ -593,6 +659,11 @@ jobs:
               "issue": request["issue"],
               "worker": request["worker"],
               "takeover_worker": request.get("takeover_worker"),
+              "target_lane": request.get("target_lane"),
+              "to_worker": request.get("to_worker"),
+              "handoff_generation": request.get("handoff_generation"),
+              "checkpoint_fingerprint": request.get("checkpoint_fingerprint"),
+              "next_action": request.get("next_action"),
               "executor_source": request["executor_source"],
               "action": request["action"],
               "branch": request["branch"],

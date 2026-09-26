@@ -360,3 +360,30 @@ next_action=<exact>
 - 不因 UI handoff 成功就宣稱 GitHub takeover 成功。
 - 禁止在 command activation 階段把所選 lane 從 disabled 改成 enabled；activation 只 fresh-read/verify identity/profile。
 - 除 exit-time final gate 將所選 lane matching recurring entrypoints 設為 `is_enabled=true` 外，不自動 enable、disable、reschedule 或改寫任何 automation；另一 lane 絕不碰。
+
+
+## WHD_WORK_EXECUTOR_HANDOFF_V1 — Scheduler Receiver
+
+planned handoff receiver 同時適用 **排程A** 與 **排程B**。它只做 exact routing / receive，continuity 狀態仍由 canonical checkpoint 擁有。
+
+固定 lane identity：
+
+```text
+target_lane=A -> to_worker=scheduler.6ab13fa557fc8191935c671214b865e2
+target_lane=B -> to_worker=scheduler.e58ea936e7d0b12bd0d475314709d6f1
+```
+
+每次 receiver fresh-read pending handoff transaction + shared claim + checkpoint + branch HEAD，必須 exact 驗證：
+
+- `target_lane` 與 selected 排程A/排程B 相同；
+- `to_worker` 等於該 lane exact owner；
+- `handoff_generation` 是 current generation，不能 replay；
+- `claim_blob`、branch、HEAD exact；
+- `checkpoint_fingerprint` 等於 canonical current checkpoint fingerprint；
+- `next_action` 非空且等於 checkpoint current next_action。
+
+任一 mismatch → `WORK_EXECUTOR_HANDOFF_IDENTITY_MISMATCH`，fail closed，不得猜、不做 claim mutation。
+
+若 sender 已在 Guard GREEN 後完成 claim-handoff CAS，fresh-read claim.worker 已等於 exact `to_worker` 且上述 identity 全部仍一致，receiver 直接進 `SAME_LANE_RESUME` / resume exact `next_action`。**不得再跑 stale evaluator，不得送 `claim-takeover`，不得等待 stale TTL。**
+
+成功接收後同一 scheduler invocation 必須完成 first substantive next_action；只回報「已接手」不算完成。此 receiver 不改 recurring cadence / enabled，不改 lane owner，不建立第二套 checkpoint/continuity machine。

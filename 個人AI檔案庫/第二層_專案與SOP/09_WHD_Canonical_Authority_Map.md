@@ -128,3 +128,16 @@ whd_schema: WHD_DOC_META_V1
 - orchestration responsibility：.agents/skills/engineering/派工/SKILL.md
 
 Prompt/Skill/AI Library不得複製第二套 state machine。Interactive heartbeat/liveness + exact provenance 已由 `tools/interactive_runtime_liveness.py` 擁有；scheduler lane + invocation 仍由 `tools/scheduler_runtime_liveness.py` 擁有。兩者 namespace / identity 不得混用；generic executor_source 永遠不等於 exact runtime provenance。
+
+<!-- ISSUE680_PLANNED_HANDOFF_AUTHORITY_MAP_V1 -->
+## #680 planned handoff authority map
+
+- Planned ownership/routing authority: `.agents/skills/engineering/派工/SKILL.md`.
+- Interactive Scheduler A/B receive/resume semantics: `.agents/skills/engineering/排程模擬/SKILL.md`.
+- `claim-handoff` machine enforcement: `tools/execution_claim_guard.py`.
+- Trusted remote parser/receipt transport: `.github/workflows/whd-remote-execution-guard.yml`.
+- Checkpoint fingerprint and `next_action` continuity: `tools/continuity_controller.py`.
+- Scheduler runtime liveness: `tools/scheduler_runtime_liveness.py`.
+- Long-term scheduled-resume architecture remains owned by the CURRENT scheduled-resume AI Library document above.
+
+Boundary: `WHD_WORK_EXECUTOR_HANDOFF_V1` / `claim-handoff` is a planned transfer. `claim-takeover` is stale/orphan recovery. After the planned CAS is fresh-read as owned by the exact target lane, the scheduler receiver resumes the same checkpoint / exact `next_action` without waiting for stale TTL or performing another takeover. Prompt/Skill/AI Library text documents routing and owner boundaries only; it must not create a second continuity state machine.

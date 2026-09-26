@@ -1,0 +1,38 @@
+name: WHD｜工單 #680｜Planned Handoff RED 驗證
+run-name: "WHD｜工單 #680｜Planned Handoff Scheduler Receiver RED"
+
+on:
+  push:
+    branches:
+      - work/issue680-planned-handoff-scheduler-receiver-20260926
+    paths:
+      - tests/process/test_issue680_planned_handoff_scheduler_receiver.py
+      - .agents/skills/engineering/派工/SKILL.md
+      - .agents/skills/engineering/排程模擬/SKILL.md
+      - .agents/skills/engineering/remote-execution-guard/SKILL.md
+      - tools/execution_claim_guard.py
+      - .github/workflows/whd-remote-execution-guard.yml
+      - .github/workflows/qa-issue680-planned-handoff.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red-characterization:
+    name: Planned Handoff RED 特性測試
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝測試依賴
+        run: python -m pip install pytest
+
+      - name: 執行 #680 Planned Handoff RED 測試
+        run: python -m pytest -q tests/process/test_issue680_planned_handoff_scheduler_receiver.py

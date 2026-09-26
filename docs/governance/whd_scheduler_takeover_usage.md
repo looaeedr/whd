@@ -253,3 +253,21 @@ Trusted Remote Guard 執行同一 `tools/stale_claim_takeover.py`；CLI 會對 p
 Guard recovery：PENDING consume canonical；MUTATION_DONE_RECONCILE_ONLY只 reconcile；EXPIRED_UNCONSUMED old receipt不可 consume、fresh reconcile後 mint fresh recovery Guard；equivalent duplicate GREEN deterministic dedupe；identity conflict fail closed。
 
 Provenance 必須保存 scheduler_lane + invocation_identity。Interactive 對稱需求為 conversation/chat identity + invocation identity 並補 heartbeat/liveness；不得因此修改 cadence、automation IDs、lane owner、recurring enabled policy。
+
+## 16. Planned handoff??? takeover
+
+<!-- ISSUE680_PLANNED_HANDOFF_USAGE_V1 -->
+## 16. Planned handoff is not takeover
+
+When an interactive executor deliberately transfers an existing job to Scheduler A/B, use `WHD_WORK_EXECUTOR_HANDOFF_V1` + guarded `claim-handoff`; do not use `claim-takeover`.
+
+Sender must exact-bind old worker, `to_worker=scheduler.<target-lane>`, handoff generation, current claim blob, branch, HEAD, canonical checkpoint fingerprint, and current `next_action`. After Guard GREEN, exactly one shared-claim CAS is allowed; immediately fresh-read that the owner is the target scheduler.
+
+Receiver on the next wake or interactive `/??A` / `/??B` resume must:
+1. fresh-read planned handoff + claim + checkpoint + branch HEAD;
+2. verify target lane, generation, claim blob, branch, HEAD, checkpoint fingerprint and `next_action` exactly;
+3. verify the shared claim owner is already this lane;
+4. resume the original checkpoint / exact `next_action` and complete the first substantive action in the same invocation;
+5. never wait for stale TTL, run the stale evaluator, or mint `claim-takeover` for an already-completed planned handoff.
+
+Only when no valid planned handoff exists and a foreign owner is proven stale/orphaned by canonical liveness/stale evaluation may takeover recovery run. Any handoff identity drift or unverifiable readiness is fail-closed.
