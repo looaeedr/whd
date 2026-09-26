@@ -485,6 +485,13 @@ jobs:
               receipts,
               live_coord_commits=live_coord_commits,
           )
+          requested_changed_files = tuple(
+              line.strip()
+              for line in Path("/tmp/remote-guard-changed-files.txt").read_text(
+                  encoding="utf-8"
+              ).splitlines()
+              if line.strip()
+          )
           decision = classify_guard_transaction(
               receipts=receipts,
               current_issue=int(os.environ["RG_ISSUE"]),
@@ -496,6 +503,7 @@ jobs:
               current_claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
               now=dt.datetime.now(dt.timezone.utc),
               durable_readbacks=branch_create_readbacks + pr_write_readbacks + coord_write_readbacks,
+              expected_changed_files=requested_changed_files,
           )
           assert_remote_guard_request_permitted(decision)
           if decision.state.value == "EXPIRED_UNCONSUMED":
