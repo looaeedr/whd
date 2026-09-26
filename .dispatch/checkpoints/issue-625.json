@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "625",
+  "branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "head_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
+  "state": "RUNNING",
+  "next_action": "Characterize Settings structure/corner/endcap presentation clusters at accepted A7 head; complete DT-0 census and add approved P7-R-G RED that forces canonical DEEPEN_EXISTING_OWNER or KEEP_CURRENT_BOUNDARY without changing Settings transaction/state authority.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 7 v1.2 spec + approved RED/breakdown; owning Issue #625 P7-R-G fresh-read open.",
+    "Predecessor #624 closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED at accepted head 10ec9a52eff1b8495042270445755e59b6a329c2.",
+    "Execution mode SCHEDULER_LANE continues under A lane owner scheduler.6ab13fa557fc8191935c671214b865e2.",
+    "Active RUNNING checkpoint intentionally carries no terminal chain continuation metadata."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
