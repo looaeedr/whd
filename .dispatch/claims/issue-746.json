@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T16:25:40Z",
   "base_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
   "head_sha": "8352e8f4673ad4409e51a259099ec0f8dcd7cd25",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T16:30:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T16:35:30Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create and merge exact helper PR deploy/issue746-turn-exit-readback-main-20260927 -> main under fresh local pr-write guards; fresh-read main workflow parity; close/release #746; return to #680.",
+  "next_action": "Run owning finalization proof for #746, close/read back completed, then atomically persist checkpoint CLOSED + claim RELEASED and return to #680.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-746.json",
   "evidence": [
@@ -25,6 +25,8 @@
     "Helper purpose is trusted-main deployment only; no cleanup/product stack.",
     "User authority derives from /排程B 680 and follow-up to resolve the exact #698 blocker.",
     "Trusted-main deployment commit 8352e8f4673ad4409e51a259099ec0f8dcd7cd25 changes only .github/workflows/whd-turn-exit-gate.yml.",
-    "RED_STOP_19_DEPLOYMENT_CONTRACT_GREEN=PASS on exact helper head."
+    "RED_STOP_19_DEPLOYMENT_CONTRACT_GREEN=PASS on exact helper head.",
+    "PR #747 merged to trusted main at c69285a62a7ae1fbd83d7a10354a39b5b8f64f4c.",
+    "Fresh main readback: whd-turn-exit-gate workflow sha cc9840a65140099dc99192ae1802a93318acb52a contains GUARD_DURABLE_READBACK_ACTIONS, _build_guard_durable_readback, exact pr-write readback."
   ]
 }

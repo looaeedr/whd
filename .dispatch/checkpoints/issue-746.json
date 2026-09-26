@@ -3,8 +3,8 @@
   "issue": "746",
   "branch": "deploy/issue746-turn-exit-readback-main-20260927",
   "head_sha": "8352e8f4673ad4409e51a259099ec0f8dcd7cd25",
-  "state": "RUNNING",
-  "next_action": "Create and merge exact helper PR deploy/issue746-turn-exit-readback-main-20260927 -> main under fresh local pr-write guards; fresh-read main workflow parity; close/release #746; return to #680.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,13 +16,15 @@
     "Changed-file scope: .github/workflows/whd-turn-exit-gate.yml only.",
     "Helper relationship to #698/#680 is provenance only; no chain continuation state is claimed.",
     "Trusted-main deployment commit 8352e8f4673ad4409e51a259099ec0f8dcd7cd25.",
-    "Deployment contract GREEN; git diff --check GREEN."
+    "Deployment contract GREEN; git diff --check GREEN.",
+    "PR #747 merged to main at c69285a62a7ae1fbd83d7a10354a39b5b8f64f4c.",
+    "Fresh trusted-main workflow readback confirms deployed pr-write durable-readback parity."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound finalization proof, close/read back #746 completed, then atomically mark checkpoint CLOSED + claim RELEASED."
 }
