@@ -3,8 +3,8 @@
   "issue": "759",
   "branch": "governance/issue759-final-postdrift-remote-guard-imports-20260927",
   "head_sha": "7b8a5110a30729a56f91895415192378e0ac8ce3",
-  "state": "RUNNING",
-  "next_action": "Enter terminal closure transaction for accepted #759: write TERMINAL_SUCCESS / ISSUE_CLOSE_PENDING, run trusted finalization, close/read back Issue #759, persist CLOSED + RELEASED, then resume #692 final parity acceptance.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36262323655,
   "job_id": null,
   "log_cursor": null,
@@ -23,13 +23,15 @@
     "Authoritative QA run 36262323655 remains GREEN: 50 PASS / 0 FAIL.",
     "PR #760 production merge ef3c830fc98a068ce5dd1d413620abafd539a297.",
     "Acceptance comment 5848747188 result=ACCEPTED.",
-    "Same-head claim reactivation is intentional identity rotation away from late duplicate pr-write receipts; checkpoint remains RUNNING with closure_state=CLOSED sentinel until terminal write."
+    "Same-head claim reactivation is intentional identity rotation away from late duplicate pr-write receipts; checkpoint remains RUNNING with closure_state=CLOSED sentinel until terminal write.",
+    "Terminalization write Guard 36262757127 GREEN.",
+    "Accepted production readback complete; entering ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint, close/read back Issue #759, then advance release handoff and atomically persist CLOSED + RELEASED + successor #692."
 }
