@@ -4,7 +4,7 @@
   "branch": "work/issue681-poweroff-gate-core-20260926",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard, create WI-3 branch from exact production HEAD, then execute approved behavioral RED against the public evaluate/validate-safe seam before implementing.",
+  "next_action": "Implement tools/workstation_poweroff_gate.py against approved 28 behavioral cases, rerun focused GREEN, then commit/push and remote QA.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Requirement Authority: WHD HA safe-shutdown spec v1.4 and approved RED package v5/v5.1.",
     "Dependency #678 fresh-read closed/completed with claim RELEASED and checkpoint CLOSED.",
     "Fresh production target cleanup/2d-3d-sync HEAD=cb0c6ada73d4bee15572c42220f03993a93554fc.",
-    "Approved RED IDs owned by #681 include R0 and all T3/T4/T5/T6/T10 behavioral nodes."
+    "Approved RED IDs owned by #681 include R0 and all T3/T4/T5/T6/T10 behavioral nodes.",
+    "Focused RED tests/process/test_issue681_poweroff_gate.py executed on exact branch base: 28 failed / 0 passed in 1.00s.",
+    "All 28 failures were intended requirement RED because canonical owner tools/workstation_poweroff_gate.py is missing."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

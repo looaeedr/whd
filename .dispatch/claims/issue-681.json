@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T04:55:28Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T04:55:28Z",
+  "phase": "RED",
+  "last_update": "2026-09-26T04:59:44Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard, create WI-3 branch from exact production HEAD, then execute approved behavioral RED against the public evaluate/validate-safe seam before implementing.",
+  "next_action": "Implement tools/workstation_poweroff_gate.py against approved 28 behavioral cases, rerun focused GREEN, then commit/push and remote QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-681.json"
 }
