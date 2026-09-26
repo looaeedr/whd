@@ -9,14 +9,18 @@
   "work_branch": "governance/issue753-batch-main-x-parity-20260927",
   "claimed_at": "2026-09-27T13:30:00Z",
   "base_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
-  "head_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T13:30:00Z",
+  "head_sha": "2732319836a20671ffce4757b1290fe5c182fd68",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T17:38:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Obtain branch-create Guard, create/read back governance/issue753-batch-main-x-parity-20260927 from exact cleanup HEAD 79efd748107db7578105fd0ca920f2436a3ff67a, then apply one bounded compatible-equivalent batch for current trusted main 378bda50abe24fece6d3f9d047f7f3a394b72265 without blind main merge.",
+  "remote_qa": {
+    "run_id": 36259672018,
+    "head_sha": "2732319836a20671ffce4757b1290fe5c182fd68",
+    "status": "success"
+  },
+  "next_action": "Remove temporary qa-issue753-batch-parity workflow under fresh commit Guard, rerun/read back protected regression if triggered, then obtain pr-write Guard and integrate non-force into cleanup/2d-3d-sync; fresh-read X/main parity and return acceptance evidence to #692.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-753.json",
   "evidence": [
@@ -25,6 +29,11 @@
     "Current production X HEAD: 79efd748107db7578105fd0ca920f2436a3ff67a.",
     "Current trusted main HEAD: 378bda50abe24fece6d3f9d047f7f3a394b72265.",
     "Current main delta since prior parity anchor 0d8a36b686630e00284a67465da82b1401231254 spans 18 commits and touches #737/#739/#744 governance artifacts.",
-    "Helper scope remains one bounded batch; frozen #692 child lineage is not rebased/merged with new X."
+    "Helper scope remains one bounded batch; frozen #692 child lineage is not rebased/merged with new X.",
+    "Branch-create Guard GREEN run 36259330761 / result 5848342344; helper branch exact from X 79efd748107db7578105fd0ca920f2436a3ff67a.",
+    "Batch commit Guard GREEN run 36259467831 / result 5848359066.",
+    "Batch commit 2732319836a20671ffce4757b1290fe5c182fd68 selectively ports #737/#739/#744 without blind main merge.",
+    "Focused QA run 36259672018 SUCCESS: 44 passed / 0 failed.",
+    "main advanced to 4355938c49e5feec0961fb0e4073d7aa101b2396 with #751 claim-handoff parity; #751 is reverse X→main deployment and X already contains compatible claim-handoff identity fields, classified COMPATIBLE_EQUIVALENT_SOURCE_X."
   ]
 }
