@@ -1,0 +1,21 @@
+{
+  "issue": 696,
+  "issue_url": "https://github.com/looaeedr/whd/issues/696",
+  "worker": "chatgpt.sol260926.amendment.a1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.amendment.a1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue696-startup-auth-purpose-20260926",
+  "claimed_at": "2026-09-26T06:03:00Z",
+  "base_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+  "head_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+  "phase": "RED",
+  "last_update": "2026-09-26T06:03:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "create the guarded work branch, add approved RED-STOP-16 repository tests at the canonical startup-contract seam, run exact RED, then implement the minimum canonical startup contract and entry bridges",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-696.json"
+}

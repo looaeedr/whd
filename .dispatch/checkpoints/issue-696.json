@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "696",
+  "branch": "work/issue696-startup-auth-purpose-20260926",
+  "head_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
+  "state": "RUNNING",
+  "next_action": "create the guarded work branch, add approved RED-STOP-16 repository tests at the canonical startup-contract seam, run exact RED, then implement the minimum canonical startup contract and entry bridges",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Amendment RED-STOP-16 approved on 2026-09-26 via #685 comment 5843692950.",
+    "Amendment breakdown approved on 2026-09-26 via #685 comment 5843715446.",
+    "A1 owning Issue #696 published and read back.",
+    "Production target cleanup/2d-3d-sync fresh HEAD=3c048f5e2adc3f0bc99b1c60b3aae85ab8893931.",
+    "Prior activation request 5843739450 returned FAIL and fresh coordination readback proved no claim/checkpoint mutation; corrected candidate removes invalid nonterminal master-chain metadata."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
