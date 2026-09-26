@@ -23,13 +23,14 @@
     "Remaining UPDATE_ONLY step after repo merge: prompt-only update of existing WHD recurring automations with post-update readback.",
     "PR #725 merged to cleanup/2d-3d-sync as b90f2ee4304726e7eb22b24b708c8fa37ffa8d55; current production HEAD 91931e518bea241d129d7327e1d163cb7a1ffd92 is a descendant of the accepted #724 head 8cb01ac0d07850e0427295450026f75eab3ebd8b.",
     "Production readback confirms REPORT_HANDLER_IDENTITY_PREFIX_V1 in 工作槽 / 排程模擬 / 寫排程 Skills and the #724 contract test is present.",
-    "Live automation readback confirms 00/20/40/B15/B45 prompts contain REPORT_HANDLER_IDENTITY_PREFIX_V1; this takeover did not change cadence, lane identity, timing mode, title, or enabled state."
+    "Live automation readback confirms 00/20/40/B15/B45 prompts contain REPORT_HANDLER_IDENTITY_PREFIX_V1; this takeover did not change cadence, lane identity, timing mode, title, or enabled state.",
+    "All #724 acceptance surfaces have fresh readback; entering exact immutable ISSUE_CLOSE_PENDING checkpoint for finalization proof."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run bound finalization proof on this exact checkpoint; close/read back Issue #724; then advance to RELEASE_HANDOFF_PENDING"
 }
