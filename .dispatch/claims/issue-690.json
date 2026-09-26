@@ -9,14 +9,14 @@
   "work_branch": "work/issue690-closure-drift-classification-20260926",
   "claimed_at": "2026-09-26T15:29:30Z",
   "base_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
-  "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T15:29:30Z",
+  "head_sha": "492ef0d5ed620884ac36d4aea9408fb715138333",
+  "phase": "RED",
+  "last_update": "2026-09-26T15:35:35.858309Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run Phase6 Preflight for #690 RED-STOP-10 + REG-STOP-01/02, prove ISSUE_CLOSED_BEFORE_FINALIZATION classification and deterministic repair, then implement and verify.",
+  "next_action": "Implement explicit closure-drift classification + deterministic reopen/resume repair plan for ISSUE_CLOSED_BEFORE_FINALIZATION, then rerun focused and protected regressions to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-690.json",
   "evidence": [
@@ -24,15 +24,24 @@
     "Execution intent: EXECUTE_CHAIN limited to #693 dependency chain and current child #690.",
     "Dependencies satisfied: #687/#689/#691 are closed/completed and claims RELEASED.",
     "Inherited accepted work-order HEAD: #691 accepted head 48cd6521d59531cc04ea7ab12fbe49c595eb69e8; do not restart from newer production X.",
-    "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance."
+    "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance.",
+    "First substantive action completed: RED commit 492ef0d5ed620884ac36d4aea9408fb715138333 under Guard run 36252364631 / result comment 5847512037.",
+    "Branch-native RED QA run 36252420465: focused 4 expected FAIL / protected closure regressions 33 PASS.",
+    "Post-RED reconciliation Guard GREEN run 36252467679 / result comment 5847524187."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
-    "state": "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION",
+    "state": "SUBSTANTIVE_ACTION_COMPLETED",
     "acquired_via": "fresh-create",
-    "branch_create_guard_run_id": null,
-    "branch_create_result_comment_id": null,
-    "branch_readback_head_sha": null,
-    "first_substantive_action": null
+    "branch_create_guard_run_id": 36252227856,
+    "branch_create_result_comment_id": 5847495681,
+    "branch_readback_head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
+    "first_substantive_action": {
+      "kind": "RED_TEST_CREATED_AND_EXECUTED",
+      "head_sha": "492ef0d5ed620884ac36d4aea9408fb715138333",
+      "workflow_run_id": 36252420465,
+      "test": "tests/process/test_issue690_closure_drift_classification.py",
+      "result": "4_FAIL_EXPECTED_RED"
+    }
   }
 }
