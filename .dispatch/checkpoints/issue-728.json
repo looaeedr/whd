@@ -3,8 +3,8 @@
   "issue": "728",
   "branch": "governance/issue728-scheduler-no-work-census",
   "head_sha": "ca71bcb485b22073d32e060b028d537adc1ff798",
-  "state": "RUNNING",
-  "next_action": "PR #729 merge is durably consumed/read back at production target 91931e518bea241d129d7327e1d163cb7a1ffd92. Enter canonical terminal closure for #728.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,13 +20,15 @@
     "Recovery evidence: trusted reconcile run 36245351028 fail-closed; no mutation replay. Candidate pair rebinds exact same owner/branch to existing direct-child H1.",
     "GUARD_CONSUMPTION_READBACK_V1: pr-write run 36245511111 consumed by exact PR #729 create/readback; PR open, base cleanup/2d-3d-sync@b90f2ee4304726e7eb22b24b708c8fa37ffa8d55, head ca71bcb485b22073d32e060b028d537adc1ff798, reconciled=true.",
     "Second pr-write attempt 36245570613 failed closed while first transaction lacked durable consume evidence; no mutation replay.",
-    "GUARD_CONSUMPTION_READBACK_V1: merge pr-write run 36245946610 consumed by exact PR #729 merged readback; production target=91931e518bea241d129d7327e1d163cb7a1ffd92, reconciled=true."
+    "GUARD_CONSUMPTION_READBACK_V1: merge pr-write run 36245946610 consumed by exact PR #729 merged readback; production target=91931e518bea241d129d7327e1d163cb7a1ffd92, reconciled=true.",
+    "Terminal acceptance established only after PR #729 merge/readback and exact merge-Guard consumption.",
+    "Closure begins at FINALIZATION_PENDING per canonical closure transaction."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING before minting finalization proof."
 }

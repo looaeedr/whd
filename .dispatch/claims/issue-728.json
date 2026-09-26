@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T13:25:00Z",
   "base_sha": "b90f2ee4304726e7eb22b24b708c8fa37ffa8d55",
   "head_sha": "ca71bcb485b22073d32e060b028d537adc1ff798",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T13:41:53Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T13:43:38Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "PR #729 merge is durably consumed/read back at production target 91931e518bea241d129d7327e1d163cb7a1ffd92. Enter canonical terminal closure for #728.",
+  "next_action": "Advance exact terminal checkpoint closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, then mint/verify finalization proof, close/read back #728, and atomically persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-728.json",
   "evidence": [
@@ -31,6 +31,8 @@
     "Ordinary trusted post-commit reconciliation run 36245351028 failed closed because the preceding mutation used local Guard and therefore had no matching trusted GREEN receipt; recovery uses trusted claim activation reactivate to atomically rebind the same owner/branch/checkpoint to the already-existing H1 without replaying mutation.",
     "GUARD_CONSUMPTION_READBACK_V1: guard_run_id=36245511111 action=pr-write request_comment_id=5846680156 result=GREEN mutation_applied=true pr_readback=true pr=729 pr_state=open pr_base=cleanup/2d-3d-sync pr_base_sha=b90f2ee4304726e7eb22b24b708c8fa37ffa8d55 pr_head=governance/issue728-scheduler-no-work-census pr_head_sha=ca71bcb485b22073d32e060b028d537adc1ff798 readback_at=2026-09-26T13:38:25Z reconciled=true",
     "The attempted second pr-write Guard run 36245570613 correctly failed with PENDING_GUARD_TRANSACTION before this durable consume reconciliation; no second PR mutation occurred.",
-    "GUARD_CONSUMPTION_READBACK_V1: guard_run_id=36245946610 action=pr-write request_comment_id=5846731945 result=GREEN mutation_applied=true pr_readback=true pr=729 pr_state=closed pr_merged=true pr_head_sha=ca71bcb485b22073d32e060b028d537adc1ff798 merge_commit_sha=91931e518bea241d129d7327e1d163cb7a1ffd92 production_target=cleanup/2d-3d-sync production_head=91931e518bea241d129d7327e1d163cb7a1ffd92 readback_at=2026-09-26T13:41:53Z reconciled=true"
+    "GUARD_CONSUMPTION_READBACK_V1: guard_run_id=36245946610 action=pr-write request_comment_id=5846731945 result=GREEN mutation_applied=true pr_readback=true pr=729 pr_state=closed pr_merged=true pr_head_sha=ca71bcb485b22073d32e060b028d537adc1ff798 merge_commit_sha=91931e518bea241d129d7327e1d163cb7a1ffd92 production_target=cleanup/2d-3d-sync production_head=91931e518bea241d129d7327e1d163cb7a1ffd92 readback_at=2026-09-26T13:41:53Z reconciled=true",
+    "PR #729 merged at 91931e518bea241d129d7327e1d163cb7a1ffd92 and merge pr-write transaction durably consumed before terminalization.",
+    "Acceptance: RED 4 failed; GREEN 53 passed; Phase6 preflight GREEN; Knowledge Governance Bootstrap 36245538266 success; git diff --check GREEN."
   ]
 }
