@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T14:48:10Z",
   "base_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
-  "head_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T14:48:10Z",
+  "head_sha": "6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6",
+  "phase": "RED",
+  "last_update": "2026-09-26T18:53:23Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
@@ -30,7 +30,7 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Characterize Settings structure/corner/endcap presentation clusters at accepted A7 head; complete DT-0 census and add approved P7-R-G RED that forces canonical DEEPEN_EXISTING_OWNER or KEEP_CURRENT_BOUNDARY without changing Settings transaction/state authority.",
+  "next_action": "Run the focused P7-R-G RED against exact head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6 via GitHub Actions; expected failure is the unresolved DT-6 terminal decision only. Then complete DT-1..DT-5 evidence and choose exactly DEEPEN_EXISTING_OWNER or KEEP_CURRENT_BOUNDARY without moving Settings transaction/state authority.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-625.json",
   "evidence": [
@@ -39,6 +39,10 @@
     "Durable predecessor handoff comment 5847187975 binds #625 to exact accepted #624 head 10ec9a52eff1b8495042270445755e59b6a329c2.",
     "Blocker #617 fresh-read closed/completed.",
     "Issue #625 fresh-read open with Approved RED P7-R-G and Phase 7 v1.2 authority.",
-    "Phase 7 frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b; no rebase/merge from newer production X."
+    "Phase 7 frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b; no rebase/merge from newer production X.",
+    "Prior commit Guard 36249957529 GREEN for the exact 3-file P7-R-G RED/DT-0 scope.",
+    "Live work-order branch advanced by direct child commit 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6.",
+    "Owner-authored WHD_LEGACY_POSTCOMMIT_RECONCILE_V1 comment 5848923776 binds the historical post-expiry commit to prior Guard run/request/files.",
+    "Reconciliation Guard 36264117035 GREEN with REMOTE_GUARD_RECONCILE_ONLY; this coordination write only aligns claim/checkpoint HEAD and advances to RED."
   ]
 }
