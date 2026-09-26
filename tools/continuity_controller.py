@@ -65,6 +65,28 @@ class ClosureState(str, Enum):
     CLOSED = "CLOSED"
 
 
+class AuthorityProgressState(str, Enum):
+    """Durable authority-acquisition progress before normal turn exit may resume."""
+
+    AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION = (
+        "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION"
+    )
+    SUBSTANTIVE_ACTION_COMPLETED = "SUBSTANTIVE_ACTION_COMPLETED"
+
+
+NON_SUBSTANTIVE_AUTHORITY_EVENTS = frozenset(
+    {
+        "branch-create",
+        "guard-receipt",
+        "heartbeat",
+        "progress-report",
+        "claim-cas",
+        "claim-activation",
+        "takeover-cas",
+    }
+)
+
+
 class StopReason(str, Enum):
     """Canonical machine reasons used when deciding whether a turn may stop."""
 
@@ -130,6 +152,94 @@ class FinalizationBlocked(CheckpointError):
 
 class TurnExitBlocked(CheckpointError):
     """Raised when an assistant turn tries to end while autonomous work remains."""
+
+
+@dataclass(frozen=True)
+class AuthorityProgress:
+    state: AuthorityProgressState
+    acquired_via: str
+    first_substantive_action: object | None = None
+
+    def __post_init__(self) -> None:
+        state = self.state
+        if not isinstance(state, AuthorityProgressState):
+            try:
+                state = AuthorityProgressState(str(state))
+            except ValueError as exc:
+                raise CheckpointError(
+                    f"unsupported authority progress state {self.state!r}"
+                ) from exc
+        acquired_via = str(self.acquired_via or "").strip()
+        if not acquired_via:
+            raise CheckpointError("authority progress acquired_via is required")
+        if (
+            state is AuthorityProgressState.AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION
+            and self.first_substantive_action is not None
+        ):
+            raise CheckpointError(
+                "pending authority progress cannot already have a substantive action"
+            )
+        if (
+            state is AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED
+            and self.first_substantive_action is None
+        ):
+            raise CheckpointError(
+                "completed authority progress requires first_substantive_action"
+            )
+        object.__setattr__(self, "state", state)
+        object.__setattr__(self, "acquired_via", acquired_via)
+
+
+def _normalize_authority_progress(value: object | None) -> AuthorityProgress | None:
+    if value is None:
+        return None
+    if isinstance(value, AuthorityProgress):
+        return value
+    if isinstance(value, Mapping):
+        return AuthorityProgress(
+            state=value.get("state"),
+            acquired_via=str(value.get("acquired_via") or ""),
+            first_substantive_action=value.get("first_substantive_action"),
+        )
+    return AuthorityProgress(
+        state=getattr(value, "state"),
+        acquired_via=getattr(value, "acquired_via"),
+        first_substantive_action=getattr(value, "first_substantive_action", None),
+    )
+
+
+def _authority_progress_from_claim_state(
+    claim_state: object | None,
+) -> AuthorityProgress | None:
+    if claim_state is None:
+        return None
+    if isinstance(claim_state, Mapping):
+        return _normalize_authority_progress(claim_state.get("authority_progress"))
+    return _normalize_authority_progress(
+        getattr(claim_state, "authority_progress", None)
+    )
+
+
+def record_first_substantive_action(
+    progress: AuthorityProgress | Mapping[str, object],
+    *,
+    action: object,
+) -> AuthorityProgress:
+    normalized = _normalize_authority_progress(progress)
+    if normalized is None:
+        raise CheckpointError("authority progress is required")
+    if normalized.state is AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED:
+        return normalized
+    action_text = str(action or "").strip()
+    if not action_text or action_text in NON_SUBSTANTIVE_AUTHORITY_EVENTS:
+        raise CheckpointError(
+            f"substantive action required; non-substantive event={action_text!r}"
+        )
+    return AuthorityProgress(
+        state=AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED,
+        acquired_via=normalized.acquired_via,
+        first_substantive_action=action,
+    )
 
 
 @dataclass(frozen=True)
@@ -981,8 +1091,21 @@ def assert_turn_exitable(
     claim_state: object | None = None,
     transaction_state: object | None = None,
     blocked_exit_proof: object | None = None,
+    authority_progress: object | None = None,
 ) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
+
+    normalized_authority = _normalize_authority_progress(authority_progress)
+    if normalized_authority is None:
+        normalized_authority = _authority_progress_from_claim_state(claim_state)
+    if (
+        normalized_authority is not None
+        and normalized_authority.state
+        is AuthorityProgressState.AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION"
+        )
 
     tx_state = _guard_transaction_state_value(transaction_state)
     if tx_state == "PENDING":

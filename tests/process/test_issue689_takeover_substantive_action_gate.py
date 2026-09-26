@@ -108,3 +108,35 @@ def test_valid_substantive_action_consumes_pending_state_and_allows_exit() -> No
         _checkpoint(),
         authority_progress=done,
     )
+
+
+def test_claim_state_pending_authority_is_enforced_without_parallel_state() -> None:
+    with pytest.raises(
+        continuity.TurnExitBlocked,
+        match="AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION",
+    ):
+        continuity.assert_turn_exitable(
+            _checkpoint(),
+            claim_state={
+                "phase": "GREEN",
+                "authority_progress": {
+                    "state": "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION",
+                    "acquired_via": "claim-takeover",
+                    "first_substantive_action": None,
+                },
+            },
+        )
+
+
+def test_claim_state_completed_authority_allows_normal_turn_exit_rules() -> None:
+    continuity.assert_turn_exitable(
+        _checkpoint(),
+        claim_state={
+            "phase": "RELEASED",
+            "authority_progress": {
+                "state": "SUBSTANTIVE_ACTION_COMPLETED",
+                "acquired_via": "scheduler-takeover",
+                "first_substantive_action": "red-test-created-and-executed",
+            },
+        },
+    )
