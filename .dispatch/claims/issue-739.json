@@ -9,9 +9,9 @@
   "work_branch": "governance/issue739-pr-write-auto-consume-20260926",
   "claimed_at": "2026-09-26T15:46:10Z",
   "base_sha": "0d8a36b686630e00284a67465da82b1401231254",
-  "head_sha": "13c70c00010e2c894533cfc6c0b9cc86402f88d4",
+  "head_sha": "20667d5b2ea17381bb4fa89b3fd7a208b0487985",
   "phase": "CLEANUP",
-  "last_update": "2026-09-26T17:58:15Z",
+  "last_update": "2026-09-26T18:02:10Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Validate Remote Guard hotfix on current-main-compatible branch, two-parent sync to main, create replacement PR, and prove #733 coordination write auto-consumes.",
+  "next_action": "Validate the import hotfix on the current-main-compatible #739 branch, perform a fresh main→work drift audit, create the replacement PR, merge to main, and re-run the live #733 coordination write proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-739.json",
   "evidence": [
@@ -75,6 +75,9 @@
     "No implementation semantics change in this reactivate.",
     "Remote Guard hotfix commit 13c70c00010e2c894533cfc6c0b9cc86402f88d4 adds missing subprocess + urllib.parse imports to coordination-write embedded Python runner.",
     "Hotfix commit Guard 36260796861 GREEN / result 5848519459.",
-    "Post-hotfix reconciliation Guard 36260853462 GREEN / result 5848526226."
+    "Post-hotfix reconciliation Guard 36260853462 GREEN / result 5848526226.",
+    "Remote Guard import hotfix branch advanced to 20667d5b2ea17381bb4fa89b3fd7a208b0487985 after guarded durable write.",
+    "Latest post-hotfix reconciliation Guard 36261068698 GREEN / result 5848552791.",
+    "Hotfix commit Guard 36260796861 GREEN and prior reconciliation 36260853462 GREEN."
   ]
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
-  "head_sha": "13c70c00010e2c894533cfc6c0b9cc86402f88d4",
+  "head_sha": "20667d5b2ea17381bb4fa89b3fd7a208b0487985",
   "state": "RUNNING",
-  "next_action": "Validate Remote Guard hotfix on current-main-compatible branch, two-parent sync to main, create replacement PR, and prove #733 coordination write auto-consumes.",
+  "next_action": "Validate the import hotfix on the current-main-compatible #739 branch, perform a fresh main→work drift audit, create the replacement PR, merge to main, and re-run the live #733 coordination write proof.",
   "run_id": 36260033199,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -52,7 +52,9 @@
     "Bootstrap reactivate preserves branch HEAD 57d8da8d95eee2062e5383496b76f6c70f546673 and RUNNING state.",
     "Bootstrap reactivate aligns RUNNING checkpoint to live work HEAD af8c59844a542c96d73a4fc09a2db80093ba99ff before workflow hotfix.",
     "Remote Guard import hotfix HEAD 13c70c00010e2c894533cfc6c0b9cc86402f88d4.",
-    "Post-hotfix reconciliation Guard 36260853462 GREEN."
+    "Post-hotfix reconciliation Guard 36260853462 GREEN.",
+    "Durable #739 HEAD reconciled to 20667d5b2ea17381bb4fa89b3fd7a208b0487985.",
+    "Reconciliation Guard 36261068698 GREEN / result 5848552791."
   ],
   "master_issue": null,
   "chain_state": "NONE",
