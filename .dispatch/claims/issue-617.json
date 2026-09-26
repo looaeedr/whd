@@ -1,14 +1,14 @@
 {
   "issue": 617,
   "issue_url": "https://github.com/looaeedr/whd/issues/617",
-  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "executor_source": "scheduler",
+  "worker": "chatgpt.sol260926.issue617",
+  "executor_source": "chat",
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-24T22:13:28+08:00",
   "base_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
   "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-26T00:47:14Z",
+  "last_update": "2026-09-26T00:49:13Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
@@ -49,5 +49,22 @@
     "prior_head_sha": "7127129081c21732d49aa07f37823fb0f708700d",
     "live_head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
     "changed_file": "docs/superpowers/checkpoints/issue617-a2-target-completion.json"
+  },
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue617",
+  "conversation_identity": "UNAVAILABLE",
+  "stale_takeover": {
+    "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "previous_executor_source": "scheduler",
+    "observed_stale_seconds": 119,
+    "observed_live_head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+    "user_authority_comment_id": 5841672435,
+    "classification": "ORPHANED_SCHEDULER_OWNER",
+    "actionable": true,
+    "exact_remote_run_id": 36012764771,
+    "exact_remote_run_status": "completed",
+    "exact_remote_run_conclusion": "success",
+    "evidence": "WHD_USER_DIRECTED_TAKEOVER_V1 + canonical stale evaluator + canonical claim-takeover guard GREEN",
+    "taken_over_at": "2026-09-26T08:49:13+08:00"
   }
 }
