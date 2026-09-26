@@ -1,0 +1,54 @@
+name: "QA #688 T5 broader regression"
+
+on:
+  push:
+    branches:
+      - work/issue688-ticket-closure-owner-20260926
+    paths:
+      - .github/workflows/qa-issue688-t5-broader-regression.yml
+
+permissions:
+  contents: read
+
+jobs:
+  broader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install regression harness
+        run: python -m pip install pytest
+
+      - name: Verify two-stage breakdown approval contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path(".agents/skills/engineering/拆解任務工單/SKILL.md").read_text(encoding="utf-8")
+          required = (
+              "## 3. RED Gate",
+              "## 5. 使用者第二次核准",
+              "這是**第二個 gate**",
+              "使用者確認 granularity/root-contract grouping/blocking edge 後才算 breakdown 核准",
+          )
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f"two-stage approval contract missing: {missing}")
+          print("TWO_STAGE_APPROVAL_CONTRACT_GREEN")
+          PY
+
+      - name: Run T5 broader contract regressions
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue688_ticket_closure_owner_contract.py
+          tests/test_to_tickets_red_first_contract.py
+          tests/test_issue_closure_completion_skill_contract.py
+          tests/process/test_finalization_owner_guard.py
+          --tb=short
