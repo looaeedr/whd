@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "744",
   "branch": "governance/issue744-terminal-checkpoint-repair-20260927",
-  "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
+  "head_sha": "1329dfa42a8859311c47dbb635b539f59d1d3c94",
   "state": "RUNNING",
-  "next_action": "Create RED proving trusted transport cannot atomically repair malformed terminal checkpoint; then implement narrow main-authority repair transition and deploy.",
-  "run_id": null,
+  "next_action": "Implement canonical malformed-terminal repair primitive plus trusted terminal-checkpoint-repair Claim Activation transport; rerun focused/protected QA to GREEN.",
+  "run_id": 36255447507,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -13,7 +13,10 @@
   "evidence": [
     "Authority: user-directed trusted repair transport for malformed terminal checkpoint.",
     "Main baseline 6091bf003aae085d396f7e61f165e3f6a0e58260.",
-    "Must preserve exact prior claim and terminal checkpoint identity except canonical closure lifecycle normalization."
+    "Must preserve exact prior claim and terminal checkpoint identity except canonical closure lifecycle normalization.",
+    "RED HEAD 1329dfa42a8859311c47dbb635b539f59d1d3c94.",
+    "Run 36255447507 expected failure on missing repair primitive/trusted transition; protected regressions GREEN.",
+    "Post-RED reconciliation Guard 36255490940 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
