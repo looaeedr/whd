@@ -586,14 +586,32 @@ def classify_guard_transaction(
     if now.tzinfo is None or now.utcoffset() is None:
         raise ExecutionClaimError("Guard transaction current time must be timezone-aware")
     current_utc = now.astimezone(timezone.utc)
-    green = [
+    expected_scope = (
+        _normalize_changed_files(expected_changed_files)
+        if expected_changed_files is not None
+        else None
+    )
+    all_green = [
         item
         for item in receipts
         if item.get("schema") == "WHD_REMOTE_GUARD_RECEIPT_V1"
         and item.get("result") == "GREEN"
     ]
-    if not green:
+    if not all_green:
         return GuardTransactionDecision(GuardTransactionState.NONE)
+    green = [
+        item
+        for item in all_green
+        if expected_scope is None or _guard_tx_files(item) == expected_scope
+    ]
+    if not green:
+        run_ids = tuple(sorted(_guard_tx_run_id(item) for item in all_green))
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason="GREEN Guard receipts exist but none match expected changed-file scope",
+        )
 
     members: list[
         tuple[Mapping[str, object], int, datetime, datetime, tuple[object, ...]]
