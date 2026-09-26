@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "689",
   "branch": "work/issue689-takeover-substantive-action-20260926",
-  "head_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
+  "head_sha": "d832b4af95ca42a479f816acc2ca2c24a77dacf9",
   "state": "RUNNING",
-  "next_action": "Run Phase6 Preflight for #689 RED-STOP-06/07, prove takeover/claim activation remains AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION until one valid substantive action is durably completed, then implement the canonical machine gate.",
+  "next_action": "Implement canonical authority-progress machine gate for RED-STOP-06/07, then rerun focused tests to GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,9 @@
     "Inherited accepted work-order HEAD: fc75000d1d3115331923a1a1bc3c34f6bbdbddbc.",
     "Runtime provenance: work2 continuation under #693 chain; active child continuation metadata intentionally omitted until terminal.",
     "Exact branch readback: work/issue689-takeover-substantive-action-20260926 exists at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc under Guard run 36244663372.",
-    "Authority is acquired but first substantive action remains pending; branch creation/Guard/heartbeat/progress are non-substantive."
+    "Authority is acquired but first substantive action remains pending; branch creation/Guard/heartbeat/progress are non-substantive.",
+    "Focused #689 RED established: 11 expected failures proving AuthorityProgressState/AuthorityProgress/substantive-action consumer/turn-exit binding are absent.",
+    "Post-RED reconciliation Guard GREEN run 36246755511 / result comment 5846830289."
   ],
   "master_issue": null,
   "chain_state": "NONE",
