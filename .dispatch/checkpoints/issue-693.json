@@ -4,7 +4,7 @@
   "branch": "work/issue693-combined-acceptance-20260926",
   "head_sha": "cea45ae780f64c89646edcecb68c807f7075dca3",
   "state": "RUNNING",
-  "next_action": "Evaluate #693 source-tree versus trusted main with governance_parity_gate; deploy only required trusted governance deltas if parity is not GREEN; finalize deployment/readback manifest; then open/merge #693 integration PR to cleanup and close/release.",
+  "next_action": "Finalize docs/governance/issue693_combined_acceptance_writeback_manifest.json with trusted main deployment/readback evidence from #763/#765, verify governance parity result GREEN, then create/merge #693 integration PR to cleanup/2d-3d-sync and close/release #693.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -28,7 +28,9 @@
     "17-target writeback commit 32ae049cbfe51780af5b1d18cbfbfd638c64bf26.",
     "Writeback contract regression 44 passed / 0 failed.",
     "Final drift merge cea45ae780f64c89646edcecb68c807f7075dca3.",
-    "Post-conflict focused acceptance 71 passed / 0 failed; full H3 suite 786 passed / 2 baseline failures reproduced on fresh cleanup."
+    "Post-conflict focused acceptance 71 passed / 0 failed; full H3 suite 786 passed / 2 baseline failures reproduced on fresh cleanup.",
+    "Trusted deploy helper #763 terminal and released.",
+    "PR #765 merged to main with exact two-file source parity."
   ],
   "master_issue": null,
   "chain_state": "NONE",

@@ -11,12 +11,12 @@
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "cea45ae780f64c89646edcecb68c807f7075dca3",
   "phase": "GREEN",
-  "last_update": "2026-09-26T21:59:00Z",
+  "last_update": "2026-09-26T22:13:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Evaluate #693 source-tree versus trusted main with governance_parity_gate; deploy only required trusted governance deltas if parity is not GREEN; finalize deployment/readback manifest; then open/merge #693 integration PR to cleanup and close/release.",
+  "next_action": "Finalize docs/governance/issue693_combined_acceptance_writeback_manifest.json with trusted main deployment/readback evidence from #763/#765, verify governance parity result GREEN, then create/merge #693 integration PR to cleanup/2d-3d-sync and close/release #693.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-693.json",
   "evidence": [
@@ -46,7 +46,12 @@
     "Final production drift merge cea45ae780f64c89646edcecb68c807f7075dca3 includes cleanup #761/#699 recovery.",
     "Conflict resolved by retaining both #690 closure-drift / #689 authority-pending gates and #761 unresolved-operation issue-close recovery.",
     "Focused post-conflict acceptance: 71 passed / 0 failed.",
-    "Full tests/process at prior H3: 786 passed / 2 failed; exact same 2 failures reproduced on fresh cleanup@0374e9d35bcd8b02ceb6486002c203347a45b19b, classified current production baseline debt."
+    "Full tests/process at prior H3: 786 passed / 2 failed; exact same 2 failures reproduced on fresh cleanup@0374e9d35bcd8b02ceb6486002c203347a45b19b, classified current production baseline debt.",
+    "Delegated helper #763 is closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED.",
+    "Parent helper reservation issue693-turn-exit-continuity-main-deploy terminalized by canonical terminalize_helper_reservation.",
+    "Trusted main deployment PR #765 merged at b6febcfc641beab1b015946671ace7642ab6de48.",
+    "Exact trusted readback blobs equal #693 source for continuity_controller.py and whd-turn-exit-gate.yml.",
+    "Parent coordination write Guard GREEN."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -67,7 +72,7 @@
     {
       "relationship": "helper",
       "helper_key": "issue693-turn-exit-continuity-main-deploy",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue693-turn-exit-continuity-main-deploy-20260927a",
       "reserved_at": "2026-09-26T21:58:12Z",
