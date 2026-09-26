@@ -4,7 +4,7 @@
   "branch": "work/issue696-startup-auth-purpose-20260926",
   "head_sha": "43b5ff0c063e1dc5d2238e0d4623dca433bf83ca",
   "state": "RUNNING",
-  "next_action": "dispatch focused remote QA for accepted A1 head 43b5ff0c063e1dc5d2238e0d4623dca433bf83ca, monitor the exact run to terminal, then record A1 terminal acceptance for #702 closure owner",
+  "next_action": "create guarded one-shot QA workflow for A1 head 43b5ff0c063e1dc5d2238e0d4623dca433bf83ca, monitor exact run to terminal, then clean workflow and record terminal acceptance for #702",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,8 @@
     "Implementation exact test: 4 passed.",
     "Focused regressions: 66 passed, 0 failed.",
     "Remote Guard commit GREEN run 36223295097; commit 43b5ff0c063e1dc5d2238e0d4623dca433bf83ca pushed and read back as direct child of H0.",
-    "Remote Guard reconciliation GREEN run 36223371562."
+    "Remote Guard reconciliation GREEN run 36223371562.",
+    "Remote Guard pr-write GREEN run 36223537285 was consumed by draft PR #704; fresh readback confirms PR #704 open/draft at exact A1 head."
   ],
   "master_issue": null,
   "chain_state": "NONE",
