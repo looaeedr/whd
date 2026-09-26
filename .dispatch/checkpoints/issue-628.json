@@ -17,10 +17,11 @@
     "Post-activation fresh all-child readback: #614/#615/#616/#619/#622 are closed/completed.",
     "#622 durable claim/checkpoint readback: RELEASED/CLOSED.",
     "B5 Combined run 36212566772 SUCCESS; closing head 524ec6ac877449ea8f356daac2bfb2f6c3c5d048 has production/test drift=false.",
-    "Master terminalization Guard 36214118618 GREEN consumed; CHAIN_COMPLETE."
+    "Master terminalization Guard 36214118618 GREEN consumed; CHAIN_COMPLETE.",
+    "Master closure-state Guard 36214199302 GREEN consumed: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, run Master #628 trusted finalization proof, close/read back Master, then persist CLOSED/RELEASED",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run trusted finalization bound to Master #628 / exact closing head, then close/read back Master",
   "master_issue": "628",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
