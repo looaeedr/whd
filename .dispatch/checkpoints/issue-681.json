@@ -5,8 +5,8 @@
   "chain_next_action": null,
   "chain_reason": null,
   "chain_state": "NONE",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff",
-  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #681",
+  "closure_state": "ISSUE_CLOSE_PENDING",
   "evidence": [
     "Requirement Authority: WHD HA safe-shutdown spec v1.4 and approved RED package v5/v5.1.",
     "Dependency #678 fresh-read closed/completed with claim RELEASED and checkpoint CLOSED.",
@@ -22,7 +22,8 @@
     "PR #695 merged/closed; production target cleanup/2d-3d-sync fresh-read HEAD=3c048f5e2adc3f0bc99b1c60b3aae85ab8893931.",
     "Remote QA run 36220004151 completed success on exact head 05f2d61db443973945ff014fb710644f79224dfb; bootstrap-governance PASS.",
     "Local acceptance: tests/process/test_issue681_poweroff_gate.py = 32 passed; related authority/governance = 16 passed; combined = 48 passed / 0 failed.",
-    "AI Library writeback installed workstation-poweroff-safety CURRENT owner and fail-closed taxonomy."
+    "AI Library writeback installed workstation-poweroff-safety CURRENT owner and fail-closed taxonomy.",
+    "Closure advanced after PR #695 merged and remote QA run 36220004151 succeeded."
   ],
   "head_sha": "05f2d61db443973945ff014fb710644f79224dfb",
   "issue": "681",
