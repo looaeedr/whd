@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "744",
   "branch": "governance/issue744-terminal-checkpoint-repair-20260927",
-  "head_sha": "1b5ba471cc4dfb6f4253ac3e0e3017395266c016",
+  "head_sha": "3273d8c1beb746f2f6d408e5a24925035c854a4c",
   "state": "RUNNING",
-  "next_action": "Remove temporary #744 QA workflow, then pr-write/merge to main and fresh-read deployed repair before using terminal-checkpoint-repair on #733.",
+  "next_action": "Run final PR drift check against current main, obtain pr-write Guard, merge #744 to main, fresh-read deployed terminal-checkpoint-repair, then repair #733.",
   "run_id": 36255643465,
   "job_id": null,
   "log_cursor": null,
@@ -21,7 +21,9 @@
     "Run 36255643465 SUCCESS.",
     "Post-implementation reconciliation Guard 36255721628 GREEN.",
     "Durable Skill/AI writeback HEAD 1b5ba471cc4dfb6f4253ac3e0e3017395266c016.",
-    "Post-writeback reconciliation Guard 36255901888 GREEN."
+    "Post-writeback reconciliation Guard 36255901888 GREEN.",
+    "Closing HEAD 3273d8c1beb746f2f6d408e5a24925035c854a4c has temporary QA workflow removed.",
+    "Canonical closing reconciliation receipt 36256035784 selected from equivalent GREEN group."
   ],
   "master_issue": null,
   "chain_state": "NONE",

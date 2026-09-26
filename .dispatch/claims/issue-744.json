@@ -9,9 +9,9 @@
   "work_branch": "governance/issue744-terminal-checkpoint-repair-20260927",
   "claimed_at": "2026-09-26T16:22:00Z",
   "base_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
-  "head_sha": "1b5ba471cc4dfb6f4253ac3e0e3017395266c016",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T16:34:20Z",
+  "head_sha": "3273d8c1beb746f2f6d408e5a24925035c854a4c",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T16:36:40Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Remove temporary #744 QA workflow, then pr-write/merge to main and fresh-read deployed repair before using terminal-checkpoint-repair on #733.",
+  "next_action": "Run final PR drift check against current main, obtain pr-write Guard, merge #744 to main, fresh-read deployed terminal-checkpoint-repair, then repair #733.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-744.json",
   "evidence": [
@@ -36,6 +36,9 @@
     "GREEN QA run 36255643465: focused terminal repair transport + protected Claim Activation/continuity regressions SUCCESS.",
     "Post-implementation reconciliation Guard 36255721628 GREEN / result 5847915091.",
     "Skill/AI durable writeback commit 1b5ba471cc4dfb6f4253ac3e0e3017395266c016 under pre-write Guard 36255809619 / result 5847925837.",
-    "Post-writeback reconciliation Guard 36255901888 GREEN / result 5847937254."
+    "Post-writeback reconciliation Guard 36255901888 GREEN / result 5847937254.",
+    "Temporary QA workflow removed by closing commit 3273d8c1beb746f2f6d408e5a24925035c854a4c under canonical cleanup Guard 36255965037.",
+    "Closing-head reconciliation equivalent GREEN group canonical receipt 36256035784; shadow equivalent 36256043677 not independently consumed.",
+    "PR drift audit: main changes since #744 base only touch .github/workflows/whd-turn-exit-gate.yml; no overlap with #744 closing artifacts."
   ]
 }
