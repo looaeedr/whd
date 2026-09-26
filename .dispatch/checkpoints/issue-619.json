@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "d1df74aa6c0d70629c188deefd1e8f3a519f2c91",
+  "head_sha": "6d86a0799f18f11641529dc68e1b97fa181eaa87",
   "state": "RUNNING",
-  "next_action": "Bisect the two B4-introduced expanded regressions under Ubuntu+Xvfb across B4 lineage commits (1f88f33e, e308170a, 372bf25f, 392fcb6a, 7a52d091) to find the first bad commit for GUI batch export and Receiving W/D snapshot; ignore the selector-menubutton failure as confirmed pre-existing at B4 base.",
+  "next_action": "Revert only the e308170a commit-stage apply_profile_plan render=False suppression on current B4 lineage, preserving scheduler batching and the later ui_text_size trace guard; then run exact UI-R3 plus the two B4-regression tests under Ubuntu+Xvfb.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -43,6 +43,10 @@
     "Baseline comparison run 36209439724: 2 passed / 1 failed at exact B4 base 81468a8103fd5045160e0f16e9458317acee584b.",
     "Export and combined W/D failures are newly introduced somewhere in B4 lineage; selector-menubutton failure is confirmed pre-existing at baseline.",
     "Artifact 10894313835 preserves exact Ubuntu+Xvfb evidence.",
-    "Terminal reconciliation authorized by Guard 36209543730."
+    "Terminal reconciliation authorized by Guard 36209543730.",
+    "Lineage bisect run 36209645278: 1f88f33e GREEN; e308170a and all later sampled heads RED for Export + Receiving W/D.",
+    "e308170a is first bad commit and changes only commit-stage apply_profile_plan by adding render=False.",
+    "Next action is surgical revert of that single suppression while retaining later true UI-R3 root fix.",
+    "Post-bisect reconciliation authorized by Guard 36209654430."
   ]
 }
