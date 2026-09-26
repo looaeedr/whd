@@ -1541,6 +1541,80 @@ class Phase6FoldDesignerComposition:
                 parts, {}, {}
             )
 
+        def record_visible_scene_commit(request=None):
+            if not getattr(app, "_phase6_visible_scene_transition_active", False):
+                return None
+            records = getattr(app, "_phase6_visible_scene_commit_records", None)
+            if not isinstance(records, list):
+                records = []
+                app._phase6_visible_scene_commit_records = records
+            transition_id = str(
+                getattr(app, "_phase6_visible_scene_transition_id", "") or ""
+            )
+            transition_stage = str(
+                getattr(app, "_phase6_visible_scene_transition_stage", "") or ""
+            )
+            cabinet_family = str(
+                required("_phase6_current_cabinet_family")(app) or ""
+            )
+            workspace = getattr(app, "designer_workspace", None)
+            inventory = tuple(
+                sorted(
+                    str(part_key)
+                    for part_key in tuple(
+                        getattr(workspace, "available_parts", ()) or ()
+                    )
+                )
+            )
+            final_scene = getattr(app, "final_scene_view", None)
+            scene_summary = {
+                "cabinet_family": cabinet_family,
+                "physical_inventory": inventory,
+                "active_part": str(getattr(workspace, "active_part", "") or ""),
+                "request_part": str(getattr(request, "part_key", "") or ""),
+                "display_mode": str(
+                    getattr(app, "_phase6_3d_display_mode", "single") or "single"
+                ),
+                "cutting_mesh_count": len(
+                    tuple(getattr(final_scene, "last_cutting_mesh", ()) or ())
+                ),
+                "collection_count": len(
+                    tuple(getattr(app.renderer.ax3d, "collections", ()) or ())
+                ),
+                "line_count": len(
+                    tuple(getattr(app.renderer.ax3d, "lines", ()) or ())
+                ),
+            }
+            encode = lambda value: json.dumps(
+                value,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            ).encode("utf-8")
+            records.append(
+                {
+                    "transition_id": transition_id,
+                    "sequence": len(records) + 1,
+                    "scene_fingerprint": hashlib.sha256(
+                        encode(scene_summary)
+                    ).hexdigest(),
+                    "cabinet_family": cabinet_family,
+                    "physical_inventory_fingerprint": hashlib.sha256(
+                        encode(inventory)
+                    ).hexdigest(),
+                    "transition_stage": transition_stage,
+                    "invalid_visible_commit": transition_stage != "finalize",
+                }
+            )
+            if transition_stage == "finalize":
+                app._phase6_visible_scene_transition_active = False
+            return None
+
+        final_scene_renderer = self.final_scene_renderer(number_text=number_text)
+        if final_scene_renderer is not None:
+            final_scene_renderer.visible_commit_hook = record_visible_scene_commit
+
         def render_committed():
             if not getattr(app, "preview_3d_enabled", True):
                 return None
@@ -1554,76 +1628,10 @@ class Phase6FoldDesignerComposition:
             ):
                 canvas.draw = draw_idle
                 try:
-                    result = app.renderer.render()
+                    return app.renderer.render()
                 finally:
                     canvas.draw = draw
-            else:
-                result = app.renderer.render()
-
-            if getattr(app, "_phase6_visible_scene_transition_active", False):
-                records = getattr(app, "_phase6_visible_scene_commit_records", None)
-                if not isinstance(records, list):
-                    records = []
-                    app._phase6_visible_scene_commit_records = records
-                transition_id = str(
-                    getattr(app, "_phase6_visible_scene_transition_id", "") or ""
-                )
-                transition_stage = str(
-                    getattr(app, "_phase6_visible_scene_transition_stage", "") or ""
-                )
-                cabinet_family = str(required("_phase6_current_cabinet_family")(app) or "")
-                workspace = getattr(app, "designer_workspace", None)
-                inventory = tuple(
-                    sorted(
-                        str(part_key)
-                        for part_key in tuple(
-                            getattr(workspace, "available_parts", ()) or ()
-                        )
-                    )
-                )
-                final_scene = getattr(app, "final_scene_view", None)
-                scene_summary = {
-                    "cabinet_family": cabinet_family,
-                    "physical_inventory": inventory,
-                    "active_part": str(getattr(workspace, "active_part", "") or ""),
-                    "display_mode": str(
-                        getattr(app, "_phase6_3d_display_mode", "single") or "single"
-                    ),
-                    "cutting_mesh_count": len(
-                        tuple(getattr(final_scene, "last_cutting_mesh", ()) or ())
-                    ),
-                    "collection_count": len(
-                        tuple(getattr(app.renderer.ax3d, "collections", ()) or ())
-                    ),
-                    "line_count": len(
-                        tuple(getattr(app.renderer.ax3d, "lines", ()) or ())
-                    ),
-                }
-                encode = lambda value: json.dumps(
-                    value,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                    default=str,
-                ).encode("utf-8")
-                records.append(
-                    {
-                        "transition_id": transition_id,
-                        "sequence": len(records) + 1,
-                        "scene_fingerprint": hashlib.sha256(
-                            encode(scene_summary)
-                        ).hexdigest(),
-                        "cabinet_family": cabinet_family,
-                        "physical_inventory_fingerprint": hashlib.sha256(
-                            encode(inventory)
-                        ).hexdigest(),
-                        "transition_stage": transition_stage,
-                        "invalid_visible_commit": transition_stage != "finalize",
-                    }
-                )
-                if transition_stage == "finalize":
-                    app._phase6_visible_scene_transition_active = False
-            return result
+            return app.renderer.render()
 
         def refresh_preview():
             if not getattr(app, "preview_3d_enabled", True):

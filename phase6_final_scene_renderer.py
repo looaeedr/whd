@@ -66,6 +66,7 @@ class Phase6FinalSceneRenderer:
         self.base_renderer_render = None
         self.scroll_cid = None
         self.last_interference_diagnostic = None
+        self.visible_commit_hook = None
 
     def _remove_original_bend_surfaces(self):
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -910,8 +911,10 @@ class Phase6FinalSceneRenderer:
                 ax2d.axis("off")
             apply_mpl_dark_theme(getattr(ax, "figure", None), (ax, ax2d))
             self.configure_3d_only_figure()
+            request = None
             try:
-                self.render(request_provider())
+                request = request_provider()
+                self.render(request)
                 self.cutting_mesh_error = None
             except Exception as exc:
                 self.last_cutting_mesh = []
@@ -939,6 +942,9 @@ class Phase6FinalSceneRenderer:
                 after_render()
             if callable(requested_draw):
                 requested_draw()
+            visible_commit_hook = getattr(self, "visible_commit_hook", None)
+            if callable(visible_commit_hook):
+                visible_commit_hook(request)
             return None
 
         self.renderer.render = render_3d_only
