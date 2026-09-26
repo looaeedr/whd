@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T11:55:00Z",
   "base_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
   "head_sha": "31043ce5aae50b61dbed6c47fec750cfacb67462",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T12:10:24Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T12:14:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create PR from governance/issue721-task-start-authority-v1 to cleanup/2d-3d-sync, validate exact PR head, merge after guarded pr-write, then close/release #721.",
+  "next_action": "Advance terminal checkpoint closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint and verify bound finalization proof, close/read back Issue #721, then release claim.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-721.json",
   "evidence": [
@@ -30,7 +30,9 @@
     "GREEN: issue721 contract = 5 passed; dependent governance regression = 56 passed; total focused = 61 passed / 0 failed.",
     "Phase6 Skill mutation preflight GREEN and git diff --check GREEN.",
     "Commit mutation authorized by Remote Guard run 36241001765 and produced direct-child head 31043ce5aae50b61dbed6c47fec750cfacb67462.",
-    "Post-commit claim/checkpoint reconciliation authorized by Remote Guard run 36241058448."
+    "Post-commit claim/checkpoint reconciliation authorized by Remote Guard run 36241058448.",
+    "PR #723 merged at production target cleanup/2d-3d-sync merge commit 04b2a9808acbaba49e5fb60434f7218cd565c421.",
+    "Production target fresh-read at exact merge commit 04b2a9808acbaba49e5fb60434f7218cd565c421; entering terminal closure transaction."
   ],
   "last_guard": {
     "action": "write",
