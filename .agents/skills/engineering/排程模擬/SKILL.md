@@ -25,6 +25,27 @@ takeover、reconciliation、pending-Guard recovery 只在 fresh machine evidence
 
 scheduler lane / work slot 是 routing 與互斥 identity，不是 execution authority。空工作槽、open / unblocked Issue 本身不構成 execution authority；本 Skill 只有在 exact `/排程A` / `/排程B` 已建立 `SCHEDULER_LANE` mode 後，才可依 canonical discovery 選 executable leaf。
 
+### WORK_SLOT_HANDOFF_RECEIVER_V1
+
+當工作槽已建立合法 planned handoff 到本 lane 時，**planned handoff receiver 優先於 ordinary dynamic discovery**。
+
+- 每輪進入 A/B lane 後，先 fresh-read canonical handoff / claim / checkpoint evidence，再做 ordinary discovery。
+- 有 matching pending planned handoff 時不得先 claim/discover 另一張 Issue。
+- receiver 最低 exact identity 必須同時匹配：`slot_id + issue + branch + head_sha + checkpoint + target_lane`；若 owning state non-terminal，`next_action` 必須存在且非空。
+- 任一 identity 不一致都 fail closed，分類 `WORK_SLOT_HANDOFF_IDENTITY_MISMATCH`；不得只靠 Issue、lane、聊天室標題猜 receiver。
+- legacy state 沒有 explicit `slot_id` 時回 `UNBOUND`；**UNBOUND 不得猜 slot**。
+- handoff 成功只代表 execution owner/location 可轉到 scheduler；**scheduler owner/location change != work-slot identity change**。
+- `slot_id 必須原值保留`；不得把 worker.slot.1 改成 worker.slot.2，也不得清除既有 slot_id。
+- claim owner / executor provenance 仍依 live 派工與 handoff authority更新；slot_id 只是 durable provenance，不是第二套 ownership authority。
+
+#### WORK_SLOT_SUCCESSOR_REBIND_V1
+
+terminal child 後，**只有 SCHEDULER_LANE / chain authority** 已合法允許 successor continuation 時，terminal successor 可沿同一 slot_id rebind。
+
+- successor rebind 前仍 fresh-read canonical chain / dependency / claim authority。
+- 同一 chain continuation 只能保留原 slot_id；不得把 successor 靜默搬到另一個工作槽。
+- 沒有 chain authority 時，本票 closure/release 完成後不得因 slot 空出而自行 discovery 下一票。
+
 
 這個 Skill 只處理 WHD A/B recurring lane 的**互動式接手與續跑**。它不是第三條 scheduler lane，也不是新的派工 authority。
 
@@ -271,6 +292,8 @@ Equivalent duplicate GREEN 的 canonical/shadow 規則完全服從 live authorit
 ```text
 lane=A|B
 lane_owner=scheduler....
+slot_id=worker.slot.1|worker.slot.2|worker.slot.3|UNBOUND
+handoff_source=LOCAL|SCHEDULER|NONE
 entrypoint=interactive:/排程A|/排程B
 invocation_identity=<exact or generated>
 conversation_identity=<exact|UNAVAILABLE>
