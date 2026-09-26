@@ -66,6 +66,24 @@ class ClosureState(str, Enum):
     CLOSED = "CLOSED"
 
 
+class ClosureDriftClassification(str, Enum):
+    """Machine classification for Issue/closure/claim process-state drift."""
+
+    CONSISTENT = "CONSISTENT"
+    ISSUE_CLOSED_BEFORE_FINALIZATION = "ISSUE_CLOSED_BEFORE_FINALIZATION"
+    CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM = (
+        "CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM"
+    )
+
+
+class ClosureDriftRepairAction(str, Enum):
+    """Deterministic, non-mutating repair actions for closure drift."""
+
+    NONE = "NONE"
+    REOPEN_ISSUE_AND_RESUME_FINALIZATION = "REOPEN_ISSUE_AND_RESUME_FINALIZATION"
+    RECONCILE_CLAIM_RELEASE_WITH_GUARD = "RECONCILE_CLAIM_RELEASE_WITH_GUARD"
+
+
 class AuthorityProgressState(str, Enum):
     """Durable authority-acquisition progress before normal turn exit may resume."""
 
@@ -153,6 +171,25 @@ class FinalizationBlocked(CheckpointError):
 
 class TurnExitBlocked(CheckpointError):
     """Raised when an assistant turn tries to end while autonomous work remains."""
+
+
+@dataclass(frozen=True)
+class ClosureDriftAssessment:
+    classification: ClosureDriftClassification
+    repair_action: ClosureDriftRepairAction
+    issue_state: str
+    issue_state_reason: str | None
+    closure_state: ClosureState
+    claim_phase: str | None
+
+
+@dataclass(frozen=True)
+class ClosureDriftRepairPlan:
+    action: ClosureDriftRepairAction
+    required_issue_state: str
+    target_closure_state: ClosureState
+    target_claim_phase: str | None
+    terminal_complete: bool
 
 
 @dataclass(frozen=True)
@@ -1085,6 +1122,111 @@ def _claim_phase_value(claim_state: object | None) -> str | None:
     return str(value).upper() if value is not None else None
 
 
+def classify_closure_drift(
+    checkpoint: Checkpoint,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+) -> ClosureDriftAssessment:
+    """Classify fresh Issue/closure/claim identity without mutating durable state."""
+
+    issue_state_value = str(issue_state or "").strip().lower()
+    issue_reason_value = str(issue_state_reason or "").strip().lower() or None
+    claim_phase = _claim_phase_value(claim_state)
+    issue_closed_completed = (
+        issue_state_value == "closed" and issue_reason_value == "completed"
+    )
+
+    if issue_closed_completed and checkpoint.closure_state in {
+        ClosureState.FINALIZATION_PENDING,
+        ClosureState.ISSUE_CLOSE_PENDING,
+    }:
+        return ClosureDriftAssessment(
+            classification=ClosureDriftClassification.ISSUE_CLOSED_BEFORE_FINALIZATION,
+            repair_action=(
+                ClosureDriftRepairAction.REOPEN_ISSUE_AND_RESUME_FINALIZATION
+            ),
+            issue_state=issue_state_value,
+            issue_state_reason=issue_reason_value,
+            closure_state=checkpoint.closure_state,
+            claim_phase=claim_phase,
+        )
+
+    if (
+        issue_closed_completed
+        and checkpoint.closure_state is ClosureState.CLOSED
+        and claim_phase != "RELEASED"
+    ):
+        return ClosureDriftAssessment(
+            classification=(
+                ClosureDriftClassification.CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM
+            ),
+            repair_action=ClosureDriftRepairAction.RECONCILE_CLAIM_RELEASE_WITH_GUARD,
+            issue_state=issue_state_value,
+            issue_state_reason=issue_reason_value,
+            closure_state=checkpoint.closure_state,
+            claim_phase=claim_phase,
+        )
+
+    return ClosureDriftAssessment(
+        classification=ClosureDriftClassification.CONSISTENT,
+        repair_action=ClosureDriftRepairAction.NONE,
+        issue_state=issue_state_value,
+        issue_state_reason=issue_reason_value,
+        closure_state=checkpoint.closure_state,
+        claim_phase=claim_phase,
+    )
+
+
+def plan_closure_drift_repair(
+    checkpoint: Checkpoint,
+    *,
+    assessment: ClosureDriftAssessment,
+) -> ClosureDriftRepairPlan:
+    """Return the only allowed next reconciliation step; never perform it implicitly."""
+
+    if (
+        assessment.classification
+        is ClosureDriftClassification.ISSUE_CLOSED_BEFORE_FINALIZATION
+    ):
+        if assessment.claim_phase == "RELEASED":
+            raise CheckpointError(
+                "ISSUE_CLOSED_BEFORE_FINALIZATION cannot repair an already RELEASED claim"
+            )
+        return ClosureDriftRepairPlan(
+            action=ClosureDriftRepairAction.REOPEN_ISSUE_AND_RESUME_FINALIZATION,
+            required_issue_state="open",
+            target_closure_state=checkpoint.closure_state,
+            target_claim_phase=assessment.claim_phase,
+            terminal_complete=False,
+        )
+
+    if (
+        assessment.classification
+        is ClosureDriftClassification.CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM
+    ):
+        return ClosureDriftRepairPlan(
+            action=ClosureDriftRepairAction.RECONCILE_CLAIM_RELEASE_WITH_GUARD,
+            required_issue_state="closed",
+            target_closure_state=ClosureState.CLOSED,
+            target_claim_phase="RELEASED",
+            terminal_complete=False,
+        )
+
+    return ClosureDriftRepairPlan(
+        action=ClosureDriftRepairAction.NONE,
+        required_issue_state=assessment.issue_state or "open",
+        target_closure_state=checkpoint.closure_state,
+        target_claim_phase=assessment.claim_phase,
+        terminal_complete=(
+            assessment.issue_state == "closed"
+            and checkpoint.closure_state is ClosureState.CLOSED
+            and assessment.claim_phase == "RELEASED"
+        ),
+    )
+
+
 def assert_turn_exitable(
     checkpoint: Checkpoint,
     *,
@@ -1211,6 +1353,21 @@ def _evaluate_live_turn_exit_from_durable_state(
     blocked_exit_proof: object | None = None,
 ) -> str:
     """Shared local/remote turn-exit authority from the same fresh durable evidence."""
+
+    if checkpoint is not None:
+        drift = classify_closure_drift(
+            checkpoint,
+            issue_state=issue_state,
+            issue_state_reason=issue_state_reason,
+            claim_state=claim_state,
+        )
+        if (
+            drift.classification
+            is ClosureDriftClassification.ISSUE_CLOSED_BEFORE_FINALIZATION
+        ):
+            raise TurnExitBlocked(
+                "TURN_EXIT_BLOCKED: ISSUE_CLOSED_BEFORE_FINALIZATION"
+            )
 
     result = evaluate_turn_exit_from_durable_state(
         checkpoint,
