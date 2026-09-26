@@ -4,7 +4,7 @@
   "branch": "governance/issue733-branch-create-auto-consume-cleanup-parity-20260926",
   "head_sha": "aca6cc16103c25b0f5f968134f26aca200570986",
   "state": "RUNNING",
-  "next_action": "Open guarded parity PR to cleanup/2d-3d-sync, merge exact HEAD after readback, then fresh-read cleanup parity and finalize #733.",
+  "next_action": "Execute #692 batch-compatible parity commit on current #733 branch, then run combined #675/#722/#731/#736/#643 QA and remove the temporary batch QA workflow before integration.",
   "run_id": 36251717894,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,9 @@
     "Parity rule: #692.",
     "Frozen cleanup baseline: 91931e518bea241d129d7327e1d163cb7a1ffd92.",
     "Parity implementation commit aca6cc16103c25b0f5f968134f26aca200570986; focused QA run 36251717894 SUCCESS.",
-    "Post-commit reconciliation Guard run 36251749732 GREEN / result comment 5847439786."
+    "Post-commit reconciliation Guard run 36251749732 GREEN / result comment 5847439786.",
+    "Durable PR readback: PR #734 exists for exact guarded #733 head aca6cc16103c25b0f5f968134f26aca200570986; prior pr-write transaction 36251791591 is action-complete.",
+    "Batch scope promoted under #692."
   ],
   "master_issue": null,
   "chain_state": "NONE",
