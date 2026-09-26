@@ -39,6 +39,15 @@ def _guard_kwargs(receipt_path: Path) -> dict[str, object]:
     }
 
 
+def _blocked_exit_proof() -> continuity.BlockedExitProof:
+    return continuity.BlockedExitProof(
+        exhaustive=True,
+        executable_leaf_count=0,
+        evidence=("fresh durable blocker census: no executable alternative",),
+        stop_reason=continuity.StopReason.EXTERNAL_AUTHORITY_REQUIRED,
+    )
+
+
 def test_path_boundary_exists_and_missing_checkpoint_fails_closed(tmp_path: Path):
     guard = getattr(continuity, "assert_turn_exitable_path", None)
     assert callable(guard), "missing canonical path-level turn-exit boundary"
@@ -140,7 +149,11 @@ def test_guard_invocation_mints_bound_proof_and_allows_genuine_blocked_checkpoin
     receipt = tmp_path / "receipt.json"
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
 
-    checkpoint = guard(path, **_guard_kwargs(receipt))
+    checkpoint = guard(
+        path,
+        blocked_exit_proof=_blocked_exit_proof(),
+        **_guard_kwargs(receipt),
+    )
     assert checkpoint.state is continuity.ContinuityState.BLOCKED
     assert receipt.exists(), "successful guard invocation must mint proof"
 
@@ -163,7 +176,11 @@ def test_guard_invocation_proof_becomes_stale_if_checkpoint_changes(tmp_path: Pa
     path = tmp_path / "continuity.json"
     receipt = tmp_path / "receipt.json"
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
-    guard(path, **_guard_kwargs(receipt))
+    guard(
+        path,
+        blocked_exit_proof=_blocked_exit_proof(),
+        **_guard_kwargs(receipt),
+    )
 
     continuity.save_checkpoint(
         path,
@@ -224,7 +241,11 @@ def test_outer_process_hook_accepts_only_after_actual_guard_invocation(tmp_path:
     path = tmp_path / "continuity.json"
     receipt = tmp_path / "receipt.json"
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
-    continuity.assert_turn_exitable_path(path, **_guard_kwargs(receipt))
+    continuity.assert_turn_exitable_path(
+        path,
+        blocked_exit_proof=_blocked_exit_proof(),
+        **_guard_kwargs(receipt),
+    )
 
     result = subprocess.run(
         [

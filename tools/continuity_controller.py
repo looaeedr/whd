@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
 CHECKPOINT_VERSION = 1
@@ -63,6 +63,25 @@ class ClosureState(str, Enum):
     ISSUE_CLOSE_PENDING = "ISSUE_CLOSE_PENDING"
     RELEASE_HANDOFF_PENDING = "RELEASE_HANDOFF_PENDING"
     CLOSED = "CLOSED"
+
+
+class StopReason(str, Enum):
+    """Canonical machine reasons used when deciding whether a turn may stop."""
+
+    BLOCKER_NOT_EXHAUSTIVELY_PROVEN = "BLOCKER_NOT_EXHAUSTIVELY_PROVEN"
+    EXECUTABLE_LEAF_EXISTS = "EXECUTABLE_LEAF_EXISTS"
+    NO_EXECUTABLE_PATH = "NO_EXECUTABLE_PATH"
+    EXTERNAL_AUTHORITY_REQUIRED = "EXTERNAL_AUTHORITY_REQUIRED"
+    CAPABILITY_BLOCKED = "CAPABILITY_BLOCKED"
+
+
+LEGAL_BLOCKED_EXIT_REASONS = frozenset(
+    {
+        StopReason.NO_EXECUTABLE_PATH,
+        StopReason.EXTERNAL_AUTHORITY_REQUIRED,
+        StopReason.CAPABILITY_BLOCKED,
+    }
+)
 
 
 DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION = (
@@ -111,6 +130,87 @@ class FinalizationBlocked(CheckpointError):
 
 class TurnExitBlocked(CheckpointError):
     """Raised when an assistant turn tries to end while autonomous work remains."""
+
+
+@dataclass(frozen=True)
+class BlockedExitProof:
+    """Fresh machine evidence that a BLOCKED checkpoint has no executable alternative."""
+
+    exhaustive: bool
+    executable_leaf_count: int
+    evidence: tuple[str, ...]
+    stop_reason: StopReason
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.exhaustive, bool):
+            raise CheckpointError("blocked exit proof exhaustive must be boolean")
+        if (
+            isinstance(self.executable_leaf_count, bool)
+            or not isinstance(self.executable_leaf_count, int)
+            or self.executable_leaf_count < 0
+        ):
+            raise CheckpointError(
+                "blocked exit proof executable_leaf_count must be a non-negative integer"
+            )
+        if isinstance(self.evidence, str) or not isinstance(self.evidence, (tuple, list)):
+            raise CheckpointError("blocked exit proof evidence must be a sequence")
+        normalized_evidence = tuple(str(item).strip() for item in self.evidence)
+        if not normalized_evidence or any(not item for item in normalized_evidence):
+            raise CheckpointError("blocked exit proof evidence must contain fresh durable evidence")
+        reason = self.stop_reason
+        if not isinstance(reason, StopReason):
+            try:
+                reason = StopReason(str(reason))
+            except ValueError as exc:
+                raise CheckpointError(
+                    f"unsupported blocked exit stop reason {self.stop_reason!r}"
+                ) from exc
+        object.__setattr__(self, "evidence", normalized_evidence)
+        object.__setattr__(self, "stop_reason", reason)
+
+
+def _assert_blocked_exit_proof(proof: object | None) -> BlockedExitProof:
+    def not_proven(detail: str) -> TurnExitBlocked:
+        return TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.BLOCKER_NOT_EXHAUSTIVELY_PROVEN.value}: {detail}"
+        )
+
+    if proof is None:
+        raise not_proven("BLOCKED checkpoint has no exhaustive machine proof")
+    try:
+        if isinstance(proof, BlockedExitProof):
+            normalized = proof
+        elif isinstance(proof, Mapping):
+            normalized = BlockedExitProof(
+                exhaustive=proof.get("exhaustive"),
+                executable_leaf_count=proof.get("executable_leaf_count"),
+                evidence=tuple(proof.get("evidence") or ()),
+                stop_reason=proof.get("stop_reason"),
+            )
+        else:
+            normalized = BlockedExitProof(
+                exhaustive=getattr(proof, "exhaustive"),
+                executable_leaf_count=getattr(proof, "executable_leaf_count"),
+                evidence=tuple(getattr(proof, "evidence")),
+                stop_reason=getattr(proof, "stop_reason"),
+            )
+    except (AttributeError, TypeError, CheckpointError) as exc:
+        raise not_proven(f"invalid or incomplete blocked exit proof: {exc}") from exc
+
+    if not normalized.exhaustive:
+        raise not_proven("legal alternatives / executable leaves were not exhaustively checked")
+    if normalized.executable_leaf_count > 0:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.EXECUTABLE_LEAF_EXISTS.value}: "
+            f"executable_leaf_count={normalized.executable_leaf_count}"
+        )
+    if normalized.stop_reason not in LEGAL_BLOCKED_EXIT_REASONS:
+        raise not_proven(
+            f"stop_reason={normalized.stop_reason.value} is not a legal BLOCKED exit reason"
+        )
+    return normalized
 
 
 def _require_text(name: str, value: str | None) -> str:
@@ -880,6 +980,7 @@ def assert_turn_exitable(
     expected_master_issue: str | None = None,
     claim_state: object | None = None,
     transaction_state: object | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
 
@@ -907,6 +1008,9 @@ def assert_turn_exitable(
             f"next_action={checkpoint.next_action!r}"
         )
 
+    if checkpoint.state is ContinuityState.BLOCKED:
+        _assert_blocked_exit_proof(blocked_exit_proof)
+
     if checkpoint.is_terminal and checkpoint.closure_state is not ClosureState.CLOSED:
         raise TurnExitBlocked(
             "turn exit blocked: child acceptance is terminal but closure transaction remains "
@@ -933,6 +1037,7 @@ def evaluate_turn_exit_from_durable_state(
     claim_state: object | None = None,
     transaction_state: object | None = None,
     expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> str:
     """Evaluate the turn boundary from current claim/checkpoint/Guard durable state."""
 
@@ -960,6 +1065,7 @@ def evaluate_turn_exit_from_durable_state(
         expected_master_issue=expected_master_issue,
         claim_state=claim_state,
         transaction_state=transaction_state,
+        blocked_exit_proof=blocked_exit_proof,
     )
     return "TURN_EXIT_PERMITTED"
 
@@ -978,6 +1084,7 @@ def evaluate_remote_turn_exit_from_durable_state(
     expected_branch: str,
     expected_head_sha: str,
     expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> str:
     """Trusted remote turn-exit decision from fresh durable evidence."""
 
@@ -986,6 +1093,7 @@ def evaluate_remote_turn_exit_from_durable_state(
         claim_state=claim_state,
         transaction_state=transaction_state,
         expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
     )
     if checkpoint is None:
         raise TurnExitBlocked("TURN_EXIT_BLOCKED: CHECKPOINT_MISSING")
@@ -1077,7 +1185,17 @@ def _turn_exit_proof_payload(
     checkpoint: Checkpoint,
     *,
     checkpoint_digest: str,
+    blocked_exit_proof: object | None = None,
 ) -> dict[str, object]:
+    normalized_blocked_proof = None
+    if checkpoint.state is ContinuityState.BLOCKED:
+        normalized = _assert_blocked_exit_proof(blocked_exit_proof)
+        normalized_blocked_proof = {
+            "exhaustive": normalized.exhaustive,
+            "executable_leaf_count": normalized.executable_leaf_count,
+            "evidence": list(normalized.evidence),
+            "stop_reason": normalized.stop_reason.value,
+        }
     return {
         "version": TURN_EXIT_PROOF_VERSION,
         "issue": checkpoint.issue,
@@ -1087,6 +1205,7 @@ def _turn_exit_proof_payload(
         "closure_state": checkpoint.closure_state.value,
         "checkpoint_digest": checkpoint_digest,
         "guard": "assert_turn_exitable",
+        "blocked_exit_proof": normalized_blocked_proof,
     }
 
 
@@ -1098,6 +1217,7 @@ def assert_turn_exitable_path(
     expected_head_sha: str,
     receipt_path: Path,
     expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> Checkpoint:
     """Load the owning checkpoint, invoke the canonical guard, and mint proof.
 
@@ -1113,13 +1233,19 @@ def assert_turn_exitable_path(
         expected_branch=expected_branch,
         expected_head_sha=expected_head_sha,
     )
-    assert_turn_exitable(
-        checkpoint,
-        expected_master_issue=expected_master_issue,
-    )
+    guard_kwargs: dict[str, object] = {
+        "expected_master_issue": expected_master_issue,
+    }
+    if blocked_exit_proof is not None:
+        guard_kwargs["blocked_exit_proof"] = blocked_exit_proof
+    assert_turn_exitable(checkpoint, **guard_kwargs)
     digest = _checkpoint_digest(path)
     proof = json.dumps(
-        _turn_exit_proof_payload(checkpoint, checkpoint_digest=digest),
+        _turn_exit_proof_payload(
+            checkpoint,
+            checkpoint_digest=digest,
+            blocked_exit_proof=blocked_exit_proof,
+        ),
         ensure_ascii=False,
         indent=2,
         sort_keys=True,
@@ -1148,11 +1274,6 @@ def assert_turn_exit_permitted(
         expected_branch=expected_branch,
         expected_head_sha=expected_head_sha,
     )
-    assert_turn_exitable(
-        checkpoint,
-        expected_master_issue=expected_master_issue,
-    )
-
     try:
         payload = json.loads(receipt_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
@@ -1166,6 +1287,19 @@ def assert_turn_exit_permitted(
         raise TurnExitBlocked("guard invocation proof invalid: unsupported version")
     if payload.get("guard") != "assert_turn_exitable":
         raise TurnExitBlocked("guard invocation proof invalid: canonical guard identity mismatch")
+
+    blocked_exit_proof = None
+    if checkpoint.state is ContinuityState.BLOCKED:
+        blocked_exit_proof = payload.get("blocked_exit_proof")
+        if not isinstance(blocked_exit_proof, dict):
+            raise TurnExitBlocked(
+                "guard invocation proof stale: BLOCKER_NOT_EXHAUSTIVELY_PROVEN"
+            )
+    assert_turn_exitable(
+        checkpoint,
+        expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
+    )
 
     owner = (payload.get("issue"), payload.get("branch"), payload.get("head_sha"))
     expected_owner = (checkpoint.issue, checkpoint.branch, checkpoint.head_sha)
