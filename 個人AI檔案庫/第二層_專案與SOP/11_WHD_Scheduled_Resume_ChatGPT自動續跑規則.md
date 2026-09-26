@@ -125,4 +125,4 @@ Canonical executable owner：`.agents/skills/engineering/executable-continuity-c
 
 Wake-up不是 owner。每輪 fresh reconstruct，依序處理 Guard transaction、drift、delegated/helper/proof、helper dedupe、stale evaluator、Guard single-use mutation、readback、turn-exit。EXPIRED_UNCONSUMED 不得重播舊 GREEN，只能 fresh recovery Guard。
 
-Scheduler provenance 必須 lane + invocation identity。Required follow-up：interactive ChatGPT 也要 heartbeat/liveness，並保存 specific conversation/chat identity + invocation identity，避免只看到模糊 chatgpt_interactive。
+Scheduler provenance 必須 lane + invocation identity，machine owner 仍是 `tools/scheduler_runtime_liveness.py`。Interactive ChatGPT provenance 已由 `tools/interactive_runtime_liveness.py` 擁有，marker 為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1 / WHD_INTERACTIVE_RUNTIME_END_V1`，必須保存 exact slot + worker + conversation/chat identity + invocation identity + claim blob + branch + HEAD。Interactive 與 Scheduler liveness 是兩個獨立 namespace；不得以 generic `chatgpt_interactive` / `executor_source` 或 Scheduler heartbeat 冒充 interactive exact provenance。
