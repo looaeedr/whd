@@ -1,17 +1,17 @@
 {
   "issue": 737,
   "issue_url": "https://github.com/looaeedr/whd/issues/737",
-  "worker": "chatgpt.sol260926.issue737.1",
+  "worker": "chatgpt.sol260927.issue737.takeover1",
   "executor_source": "chat",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260926.issue737.1",
+  "invocation_identity": "chatgpt.sol260927.issue737.takeover1",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "governance/issue737-remote-guard-authority-handoff",
   "claimed_at": "2026-09-26T15:29:55Z",
   "base_sha": "641639ff675fc0ea2a13c7a9123337de250d4170",
   "head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
   "phase": "GREEN",
-  "last_update": "2026-09-26T16:02:44.729995Z",
+  "last_update": "2026-09-26T16:16:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
@@ -37,17 +37,34 @@
     "Recovery branch must replay only the exact two-file accepted patch from H0 and must use trusted Remote Guard for the commit so canonical post-commit reconciliation has a durable receipt.",
     "Remote commit Guard GREEN: request 5847679039 / receipt 5847680612 / run 36253759426 for exact two-file patch on r2 H0.",
     "Accepted r2 commit 535ae4160e6937bccc85aa73402c3f5efafc11b4; focused issue737+722+540 regressions 11 passed / 0 failed at H1.",
-    "Post-commit reconciliation Guard GREEN: request 5847705071 / receipt 5847706561 / run 36253985900; exact claim+checkpoint pair write authorized."
+    "Post-commit reconciliation Guard GREEN: request 5847705071 / receipt 5847706561 / run 36253985900; exact claim+checkpoint pair write authorized.",
+    "User-directed takeover authority: #737 comment 5847797454.",
+    "Canonical local stale evaluator: EXECUTOR_STUCK/actionable=true, stale_seconds=795, no active exact run; exact branch/head/blob preserved.",
+    "Canonical local execution_claim_guard.py action=claim-takeover returned EXECUTION_CLAIM_GUARD_GREEN with exact owner-authored user authority evidence."
   ],
   "last_guard": {
-    "action": "write",
-    "mode": "remote",
-    "run_id": 36253985900,
-    "request_comment_id": 5847705071,
-    "result_comment_id": 5847706561,
+    "action": "claim-takeover",
+    "mode": "local",
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #737 claim/checkpoint H0 -> r2 H1"
+    "mutation": "CAS worker chatgpt.sol260926.issue737.1 -> chatgpt.sol260927.issue737.takeover1",
+    "authority_comment_id": 5847797454
+  },
+  "stale_takeover": {
+    "actionable": true,
+    "classification": "EXECUTOR_STUCK",
+    "prior_claim_blob_sha": "689f3ef7319dab991bf7a25eede9119058f7c4db",
+    "prior_worker": "chatgpt.sol260926.issue737.1",
+    "prior_executor_source": "chat",
+    "requesting_worker": "chatgpt.sol260927.issue737.takeover1",
+    "requesting_executor_source": "chat",
+    "stale_seconds": 795,
+    "stale_after_seconds": 600,
+    "observed_live_head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
+    "user_authority_comment_id": 5847797454,
+    "local_guard_result": "GREEN",
+    "local_guard_reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "taken_over_at": "2026-09-26T16:16:00Z"
   }
 }
