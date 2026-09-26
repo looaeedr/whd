@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
-  "head_sha": "af8c59844a542c96d73a4fc09a2db80093ba99ff",
+  "head_sha": "13c70c00010e2c894533cfc6c0b9cc86402f88d4",
   "state": "RUNNING",
-  "next_action": "Repair deployed Remote Guard embedded Python import closure on current live head af8c5984…, run focused write/pr-write regressions, sync to current main, and open/merge replacement PR.",
+  "next_action": "Validate Remote Guard hotfix on current-main-compatible branch, two-parent sync to main, create replacement PR, and prove #733 coordination write auto-consumes.",
   "run_id": 36260033199,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -50,7 +50,9 @@
     "Closing-head reconciliation 36260334180 GREEN.",
     "Hotfix target: Remote Guard embedded Python import closure only; no change to write/pr-write classifier semantics.",
     "Bootstrap reactivate preserves branch HEAD 57d8da8d95eee2062e5383496b76f6c70f546673 and RUNNING state.",
-    "Bootstrap reactivate aligns RUNNING checkpoint to live work HEAD af8c59844a542c96d73a4fc09a2db80093ba99ff before workflow hotfix."
+    "Bootstrap reactivate aligns RUNNING checkpoint to live work HEAD af8c59844a542c96d73a4fc09a2db80093ba99ff before workflow hotfix.",
+    "Remote Guard import hotfix HEAD 13c70c00010e2c894533cfc6c0b9cc86402f88d4.",
+    "Post-hotfix reconciliation Guard 36260853462 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
