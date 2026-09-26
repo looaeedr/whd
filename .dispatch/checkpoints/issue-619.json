@@ -67,13 +67,14 @@
     "Remote Guard 36210782769 GREEN consumed to advance closure_state FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization run 36210901882 GREEN / FINALIZATION_PROOF_VALID; artifact 10895731649.",
     "Issue #619 remote readback confirmed closed/completed at 2026-09-26T02:12:20Z.",
-    "Post-close Guard 36210969956 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Post-close Guard 36210969956 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard 36211145536 GREEN consumed; checkpoint CLOSED + claim RELEASED atomically persisted. #622 remains NEXT_CHILD_EXECUTABLE."
   ],
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "622",
   "chain_next_action": "Create/activate #622 B5 claim on the shared work-order branch at accepted #619 cleaned head aa9c25aa44283f325445311b013b26086467395b; consume independent terminal evidence from #614, #615, and #619 before Combined Acceptance and durable writeback.",
   "chain_reason": "B4 final expanded acceptance is GREEN, one-shot workflows are cleaned with zero production/test drift, and #622 is the dependency successor required by Master #628.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED while retaining NEXT_CHILD_EXECUTABLE successor #622"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
