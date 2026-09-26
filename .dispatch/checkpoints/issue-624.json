@@ -50,13 +50,14 @@
     "Terminal P7-A canonical DT, target completion artifact, and residual Bridge census committed atomically at 10ec9a52eff1b8495042270445755e59b6a329c2 under Remote Guard run 36247470814.",
     "Target completion readback: WHD_PHASE7_TARGET_COMPLETION_V1 result=ACCEPTED, DT-6 decision=DEEPEN_EXISTING_OWNER, terminal Bridge 6403 lines, six proven NO_CALLER helpers removed, four runtime-proven compatibility ports retained.",
     "Post-artifact claim+checkpoint reconciliation and terminalization authorized by Remote Guard run 36249418849.",
-    "Successor #625 fresh-read open with no claim/checkpoint; blocker #617 is closed/completed and #624 is the remaining predecessor until this closure transaction completes."
+    "Successor #625 fresh-read open with no claim/checkpoint; blocker #617 is closed/completed and #624 is the remaining predecessor until this closure transaction completes.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36249501341; checkpoint is now frozen until Issue close/readback."
   ],
   "master_issue": "627",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "625",
   "chain_next_action": "Activate/claim #625 Phase 7 A8 on accepted #624 head 10ec9a52eff1b8495042270445755e59b6a329c2 and execute approved P7-R-G Settings presentation deletion-test/deepening decision without chasing current production X.",
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING and obtain trusted finalization proof bound to exact #624 checkpoint/claim/head."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted remote finalization; freeze this checkpoint until issue close/readback."
 }
