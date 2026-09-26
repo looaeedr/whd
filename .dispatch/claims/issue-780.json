@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T23:32:30Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T23:38:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,7 +22,7 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain exact branch-create Guard, create integration/issue780-phase7-current-x-20260927 from current cleanup/2d-3d-sync@5a29aacdc39805e6950362a8880f1513318389f0, then construct a two-parent integration merge with sealed #626 head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, resolving only 09_WHD_Canonical_Authority_Map.md while preserving both current-X governance authority and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1.",
+  "next_action": "Obtain a fresh 54-file commit Guard on the rotated claim identity, create and non-force push the exact two-parent merge commit with parents current-X 5a29aacdc39805e6950362a8880f1513318389f0 and sealed Phase7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, preserving both current-X governance blocks and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 in 09_WHD_Canonical_Authority_Map.md; then reconcile and run integration QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -31,6 +31,11 @@
     "Sealed Phase 7 chain head remains ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 and must not be mutated.",
     "Read-only git merge-tree proves exactly one content conflict: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md.",
     "All other current-X drift auto-merges.",
-    "#626 pr-write Guard 36278664146 GREEN; helper owns only Integration Acceptance conflict resolution."
+    "#626 pr-write Guard 36278664146 GREEN; helper owns only Integration Acceptance conflict resolution.",
+    "Branch-create Guard 36279848593 GREEN; remote integration branch fresh-read exists at exact 5a29aacdc39805e6950362a8880f1513318389f0.",
+    "Read-only/local merge rehearsal against sealed Phase7 head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 produced exactly one conflict: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md.",
+    "Conflict resolution is content-preserving concatenation: current-X ISSUE646/ISSUE680/ISSUE693 authority blocks plus sealed WHD_PHASE7_OWNERSHIP_WRITEBACK_V1; no production behavior edits.",
+    "Staged rehearsal merge set is exactly 54 files and contains no extra paths.",
+    "First 54-file commit Guard 36280039082 failed closed only because prior branch-create receipt remained under the same claim identity; same-head reactivate rotates durable identity before retrying the same authorized merge scope."
   ]
 }
