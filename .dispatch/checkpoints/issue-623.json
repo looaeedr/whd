@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "623",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "d843ce5c89ff0c7c36c5ed1286b77c2514730707",
+  "head_sha": "5a22ebcda31890f6a44724566a3a53cfcb73b980",
   "state": "RUNNING",
-  "next_action": "Remove both temporary #623 QA workflows under Remote Guard, reconcile cleanup head, verify tested-to-closing drift is workflow-only, then terminal closure/handoff to #627.",
+  "next_action": "Complete canonical P7-F DT-1..DT-6 and write WHD_PHASE7_TARGET_COMPLETION_V1 ASCG artifact with terminal ACCEPTED result; then finalization/Issue close/release handoff to #627.",
   "run_id": 36241909307,
   "job_id": 108403896927,
   "log_cursor": null,
@@ -26,7 +26,10 @@
     "Post-implementation claim+checkpoint reconciliation authorized by Remote Guard run 36241792968.",
     "A6 broader QA workflow commit d843ce5c89ff0c7c36c5ed1286b77c2514730707 authorized by Remote Guard run 36241881506.",
     "Exact broader A6 run 36241909307 @ d843ce5c89ff0c7c36c5ed1286b77c2514730707 terminal SUCCESS: 111 passed, 2 warnings in 7.95s across manufacturing/collision/backprojection/API/resolved export/DXF acceptance.",
-    "Broader-QA-head claim+checkpoint reconciliation authorized by Remote Guard run 36241926712."
+    "Broader-QA-head claim+checkpoint reconciliation authorized by Remote Guard run 36241926712.",
+    "Temporary A6 QA workflows removed atomically by cleanup commit 5a22ebcda31890f6a44724566a3a53cfcb73b980 under Remote Guard run 36242001140.",
+    "tested→closing drift d843ce5c89ff0c7c36c5ed1286b77c2514730707..5a22ebcda31890f6a44724566a3a53cfcb73b980 contains only removal of the two temporary #623 QA workflows.",
+    "Cleanup-head claim+checkpoint reconciliation authorized by Remote Guard run 36242176864."
   ],
   "master_issue": null,
   "chain_state": "NONE",
