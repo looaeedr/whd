@@ -240,3 +240,13 @@ Primary behavior guard：`tests/process/test_branch_cleanup_ref_guard.py`。文�
 - receipt/proof 的 issue、worker、branch、HEAD、checkpoint blob/fingerprint、claim blob、authority SHA 全部與 closure 前 fresh identity exact match。
 
 只有 Issue comment / chat / markdown 出現 `FINALIZATION_GUARD_PASS` 或 `FINALIZATION_PROOF_VALID`，但沒有上述 run + artifact，固定分類 `INVALID_FINALIZATION_EVIDENCE`。若 Issue 已因此誤關，必須 reopen，保留有效 code/integration evidence，先完成 process-state repair，再 fresh machine proof → close/readback；禁止直接再關一次。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_issue_closure`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain Issue Closure owner finalization/readback/atomic release contract.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

@@ -12,12 +12,13 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import tempfile
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
 CHECKPOINT_VERSION = 1
@@ -117,6 +118,65 @@ class ClosureState(str, Enum):
     CLOSED = "CLOSED"
 
 
+class ClosureDriftClassification(str, Enum):
+    """Machine classification for Issue/closure/claim process-state drift."""
+
+    CONSISTENT = "CONSISTENT"
+    ISSUE_CLOSED_BEFORE_FINALIZATION = "ISSUE_CLOSED_BEFORE_FINALIZATION"
+    CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM = (
+        "CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM"
+    )
+
+
+class ClosureDriftRepairAction(str, Enum):
+    """Deterministic, non-mutating repair actions for closure drift."""
+
+    NONE = "NONE"
+    REOPEN_ISSUE_AND_RESUME_FINALIZATION = "REOPEN_ISSUE_AND_RESUME_FINALIZATION"
+    RECONCILE_CLAIM_RELEASE_WITH_GUARD = "RECONCILE_CLAIM_RELEASE_WITH_GUARD"
+
+
+class AuthorityProgressState(str, Enum):
+    """Durable authority-acquisition progress before normal turn exit may resume."""
+
+    AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION = (
+        "AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION"
+    )
+    SUBSTANTIVE_ACTION_COMPLETED = "SUBSTANTIVE_ACTION_COMPLETED"
+
+
+NON_SUBSTANTIVE_AUTHORITY_EVENTS = frozenset(
+    {
+        "branch-create",
+        "guard-receipt",
+        "heartbeat",
+        "progress-report",
+        "claim-cas",
+        "claim-activation",
+        "takeover-cas",
+    }
+)
+
+
+class StopReason(str, Enum):
+    """Canonical machine reasons used when deciding whether a turn may stop."""
+
+    BLOCKER_NOT_EXHAUSTIVELY_PROVEN = "BLOCKER_NOT_EXHAUSTIVELY_PROVEN"
+    EXECUTABLE_LEAF_EXISTS = "EXECUTABLE_LEAF_EXISTS"
+    NO_EXECUTABLE_PATH = "NO_EXECUTABLE_PATH"
+    EXTERNAL_AUTHORITY_REQUIRED = "EXTERNAL_AUTHORITY_REQUIRED"
+    CAPABILITY_BLOCKED = "CAPABILITY_BLOCKED"
+
+
+LEGAL_BLOCKED_EXIT_REASONS = frozenset(
+    {
+        StopReason.NO_EXECUTABLE_PATH,
+        StopReason.EXTERNAL_AUTHORITY_REQUIRED,
+        StopReason.CAPABILITY_BLOCKED,
+    }
+)
+
+
 DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION = (
     "run bound finalization proof, close/read back the owning Issue, then atomically "
     "persist checkpoint CLOSED + claim RELEASED + successor handoff"
@@ -163,6 +223,194 @@ class FinalizationBlocked(CheckpointError):
 
 class TurnExitBlocked(CheckpointError):
     """Raised when an assistant turn tries to end while autonomous work remains."""
+
+
+@dataclass(frozen=True)
+class ClosureDriftAssessment:
+    classification: ClosureDriftClassification
+    repair_action: ClosureDriftRepairAction
+    issue_state: str
+    issue_state_reason: str | None
+    closure_state: ClosureState
+    claim_phase: str | None
+
+
+@dataclass(frozen=True)
+class ClosureDriftRepairPlan:
+    action: ClosureDriftRepairAction
+    required_issue_state: str
+    target_closure_state: ClosureState
+    target_claim_phase: str | None
+    terminal_complete: bool
+
+
+@dataclass(frozen=True)
+class AuthorityProgress:
+    state: AuthorityProgressState
+    acquired_via: str
+    first_substantive_action: object | None = None
+
+    def __post_init__(self) -> None:
+        state = self.state
+        if not isinstance(state, AuthorityProgressState):
+            try:
+                state = AuthorityProgressState(str(state))
+            except ValueError as exc:
+                raise CheckpointError(
+                    f"unsupported authority progress state {self.state!r}"
+                ) from exc
+        acquired_via = str(self.acquired_via or "").strip()
+        if not acquired_via:
+            raise CheckpointError("authority progress acquired_via is required")
+        if (
+            state is AuthorityProgressState.AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION
+            and self.first_substantive_action is not None
+        ):
+            raise CheckpointError(
+                "pending authority progress cannot already have a substantive action"
+            )
+        if (
+            state is AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED
+            and self.first_substantive_action is None
+        ):
+            raise CheckpointError(
+                "completed authority progress requires first_substantive_action"
+            )
+        object.__setattr__(self, "state", state)
+        object.__setattr__(self, "acquired_via", acquired_via)
+
+
+def _normalize_authority_progress(value: object | None) -> AuthorityProgress | None:
+    if value is None:
+        return None
+    if isinstance(value, AuthorityProgress):
+        return value
+    if isinstance(value, Mapping):
+        return AuthorityProgress(
+            state=value.get("state"),
+            acquired_via=str(value.get("acquired_via") or ""),
+            first_substantive_action=value.get("first_substantive_action"),
+        )
+    return AuthorityProgress(
+        state=getattr(value, "state"),
+        acquired_via=getattr(value, "acquired_via"),
+        first_substantive_action=getattr(value, "first_substantive_action", None),
+    )
+
+
+def _authority_progress_from_claim_state(
+    claim_state: object | None,
+) -> AuthorityProgress | None:
+    if claim_state is None:
+        return None
+    if isinstance(claim_state, Mapping):
+        return _normalize_authority_progress(claim_state.get("authority_progress"))
+    return _normalize_authority_progress(
+        getattr(claim_state, "authority_progress", None)
+    )
+
+
+def record_first_substantive_action(
+    progress: AuthorityProgress | Mapping[str, object],
+    *,
+    action: object,
+) -> AuthorityProgress:
+    normalized = _normalize_authority_progress(progress)
+    if normalized is None:
+        raise CheckpointError("authority progress is required")
+    if normalized.state is AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED:
+        return normalized
+    action_text = str(action or "").strip()
+    if not action_text or action_text in NON_SUBSTANTIVE_AUTHORITY_EVENTS:
+        raise CheckpointError(
+            f"substantive action required; non-substantive event={action_text!r}"
+        )
+    return AuthorityProgress(
+        state=AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED,
+        acquired_via=normalized.acquired_via,
+        first_substantive_action=action,
+    )
+
+
+@dataclass(frozen=True)
+class BlockedExitProof:
+    """Fresh machine evidence that a BLOCKED checkpoint has no executable alternative."""
+
+    exhaustive: bool
+    executable_leaf_count: int
+    evidence: tuple[str, ...]
+    stop_reason: StopReason
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.exhaustive, bool):
+            raise CheckpointError("blocked exit proof exhaustive must be boolean")
+        if (
+            isinstance(self.executable_leaf_count, bool)
+            or not isinstance(self.executable_leaf_count, int)
+            or self.executable_leaf_count < 0
+        ):
+            raise CheckpointError(
+                "blocked exit proof executable_leaf_count must be a non-negative integer"
+            )
+        if isinstance(self.evidence, str) or not isinstance(self.evidence, (tuple, list)):
+            raise CheckpointError("blocked exit proof evidence must be a sequence")
+        normalized_evidence = tuple(str(item).strip() for item in self.evidence)
+        if not normalized_evidence or any(not item for item in normalized_evidence):
+            raise CheckpointError("blocked exit proof evidence must contain fresh durable evidence")
+        reason = self.stop_reason
+        if not isinstance(reason, StopReason):
+            try:
+                reason = StopReason(str(reason))
+            except ValueError as exc:
+                raise CheckpointError(
+                    f"unsupported blocked exit stop reason {self.stop_reason!r}"
+                ) from exc
+        object.__setattr__(self, "evidence", normalized_evidence)
+        object.__setattr__(self, "stop_reason", reason)
+
+
+def _assert_blocked_exit_proof(proof: object | None) -> BlockedExitProof:
+    def not_proven(detail: str) -> TurnExitBlocked:
+        return TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.BLOCKER_NOT_EXHAUSTIVELY_PROVEN.value}: {detail}"
+        )
+
+    if proof is None:
+        raise not_proven("BLOCKED checkpoint has no exhaustive machine proof")
+    try:
+        if isinstance(proof, BlockedExitProof):
+            normalized = proof
+        elif isinstance(proof, Mapping):
+            normalized = BlockedExitProof(
+                exhaustive=proof.get("exhaustive"),
+                executable_leaf_count=proof.get("executable_leaf_count"),
+                evidence=tuple(proof.get("evidence") or ()),
+                stop_reason=proof.get("stop_reason"),
+            )
+        else:
+            normalized = BlockedExitProof(
+                exhaustive=getattr(proof, "exhaustive"),
+                executable_leaf_count=getattr(proof, "executable_leaf_count"),
+                evidence=tuple(getattr(proof, "evidence")),
+                stop_reason=getattr(proof, "stop_reason"),
+            )
+    except (AttributeError, TypeError, CheckpointError) as exc:
+        raise not_proven(f"invalid or incomplete blocked exit proof: {exc}") from exc
+
+    if not normalized.exhaustive:
+        raise not_proven("legal alternatives / executable leaves were not exhaustively checked")
+    if normalized.executable_leaf_count > 0:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.EXECUTABLE_LEAF_EXISTS.value}: "
+            f"executable_leaf_count={normalized.executable_leaf_count}"
+        )
+    if normalized.stop_reason not in LEGAL_BLOCKED_EXIT_REASONS:
+        raise not_proven(
+            f"stop_reason={normalized.stop_reason.value} is not a legal BLOCKED exit reason"
+        )
+    return normalized
 
 
 def _require_text(name: str, value: str | None) -> str:
@@ -1074,6 +1322,111 @@ def _claim_phase_value(claim_state: object | None) -> str | None:
     return str(value).upper() if value is not None else None
 
 
+def classify_closure_drift(
+    checkpoint: Checkpoint,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+) -> ClosureDriftAssessment:
+    """Classify fresh Issue/closure/claim identity without mutating durable state."""
+
+    issue_state_value = str(issue_state or "").strip().lower()
+    issue_reason_value = str(issue_state_reason or "").strip().lower() or None
+    claim_phase = _claim_phase_value(claim_state)
+    issue_closed_completed = (
+        issue_state_value == "closed" and issue_reason_value == "completed"
+    )
+
+    if issue_closed_completed and checkpoint.closure_state in {
+        ClosureState.FINALIZATION_PENDING,
+        ClosureState.ISSUE_CLOSE_PENDING,
+    }:
+        return ClosureDriftAssessment(
+            classification=ClosureDriftClassification.ISSUE_CLOSED_BEFORE_FINALIZATION,
+            repair_action=(
+                ClosureDriftRepairAction.REOPEN_ISSUE_AND_RESUME_FINALIZATION
+            ),
+            issue_state=issue_state_value,
+            issue_state_reason=issue_reason_value,
+            closure_state=checkpoint.closure_state,
+            claim_phase=claim_phase,
+        )
+
+    if (
+        issue_closed_completed
+        and checkpoint.closure_state is ClosureState.CLOSED
+        and claim_phase != "RELEASED"
+    ):
+        return ClosureDriftAssessment(
+            classification=(
+                ClosureDriftClassification.CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM
+            ),
+            repair_action=ClosureDriftRepairAction.RECONCILE_CLAIM_RELEASE_WITH_GUARD,
+            issue_state=issue_state_value,
+            issue_state_reason=issue_reason_value,
+            closure_state=checkpoint.closure_state,
+            claim_phase=claim_phase,
+        )
+
+    return ClosureDriftAssessment(
+        classification=ClosureDriftClassification.CONSISTENT,
+        repair_action=ClosureDriftRepairAction.NONE,
+        issue_state=issue_state_value,
+        issue_state_reason=issue_reason_value,
+        closure_state=checkpoint.closure_state,
+        claim_phase=claim_phase,
+    )
+
+
+def plan_closure_drift_repair(
+    checkpoint: Checkpoint,
+    *,
+    assessment: ClosureDriftAssessment,
+) -> ClosureDriftRepairPlan:
+    """Return the only allowed next reconciliation step; never perform it implicitly."""
+
+    if (
+        assessment.classification
+        is ClosureDriftClassification.ISSUE_CLOSED_BEFORE_FINALIZATION
+    ):
+        if assessment.claim_phase == "RELEASED":
+            raise CheckpointError(
+                "ISSUE_CLOSED_BEFORE_FINALIZATION cannot repair an already RELEASED claim"
+            )
+        return ClosureDriftRepairPlan(
+            action=ClosureDriftRepairAction.REOPEN_ISSUE_AND_RESUME_FINALIZATION,
+            required_issue_state="open",
+            target_closure_state=checkpoint.closure_state,
+            target_claim_phase=assessment.claim_phase,
+            terminal_complete=False,
+        )
+
+    if (
+        assessment.classification
+        is ClosureDriftClassification.CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM
+    ):
+        return ClosureDriftRepairPlan(
+            action=ClosureDriftRepairAction.RECONCILE_CLAIM_RELEASE_WITH_GUARD,
+            required_issue_state="closed",
+            target_closure_state=ClosureState.CLOSED,
+            target_claim_phase="RELEASED",
+            terminal_complete=False,
+        )
+
+    return ClosureDriftRepairPlan(
+        action=ClosureDriftRepairAction.NONE,
+        required_issue_state=assessment.issue_state or "open",
+        target_closure_state=checkpoint.closure_state,
+        target_claim_phase=assessment.claim_phase,
+        terminal_complete=(
+            assessment.issue_state == "closed"
+            and checkpoint.closure_state is ClosureState.CLOSED
+            and assessment.claim_phase == "RELEASED"
+        ),
+    )
+
+
 def reconcile_issue_close_operation(
     operation: OperationTransaction,
     *,
@@ -1114,6 +1467,8 @@ def assert_turn_exitable(
     expected_master_issue: str | None = None,
     claim_state: object | None = None,
     transaction_state: object | None = None,
+    blocked_exit_proof: object | None = None,
+    authority_progress: object | None = None,
 ) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
 
@@ -1125,6 +1480,18 @@ def assert_turn_exitable(
             "TURN_EXIT_BLOCKED: UNRESOLVED_OPERATION "
             f"operation_id={checkpoint.operation.operation_id!r} "
             f"state={checkpoint.operation.state.value!r}"
+        )
+
+    normalized_authority = _normalize_authority_progress(authority_progress)
+    if normalized_authority is None:
+        normalized_authority = _authority_progress_from_claim_state(claim_state)
+    if (
+        normalized_authority is not None
+        and normalized_authority.state
+        is AuthorityProgressState.AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION"
         )
 
     tx_state = _guard_transaction_state_value(transaction_state)
@@ -1150,6 +1517,9 @@ def assert_turn_exitable(
             f"turn exit blocked for checkpoint {checkpoint.state.value}; "
             f"next_action={checkpoint.next_action!r}"
         )
+
+    if checkpoint.state is ContinuityState.BLOCKED:
+        _assert_blocked_exit_proof(blocked_exit_proof)
 
     if checkpoint.is_terminal and checkpoint.closure_state is not ClosureState.CLOSED:
         raise TurnExitBlocked(
@@ -1177,6 +1547,7 @@ def evaluate_turn_exit_from_durable_state(
     claim_state: object | None = None,
     transaction_state: object | None = None,
     expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> str:
     """Evaluate the turn boundary from current claim/checkpoint/Guard durable state."""
 
@@ -1204,11 +1575,12 @@ def evaluate_turn_exit_from_durable_state(
         expected_master_issue=expected_master_issue,
         claim_state=claim_state,
         transaction_state=transaction_state,
+        blocked_exit_proof=blocked_exit_proof,
     )
     return "TURN_EXIT_PERMITTED"
 
 
-def evaluate_remote_turn_exit_from_durable_state(
+def _evaluate_live_turn_exit_from_durable_state(
     checkpoint: Checkpoint | None,
     *,
     issue_state: str | None,
@@ -1222,14 +1594,31 @@ def evaluate_remote_turn_exit_from_durable_state(
     expected_branch: str,
     expected_head_sha: str,
     expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> str:
-    """Trusted remote turn-exit decision from fresh durable evidence."""
+    """Shared local/remote turn-exit authority from the same fresh durable evidence."""
+
+    if checkpoint is not None:
+        drift = classify_closure_drift(
+            checkpoint,
+            issue_state=issue_state,
+            issue_state_reason=issue_state_reason,
+            claim_state=claim_state,
+        )
+        if (
+            drift.classification
+            is ClosureDriftClassification.ISSUE_CLOSED_BEFORE_FINALIZATION
+        ):
+            raise TurnExitBlocked(
+                "TURN_EXIT_BLOCKED: ISSUE_CLOSED_BEFORE_FINALIZATION"
+            )
 
     result = evaluate_turn_exit_from_durable_state(
         checkpoint,
         claim_state=claim_state,
         transaction_state=transaction_state,
         expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
     )
     if checkpoint is None:
         raise TurnExitBlocked("TURN_EXIT_BLOCKED: CHECKPOINT_MISSING")
@@ -1267,6 +1656,167 @@ def evaluate_remote_turn_exit_from_durable_state(
         raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: {delegated}")
 
     return result
+
+
+def evaluate_local_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+    transaction_state: object | None,
+    live_branch_head_sha: str,
+    active_remote_run: bool = False,
+    delegated_work_state: str = "NONE",
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
+) -> str:
+    """Local/interactive gate with the same durable invariants as trusted remote."""
+
+    return _evaluate_live_turn_exit_from_durable_state(
+        checkpoint,
+        issue_state=issue_state,
+        issue_state_reason=issue_state_reason,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+        live_branch_head_sha=live_branch_head_sha,
+        active_remote_run=active_remote_run,
+        delegated_work_state=delegated_work_state,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+        expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
+    )
+
+
+def evaluate_remote_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+    transaction_state: object | None,
+    live_branch_head_sha: str,
+    active_remote_run: bool = False,
+    delegated_work_state: str = "NONE",
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
+) -> str:
+    """Trusted remote gate with the same durable invariants as local/interactive."""
+
+    return _evaluate_live_turn_exit_from_durable_state(
+        checkpoint,
+        issue_state=issue_state,
+        issue_state_reason=issue_state_reason,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+        live_branch_head_sha=live_branch_head_sha,
+        active_remote_run=active_remote_run,
+        delegated_work_state=delegated_work_state,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+        expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
+    )
+
+
+def _positive_scheduler_end_int(label: str, value: object) -> int:
+    if isinstance(value, bool):
+        raise TurnExitBlocked(f"scheduler END {label} must be a positive integer")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise TurnExitBlocked(
+            f"scheduler END {label} must be a positive integer"
+        ) from exc
+    if parsed <= 0:
+        raise TurnExitBlocked(f"scheduler END {label} must be a positive integer")
+    return parsed
+
+
+def assert_scheduler_end_receipt(
+    end_payload: Mapping[str, object],
+    *,
+    turn_exit_receipt: Mapping[str, object],
+    result_comment_id: int,
+) -> Mapping[str, object]:
+    """Bind scheduler END to one exact trusted TURN_EXIT_PERMITTED result comment."""
+
+    if not isinstance(end_payload, Mapping):
+        raise TurnExitBlocked("scheduler END payload must be an object")
+    if not isinstance(turn_exit_receipt, Mapping):
+        raise TurnExitBlocked("scheduler END turn-exit receipt must be an object")
+
+    if end_payload.get("schema") != "WHD_SCHEDULER_RUNTIME_END_V1":
+        raise TurnExitBlocked("scheduler END marker/schema mismatch")
+    if turn_exit_receipt.get("schema") != "WHD_REMOTE_TURN_EXIT_RESULT_V1":
+        raise TurnExitBlocked("scheduler END turn-exit receipt schema mismatch")
+    if (
+        turn_exit_receipt.get("result") != "TURN_EXIT_PERMITTED"
+        or turn_exit_receipt.get("scheduler_end_allowed") is not True
+        or turn_exit_receipt.get("required_end_marker")
+        != "WHD_SCHEDULER_RUNTIME_END_V1"
+    ):
+        raise TurnExitBlocked(
+            "scheduler END requires exact TURN_EXIT_PERMITTED receipt"
+        )
+
+    actual_result_comment_id = _positive_scheduler_end_int(
+        "result comment id", result_comment_id
+    )
+    bound_result_comment_id = _positive_scheduler_end_int(
+        "result comment id", end_payload.get("result_comment_id")
+    )
+    if bound_result_comment_id != actual_result_comment_id:
+        raise TurnExitBlocked("scheduler END result comment mismatch")
+
+    request_comment_id = _positive_scheduler_end_int(
+        "request comment id", end_payload.get("request_comment_id")
+    )
+    receipt_request_comment_id = _positive_scheduler_end_int(
+        "request comment id", turn_exit_receipt.get("request_comment_id")
+    )
+    if request_comment_id != receipt_request_comment_id:
+        raise TurnExitBlocked("scheduler END request comment mismatch")
+
+    if str(end_payload.get("issue") or "") != str(turn_exit_receipt.get("issue") or ""):
+        raise TurnExitBlocked("scheduler END issue mismatch")
+    if str(end_payload.get("scheduler_lane") or "") != str(
+        turn_exit_receipt.get("worker") or ""
+    ):
+        raise TurnExitBlocked("scheduler END scheduler lane/worker mismatch")
+    if str(end_payload.get("invocation_identity") or "") != str(
+        turn_exit_receipt.get("invocation_identity") or ""
+    ):
+        raise TurnExitBlocked("scheduler END invocation identity mismatch")
+
+    end_fingerprint = str(end_payload.get("checkpoint_fingerprint") or "")
+    receipt_fingerprint = str(turn_exit_receipt.get("checkpoint_fingerprint") or "")
+    if (
+        len(end_fingerprint) != 64
+        or not re.fullmatch(r"[0-9a-f]{64}", end_fingerprint)
+        or end_fingerprint != receipt_fingerprint
+    ):
+        raise TurnExitBlocked("scheduler END checkpoint fingerprint mismatch")
+
+    end_run_id = _positive_scheduler_end_int(
+        "turn-exit run id", end_payload.get("turn_exit_run_id")
+    )
+    receipt_run_id = _positive_scheduler_end_int(
+        "turn-exit run id", turn_exit_receipt.get("run_id")
+    )
+    if end_run_id != receipt_run_id:
+        raise TurnExitBlocked("scheduler END turn-exit run mismatch")
+
+    return dict(turn_exit_receipt)
 
 
 def _checkpoint_digest(path: Path) -> str:
@@ -1321,7 +1871,17 @@ def _turn_exit_proof_payload(
     checkpoint: Checkpoint,
     *,
     checkpoint_digest: str,
+    blocked_exit_proof: object | None = None,
 ) -> dict[str, object]:
+    normalized_blocked_proof = None
+    if checkpoint.state is ContinuityState.BLOCKED:
+        normalized = _assert_blocked_exit_proof(blocked_exit_proof)
+        normalized_blocked_proof = {
+            "exhaustive": normalized.exhaustive,
+            "executable_leaf_count": normalized.executable_leaf_count,
+            "evidence": list(normalized.evidence),
+            "stop_reason": normalized.stop_reason.value,
+        }
     return {
         "version": TURN_EXIT_PROOF_VERSION,
         "issue": checkpoint.issue,
@@ -1331,6 +1891,7 @@ def _turn_exit_proof_payload(
         "closure_state": checkpoint.closure_state.value,
         "checkpoint_digest": checkpoint_digest,
         "guard": "assert_turn_exitable",
+        "blocked_exit_proof": normalized_blocked_proof,
     }
 
 
@@ -1342,6 +1903,7 @@ def assert_turn_exitable_path(
     expected_head_sha: str,
     receipt_path: Path,
     expected_master_issue: str | None = None,
+    blocked_exit_proof: object | None = None,
 ) -> Checkpoint:
     """Load the owning checkpoint, invoke the canonical guard, and mint proof.
 
@@ -1357,13 +1919,19 @@ def assert_turn_exitable_path(
         expected_branch=expected_branch,
         expected_head_sha=expected_head_sha,
     )
-    assert_turn_exitable(
-        checkpoint,
-        expected_master_issue=expected_master_issue,
-    )
+    guard_kwargs: dict[str, object] = {
+        "expected_master_issue": expected_master_issue,
+    }
+    if blocked_exit_proof is not None:
+        guard_kwargs["blocked_exit_proof"] = blocked_exit_proof
+    assert_turn_exitable(checkpoint, **guard_kwargs)
     digest = _checkpoint_digest(path)
     proof = json.dumps(
-        _turn_exit_proof_payload(checkpoint, checkpoint_digest=digest),
+        _turn_exit_proof_payload(
+            checkpoint,
+            checkpoint_digest=digest,
+            blocked_exit_proof=blocked_exit_proof,
+        ),
         ensure_ascii=False,
         indent=2,
         sort_keys=True,
@@ -1392,11 +1960,6 @@ def assert_turn_exit_permitted(
         expected_branch=expected_branch,
         expected_head_sha=expected_head_sha,
     )
-    assert_turn_exitable(
-        checkpoint,
-        expected_master_issue=expected_master_issue,
-    )
-
     try:
         payload = json.loads(receipt_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
@@ -1410,6 +1973,19 @@ def assert_turn_exit_permitted(
         raise TurnExitBlocked("guard invocation proof invalid: unsupported version")
     if payload.get("guard") != "assert_turn_exitable":
         raise TurnExitBlocked("guard invocation proof invalid: canonical guard identity mismatch")
+
+    blocked_exit_proof = None
+    if checkpoint.state is ContinuityState.BLOCKED:
+        blocked_exit_proof = payload.get("blocked_exit_proof")
+        if not isinstance(blocked_exit_proof, dict):
+            raise TurnExitBlocked(
+                "guard invocation proof stale: BLOCKER_NOT_EXHAUSTIVELY_PROVEN"
+            )
+    assert_turn_exitable(
+        checkpoint,
+        expected_master_issue=expected_master_issue,
+        blocked_exit_proof=blocked_exit_proof,
+    )
 
     owner = (payload.get("issue"), payload.get("branch"), payload.get("head_sha"))
     expected_owner = (checkpoint.issue, checkpoint.branch, checkpoint.head_sha)

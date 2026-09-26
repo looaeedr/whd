@@ -357,3 +357,13 @@ Remote Guard request / receipt schema 完全由 live《遠端執行守門》擁�
 - 尚未完成的 next_action / blocker。
 
 不得說「寫進 prompt 了，所以一定不會再停」。真正 enforcement 仍以 live executable guard / continuity state / durable evidence 為準。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_scheduler_authoring`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain exhaustive ready-work census and fail-closed scheduler no-work rules.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

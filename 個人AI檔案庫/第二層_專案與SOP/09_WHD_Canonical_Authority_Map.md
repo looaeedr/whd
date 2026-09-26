@@ -141,3 +141,13 @@ Prompt/Skill/AI Library不得複製第二套 state machine。Interactive heartbe
 - Long-term scheduled-resume architecture remains owned by the CURRENT scheduled-resume AI Library document above.
 
 Boundary: `WHD_WORK_EXECUTOR_HANDOFF_V1` / `claim-handoff` is a planned transfer. `claim-takeover` is stale/orphan recovery. After the planned CAS is fresh-read as owned by the exact target lane, the scheduler receiver resumes the same checkpoint / exact `next_action` without waiting for stale TTL or performing another takeover. Prompt/Skill/AI Library text documents routing and owner boundaries only; it must not create a second continuity state machine.
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `authority_map`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Production/trusted governance parity is machine-readable and unknown divergence fails closed.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

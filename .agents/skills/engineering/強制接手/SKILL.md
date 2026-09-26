@@ -82,3 +82,13 @@ owner CAS readback 成功後，必須立即沿原本 canonical `checkpoint / nex
 ## 6. Output
 
 至少回顯 issue、previous_worker、takeover_worker、machine_classification、user_authority_comment_id、guard_run_id、guard_receipt、claim_cas、claim_blob_after、checkpoint 與 next_action。任一 hard gate 失敗不得宣稱「已強制接手」。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_forced_takeover`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain canonical stale/user-directed takeover gates; no direct owner rewrite.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

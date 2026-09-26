@@ -544,3 +544,13 @@ Terminal checkpoint 的 malformed closure lifecycle 不可用一般 activation �
 Repair 只接受 exact `issue + branch + head_sha + TERMINAL_SUCCESS` identity，且 prior closure state 必須是非法值；合法 closure state、非 terminal state、wrong owner/head、unknown fields 都必須拒絕。輸出固定為同一 terminal identity + `FINALIZATION_PENDING` + canonical closure next action。
 
 Trusted transport 必須 exact bind `prior_claim_blob_sha + prior_checkpoint_blob_sha + coord_parent_sha`；candidate claim byte-for-byte unchanged，candidate checkpoint 必須等於 pure repair 的 canonical payload。它不能 release claim、不能 close issue、不能取代 fresh Remote Finalization。Repair 完成後流程重新進入正常 closure transaction。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_continuity`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain canonical stop/continuity machine ownership; no prompt-local second state machine.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

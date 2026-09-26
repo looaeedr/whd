@@ -244,14 +244,23 @@ def test_turn_exit_is_blocked_for_autonomous_nonterminal_states():
             guard(checkpoint)
 
 
-def test_blocked_checkpoint_can_exit_turn_but_remains_nonfinalizable():
-    guard, _blocked_error = _turn_exit_api()
+def test_blocked_checkpoint_requires_exhaustive_proof_and_remains_nonfinalizable():
+    guard, blocked_error = _turn_exit_api()
     checkpoint = _running(
         state=ContinuityState.BLOCKED,
         next_action="wait for missing external authority",
     )
 
-    guard(checkpoint)
+    with pytest.raises(blocked_error, match="BLOCKER_NOT_EXHAUSTIVELY_PROVEN"):
+        guard(checkpoint)
+
+    proof = continuity.BlockedExitProof(
+        exhaustive=True,
+        executable_leaf_count=0,
+        evidence=("fresh blocker census: no other executable leaf",),
+        stop_reason=continuity.StopReason.EXTERNAL_AUTHORITY_REQUIRED,
+    )
+    guard(checkpoint, blocked_exit_proof=proof)
     with pytest.raises(FinalizationBlocked, match="non-terminal"):
         assert_finalizable(checkpoint)
 

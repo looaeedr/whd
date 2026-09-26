@@ -152,3 +152,13 @@ Executable owner：`tools/continuity_controller.py`；regression：`tests/proces
 這時禁止直接編輯 durable checkpoint。唯一合法入口是 trusted Claim Activation `transition=terminal-checkpoint-repair`，exact 綁 prior claim/checkpoint blob 與 coord parent；candidate claim 必須 byte-identical，candidate checkpoint 必須等於 `repair_malformed_terminal_checkpoint()` 的 canonical repair 結果，且只能回到 `FINALIZATION_PENDING`。
 
 Repair 只是恢復 closure transaction 的可執行狀態；它不代表 Issue 已關、不代表 claim 已 RELEASED，也不能取代 fresh finalization proof。之後仍照 `FINALIZATION_PENDING → ISSUE_CLOSE_PENDING → proof → close/readback → RELEASE_HANDOFF_PENDING → CLOSED + RELEASED` 完整收尾。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `issue_closure`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Issue Closure owner must verify finalization, closed/completed readback, then atomically persist checkpoint CLOSED and claim RELEASED.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

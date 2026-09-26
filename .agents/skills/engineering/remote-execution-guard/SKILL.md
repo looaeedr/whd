@@ -497,3 +497,13 @@ Remote Guard 的 `action=write` 若 scope 僅為 `.dispatch/claims/issue-N.json`
 Workflow 必須查詢 receipt `issued_at..expires_at` 期間、相同 path 的 `coord/dispatch-claims` commits，讀回 commit changed files 與各 target blob/payload，再交由 `durable_coord_write_readbacks_from_live_commits()` 驗證。不得只拿 current HEAD/current blob 倒推，也不得把非 coordination write 自動 consume。
 
 缺 commit、identity mismatch、changed-file mismatch、payload mismatch 或多個 exact matches 時一律 fail closed。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_remote_guard`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain single-use guarded mutation receipts and exact durable readback semantics.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

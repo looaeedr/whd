@@ -101,3 +101,13 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 5. `NORMAL_PATH_FIRST`：正常 implementation 只走 `claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`。
 6. `RECOVERY_IS_EXCEPTION_NOT_PHASE`：takeover / reactivate / reconciliation / legacy repair 僅由 fresh machine evidence 觸發；condition 修復後立即回 normal path。
 7. 修改 live recurring automation prompt 時只改本次 scope；cadence、enabled、lane owner 若未被使用者點名就保持原值，並 post-update fresh readback。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `scheduler_prompt`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: NO_MATCHING_HANDOFF is not NO_WORK; scheduler no-work requires exhaustive READY_WORK_CENSUS evidence.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
