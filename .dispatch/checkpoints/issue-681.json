@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "681",
+  "branch": "work/issue681-poweroff-gate-core-20260926",
+  "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard, create WI-3 branch from exact production HEAD, then execute approved behavioral RED against the public evaluate/validate-safe seam before implementing.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: WHD HA safe-shutdown spec v1.4 and approved RED package v5/v5.1.",
+    "Dependency #678 fresh-read closed/completed with claim RELEASED and checkpoint CLOSED.",
+    "Fresh production target cleanup/2d-3d-sync HEAD=cb0c6ada73d4bee15572c42220f03993a93554fc.",
+    "Approved RED IDs owned by #681 include R0 and all T3/T4/T5/T6/T10 behavioral nodes."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
