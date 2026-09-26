@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "686",
   "branch": "governance/issue686-local-guard-postcommit-parity-20260926",
-  "head_sha": "af5a77f4ef134c481c033020b035871acd19d6d3",
+  "head_sha": "e35f8d18c804e7378b8061ce0b5dc153588d9bf8",
   "state": "RUNNING",
-  "next_action": "Obtain qa-dispatch Guard and run .github/workflows/qa-issue686-local-guard.yml at exact head af5a77f4, then monitor the locked run to terminal.",
+  "next_action": "Obtain qa-dispatch Guard and run .github/workflows/qa-issue686-local-guard.yml at exact head e35f8d18, then monitor the locked run to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,9 @@
     "Temporary QA workflow commit af5a77f4ef134c481c033020b035871acd19d6d3.",
     "Workflow visible naming guard GREEN and Phase6 Preflight GREEN.",
     "Workflow-head reconciliation Guard GREEN: request 5845968158 / result 5845969933 / run 36239591691.",
-    "Broader local QA: 79 passed / 1 known baseline stale #540 assertion; same #540 assertion reproduced FAIL on production 76b2adb7."
+    "Broader local QA: 79 passed / 1 known baseline stale #540 assertion; same #540 assertion reproduced FAIL on production 76b2adb7.",
+    "Consumed pending workflow commit Guard run 36239716831; workflow commit e35f8d18c804e7378b8061ce0b5dc153588d9bf8.",
+    "Workflow-head reconciliation Guard GREEN: request 5846132095 / result 5846133471 / run 36240907870."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
