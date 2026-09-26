@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T18:14:00Z",
   "base_sha": "15ebde03c86d01c0f8f6e6b70479a957ec22ac5f",
   "head_sha": "7b8a5110a30729a56f91895415192378e0ac8ce3",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T18:35:17Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T18:36:22Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "head_sha": "3d46f5436f1534853139630acec08867ecc84e82",
     "status": "success"
   },
-  "next_action": "Atomically persist #759 checkpoint CLOSED + claim RELEASED + successor #692 handoff.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-759.json",
   "evidence": [
@@ -48,6 +48,18 @@
     "Trusted Remote Finalization run 36262962436 SUCCESS; artifact 10912642895.",
     "Duplicate exact finalization run 36263008422 also SUCCESS and caused no coordination mutation.",
     "Issue #759 fresh-read closed/completed at 2026-09-26T18:34:07Z.",
-    "Release-handoff transition Guard 36263057913 GREEN."
-  ]
+    "Release-handoff transition Guard 36263057913 GREEN.",
+    "Final release write Guard 36263123953 GREEN.",
+    "Final durable target: checkpoint CLOSED + claim RELEASED with successor #692 open/executable."
+  ],
+  "release_handoff": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "issue_closed_at": "2026-09-26T18:34:07Z",
+    "finalization_run_id": 36262962436,
+    "finalization_artifact_id": 10912642895,
+    "successor_issue": 692,
+    "successor_state": "open",
+    "closure_owner_issue": 692
+  }
 }

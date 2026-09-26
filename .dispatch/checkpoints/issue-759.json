@@ -28,13 +28,15 @@
     "Accepted production readback complete; entering ISSUE_CLOSE_PENDING.",
     "Trusted finalization 36262962436 SUCCESS.",
     "Issue #759 read back closed/completed.",
-    "Release-handoff transition Guard 36263057913 GREEN."
+    "Release-handoff transition Guard 36263057913 GREEN.",
+    "Final release write Guard 36263123953 GREEN.",
+    "Checkpoint CLOSED atomically with claim RELEASED and successor #692 handoff."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED + successor #692 handoff."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
