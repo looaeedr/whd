@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "715",
   "branch": "work/issue715-work-slot-skill-20260926",
-  "head_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
+  "head_sha": "3f197eb3b45a183a61db5f5034aac79996ce09b4",
   "state": "RUNNING",
-  "next_action": "Create the exact UPDATE_ONLY work branch, add focused RED contract tests for /工作1 /工作2 /工作3 and /工作槽 semantics, then implement the canonical 工作槽 Skill + registry/readme routing and validate without starting any implementation Issue.",
+  "next_action": "Open PR for exact GREEN head 3f197eb3b45a183a61db5f5034aac79996ce09b4, run remote governance/CI, merge, then close/release #715 without activating any successor.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,8 +13,11 @@
   "evidence": [
     "User explicitly requested a standalone canonical 工作槽 Skill and fixed /工作1 /工作2 /工作3 entrypoints.",
     "Execution intent is UPDATE_ONLY; no existing implementation Issue may be started by this task.",
-    "Phase6 Skill preflight is GREEN for 工作槽/SKILL.md + skill_registry.json + engineering/README.md + focused contract test.",
-    "Fresh production target cleanup/2d-3d-sync HEAD=fa1b105daed90684db8e0b7500c0a81894cc0c55."
+    "RED: 11 intended failures before 工作槽 Skill/route/navigation existed.",
+    "GREEN exact head 3f197eb3b45a183a61db5f5034aac79996ce09b4: focused 11 passed; repo-level skill/regression bundle 70 passed.",
+    "Final Phase6 Skill preflight GREEN; git diff --check GREEN.",
+    "Scope is exactly 工作槽/SKILL.md + skill_registry.json + engineering/README.md + focused contract test.",
+    "No tools/** executable code changed."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

@@ -9,13 +9,24 @@
   "work_branch": "work/issue715-work-slot-skill-20260926",
   "claimed_at": "2026-09-26T08:27:02Z",
   "base_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
-  "head_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T08:27:02Z",
+  "head_sha": "3f197eb3b45a183a61db5f5034aac79996ce09b4",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T08:36:46Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Create the exact UPDATE_ONLY work branch, add focused RED contract tests for /工作1 /工作2 /工作3 and /工作槽 semantics, then implement the canonical 工作槽 Skill + registry/readme routing and validate without starting any implementation Issue.",
+  "next_action": "Open PR for exact GREEN head 3f197eb3b45a183a61db5f5034aac79996ce09b4, run remote governance/CI, merge, then close/release #715 without activating any successor.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-715.json",
-  "execution_intent": "UPDATE_ONLY"
+  "execution_intent": "UPDATE_ONLY",
+  "red_evidence": {
+    "issue_comment_id": 5844648687,
+    "result": "11 failed intended"
+  },
+  "green_candidate": {
+    "head_sha": "3f197eb3b45a183a61db5f5034aac79996ce09b4",
+    "focused": "11 passed",
+    "regression": "70 passed",
+    "preflight": "GREEN",
+    "diff_check": "GREEN"
+  }
 }
