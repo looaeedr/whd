@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T04:50:00Z",
   "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
   "head_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T05:56:09Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T05:57:16Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e",
     "protected_inputs": "GREEN"
   },
-  "next_action": "Run final release Guard for #620, then atomically persist checkpoint closure_state CLOSED + claim phase RELEASED with next_action null while preserving Master #627 NEXT_CHILD_EXECUTABLE -> #621 A5.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-620.json",
   "predecessor": {
@@ -53,17 +53,18 @@
     "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid.",
     "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed.",
     "Closure advance authority: write Guard 36222077026 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim CLOSING and checkpoint TERMINAL_SUCCESS/FINALIZATION_PENDING.",
-    "Bound finalization + issue-close readback accepted: WHD Remote Finalization run 36222179672 SUCCESS at checkpoint blob 1105c4bc0d7b4192938c4b61ac46b5074d461e98 / fingerprint dc8be0be488daf07cf27da2a08bf210d0e2d396bc87ea625f5079098d3f37a25; artifact 10898998585 digest sha256:0395916b65de825cc0edc817ae54129e689e562368b506009065bd69aea92975. Issue #620 fresh-read closed/completed at 2026-09-26T05:55:33Z. Release-handoff advance Guard 36222238656 GREEN."
+    "Bound finalization + issue-close readback accepted: WHD Remote Finalization run 36222179672 SUCCESS at checkpoint blob 1105c4bc0d7b4192938c4b61ac46b5074d461e98 / fingerprint dc8be0be488daf07cf27da2a08bf210d0e2d396bc87ea625f5079098d3f37a25; artifact 10898998585 digest sha256:0395916b65de825cc0edc817ae54129e689e562368b506009065bd69aea92975. Issue #620 fresh-read closed/completed at 2026-09-26T05:55:33Z. Release-handoff advance Guard 36222238656 GREEN.",
+    "Final release Guard 36222291891 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4; authorized atomic checkpoint CLOSED + claim RELEASED while preserving Master #627 successor #621 A5."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36222238656,
-    "request_comment_id": 5843687436,
+    "run_id": 36222291891,
+    "request_comment_id": 5843694467,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "persist finalization proof + closed Issue readback and advance to RELEASE_HANDOFF_PENDING"
+    "mutation": "atomic final release: checkpoint CLOSED + claim RELEASED"
   },
   "local_validation": {
     "verification_owner": {
@@ -112,5 +113,16 @@
     "issue_state": "closed",
     "issue_state_reason": "completed",
     "issue_closed_at": "2026-09-26T05:55:33Z"
+  },
+  "released_at": "2026-09-26T05:57:16Z",
+  "release_evidence": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "accepted_head_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
+    "finalization_run_id": 36222179672,
+    "finalization_artifact_id": 10898998585,
+    "final_release_guard_run_id": 36222291891,
+    "successor_issue": 621,
+    "successor_task_id": "A5"
   }
 }

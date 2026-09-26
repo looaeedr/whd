@@ -7,7 +7,7 @@
   "next_action": null,
   "run_id": null,
   "job_id": null,
-  "log_cursor": "terminalized:accepted-clean-head",
+  "log_cursor": "closed:released",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -22,13 +22,14 @@
     "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid.",
     "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed.",
     "Closure advance authority: write Guard 36222077026 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim CLOSING and checkpoint TERMINAL_SUCCESS/FINALIZATION_PENDING.",
-    "Bound finalization + issue-close readback accepted: WHD Remote Finalization run 36222179672 SUCCESS at checkpoint blob 1105c4bc0d7b4192938c4b61ac46b5074d461e98 / fingerprint dc8be0be488daf07cf27da2a08bf210d0e2d396bc87ea625f5079098d3f37a25; artifact 10898998585 digest sha256:0395916b65de825cc0edc817ae54129e689e562368b506009065bd69aea92975. Issue #620 fresh-read closed/completed at 2026-09-26T05:55:33Z. Release-handoff advance Guard 36222238656 GREEN."
+    "Bound finalization + issue-close readback accepted: WHD Remote Finalization run 36222179672 SUCCESS at checkpoint blob 1105c4bc0d7b4192938c4b61ac46b5074d461e98 / fingerprint dc8be0be488daf07cf27da2a08bf210d0e2d396bc87ea625f5079098d3f37a25; artifact 10898998585 digest sha256:0395916b65de825cc0edc817ae54129e689e562368b506009065bd69aea92975. Issue #620 fresh-read closed/completed at 2026-09-26T05:55:33Z. Release-handoff advance Guard 36222238656 GREEN.",
+    "Final release Guard 36222291891 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4; authorized atomic checkpoint CLOSED + claim RELEASED while preserving Master #627 successor #621 A5."
   ],
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "621",
   "chain_next_action": "Activate/claim #621 Phase 7 A5 on accepted #620 head a21dabe56e99201a106edac14460e8731ee435b4 and execute approved P7-R-E: separate assembly_collision.py bounded generic/backprojection, Divider relief and EndCap world-relief solver owners while preserving one generic algorithm path and zero manufacturing_api reverse import.",
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "run final write Guard, then atomically persist checkpoint CLOSED + claim RELEASED with successor #621 A5 handoff unchanged",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "627"
 }
