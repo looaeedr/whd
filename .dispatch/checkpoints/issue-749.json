@@ -16,13 +16,14 @@
     "Synthetic stale timing is deliberate test-fixture state only.",
     "No-op smoke branch exists at 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
     "Trusted-main smoke run 36257298364 SUCCESS with receipt 5848102610 result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN.",
-    "Smoke verified owner-authored user authority comment 5848100625 reached execution_claim_guard.py through deployed workflow."
+    "Smoke verified owner-authored user authority comment 5848100625 reached execution_claim_guard.py through deployed workflow.",
+    "Disposable smoke acceptance is complete; entering exact ISSUE_CLOSE_PENDING checkpoint."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "authorize/verify finalization proof on this exact checkpoint; close/readback #749; then RELEASE_HANDOFF_PENDING"
 }
