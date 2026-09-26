@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "625",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "828384c1ff76f0b7f8664753ccb271cef2de8bb0",
+  "head_sha": "590448a911099d2bdb61aef09112dd6b6d3afc3c",
   "state": "RUNNING",
-  "next_action": "Fix the one-shot P7-R-G RED workflow dependency by installing python3-tk, rerun against the reconciled head, and require exactly 1 failed / 3 passed with only test_p7_r_g_requires_terminal_deletion_test_decision failing before DT-6 is written.",
+  "next_action": "Write DT-1..DT-6 for P7-G with canonical KEEP_CURRENT_BOUNDARY, add A8 target-completion evidence and one-shot GREEN/Xvfb QA, without changing Settings transaction/state authority.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,10 @@
     "Resume exact RED checkpoint at head 6e3d1804f2d8bbd47e502a72fdac4bb4d01ccbf6.",
     "One-shot P7-R-G workflow exists at 828384c1ff76f0b7f8664753ccb271cef2de8bb0.",
     "Run 36264989741 is QA infrastructure failure (ModuleNotFoundError: tkinter), not a decision RED.",
-    "Reconciliation Guard 36273473646 GREEN."
+    "Reconciliation Guard 36273473646 GREEN.",
+    "P7-R-G expected RED proven by run 36273585335: 3 passed / 1 failed, only terminal DT-6 assertion.",
+    "Current owner constraints remain unchanged from #528: Phase6SettingsPanel presentation-only; pure settings profile projection cannot absorb bridge/domain dependencies.",
+    "Reconciliation Guard 36273655460 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
