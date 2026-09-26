@@ -3,8 +3,8 @@
   "issue": "628",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
-  "state": "RUNNING",
-  "next_action": "Fresh-read #614/#615/#616/#619/#622 as closed/completed, verify #622 RELEASED/CLOSED handoff and Master completion criteria, then terminalize Master #628 on the exact closing head with CHAIN_COMPLETE and run its own trusted finalization proof.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,8 +13,17 @@
   "evidence": [
     "All five required child issues are closed/completed on fresh readback.",
     "#622 final release handoff is durable and points to Master #628.",
-    "Master process-state closure remains pending its own owning finalization proof."
+    "Master process-state closure remains pending its own owning finalization proof.",
+    "Post-activation fresh all-child readback: #614/#615/#616/#619/#622 are closed/completed.",
+    "#622 durable claim/checkpoint readback: RELEASED/CLOSED.",
+    "B5 Combined run 36212566772 SUCCESS; closing head 524ec6ac877449ea8f356daac2bfb2f6c3c5d048 has production/test drift=false.",
+    "Master terminalization Guard 36214118618 GREEN consumed; CHAIN_COMPLETE."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, run Master #628 trusted finalization proof, close/read back Master, then persist CLOSED/RELEASED",
+  "master_issue": "628",
+  "chain_state": "CHAIN_COMPLETE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": "All required children #614/#615/#616/#619/#622 are closed/completed; B5 Combined acceptance, cleanup, AI Library writeback and zero production/test drift audit are complete."
 }
