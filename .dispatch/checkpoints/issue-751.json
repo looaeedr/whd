@@ -20,13 +20,15 @@
     "Deploy branch synchronized with current main via merge commit 9d7b476e105b81711c1ac4a7440751cc96e7e1b6.",
     "Post-merge acceptance 10 passed / 0 failed; PR #752 mergeable=true and changed_files=2.",
     "Trusted-main deployment complete via PR #752 merge 4355938c49e5feec0961fb0e4073d7aa101b2396.",
-    "Fresh readback confirms claim-handoff parity on main."
+    "Fresh readback confirms claim-handoff parity on main.",
+    "Issue #751 closed/completed after verified finalization proof.",
+    "Final atomic child transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Authorize finalization proof, close #751, fresh-read, then atomic CLOSED + RELEASED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
