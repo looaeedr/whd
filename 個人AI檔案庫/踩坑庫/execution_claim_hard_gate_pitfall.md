@@ -116,3 +116,21 @@ evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接
 - trusted workflow 必須先部署到 default branch `main` 並 readback，之後才能用於 #617/#671 的 live repair。
 
 Primary regression：`tests/process/test_issue675_legacy_expired_postcommit_recovery.py`。Governance owner：#675。
+
+## BRANCH_CREATE_EXACT_READBACK_AUTO_CONSUME_V1（2026-09-26）
+
+### 事故
+#689、#691 都出現同一類停滯：`branch-create` Guard 已 GREEN，branch 也實際建立且 HEAD 正確，但 caller 沒把 action-specific durable readback交回 transaction classifier，就直接送下一顆 commit/write Guard。安全 gate 會正確回 `PENDING_GUARD_TRANSACTION / CONSUME_GUARD_TRANSACTION`，但流程因此卡死；#689 曾用 reactivate/換 claim blob 才繞開，這不應成為常態 recovery。
+
+### 永久規則
+- `branch-create` 的 mutation postcondition就是「remote branch 存在於 exact guarded HEAD」，因此 trusted Remote Guard 可直接 fresh-read GitHub branch 作 durable readback。
+- 只有 prior exact GREEN receipt 的 issue/worker/source/branch/base/claim blob/head/tested-target 全部仍匹配，且 live branch HEAD exact 等於 receipt head 時，才投影 `mutation_applied=true / reconciled=true / branch_exists=true / branch_head_sha=<exact>`。
+- canonical classifier 收到這份 readback後，transaction 直接進 `CONSUMED`；後續 Guard 可正常前進，不要求 caller 另寫 consume marker。
+- branch missing、wrong HEAD、identity drift 一律不建立 readback，維持 fail closed。
+- 這個 auto-consume **只適用 branch-create**。commit/write/pr-write/qa-dispatch/workflow-dispatch/claim-takeover 仍要原本的 action-specific mutation proof與 coordination reconciliation，不能拿本規則擴張成 generic auto-consume。
+- 禁止用 claim reactivate、換 claim blob、重送 Guard 來當 branch-create 的一般恢復流程；那只是 #731 修補前的 bootstrap workaround。
+
+Regression：`tests/process/test_issue731_branch_create_auto_consume.py`。
+Focused RED：run `36250856862`。
+Focused GREEN：run `36251018227`。
+
