@@ -4,7 +4,7 @@
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "head_sha": "6d51e184726b02f758f11a1975bd57bd1bfe2b05",
   "state": "RUNNING",
-  "next_action": "Rerun focused #680 QA at exact writeback head 6d51e184726b02f758f11a1975bd57bd1bfe2b05; if GREEN, integrate verified branch into cleanup/2d-3d-sync, deploy trusted claim-handoff parser to main, then close/release #680.",
+  "next_action": "Fresh local pr-write Guard against exact #680 head 6d51e184726b02f758f11a1975bd57bd1bfe2b05, merge existing PR #740 into cleanup/2d-3d-sync, fresh-read integration, then verify/deploy trusted claim-handoff parser to main before closing #680.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -43,7 +43,9 @@
     "Focused acceptance run 36252089259 completed success at exact H7.",
     "H6→H7 reconciliation Guard 36252135973 GREEN.",
     "WI-2 writeback commit 6d51e184726b02f758f11a1975bd57bd1bfe2b05.",
-    "H7→H8 pair reconciliation authorized by Remote Guard run 36253008023."
+    "H7→H8 pair reconciliation authorized by Remote Guard run 36253008023.",
+    "Trusted Turn Exit run 36256250077 classified #740 PR creation as MUTATION_DONE_RECONCILE_ONLY.",
+    "Prior pr-write transaction reconciled; fresh merge Guard is now the exact next action."
   ],
   "master_issue": null,
   "chain_state": "NONE",
