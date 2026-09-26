@@ -19,13 +19,14 @@
     "Smoke verified owner-authored user authority comment 5848100625 reached execution_claim_guard.py through deployed workflow.",
     "Disposable smoke acceptance is complete; entering exact ISSUE_CLOSE_PENDING checkpoint.",
     "Finalization proof VALID fingerprint d2efeeeebf001526f3a057463e15610b18bee0557ffe526010bbf4fa1c73c2e0.",
-    "Issue #749 fresh readback closed/completed at 2026-09-26T17:00:14Z."
+    "Issue #749 fresh readback closed/completed at 2026-09-26T17:00:14Z.",
+    "Disposable #749 smoke fixture closure complete; no successor handoff."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

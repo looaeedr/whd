@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T16:38:00Z",
   "base_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
   "head_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T17:01:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T17:02:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "issue737-live-smoke",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for disposable #749 fixture.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-749.json",
   "evidence": [
@@ -27,7 +27,8 @@
     "Synthetic smoke fixture timestamps claimed_at/last_update intentionally set to 2026-09-26T16:38:00Z solely to exercise stale takeover; they are not production provenance.",
     "No-op branch governance/issue749-remote-guard-smoke exists at exact trusted main 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
     "Post-deploy trusted-main smoke run 36257298364 completed success on orchestrator/head 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
-    "Smoke receipt 5848102610 result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN; authority comment 5848100625 was forwarded through stale evaluator into execution_claim_guard.py."
+    "Smoke receipt 5848102610 result=GREEN reason=EXECUTION_CLAIM_GUARD_GREEN; authority comment 5848100625 was forwarded through stale evaluator into execution_claim_guard.py.",
+    "Final atomic closure: checkpoint CLOSED + claim RELEASED; helper Issue already closed/completed."
   ],
   "stale_takeover": {
     "actionable": true,
@@ -56,5 +57,13 @@
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
     "mutation": "CAS fixtureowner -> smoketakeover"
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "smoke_run_id": 36257298364,
+    "smoke_receipt_comment_id": 5848102610,
+    "trusted_main_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
+    "finalization_checkpoint_fingerprint": "d2efeeeebf001526f3a057463e15610b18bee0557ffe526010bbf4fa1c73c2e0"
   }
 }
