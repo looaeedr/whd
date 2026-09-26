@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "746",
+  "branch": "deploy/issue746-turn-exit-readback-main-20260927",
+  "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard, create deploy/issue746-turn-exit-readback-main-20260927 from exact main@6091bf003aae085d396f7e61f165e3f6a0e58260, port only #698 Turn Exit durable-readback parity while preserving newer main changes, run focused contract, merge to main, fresh-read deployed parity, close/release helper, then return to #680.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #698 GREEN and integrated into cleanup via PR #745.",
+    "Trusted deployment target main@6091bf003aae085d396f7e61f165e3f6a0e58260.",
+    "Changed-file scope: .github/workflows/whd-turn-exit-gate.yml only.",
+    "Helper relationship to #698/#680 is provenance only; no chain continuation state is claimed."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
