@@ -20,13 +20,15 @@
     "PR #734 merged=true, exact closing head 66472cb4a8e66dc851a292e8ecd33d5aa69313a6.",
     "Production cleanup HEAD 6285834d83bd840ba9655c8a5cccecbae7f0ed38 post-integration readback complete.",
     "All audited batch parity artifacts read back present.",
-    "Terminalization authorized by Remote Guard run 36254383872 / result 5847753926 after production merge/readback."
+    "Terminalization authorized by Remote Guard run 36254383872 / result 5847753926 after production merge/readback.",
+    "Malformed terminal checkpoint repaired by trusted terminal-checkpoint-repair activation commit 4e497fcb5dd419496a5d11226e073c240353eab3.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36256476555 / result 5848005557."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run bound finalization proof on this exact checkpoint, close/read back Issue #733, then advance to RELEASE_HANDOFF_PENDING"
 }
