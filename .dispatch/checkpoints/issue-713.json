@@ -1,0 +1,26 @@
+[Reading 22 lines from start (total: 22 lines, 0 remaining)]
+
+{
+  "version": 1,
+  "issue": "713",
+  "branch": "work/issue713-normal-path-governance-20260926",
+  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "state": "RUNNING",
+  "next_action": "Create exact work branch, add RED routing contract tests for UPDATE_ONLY/NORMAL_PATH/RECOVERY_EXCEPTION, then update only the conflicting Skill entrypoints and run focused governance regression.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User explicitly authorized a standalone governance sweep/fix for Guard, Scheduler Simulation, work-slot/execution routing and related entrypoints.",
+    "Issue #713 is the standalone owning Issue.",
+    "Phase6 Skill Preflight passed with all required Skills/references.",
+    "Fresh production target cleanup/2d-3d-sync HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28.",
+    "Normal path only: no recovery mechanism is pre-run without evidence."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
+
+[executed on device: R5-2600 (5e85f914-bd06-4f87-8e61-34dd15a50b54)]

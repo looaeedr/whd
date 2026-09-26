@@ -1,0 +1,24 @@
+[Reading 20 lines from start (total: 20 lines, 0 remaining)]
+
+{
+  "issue": 713,
+  "issue_url": "https://github.com/looaeedr/whd/issues/713",
+  "worker": "chatgpt.sol260926.issue713.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue713.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue713-normal-path-governance-20260926",
+  "claimed_at": "2026-09-26T07:42:30Z",
+  "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T07:42:30Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Create exact work branch, add RED routing contract tests for UPDATE_ONLY/NORMAL_PATH/RECOVERY_EXCEPTION, then update only the conflicting Skill entrypoints and run focused governance regression.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-713.json"
+}
+
+[executed on device: R5-2600 (5e85f914-bd06-4f87-8e61-34dd15a50b54)]
