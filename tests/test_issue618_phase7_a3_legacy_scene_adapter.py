@@ -50,3 +50,18 @@ def test_p7_r_c_stretched_door_has_bounded_adapter_owner():
     assert "def get_stretched_door_data" in owner_source
     assert "indicator_small_door_window_geometry" in owner_source
     assert "resolve_door_indicator_layout" in owner_source
+
+
+def test_p7_r_c_stretched_indicator_box_has_bounded_adapter_owner():
+    from ae_engine import ae
+    from ae_engine import baseline_scene_adapters
+
+    facade_source = inspect.getsource(ae.get_stretched_indicator_box_data)
+    assert "_baseline_scene_adapters.get_stretched_indicator_box_data" in facade_source
+    assert "closed_cutting_bounds" not in facade_source
+    assert "map_axis" not in facade_source
+
+    owner_source = inspect.getsource(baseline_scene_adapters)
+    assert "def get_stretched_indicator_box_data" in owner_source
+    assert "closed_cutting_bounds" in owner_source
+    assert "map_axis" in owner_source

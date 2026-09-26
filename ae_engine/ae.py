@@ -1628,6 +1628,9 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
                             frame_edges=None, indicator_window_groups=None, corner_policy=None,
                             nameplate_center_datum_top=None):
     """Backward-compatible facade for baseline Door scene adaptation."""
+    shared_baseline_resolver = None
+    if indicator_window_groups is not None:
+        shared_baseline_resolver = indicator_shared_baseline_part_path
     return _baseline_scene_adapters.get_stretched_door_data(
         model_name, W_val, H_val, T_val, FW_val,
         gap_w_val, gap_h_val, fl_val, fr_val, ft_val, fb_val,
@@ -1657,7 +1660,7 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
             "door_gap_h_def": door_gap_h_def,
             "door_gap_w_def": door_gap_w_def,
             "identify_door_baseline_nameplate_circles": identify_door_baseline_nameplate_circles,
-            "indicator_shared_baseline_part_path": indicator_shared_baseline_part_path,
+            "indicator_shared_baseline_part_path": shared_baseline_resolver,
             "indicator_small_door_window_geometry": indicator_small_door_window_geometry,
             "resolve_door_indicator_layout": resolve_door_indicator_layout,
             "source_loader": (globals().get("load_baseline_dxf_source") or ezdxf.readfile),
@@ -1837,176 +1840,22 @@ def get_indicator_box_data(layer_groups, T_val=2.0, corner_policy=None):
 
 
 def get_stretched_indicator_box_data(model_name, layer_groups, T_val=2.0, corner_policy=None):
-    """Load the globally shared indicator-box baseline and add the current indicator layout.
-
-    ``model_name`` is retained only for backward call compatibility and is intentionally
-    ignored: indicator boxes are global shared parts and never inherit PW/PSR/RF.
-    The shared resource itself is resolved through ``indicator_shared_baseline_part_path``.
-    """
-    groups = tuple(int(v) for v in layer_groups)
-    if not groups:
-        groups = (1,)
-    formula_data = get_indicator_box_data(groups, T_val, corner_policy=corner_policy)
-    target_w = float(formula_data.params['w'])
-    target_h = float(formula_data.params['h'])
-    fold = float(indicator_box_fold_def)
-
-    dxf_path = indicator_shared_baseline_part_path("盒子.dxf")
-    expected = indicator_shared_baseline_part_path("盒子.dxf", require_exists=False)
-    if not dxf_path:
-        raise FileNotFoundError(f"AE_BASELINE_MISSING: {expected}")
-
-    doc = (globals().get("load_baseline_dxf_source") or ezdxf.readfile)(dxf_path)
-    msp = doc.modelspace()
-
-    all_x = []
-    all_y = []
-    closed_cutting_bounds = []
-    for ent in msp:
-        etype = ent.dxftype()
-        if etype == 'LWPOLYLINE':
-            points = [(float(point[0]), float(point[1])) for point in ent.get_points()]
-            for x, y in points:
-                all_x.append(x); all_y.append(y)
-            raw_layer = str(getattr(ent.dxf, 'layer', '') or '').upper()
-            if ent.closed and points and raw_layer in {'CUTTING', '0', ''}:
-                xs = [x for x, _ in points]; ys = [y for _, y in points]
-                closed_cutting_bounds.append((min(xs), max(xs), min(ys), max(ys)))
-        elif etype == 'LINE':
-            all_x.extend((float(ent.dxf.start.x), float(ent.dxf.end.x)))
-            all_y.extend((float(ent.dxf.start.y), float(ent.dxf.end.y)))
-        elif etype in {'CIRCLE', 'ARC'}:
-            cx = float(ent.dxf.center.x); cy = float(ent.dxf.center.y); radius = float(ent.dxf.radius)
-            all_x.extend((cx - radius, cx + radius)); all_y.extend((cy - radius, cy + radius))
-    if not all_x or not all_y:
-        raise ValueError(f"盒子基準檔沒有可用幾何: {dxf_path}")
-
-    if closed_cutting_bounds:
-        min_x, max_x, min_y, max_y = max(
-            closed_cutting_bounds, key=lambda b: (b[1] - b[0]) * (b[3] - b[2])
-        )
-    else:
-        min_x, max_x = min(all_x), max(all_x)
-        min_y, max_y = min(all_y), max(all_y)
-    base_w = max_x - min_x
-    base_h = max_y - min_y
-    if base_w <= 0 or base_h <= 0:
-        raise ValueError(f"盒子基準檔尺寸無效: {dxf_path}")
-
-    vertical_bends = []
-    horizontal_bends = []
-    for ent in msp.query('LINE[layer=="BEND"]'):
-        x1 = float(ent.dxf.start.x) - min_x; x2 = float(ent.dxf.end.x) - min_x
-        y1 = float(ent.dxf.start.y) - min_y; y2 = float(ent.dxf.end.y) - min_y
-        if abs(x1 - x2) < 0.1:
-            vertical_bends.append((x1 + x2) / 2.0)
-        elif abs(y1 - y2) < 0.1:
-            horizontal_bends.append((y1 + y2) / 2.0)
-    vertical_bends = sorted(set(round(v, 4) for v in vertical_bends))
-    horizontal_bends = sorted(set(round(v, 4) for v in horizontal_bends))
-    if len(vertical_bends) >= 2:
-        bx1, bx2 = vertical_bends[0], vertical_bends[-1]
-    else:
-        bx1, bx2 = fold, base_w - fold
-    if len(horizontal_bends) >= 2:
-        by1, by2 = horizontal_bends[0], horizontal_bends[-1]
-    else:
-        by1, by2 = fold, base_h - fold
-
-    ref_x = (0.0, bx1, base_w / 2.0, bx2, base_w)
-    new_ref_x = (0.0, fold, target_w / 2.0, target_w - fold, target_w)
-    ref_y = (0.0, by1, base_h / 2.0, by2, base_h)
-    new_ref_y = (0.0, fold, target_h / 2.0, target_h - fold, target_h)
-
-    def map_axis(value, refs, targets):
-        idx = min(range(len(refs)), key=lambda i: abs(value - refs[i]))
-        return targets[idx] + (value - refs[idx])
-
-    def map_x(value):
-        return map_axis(float(value), ref_x, new_ref_x)
-
-    def map_y(value):
-        return map_axis(float(value), ref_y, new_ref_y)
-
-    def entity_layer(ent):
-        raw = str(getattr(ent.dxf, 'layer', '') or '').upper()
-        if raw in {'CUTTING', 'BEND', 'MARKING', 'DATUM', 'BLIND_HOLE'}:
-            return raw
-        if raw in {'CHECK', 'STOCK'}:
-            return None
-        color = int(getattr(ent.dxf, 'color', 0) or 0) if ent.dxf.hasattr('color') else 0
-        return 'MARKING' if color == 211 else 'CUTTING'
-
-    def in_baseline_finished_area(cx, cy):
-        return bx1 - 0.5 <= cx <= bx2 + 0.5 and by1 - 0.5 <= cy <= by2 + 0.5
-
-    scene = DrawingScene()
-    for ent in msp:
-        etype = ent.dxftype()
-        layer = entity_layer(ent)
-        if layer is None or etype == 'REGION':
-            continue
-        if etype == 'LINE':
-            sx = float(ent.dxf.start.x) - min_x; sy = float(ent.dxf.start.y) - min_y
-            ex = float(ent.dxf.end.x) - min_x; ey = float(ent.dxf.end.y) - min_y
-            cx = (sx + ex) / 2.0; cy = (sy + ey) / 2.0
-            # Current layout owns interior MARKING; keep baseline flange/fixed marking only.
-            if layer == 'MARKING' and in_baseline_finished_area(cx, cy):
-                continue
-            scene.add_line((map_x(sx), map_y(sy)), (map_x(ex), map_y(ey)), layer=layer)
-        elif etype == 'LWPOLYLINE':
-            pts = [(float(pt[0]) - min_x, float(pt[1]) - min_y) for pt in ent.get_points()]
-            if not pts:
-                continue
-            cx = sum(x for x, _ in pts) / len(pts); cy = sum(y for _, y in pts) / len(pts)
-            if layer == 'MARKING' and in_baseline_finished_area(cx, cy):
-                continue
-            scene.add_polyline([(map_x(x), map_y(y)) for x, y in pts], layer=layer, closed=bool(ent.closed))
-        elif etype == 'CIRCLE':
-            cx = float(ent.dxf.center.x) - min_x; cy = float(ent.dxf.center.y) - min_y
-            radius = float(ent.dxf.radius)
-            # Replace stale baseline indicator/nameplate/marking holes with the selected groups.
-            if in_baseline_finished_area(cx, cy) and (
-                (layer == 'CUTTING' and (abs(radius - 15.5) < 0.15 or abs(radius - 1.6) < 0.15))
-                or layer == 'MARKING'
-            ):
-                continue
-            scene.add_circle((map_x(cx), map_y(cy)), radius, layer=layer)
-        elif etype == 'ARC':
-            pts = [(float(pt[0]) - min_x, float(pt[1]) - min_y) for pt in ent.flattening(0.5)]
-            if pts:
-                scene.add_polyline([(map_x(x), map_y(y)) for x, y in pts], layer=layer, closed=False)
-
-    # The selected layer/group configuration owns current indicator, nameplate and wire-duct marking layout.
-    for primitive in formula_data.scene.primitives:
-        if isinstance(primitive, CirclePrimitive):
-            if primitive.layer == 'MARKING' or (
-                primitive.layer == 'CUTTING' and (
-                    abs(float(primitive.radius) - 15.5) < 0.15
-                    or abs(float(primitive.radius) - 1.6) < 0.15
-                )
-            ):
-                scene.add(primitive)
-        elif isinstance(primitive, LinePrimitive) and primitive.layer == 'MARKING':
-            scene.add(primitive)
-
-    try:
-        _surface_from_scene_primary_cutting(scene, 'indicator_box')
-    except ValueError as exc:
-        raise ValueError(f"盒子基準檔缺少封閉 CUTTING 外框: {dxf_path}") from exc
-
-    params = dict(formula_data.params)
-    params.update({
-        'w': target_w, 'h': target_h,
-        'baseline_width': base_w, 'baseline_height': base_h,
-    })
-    metadata = dict(getattr(formula_data, 'metadata', {}) or {})
-    metadata.update({
-        'baseline_model_name': indicator_shared_baseline_model_name(),
-        'baseline_filename': '盒子.dxf',
-        'baseline_path': str(dxf_path),
-    })
-    return SceneData(scene=scene, params=params, metadata=metadata)
+    """Backward-compatible facade for baseline Indicator Box scene adaptation."""
+    return _baseline_scene_adapters.get_stretched_indicator_box_data(
+        model_name, layer_groups, T_val, corner_policy,
+        deps={
+            "CirclePrimitive": CirclePrimitive,
+            "DrawingScene": DrawingScene,
+            "LinePrimitive": LinePrimitive,
+            "SceneData": SceneData,
+            "_surface_from_scene_primary_cutting": _surface_from_scene_primary_cutting,
+            "get_indicator_box_data": get_indicator_box_data,
+            "indicator_box_fold_def": indicator_box_fold_def,
+            "indicator_shared_baseline_model_name": indicator_shared_baseline_model_name,
+            "indicator_shared_baseline_part_path": indicator_shared_baseline_part_path,
+            "source_loader": (globals().get("load_baseline_dxf_source") or ezdxf.readfile),
+        },
+    )
 
 
 def _build_stretched_indicator_box_scene(model_name, layer_groups, T_val=2.0, draw_stock=False,
