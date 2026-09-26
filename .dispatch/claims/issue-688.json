@@ -11,7 +11,7 @@
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "e8c93848ec608aeba7cd306e8843ef071ccc4deb",
   "phase": "GREEN",
-  "last_update": "2026-09-26T10:52:50Z",
+  "last_update": "2026-09-26T11:27:56Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "result": "26 passed in 0.47s; TWO_STAGE_APPROVAL_CONTRACT_GREEN"
   },
-  "next_action": "Durably hand accepted T5 evidence to Issue Closure owner #693. #693 must own fresh finalization proof plus close/readback of #688; do not integrate this frozen work-order branch directly into newer X.",
+  "next_action": "Atomically release #688 claim with checkpoint closure_state=CLOSED and durable #693 handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-688.json",
   "stale_takeover": {
@@ -43,14 +43,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36237079596,
-    "request_comment_id": 5845629083,
-    "result_comment_id": 5845636649,
+    "run_id": 36238890774,
+    "request_comment_id": 5845884323,
+    "result_comment_id": 5845885429,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
     "consumed": true,
-    "mutation": "post-cleanup atomic claim+checkpoint reconciliation to e8c93848ec608aeba7cd306e8843ef071ccc4deb"
+    "mutation": "advance #688 closure to RELEASE_HANDOFF_PENDING after finalization proof and closed/completed readback"
   },
   "red_commit": {
     "head_sha": "d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8",
