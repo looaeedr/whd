@@ -9,9 +9,9 @@
   "work_branch": "governance/issue739-pr-write-auto-consume-20260926",
   "claimed_at": "2026-09-26T15:46:10Z",
   "base_sha": "0d8a36b686630e00284a67465da82b1401231254",
-  "head_sha": "dc7903b113335853cc517e636c50aa7bc5a7ffed",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-26T18:07:30Z",
+  "head_sha": "94dabe473faab46c028bf7efbb7e3dd7957b8bbd",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T18:09:45Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Remove temporary #739 hotfix QA workflow, reconcile final head, refresh PR #757 mergeability, then merge to main and prove #733 live coordination write auto-consume.",
+  "next_action": "Obtain fresh pr-write Guard for PR #757 at final head, verify mergeability against current main, merge, fresh-read deployment, then re-run #733 live coordination write proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-739.json",
   "evidence": [
@@ -80,6 +80,9 @@
     "Latest post-hotfix reconciliation Guard 36261068698 GREEN / result 5848552791.",
     "Hotfix commit Guard 36260796861 GREEN and prior reconciliation 36260853462 GREEN.",
     "Hotfix compatibility QA 36261380792 SUCCESS at dc7903b113335853cc517e636c50aa7bc5a7ffed: #739 write/pr-write + #643 + #731 regressions and embedded import check.",
-    "QA-head reconciliation Guard 36261408971 GREEN."
+    "QA-head reconciliation Guard 36261408971 GREEN.",
+    "Temporary hotfix QA workflow removed at final head 94dabe473faab46c028bf7efbb7e3dd7957b8bbd.",
+    "Final-head reconciliation Guard 36261536602 GREEN.",
+    "Hotfix compatibility QA remained GREEN at parent dc7903b113335853cc517e636c50aa7bc5a7ffed; final commit only removes temporary QA."
   ]
 }

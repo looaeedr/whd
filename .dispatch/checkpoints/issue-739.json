@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
-  "head_sha": "dc7903b113335853cc517e636c50aa7bc5a7ffed",
+  "head_sha": "94dabe473faab46c028bf7efbb7e3dd7957b8bbd",
   "state": "RUNNING",
-  "next_action": "Remove temporary #739 hotfix QA workflow, reconcile final head, refresh PR #757 mergeability, then merge to main and prove #733 live coordination write auto-consume.",
+  "next_action": "Obtain fresh pr-write Guard for PR #757 at final head, verify mergeability against current main, merge, fresh-read deployment, then re-run #733 live coordination write proof.",
   "run_id": 36261380792,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -56,7 +56,9 @@
     "Durable #739 HEAD reconciled to 20667d5b2ea17381bb4fa89b3fd7a208b0487985.",
     "Reconciliation Guard 36261068698 GREEN / result 5848552791.",
     "Hotfix compatibility QA 36261380792 SUCCESS.",
-    "QA-head reconciliation Guard 36261408971 GREEN."
+    "QA-head reconciliation Guard 36261408971 GREEN.",
+    "Final deployment head 94dabe473faab46c028bf7efbb7e3dd7957b8bbd removes temporary QA only.",
+    "Final-head reconciliation Guard 36261536602 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
