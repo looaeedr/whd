@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "712",
+  "branch": "work/issue712-execution-mode-normal-path-20260926",
+  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
+  "state": "RUNNING",
+  "next_action": "Create the governance branch, add focused RED for UPDATE_ONLY vs execution modes and NORMAL_PATH_FIRST/RECOVERY exception semantics, then implement the minimal Skill/routing changes.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User explicitly authorized a standalone governance update for Guard, scheduler simulation, work-slot/continuity and related entrypoints.",
+    "Scope is governance/update behavior only; do not start unrelated implementation Issues.",
+    "Fresh production target cleanup/2d-3d-sync HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
