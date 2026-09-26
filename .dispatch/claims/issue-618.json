@@ -1,0 +1,33 @@
+{
+  "issue": 618,
+  "issue_url": "https://github.com/looaeedr/whd/issues/618",
+  "worker": "chatgpt.sol260926.issue618",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue618",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "claimed_at": "2026-09-26T01:00:46Z",
+  "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+  "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T01:00:46Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+  "master_issue": 627,
+  "task_id": "A3",
+  "parent_issue": 627,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run #618 Phase6 Knowledge Preflight on the accepted Master #627 lineage head c20bb25c334003d2e8439bf636b3a193b6debc78, characterize DT-0~DT-6 for ae_engine/ae.py baseline/resource/cache, legacy scene adaptation, DXF serialization and stretched helpers, then execute the first evidence-backed P7-R-C production/test mutation.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-618.json",
+  "predecessor": {
+    "issue": 617,
+    "accepted_head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+    "claim_phase": "RELEASED",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED"
+  }
+}
