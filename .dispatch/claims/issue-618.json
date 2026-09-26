@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T01:00:46Z",
   "base_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
-  "head_sha": "508478cdbfcb82bc2cf115991f1bc64d75c1ad00",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T03:36:33Z",
+  "head_sha": "180bdc988f81b8c8f974b213cbd89c6b92dcac32",
+  "phase": "REMOTE_QA_GREEN",
+  "last_update": "2026-09-26T03:46:37Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
@@ -19,8 +19,35 @@
   "task_id": "A3",
   "parent_issue": 627,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run #618 exact-head remote QA at 508478cdbfcb82bc2cf115991f1bc64d75c1ad00 covering P7-R-C ownership characterization, baseline resource/source cache, stretched BoxBody/EndCap/Door/Indicator adapters, manufacturing DXF save/reopen, and structural/ASCG invariants; then clean temporary QA artifacts, drift-audit, and enter terminal closure if GREEN.",
+  "remote_qa": {
+    "run_id": 36215728523,
+    "head_sha": "180bdc988f81b8c8f974b213cbd89c6b92dcac32",
+    "status": "completed",
+    "conclusion": "success",
+    "artifact_id": 10897785610,
+    "artifact_digest": "sha256:201182590231c3cf812369b9a9fb47389528c8924bd8c59cad614c2b4062da6b",
+    "structural": {
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    "manufacturing": {
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    "xvfb": {
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    "total": {
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "next_action": "Delete the one-shot .github/workflows/qa-issue618-a3-final.yml under a fresh commit Guard, prove cleaned-head source tree equals accepted implementation head except workflow removal, reconcile cleanup, then perform terminal drift audit and #618 closure/release handoff to #620.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-618.json",
   "predecessor": {
@@ -43,13 +70,13 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36215325898,
-    "request_comment_id": 5842827330,
+    "run_id": 36215836279,
+    "request_comment_id": 5842892576,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "post-commit atomic claim+checkpoint reconciliation to #618 stretched Indicator adapter head"
+    "mutation": "reconcile exact-head remote QA workflow commit and terminal QA evidence"
   },
   "evidence": [
     "Interactive stale takeover completed for #618: canonical evaluator classified prior chat owner EXECUTOR_STUCK at stale_seconds=5045; authority comment 5842349343; shared claim CAS transferred to chatgpt.sol260926.issue618.a3.",
@@ -67,7 +94,8 @@
     "Trailing-whitespace cleanup commit 2c6ce8fc9e02b73bbb464afe5bbb4f41f5775d76 consumed prior commit Guard 36214388672; post-commit pair reconciliation Guard 36214450974 GREEN.",
     "Stretched EndCap baseline-to-scene adapter moved behind ae.py facade at e15efd9c98acc5c6ee33b39980986a2a4bf7736d; characterization RED (1 failed/1 passed) became GREEN (2 passed), affected EndCap/baseline/DXF regression 80 passed, py_compile and git diff --check GREEN. Commit Guard 36214608885 GREEN; post-commit reconciliation Guard 36214821219 GREEN.",
     "Stretched Door baseline-to-scene adapter moved behind ae.py facade at 9e5a9df7f1fd05ed06e72bfb151d87714e53efb0; characterization RED (1 failed/2 passed) became GREEN (3 passed), affected Door/baseline/DXF regression 80 passed, py_compile and git diff --check GREEN. Commit Guard 36214907545 GREEN; post-commit reconciliation Guard 36215074509 GREEN.",
-    "Stretched Indicator Box baseline-to-scene adapter moved behind ae.py facade at 508478cdbfcb82bc2cf115991f1bc64d75c1ad00; characterization RED (1 failed/3 passed) became GREEN (4 passed), affected Indicator/baseline/DXF regression 65 passed after preserving explicit small-door role routing, py_compile and git diff --check GREEN. Commit Guard 36215132052 GREEN; post-commit reconciliation Guard 36215325898 GREEN."
+    "Stretched Indicator Box baseline-to-scene adapter moved behind ae.py facade at 508478cdbfcb82bc2cf115991f1bc64d75c1ad00; characterization RED (1 failed/3 passed) became GREEN (4 passed), affected Indicator/baseline/DXF regression 65 passed after preserving explicit small-door role routing, py_compile and git diff --check GREEN. Commit Guard 36215132052 GREEN; post-commit reconciliation Guard 36215325898 GREEN.",
+    "Exact-head Remote QA run 36215728523 at QA head 180bdc988f81b8c8f974b213cbd89c6b92dcac32 completed SUCCESS: structural 37/37, manufacturing+DXF reopen 37/37, Xvfb 23/23 = 97 passed, 0 failed, 0 skipped. Protected config.ini and baseline DXF invariants GREEN. Artifact 10897785610 sha256:201182590231c3cf812369b9a9fb47389528c8924bd8c59cad614c2b4062da6b. QA workflow head is exactly one commit above 508478cdbfcb82bc2cf115991f1bc64d75c1ad00 and adds only .github/workflows/qa-issue618-a3-final.yml."
   ],
   "local_validation": {
     "red": "2 failed: bounded dxf_serialization owner absent",
