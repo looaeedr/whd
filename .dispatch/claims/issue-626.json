@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T21:57:30Z",
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
-  "head_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
+  "head_sha": "d8b332229c5fbaa299dc125f7a72c8603db232e8",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T21:57:30Z",
+  "last_update": "2026-09-26T22:09:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -30,7 +30,7 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read every required Phase 7 child completion artifact and durable terminal state (#617/#618/#620/#621/#623/#624/#625), build the A9 combined-acceptance census, then run cross-target structural/Headless/Xvfb/manufacturing-DXF/save-reload/config gates before CURRENT ownership writeback and non-force production integration.",
+  "next_action": "Fix the A9 one-shot combined RED workflow by installing python3-tk, rerun the exact combined target census, and require PHASE_NOT_COMPLETE caused by canonical P7-B/C/D/E DT-6/target-completion gaps before backfilling accepted durable evidence.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -39,6 +39,9 @@
     "Durable predecessor handoff comment 5850243952 binds #626 to exact accepted #625 head 216269197d6956c2bd125bede5a6d76cc1fe395b.",
     "Issue #626 fresh-read open with no existing claim/checkpoint and A9 authority.",
     "Work-order branch HEAD exactly matches accepted predecessor head; no reconciliation or takeover required.",
-    "Phase 7 frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b."
+    "Phase 7 frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b.",
+    "A9 combined-census test and one-shot RED workflow committed at d8b332229c5fbaa299dc125f7a72c8603db232e8 under Guard 36275232018 GREEN.",
+    "Initial A9 RED run 36275271829 failed before test collection because python3-tk was missing; this is QA infrastructure failure, not PHASE_NOT_COMPLETE evidence.",
+    "Reconciliation Guard 36275307168 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact head d8b332229c5fbaa299dc125f7a72c8603db232e8."
   ]
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "626",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
+  "head_sha": "d8b332229c5fbaa299dc125f7a72c8603db232e8",
   "state": "RUNNING",
-  "next_action": "Fresh-read every required Phase 7 child completion artifact and durable terminal state (#617/#618/#620/#621/#623/#624/#625), build the A9 combined-acceptance census, then run cross-target structural/Headless/Xvfb/manufacturing-DXF/save-reload/config gates before CURRENT ownership writeback and non-force production integration.",
+  "next_action": "Fix the A9 one-shot combined RED workflow by installing python3-tk, rerun the exact combined target census, and require PHASE_NOT_COMPLETE caused by canonical P7-B/C/D/E DT-6/target-completion gaps before backfilling accepted durable evidence.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "Requirement Authority: user-approved Phase 7 v1.2 spec + approved RED/breakdown; owning Issue #626 A9 fresh-read open.",
     "Predecessor #625 closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED at accepted head 216269197d6956c2bd125bede5a6d76cc1fe395b.",
     "Execution mode SCHEDULER_LANE continues under scheduler.e58ea936e7d0b12bd0d475314709d6f1.",
-    "A9 is the explicit Combined Acceptance + AI Library writeback + integration/closure owner."
+    "A9 is the explicit Combined Acceptance + AI Library writeback + integration/closure owner.",
+    "A9 machine-census harness exists at d8b332229c5fbaa299dc125f7a72c8603db232e8.",
+    "Run 36275271829 did not reach A9 assertions due missing tkinter.",
+    "Reconciliation Guard 36275307168 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
