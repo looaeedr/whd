@@ -1,4 +1,4 @@
-name: WHD 遠端執行守門
+name: WHD Remote Execution Guard
 run-name: "WHD｜工單 #${{ github.event.issue.number }}｜${{ !startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1') && '非守門請求' || contains(github.event.comment.body, 'executor_source=scheduler') && '排程接手' || contains(github.event.comment.body, 'executor_source=chat') && '聊天室接手' || '來源未標記' }}"
 
 on:
@@ -12,7 +12,6 @@ permissions:
 
 jobs:
   guard:
-    name: 遠端執行守門
     if: >-
       github.event.issue.pull_request == null &&
       startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1')
@@ -20,12 +19,12 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: 取出 trusted workflow repository
+      - name: Checkout trusted workflow repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 解析固定格式守門請求
+      - name: Parse fixed-schema request
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
           EVENT_ISSUE: ${{ github.event.issue.number }}
@@ -151,20 +150,6 @@ jobs:
                       f"planned handoff keys are only valid for claim-handoff: {unexpected_handoff}"
                   )
 
-          legacy_recovery_comment_id = singles.get(
-              "legacy_reconcile_recovery_comment_id"
-          )
-          if legacy_recovery_comment_id is not None:
-              if singles["action"] != "write":
-                  raise SystemExit(
-                      "legacy_reconcile_recovery_comment_id is only valid for write"
-                  )
-              if (
-                  not legacy_recovery_comment_id.isdigit()
-                  or int(legacy_recovery_comment_id) <= 0
-              ):
-                  raise SystemExit("invalid legacy_reconcile_recovery_comment_id")
-
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
           if singles["action"] not in {
@@ -218,6 +203,27 @@ jobs:
           if singles["action"] in {"claim-takeover", "claim-handoff"} and normalized:
               raise SystemExit(f"{singles['action']} must not carry changed_file")
 
+          legacy_recovery_id = singles.get("legacy_reconcile_recovery_comment_id")
+          if legacy_recovery_id is not None:
+              try:
+                  parsed_recovery_id = int(legacy_recovery_id)
+              except ValueError as exc:
+                  raise SystemExit("invalid legacy_reconcile_recovery_comment_id") from exc
+              if parsed_recovery_id <= 0:
+                  raise SystemExit("invalid legacy_reconcile_recovery_comment_id")
+              expected_pair = {
+                  f".dispatch/claims/issue-{issue}.json",
+                  f".dispatch/checkpoints/issue-{issue}.json",
+              }
+              if (
+                  singles["action"] != "write"
+                  or len(normalized) != 2
+                  or set(normalized) != expected_pair
+              ):
+                  raise SystemExit(
+                      "legacy reconciliation recovery requires exact claim+checkpoint write scope"
+                  )
+
           request = {
               **singles,
               "issue": issue,
@@ -241,7 +247,7 @@ jobs:
                   fh.write(value + "\n")
           PY
 
-      - name: 執行 canonical 遠端守門
+      - name: Execute canonical remote guard
         id: remote_guard
         shell: bash
         env:
@@ -284,8 +290,6 @@ jobs:
               python - <<'PY'
           import json
           import os
-          import subprocess
-          import urllib.parse
           from pathlib import Path
 
           from tools.continuity_controller import checkpoint_fingerprint, checkpoint_from_payload
@@ -481,6 +485,13 @@ jobs:
               receipts,
               live_coord_commits=live_coord_commits,
           )
+          requested_changed_files = tuple(
+              line.strip()
+              for line in Path("/tmp/remote-guard-changed-files.txt").read_text(
+                  encoding="utf-8"
+              ).splitlines()
+              if line.strip()
+          )
           decision = classify_guard_transaction(
               receipts=receipts,
               current_issue=int(os.environ["RG_ISSUE"]),
@@ -492,6 +503,7 @@ jobs:
               current_claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
               now=dt.datetime.now(dt.timezone.utc),
               durable_readbacks=branch_create_readbacks + pr_write_readbacks + coord_write_readbacks,
+              expected_changed_files=requested_changed_files,
           )
           assert_remote_guard_request_permitted(decision)
           if decision.state.value == "EXPIRED_UNCONSUMED":
@@ -515,6 +527,39 @@ jobs:
                 exit 42
               }
               echo "REMOTE_GUARD_RECONCILE_ONLY: live HEAD differs from claim HEAD; canonical pair reconciliation required"
+            fi
+
+            legacy_reconcile_arg=()
+            if [ -n "${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID:-}" ]; then
+              test "$effective_live_head" != "$claim_head_sha"
+              rm -f /tmp/legacy-reconcile-recovery.json
+              gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID}" > /tmp/legacy-reconcile-recovery.json
+              python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("/tmp/legacy-reconcile-recovery.json").read_text(encoding="utf-8")
+          )
+          user = payload.get("user")
+          body = payload.get("body")
+          if (
+              not isinstance(user, dict)
+              or user.get("login") != os.environ["GITHUB_REPOSITORY_OWNER"]
+          ):
+              raise SystemExit(
+                  "legacy reconciliation recovery comment must be repository-owner authored"
+              )
+          if not isinstance(body, str):
+              raise SystemExit("legacy reconciliation recovery comment body missing")
+          lines = body.replace("\r\n", "\n").split("\n")
+          if not lines or lines[0].strip() != "WHD_LEGACY_POSTCOMMIT_RECONCILE_V1":
+              raise SystemExit("legacy reconciliation recovery marker mismatch")
+          PY
+              legacy_reconcile_arg=(
+                --legacy-reconcile-recovery /tmp/legacy-reconcile-recovery.json
+              )
             fi
 
             takeover_live_commit_at=""
@@ -604,7 +649,7 @@ jobs:
               elif isinstance(item, dict):
                   comments.append(item)
           def parse_fields(body):
-              lines = body.replace("\r\n", "\n").split("\n")
+              lines = body.replace("\\r\\n", "\\n").split("\\n")
               if not lines or lines[0].strip() != "WHD_USER_DIRECTED_TAKEOVER_V1":
                   return None
               fields = {}
@@ -691,43 +736,6 @@ jobs:
           Path("/tmp/preflight-evidence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
-            legacy_recovery_arg=()
-            if [ -n "${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID:-}" ]; then
-              gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${RG_LEGACY_RECONCILE_RECOVERY_COMMENT_ID}" > /tmp/legacy-postcommit-recovery.json
-              python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          payload = json.loads(
-              Path("/tmp/legacy-postcommit-recovery.json").read_text(
-                  encoding="utf-8"
-              )
-          )
-          user = payload.get("user")
-          if (
-              not isinstance(user, dict)
-              or user.get("login") != os.environ["GITHUB_REPOSITORY_OWNER"]
-          ):
-              raise SystemExit(
-                  "legacy recovery comment must be repository-owner authored"
-              )
-          body = str(payload.get("body") or "").replace("\r\n", "\n")
-          if (
-              not body.split("\n")
-              or body.split("\n")[0].strip()
-              != "WHD_LEGACY_POSTCOMMIT_RECONCILE_V1"
-          ):
-              raise SystemExit("legacy recovery comment marker mismatch")
-          issue_url = str(payload.get("issue_url") or "")
-          if not issue_url.endswith(f"/issues/{os.environ['RG_ISSUE']}"):
-              raise SystemExit("legacy recovery comment issue mismatch")
-          PY
-              legacy_recovery_arg=(
-                --legacy-reconcile-recovery /tmp/legacy-postcommit-recovery.json
-              )
-            fi
-
             preflight_args=(
               python tools/phase6_skill_preflight.py
               --task "GitHub Actions remote QA scheduler execution claim guard workflow run_id"
@@ -759,8 +767,8 @@ jobs:
             else
               guard_args+=(--head-sha "$RG_HEAD_SHA")
             fi
-            guard_args+=("${legacy_recovery_arg[@]}")
             guard_args+=(--preflight-evidence /tmp/preflight-evidence.txt)
+            guard_args+=("${legacy_reconcile_arg[@]}")
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
             done < /tmp/remote-guard-changed-files.txt
@@ -780,6 +788,8 @@ jobs:
           import datetime as dt
           import json
           import os
+          import subprocess
+          import urllib.parse
           from pathlib import Path
 
           request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))
@@ -808,6 +818,9 @@ jobs:
               "guard_authority_sha": request["guard_authority_sha"],
               "tested_target_sha": request["tested_target_sha"],
               "changed_files": request["changed_files"],
+              "legacy_reconcile_recovery_comment_id": request.get(
+                  "legacy_reconcile_recovery_comment_id"
+              ),
               "run_id": int(os.environ["GITHUB_RUN_ID"]),
               "orchestrator_head_sha": os.environ["GITHUB_SHA"],
               "issued_at": now.isoformat().replace("+00:00", "Z"),
@@ -833,13 +846,16 @@ jobs:
           if [ -f /tmp/stale-takeover.log ]; then
             cp /tmp/stale-takeover.log "$GITHUB_WORKSPACE/remote-guard-artifact/stale-takeover.log"
           fi
+          if [ -f /tmp/legacy-reconcile-recovery.json ]; then
+            cp /tmp/legacy-reconcile-recovery.json "$GITHUB_WORKSPACE/remote-guard-artifact/legacy-reconcile-recovery.json"
+          fi
 
           {
             echo "result=$result"
             echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
 
-      - name: 發布機器可讀守門 receipt
+      - name: Publish machine-readable receipt
         if: always() && hashFiles('remote-guard-artifact/remote-guard-receipt.json') != ''
         uses: actions/github-script@v7
         with:
@@ -868,7 +884,7 @@ jobs:
               ].join('\n'),
             });
 
-      - name: 上傳守門 receipt
+      - name: Upload guard receipt
         if: always() && hashFiles('remote-guard-artifact/remote-guard-receipt.json') != ''
         uses: actions/upload-artifact@v4
         with:
@@ -877,6 +893,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: 強制檢查守門終態結果
+      - name: Enforce terminal guard result
         if: steps.remote_guard.outputs.result != 'GREEN'
         run: exit 1
