@@ -11,7 +11,7 @@
   "base_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
   "head_sha": "66472cb4a8e66dc851a292e8ecd33d5aa69313a6",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T15:57:20Z",
+  "last_update": "2026-09-26T16:08:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Run canonical finalization for #733 using post-integration parity readback; close Issue; atomically release claim with CLOSED checkpoint; record #692 batch parity result.",
+  "next_action": "Run trusted Remote Finalization against terminal checkpoint; on GREEN close Issue #733, read back closed/completed, then atomically release claim and record #692 parity completion.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-733.json",
   "evidence": [
@@ -37,6 +37,7 @@
     "Final pr-write Guard 36253656669 GREEN; durable PR #734 readback confirms exact head 66472cb4a8e66dc851a292e8ecd33d5aa69313a6 and merged=true.",
     "PR #734 merged non-force to cleanup/2d-3d-sync as 6285834d83bd840ba9655c8a5cccecbae7f0ed38.",
     "Post-integration cleanup readback: Claim Activation blob 757c04902e19b997ee3d4d3511793e19abba2e83; #675/#722/#731/#736 production parity markers/tests all present.",
-    "Superseded per-fix helper #735 is closed/not_planned."
+    "Superseded per-fix helper #735 is closed/not_planned.",
+    "Terminal-checkpoint write Guard 36254383872 GREEN / result 5847753926."
   ]
 }
