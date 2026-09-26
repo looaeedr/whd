@@ -1,20 +1,43 @@
 {
   "issue": 680,
   "issue_url": "https://github.com/looaeedr/whd/issues/680",
-  "worker": "chatgpt.sol260926.wi2.1",
-  "executor_source": "chat",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260926.wi2.1",
+  "invocation_identity": "chat.b680.20260926T1409",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
   "claimed_at": "2026-09-26T03:56:45Z",
   "base_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T03:56:45Z",
+  "last_update": "2026-09-26T14:10:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "next_action": "Obtain branch-create Guard, create the WI-2 branch from exact production HEAD, then run focused RED characterization for planned handoff sender + Scheduler A/B receiver without changing recurring cadence.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-680.json"
+  "checkpoint": ".dispatch/checkpoints/issue-680.json",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "previous_worker": "chatgpt.sol260926.wi2.1",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    "requesting_executor_source": "scheduler",
+    "observed_stale_seconds": 36734,
+    "observed_live_head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "user_authority_comment_id": null,
+    "taken_over_at": "2026-09-26T14:10:00Z",
+    "guard_run_id": 36247505394,
+    "guard_request_comment_id": 5846921353,
+    "guard_result_comment_id": 5846923113
+  },
+  "evidence": [
+    "Interactive /排程B 680 selected durable B lane; physical invocation remains chatgpt_interactive.",
+    "Remote Guard run 36247505394 GREEN claim-takeover; classification=EXECUTOR_STUCK; stale_seconds=36734; no active exact run.",
+    "Single-use takeover receipt consumed by exact claim-owner CAS; branch/base/head unchanged."
+  ]
 }
