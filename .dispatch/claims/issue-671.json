@@ -11,20 +11,20 @@
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T01:07:10Z",
+  "last_update": "2026-09-26T01:09:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run bound trusted finalization proof for #671 at a2c81648be02c3b4710b6a80893e9cb890c95537; if GREEN, close/read back Issue #671, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED after trusted finalization run 36207369221 and Issue #671 closed/completed readback.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36207290073,
-    "request_comment_id": 5841797389,
+    "run_id": 36207421616,
+    "request_comment_id": 5841812608,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #671 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #671 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after trusted finalization + issue close readback"
   },
   "red_evidence": {
     "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
@@ -155,6 +155,18 @@
       ],
       "target_changed": true,
       "observed_at": "2026-09-26T01:07:10Z"
+    },
+    {
+      "guard_run_id": 36207421616,
+      "action": "write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [
+        ".dispatch/claims/issue-671.json",
+        ".dispatch/checkpoints/issue-671.json"
+      ],
+      "target_changed": true,
+      "observed_at": "2026-09-26T01:09:20Z"
     }
   ],
   "integration": {
@@ -233,5 +245,19 @@
     "blocked_issue": 617,
     "blocked_issue_phase": "RELEASED",
     "blocked_issue_closure_state": "CLOSED"
+  },
+  "finalization": {
+    "run_id": 36207369221,
+    "artifact_id": 10894656535,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "a05e1fea1dd3afc18588e84aff9ef935829d8618",
+    "checkpoint_fingerprint": "c1ffe6588776f729ef6a6ec2cb8f23ed88ba0288628d0dcba7bb378ec9fdc7eb",
+    "request_comment_id": 5841806391,
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T01:08:39Z"
+    }
   }
 }

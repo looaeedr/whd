@@ -52,8 +52,11 @@
     "PR #676 merged/closed; cleanup/2d-3d-sync fresh-read production HEAD=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
     "#617 final acceptance dependency is fully released: Issue closed/completed, claim RELEASED, checkpoint CLOSED, finalization run 36206629673 GREEN.",
     "Terminalization Guard run 36207210917 GREEN consumed to persist #671 TERMINAL_SUCCESS / FINALIZATION_PENDING.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36207290073."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36207290073.",
+    "Trusted Remote Finalization run 36207369221 GREEN; artifact 10894656535; checkpoint fingerprint c1ffe6588776f729ef6a6ec2cb8f23ed88ba0288628d0dcba7bb378ec9fdc7eb; FINALIZATION_PROOF_VALID.",
+    "Owning Issue #671 fresh-read closed/completed at 2026-09-26T01:08:39Z.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36207421616."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof for #671 at a2c81648be02c3b4710b6a80893e9cb890c95537; if GREEN, close/read back Issue #671, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED after trusted finalization run 36207369221 and Issue #671 closed/completed readback."
 }
