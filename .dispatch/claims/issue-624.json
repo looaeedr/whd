@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "head_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T12:58:30Z",
+  "head_sha": "477dbbae1cfc0f6c56e5e6d41fc293933b60eb24",
+  "phase": "RED",
+  "last_update": "2026-09-26T13:13:44Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -30,7 +30,7 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run fresh P7-R-A deletion-test characterization for the remaining fold_designer_bridge compatibility/deep-owner cluster, then remove only NO_CALLER/SUPERSEDED ownership while preserving Part Editor transaction ordering, scheduler ownership, bootstrap/lifecycle/install-order, and legacy host compatibility.",
+  "next_action": "Create/run exact A7 focused P7-R-A RED at 477dbbae1cfc0f6c56e5e6d41fc293933b60eb24; accept RED only if the ten fresh NO_CALLER helpers remain while protected Part Editor ordering, command-router scheduler ownership, lifecycle/install-order, and no-reverse-import assertions stay GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -40,5 +40,26 @@
     "Durable predecessor handoff comment 5846461072 binds #624 to accepted #623 head 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d.",
     "SCHEDULER_LANE authority continues from explicit /排程A; owner scheduler.6ab13fa557fc8191935c671214b865e2.",
     "Active Phase 7 chain preserves frozen X base b61db24e4428100b7e7d627ae946a04f93ca0f8b and does not chase current production X."
-  ]
+  ],
+  "red_commit": {
+    "head_sha": "477dbbae1cfc0f6c56e5e6d41fc293933b60eb24",
+    "changed_files": [
+      "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
+      "docs/superpowers/checkpoints/issue624-a7-bridge-residual-census.md"
+    ],
+    "guard_run_id": 36244350592,
+    "guard_request_comment_id": 5846545396,
+    "guard_result_comment_id": 5846547052
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36244451198,
+    "request_comment_id": 5846557170,
+    "result_comment_id": 5846558476,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
+    "consumed": true,
+    "mutation": "post-P7-R-A RED atomic claim+checkpoint reconciliation to 477dbbae1cfc0f6c56e5e6d41fc293933b60eb24"
+  }
 }
