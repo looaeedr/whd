@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "764",
   "branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
-  "head_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "head_sha": "563afee89aa7b92eaabba5ad1abe7cd862b27a3b",
   "state": "RUNNING",
-  "next_action": "Create guarded governance branch and establish RED contract proving real recurring A/B invocations are covered by 排程模擬 and generated scheduler prompts must fresh-read it every wake.",
+  "next_action": "Run focused RED contract tests at exact head 563afee89aa7b92eaabba5ad1abe7cd862b27a3b and confirm the new recurring scheduled invocation/every-wake Skill assertions fail before editing either Skill.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,9 @@
   "evidence": [
     "排程模擬 already contains READY_WORK_CENSUS_V1 but frontmatter/Trigger is interactive-only.",
     "寫排程 already propagates census tokens but does not require every-wake 排程模擬 loading.",
-    "Issue #762 currently owns 派工 changes, so #764 excludes 派工."
+    "Issue #762 currently owns 派工 changes, so #764 excludes 派工.",
+    "RED contract test commit=563afee89aa7b92eaabba5ad1abe7cd862b27a3b",
+    "pair reconciliation authorized by Guard run=36275257470"
   ],
   "master_issue": null,
   "chain_state": "NONE",

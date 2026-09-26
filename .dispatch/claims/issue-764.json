@@ -9,15 +9,15 @@
   "work_branch": "governance/issue764-recurring-scheduler-skill-census-20260927",
   "claimed_at": "2026-09-26T22:03:07Z",
   "base_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
-  "head_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+  "head_sha": "563afee89aa7b92eaabba5ad1abe7cd862b27a3b",
   "phase": "CLAIMED",
-  "last_update": "2026-09-26T22:03:07Z",
+  "last_update": "2026-09-26T22:08:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create guarded governance branch, establish RED contract for recurring scheduled invocation Skill loading, then minimally align 排程模擬 and 寫排程 and run focused contract GREEN.",
+  "next_action": "Run focused RED contract tests at exact head 563afee89aa7b92eaabba5ad1abe7cd862b27a3b; confirm the two new recurring-scheduler assertions fail against unchanged Skills, then minimally update 排程模擬 and 寫排程.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-764.json",
   "evidence": [
@@ -27,6 +27,8 @@
     "authorized_scope=Issue #764: 排程模擬 + 寫排程 + scheduler no-work census contract test only",
     "prohibited_scope=no 派工 mutation because live #762 owns overlapping 派工 scope; no unrelated implementation work; no cadence/owner/takeover changes",
     "resume_authority=NONE",
-    "fresh X base=0374e9d35bcd8b02ceb6486002c203347a45b19b"
+    "fresh X base=0374e9d35bcd8b02ceb6486002c203347a45b19b",
+    "RED contract test commit=563afee89aa7b92eaabba5ad1abe7cd862b27a3b",
+    "post-commit reconciliation Guard run=36275257470 request=5850318511"
   ]
 }
