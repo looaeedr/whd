@@ -30,13 +30,15 @@
     "Closure delegated to Issue Closure owner #693.",
     "Trusted Remote Finalization run 36263806885 GREEN; checkpoint fingerprint bf403e6ac58ed29398b08ed0fe652c7199b791886737a4424f811dc688db3f8b; artifact 10912914282.",
     "Issue #692 remote close readback: state=closed, state_reason=completed, closed_at=2026-09-26T18:50:15Z.",
-    "Cleanup handoff comment 5848902969 delegates terminal-child temporary QA cleanup to #693 Combined Acceptance."
+    "Cleanup handoff comment 5848902969 delegates terminal-child temporary QA cleanup to #693 Combined Acceptance.",
+    "Release handoff durable commit 6e1096f665a8407b605486c1ed46826968731d43.",
+    "Final target: Issue #692 closed/completed + checkpoint TERMINAL_SUCCESS/CLOSED + claim RELEASED; chain NEXT_CHILD_EXECUTABLE -> #693."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist final checkpoint CLOSED + claim RELEASED, verify durable readback, then resume #693 Combined Acceptance; #693 must clean/integrate #692 temporary QA artifact before its own final closure."
+  "master_issue": "693",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "693",
+  "chain_next_action": "Resume #693 Combined Acceptance / durable writeback / chain closure, including cleanup of #692 temporary QA workflow artifact before #693 final closure.",
+  "chain_reason": "#692 governance parity acceptance is closed/released; #693 is the designated Combined Acceptance and chain closure owner.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
