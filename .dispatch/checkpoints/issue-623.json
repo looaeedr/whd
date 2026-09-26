@@ -37,13 +37,15 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36242508096.",
     "Trusted finalization run 36242569687 terminal SUCCESS with FINALIZATION_PROOF_VALID; artifact 10906172510; request comment 5846335300.",
     "Issue #623 fresh-read closed/completed at 2026-09-26T12:56:08Z.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36243520311."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36243520311.",
+    "Successor #624 durable predecessor handoff comment 5846461072 created before final atomic release.",
+    "Final atomic closure/release/handoff authorized by Remote Guard run 36243583641."
   ],
   "master_issue": "627",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "624",
   "chain_next_action": "Activate/claim #624 Phase 7 A7 on accepted #623 head 99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d and execute approved P7-R-A residual fold_designer_bridge owner reduction; preserve the Phase 7 frozen work-order lineage and do not chase current production X.",
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED + successor #624 handoff; fresh-read final coordination state."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

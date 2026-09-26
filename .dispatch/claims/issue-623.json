@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T11:41:00Z",
   "base_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
   "head_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T12:56:45Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T12:58:02Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
@@ -39,7 +39,7 @@
     "result": "111 passed, 2 warnings in 7.95s",
     "scope": "A6 focused + manufacturing/collision/backprojection/API/resolved export/DXF acceptance"
   },
-  "next_action": "Atomically finalize #623 coordination: checkpoint CLOSED + claim RELEASED + preserve NEXT_CHILD_EXECUTABLE -> #624.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-623.json",
   "evidence": [
@@ -60,14 +60,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36243520311,
-    "request_comment_id": 5846448716,
-    "result_comment_id": 5846450156,
+    "run_id": 36243583641,
+    "request_comment_id": 5846456753,
+    "result_comment_id": 5846458220,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
     "consumed": true,
-    "mutation": "advance #623 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after closed/completed readback"
+    "mutation": "atomic final closure: checkpoint CLOSED + claim RELEASED + #624 handoff"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue623-a6-explicit-joint-pipeline.yml",
@@ -135,5 +135,22 @@
     "state": "closed",
     "state_reason": "completed",
     "closed_at": "2026-09-26T12:56:08Z"
+  },
+  "release_handoff": {
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T12:56:08Z"
+    },
+    "finalization_run_id": 36242569687,
+    "finalization_artifact_id": 10906172510,
+    "successor_issue": 624,
+    "successor_state": "open",
+    "master_issue": 627,
+    "handoff_comment_id": 5846461072,
+    "accepted_head_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
+    "chain_state": "NEXT_CHILD_EXECUTABLE",
+    "production_target": "cleanup/2d-3d-sync",
+    "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b"
   }
 }
