@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "749",
+  "branch": "governance/issue749-remote-guard-smoke",
+  "head_sha": "2a43b89fd15e504c2bbbca9b2db7797c75768724",
+  "state": "RUNNING",
+  "next_action": "Create the disposable no-op smoke branch from exact trusted main, then perform a guarded fixture-only coordination write that backdates last_update solely for #737 stale-takeover smoke.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Disposable #737 post-deploy trusted-main smoke fixture.",
+    "No product mutation; fixture exists only to exercise trusted Remote Guard interactive takeover authority handoff."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
