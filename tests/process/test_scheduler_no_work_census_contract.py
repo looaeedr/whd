@@ -54,3 +54,24 @@ def test_no_work_census_is_provenance_not_new_execution_authority() -> None:
         assert "不建立 execution authority" in section
         assert "lane owner" in section
         assert "claim ownership" in section
+
+
+def test_scheduler_simulation_covers_real_recurring_and_interactive_entrypoints() -> None:
+    text = _read(SCHED_SIM)
+    assert "REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1" in text
+    section = text.split("REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1", 1)[1]
+    assert "00 / 20 / 40" in section
+    assert "B15 / B45" in section
+    assert "actual_invocation_source=scheduler" in section
+    assert "actual_invocation_source=chatgpt_interactive" in section
+    assert "SCHEDULER_LANE" in section
+
+
+def test_scheduler_authoring_requires_scheduler_simulation_every_wake() -> None:
+    text = _read(WRITE_SCHED)
+    assert "SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1" in text
+    section = text.split("SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1", 1)[1]
+    assert ".agents/skills/engineering/排程模擬/SKILL.md" in section
+    assert "每次 wake" in section
+    assert "不論" in section
+    assert "handoff" in section
