@@ -11,7 +11,7 @@
   "base_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
   "head_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T12:37:35Z",
+  "last_update": "2026-09-26T12:56:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
@@ -39,7 +39,7 @@
     "result": "111 passed, 2 warnings in 7.95s",
     "scope": "A6 focused + manufacturing/collision/backprojection/API/resolved export/DXF acceptance"
   },
-  "next_action": "Mint trusted finalization proof bound to the exact #623 terminal checkpoint, close Issue #623 as completed, fresh-read closed/completed, then atomically release claim while preserving NEXT_CHILD_EXECUTABLE -> #624.",
+  "next_action": "Atomically finalize #623 coordination: checkpoint CLOSED + claim RELEASED + preserve NEXT_CHILD_EXECUTABLE -> #624.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-623.json",
   "evidence": [
@@ -60,14 +60,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36242508096,
-    "request_comment_id": 5846327762,
-    "result_comment_id": 5846328867,
+    "run_id": 36243520311,
+    "request_comment_id": 5846448716,
+    "result_comment_id": 5846450156,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
     "consumed": true,
-    "mutation": "advance #623 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #623 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after closed/completed readback"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue623-a6-explicit-joint-pipeline.yml",
@@ -120,5 +120,20 @@
     "result": "ACCEPTED",
     "dt_decision": "EXTRACT_TO_DEEP_OWNER",
     "artifact_commit_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d"
+  },
+  "finalization": {
+    "request_comment_id": 5846335300,
+    "run_id": 36242569687,
+    "artifact_id": 10906172510,
+    "checkpoint_blob_sha": "3f7d4a7ee498db8f82d311db8d2271b1d41e836b",
+    "checkpoint_fingerprint": "3c004b754509797092da84d4f19a7b1dd9de192d55fb733bb01a09f77b0b32df",
+    "claim_blob_sha": "23020ee59ad4ca6ac79d0e88c5c5aead1c093eea",
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID"
+  },
+  "issue_close_readback": {
+    "state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-26T12:56:08Z"
   }
 }
