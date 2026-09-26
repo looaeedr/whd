@@ -3,8 +3,8 @@
   "issue": "737",
   "branch": "governance/issue737-remote-guard-authority-handoff-r2",
   "head_sha": "535ae4160e6937bccc85aa73402c3f5efafc11b4",
-  "state": "RUNNING",
-  "next_action": "All #737 acceptance is GREEN. Terminalize on exact accepted r2 owner identity, then run canonical finalization/close/release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -29,13 +29,15 @@
     "Run 36254769186 used old main and is excluded from post-deploy smoke acceptance.",
     "Post-deploy trusted-main smoke helper #749 closed/released cleanly.",
     "Run 36257298364 / receipt 5848102610 GREEN proves deployed authority handoff reaches execution_claim_guard.py.",
-    "Finalization owner branch normalized to accepted r2 branch at 535ae4160e6937bccc85aa73402c3f5efafc11b4."
+    "Finalization owner branch normalized to accepted r2 branch at 535ae4160e6937bccc85aa73402c3f5efafc11b4.",
+    "Post-deploy trusted-main live smoke accepted: helper #749 closed/completed, checkpoint CLOSED, claim RELEASED; Remote Guard run 36257298364 result GREEN reason EXECUTION_CLAIM_GUARD_GREEN on trusted main 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Closure ownership promoted from legacy original branch to accepted delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at 535ae4160e6937bccc85aa73402c3f5efafc11b4."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
