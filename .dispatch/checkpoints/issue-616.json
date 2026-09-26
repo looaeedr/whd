@@ -3,9 +3,9 @@
   "issue": "616",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "469d4340461bd2ab4967590fdf669c6fbf219c99",
-  "state": "WAITING_REMOTE",
-  "next_action": "Lock exact GitHub Actions run 36202612565 at head_sha 469d4340461bd2ab4967590fdf669c6fbf219c99 to terminal. Accept RED only if the exact 金庫型→受電箱 path executes and fails on the UI-R3 visible-scene diagnostic contract, never on environment/setup; then instrument the authoritative Final Scene requested_draw commit seam without changing runtime behavior.",
-  "run_id": 36202612565,
+  "state": "RUNNING",
+  "next_action": "Instrument the authoritative Final Scene requested_draw visible-commit seam with ordered diagnostic records only, without changing runtime behavior; then rerun the exact #616 Xvfb diagnostic to identify the first bad visible commit.",
+  "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -17,7 +17,10 @@
     "B3 is diagnostic-only: identify the exact first bad visible commit; do not apply the B4 production behavior fix here.",
     "UI-R3 diagnostic RED + focused workflow committed at 469d4340461bd2ab4967590fdf669c6fbf219c99 under Remote Guard run 36202552603.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36202629007.",
-    "Exact UI-R3 Xvfb run 36202612565 created for head 469d4340461bd2ab4967590fdf669c6fbf219c99."
+    "Exact UI-R3 Xvfb run 36202612565 created for head 469d4340461bd2ab4967590fdf669c6fbf219c99.",
+    "Exact UI-R3 run 36202612565 completed FAILURE; environment/setup GREEN, test body executed, diagnostic seam missing ordered records.",
+    "Artifact 10892532760 uploaded; next step is instrumentation-only at the authoritative Final Scene requested_draw seam, with no behavior fix in B3.",
+    "Remote Guard run 36203260623 GREEN authorizes this terminal RED classification pair write."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
