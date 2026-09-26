@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "769",
   "branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
-  "head_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
+  "head_sha": "1a8a3a815a1c6ec926d4c809951583faaec1f93c",
   "state": "RUNNING",
-  "next_action": "Write and run the focused RED regression proving terminal/CLOSED scheduler turn exit currently passes without a READY_WORK_CENSUS machine proof.",
+  "next_action": "Implement the READY_WORK_CENSUS scheduler turn-exit machine gate in the canonical continuity controller with focused GREEN/negative tests, then wire the trusted turn-exit transport and required executable-continuity/AI writeback without touching #764-owned scheduler Skill files.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,10 @@
     "Issue #769 created as machine consumer gate; #764 remains census producer owner",
     "production target cleanup/2d-3d-sync exact base 90a4939328c4b863e88f9272f4dfa3d9a25743a6",
     "fresh compare proves work branch exists and is identical to base; branch-create is complete",
-    "Issue #764 fresh durable state is terminal CLOSED+RELEASED; PR #770 merged census producer contract into cleanup"
+    "Issue #764 fresh durable state is terminal CLOSED+RELEASED; PR #770 merged census producer contract into cleanup",
+    "Focused RED commit 1a8a3a815a1c6ec926d4c809951583faaec1f93c adds only test_issue769_terminal_scheduler_census_exit_gate.py.",
+    "Fresh RED execution: 1 failed / 0 passed because terminal/CLOSED scheduler exit did not require READY_WORK_CENSUS.",
+    "Durable local Guard proof comment 5850997668 + canonical post-commit reconciliation Guard GREEN; checkpoint reconciled to RED H1."
   ],
   "master_issue": null,
   "chain_state": "NONE",
