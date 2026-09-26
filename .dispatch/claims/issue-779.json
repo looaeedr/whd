@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:10:30Z",
   "base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "head_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T23:10:30Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-26T23:18:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "expected_parent_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
@@ -21,7 +21,7 @@
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create the guarded integration branch from exact current X, synthesize a two-parent merge result preserving current-X authority-map content plus Phase 7 writeback, run Integration Acceptance/post-integration sentinel, then merge non-force to X and hand exact production readback to #626.",
+  "next_action": "Synthesize the guarded two-parent integration merge from current X a7f4d6f586cc338878531d36ed0a8baa12125e54 and sealed Phase 7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, resolving only AI09 by preserving current-X authority content and appending the Phase 7 writeback exactly once; then run integration acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-779.json",
   "evidence": [
@@ -29,6 +29,9 @@
     "CURRENT X governance requires a separate integration/hotfix task rather than merging/rebasing newer X into the sealed chain.",
     "Current X head at helper creation: a7f4d6f586cc338878531d36ed0a8baa12125e54.",
     "Sealed Phase 7 chain head: ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6.",
-    "git merge-tree classified exactly one conflict: AI Library CURRENT authority map; no production/test-code conflict."
+    "git merge-tree classified exactly one conflict: AI Library CURRENT authority map; no production/test-code conflict.",
+    "Branch-create Guard 36278924167 GREEN.",
+    "Integration branch remote readback exists at exact current-X head a7f4d6f586cc338878531d36ed0a8baa12125e54.",
+    "Same-head reactivate rotates durable identity after branch-create receipt consumption before integration commit Guard."
   ]
 }
