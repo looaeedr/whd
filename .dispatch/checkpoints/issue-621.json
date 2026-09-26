@@ -4,7 +4,7 @@
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "head_sha": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
   "state": "RUNNING",
-  "next_action": "Run #621 P7-R-E exact-head combined local regression at 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f covering structural anti-regrowth, generic collision/backprojection, Divider relief, EndCap world relief, manufacturing dependency, Certified Registry and physical/joint acceptance; if GREEN, dispatch exact-head remote QA and continue through cleanup/terminal closure.",
+  "next_action": "Dispatch exact-head #621 A5 remote QA for TESTED_SHA 5f363ed246f2edf89e0cebad38f6d0d8ad24f33f using a one-shot workflow that explicitly checks out TESTED_SHA; then consume orchestration drift, verify remote GREEN, clean workflow, and continue terminal closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
