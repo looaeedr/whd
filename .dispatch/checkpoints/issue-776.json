@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "776",
+  "branch": "trusted/issue776-guard-scope-grouping-main-20260927",
+  "head_sha": "33503143a8fbcc4f787bb2783e9e11f9c3b1ea74",
+  "state": "RUNNING",
+  "next_action": "Create guarded helper branch from trusted main and deploy exact accepted #774 source.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #774/#768 requires trusted-main parity before #772 final release retry."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
