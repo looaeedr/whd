@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "688",
   "branch": "work/issue688-ticket-closure-owner-20260926",
-  "head_sha": "d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8",
+  "head_sha": "965d9fde4563eab41d1dd54868d403ff4dd40f5f",
   "state": "RUNNING",
-  "next_action": "execute tests/process/test_issue688_ticket_closure_owner_contract.py at RED head d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8 and record intended RED-STOP-14 failure before production implementation",
+  "next_action": "implement RED-STOP-14 minimum machine validator plus generic Ticket Template projection, then consume automatic focused QA GREEN and reconcile",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,10 @@
     "FROZEN_X_BASE_SHA=87eb35b3f5ae5211673c941cb56c4c4343fa5405.",
     "Scheduler A took over stale #688 under Remote Guard run 36225878825.",
     "RED-STOP-14 behavior test commit d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8 was authorized by Remote Guard run 36226065907.",
-    "Post-RED claim+checkpoint reconciliation was authorized by Remote Guard run 36226128723."
+    "Post-RED claim+checkpoint reconciliation was authorized by Remote Guard run 36226128723.",
+    "Temporary focused QA workflow commit 965d9fde4563eab41d1dd54868d403ff4dd40f5f was authorized by Remote Guard run 36226263715.",
+    "RED-STOP-14 exact focused run 36226294545 at 965d9fde4563eab41d1dd54868d403ff4dd40f5f produced intended 4 FAIL / 0 collection error.",
+    "QA-head claim+checkpoint reconciliation was authorized by Remote Guard run 36226356222."
   ],
   "master_issue": null,
   "chain_state": "NONE",
