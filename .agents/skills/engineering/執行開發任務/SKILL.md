@@ -10,6 +10,18 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+
+### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
+
+本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
+
+- fresh runtime、scheduled/work-slot re-entry、stream/connection interruption、`Resume stream unavailable`，或使用者明確要求 **`GitHub durable state重新接`** 時，任何 mutation / waiting / blocker / completion 判定前先 fresh reconstruction。
+- 至少 fresh-read owning Issue、claim blob+payload、checkpoint blob+payload、work branch HEAD、production target HEAD，以及 durable state 指向的 exact PR/run/Guard/closure/chain evidence。
+- reconstruction 完成前**不得靠聊天記憶**補 owner、HEAD、run_id、closure state 或 next_action；不得宣告無工作、等待、卡住或完成。
+- reconstruction 得到 executable non-terminal state 後，同一 invocation 立即沿 canonical **exact next_action** 繼續；「已重新接回」只是 checkpoint observation，不是停止點。
+- 本入口只 bridge canonical gate，不自行建立第二套 durable parser 或較寬的 stop condition。
+
+
 ## EXECUTION_INTENT_ROUTING_V1
 
 本 Skill 是 WHD execution intent 的 canonical routing authority。任何 claim / implementation branch / successor continuation 前，先把本輪 intent 分成且只分成一種：

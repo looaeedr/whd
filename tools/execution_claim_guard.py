@@ -311,9 +311,30 @@ def durable_coord_write_readbacks_from_live_commits(
     repository writes and ambiguous multiple matches remain fail-closed.
     """
 
-    commits = [item for item in live_coord_commits if isinstance(item, Mapping)]
+    receipt_list = [item for item in receipts if isinstance(item, Mapping)]
+
+    # GitHub list endpoints can surface the same commit through multiple path/page
+    # observations. Ambiguity is about distinct durable mutations, not duplicate
+    # observations of one commit, so normalize by commit SHA before matching.
+    commits_by_sha: dict[str, Mapping[str, object]] = {}
+    for item in live_coord_commits:
+        if not isinstance(item, Mapping):
+            continue
+        sha = str(item.get("sha") or "")
+        if _SHA_RE.fullmatch(sha):
+            commits_by_sha.setdefault(sha, item)
+    commits = list(commits_by_sha.values())
+
+    write_receipts = [
+        item
+        for item in receipt_list
+        if item.get("schema") == "WHD_REMOTE_GUARD_RECEIPT_V1"
+        and item.get("result") == "GREEN"
+        and str(item.get("action") or "") == "write"
+    ]
+
     readbacks: list[dict[str, object]] = []
-    for receipt in receipts:
+    for receipt in receipt_list:
         if receipt.get("schema") != "WHD_REMOTE_GUARD_RECEIPT_V1":
             continue
         if receipt.get("result") != "GREEN":
@@ -346,6 +367,44 @@ def durable_coord_write_readbacks_from_live_commits(
 
         issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
         expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+
+        # A later GREEN coordination-write receipt on the same exact owner lineage
+        # starts a new transaction. Seal the historical receipt at that boundary so
+        # later legal closure/reconciliation writes cannot retroactively make an
+        # already-consumed receipt ambiguous. True duplicate commits before the next
+        # transaction boundary still fail closed below.
+        lineage = (
+            issue,
+            worker,
+            executor_source,
+            branch,
+            head_sha,
+            str(receipt.get("claim_blob_sha") or ""),
+        )
+        later_boundaries: list[datetime] = []
+        for candidate in write_receipts:
+            if candidate is receipt:
+                continue
+            candidate_lineage = (
+                candidate.get("issue"),
+                str(candidate.get("worker") or ""),
+                str(candidate.get("executor_source") or ""),
+                str(candidate.get("branch") or ""),
+                str(candidate.get("head_sha") or ""),
+                str(candidate.get("claim_blob_sha") or ""),
+            )
+            if candidate_lineage != lineage:
+                continue
+            try:
+                candidate_issued = _guard_tx_timestamp(
+                    candidate.get("issued_at"), "issued_at"
+                )
+            except ExecutionClaimError:
+                continue
+            if candidate_issued > issued_at:
+                later_boundaries.append(candidate_issued)
+        next_transaction_at = min(later_boundaries) if later_boundaries else None
+
         matches: list[tuple[Mapping[str, object], datetime]] = []
         for commit in commits:
             commit_sha = str(commit.get("sha") or "")
@@ -358,6 +417,8 @@ def durable_coord_write_readbacks_from_live_commits(
             except ExecutionClaimError:
                 continue
             if not (issued_at <= committed_at <= expires_at):
+                continue
+            if next_transaction_at is not None and committed_at >= next_transaction_at:
                 continue
 
             raw_files = commit.get("changed_files")

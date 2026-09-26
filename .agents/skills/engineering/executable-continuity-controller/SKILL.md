@@ -425,6 +425,42 @@ fresh claim/blob + live branch HEAD/commit time + exact remote run
 
 Machine behavior authority：`tests/process/test_issue540_stale_claim_takeover.py`。9m59s 必須 wait，10m00s 才可 `EXECUTOR_STUCK`；active exact run 永遠先阻擋 takeover。
 
+
+## GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1
+
+`GitHub durable state重新接` 是 runtime re-entry / stream-loss recovery 的 **machine execution hard gate**，不是聊天摘要，也不是 optional status check。
+
+下列任一事件發生時，在任何 resume、mutation、waiting/blocker/completion 判定之前都必須先執行本 gate：
+
+- fresh ChatGPT runtime / scheduled wake / work-slot wake；
+- `Resume stream unavailable`、connection/stream interruption、response hard-cut；
+- 使用者明確要求「從 GitHub durable state重新接」；
+- 對話上下文、聊天記憶、local checkpoint 與 GitHub durable evidence 可能 stale；
+- owning work 看似停在 PR merge、QA terminal、finalization、closure/release 或 successor handoff 中間。
+
+固定 fresh reconstruction set 至少包含：
+
+1. owning Issue：`state + state_reason + authority/dependency/closure owner`；
+2. shared claim：exact path、**claim blob SHA**、worker/executor/slot/branch/head/phase/next_action；
+3. checkpoint：exact path、**checkpoint blob SHA**、state、closure_state、chain_state、run_id、exact next_action；
+4. exact **work branch HEAD** 與 claim/checkpoint owner identity parity；
+5. exact **production target HEAD** 與 integration/readback relation；
+6. checkpoint/claim 指向 PR 或 remote run 時，fresh-read exact PR / Actions run terminal state；
+7. Remote Guard transaction：fresh classify pending / consumed / reconcile-only / expired / ambiguous；
+8. closure/chain handoff：fresh resolve exact `next_issue / closure_next_action / chain_next_action`。
+
+硬規則：
+
+- reconstruction 完成前，**不得宣告 WAITING**、**不得宣告 BLOCKED**、**不得宣告 COMPLETE**，也不得用聊天文字推斷 owner/next step。
+- **不得靠聊天記憶**、先前 assistant 回報、local branch 名稱、舊 stdout 或舊 run snapshot 補缺失欄位。
+- GitHub durable evidence 與聊天記憶衝突時，fresh GitHub durable state 為 execution authority；聊天只作 provenance。
+- stale snapshot / stale next_action 只能觸發 reconcile；不得成為停止理由。
+- reconstruction 得到 non-terminal executable action 後，必須在同一 invocation **立即執行 exact next_action**；不得只回報「已重新接回」後 return。
+- reconstruction 得到 `NEXT_CHILD_EXECUTABLE` 時立即沿 canonical successor handoff；得到 pending closure 時立即沿 closure transaction；得到 active exact run 時鎖 exact run/head 繼續 poll。
+- 只有 genuine external capability/authority blocker、explicit USER_STOPPED、或 evidence-backed terminal + closure/chain complete 才能形成合法 turn boundary。
+
+本 gate 不建立第二套 checkpoint schema；canonical state parser/transition 仍由本 Skill + `tools/continuity_controller.py` 擁有。各入口 Skill 只能 bridge，不得複製較鬆版本。
+
 ## CHATGPT_SCHEDULED_REENTRY_V1
 
 WHD 的 primary autonomous resume executor 是 **ChatGPT scheduled re-entry**。Hourly ChatGPT Automation 只負責重新喚醒新的 ChatGPT Runtime；被喚醒後仍必須回到本 Skill 與 `tools/continuity_controller.py` 的 canonical durable state。
