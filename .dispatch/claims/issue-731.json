@@ -1,0 +1,27 @@
+{
+  "issue": 731,
+  "issue_url": "https://github.com/looaeedr/whd/issues/731",
+  "worker": "chatgpt.sol260926.issue731.autoconsume1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chatgpt.sol260926.issue731.autoconsume1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue731-branch-create-auto-consume-20260926",
+  "claimed_at": "2026-09-26T15:04:00Z",
+  "base_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
+  "head_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T15:04:00Z",
+  "production_target": "main",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Establish RED for exact branch-create GREEN auto-consume from live branch readback, then implement trusted Remote Guard recovery without relaxing commit/write/pr-write reconciliation.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-731.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user explicitly directed fixing the repeated Guard consume hole before resuming #691.",
+    "Execution intent: governance repair #731 only.",
+    "Baseline main HEAD: 407766cba2405b4f4b6a6cc014b0ac27180a7f24."
+  ]
+}

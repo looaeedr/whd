@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "731",
+  "branch": "governance/issue731-branch-create-auto-consume-20260926",
+  "head_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
+  "state": "RUNNING",
+  "next_action": "Establish RED for exact branch-create GREEN auto-consume from live branch readback, then implement trusted Remote Guard recovery without relaxing commit/write/pr-write reconciliation.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user directive 2026-09-26 to fix repeated branch-create GREEN consume stall.",
+    "Baseline main HEAD: 407766cba2405b4f4b6a6cc014b0ac27180a7f24."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
