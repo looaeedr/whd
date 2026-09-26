@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "680",
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
-  "head_sha": "cb0c6ada73d4bee15572c42220f03993a93554fc",
+  "head_sha": "3b5669765c5f1ed9af6a7899af22aee516aa8a85",
   "state": "RUNNING",
-  "next_action": "Run focused RED characterization for planned handoff sender + Scheduler A/B receiver on the existing exact branch, then implement only the accepted WI-2 scope without changing recurring cadence.",
+  "next_action": "Obtain qa-dispatch Guard for .github/workflows/qa-issue680-planned-handoff.yml at exact head 3b5669765c5f1ed9af6a7899af22aee516aa8a85, dispatch the focused RED characterization, and lock the exact run to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "Existing branch exact HEAD cb0c6ada73d4bee15572c42220f03993a93554fc; branch-create step already materially satisfied.",
     "Remote Guard run 36247597276 GREEN; pair reconciled to focused RED characterization.",
     "Run 36248639696 exposed invalid checkpoint serialization before any implementation commit.",
-    "Same-lane recovery canonicalizes checkpoint fields without changing issue/branch/head/state/next_action authority."
+    "Same-lane recovery canonicalizes checkpoint fields without changing issue/branch/head/state/next_action authority.",
+    "RED characterization + temporary QA workflow committed at 3b5669765c5f1ed9af6a7899af22aee516aa8a85 under Guard run 36249418541.",
+    "H0→H1 reconciliation Guard run 36249598080 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
