@@ -97,6 +97,22 @@ whd_schema: WHD_DOC_META_V1
 
 施工型 scheduler prompt 至少必須清楚包含以下語意；標題可調整，但責任不能刪：
 
+### 4.0 REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+所有新建或修改的 WHD scheduler prompt 都必須要求：每次 wake fresh-reconstruct `lane owner + active Issue + exact claim worker` 後，任何 user-visible status、progress、heartbeat 或 CHECKPOINT 回報，在全域 Skill announcement gate 之後，**該回報區塊的第一行**固定輸出：
+
+```text
+【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
+```
+
+- scheduler lane 已持有 active Issue 時，`handler` 使用可辨識的 `排程A / 排程B`，`owner` 必須是 fresh-read exact lane owner / claim worker，`issue` 必須是 exact active Issue。
+- 尚未選出或尚未 claim 工單時，`issue=NONE`；legacy identity 無法建立 explicit binding 時用 `UNBOUND`，不得猜 Issue。
+- 發現 foreign owner 時不得把目前 scheduler lane 冒充處理者；回報 exact foreign owner，並在後續 detail 保留 requested lane / entrypoint。
+- replacement prompt 必須保留 `REPORT_HANDLER_IDENTITY_PREFIX_V1` 與上述模板；post-update readback 要驗證兩者存在，**不得刪除**來縮短 prompt。
+- prefix 只是 user-visible provenance，**不建立 execution authority**、不改 ownership、也不取代 claim / Guard / liveness / continuity gate。
+
+
+
 ### 4.1 SKILL_FIRST_HARD_GATE
 
 在任何 Guard、claim、branch、PR、workflow、Issue、repository mutation、takeover、reconciliation 前：
