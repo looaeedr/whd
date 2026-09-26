@@ -34,13 +34,16 @@
     "Closing-head reconciliation Guard 36274224920 GREEN.",
     "A8 acceptance complete: KEEP_CURRENT_BOUNDARY, focused 37 passed / 6 skipped, Xvfb 23 passed.",
     "Terminalization write Guard 36274352806 GREEN.",
-    "Entering ISSUE_CLOSE_PENDING with successor #626."
+    "Entering ISSUE_CLOSE_PENDING with successor #626.",
+    "Trusted finalization 36274462383 SUCCESS.",
+    "Issue #625 read back closed/completed.",
+    "Release-handoff transition Guard 36274510527 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint, close/read back #625, then advance release handoff and atomically persist CLOSED + RELEASED + successor #626."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED + durable predecessor handoff to successor #626."
 }
