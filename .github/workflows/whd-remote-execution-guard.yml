@@ -553,6 +553,9 @@ jobs:
                 --head-sha "$RG_TESTED_TARGET_SHA"
                 --takeover-evidence /tmp/stale-takeover-decision.json
               )
+              if [ "$RG_EXECUTOR_SOURCE" = "chat" ]; then
+                guard_args+=(--user-authority-evidence /tmp/user-authority.json)
+              fi
             else
               guard_args+=(--head-sha "$RG_HEAD_SHA")
             fi
