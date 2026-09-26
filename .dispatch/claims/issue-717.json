@@ -9,13 +9,24 @@
   "work_branch": "work/issue717-scheduler-slot-handoff-20260926",
   "claimed_at": "2026-09-26T08:56:09Z",
   "base_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
-  "head_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T08:56:09Z",
+  "head_sha": "557e6b10bd89a5b2aede13e6cf481264e200e976",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T09:03:06Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Create branch, add RED contract tests for scheduler work-slot handoff receiver semantics, then minimally update 排程模擬 and validate; after merge synchronize live A/B prompts without changing cadence, owner, timing mode, or enabled state.",
+  "next_action": "Open PR for exact GREEN head 557e6b10bd89a5b2aede13e6cf481264e200e976, run remote governance QA, merge, then synchronize live A/B prompts without changing cadence/lane owner/timing/enabled; close/release #717 with successor_activated=false.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-717.json",
-  "execution_intent": "UPDATE_ONLY"
+  "execution_intent": "UPDATE_ONLY",
+  "red_evidence": {
+    "issue_comment_id": 5844797077,
+    "result": "5 existing PASS + 5 intended FAIL"
+  },
+  "green_candidate": {
+    "head_sha": "557e6b10bd89a5b2aede13e6cf481264e200e976",
+    "tests": "76 passed",
+    "preflight": "GREEN",
+    "diff_check": "GREEN",
+    "scope": "2 repo files"
+  }
 }

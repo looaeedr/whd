@@ -2,19 +2,20 @@
   "version": 1,
   "issue": "717",
   "branch": "work/issue717-scheduler-slot-handoff-20260926",
-  "head_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
+  "head_sha": "557e6b10bd89a5b2aede13e6cf481264e200e976",
   "state": "RUNNING",
-  "next_action": "Create branch, add RED contract tests for scheduler work-slot handoff receiver semantics, then minimally update 排程模擬 and validate; after merge synchronize live A/B prompts without changing cadence, owner, timing mode, or enabled state.",
+  "next_action": "Open PR for exact GREEN head 557e6b10bd89a5b2aede13e6cf481264e200e976, run remote governance QA, merge, then synchronize live A/B prompts without changing cadence/lane owner/timing/enabled; close/release #717 with successor_activated=false.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "User explicitly authorized UPDATE_ONLY repair of 排程模擬 to receive durable 工作槽 planned handoff.",
-    "Scope: 排程模擬/SKILL.md + test_scheduler_simulation_skill_contract.py; live A/B prompt sync after merge only.",
-    "Phase6 Skill preflight GREEN.",
-    "No implementation Issue may be started by this update."
+    "UPDATE_ONLY: 排程模擬 work-slot handoff receiver contract only.",
+    "RED on baseline: 5 existing PASS + 5 intended FAIL.",
+    "GREEN exact head 557e6b10bd89a5b2aede13e6cf481264e200e976: 76 passed.",
+    "Final Skill preflight GREEN; git diff --check GREEN; repo scope exactly 2 files.",
+    "No tools/** executable code changed; no implementation Issue started."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
