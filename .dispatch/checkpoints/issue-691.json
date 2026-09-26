@@ -15,7 +15,9 @@
     "Blocked-by #687/#689 satisfied: both Issues closed/completed and claims RELEASED.",
     "Inherited accepted work-order HEAD: 6647ce01e1834e8c1eb8c5d15d30896187c69397.",
     "Runtime provenance: work2 continuation under #693 chain; slot_id remains UNBOUND.",
-    "Authority acquired by fresh claim activation remains pending first substantive action."
+    "Authority acquired by fresh claim activation remains pending first substantive action.",
+    "Exact branch readback: work/issue691-turn-exit-scheduler-end-20260926 exists at 6647ce01e1834e8c1eb8c5d15d30896187c69397 under branch-create Guard run 36249643634.",
+    "Authority remains AUTHORITY_ACQUIRED_PENDING_SUBSTANTIVE_ACTION; branch creation/Guard/readback are non-substantive."
   ],
   "master_issue": null,
   "chain_state": "NONE",
