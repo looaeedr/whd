@@ -253,3 +253,19 @@ Trusted Remote Guard 執行同一 `tools/stale_claim_takeover.py`；CLI 會對 p
 Guard recovery：PENDING consume canonical；MUTATION_DONE_RECONCILE_ONLY只 reconcile；EXPIRED_UNCONSUMED old receipt不可 consume、fresh reconcile後 mint fresh recovery Guard；equivalent duplicate GREEN deterministic dedupe；identity conflict fail closed。
 
 Provenance 必須保存 scheduler_lane + invocation_identity。Interactive 對稱需求為 conversation/chat identity + invocation identity 並補 heartbeat/liveness；不得因此修改 cadence、automation IDs、lane owner、recurring enabled policy。
+
+## 16. Planned handoff??? takeover
+<!-- ISSUE680_PLANNED_HANDOFF_USAGE_V1 -->
+
+? interactive executor ????????? Scheduler A/B ???? `WHD_WORK_EXECUTOR_HANDOFF_V1` + guarded `claim-handoff`????? `claim-takeover`?
+
+Sender ?? exact-bind?old worker?`to_worker=scheduler.<target-lane>`?handoff generation?current claim blob?branch?HEAD?checkpoint fingerprint?current next_action?Guard GREEN ?????? shared claim CAS?CAS ??? fresh-read??? owner ?? target scheduler?
+
+Receiver ???? wake ? `/??A` / `/??B` ?? resume ??
+1. fresh-read planned handoff + claim + checkpoint + branch HEAD?
+2. ? target lane?generation?claim blob?branch?HEAD?checkpoint fingerprint?next_action ?? exact?
+3. ? shared claim owner ??? lane?
+4. ???? checkpoint / next_action ??????? invocation ????? substantive action?
+5. **??**?? stale TTL???? stale evaluator???? mint `claim-takeover`?
+
+?????? planned handoff?? foreign owner ? canonical liveness/stale evaluator ??? stale/orphaned???? takeover recovery?handoff identity drift / readiness unverifiable ?? fail closed?

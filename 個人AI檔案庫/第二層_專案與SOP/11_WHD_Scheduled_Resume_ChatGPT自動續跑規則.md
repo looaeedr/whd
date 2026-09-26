@@ -126,3 +126,21 @@ Canonical executable owner：`.agents/skills/engineering/executable-continuity-c
 Wake-up不是 owner。每輪 fresh reconstruct，依序處理 Guard transaction、drift、delegated/helper/proof、helper dedupe、stale evaluator、Guard single-use mutation、readback、turn-exit。EXPIRED_UNCONSUMED 不得重播舊 GREEN，只能 fresh recovery Guard。
 
 Scheduler provenance 必須 lane + invocation identity。Required follow-up：interactive ChatGPT 也要 heartbeat/liveness，並保存 specific conversation/chat identity + invocation identity，避免只看到模糊 chatgpt_interactive。
+
+<!-- ISSUE680_PLANNED_HANDOFF_SCHEDULER_READINESS_V1 -->
+## Planned executor handoff vs stale takeover
+
+`WHD_WORK_EXECUTOR_HANDOFF_V1` ? **planned ownership transfer**??? stale recovery??????????? checkpoint / exact `next_action` ?? Scheduler A/B ?????? canonical `claim-handoff` transaction ? shared claim owner CAS ? exact target lane???? old worker?target scheduler worker?handoff generation?claim blob?branch?HEAD?checkpoint fingerprint ? current next_action ? exact binding?
+
+Scheduler wake ?????????fresh-read planned handoff transaction + shared claim/checkpoint/branch HEAD ? ? `to_worker == scheduler.<exact-lane>`?generation?claim blob?branch?HEAD?checkpoint fingerprint?next_action ? fresh readback ?? shared claim owner ??? lane ? **?? resume ?? checkpoint / next_action**?planned handoff ??????? stale evaluator????? stale TTL????? `claim-takeover`?
+
+`claim-takeover` ?? recovery?foreign owner ? stale/orphaned?active exact run ????canonical stale evaluator ?? actionable classification?? Guard GREEN ?????planned handoff ? stale takeover ???????????
+
+Scheduler readiness evidence ? owner boundary?
+- ownership transfer semantics / claim CAS / exact identity?`??` + canonical Guard?
+- `claim-handoff` executable enforcement?`tools/execution_claim_guard.py` ? trusted Remote Guard workflow?
+- checkpoint / next_action continuity?`tools/continuity_controller.py`?
+- scheduler runtime liveness?`tools/scheduler_runtime_liveness.py`?
+- scheduler prompt / entrypoint ??? routing / receive??????? continuity state machine?
+
+?? handoff identity drift?readiness ????? post-CAS owner readback ???? fail closed?????????????? Issue open ?????

@@ -98,3 +98,16 @@ whd_schema: WHD_DOC_META_V1
 - orchestration responsibility：.agents/skills/engineering/派工/SKILL.md
 
 Prompt/Skill/AI Library不得複製第二套 state machine。Capability gap：interactive heartbeat/liveness + exact provenance（chat conversation+invocation；scheduler lane+invocation）仍需 machine owner補齊；generic executor_source 不等於已解決。
+
+<!-- ISSUE680_PLANNED_HANDOFF_AUTHORITY_MAP_V1 -->
+## #680 planned handoff authority map
+
+- planned executor handoff ownership / exact-lane routing?`.agents/skills/engineering/??/SKILL.md`
+- interactive `/??A` / `/??B` receive/resume semantics?`.agents/skills/engineering/????/SKILL.md`
+- claim-handoff machine enforcement?`tools/execution_claim_guard.py`
+- trusted remote claim-handoff parser / receipt transport?`.github/workflows/whd-remote-execution-guard.yml`
+- checkpoint fingerprint / next_action continuity?`tools/continuity_controller.py`
+- scheduler liveness evidence?`tools/scheduler_runtime_liveness.py`
+- long-term scheduled-resume architecture?`??AI???/???_???SOP/11_WHD_Scheduled_Resume_ChatGPT??????.md`
+
+Boundary?`WHD_WORK_EXECUTOR_HANDOFF_V1` / `claim-handoff` ? **planned transfer**?`claim-takeover` ? **stale/orphan recovery**?planned transfer ?? shared claim CAS ? fresh-read target-lane ownership??scheduler receiver?? resume? checkpoint / exact next_action???? stale TTL???? takeover?Prompt/Skill/AI Library ??? routing? owner boundary??????? state machine?
