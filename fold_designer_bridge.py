@@ -674,22 +674,6 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
     return adapter
 
 
-def _phase6_final_scene_set_preview_enabled(self, enabled):
-    enabled = bool(enabled)
-    self.preview_3d_enabled = enabled
-    var = getattr(self, "preview_3d_var", None)
-    if var is not None and bool(var.get()) != enabled:
-        var.set(enabled)
-    widget = self.renderer.canvas.get_tk_widget()
-    if enabled:
-        if not widget.winfo_manager():
-            widget.pack(fill="both", expand=True)
-        self.submit_update_intent("display", commit=True)
-    elif widget.winfo_manager() == "pack":
-        widget.pack_forget()
-    return enabled
-
-
 def _phase6_final_scene_adapter(self):
     composition = _phase6_composition(self)
     return composition.final_scene_adapter(
@@ -3996,15 +3980,6 @@ def _phase6_keyboard_fullscreen(self, _event=None):
 
 
 
-def _phase6_install_keyboard_shortcuts(self):
-    """Compatibility view-binding facade; command_router owns the binding loop."""
-    return install_fold_designer_keyboard_shortcuts(
-        self,
-        on_save=lambda event: _phase6_keyboard_save(self, event),
-        on_open=lambda event: _phase6_keyboard_open(self, event),
-        on_fullscreen=lambda event: _phase6_keyboard_fullscreen(self, event),
-    )
-
 def _phase6_hide_original_visual_controls(root_widget):
     for child in root_widget.winfo_children():
         try:
@@ -4032,52 +4007,6 @@ def _phase6_toggle_fullscreen(self):
     self._phase6_restore_geometry = geometry
     return self._phase6_fullscreen
 
-def _phase6_refresh_sticky_structure_tree(self):
-    """Keep the retired Structure Tree compatibility object out of operator layout.
-
-    #382 makes the assembly part/data list the only user-visible 板件/功能
-    presentation.  The legacy Treeview may still be refreshed by compatibility
-    callbacks during this migration, but it must not reserve or overlay pixels in
-    the shared input/display content area.
-    """
-    host = getattr(self, "structure_tree_host", None)
-    spacer = getattr(self, "structure_tree_spacer", None)
-    try:
-        if host is not None:
-            manager = str(host.winfo_manager() or "")
-            if manager == "place":
-                host.place_forget()
-            elif manager == "pack":
-                host.pack_forget()
-            elif manager == "grid":
-                host.grid_remove()
-        if spacer is not None:
-            manager = str(spacer.winfo_manager() or "")
-            if manager == "pack":
-                spacer.pack_forget()
-            elif manager == "grid":
-                spacer.grid_remove()
-            elif manager == "place":
-                spacer.place_forget()
-    except Exception:
-        # Presentation retirement must never block manufacturing/navigation state.
-        return
-
-
-def _phase6_commit_output_draw_stock(self):
-    """Commit the 3D STOCK toggle through the project command owner."""
-    return Phase6ProjectController.commit_output_stock(
-        bool(self.output_draw_stock_var.get()),
-        lambda key, value: _phase6_stage_setting_update(self, key, value),
-    )
-
-def _phase6_export_selected_dxf_from_3d(self):
-    """Delegate the 3D action through the project command owner."""
-    return Phase6ProjectController.route_selected_dxf_export(
-        getattr(self, "_phase6_export_selected_dxf_callback", None),
-        self.flush_pending_settings,
-    )
-
 def _phase6_workspace_shell_owner(self):
     return _phase6_composition(self).workspace_shell_owner(globals())
 
@@ -4098,42 +4027,12 @@ def _phase6_reset_initial_values(self):
         getattr(self, "_factory_defaults", {}) or {}
     )
 
-def _phase6_save_settings_context_as_defaults(self, context):
-    self.flush_pending_settings()
-    callback = self._save_defaults_callback
-    if callback is None:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set("未連接預設值儲存器")
-        return False
-    payload = _phase6_settings_transactions(self).settings_defaults_payload(context)
-    try:
-        Phase6ProjectController.route_settings_defaults(callback, payload)
-    except Exception as exc:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"儲存失敗：{exc}")
-        return False
-    if hasattr(self, "settings_status_var"):
-        self.settings_status_var.set("已儲存到 config.ini")
-    return True
-
-
-
-
-
-
-
-
-
 def _phase6_scene_query_payload_for_part(self, part_key):
     """Compatibility wrapper for the manufacturing adapter-owned payload builder."""
     return build_scene_payload_for_app(self, part_key)
 def _phase6_query_final_render_data(self):
     """Compatibility delegate to the T6 final-scene view adapter."""
     return _phase6_final_scene_adapter(self).query_final_render_data()
-
-def _phase6_active_mesh_profiles(self, material):
-    return _phase6_mesh_profiles_for_part(self, self.designer_workspace.active_part, material)
-
 
 def _phase6_mesh_profiles_for_part(self, part_key, material):
     key = str(part_key or "")
@@ -4155,16 +4054,6 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
             x_prof = [{"len": float(maxx - minx)}]
     return x_prof, y_prof
 
-
-
-def _phase6_query_assembly_render_data(self):
-    """Compatibility delegate to authoritative T6 assembly projection."""
-    return _phase6_final_scene_adapter(self).query_assembly_render_data()
-
-
-def _phase6_final_scene_view_request(self):
-    """Compatibility delegate for final-scene request construction."""
-    return _phase6_final_scene_adapter(self).build_request()
 
 
 def _phase6_on_3d_scroll(self, event):
@@ -4343,38 +4232,6 @@ def _phase6_pack_right_panel_above_canvas(self, widget):
     else:
         widget.pack(**options)
     return True
-
-
-def _phase6_toggle_parameter_panel(self):
-    self._phase6_parameters_unlocked = not bool(getattr(self, "_phase6_parameters_unlocked", False))
-    unlocked = self._phase6_parameters_unlocked
-    button = getattr(self, "parameter_lock_button", None)
-    if button is not None:
-        button.configure(text=("參數解鎖" if unlocked else "參數鎖定"))
-
-    center = getattr(self, "settings_center", None)
-    active = str(getattr(self, "active_part_key", None) or "box_body")
-    assembly_selected = str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly"
-    diagnostics = getattr(self, "assembly_diagnostics_frame", None)
-    if unlocked and assembly_selected:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and not diagnostics.winfo_manager():
-            _phase6_pack_right_panel_above_canvas(self, diagnostics)
-        _phase6_update_assembly_diagnostic_status(self)
-    elif unlocked:
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-        _phase6_invalidate_settings_page(self, active)
-        _phase6_render_settings_context(self, active)
-        if center is not None and not center.winfo_manager():
-            _phase6_pack_right_panel_above_canvas(self, center)
-    else:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    return unlocked
 
 
 def _hide_original_structure_mode_controls(root_widget):
