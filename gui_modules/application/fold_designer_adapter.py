@@ -10,7 +10,6 @@ from pathlib import Path
 import hashlib
 import json
 import tkinter as tk
-import traceback
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
@@ -1629,11 +1628,6 @@ class Phase6FoldDesignerComposition:
                     ).hexdigest(),
                     "transition_stage": transition_stage,
                     "invalid_visible_commit": transition_stage != "finalize",
-                    "call_stack": (
-                        traceback.format_stack(limit=24)
-                        if transition_stage != "finalize"
-                        else ()
-                    ),
                 }
             )
             if transition_stage == "finalize":

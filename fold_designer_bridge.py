@@ -535,7 +535,12 @@ def _phase6_settings_application_project_ui_values(
         )
         var = getattr(self, "ui_text_size_var", None)
         if var is not None and var.get() != ui_text_size_label(key):
-            var.set(ui_text_size_label(key))
+            previous_guard = bool(getattr(self, "_phase6_settings_guard", False))
+            self._phase6_settings_guard = True
+            try:
+                var.set(ui_text_size_label(key))
+            finally:
+                self._phase6_settings_guard = previous_guard
 
     self._phase6_settings_guard = True
     try:
