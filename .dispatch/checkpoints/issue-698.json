@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "698",
   "branch": "work/issue698-remote-guard-readback-parity-20260926",
-  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "head_sha": "b32526f1a21f16764c5f512ca8a0263595e67b61",
   "state": "RUNNING",
-  "next_action": "Run RED-STOP-19 focused characterization against the trusted turn-exit durable-readback producer, prove non-commit Guard actions lack producer parity, then implement A3 adapters without modifying execution_claim_guard classifier semantics.",
-  "run_id": null,
+  "next_action": "Repair the one-shot #698 QA instrumentation so pytest is available, rerun RED-STOP-19 against b32526f1..., and accept RED only if the focused assertion fails on trusted turn-exit commit-only durable-readback parity.",
+  "run_id": 36237372292,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -16,7 +16,10 @@
     "A2 predecessor #697 accepted pending chain closure; durable #697 state explicitly unblocks successors #698/#699/#700.",
     "Stacked base is #697 closing head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e because production cleanup/2d-3d-sync has diverged and does not yet contain A2.",
     "Parallel scope is restricted to whd-turn-exit-gate durable-readback producer + A3 process tests; #686 classifier/local-Guard scope and #719 Remote Guard parser scope excluded.",
-    "Branch-create Guard run 36236982762 GREEN; live branch readback proved exact head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e and is durably reconciled before the next Guard."
+    "Branch-create Guard run 36236982762 GREEN; live branch readback proved exact head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e and is durably reconciled before the next Guard.",
+    "RED characterization commit b32526f1a21f16764c5f512ca8a0263595e67b61 was guarded by run 36237323041 and changed only the focused A3 test + one-shot QA workflow.",
+    "Initial QA run 36237372292 is NOT accepted RED evidence: pytest was unavailable, so the RED-STOP-19 assertion never executed.",
+    "Post-commit reconciliation Guard run 36237389400 GREEN with REMOTE_GUARD_RECONCILE_ONLY for the exact claim+checkpoint pair."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
