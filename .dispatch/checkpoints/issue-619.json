@@ -3,10 +3,10 @@
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "6b9ab982654c2b2c1f12bbbd48e6163974233533",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll exact expanded acceptance run 36209867923 on regression-fix head 6b9ab982654c2b2c1f12bbbd48e6163974233533 to terminal. Require UI-R3 atomic, GUI batch export, combined Receiving W/D, protected config, and other in-scope live-switch tests to pass; treat selector-menubutton failure separately as baseline-confirmed pre-existing debt.",
-  "run_id": 36209867923,
-  "job_id": 108313977906,
+  "state": "RUNNING",
+  "next_action": "Correct B4 acceptance harness only: replace the stale implementation-detail expectation that apply_profile_plan must receive render=False with a transaction-order assertion, and exclude the baseline-confirmed pre-existing selector-menubutton node from B4 expanded acceptance. Then rerun expanded Ubuntu+Xvfb acceptance on the exact new head.",
+  "run_id": null,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -50,6 +50,10 @@
     "Post-bisect reconciliation authorized by Guard 36209654430.",
     "Regression fix head 6b9ab982654c2b2c1f12bbbd48e6163974233533 surgically reverts the first-bad e308 render suppression.",
     "Locked expanded remote QA run 36209867923 / job 108313977906.",
-    "Post-commit reconciliation authorized by Guard 36209880217."
+    "Post-commit reconciliation authorized by Guard 36209880217.",
+    "Regression-fix expanded run 36209867923: 57 PASS / 2 FAIL.",
+    "UI-R3, Export, and combined W/D are GREEN; only one stale B4 test assertion plus one baseline-confirmed unrelated selector debt remain.",
+    "Artifact 10894134567 preserves the exact result.",
+    "Terminal reconciliation authorized by Guard 36209989189."
   ]
 }
