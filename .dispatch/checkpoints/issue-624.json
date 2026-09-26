@@ -54,13 +54,15 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36249501341; checkpoint is now frozen until Issue close/readback.",
     "Trusted finalization run 36249588694 terminal SUCCESS with FINALIZATION_PROOF_VALID; artifact 10908214793; request comment 5847175608.",
     "Issue #624 fresh-read closed/completed at 2026-09-26T14:45:59Z.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36249637355."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36249637355.",
+    "Successor #625 durable predecessor handoff comment 5847187975 created before final atomic release.",
+    "Final atomic closure/release/handoff authorized by Remote Guard run 36249702145."
   ],
   "master_issue": "627",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "625",
   "chain_next_action": "Activate/claim #625 Phase 7 A8 on accepted #624 head 10ec9a52eff1b8495042270445755e59b6a329c2 and execute approved P7-R-G Settings presentation deletion-test/deepening decision without chasing current production X.",
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist successor #625 handoff, then atomically checkpoint CLOSED + claim RELEASED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

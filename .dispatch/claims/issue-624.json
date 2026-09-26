@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
   "head_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T14:46:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T14:47:37Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -41,7 +41,7 @@
     "scope": "A7 broader Bridge compatibility + owner boundary verification after restoring dynamic FinalScene/Settings composition ports",
     "result": "owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings"
   },
-  "next_action": "Persist #625 predecessor handoff comment, then perform final atomic checkpoint CLOSED + claim RELEASED + chain handoff.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -64,14 +64,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36249637355,
-    "request_comment_id": 5847181698,
-    "result_comment_id": 5847182948,
+    "run_id": 36249702145,
+    "request_comment_id": 5847189499,
+    "result_comment_id": 5847190749,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after closed/completed readback"
+    "mutation": "atomic final closure: checkpoint CLOSED + claim RELEASED + #625 handoff"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
@@ -174,5 +174,22 @@
     "state": "closed",
     "state_reason": "completed",
     "closed_at": "2026-09-26T14:45:59Z"
+  },
+  "release_handoff": {
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T14:45:59Z"
+    },
+    "finalization_run_id": 36249588694,
+    "finalization_artifact_id": 10908214793,
+    "successor_issue": 625,
+    "successor_state": "open",
+    "master_issue": 627,
+    "handoff_comment_id": 5847187975,
+    "accepted_head_sha": "10ec9a52eff1b8495042270445755e59b6a329c2",
+    "chain_state": "NEXT_CHILD_EXECUTABLE",
+    "production_target": "cleanup/2d-3d-sync",
+    "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b"
   }
 }
