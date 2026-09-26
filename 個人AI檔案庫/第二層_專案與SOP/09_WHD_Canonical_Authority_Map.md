@@ -43,6 +43,8 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=CURRENT path=tools/continuity_controller.py -->
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
 
+<!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->
+
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=CURRENT path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
 
@@ -64,6 +66,16 @@ whd_schema: WHD_DOC_META_V1
 - `fold-designer-bridge-ownership` 只擁有 composition/bootstrap/presentation owner boundary；不得覆蓋 geometry、manufacturing、Registry formula、project persistence 等 domain CURRENT owner。
 - `pitfall-ledger` 的 routing ownership 留在本 Map；實際 pitfall artifacts 全部保持 REFERENCE / incident evidence，不建立平行 process/domain CURRENT。
 - 日期化 acceptance、migration、combined guard 與 ticket provenance 留在 `docs/superpowers/verification/`、`docs/superpowers/checkpoints/`、Git history 或 GitHub Issue，不進本 Map 的 normative body。
+
+### workstation-poweroff-safety
+
+- Executable CURRENT owner：`tools/workstation_poweroff_gate.py`。
+- Public machine seam：`evaluate --snapshot` 與 `validate-safe`；兩者都必須 side-effect-free，不得執行 GitHub/claim/Guard/HA/Windows mutation。
+- Gate result domain 固定為 `SAFE / NOT_SAFE / ERROR`；unknown、parser failure、dependency failure 或不可觀測 local state 一律 fail closed，禁止轉成 `SAFE`。
+- `SAFE` receipt 必須綁 `poweroff_request_id + evidence_revision`；request/revision drift 或 receipt 非 SAFE 時 validator 必須失效。
+- Guard transaction、scheduler readiness、checkpoint HEAD/next_action、local runtime durability 與所有 local-dependent slots 聚合都由此 executable owner 判定；HA/Node-RED 只能消費 projection，不得另建平行 safety state machine。
+- `LOCAL_MACHINE_UNAVAILABLE` 的 canonical projection 是 `ERROR / LOCAL_MACHINE_UNREACHABLE`；不得與 `LOCAL_STATE_CONFLICT` 混用。
+- 真正 Windows shutdown actuator 不屬本 contract；此 owner 只提供 machine safety decision。
 
 ## Change contract
 
