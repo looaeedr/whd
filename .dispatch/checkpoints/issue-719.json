@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "719",
+  "branch": "governance/issue719-deploy-interactive-takeover-main-20260926",
+  "head_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard, create the exact deployment branch from trusted main, then apply only the accepted #589 interactive takeover parser parity to whd-remote-execution-guard.yml.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User authority: 2026-09-26 instruction to take over and deploy the scheduler handoff blocker.",
+    "Accepted source behavior: #589 / PR #590 explicit user-directed stale interactive takeover.",
+    "Trusted main Remote Guard parser is stale and rejects executor_source=chat claim-takeover before evaluator execution.",
+    "Helper scope is limited to trusted main Remote Guard parser/evaluator transport parity; no scheduler cadence or application changes."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
