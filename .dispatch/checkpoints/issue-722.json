@@ -3,8 +3,8 @@
   "issue": "722",
   "branch": "governance/issue722-trusted-takeover-parser-fix-20260926",
   "head_sha": "b312fe699a10897ec6fed6a5bd3e856eb7ae6d8c",
-  "state": "RUNNING",
-  "next_action": "Re-run trusted-main normal-multiline WHD_USER_DIRECTED_TAKEOVER_V1 smoke after consuming PR-write transaction; then reconcile early auto-close through canonical finalization and release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -25,13 +25,16 @@
     "Post-implementation durable pair reconciliation authorized by Remote Guard run 36242453574 / request 5846321309.",
     "Broader tests/process at b312fe69: 583 passed / 1 failed; the sole issue423 failure reproduces unchanged on frozen main base 3edcc089, so it is baseline debt unrelated to #722.",
     "PR-write Guard run 36243857000 was consumed by PR #726 at exact b312fe69; PR merged to main as 407766cba2405b4f4b6a6cc014b0ac27180a7f24.",
-    "First post-merge smoke run 36244052613 was intentionally blocked before parser by unconsumed pr-write transaction; durable reconciliation now records that transaction as consumed before retry."
+    "First post-merge smoke run 36244052613 was intentionally blocked before parser by unconsumed pr-write transaction; durable reconciliation now records that transaction as consumed before retry.",
+    "Trusted-main normal-multiline takeover transport smoke run 36244193891 reached tools/stale_claim_takeover.py and returned WAIT_ON_FOREIGN_RUNTIME with stale_seconds=59 and user_authority_comment_id=5846509781; parser/JSON transport succeeded and the safe refusal was expected because the owner was fresh.",
+    "Issue #722 was reopened after PR #726 autoclose because durable finalization had not yet completed; early autoclose was treated as process-state drift, not completion evidence.",
+    "Terminal acceptance / ISSUE_CLOSE_PENDING coordination write authorized by Remote Guard run 36244365289 / request 5846547080."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted remote finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint; then close/read back #722 completed and atomically persist checkpoint CLOSED + claim RELEASED."
 }
