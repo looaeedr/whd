@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "712",
   "branch": "work/issue712-execution-mode-normal-path-20260926",
-  "head_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
-  "state": "RUNNING",
-  "next_action": "Create the governance branch, add focused RED for UPDATE_ONLY vs execution modes and NORMAL_PATH_FIRST/RECOVERY exception semantics, then implement the minimal Skill/routing changes.",
+  "head_sha": "0ddd4db2f7d667028959643f3cbd83a2e50c1adc",
+  "state": "TERMINAL_FAILURE",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,8 +13,16 @@
   "evidence": [
     "User explicitly authorized a standalone governance update for Guard, scheduler simulation, work-slot/continuity and related entrypoints.",
     "Scope is governance/update behavior only; do not start unrelated implementation Issues.",
-    "Fresh production target cleanup/2d-3d-sync HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28."
+    "Fresh production target cleanup/2d-3d-sync HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28.",
+    "Fresh duplicate census classified #712 and #713 as the same UPDATE_ONLY / execution-intent governance scope; canonical continuation is #713.",
+    "Live #712 branch is 0ddd4db2f7d667028959643f3cbd83a2e50c1adc while the prior durable checkpoint remained at H0; Issue #712 contains no durable Guard/RED comment evidence for that commit.",
+    "The #712 commit is preserved on its branch as noncanonical reference evidence only; duplicate repair does not accept or integrate it."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance duplicate #712 to ISSUE_CLOSE_PENDING, obtain bound finalization proof on live H1, close/read back as duplicate of #713, then atomically persist CLOSED + RELEASED",
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
 }
