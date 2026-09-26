@@ -3,8 +3,8 @@
   "issue": "624",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll exact broader A7 run 36247109748 at da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to terminal; if GREEN, complete DT-5..DT-6/ASCG artifact, cleanup temporary A7 workflows, drift-audit, trusted finalization, close/readback, RELEASED handoff.",
+  "state": "RUNNING",
+  "next_action": "Delete the two temporary A7 QA workflows under an exact guarded commit; drift-audit tested head da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to cleanup head; complete canonical DT-0..DT-6 and WHD_PHASE7_TARGET_COMPLETION_V1, then trusted finalization/close/release handoff to #625.",
   "run_id": 36247109748,
   "job_id": 108418225953,
   "log_cursor": null,
@@ -41,7 +41,9 @@
     "Second compatibility-port correction commit da0abb85d287d05d6f3a6f27c335eb2a9f3b052c restored only those bounded delegates and updated P7-R-A census/test classification; authorized by existing pending Remote Guard run 36246953826.",
     "Focused verification run 36247109736 @ da0abb85d287d05d6f3a6f27c335eb2a9f3b052c terminal SUCCESS.",
     "Exact broader verification run 36247109748 locked at da0abb85d287d05d6f3a6f27c335eb2a9f3b052c; GUI compatibility step has passed while run finalizes.",
-    "Post-correction head reconciliation authorized by Remote Guard run 36247131304."
+    "Post-correction head reconciliation authorized by Remote Guard run 36247131304.",
+    "Exact broader A7 verification run 36247109748 @ da0abb85d287d05d6f3a6f27c335eb2a9f3b052c terminal SUCCESS: owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings.",
+    "Terminal QA writeback / CLEANUP advance authorized by Remote Guard run 36247249130."
   ],
   "master_issue": null,
   "chain_state": "NONE",

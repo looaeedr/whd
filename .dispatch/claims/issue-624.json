@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
   "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-26T14:02:17Z",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-26T14:04:22Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -33,14 +33,15 @@
     "run_id": 36247109748,
     "job_id": 108418225953,
     "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "focused_run_id": 36247109736,
     "focused_job_id": 108418225925,
     "focused_result": "success",
-    "scope": "A7 broader Bridge compatibility + owner boundary verification after restoring dynamic FinalScene/Settings composition ports"
+    "scope": "A7 broader Bridge compatibility + owner boundary verification after restoring dynamic FinalScene/Settings composition ports",
+    "result": "owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings"
   },
-  "next_action": "Poll exact broader A7 run 36247109748 at da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to terminal; if GREEN, complete DT-5..DT-6/ASCG artifact, cleanup temporary A7 workflows, drift-audit, trusted finalization, close/readback, RELEASED handoff.",
+  "next_action": "Delete the two temporary A7 QA workflows under an exact guarded commit; drift-audit tested head da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to cleanup head; complete canonical DT-0..DT-6 and WHD_PHASE7_TARGET_COMPLETION_V1, then trusted finalization/close/release handoff to #625.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -63,14 +64,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36247131304,
-    "request_comment_id": 5846875212,
-    "result_comment_id": 5846876486,
+    "run_id": 36247249130,
+    "request_comment_id": 5846889750,
+    "result_comment_id": 5846891193,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "reconcile second runtime-port correction and bind exact focused/broader verification runs"
+    "mutation": "record terminal broader GREEN and advance to CLEANUP"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
