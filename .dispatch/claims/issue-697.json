@@ -1,17 +1,17 @@
 {
   "issue": 697,
   "issue_url": "https://github.com/looaeedr/whd/issues/697",
-  "worker": "chatgpt.sol260926.amendment.a2",
+  "worker": "chatgpt.sol260926.cleanup.1",
   "executor_source": "chat",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chatgpt.sol260926.amendment.a2",
+  "invocation_identity": "chatgpt.sol260926.cleanup.1",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue697-operation-transaction-core-20260926",
   "claimed_at": "2026-09-26T07:18:00Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "3969ac5d0ffdffa975824921b85b1168713abc21",
   "phase": "CLEANUP",
-  "last_update": "2026-09-26T07:34:00Z",
+  "last_update": "2026-09-26T08:52:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,7 +24,7 @@
     "failed": 0,
     "marker": "ISSUE697_A2_REGRESSION_GREEN=PASS"
   },
-  "next_action": "remove one-shot A2 QA workflow, reconcile closing head, verify only expected A2 production/test files remain, then mark A2 accepted-pending-chain-closure and hand off #698/#699/#700",
+  "next_action": "Reconcile existing cleanup commit 03da7a28d0aa04fae85fd9a92f13c0a8129af83e into claim/checkpoint, then audit tested head 3969ac5d0ffdffa975824921b85b1168713abc21 to closing head for expected cleanup-only drift and terminalize A2.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-697.json",
   "last_guard": {
@@ -55,5 +55,18 @@
     "regression_result": "53 passed, 0 failed",
     "regression_marker": "ISSUE697_A2_REGRESSION_GREEN=PASS",
     "broader_regression_pending": false
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "previous_worker": "chatgpt.sol260926.amendment.a2",
+    "previous_executor_source": "chat",
+    "requesting_worker": "chatgpt.sol260926.cleanup.1",
+    "requesting_executor_source": "chat",
+    "observed_stale_seconds": 3614,
+    "observed_live_head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+    "user_authority_comment_id": 5844640024,
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "taken_over_at": "2026-09-26T08:52:00Z"
   }
 }
