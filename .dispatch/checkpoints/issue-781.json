@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "781",
+  "branch": "trusted/issue781-action-scope-bootstrap-main-20260927",
+  "head_sha": "0e4ce41c752debe2605c749e2ae312dbfb037ef5",
+  "state": "RUNNING",
+  "next_action": "Create guarded helper branch and apply exact action-scope delta.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #774 bootstrap helper."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
