@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "688",
   "branch": "work/issue688-ticket-closure-owner-20260926",
-  "head_sha": "81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11",
-  "state": "RUNNING",
-  "next_action": "Remove the one-shot broader T5 QA workflow under Remote Guard, reconcile the cleanup head, audit production-target drift, and hand accepted T5 evidence to Issue Closure owner #693.",
+  "head_sha": "e8c93848ec608aeba7cd306e8843ef071ccc4deb",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36236942259,
   "job_id": 108390331023,
   "log_cursor": null,
@@ -28,13 +28,18 @@
     "Cleanup-head claim+checkpoint reconciliation authorized by Remote Guard run 36236581620.",
     "Broader T5 one-shot QA workflow commit 81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11 authorized by Remote Guard run 36236908966.",
     "Exact broader T5 run 36236942259 @ 81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11 terminal SUCCESS: TWO_STAGE_APPROVAL_CONTRACT_GREEN; 26 passed in 0.47s.",
-    "QA-head claim+checkpoint reconciliation authorized by Remote Guard run 36236958574."
+    "QA-head claim+checkpoint reconciliation authorized by Remote Guard run 36236958574.",
+    "One-shot broader QA workflow removed by cleanup commit e8c93848ec608aeba7cd306e8843ef071ccc4deb under Remote Guard run 36237033855.",
+    "Cleanup-head reconciliation authorized by Remote Guard run 36237079596.",
+    "tested→closing drift audit: 81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11..e8c93848ec608aeba7cd306e8843ef071ccc4deb contains only removal of .github/workflows/qa-issue688-t5-broader-regression.yml.",
+    "frozen-base→closing substantive delta contains exactly .agents/skills/engineering/拆解任務工單/SKILL.md, tests/process/test_issue688_ticket_closure_owner_contract.py, tools/ticket_breakdown_guard.py.",
+    "Production target cleanup/2d-3d-sync advanced independently to 76b2adb7379f73b23001c4730c08b5402acafafb; frozen work-order merge-base remains 87eb35b3f5ae5211673c941cb56c4c4343fa5405, so direct rebase/merge is deferred to #693 Combined Acceptance."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Issue Closure owner #693 must consume #688 accepted T5 evidence, mint fresh owning finalization proof bound to #688/e8c93848, close/readback #688 as completed, then release its claim."
 }

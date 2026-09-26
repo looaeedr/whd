@@ -9,9 +9,9 @@
   "work_branch": "work/issue688-ticket-closure-owner-20260926",
   "claimed_at": "2026-09-26T03:57:41Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
-  "head_sha": "81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11",
+  "head_sha": "e8c93848ec608aeba7cd306e8843ef071ccc4deb",
   "phase": "GREEN",
-  "last_update": "2026-09-26T10:49:58Z",
+  "last_update": "2026-09-26T10:52:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "result": "26 passed in 0.47s; TWO_STAGE_APPROVAL_CONTRACT_GREEN"
   },
-  "next_action": "Remove the one-shot broader T5 QA workflow under Remote Guard, reconcile the cleanup head, audit production-target drift, and hand accepted T5 evidence to Issue Closure owner #693.",
+  "next_action": "Durably hand accepted T5 evidence to Issue Closure owner #693. #693 must own fresh finalization proof plus close/readback of #688; do not integrate this frozen work-order branch directly into newer X.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-688.json",
   "stale_takeover": {
@@ -43,14 +43,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36236958574,
-    "request_comment_id": 5845610575,
-    "result_comment_id": 5845612094,
+    "run_id": 36237079596,
+    "request_comment_id": 5845629083,
+    "result_comment_id": 5845636649,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
     "consumed": true,
-    "mutation": "bind broader T5 exact QA run and reconcile claim+checkpoint to 81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11"
+    "mutation": "post-cleanup atomic claim+checkpoint reconciliation to e8c93848ec608aeba7cd306e8843ef071ccc4deb"
   },
   "red_commit": {
     "head_sha": "d35db9ad0b4647baa53b759fc17f07a7cb4e0ef8",
@@ -90,12 +90,12 @@
     "result": "4 passed in 0.14s"
   },
   "cleanup_commit": {
-    "head_sha": "7a4a00e2449d3479244db64b90886f16dc2cdb5c",
-    "changed_file": ".github/workflows/qa-issue688-t5-closure-owner.yml",
+    "head_sha": "e8c93848ec608aeba7cd306e8843ef071ccc4deb",
+    "changed_file": ".github/workflows/qa-issue688-t5-broader-regression.yml",
     "operation": "delete",
-    "guard_run_id": 36231593457,
-    "guard_request_comment_id": 5844823951,
-    "guard_result_comment_id": 5844825528
+    "guard_run_id": 36237033855,
+    "guard_request_comment_id": 5845621660,
+    "guard_result_comment_id": 5845623068
   },
   "broader_qa_workflow": {
     "path": ".github/workflows/qa-issue688-t5-broader-regression.yml",
@@ -103,5 +103,18 @@
     "guard_run_id": 36236908966,
     "guard_request_comment_id": 5845602387,
     "guard_result_comment_id": 5845604030
+  },
+  "drift_audit": {
+    "tested_head_sha": "81e6ed563565e8e22fdf2e3ddcf05b4bc8807c11",
+    "closing_head_sha": "e8c93848ec608aeba7cd306e8843ef071ccc4deb",
+    "tested_to_closing": "CLEAN_ONLY_TEMP_QA_WORKFLOW_REMOVAL",
+    "frozen_base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+    "production_target_head_sha": "76b2adb7379f73b23001c4730c08b5402acafafb",
+    "production_target_relation": "DIVERGED_EXPECTED_FROZEN_WORK_ORDER",
+    "substantive_files": [
+      ".agents/skills/engineering/拆解任務工單/SKILL.md",
+      "tests/process/test_issue688_ticket_closure_owner_contract.py",
+      "tools/ticket_breakdown_guard.py"
+    ]
   }
 }
