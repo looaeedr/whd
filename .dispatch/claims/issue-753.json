@@ -9,18 +9,19 @@
   "work_branch": "governance/issue753-batch-main-x-parity-20260927",
   "claimed_at": "2026-09-27T13:30:00Z",
   "base_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
-  "head_sha": "2732319836a20671ffce4757b1290fe5c182fd68",
+  "head_sha": "87b3cd48893781eb863201145f802694a5def9fe",
   "phase": "GREEN",
-  "last_update": "2026-09-26T17:38:00Z",
+  "last_update": "2026-09-26T17:41:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
     "run_id": 36259672018,
     "head_sha": "2732319836a20671ffce4757b1290fe5c182fd68",
-    "status": "success"
+    "status": "success",
+    "cleanup_head_sha": "87b3cd48893781eb863201145f802694a5def9fe"
   },
-  "next_action": "Remove temporary qa-issue753-batch-parity workflow under fresh commit Guard, rerun/read back protected regression if triggered, then obtain pr-write Guard and integrate non-force into cleanup/2d-3d-sync; fresh-read X/main parity and return acceptance evidence to #692.",
+  "next_action": "Obtain exact pr-write Guard for helper HEAD 87b3cd48893781eb863201145f802694a5def9fe, create PR to cleanup/2d-3d-sync, verify exact durable PR readback, then merge non-force and fresh-read production parity.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-753.json",
   "evidence": [
@@ -34,6 +35,9 @@
     "Batch commit Guard GREEN run 36259467831 / result 5848359066.",
     "Batch commit 2732319836a20671ffce4757b1290fe5c182fd68 selectively ports #737/#739/#744 without blind main merge.",
     "Focused QA run 36259672018 SUCCESS: 44 passed / 0 failed.",
-    "main advanced to 4355938c49e5feec0961fb0e4073d7aa101b2396 with #751 claim-handoff parity; #751 is reverse X→main deployment and X already contains compatible claim-handoff identity fields, classified COMPATIBLE_EQUIVALENT_SOURCE_X."
+    "main advanced to 4355938c49e5feec0961fb0e4073d7aa101b2396 with #751 claim-handoff parity; #751 is reverse X→main deployment and X already contains compatible claim-handoff identity fields, classified COMPATIBLE_EQUIVALENT_SOURCE_X.",
+    "Temporary QA workflow deletion Guard GREEN run 36259827162 / result 5848402617.",
+    "Cleanup commit 87b3cd48893781eb863201145f802694a5def9fe removes only .github/workflows/qa-issue753-batch-parity.yml; accepted batch files unchanged.",
+    "Fresh production readback: cleanup/2d-3d-sync remains 79efd748107db7578105fd0ca920f2436a3ff67a; trusted main remains 4355938c49e5feec0961fb0e4073d7aa101b2396."
   ]
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "753",
   "branch": "governance/issue753-batch-main-x-parity-20260927",
-  "head_sha": "2732319836a20671ffce4757b1290fe5c182fd68",
+  "head_sha": "87b3cd48893781eb863201145f802694a5def9fe",
   "state": "RUNNING",
-  "next_action": "Remove temporary qa-issue753-batch-parity workflow under fresh commit Guard, rerun/read back protected regression if triggered, then obtain pr-write Guard and integrate non-force into cleanup/2d-3d-sync; fresh-read X/main parity and return acceptance evidence to #692.",
+  "next_action": "Obtain exact pr-write Guard for helper HEAD 87b3cd48893781eb863201145f802694a5def9fe, create PR to cleanup/2d-3d-sync, verify exact durable PR readback, then merge non-force and fresh-read production parity.",
   "run_id": 36259672018,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "Do not merge updated X into active frozen work-order chains.",
     "Batch commit 2732319836a20671ffce4757b1290fe5c182fd68.",
     "Focused QA run 36259672018 SUCCESS: 44 passed / 0 failed.",
-    "#751 main drift classified compatible-equivalent because X is the source of claim-handoff parity."
+    "#751 main drift classified compatible-equivalent because X is the source of claim-handoff parity.",
+    "Temporary QA workflow removed at cleanup HEAD 87b3cd48893781eb863201145f802694a5def9fe under Guard run 36259827162.",
+    "Production X unchanged at 79efd748107db7578105fd0ca920f2436a3ff67a; helper remains direct descendant and PR-ready."
   ],
   "master_issue": null,
   "chain_state": "NONE",
