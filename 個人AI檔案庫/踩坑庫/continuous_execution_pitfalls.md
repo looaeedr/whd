@@ -175,3 +175,13 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - terminal producer 立即離開 waiting，接下一個真正執行動作。
 - status-only loop 是 continuity regression。
 - Canonical authority：executable-continuity-controller::POLLING_OBSERVATION_ONLY。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `continuous_execution`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Normal stop requires exhaustive blocker/path proof and zero executable leaves; progress reporting is not a stop reason.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

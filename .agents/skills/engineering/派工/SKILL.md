@@ -805,3 +805,13 @@ Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance
 - receipt window 內只能有一顆 exact matching coordination commit；多顆或零顆皆 fail closed。
 
 Canonical implementation：`tools.execution_claim_guard.durable_coord_write_readbacks_from_live_commits`。trusted workflow 必須把它與 branch-create / pr-write readbacks 一起餵給 transaction classifier。這條規則不放寬一般 repository write/commit。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_dispatch`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain shared claim ownership, guarded takeover/handoff, and durable checkpoint routing.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

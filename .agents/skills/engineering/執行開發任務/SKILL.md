@@ -337,3 +337,13 @@ WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-basel
 若沒有獨立 progress producer 正在推進，禁止把「輪詢」當工作本身。此時必須回 RUNNING / RECOVERING，直接執行能產生下一個 state change 的實作、trigger、修復或驗證 prerequisite。
 
 使用者不是 scheduler，也不是 executor；不得靠使用者反覆輸入「輪／繼續」才讓工作往前。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_execute_task`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain TASK_START authority/purpose declaration and resume-first continuity contract.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

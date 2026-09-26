@@ -271,3 +271,13 @@ Receiver on the next wake or interactive `/??A` / `/??B` resume must:
 5. never wait for stale TTL, run the stale evaluator, or mint `claim-takeover` for an already-completed planned handoff.
 
 Only when no valid planned handoff exists and a foreign owner is proven stale/orphaned by canonical liveness/stale evaluation may takeover recovery run. Any handoff identity drift or unverifiable readiness is fail-closed.
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `takeover_usage`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Planned claim-handoff and stale/orphan claim-takeover remain separate guarded paths with exact durable identity.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

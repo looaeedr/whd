@@ -180,3 +180,13 @@ Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Owner：#7
 - 不得用 current file existence、時間猜測或人工「看起來做完」取代 durable proof。
 
 Regression：`tests/process/test_issue739_write_auto_consume.py`。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `execution_claim_guard`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Ownership mutation stays guarded; takeover authority must lead to a substantive action and planned handoff is distinct from stale takeover.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

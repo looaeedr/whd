@@ -216,3 +216,13 @@ Continuity 的「non-terminal 不能停」與 Master chain 的「NEXT_CHILD_EXEC
 `repair_malformed_terminal_checkpoint` 先對 raw prior payload做窄 canonical normalization，trusted Claim Activation `terminal-checkpoint-repair` 再用 exact prior claim/checkpoint blob + coord parent CAS 原子換成 candidate pair。
 
 Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 issue/branch/head/`TERMINAL_SUCCESS`，把 malformed closure lifecycle 正規化成 `FINALIZATION_PENDING`。任何其他 drift 或已合法 closure state 一律拒絕。Repair 之後仍必須重新走 Remote Finalization → Issue close/readback → atomic CLOSED + RELEASED。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `continuity_controller`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Checkpoint/next_action continuity stays machine-owned; terminal closure requires verified finalization and atomic CLOSED+RELEASED.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

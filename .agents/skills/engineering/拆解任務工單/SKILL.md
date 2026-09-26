@@ -155,3 +155,13 @@ GitHub-backed project 的 approved ticket **必須先有 real GitHub owning Issu
 - 「先建 draft Issue 再等核准」→ 建 issue 就是發布，兩個 approval gate 前 fail closed。
 - 「AI Library 以前說 X，所以蓋過使用者新規格」→ authority 順序錯；記 conflict 並 REQUIRED writeback。
 - 「有 `.scratch` ticket 就能派工」→ GitHub-backed project 必須 real owning Issue。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_ticket_breakdown`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain mandatory machine-readable Issue Closure owner in ticket schema.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`

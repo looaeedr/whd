@@ -1,0 +1,141 @@
+{
+  "schema": "WHD_ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1",
+  "issue": 693,
+  "source_branch": "work/issue693-combined-acceptance-20260926",
+  "source_head_before_writeback": "64a64d4a0ee8adae81396eaef52c16db97b57d4f",
+  "accepted_children": [
+    687,
+    688,
+    689,
+    690,
+    691,
+    692
+  ],
+  "targets": [
+    {
+      "path": "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
+      "domain": "continuous_execution",
+      "before_blob_sha": "36161cb52558e25fe6cd6f096b091aeccaf015cc",
+      "after_blob_sha": "7615df26a5b3a8ee8cfe1d0f1fa670cd3ceb2064",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+      "domain": "continuity_controller",
+      "before_blob_sha": "1a0e6ed1aca5816af259e5d7a2aaa77a0592b041",
+      "after_blob_sha": "e0ebd993738574467cc9cf659bf59ca308047df9",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
+      "domain": "execution_claim_guard",
+      "before_blob_sha": "40bcd425892376bf23bef0d77e7c7eaffc5b8e56",
+      "after_blob_sha": "e735a8d60b58cfa64d722af5106618277f36d097",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+      "domain": "issue_closure",
+      "before_blob_sha": "5a1e7161c01f998bedcfdbb3600307bbad2d6266",
+      "after_blob_sha": "43bdcc7f05359c2f1fe43d6b12350b6b5db93602",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+      "domain": "scheduler_prompt",
+      "before_blob_sha": "5321fc99f2b978ec5fa701a0cbffb12e32f0f79e",
+      "after_blob_sha": "09c4a63005381bc057e9903c25c6dafe5e2cd2aa",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "domain": "authority_map",
+      "before_blob_sha": "8201102e95249b20a8c790827612dd008c584782",
+      "after_blob_sha": "a425df3f48718c31a67f7ebaa6de9275ef5c5ad0",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": "docs/governance/whd_scheduler_takeover_usage.md",
+      "domain": "takeover_usage",
+      "before_blob_sha": "0cd3c78f319283281b72cf52e75ba7e6bec2a0c3",
+      "after_blob_sha": "0ebb290fbf758d0b7147bfebcf2d24bfb4ff46c6",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+      "domain": "skill_continuity",
+      "before_blob_sha": "ce814e99eefdf9e7ab7cb656fc4523964bbb251c",
+      "after_blob_sha": "b9177933c5df3cbff9e84734576c6c22ab8d45cb",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+      "domain": "skill_remote_guard",
+      "before_blob_sha": "8d3e95e3dfb1bb0f9f9b472cdec0e8d7d630a15a",
+      "after_blob_sha": "308826663e867e1e6101bd3fec0c2a74ece95913",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+      "domain": "skill_issue_closure",
+      "before_blob_sha": "c24230cbd4c9e3e8ebe23d099466acbd18fb6fe4",
+      "after_blob_sha": "3035360f8e3cbe5da7383a57f5fef897899c6f56",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/派工/SKILL.md",
+      "domain": "skill_dispatch",
+      "before_blob_sha": "a7b031fbc9a2d3a493aaf4e619d50ef6c0ee1e4e",
+      "after_blob_sha": "810bc0e156ee01c3be0f9c4dbd131cfe1800e49a",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/執行開發任務/SKILL.md",
+      "domain": "skill_execute_task",
+      "before_blob_sha": "a2656f6055787c56a133b007af0d49d94feafaca",
+      "after_blob_sha": "47a2d383c7a44d117843c9deb8bb19c2f955623e",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/寫排程/SKILL.md",
+      "domain": "skill_scheduler_authoring",
+      "before_blob_sha": "94e4fd4d205f5fde49b175831da0289ad62f8ddf",
+      "after_blob_sha": "925af1be9a77075cbdb1ba96725b049785588ed2",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/排程模擬/SKILL.md",
+      "domain": "skill_scheduler_simulation",
+      "before_blob_sha": "99afa5e27d8f0115804c0e7ecf1b08e0d28290c0",
+      "after_blob_sha": "01a169b67fbab1d2b9c4d5208a9cf389c03589d6",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/強制接手/SKILL.md",
+      "domain": "skill_forced_takeover",
+      "before_blob_sha": "58be22b9fe255a95ecf09e32281fb6af40e1d4aa",
+      "after_blob_sha": "1382506503dff0546333c068cd3bd6ad9f3e310b",
+      "status": "UPDATED_READBACK_NOTE"
+    },
+    {
+      "path": ".agents/skills/engineering/拆解任務工單/SKILL.md",
+      "domain": "skill_ticket_breakdown",
+      "before_blob_sha": "2ed115d362d2197331ce63138e5d96afd471f7f6",
+      "after_blob_sha": "5ff420cc9890b9f6e5ab5e65aa79f935112322f4",
+      "status": "UPDATED_READBACK_NOTE"
+    }
+  ],
+  "trusted_workflow_deployment_readback": {
+    "status": "PENDING_FINAL_DEPLOYMENT_READBACK",
+    "production_ref": "cleanup/2d-3d-sync",
+    "trusted_ref": "main",
+    "required_domains": [
+      "continuity",
+      "current_skills",
+      "remote_guard",
+      "scheduler_liveness",
+      "turn_exit"
+    ],
+    "unknown_divergence_policy": "FAIL_CLOSED"
+  }
+}

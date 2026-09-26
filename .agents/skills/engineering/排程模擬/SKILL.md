@@ -387,3 +387,13 @@ target_lane=B -> to_worker=scheduler.e58ea936e7d0b12bd0d475314709d6f1
 若 sender 已在 Guard GREEN 後完成 claim-handoff CAS，fresh-read claim.worker 已等於 exact `to_worker` 且上述 identity 全部仍一致，receiver 直接進 `SAME_LANE_RESUME` / resume exact `next_action`。**不得再跑 stale evaluator，不得送 `claim-takeover`，不得等待 stale TTL。**
 
 成功接收後同一 scheduler invocation 必須完成 first substantive next_action；只回報「已接手」不算完成。此 receiver 不改 recurring cadence / enabled，不改 lane owner，不建立第二套 checkpoint/continuity machine。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_scheduler_simulation`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain same-lane interactive resume, planned handoff receive, and READY_WORK_CENSUS behavior.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
