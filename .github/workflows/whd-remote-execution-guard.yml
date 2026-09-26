@@ -250,6 +250,7 @@ jobs:
           from tools.execution_claim_guard import (
               assert_remote_guard_request_permitted,
               classify_guard_transaction,
+              durable_branch_create_readbacks_from_live_branch,
               exact_remote_guard_receipts_from_comments,
           )
 
@@ -276,6 +277,10 @@ jobs:
               head_sha=claim["head_sha"],
               claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
           )
+          branch_create_readbacks = durable_branch_create_readbacks_from_live_branch(
+              receipts,
+              live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
+          )
           decision = classify_guard_transaction(
               receipts=receipts,
               current_issue=int(os.environ["RG_ISSUE"]),
@@ -286,6 +291,7 @@ jobs:
               live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
               current_claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
               now=dt.datetime.now(dt.timezone.utc),
+              durable_readbacks=branch_create_readbacks,
           )
           assert_remote_guard_request_permitted(decision)
           if decision.state.value == "EXPIRED_UNCONSUMED":
