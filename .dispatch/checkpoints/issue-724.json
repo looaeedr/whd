@@ -3,8 +3,8 @@
   "issue": "724",
   "branch": "governance/issue724-report-handler-prefix-v1",
   "head_sha": "8cb01ac0d07850e0427295450026f75eab3ebd8b",
-  "state": "RUNNING",
-  "next_action": "Create PR from governance/issue724-report-handler-prefix-v1 to cleanup/2d-3d-sync, validate CI, merge, then update live WHD recurring automation prompts with REPORT_HANDLER_IDENTITY_PREFIX_V1 and fresh-read post-update invariants.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,13 +20,16 @@
     "Phase6 Skill mutation preflight and git diff --check GREEN.",
     "Work commit 8cb01ac0d07850e0427295450026f75eab3ebd8b authorized by Remote Guard run 36243019945.",
     "H0→H1 pair reconciliation authorized by Remote Guard run 36243067099.",
-    "Remaining UPDATE_ONLY step after repo merge: prompt-only update of existing WHD recurring automations with post-update readback."
+    "Remaining UPDATE_ONLY step after repo merge: prompt-only update of existing WHD recurring automations with post-update readback.",
+    "PR #725 merged to cleanup/2d-3d-sync as b90f2ee4304726e7eb22b24b708c8fa37ffa8d55; current production HEAD 91931e518bea241d129d7327e1d163cb7a1ffd92 is a descendant of the accepted #724 head 8cb01ac0d07850e0427295450026f75eab3ebd8b.",
+    "Production readback confirms REPORT_HANDLER_IDENTITY_PREFIX_V1 in 工作槽 / 排程模擬 / 寫排程 Skills and the #724 contract test is present.",
+    "Live automation readback confirms 00/20/40/B15/B45 prompts contain REPORT_HANDLER_IDENTITY_PREFIX_V1; this takeover did not change cadence, lane identity, timing mode, title, or enabled state."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }

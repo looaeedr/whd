@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T12:37:34Z",
   "base_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
   "head_sha": "8cb01ac0d07850e0427295450026f75eab3ebd8b",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T15:15:55.497868Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T15:20:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create PR from governance/issue724-report-handler-prefix-v1 to cleanup/2d-3d-sync, validate CI, merge, then update live WHD recurring automation prompts with REPORT_HANDLER_IDENTITY_PREFIX_V1 and fresh-read post-update invariants.",
+  "next_action": "Advance exact terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; run bound local finalization proof; close/readback #724; then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED with claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-724.json",
   "evidence": [
@@ -34,7 +34,10 @@
     "User expanded UPDATE_ONLY scope to live WHD recurring scheduler prompts; cadence/timing/enabled/title/lane identity remain immutable.",
     "User-directed takeover authorized by #724 comment 5847359842.",
     "Trusted Remote Guard run 36251095244 classified exact prior claim as EXECUTOR_STUCK/actionable=true at stale_seconds=8586, then exposed a workflow-to-execution_claim_guard user-authority handoff defect.",
-    "Canonical local stale evaluator re-read exact claim/blob/branch and returned EXECUTOR_STUCK/actionable=true at stale_seconds=8753; local tools/execution_claim_guard.py with exact user-authority evidence returned EXECUTION_CLAIM_GUARD_GREEN before this CAS."
+    "Canonical local stale evaluator re-read exact claim/blob/branch and returned EXECUTOR_STUCK/actionable=true at stale_seconds=8753; local tools/execution_claim_guard.py with exact user-authority evidence returned EXECUTION_CLAIM_GUARD_GREEN before this CAS.",
+    "PR #725 merged #724 implementation to cleanup/2d-3d-sync as b90f2ee4304726e7eb22b24b708c8fa37ffa8d55.",
+    "Current cleanup/2d-3d-sync HEAD 91931e518bea241d129d7327e1d163cb7a1ffd92 contains #724 accepted head 8cb01ac0d07850e0427295450026f75eab3ebd8b.",
+    "Live recurring automation readback confirms REPORT_HANDLER_IDENTITY_PREFIX_V1 on 00/20/40/B15/B45; no cadence/lane/enabled mutation was performed during this takeover."
   ],
   "last_guard": {
     "action": "claim-takeover",
