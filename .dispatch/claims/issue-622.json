@@ -11,7 +11,7 @@
   "base_sha": "aa9c25aa44283f325445311b013b26086467395b",
   "head_sha": "524ec6ac877449ea8f356daac2bfb2f6c3c5d048",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T03:04:00Z",
+  "last_update": "2026-09-26T03:08:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -27,7 +27,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Run trusted Remote Finalization for #622 on exact closing head 524ec6ac877449ea8f356daac2bfb2f6c3c5d048; require FINALIZATION_PROOF_VALID before issue close.",
+  "next_action": "Obtain and consume final release Guard to atomically persist #622 checkpoint CLOSED + claim RELEASED, then continue Master #628 closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-622.json",
   "predecessor": {
@@ -66,17 +66,20 @@
     "GitHub readback at closing head confirmed selector reachability, non-shrinking WorkspaceShell overlay, and display-atomic family-transition contracts in CURRENT AI Library plus global pitfall.",
     "Closure terminalization authorized by post-commit reconciliation Guard 36213109370.",
     "Master #628 fresh-read open; #616 is closed/completed; after #622 closure the Master itself is the next executable process-state owner.",
-    "Closure-state Guard 36213239802 GREEN consumed; duplicate later request 36213600876 correctly failed with PENDING_GUARD_TRANSACTION and was not consumed."
+    "Closure-state Guard 36213239802 GREEN consumed; duplicate later request 36213600876 correctly failed with PENDING_GUARD_TRANSACTION and was not consumed.",
+    "Trusted Remote Finalization run 36213747863 GREEN / FINALIZATION_PROOF_VALID; artifact 10896223604.",
+    "Issue #622 closure evidence comment 5842627978 written; remote readback confirmed closed/completed at 2026-09-26T03:06:56Z.",
+    "Post-close Guard 36213824328 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36213239802,
-    "request_comment_id": 5842562242,
+    "run_id": 36213824328,
+    "request_comment_id": 5842631305,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "closure_state FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "post-close ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   },
   "b5_lineage": {
     "b1_head": "c043e447afc0da533ef965fe82d175e75011d186",
@@ -128,5 +131,22 @@
       "WorkspaceShell single Settings/Diagnostics viewport overlay does not shrink/reserve viewport pixels",
       "Family switch display atomicity: 0 intermediate visible commits, 1 final authoritative visible commit"
     ]
+  },
+  "finalization": {
+    "run_id": 36213747863,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "request_comment_id": 5842622837,
+    "artifact_id": 10896223604,
+    "artifact_digest": "sha256:0ccf7ab35ba273c66e5c763cd296096d2f7f8fee663b2222f8c4a613294ef9c5",
+    "checkpoint_blob_sha": "2037d4998c9d58c291fe6bfb7c9d725a9f149c71",
+    "checkpoint_fingerprint": "23de3d6cd7c52ce262f3abdd4a4896451e7df7f737c908175b33e3d5c4836b81",
+    "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34"
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "closed_at": "2026-09-26T03:06:56Z",
+    "successor_issue": 628
   }
 }

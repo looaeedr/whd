@@ -27,10 +27,13 @@
     "Master #628 is open and is the next executable process-state closure owner after #622 closes.",
     "Guard 36213109370 authorized terminalization at the exact closing head.",
     "Closure-state Guard 36213239802 GREEN consumed: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
-    "Duplicate guard 36213600876 failed closed because 36213239802 was pending consumption; no ambiguity was accepted."
+    "Duplicate guard 36213600876 failed closed because 36213239802 was pending consumption; no ambiguity was accepted.",
+    "Trusted Remote Finalization run 36213747863 GREEN with FINALIZATION_PROOF_VALID; artifact 10896223604.",
+    "Issue #622 remote readback confirmed closed/completed at 2026-09-26T03:06:56Z.",
+    "Post-close Guard 36213824328 GREEN consumed: ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run trusted Remote Finalization bound to #622 / work branch / closing head 524ec6ac877449ea8f356daac2bfb2f6c3c5d048, then close/read back issue",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "obtain final release Guard; atomically persist checkpoint CLOSED + claim RELEASED, preserving NEXT_CHILD_EXECUTABLE -> Master #628",
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "628",
