@@ -65,13 +65,14 @@
     "Terminalization write Guard 36261756630 GREEN.",
     "Trusted finalization 36261993926 SUCCESS.",
     "Issue #739 read back closed/completed.",
-    "Release-handoff transition Guard 36262068996 GREEN."
+    "Release-handoff transition Guard 36262068996 GREEN.",
+    "Final release write Guard 36262130599 GREEN; checkpoint CLOSED and claim RELEASED atomically."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
