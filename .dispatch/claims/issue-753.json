@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T13:30:00Z",
   "base_sha": "79efd748107db7578105fd0ca920f2436a3ff67a",
   "head_sha": "87b3cd48893781eb863201145f802694a5def9fe",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T17:50:15Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T17:52:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "success",
     "cleanup_head_sha": "87b3cd48893781eb863201145f802694a5def9fe"
   },
-  "next_action": "Persist release handoff after verified #753 close readback, then perform one final guarded atomic CLOSED + RELEASED writeback and resume #692.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-753.json",
   "evidence": [
@@ -44,6 +44,18 @@
     "Fresh production readback cleanup/2d-3d-sync=e82261e705ac97dc4ce2f7e6ff199405647710b4.",
     "Entering canonical terminal closure transaction; parent handoff target is #692.",
     "Trusted Remote Finalization run 36260395356 GREEN: FINALIZATION_PROOF_VALID; artifact 10911788881.",
-    "Issue #753 close readback: closed/completed at 2026-09-26T17:50:08Z."
-  ]
+    "Issue #753 close readback: closed/completed at 2026-09-26T17:50:08Z.",
+    "Release handoff persisted at coord commit dd69a9a66baeca35ddd777aefa6a519380b2d3a2.",
+    "Final durable target: checkpoint CLOSED + claim RELEASED; successor #692 remains open/executable."
+  ],
+  "release_handoff": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "issue_closed_at": "2026-09-26T17:50:08Z",
+    "finalization_run_id": 36260395356,
+    "finalization_artifact_id": 10911788881,
+    "successor_issue": 692,
+    "successor_state": "open",
+    "closure_owner_issue": 692
+  }
 }
