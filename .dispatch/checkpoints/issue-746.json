@@ -18,13 +18,16 @@
     "Trusted-main deployment commit 8352e8f4673ad4409e51a259099ec0f8dcd7cd25.",
     "Deployment contract GREEN; git diff --check GREEN.",
     "PR #747 merged to main at c69285a62a7ae1fbd83d7a10354a39b5b8f64f4c.",
-    "Fresh trusted-main workflow readback confirms deployed pr-write durable-readback parity."
+    "Fresh trusted-main workflow readback confirms deployed pr-write durable-readback parity.",
+    "OWNING_FINALIZATION_GUARD_V2 proof verified for exact #746 branch/head.",
+    "Issue #746 fresh-read closed/completed at 2026-09-26T16:37:52Z.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound finalization proof, close/read back #746 completed, then atomically mark checkpoint CLOSED + claim RELEASED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
