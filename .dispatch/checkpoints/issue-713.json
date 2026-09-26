@@ -19,8 +19,11 @@
     "Remote QA run 36228428292 completed success on exact work head.",
     "Live A/B automation prompts 00/20/40/B15/B45 updated in UPDATE_ONLY mode; cadence and disabled state preserved.",
     "No tools/** executable code changed; safety Guard/takeover/finalization machine behavior remained intact.",
-    "Closure advanced after PR #714 merge, remote QA success, and live A/B prompt readback."
+    "Closure advanced after PR #714 merge, remote QA success, and live A/B prompt readback.",
+    "Owning Issue #713 fresh-read closed/completed.",
+    "Durable acceptance comment 5844534882 records finalization proof VALID for exact Issue/branch/head.",
+    "Interactive ticket scope complete; successor activation explicitly forbidden."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #713"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED; do not activate successor."
 }
