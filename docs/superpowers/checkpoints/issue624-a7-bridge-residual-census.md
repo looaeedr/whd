@@ -97,3 +97,32 @@ Corrected classification:
 The correction preserves the A7 rule that repository/facade/runtime readback outranks
 Bridge-local occurrence count. It does not restore the other eight dead helpers and
 does not transfer scheduler/workspace ownership back into Bridge.
+
+
+## DT-4b — second broader runtime/facade readback correction
+
+Exact broader verification run `36246812185` at `6c9771cc936cbd7cc368a115ca2348a404a1bb66`
+kept the owner-boundary slice GREEN (`84 passed, 2 skipped`) but exposed two additional
+namespace-driven compatibility ports that Bridge-local occurrence counting had misclassified.
+
+Runtime evidence:
+
+- `_phase6_final_scene_view_request` is consumed by
+  `Phase6FoldDesignerComposition.final_scene_ports(...).request_provider` through
+  `required("_phase6_final_scene_view_request")`; deleting it changes the legacy
+  missing-provider path into a composition-port failure.
+- `_phase6_save_settings_context_as_defaults` is consumed by
+  `Phase6FoldDesignerComposition.settings_panel(...).save_defaults` through
+  `required("_phase6_save_settings_context_as_defaults")`; deleting it breaks the
+  current-context Settings save callback.
+- GUI compatibility readback before this correction: `2 failed, 45 passed`.
+
+Corrected classification:
+
+- `_phase6_final_scene_view_request`: `KEEP_COMPATIBILITY_PORT`
+- `_phase6_save_settings_context_as_defaults`: `KEEP_COMPATIBILITY_PORT`
+- the remaining six P7-R-A deletion targets stay `NO_CALLER`.
+
+This correction does not move FinalScene or Settings ownership back into Bridge. Both restored
+functions are bounded delegates into the existing composition/deep owners. Runtime/facade
+readback continues to outrank Bridge-local text occurrence counts.

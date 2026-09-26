@@ -4027,6 +4027,33 @@ def _phase6_reset_initial_values(self):
         getattr(self, "_factory_defaults", {}) or {}
     )
 
+def _phase6_save_settings_context_as_defaults(self, context):
+    self.flush_pending_settings()
+    callback = self._save_defaults_callback
+    if callback is None:
+        if hasattr(self, "settings_status_var"):
+            self.settings_status_var.set("未連接預設值儲存器")
+        return False
+    payload = _phase6_settings_transactions(self).settings_defaults_payload(context)
+    try:
+        Phase6ProjectController.route_settings_defaults(callback, payload)
+    except Exception as exc:
+        if hasattr(self, "settings_status_var"):
+            self.settings_status_var.set(f"儲存失敗：{exc}")
+        return False
+    if hasattr(self, "settings_status_var"):
+        self.settings_status_var.set("已儲存到 config.ini")
+    return True
+
+
+
+
+
+
+
+
+
+
 def _phase6_scene_query_payload_for_part(self, part_key):
     """Compatibility wrapper for the manufacturing adapter-owned payload builder."""
     return build_scene_payload_for_app(self, part_key)
@@ -4053,6 +4080,12 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
         elif y_prof and not x_prof:
             x_prof = [{"len": float(maxx - minx)}]
     return x_prof, y_prof
+
+
+
+def _phase6_final_scene_view_request(self):
+    """Compatibility delegate for final-scene request construction."""
+    return _phase6_final_scene_adapter(self).build_request()
 
 
 

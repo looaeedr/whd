@@ -11,12 +11,10 @@ ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
 P7_R_A_PROVEN_NO_CALLER = {
     "_phase6_active_mesh_profiles",
     "_phase6_query_assembly_render_data",
-    "_phase6_final_scene_view_request",
     "_phase6_final_scene_set_preview_enabled",
     "_phase6_commit_output_draw_stock",
     "_phase6_export_selected_dxf_from_3d",
     "_phase6_toggle_parameter_panel",
-    "_phase6_save_settings_context_as_defaults",
 }
 
 
@@ -116,6 +114,8 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
     for name in (
         "_phase6_refresh_sticky_structure_tree",
         "_phase6_install_keyboard_shortcuts",
+        "_phase6_final_scene_view_request",
+        "_phase6_save_settings_context_as_defaults",
     ):
         assert name in funcs
     adapter = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
@@ -123,3 +123,5 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
     )
     assert "_phase6_refresh_sticky_structure_tree" in adapter
     assert "_phase6_install_keyboard_shortcuts" in adapter
+    assert "_phase6_final_scene_view_request" in adapter
+    assert "_phase6_save_settings_context_as_defaults" in adapter
