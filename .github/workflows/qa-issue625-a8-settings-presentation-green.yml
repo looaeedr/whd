@@ -1,0 +1,66 @@
+name: "WHD｜工單 #625｜A8 Settings presentation GREEN 驗收"
+run-name: "WHD｜#625 A8｜KEEP_CURRENT_BOUNDARY Settings GREEN / Xvfb"
+
+on:
+  push:
+    branches:
+      - work/issue627-phase7-large-module-decomposition-20260924
+    paths:
+      - 'docs/superpowers/checkpoints/issue613-a1-dt-p7-g.json'
+      - 'docs/superpowers/checkpoints/issue625-a8-settings-presentation-census.md'
+      - 'docs/superpowers/checkpoints/issue625-a8-target-completion.json'
+      - '.github/workflows/qa-issue625-a8-settings-presentation-green.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  settings:
+    name: "A8｜Settings owner / runtime GREEN"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: "簽出 Phase 7 A8 工單主分支"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "確認 A8 decision lineage"
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 590448a911099d2bdb61aef09112dd6b6d3afc3c HEAD
+          echo "A8_DECISION_PARENT=590448a911099d2bdb61aef09112dd6b6d3afc3c"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: "安裝 Settings 驗收相依"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib numpy -r requirements.txt
+
+      - name: "執行 P7-G owner / transaction / projection 聚焦驗收"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_issue625_phase7_a8_settings_presentation_decision.py \
+            tests/test_issue445_settings_presentation_owner.py \
+            tests/test_issue498_settings_application_coordinator.py \
+            tests/test_issue500_settings_profile_projection.py \
+            tests/test_issue502_editor_settings_commit_seam.py \
+            tests/test_phase6_settings_panel_ownership.py \
+            tests/test_phase6_settings_center_gui_contract.py \
+            --tb=short
+
+      - name: "執行 Xvfb Settings runtime 驗收"
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_settings_panel_ownership.py \
+            tests/test_phase6_settings_center_gui_contract.py \
+            tests/test_phase6_settings_center_bridge.py \
+            --tb=short
