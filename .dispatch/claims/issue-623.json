@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T11:41:00Z",
   "base_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
-  "head_sha": "91a86a8f0eaf7c993471e5db3009a41aeb7574bc",
+  "head_sha": "6357af54c588e2d3c1fa57254050072311fc530a",
   "phase": "RED",
-  "last_update": "2026-09-26T11:51:48Z",
+  "last_update": "2026-09-26T11:54:35Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
@@ -30,8 +30,16 @@
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run exact P7-R-F focused RED at 91a86a8f0eaf7c993471e5db3009a41aeb7574bc; confirm failure is bounded-pipeline absence rather than collection/environment error, then implement canonical seven-stage owner.",
+  "remote_qa": {
+    "run_id": 36240254751,
+    "job_id": 108399284247,
+    "head_sha": "6357af54c588e2d3c1fa57254050072311fc530a",
+    "status": "completed",
+    "conclusion": "failure",
+    "interpretation": "EXPECTED_RED",
+    "result": "3 failed in 2.16s; exact cause ModuleNotFoundError: phase6_explicit_joint_pipeline; setup/collection environment GREEN"
+  },
+  "next_action": "Implement the canonical seven-stage explicit-joint pipeline owner with bounded inputs, make phase6_manufacturing_geometry a thin facade, and let the exact A6 workflow rerun on the implementation commit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-623.json",
   "evidence": [
@@ -52,13 +60,20 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36240132080,
-    "request_comment_id": 5846033295,
-    "result_comment_id": 5846034472,
+    "run_id": 36240272041,
+    "request_comment_id": 5846049787,
+    "result_comment_id": 5846050856,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3edcc0899278c75daadff4eaceeeeeafe0b95cdc",
     "consumed": true,
-    "mutation": "post-RED atomic claim+checkpoint reconciliation to 91a86a8f0eaf7c993471e5db3009a41aeb7574bc"
+    "mutation": "bind A6 one-shot workflow head and accepted intended RED run"
+  },
+  "qa_workflow": {
+    "path": ".github/workflows/qa-issue623-a6-explicit-joint-pipeline.yml",
+    "commit_sha": "6357af54c588e2d3c1fa57254050072311fc530a",
+    "guard_run_id": 36240200735,
+    "guard_request_comment_id": 5846041133,
+    "guard_result_comment_id": 5846042490
   }
 }
