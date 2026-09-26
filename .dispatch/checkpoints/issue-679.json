@@ -3,8 +3,8 @@
   "issue": "679",
   "branch": "work/issue679-local-durability-runtime-boundary-20260926",
   "head_sha": "0121b569e5f00266c10313fac8646e8bac9d6e6c",
-  "state": "RUNNING",
-  "next_action": "Open PR for exact GREEN head 0121b569e5f00266c10313fac8646e8bac9d6e6c, run remote governance/CI, then integrate and close #679 if exact-head acceptance remains GREEN.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,8 +16,12 @@
     "GREEN head 0121b569e5f00266c10313fac8646e8bac9d6e6c adds tools/local_durability_gate.py and tools/interactive_runtime_liveness.py plus required AI Library writeback.",
     "Exact GREEN regression on 0121b569e5f00266c10313fac8646e8bac9d6e6c: 49 passed.",
     "Knowledge governance bootstrap GREEN for Authority Map and Scheduled Resume writeback.",
-    "Scheduler runtime liveness regression remains GREEN; interactive owner does not import scheduler liveness owner."
+    "Scheduler runtime liveness regression remains GREEN; interactive owner does not import scheduler liveness owner.",
+    "PR #703 merged/closed; production cleanup/2d-3d-sync fresh-read HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28.",
+    "Remote governance run 36223338630 completed success on exact head 0121b569e5f00266c10313fac8646e8bac9d6e6c.",
+    "Exact local acceptance on GREEN head: 49 passed; governance bootstrap GREEN.",
+    "WI-1 production scope is tools/local_durability_gate.py + tools/interactive_runtime_liveness.py + focused tests + required AI Library writeback."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
