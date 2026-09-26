@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "619",
+  "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "head_sha": "81468a8103fd5045160e0f16e9458317acee584b",
+  "state": "RUNNING",
+  "next_action": "Consume #616 B3 artifact 10892687398 and fresh-read the exact requested_draw / family transition effect seam on the shared work-order HEAD; implement the smallest B4 atomic sequencing change so authoritative visible scene commits are 0 before transition finalize and exactly 1 Receiving commit after finalize, with derived parts/topology/placement/family state complete first; then run the focused UI-R3/live-switch regression under fresh Guard.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Master #628 B4 authority fresh-read from Issue #619.",
+    "Predecessor #616 terminal handoff is NEXT_CHILD_EXECUTABLE -> #619.",
+    "#616 accepted/released lineage HEAD 81468a8103fd5045160e0f16e9458317acee584b is the B4 starting authority.",
+    "Consume B3 artifact 10892687398 before any B4 behavior change; no sleep/delay or renderer-only workaround."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

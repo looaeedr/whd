@@ -1,0 +1,49 @@
+{
+  "issue": 619,
+  "issue_url": "https://github.com/looaeedr/whd/issues/619",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.b619.20260926T0040Z",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "claimed_at": "2026-09-26T00:40:00Z",
+  "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
+  "head_sha": "81468a8103fd5045160e0f16e9458317acee584b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T00:40:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "master_issue": 628,
+  "task_id": "B4",
+  "parent_issue": 628,
+  "expected_parent_sha": "81468a8103fd5045160e0f16e9458317acee584b",
+  "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "chain_head": "81468a8103fd5045160e0f16e9458317acee584b",
+  "approved_red_ids": [
+    "UI-R3"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Consume #616 B3 artifact 10892687398 and fresh-read the exact requested_draw / family transition effect seam on the shared work-order HEAD; implement the smallest B4 atomic sequencing change so authoritative visible scene commits are 0 before transition finalize and exactly 1 Receiving commit after finalize, with derived parts/topology/placement/family state complete first; then run the focused UI-R3/live-switch regression under fresh Guard.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-619.json",
+  "predecessor": {
+    "issue": 616,
+    "closure_state": "CLOSED",
+    "claim_phase": "RELEASED",
+    "accepted_head": "81468a8103fd5045160e0f16e9458317acee584b",
+    "handoff_guard_run_id": 36205589878
+  },
+  "consumed_b3_evidence": {
+    "artifact_id": 10892687398,
+    "artifact_digest": "sha256:de7e9156dad59d54d19cac61f7121450b06bc3f29d8b750cd5b91300c26c9414",
+    "diagnostic_run_id": 36203907306,
+    "finding": "A non-final invalid requested_draw visible commit occurs before the final authoritative Receiving commit."
+  },
+  "evidence": [
+    "Master #628 fresh-read lists #619 B4 open and dependent only on #616.",
+    "#616 fresh closure is closed/completed with checkpoint CLOSED and claim RELEASED at accepted shared work-order HEAD 81468a8103fd5045160e0f16e9458317acee584b.",
+    "#616 B3 artifact 10892687398 / run 36203907306 is the exact first-bad-visible-commit evidence B4 must consume before changing family-switch sequencing."
+  ]
+}
