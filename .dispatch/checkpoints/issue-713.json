@@ -22,8 +22,9 @@
     "Closure advanced after PR #714 merge, remote QA success, and live A/B prompt readback.",
     "Owning Issue #713 fresh-read closed/completed.",
     "Durable acceptance comment 5844534882 records finalization proof VALID for exact Issue/branch/head.",
-    "Interactive ticket scope complete; successor activation explicitly forbidden."
+    "Interactive ticket scope complete; successor activation explicitly forbidden.",
+    "Final atomic release persisted; successor activation=false."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED; do not activate successor."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

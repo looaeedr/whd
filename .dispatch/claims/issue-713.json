@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T07:42:30Z",
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "aaf38b04b0add5c93cb48ca535b57b39b0fd1ca4",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T08:11:47Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T08:15:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Finalize and close/release Issue #713 only; do not activate any successor.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-713.json",
   "red_evidence": {
@@ -54,5 +54,21 @@
     "enabled_preserved": true,
     "resulting_enabled": false,
     "contract": "SCHEDULER_LANE + NORMAL_PATH_FIRST + RECOVERY_IS_EXCEPTION_NOT_PHASE"
+  },
+  "finalization": {
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "acceptance_comment_id": 5844534882,
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "final_release": {
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "production_head": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
+    "pr": 714,
+    "successor_activated": false
   }
 }
