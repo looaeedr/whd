@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-26T13:58:30Z",
   "base_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
   "head_sha": "91931e518bea241d129d7327e1d163cb7a1ffd92",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T14:01:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T14:02:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "NONE",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Close #730 as duplicate of #728/#729 after finalization proof, then atomically RELEASE claim and mark checkpoint CLOSED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-730.json",
   "evidence": [
@@ -26,6 +26,9 @@
     "Scope excludes product implementation, cadence changes, lane ownership changes, and unrelated claim mutation.",
     "Fresh production target 91931e518bea241d129d7327e1d163cb7a1ffd92 is merged PR #729 / Issue #728 implementing READY_WORK_CENSUS_V1.",
     "Fresh focused verification: tests/process/test_scheduler_no_work_census_contract.py = 4 passed / 0 failed.",
-    "No additional repository mutation is required for #730; duplicate/no-op."
+    "No additional repository mutation is required for #730; duplicate/no-op.",
+    "Issue #730 fresh-read closed/duplicate at 2026-09-26T14:02:02Z.",
+    "Finalization proof verified on exact terminal checkpoint.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ]
 }
