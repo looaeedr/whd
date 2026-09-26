@@ -21,13 +21,16 @@
     "User-directed takeover completed: claim owner chatgpt.sol260926.issue617, classification ORPHANED_SCHEDULER_OWNER, authority comment 5841672435.",
     "Remote Guard run 36206414886 GREEN consumed to transition accepted A2 into TERMINAL_SUCCESS / FINALIZATION_PENDING.",
     "Master #627 handoff resolved from live child state: #613 closed/completed; #618 open and unclaimed => NEXT_CHILD_EXECUTABLE.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36206534675."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36206534675.",
+    "Trusted Remote Finalization run 36206629673 GREEN; artifact 10893634878; checkpoint fingerprint 890dc72b4a021782cda2eff5e16a8f11127a6cd5b7af79bf3cb484dc22ad4a99; local verify-finalization-proof PASS.",
+    "Owning Issue #617 closed/completed and fresh-read back at 2026-09-26T00:57:03Z.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36206741985."
   ],
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "618",
   "chain_next_action": "Activate and claim #618 A3 on accepted #617 head c20bb25c334003d2e8439bf636b3a193b6debc78, then execute approved P7-R-C scope; do not merge production until Master integration gate.",
   "chain_reason": "Master #627 live dependency readback: #613 is closed/completed; #618 is OPEN, blocked only by #613, and has no shared claim.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof for #617 at c20bb25c334003d2e8439bf636b3a193b6debc78; if GREEN, close/read back #617, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED + Master #627 -> #618 handoff.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED while preserving Master #627 NEXT_CHILD_EXECUTABLE handoff to #618; then activate/claim #618 and begin P7-R-C production work.",
   "master_issue": "627"
 }

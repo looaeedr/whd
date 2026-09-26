@@ -8,7 +8,7 @@
   "base_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
   "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T00:54:30Z",
+  "last_update": "2026-09-26T00:58:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
@@ -30,16 +30,16 @@
       "xvfb": "29 passed in 2.63s"
     }
   },
-  "next_action": "Run bound trusted finalization proof for #617 at c20bb25c334003d2e8439bf636b3a193b6debc78; if GREEN, close/read back #617, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED + Master #627 -> #618 handoff.",
+  "next_action": "Persist canonical final release: checkpoint CLOSED + claim RELEASED while preserving Master #627 NEXT_CHILD_EXECUTABLE handoff to #618; then activate/claim #618 and begin P7-R-C production work.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 36206534675,
-    "request_comment_id": 5841712265,
+    "run_id": 36206741985,
+    "request_comment_id": 5841736500,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #617 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #617 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after trusted finalization + issue close readback"
   },
   "decision_artifact": "docs/superpowers/checkpoints/issue617-a2-decision.json",
   "legacy_postcommit_recovery": {
@@ -91,6 +91,32 @@
       ],
       "target_changed": true,
       "observed_at": "2026-09-26T00:54:30Z"
+    },
+    {
+      "guard_run_id": 36206741985,
+      "action": "write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [
+        ".dispatch/claims/issue-617.json",
+        ".dispatch/checkpoints/issue-617.json"
+      ],
+      "target_changed": true,
+      "observed_at": "2026-09-26T00:58:10Z"
     }
-  ]
+  ],
+  "finalization": {
+    "run_id": 36206629673,
+    "artifact_id": 10893634878,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "eefb0cbe6698cc0cdf3d4c77f3fb666c6932f5b7",
+    "checkpoint_fingerprint": "890dc72b4a021782cda2eff5e16a8f11127a6cd5b7af79bf3cb484dc22ad4a99",
+    "request_comment_id": 5841723026,
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T00:57:03Z"
+    }
+  }
 }
