@@ -22,13 +22,17 @@
     "Implementation 6647ce01e1834e8c1eb8c5d15d30896187c69397 passed 47 focused/regression tests.",
     "Post-implementation reconciliation Guard GREEN run 36247113580 / result comment 5846874377.",
     "T2 acceptance evidence comment 5846900578: 47 PASS focused/regression; 100 PASS broader takeover/turn-exit; tests/process 606 PASS / 2 pre-existing baseline failures; baseline recheck reproduced same 2 failures.",
-    "Acceptance handoff Guard GREEN run 36247345264 / result comment 5846904212."
+    "Acceptance handoff Guard GREEN run 36247345264 / result comment 5846904212.",
+    "Trusted finalization run 36249232060 terminal SUCCESS; artifact 10908776677; FINALIZATION_PROOF_VALID exact-bound to checkpoint blob 0fdd44ee45d48d425cd3e1efb0792f3b57e85bc0 and claim blob 3462a1f5be97c0a7ebe813fcf0902f620ab95373.",
+    "GitHub Issue #689 close readback: state=closed, state_reason=completed, closed_at=2026-09-26T14:40:09Z.",
+    "Final closure coordination Guard GREEN run 36249332468 / result comment 5847145744.",
+    "Shared execution claim released atomically with checkpoint closure; chain handoff NEXT_CHILD_EXECUTABLE -> #691."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Issue Closure owner #693 must consume T2 acceptance comment 5846900578, mint fresh finalization proof bound to exact checkpoint/head 6647ce01e1834e8c1eb8c5d15d30896187c69397, close/read back #689 as completed, then atomically persist checkpoint CLOSED + claim RELEASED."
+  "master_issue": "693",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "691",
+  "chain_next_action": "As #693 closure/chain owner, fresh-read #691 dependency state and establish/resume its canonical claim/branch, then execute T3 RED-STOP-08/12/13.",
+  "chain_reason": "T2/#689 closed and RELEASED; #687 and #689 dependencies for T3/#691 are satisfied.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

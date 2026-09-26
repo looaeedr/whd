@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-26T12:50:00Z",
   "base_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
   "head_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T14:06:11.021230Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T14:41:05.473510Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Issue Closure owner #693 must consume T2 acceptance comment 5846900578, mint fresh finalization proof for exact #689 checkpoint/head, close/readback #689, then atomically persist CLOSED + RELEASED and continue chain.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-689.json",
   "evidence": [
@@ -28,7 +28,10 @@
     "Branch-create Guard GREEN run 36244663372 consumed by exact branch readback at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; branch creation does not count as substantive action.",
     "First substantive action completed: focused RED test created, executed as 11 expected FAIL, and committed at d832b4af95ca42a479f816acc2ca2c24a77dacf9 under Guard run 36245089118.",
     "Implementation 6647ce01e1834e8c1eb8c5d15d30896187c69397: focused + continuity + turn-exit regression 47 PASS / 0 FAIL; git diff --check clean.",
-    "Post-implementation reconciliation Guard GREEN run 36247113580 / result comment 5846874377."
+    "Post-implementation reconciliation Guard GREEN run 36247113580 / result comment 5846874377.",
+    "Trusted finalization run 36249232060 terminal SUCCESS with FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; artifact 10908776677; checkpoint fingerprint faa1016a578ea6d1a8ba167624701c1ab3634ba7739c99173e11d33be18d0404.",
+    "GitHub Issue #689 close readback: state=closed, state_reason=completed, closed_at=2026-09-26T14:40:09Z.",
+    "Final closure coordination mutation authorized by Remote Guard run 36249332468 / result comment 5847145744."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
@@ -43,5 +46,28 @@
       "test": "tests/process/test_issue689_takeover_substantive_action_gate.py",
       "result": "11_FAIL_EXPECTED_RED"
     }
+  },
+  "release_handoff": {
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-26T14:40:09Z"
+    },
+    "finalization_run_id": 36249232060,
+    "finalization_artifact_id": 10908776677,
+    "successor_issue": 691,
+    "successor_state": "open",
+    "closure_owner_issue": 693
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36249332468,
+    "request_comment_id": 5847144459,
+    "result_comment_id": 5847145744,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
+    "consumed": true,
+    "mutation": "atomic final closure: checkpoint CLOSED + claim RELEASED + #693 chain handoff to #691"
   }
 }
