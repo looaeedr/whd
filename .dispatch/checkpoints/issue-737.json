@@ -34,13 +34,14 @@
     "Closure ownership promoted from legacy original branch to accepted delegated recovery branch governance/issue737-remote-guard-authority-handoff-r2 at 535ae4160e6937bccc85aa73402c3f5efafc11b4.",
     "All #737 acceptance is complete including trusted-main smoke helper #749 clean closure; entering immutable ISSUE_CLOSE_PENDING checkpoint.",
     "Finalization proof VALID fingerprint 78aad7665913398079a75c77f88c579c1c8d9b044b5b47ec20a42f9bcc9c4c83.",
-    "Issue #737 fresh readback closed/completed at 2026-09-26T17:04:42Z."
+    "Issue #737 fresh readback closed/completed at 2026-09-26T17:04:42Z.",
+    "Standalone #737 closure complete; no successor handoff."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff for standalone #737"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
