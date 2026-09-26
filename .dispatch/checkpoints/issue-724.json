@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "724",
+  "branch": "governance/issue724-report-handler-prefix-v1",
+  "head_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
+  "state": "RUNNING",
+  "next_action": "Run branch-create Guard, create governance/issue724-report-handler-prefix-v1 from exact cleanup/2d-3d-sync HEAD, then add RED contract for handler/Issue report prefix.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: Issue #724 + explicit user request.",
+    "Execution mode: UPDATE_ONLY.",
+    "Base/head authority: cleanup/2d-3d-sync@04b2a9808acbaba49e5fb60434f7218cd565c421.",
+    "Preflight evidence: C:\\Users\\Public\\whd_issue724_preflight_evidence.md GREEN."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

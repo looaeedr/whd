@@ -1,0 +1,30 @@
+{
+  "issue": 724,
+  "issue_url": "https://github.com/looaeedr/whd/issues/724",
+  "worker": "chatgpt.issue724.20260926a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue724.20260926a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue724-report-handler-prefix-v1",
+  "claimed_at": "2026-09-26T12:37:34Z",
+  "base_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
+  "head_sha": "04b2a9808acbaba49e5fb60434f7218cd565c421",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-26T12:37:34Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "handoff_source": "NONE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run branch-create Guard, create governance/issue724-report-handler-prefix-v1 from exact cleanup/2d-3d-sync HEAD, then add RED contract for handler/Issue report prefix.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-724.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: authorization_source=user explicit request; execution_intent=UPDATE_ONLY.",
+    "Purpose: add user-visible handler/lane + exact Issue prefix to 工作槽, 排程模擬, and 寫排程 reports.",
+    "Authorized scope: three Skill files plus necessary contract tests.",
+    "Prohibited scope: no ownership semantics change, no scheduler cadence/enabled/lane changes, no unrelated issue execution.",
+    "Phase6 Skill mutation preflight GREEN using C:\\Users\\Public\\whd_issue724_preflight_evidence.md."
+  ]
+}
