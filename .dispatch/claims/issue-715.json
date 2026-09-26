@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T08:27:02Z",
   "base_sha": "fa1b105daed90684db8e0b7500c0a81894cc0c55",
   "head_sha": "3f197eb3b45a183a61db5f5034aac79996ce09b4",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T08:36:46Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-26T08:39:46Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Open PR for exact GREEN head 3f197eb3b45a183a61db5f5034aac79996ce09b4, run remote governance/CI, merge, then close/release #715 without activating any successor.",
+  "next_action": "Advance closure to ISSUE_CLOSE_PENDING, verify bound finalization proof, close/read back #715, then atomically persist checkpoint CLOSED + claim RELEASED; successor_activated=false.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-715.json",
   "execution_intent": "UPDATE_ONLY",
@@ -28,5 +28,20 @@
     "regression": "70 passed",
     "preflight": "GREEN",
     "diff_check": "GREEN"
+  },
+  "integration": {
+    "pr": 716,
+    "state": "merged",
+    "head_sha": "3f197eb3b45a183a61db5f5034aac79996ce09b4",
+    "base": "cleanup/2d-3d-sync",
+    "merge_commit_sha": "a81bb714c91737d3d509a072b486a0a47e0c302a",
+    "production_head": "a81bb714c91737d3d509a072b486a0a47e0c302a"
+  },
+  "remote_qa": {
+    "run_id": 36230365730,
+    "head_sha": "3f197eb3b45a183a61db5f5034aac79996ce09b4",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap"
   }
 }
