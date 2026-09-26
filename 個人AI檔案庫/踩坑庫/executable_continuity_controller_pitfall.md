@@ -171,3 +171,9 @@ GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consu
 
 ## Interactive liveness / provenance gap
 #646 暴露 scheduler 有 heartbeat、chatgpt_interactive 沒有對稱 runtime liveness，且 generic executor_source 無法指出哪個聊天室。Required follow-up：interactive heartbeat；conversation/chat identity + invocation identity；scheduler lane + invocation identity；heartbeat不得取代 ownership authority。
+
+## 2026-09-26 — legacy post-commit receipt-window drift
+
+症狀：historical work commit 已存在、claim/checkpoint 尚停在 H0；H1 又確實是 H0 direct child、changed files 也與 prior GREEN Guard 完全一致，但 commit timestamp 晚於該 receipt 的 `expires_at`。ordinary post-commit reconciliation 會正確 FAIL，不能因「看起來就是那顆 commit」直接補 claim HEAD。
+
+修復規則：只走 `LEGACY_POSTCOMMIT_RECONCILIATION_REPAIR_V1`。owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1` 必須 exact 綁 current claim blob、H0/H1、prior Guard run/request 與 actual changed files；trusted Remote Guard 再 fresh-read GitHub durable evidence。只允許 direct-child、唯一 expired matching receipt，且只做 claim/checkpoint HEAD reconciliation。任何 identity drift、merge/multi-hop、extra file 或 multiple candidate 都 fail closed。此 escape hatch 不得取代 normal receipt-window discipline。

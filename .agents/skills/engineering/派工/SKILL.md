@@ -644,3 +644,19 @@ EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保
 6. repair 完成後才回 ordinary Guard / post-commit reconciliation；work-branch HEAD drift不得塞進 bootstrap repair。
 
 此 transition 是 migration repair，不是 takeover、不是 stale-head bypass，也不改 ownership。
+
+## LEGACY_POSTCOMMIT_RECONCILIATION_REPAIR_V1
+
+歷史遺留 `MUTATION_DONE_RECONCILE_ONLY` 若 ordinary `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1` 唯一失敗原因是：原 mutation 的 exact GREEN receipt 在 commit 真正落盤前已過期，禁止 replay mutation、self-takeover 或直接改 claim HEAD。
+
+唯一允許的 narrow recovery 必須同時成立：
+
+1. current claim/checkpoint pair 存在且 exact 綁同一 H0；live work branch H1 是 H0 的單一直接子 commit，不支援 merge/multi-hop recovery。
+2. GitHub durable readback 證明 H1 實際 changed-file set，與一張 historical GREEN `write|commit` request/receipt 的 issue/worker/executor_source/branch/base/H0/current claim blob/request identity 完全匹配。
+3. historical receipt 必須是 `issued_at <= expires_at < commit_time`；只有 receipt-window 失效，其他 identity 全部有效。普通 window 內 reconciliation 仍走原 contract。
+4. repository owner 必須另寫 `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`，exact 綁 issue、worker、executor_source、branch、current claim blob、H0、H1、prior guard run/request id、actual changed files，並使用 `recovery_reason=LEGACY_RECEIPT_WINDOW_EXPIRED_AFTER_MUTATION`。
+5. trusted Remote Guard request 只能是 `action=write` + exact claim/checkpoint pair，並帶 `legacy_reconcile_recovery_comment_id=<owner comment id>`；machine gate fresh-fetch comment 後驗證。
+6. matching expired receipt 必須唯一；錯 owner、錯 blob、錯 H0/H1、錯 run/request、extra/missing changed file、merge/multi-hop 或 multiple candidates 一律 FAIL_CLOSED。
+7. GREEN 只授權 reconciliation metadata：原子把 claim/checkpoint HEAD 從 H0 推到既有 H1；不得重播 production mutation、不得改 ownership，也不得把此 recovery 當一般 receipt-window bypass。
+
+這是 legacy migration escape hatch，不是 normal path；新 mutation 仍必須在 Guard receipt window 內完成。
