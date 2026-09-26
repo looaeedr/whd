@@ -6,9 +6,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-24T22:13:28+08:00",
   "base_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
-  "head_sha": "7127129081c21732d49aa07f37823fb0f708700d",
+  "head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-24T22:30:47+08:00",
+  "last_update": "2026-09-26T00:47:14Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
@@ -30,16 +30,24 @@
       "xvfb": "29 passed in 2.63s"
     }
   },
-  "next_action": "Audit tested head 5039d99208e247b6470581839308b3e89bf46674 to cleaned head 7127129081c21732d49aa07f37823fb0f708700d; prove the only delta is one-shot workflow deletion and implementation blobs are unchanged, then record WHD_PHASE7_TARGET_COMPLETION_V1 and terminal checkpoint.",
+  "next_action": "Take over #617 under user-directed interactive authority, then transition the accepted A2 completion to terminal finalization/closure without replaying implementation.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 36013315040,
-    "request_comment_id": 5816128122,
+    "run_id": 36206105653,
+    "request_comment_id": 5841658121,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-    "consumed": true
+    "consumed": true,
+    "mutation": "legacy expired post-commit atomic claim+checkpoint reconciliation H0->H1"
   },
-  "decision_artifact": "docs/superpowers/checkpoints/issue617-a2-decision.json"
+  "decision_artifact": "docs/superpowers/checkpoints/issue617-a2-decision.json",
+  "legacy_postcommit_recovery": {
+    "authority_comment_id": 5841657055,
+    "prior_guard_run_id": 36013452861,
+    "prior_request_comment_id": 5816149112,
+    "prior_head_sha": "7127129081c21732d49aa07f37823fb0f708700d",
+    "live_head_sha": "c20bb25c334003d2e8439bf636b3a193b6debc78",
+    "changed_file": "docs/superpowers/checkpoints/issue617-a2-target-completion.json"
+  }
 }
