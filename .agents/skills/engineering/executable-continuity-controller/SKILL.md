@@ -14,15 +14,15 @@ whd_schema: WHD_DOC_META_V1
 Continuity 只延續**已授權 execution mode**，不能把 observation 或 update 自動升級成施工。
 
 - `UPDATE_ONLY 不進 continuity execution state machine`：update 完成 + 必要 readback 後即可結束該 update scope；不得因 repo 另有 open Issue 或 ready successor 進入 RUNNING。
-- `EXECUTE_TICKET`：只 resume exact owning ticket；本票 terminal/closure 後不擴張 scope。
-- 只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 才可把 `NEXT_CHILD_EXECUTABLE` 解讀為本輪 successor continuation。
-- 不得因 open / unblocked successor 自動升級 execution scope。
+- `EXECUTE_TICKET`：先 resume exact owning ticket；不得把 arbitrary open/unblocked Issue 當 continuation。但本票若由 canonical durable state 明確進入 `NEXT_CHILD_EXECUTABLE`，或指定 exact closure/successor owner，必須把該 exact handoff 解讀為原授權鏈的 continuation。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE` 可依各自 broader chain/lane authority continuation；它們不是 `NEXT_CHILD_EXECUTABLE` 唯一允許的 mode。
+- 不得因單純 open / unblocked successor 自動升級 execution scope；只有 exact durable handoff authority 可自動續接。
 
 ### RECOVERY_IS_EXCEPTION_NOT_PHASE
 
 `RECOVERING` 是 fresh machine evidence 已證明 failure/drift/interruption 後的暫時 state，不是每張票都要走的 lifecycle phase。沒有 recovery evidence 時直接維持/回到 RUNNING normal path；condition 修復後立即離開 RECOVERING。
 
-本節優先限制後文 Master-chain continuation：若進入 continuity 時沒有 chain/lane execution authority，就不得只因 checkpoint 或 dependency graph 可看到 successor 而啟動它。
+本節只限制未授權 discovery，不得覆蓋後文 Master-chain continuation hard gate：若 checkpoint 只是「看得到」某個 successor，不能啟動；但若 canonical chain state 已是 `NEXT_CHILD_EXECUTABLE` / exact closure-successor handoff，該 successor 已是 durable execution authority，必須續接。
 
 
 ## EXECUTION_SCOPE_AUTHORITY_GATE_V1

@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 本 Skill 是 WHD execution intent 的 canonical routing authority。任何 claim / implementation branch / successor continuation 前，先把本輪 intent 分成且只分成一種：
 
 - `UPDATE_ONLY`：只修改使用者點名的 automation / scheduler 設定、Skill、Issue body、prompt、spec、governance text 或其他控制面，並完成該更新必要的驗證與 readback。
-- `EXECUTE_TICKET`：使用者明確要求做／修／實作／接手／繼續／收掉一張具體工單，授權該 ticket 的完整 normal path。
+- `EXECUTE_TICKET`：使用者明確要求做／修／實作／接手／繼續／收掉一張具體工單，授權該 ticket 的完整 normal path；若該 ticket 的 canonical durable chain state 明確進入 `NEXT_CHILD_EXECUTABLE` 或指定 exact closure/successor owner，該 handoff/continuation 視為完成本次已授權工作鏈的一部分，必須自動續接 exact next issue，而不是要求使用者重新下令。
 - `EXECUTE_CHAIN`：使用者明確要求整條工單鏈持續施工，child terminal 後才可依 canonical successor authority 接下一張。
 - `SCHEDULER_LANE`：真正 scheduled invocation 或使用者明確輸入 `/排程A` / `/排程B`；可依 lane contract discovery/resume work。
 
@@ -62,7 +62,7 @@ resume_authority=<NONE | exact issue + checkpoint + branch + HEAD + next_action 
 1. `authorization_source` 必須指出真實可反讀 authority；不得把 open Issue、空工作槽、Guard GREEN、模型推測或「看起來該做」寫成使用者授權。
 2. fresh task 固定 `resume_authority=NONE`；續跑則必須列 exact durable identity。缺失、stale 或 drift 時先 fresh reconstruct，不得假填 resume authority。
 3. `UPDATE_ONLY` 的 `authorized_scope` 只包含使用者點名的更新 transaction 與必要驗證；其他 open Issue / ready leaf / successor 一律仍在 `prohibited_scope`，不得因此擴張 execution scope。
-4. `EXECUTE_TICKET` 只授權該 ticket；`EXECUTE_CHAIN` 只授權 accepted chain；`SCHEDULER_LANE` 只授權該 lane contract 允許的 discovery/resume boundary。選出 exact executable leaf 後，第一個 durable claim/checkpoint 必須保存 exact issue/branch/HEAD/next_action。
+4. `EXECUTE_TICKET` 不授權 arbitrary Issue discovery；但若該 ticket 的 canonical durable chain state 已明確給出 `NEXT_CHILD_EXECUTABLE` / exact `next_issue` / exact closure owner，沿該 handoff 自動續接屬於原授權鏈的 completion，不是 scope expansion。`EXECUTE_CHAIN` 只授權 accepted chain；`SCHEDULER_LANE` 只授權該 lane contract 允許的 discovery/resume boundary。選出 exact executable leaf 後，第一個 durable claim/checkpoint 必須保存 exact issue/branch/HEAD/next_action。
 5. 第一個 durable owning Issue / claim / checkpoint writeback 必須保存同義的 `authorization_source / execution_intent / purpose / authorized_scope / prohibited_scope / resume_authority` evidence，讓下一 Runtime 不靠聊天記憶也能重建。
 6. declaration 是 provenance 與 scope boundary，**不是安全檢查的 bypass**；平台安全檢查、Phase6 Preflight、execution claim Guard、finalization gate 與其他專案 hard gate 全部照常執行。
 7. 下游 Skill 只能 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`，不得建立第二套欄位、第二個 parser 或更寬鬆的授權語意。
