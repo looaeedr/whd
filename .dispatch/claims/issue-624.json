@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "head_sha": "942736f043237a6c12ecac79c7c3cab03963f298",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T13:48:57Z",
+  "head_sha": "a7540c55ad65ae95dd74de355e35af8e4562caec",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-26T13:51:38Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -30,15 +30,14 @@
   "handoff_source": "WHD_PREDECESSOR_HANDOFF_V1",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36244740758,
-    "job_id": 108411737519,
-    "head_sha": "942736f043237a6c12ecac79c7c3cab03963f298",
-    "status": "completed",
-    "conclusion": "success",
-    "result": "5 passed in 0.33s",
-    "scope": "P7-R-A focused Bridge residual responsibility acceptance"
+    "run_id": 36246541254,
+    "job_id": 108416675075,
+    "head_sha": "a7540c55ad65ae95dd74de355e35af8e4562caec",
+    "status": "in_progress",
+    "conclusion": null,
+    "scope": "A7 broader Bridge compatibility + owner boundary regression"
   },
-  "next_action": "Run broader A7 regressions covering Part Editor activation ordering, command-router scheduler ownership, bootstrap/lifecycle/install-order, facade bindings, and bridge ownership/no-reverse-import invariants; then complete A7 DT/ASCG target artifact and closure.",
+  "next_action": "Poll exact broader A7 run 36246541254 at a7540c55ad65ae95dd74de355e35af8e4562caec to terminal; inspect bounded failure evidence or, if GREEN, complete A7 DT-4..DT-6/ASCG target artifact, cleanup temporary QA workflows, drift audit, and closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -61,14 +60,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36246407216,
-    "request_comment_id": 5846786062,
-    "result_comment_id": 5846787344,
+    "run_id": 36246555377,
+    "request_comment_id": 5846803967,
+    "result_comment_id": 5846805156,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "post-implementation atomic claim+checkpoint reconciliation to 942736f043237a6c12ecac79c7c3cab03963f298 and focused GREEN bind"
+    "mutation": "reconcile broader-QA workflow head and bind exact run 36246541254"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
@@ -86,5 +85,12 @@
     "guard_run_id": 36244692140,
     "guard_request_comment_id": 5846585383,
     "guard_result_comment_id": 5846586643
+  },
+  "broader_qa_workflow": {
+    "path": ".github/workflows/qa-issue624-a7-broader-regression.yml",
+    "commit_sha": "a7540c55ad65ae95dd74de355e35af8e4562caec",
+    "guard_run_id": 36246513003,
+    "guard_request_comment_id": 5846798723,
+    "guard_result_comment_id": 5846800216
   }
 }
