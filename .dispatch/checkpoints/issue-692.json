@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "692",
+  "branch": "work/issue692-governance-parity-gate-20260927",
+  "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
+  "state": "RUNNING",
+  "next_action": "Obtain exact branch-create Guard, create/read back #692 branch from predecessor accepted HEAD, then execute RED-STOP-15 parity contract and batch-first main↔X census.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: #685 approval + #692 main-to-cleanup sync requirement comments.",
+    "Approved RED: RED-STOP-15.",
+    "Blocked-by set #687/#688/#689/#690/#691 fresh-read satisfied.",
+    "Predecessor #690 CLOSED + RELEASED and durable successor handoff points to #692; Master/chain continuation fields intentionally omitted while this checkpoint is non-terminal.",
+    "B lane interactive provenance retained separately from logical scheduler owner.",
+    "Current X/main observations: X=79efd748107db7578105fd0ca920f2436a3ff67a; main=2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "Activation run 36258546768 expected recovery failure: machine gate rejected terminal-only Master-chain metadata on RUNNING checkpoint; no state mutation."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

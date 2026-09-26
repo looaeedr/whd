@@ -1,0 +1,33 @@
+{
+  "issue": 692,
+  "issue_url": "https://github.com/looaeedr/whd/issues/692",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.b692.20260927.1",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue692-governance-parity-gate-20260927",
+  "claimed_at": "2026-09-27T13:00:00Z",
+  "base_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
+  "head_sha": "d2c04ef30b9aec258e042b6ea4f4fd790149aa56",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T13:19:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Guard for work/issue692-governance-parity-gate-20260927 at accepted predecessor HEAD d2c04ef30b9aec258e042b6ea4f4fd790149aa56, create/read back branch, then establish RED-STOP-15 parity gate against current main and cleanup/2d-3d-sync without absorbing newer X into the frozen child lineage.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-692.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user explicitly invoked /排程B 692.",
+    "Scheduler interactive lane owner: scheduler.e58ea936e7d0b12bd0d475314709d6f1; actual invocation source chatgpt_interactive; conversation identity unavailable.",
+    "B15/B45 live prompts fresh-read and semantically aligned; both share the same durable B lane.",
+    "All declared blockers #687/#688/#689/#690/#691 are closed/completed; #688 claim is RELEASED.",
+    "#690 terminal checkpoint durable handoff: master #693, chain_state NEXT_CHILD_EXECUTABLE, next_issue #692.",
+    "Authoritative child base follows predecessor accepted HEAD d2c04ef30b9aec258e042b6ea4f4fd790149aa56; current cleanup HEAD 79efd748107db7578105fd0ca920f2436a3ff67a is observation/integration authority only.",
+    "Current main HEAD 2a43b89fd15e504c2bbbca9b2db7797c75768724.",
+    "#692 has no pre-existing claim/checkpoint or branch; parallel-scope census found no existing owner for #692.",
+    "Initial fresh-create activation run 36258546768 failed closed because non-terminal RUNNING checkpoint incorrectly carried terminal-only Master-chain continuation metadata; no coordination mutation occurred."
+  ]
+}
