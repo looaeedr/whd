@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "624",
   "branch": "work/issue627-phase7-large-module-decomposition-20260924",
-  "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+  "head_sha": "f2a7745e8548965d9f44fbc3236367bf7165144a",
   "state": "RUNNING",
-  "next_action": "Delete the two temporary A7 QA workflows under an exact guarded commit; drift-audit tested head da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to cleanup head; complete canonical DT-0..DT-6 and WHD_PHASE7_TARGET_COMPLETION_V1, then trusted finalization/close/release handoff to #625.",
+  "next_action": "Write terminal P7-A canonical DT artifact + WHD_PHASE7_TARGET_COMPLETION_V1 and finalize DT-5/DT-6 census evidence; then terminalize checkpoint and run trusted finalization.",
   "run_id": 36247109748,
   "job_id": 108418225953,
   "log_cursor": null,
@@ -43,7 +43,10 @@
     "Exact broader verification run 36247109748 locked at da0abb85d287d05d6f3a6f27c335eb2a9f3b052c; GUI compatibility step has passed while run finalizes.",
     "Post-correction head reconciliation authorized by Remote Guard run 36247131304.",
     "Exact broader A7 verification run 36247109748 @ da0abb85d287d05d6f3a6f27c335eb2a9f3b052c terminal SUCCESS: owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings.",
-    "Terminal QA writeback / CLEANUP advance authorized by Remote Guard run 36247249130."
+    "Terminal QA writeback / CLEANUP advance authorized by Remote Guard run 36247249130.",
+    "Temporary A7 QA workflows removed atomically by cleanup commit f2a7745e8548965d9f44fbc3236367bf7165144a under Remote Guard run 36247306310.",
+    "tested→cleanup drift da0abb85d287d05d6f3a6f27c335eb2a9f3b052c..f2a7745e8548965d9f44fbc3236367bf7165144a contains only removal of the two temporary A7 QA workflows.",
+    "Cleanup-head reconciliation / drift-audit advance authorized by Remote Guard run 36247401318."
   ],
   "master_issue": null,
   "chain_state": "NONE",

@@ -9,9 +9,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-26T12:58:30Z",
   "base_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
-  "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-26T14:04:22Z",
+  "head_sha": "f2a7745e8548965d9f44fbc3236367bf7165144a",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-26T14:07:08Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
@@ -41,7 +41,7 @@
     "scope": "A7 broader Bridge compatibility + owner boundary verification after restoring dynamic FinalScene/Settings composition ports",
     "result": "owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings"
   },
-  "next_action": "Delete the two temporary A7 QA workflows under an exact guarded commit; drift-audit tested head da0abb85d287d05d6f3a6f27c335eb2a9f3b052c to cleanup head; complete canonical DT-0..DT-6 and WHD_PHASE7_TARGET_COMPLETION_V1, then trusted finalization/close/release handoff to #625.",
+  "next_action": "Write terminal P7-A canonical DT artifact + WHD_PHASE7_TARGET_COMPLETION_V1 and finalize DT-5/DT-6 census evidence; then terminalize checkpoint and run trusted finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-624.json",
   "evidence": [
@@ -64,14 +64,14 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36247249130,
-    "request_comment_id": 5846889750,
-    "result_comment_id": 5846891193,
+    "run_id": 36247401318,
+    "request_comment_id": 5846909271,
+    "result_comment_id": 5846910784,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "407766cba2405b4f4b6a6cc014b0ac27180a7f24",
     "consumed": true,
-    "mutation": "record terminal broader GREEN and advance to CLEANUP"
+    "mutation": "reconcile cleanup head and persist clean-only tested-to-closing drift"
   },
   "qa_workflow": {
     "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
@@ -131,6 +131,26 @@
     "restored_ports": [
       "_phase6_final_scene_view_request",
       "_phase6_save_settings_context_as_defaults"
+    ]
+  },
+  "cleanup_commit": {
+    "head_sha": "f2a7745e8548965d9f44fbc3236367bf7165144a",
+    "parent_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+    "removed_files": [
+      ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
+      ".github/workflows/qa-issue624-a7-broader-regression.yml"
+    ],
+    "guard_run_id": 36247306310,
+    "guard_request_comment_id": 5846897062,
+    "guard_result_comment_id": 5846898492
+  },
+  "drift_audit": {
+    "tested_head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+    "closing_head_sha": "f2a7745e8548965d9f44fbc3236367bf7165144a",
+    "status": "CLEAN_ONLY_TEMP_QA_WORKFLOW_REMOVAL",
+    "removed_files": [
+      ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
+      ".github/workflows/qa-issue624-a7-broader-regression.yml"
     ]
   }
 }
