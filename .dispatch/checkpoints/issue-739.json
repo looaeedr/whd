@@ -3,8 +3,8 @@
   "issue": "739",
   "branch": "governance/issue739-pr-write-auto-consume-20260926",
   "head_sha": "94dabe473faab46c028bf7efbb7e3dd7957b8bbd",
-  "state": "RUNNING",
-  "next_action": "Obtain fresh pr-write Guard for PR #757 at final head, verify mergeability against current main, merge, fresh-read deployment, then re-run #733 live coordination write proof.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36261380792,
   "job_id": 108436869620,
   "log_cursor": null,
@@ -58,13 +58,17 @@
     "Hotfix compatibility QA 36261380792 SUCCESS.",
     "QA-head reconciliation Guard 36261408971 GREEN.",
     "Final deployment head 94dabe473faab46c028bf7efbb7e3dd7957b8bbd removes temporary QA only.",
-    "Final-head reconciliation Guard 36261536602 GREEN."
+    "Final-head reconciliation Guard 36261536602 GREEN.",
+    "PR #757 merged to main as f19c59c2596a278f8f6bf455e079b4a3dd1c5607.",
+    "Production main readback confirms embedded Python imports and coordination-write durable readback helper.",
+    "Live #733 proof 36261716152 SUCCESS under deployed main hotfix.",
+    "Terminalization write Guard 36261756630 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint, close/read back Issue #739, then atomically persist checkpoint CLOSED + claim RELEASED."
 }
