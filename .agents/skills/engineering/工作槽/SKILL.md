@@ -114,7 +114,7 @@ query-only 固定禁止：
 - intent = `EXECUTE_TICKET`。
 - 必須先找到 `worker.slot.1` 的 explicit durable binding；沒有 binding → fail closed，不自動挑票。
 - fresh-read owning claim/checkpoint/branch/liveness，直接 resume exact `next_action`。
-- 不因本票 terminal 就自動接 successor；跨 ticket continuation 仍需 `EXECUTE_CHAIN` / `SCHEDULER_LANE` authority。
+- 本票 terminal 後若 canonical durable state 是 `NEXT_CHILD_EXECUTABLE`，或 exact closure/successor owner 已被 durable 指定，必須沿原 slot 自動 claim/start exact successor；只有沒有這種 durable handoff authority 時才不得跨票。
 
 ### 4.3 `/工作1 接手`
 
@@ -178,8 +178,8 @@ planned handoff 不得退化成 stale takeover；交接必須 fresh-read exact c
 - `empty slot != execution authority`。
 - `open / unblocked Issue != execution authority`。
 - `UPDATE_ONLY 不得自動佔用空槽`。
-- `EXECUTE_TICKET` 只處理明確指定 slot/Issue。
-- `EXECUTE_CHAIN` / `SCHEDULER_LANE` 只有在既有 chain/lane authority 已成立時才可把 terminal slot rotation 到 canonical successor。
+- `EXECUTE_TICKET` 不得 discovery unrelated/open Issue；但明確指定 slot/Issue 一旦 durable 產生 `NEXT_CHILD_EXECUTABLE` / exact closure-successor handoff，必須在同一 slot 續接 exact successor。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE` 仍可依既有 chain/lane authority做 broader chain continuation；工作槽不得用 execution-intent 標籤覆蓋 canonical successor handoff。
 
 ## REPORT_HANDLER_IDENTITY_PREFIX_V1
 

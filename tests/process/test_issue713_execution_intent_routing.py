@@ -90,17 +90,19 @@ def test_continuity_does_not_expand_update_only_into_ticket_or_chain_execution()
     assert "EXECUTION_INTENT_ROUTING_V1_BRIDGE" in text
     assert "UPDATE_ONLY 不進 continuity execution state machine" in text
     assert "NEXT_CHILD_EXECUTABLE" in text
-    assert "只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE`" in text
-    assert "不得因 open / unblocked successor 自動升級 execution scope" in text
+    assert "它們不是 `NEXT_CHILD_EXECUTABLE` 唯一允許的 mode" in text
+    assert "不得因單純 open / unblocked successor 自動升級 execution scope" in text
 
 
-def test_closure_only_auto_handoffs_successor_in_chain_execution_modes():
+def test_closure_auto_handoffs_exact_durable_successor_without_open_issue_discovery():
     text = _read(CLOSURE)
     assert "EXECUTION_INTENT_ROUTING_V1_BRIDGE" in text
     assert "EXECUTE_TICKET" in text
     assert "EXECUTE_CHAIN" in text
     assert "SCHEDULER_LANE" in text
-    assert "單票 closure 完成不等於授權啟動 successor" in text
+    assert "若 final coordination handoff 已 durable 指定 `NEXT_CHILD_EXECUTABLE`" in text
+    assert "必須立即沿該 handoff 續接" in text
+    assert "單純 open/unblocked Issue 仍不得誤升級" in text
 
 
 def test_recovery_language_is_explicitly_evidence_triggered_in_scheduler_and_guard():
