@@ -315,6 +315,8 @@ jobs:
           import datetime as dt
           import json
           import os
+          import subprocess
+          import urllib.parse
           from pathlib import Path
 
           from tools.execution_claim_guard import (
