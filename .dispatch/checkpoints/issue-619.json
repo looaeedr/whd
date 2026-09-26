@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "619",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "81468a8103fd5045160e0f16e9458317acee584b",
+  "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
   "state": "RUNNING",
-  "next_action": "Consume #616 B3 artifact 10892687398 and fresh-read the exact requested_draw / family transition effect seam on the shared work-order HEAD; implement the smallest B4 atomic sequencing change so authoritative visible scene commits are 0 before transition finalize and exactly 1 Receiving commit after finalize, with derived parts/topology/placement/family state complete first; then run the focused UI-R3/live-switch regression under fresh Guard.",
+  "next_action": "Apply the B4 production sequencing fix at Phase6FoldDesignerSettingsCoordinator.apply_baseline_transition by suppressing the commit-stage apply_profile_plan render and retaining the single authoritative submit_update_intent after baseline_stage=finalize; then run the exact #619 Xvfb acceptance and existing live-switch/coordinator regressions to GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,11 @@
     "Master #628 B4 authority fresh-read from Issue #619.",
     "Predecessor #616 terminal handoff is NEXT_CHILD_EXECUTABLE -> #619.",
     "#616 accepted/released lineage HEAD 81468a8103fd5045160e0f16e9458317acee584b is the B4 starting authority.",
-    "Consume B3 artifact 10892687398 before any B4 behavior change; no sleep/delay or renderer-only workaround."
+    "Consume B3 artifact 10892687398 before any B4 behavior change; no sleep/delay or renderer-only workaround.",
+    "B4 acceptance RED committed at 1f88f33ea21a8dfd532b8ccce747e1779150df0a under Guard 36205952414.",
+    "Exact Xvfb run 36206010112 failed only the atomic visible-commit condition: current path emits commit-stage invalid scene then finalize-stage valid scene; 5 companion tests passed.",
+    "Artifact 10894225095 is durable B4 RED evidence.",
+    "Post-commit pair reconciliation authorized by Guard 36206028583."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

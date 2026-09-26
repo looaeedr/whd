@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-26T00:40:00Z",
   "base_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "head_sha": "81468a8103fd5045160e0f16e9458317acee584b",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T00:40:00Z",
+  "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
+  "phase": "RED",
+  "last_update": "2026-09-26T00:46:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Consume #616 B3 artifact 10892687398 and fresh-read the exact requested_draw / family transition effect seam on the shared work-order HEAD; implement the smallest B4 atomic sequencing change so authoritative visible scene commits are 0 before transition finalize and exactly 1 Receiving commit after finalize, with derived parts/topology/placement/family state complete first; then run the focused UI-R3/live-switch regression under fresh Guard.",
+  "next_action": "Apply the B4 production sequencing fix at Phase6FoldDesignerSettingsCoordinator.apply_baseline_transition by suppressing the commit-stage apply_profile_plan render and retaining the single authoritative submit_update_intent after baseline_stage=finalize; then run the exact #619 Xvfb acceptance and existing live-switch/coordinator regressions to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-619.json",
   "predecessor": {
@@ -44,6 +44,40 @@
   "evidence": [
     "Master #628 fresh-read lists #619 B4 open and dependent only on #616.",
     "#616 fresh closure is closed/completed with checkpoint CLOSED and claim RELEASED at accepted shared work-order HEAD 81468a8103fd5045160e0f16e9458317acee584b.",
-    "#616 B3 artifact 10892687398 / run 36203907306 is the exact first-bad-visible-commit evidence B4 must consume before changing family-switch sequencing."
-  ]
+    "#616 B3 artifact 10892687398 / run 36203907306 is the exact first-bad-visible-commit evidence B4 must consume before changing family-switch sequencing.",
+    "B4 acceptance RED committed at 1f88f33ea21a8dfd532b8ccce747e1779150df0a under Remote Guard run 36205952414.",
+    "Exact Xvfb run 36206010112 completed FAILURE on the B4 RED head: 1 failed / 5 passed; the only failure is the new atomic visible-commit assertion.",
+    "Failure reproduces B3 exactly: two visible commits are observed (commit-stage invalid inventory fingerprint 526bc3... then finalize-stage valid inventory fingerprint 67da34...). Artifact 10894225095.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36206028583."
+  ],
+  "remote_qa": {
+    "run_id": 36206010112,
+    "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow": ".github/workflows/qa-issue619-b4-atomic-live-switch.yml",
+    "job_id": 108302588475,
+    "artifact_id": 10894225095,
+    "artifact_digest": "sha256:ac3b81fc84187004d75691e90a7335f6caad9517d17d6ca7e80e36e505335fa8"
+  },
+  "red_evidence": {
+    "head_sha": "1f88f33ea21a8dfd532b8ccce747e1779150df0a",
+    "run_id": 36206010112,
+    "job_id": 108302588475,
+    "conclusion": "failure",
+    "summary": "1 failed / 5 passed / 131 warnings in 9.32s",
+    "exact_failure": "UI-R3 atomic switch requires exactly one authoritative visible scene commit after finalize; got 2 (commit invalid + finalize valid)",
+    "environment_setup": "GREEN",
+    "artifact_id": 10894225095
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36206028583,
+    "request_comment_id": 5841647890,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
+    "consumed": true,
+    "mutation": "post-commit atomic claim+checkpoint reconciliation to #619 B4 RED head"
+  }
 }
