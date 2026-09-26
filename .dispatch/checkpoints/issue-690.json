@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "690",
+  "branch": "work/issue690-closure-drift-classification-20260926",
+  "head_sha": "48cd6521d59531cc04ea7ab12fbe49c595eb69e8",
+  "state": "RUNNING",
+  "next_action": "Run Phase6 Preflight for #690 RED-STOP-10 + REG-STOP-01/02, prove ISSUE_CLOSED_BEFORE_FINALIZATION classification and deterministic repair, then implement and verify.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: #685 / approval comment 5842691532.",
+    "Blocked-by #687 satisfied; work-order lineage advanced through accepted/released #689 and #691.",
+    "Inherited accepted work-order HEAD: 48cd6521d59531cc04ea7ab12fbe49c595eb69e8.",
+    "Runtime provenance: work2 continuation under #693 chain; slot_id remains UNBOUND.",
+    "Authority acquired by fresh claim activation remains pending first substantive action."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
