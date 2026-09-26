@@ -20,8 +20,9 @@
     "PR #703 merged/closed; production cleanup/2d-3d-sync fresh-read HEAD=0c551eb1370ae6795d04ea693dd3a71dfad57b28.",
     "Remote governance run 36223338630 completed success on exact head 0121b569e5f00266c10313fac8646e8bac9d6e6c.",
     "Exact local acceptance on GREEN head: 49 passed; governance bootstrap GREEN.",
-    "WI-1 production scope is tools/local_durability_gate.py + tools/interactive_runtime_liveness.py + focused tests + required AI Library writeback."
+    "WI-1 production scope is tools/local_durability_gate.py + tools/interactive_runtime_liveness.py + focused tests + required AI Library writeback.",
+    "Closure advanced after PR #703 merged and exact-head remote QA passed."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "authorize and verify bound finalization proof, then close/read back Issue #679"
 }
