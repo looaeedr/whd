@@ -76,7 +76,7 @@ RED 全部核准後，**才可開始草擬工單**，並按 evidence 切票：
 - independent contract + separate GREEN condition 分票；
 - 每票能在 fresh context 完成；
 - wide mechanical refactor 可用 expand–migrate–contract；
-- **每張工單**都要列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria，並引用**已核准的 RED** evidence；
+- **每張工單**都要列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、`Issue Closure owner`、deliverable、acceptance criteria，並引用**已核准的 RED** evidence；
 - stale AI Library 被 current requirement 推翻時，至少一張 closing/acceptance ticket 必須擁有 REQUIRED writeback。
 
 ## 5. 使用者第二次核准
@@ -84,6 +84,16 @@ RED 全部核准後，**才可開始草擬工單**，並按 evidence 切票：
 把 proposed breakdown 逐票呈現：Title、Approved RED IDs、Requirement Authority、AI Library References、AI Library Writeback、Blocked by、What it delivers。
 
 使用者確認 granularity/root-contract grouping/blocking edge 後才算 breakdown 核准。這是**第二個 gate**，與 RED 核准分開。
+
+### Issue Closure owner machine gate
+
+提出第二次核准前，proposed breakdown 的每張 ticket 都必須先通過 canonical `tools/ticket_breakdown_guard.py`：
+
+- `Issue Closure owner` 必須**恰好一個**，不得缺漏或重複；
+- draft 階段 owner identity 固定用單一 `T<N>`；GitHub blockers-first publication 取得真實 issue number 後，必須改成單一 `#<N>` 並 fresh-read；
+- `大家負責`、`everyone`、`TBD`、多個 owner、斜線／或選項等 ambiguous owner 一律 fail closed；
+- breakdown-level validation 必須確認所有 `T<N>` closure owner 都真的存在於同一 proposed breakdown，不能指向不存在的票；
+- machine validator 是 schema/ownership semantics owner；Markdown marker test 只能保護 projection，不能取代 behavior validation。
 
 ## 6. Publish tickets
 
@@ -101,8 +111,9 @@ GitHub-backed project 的 approved ticket **必須先有 real GitHub owning Issu
 1. blockers first 建立每張 Issue。
 2. 依工具真 schema 取得 `issue_number` + canonical URL，不猜欄位。
 3. 反讀 created Issue，核對 title/body/dependencies。
-4. 將 Issue number/URL 寫入 dispatch state/journal。
-5. 然後才可讓 `.agents/skills/engineering/派工/SKILL.md` 進 Implementer。
+4. 將 proposed breakdown 的 symbolic `Issue Closure owner: T<N>` 回填成 exact GitHub `#<N>`；逐票 fresh-read 確認沒有 symbolic/ambiguous owner 殘留。
+5. 將 Issue number/URL 寫入 dispatch state/journal。
+6. 然後才可讓 `.agents/skills/engineering/派工/SKILL.md` 進 Implementer。
 
 `.scratch/**`、chat T-number、branch、commit、QA workflow、checkpoint ZIP 都不是 owning Issue。
 
@@ -119,6 +130,7 @@ GitHub-backed project 的 approved ticket **必須先有 real GitHub owning Issu
 **AI Library References:** exact `個人AI檔案庫/**` paths used.
 **AI Library Writeback:** exact path(s) + intended update, or `None — no durable knowledge change` + reason.
 **Blocked by:** None, or exact blocking tickets.
+**Issue Closure owner:** exact `T<N>` draft owner; after GitHub publication, exact `#<N>` owning Issue.
 **Status:** ready-for-agent
 
 - [ ] Acceptance criterion 1
@@ -133,6 +145,7 @@ GitHub-backed project 的 approved ticket **必須先有 real GitHub owning Issu
 - 至少一張 closing/acceptance ticket 是 **AI Library Writeback owner**；
 - 至少一張是 **Combined Acceptance owner**，負責跨票 regression、source ownership scan、config invariant、remote QA、cleanup、drift audit、integration evidence；
 - 兩個 owner 可同票，但不可寫成模糊的「大家負責」。
+- 有 closing/Final Combined topology 時，`Combined Acceptance owner`、`Chain Closure owner`、`AI Library Writeback owner` 必須各自明確命名；可以同一票，但不得靠 `Issue Closure owner` 欄位隱含推論。
 
 ## Red Flags
 
