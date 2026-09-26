@@ -3,8 +3,8 @@
   "issue": "693",
   "branch": "work/issue693-combined-acceptance-20260926",
   "head_sha": "d347198b23cb451883772c0b2fb0835dcfc79b9a",
-  "state": "RUNNING",
-  "next_action": "Fresh-read current cleanup/2d-3d-sync against #693 head d347198b23cb451883772c0b2fb0835dcfc79b9a; if cleanup drift exists, reconcile it and rerun focused acceptance; otherwise create/merge #693 integration PR to cleanup, verify production readback, then finalization/close/release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -32,13 +32,17 @@
     "Trusted deploy helper #763 terminal and released.",
     "PR #765 merged to main with exact two-file source parity.",
     "Final parity manifest commit d347198b23cb451883772c0b2fb0835dcfc79b9a.",
-    "Governance parity result GREEN / PARITY_PROVEN."
+    "Governance parity result GREEN / PARITY_PROVEN.",
+    "PR #766 merged to production at ab0a8d98cb9bd41024fa2dc76fb130909f66193b.",
+    "#693 branch head is ancestor of production cleanup.",
+    "Final manifest production readback exact; governance parity GREEN.",
+    "Closure write Guard GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize finalization proof, close #693, fresh-read, then atomic CLOSED + RELEASED."
 }
