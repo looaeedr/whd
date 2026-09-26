@@ -36,10 +36,13 @@
     "Drift audit proves the only tested→cleaned delta is deletion of .github/workflows/qa-issue616-b3-visible-scene.yml; diagnostic production/test blobs are unchanged.",
     "Successor #619 fresh-read open with no claim/checkpoint; chain_state=NEXT_CHILD_EXECUTABLE.",
     "Guard 36204139756 authorizes cleaned-head reconciliation and terminal checkpoint handoff.",
-    "Remote Guard run 36204323903 GREEN consumed to advance closure_state FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Remote Guard run 36204323903 GREEN consumed to advance closure_state FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization run 36205350425 GREEN / FINALIZATION_PROOF_VALID; artifact 10893164788.",
+    "Issue #616 remote readback confirmed closed/completed at 2026-09-26T00:36:34Z.",
+    "Post-close Guard run 36205496561 GREEN consumed to advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Obtain and verify trusted Remote Finalization proof for #616 on this exact checkpoint, then close/read back Issue #616.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Obtain a fresh Guard and atomically persist checkpoint CLOSED + claim RELEASED + successor #619 handoff.",
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "619",
