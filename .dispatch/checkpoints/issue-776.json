@@ -3,22 +3,24 @@
   "issue": "776",
   "branch": "trusted/issue776-guard-scope-grouping-main-20260927",
   "head_sha": "201f66b3c9b692a7f26846f2eaa8ed489ff61f16",
-  "state": "RUNNING",
-  "next_action": "Create guarded PR to main, merge, verify exact source parity, then retry #772 final atomic release.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "46 focused tests passed.",
-    "helper commit=201f66b3c9b692a7f26846f2eaa8ed489ff61f16"
+    "PR #778 merged to trusted main.",
+    "Changed-file grouping parity confirmed.",
+    "Action-scope bootstrap live on main ae75066c74339f728a676b1c923fd5366331ae76.",
+    "Focused tests 50 PASS."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize/verify finalization proof, close/readback #776, then atomically CLOSED+RELEASED."
 }
