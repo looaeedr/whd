@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "675",
   "branch": "governance/issue675-legacy-expired-postcommit-reconcile-20260926",
-  "head_sha": "c86fe57c130cebc095ec30e0af2a4a7e03fcbe84",
+  "head_sha": "c1449a162c1322ef8a21d3d444882517db88f0c3",
   "state": "RUNNING",
-  "next_action": "Write back #675 recovery contract to the required Skill / AI Library, re-run focused regression, then deploy the accepted trusted Remote Guard workflow to main before returning to #671/#617.",
+  "next_action": "Create and validate the #675 deployment PR to main, merge the accepted trusted workflow, fresh-read main, then return to #671/#617.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,7 +20,10 @@
     "User-directed interactive takeover completed via WHD_USER_DIRECTED_TAKEOVER_V1; claim owner is chatgpt.sol260926.issue675.",
     "Implementation commit c86fe57c130cebc095ec30e0af2a4a7e03fcbe84 adds narrow owner-authored legacy expired post-commit recovery and trusted Remote Guard transport.",
     "Focused #675 suite = 5 passed; targeted guard/takeover regression = 25 passed; tools/execution_claim_guard.py py_compile GREEN.",
-    "Post-commit pair reconciliation authorized by Guard run 36204866149."
+    "Post-commit pair reconciliation authorized by Guard run 36204866149.",
+    "Skill/AI Library writeback committed at c1449a162c1322ef8a21d3d444882517db88f0c3.",
+    "Expanded writeback preflight GREEN; focused/dispatch/Skill regression = 46 passed.",
+    "Post-writeback pair reconciliation authorized by Guard run 36205398973."
   ],
   "chain_state": "NONE",
   "next_issue": null,
