@@ -1,5 +1,5 @@
 name: WHD #697 A2 操作交易 RED／GREEN 驗收
-run-name: "WHD｜#697 A2｜操作交易核心 RED／GREEN"
+run-name: "WHD｜#697 A2｜操作交易核心與 continuity 回歸"
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   focused:
-    name: A2 操作交易核心驗收
+    name: A2 操作交易核心與 continuity 回歸驗收
     runs-on: ubuntu-latest
     steps:
       - name: 取出驗收版本
@@ -22,8 +22,11 @@ jobs:
           python-version: "3.12"
       - name: 安裝 pytest
         run: python -m pip install --disable-pip-version-check pytest
-      - name: 執行 RED-STOP-17 與 RED-STOP-18
+      - name: 執行 RED-STOP-17／18 與既有 continuity 回歸
         run: |
           python -m pytest -q --confcutdir=tests/process \
-            tests/process/test_issue697_operation_transaction_core.py
-          echo "ISSUE697_A2_TESTS_GREEN=PASS"
+            tests/process/test_issue697_operation_transaction_core.py \
+            tests/process/test_continuity_controller.py \
+            tests/process/test_checkpoint_resume_contract.py \
+            tests/process/test_issue321_turn_exit_enforcement.py
+          echo "ISSUE697_A2_REGRESSION_GREEN=PASS"
