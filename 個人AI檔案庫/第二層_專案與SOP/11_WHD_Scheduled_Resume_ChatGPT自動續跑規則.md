@@ -125,22 +125,22 @@ Canonical executable owner：`.agents/skills/engineering/executable-continuity-c
 
 Wake-up不是 owner。每輪 fresh reconstruct，依序處理 Guard transaction、drift、delegated/helper/proof、helper dedupe、stale evaluator、Guard single-use mutation、readback、turn-exit。EXPIRED_UNCONSUMED 不得重播舊 GREEN，只能 fresh recovery Guard。
 
-Scheduler provenance 必須 lane + invocation identity。Required follow-up：interactive ChatGPT 也要 heartbeat/liveness，並保存 specific conversation/chat identity + invocation identity，避免只看到模糊 chatgpt_interactive。
+Scheduler provenance 必須 lane + invocation identity，machine owner 仍是 `tools/scheduler_runtime_liveness.py`。Interactive ChatGPT provenance 已由 `tools/interactive_runtime_liveness.py` 擁有，marker 為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1 / WHD_INTERACTIVE_RUNTIME_END_V1`，必須保存 exact slot + worker + conversation/chat identity + invocation identity + claim blob + branch + HEAD。Interactive 與 Scheduler liveness 是兩個獨立 namespace；不得以 generic `chatgpt_interactive` / `executor_source` 或 Scheduler heartbeat 冒充 interactive exact provenance。
 
 <!-- ISSUE680_PLANNED_HANDOFF_SCHEDULER_READINESS_V1 -->
 ## Planned executor handoff vs stale takeover
 
-`WHD_WORK_EXECUTOR_HANDOFF_V1` ? **planned ownership transfer**??? stale recovery??????????? checkpoint / exact `next_action` ?? Scheduler A/B ?????? canonical `claim-handoff` transaction ? shared claim owner CAS ? exact target lane???? old worker?target scheduler worker?handoff generation?claim blob?branch?HEAD?checkpoint fingerprint ? current next_action ? exact binding?
+`WHD_WORK_EXECUTOR_HANDOFF_V1` is a planned ownership transfer, not stale recovery. When an interactive executor deliberately hands the current checkpoint / exact `next_action` to Scheduler A or B, the sender must use the canonical guarded `claim-handoff` transaction to CAS the shared claim to the exact target lane. The handoff identity binds old worker, target scheduler worker, handoff generation, claim blob, branch, HEAD, canonical checkpoint fingerprint, and current `next_action`.
 
-Scheduler wake ?????????fresh-read planned handoff transaction + shared claim/checkpoint/branch HEAD ? ? `to_worker == scheduler.<exact-lane>`?generation?claim blob?branch?HEAD?checkpoint fingerprint?next_action ? fresh readback ?? shared claim owner ??? lane ? **?? resume ?? checkpoint / next_action**?planned handoff ??????? stale evaluator????? stale TTL????? `claim-takeover`?
+Receiver order is fixed: fresh-read the handoff transaction + shared claim/checkpoint/branch HEAD; verify `to_worker == scheduler.<exact-lane>`, generation, claim blob, branch, HEAD, checkpoint fingerprint and `next_action`; fresh-read that the shared claim owner is already the target lane; then resume the same checkpoint / exact `next_action`. A completed planned handoff must not run the stale evaluator, wait for stale TTL, or invoke `claim-takeover` again.
 
-`claim-takeover` ?? recovery?foreign owner ? stale/orphaned?active exact run ????canonical stale evaluator ?? actionable classification?? Guard GREEN ?????planned handoff ? stale takeover ???????????
+`claim-takeover` remains recovery-only: it requires a foreign stale/orphaned owner, no active exact run, an actionable canonical stale classification, and Guard GREEN. Planned handoff and stale takeover are not substitutes for one another.
 
-Scheduler readiness evidence ? owner boundary?
-- ownership transfer semantics / claim CAS / exact identity?`??` + canonical Guard?
-- `claim-handoff` executable enforcement?`tools/execution_claim_guard.py` ? trusted Remote Guard workflow?
-- checkpoint / next_action continuity?`tools/continuity_controller.py`?
-- scheduler runtime liveness?`tools/scheduler_runtime_liveness.py`?
-- scheduler prompt / entrypoint ??? routing / receive??????? continuity state machine?
+Scheduler-readiness owner boundary:
+- ownership transfer / claim CAS / exact identity: Dispatch Skill + canonical Guard;
+- `claim-handoff` executable enforcement: `tools/execution_claim_guard.py` + trusted Remote Guard workflow;
+- checkpoint / `next_action` continuity: `tools/continuity_controller.py`;
+- scheduler liveness: `tools/scheduler_runtime_liveness.py`;
+- scheduler prompts/entrypoints perform routing/receive only and do not own a second continuity state machine.
 
-?? handoff identity drift?readiness ????? post-CAS owner readback ???? fail closed?????????????? Issue open ?????
+Any identity drift, unverifiable readiness, or failed post-CAS owner readback is fail-closed. Chat titles, memory, or merely observing an open Issue cannot substitute for durable evidence.

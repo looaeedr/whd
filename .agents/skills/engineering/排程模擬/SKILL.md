@@ -9,6 +9,68 @@ whd_schema: WHD_DOC_META_V1
 
 # 排程模擬
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+本 Skill 是明確 execution entrypoint：`/排程A` / `/排程B` = `SCHEDULER_LANE`。只有使用者輸入 exact command 才進此模式；普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式。
+
+## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+本 Skill 不建立第二套 startup declaration；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- exact `/排程A` / `/排程B` 建立 `SCHEDULER_LANE` 後，Skill 公告後立即聲明 authorization source、purpose、lane-level authorized/prohibited scope 與 `resume_authority`，再做 claim 或 mutation。
+- 若尚未選出 executable leaf，`authorized_scope` 只能寫 exact lane + canonical discovery boundary；不得預先聲稱某張 Issue 已授權。
+- discovery 後、第一個 claim / checkpoint mutation 前，把 exact issue / branch / HEAD / next_action 寫入 durable evidence；已有合法 same-lane claim 時，`resume_authority` 必須指向 exact checkpoint/next_action。
+- 其他 lane、unrelated ready leaf、空工作槽與 open Issue 都不能因 startup declaration 變成 execution authority。
+
+### NORMAL_PATH_FIRST
+
+取得/恢復 lane authority 後，先沿 current exact next_action 的 normal path。若沒有 drift、pending receipt、foreign-live owner 或 half-terminal evidence，就不得先跑 takeover/reactivate/reconciliation。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+takeover、reconciliation、pending-Guard recovery 只在 fresh machine evidence 證明對應條件時啟動；condition 清掉後立即回 normal path。不能因 Skill「支援 recovery」就每輪預跑 recovery。
+
+### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
+
+scheduler lane / work slot 是 routing 與互斥 identity，不是 execution authority。空工作槽、open / unblocked Issue 本身不構成 execution authority；本 Skill 只有在 exact `/排程A` / `/排程B` 已建立 `SCHEDULER_LANE` mode 後，才可依 canonical discovery 選 executable leaf。
+
+### WORK_SLOT_HANDOFF_RECEIVER_V1
+
+當工作槽已建立合法 planned handoff 到本 lane 時，**planned handoff receiver 優先於 ordinary dynamic discovery**。
+
+- 每輪進入 A/B lane 後，先 fresh-read canonical handoff / claim / checkpoint evidence，再做 ordinary discovery。
+- 有 matching pending planned handoff 時不得先 claim/discover 另一張 Issue。
+- receiver 最低 exact identity 必須同時匹配：`slot_id + issue + branch + head_sha + checkpoint + target_lane`；若 owning state non-terminal，`next_action` 必須存在且非空。
+- 任一 identity 不一致都 fail closed，分類 `WORK_SLOT_HANDOFF_IDENTITY_MISMATCH`；不得只靠 Issue、lane、聊天室標題猜 receiver。
+- legacy state 沒有 explicit `slot_id` 時回 `UNBOUND`；**UNBOUND 不得猜 slot**。
+- handoff 成功只代表 execution owner/location 可轉到 scheduler；**scheduler owner/location change != work-slot identity change**。
+- `slot_id 必須原值保留`；不得把 worker.slot.1 改成 worker.slot.2，也不得清除既有 slot_id。
+- claim owner / executor provenance 仍依 live 派工與 handoff authority更新；slot_id 只是 durable provenance，不是第二套 ownership authority。
+
+### READY_WORK_CENSUS_V1
+
+`NO_MATCHING_HANDOFF != NO_WORK`。planned handoff receiver 只決定優先 routing；**沒有 matching handoff 不得直接推出沒有工作**。沒有 matching planned handoff 時，scheduler 必須繼續 ordinary dynamic discovery，建立本輪 `candidate executable leaves` census。
+
+宣告 `NO_EXECUTABLE_WORK` 前必須同時成立：
+
+1. fresh-read live Issue / claim / checkpoint / dependency / branch / exact run authority，列出所有 candidate executable leaves；
+2. 每張候選都有 **fresh durable exclusion evidence** 與 machine-readable exclusion classification；
+3. 合法 exclusion 至少包含：`FOREIGN_LIVE_OWNER`、`DEPENDENCY_BLOCKED`、`ACTIVE_EXACT_RUN`、`AUTHORITY_MISMATCH`、`SHARED_SCOPE_CONFLICT`；實際分類仍服從 live《派工》/ Guard authority，不得用聊天推測；
+4. `unclaimed + dependency-unblocked + scheduler-authorized` 的候選不得被排除；分類固定 `MUST_CLAIM`，必須進 canonical claim path 並完成 first substantive action；
+5. 只有 census 中所有候選都被合法排除，且沒有 matching planned handoff / same-lane resume / canonical successor，才可輸出 `NO_EXECUTABLE_WORK`；
+6. `沒有 matching handoff`、`slot_id=UNBOUND`、聊天室看不到工作、或某一張候選有 foreign owner，任何一項單獨都**不得**當成 NO_WORK 證明。
+
+`READY_WORK_CENSUS_V1` 只補「是否真的無可執行工作」的 provenance / exhaustive proof，**不建立 execution authority**、不改 lane owner、不改 claim ownership、不繞過 dependency / parallel-scope / Guard / takeover gate。
+
+#### WORK_SLOT_SUCCESSOR_REBIND_V1
+
+terminal child 後，**只有 SCHEDULER_LANE / chain authority** 已合法允許 successor continuation 時，terminal successor 可沿同一 slot_id rebind。
+
+- successor rebind 前仍 fresh-read canonical chain / dependency / claim authority。
+- 同一 chain continuation 只能保留原 slot_id；不得把 successor 靜默搬到另一個工作槽。
+- 沒有 chain authority 時，本票 closure/release 完成後不得因 slot 空出而自行 discovery 下一票。
+
+
 這個 Skill 只處理 WHD A/B recurring lane 的**互動式接手與續跑**。它不是第三條 scheduler lane，也不是新的派工 authority。
 
 ## 0. Trigger
@@ -247,6 +309,20 @@ LANE_RESUME_ESTABLISHED =
 
 Equivalent duplicate GREEN 的 canonical/shadow 規則完全服從 live authority；不得因「我是同一 A/B lane」重播 shadow receipt。
 
+## REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+`/排程A` / `/排程B` 的任何 user-visible 狀態、progress、CHECKPOINT 回報，在全域 Skill announcement gate 之後，**每一個回報區塊的第一行**固定先輸出：
+
+```text
+【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
+```
+
+- same-lane active claim：`handler=排程A|排程B`，`owner=lane_owner`（亦即 exact `claim_worker`），`issue=claim_issue`。
+- 尚未建立 claim、仍在合法 discovery：可顯示 `handler=排程A|排程B`、`owner=lane_owner`、`issue=NONE`；不得預先猜票。
+- 若 fresh-read 發現 **foreign** live owner，prefix 必須把 `handler` 與 `owner` 顯示為 exact foreign `claim_worker`；selected lane 只能留在後續 `lane=` 欄位，**不得冒充處理者**。
+- `claim_issue` / `claim_worker` / `lane_owner` 必須來自本輪 fresh durable readback；聊天室 title、`NEW排程A/B` 或記憶不得作來源。
+- prefix 只提供 provenance，**不建立 execution authority**、不改 claim ownership、不取代 liveness / Guard / checkpoint gate。
+
 ## 8. Turn output
 
 每次 `/排程A` / `/排程B` 至少可反讀：
@@ -254,6 +330,8 @@ Equivalent duplicate GREEN 的 canonical/shadow 規則完全服從 live authorit
 ```text
 lane=A|B
 lane_owner=scheduler....
+slot_id=worker.slot.1|worker.slot.2|worker.slot.3|UNBOUND
+handoff_source=LOCAL|SCHEDULER|NONE
 entrypoint=interactive:/排程A|/排程B
 invocation_identity=<exact or generated>
 conversation_identity=<exact|UNAVAILABLE>

@@ -23,6 +23,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[執行開發任務](./執行開發任務/SKILL.md)**: 依核准 spec/ticket 實作，遵守 TDD、checkpoint、派工與 QA gate。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
 - **[派工](./派工/SKILL.md)**: WHD PM → Implementer → QA、owning Issue、journal/checkpoint、remote QA 狀態機。
+- **[工作槽](./工作槽/SKILL.md)**: 固定 `/工作1`、`/工作2`、`/工作3` durable slots；裸指令只查狀態，明確 execution verb 才橋接派工/接手/續跑。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 
 ## Model- or user-reachable navigation

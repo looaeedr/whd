@@ -10,6 +10,42 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+### EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+派工不自行推導 execution intent；先服從 `執行開發任務::EXECUTION_INTENT_ROUTING_V1`。
+
+- `UPDATE_ONLY`：只處理被點名的 update transaction；不得因其他 Issue open/unblocked、claim pool 有空位或 child dependency 解鎖而自動開工。
+- `EXECUTE_TICKET`：只完成當前 ticket；ticket closure 後不自動 claim successor。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE`：只有這兩種 mode 才允許 terminal child 依 canonical chain authority接續 successor。
+
+### TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+派工不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- Skill invocation announcement 後、Phase6 Preflight / claim / branch / Guard / repository mutation 前，先完成 canonical user-visible declaration。
+- 新 claim / checkpoint 的第一個 durable writeback 必須保存同義六欄 evidence；派工只保存／核對，不改寫其語意。
+- `UPDATE_ONLY` 專屬治理 claim 只授權該 update transaction；不得因 claim pool、open Issue、工作槽或 successor 存在而擴張 scope。
+- declaration 缺失或與 owning Issue / execution intent 衝突時，先回 canonical owner 修正；不得由派工自行發明較寬 authority。
+
+#### NORMAL_PATH_FIRST
+
+單張正常 implementation 工單的 canonical 主幹固定為：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+Guard/finalization safety gate 仍保留，但不得預防性執行 takeover / reactivate / reconciliation / legacy repair。只有 fresh machine evidence 證明異常條件時，才暫時分支到 recovery。
+
+#### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+takeover、reactivate、claim/head reconciliation、legacy-checkpoint repair、expired receipt repair 都是 evidence-triggered recovery。正常票不先跑 recovery 再開始施工；fresh machine evidence 顯示 clean/一致時立即沿 normal path。
+
+#### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
+
+工作槽只表示可並行容量／occupancy／routing identity。空工作槽、open / unblocked Issue、沒有 claim 的 ready leaf 都不構成 execution authority。只有本輪已是 `EXECUTE_TICKET`、`EXECUTE_CHAIN` 或 `SCHEDULER_LANE` 時，工作槽才能用來選擇/隔離已授權工作。
+
+本節優先解釋本 Skill 其他「successor 同輪繼續」字樣：只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 可跨 ticket；`EXECUTE_TICKET` 關完本票即停止擴張 scope。
+
+
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
@@ -560,7 +596,7 @@ Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeov
 2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 300 秒時退讓；heartbeat age > 300 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
 3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
 4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
-5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。 若 pending action 是 `branch-create`，先 fresh-read remote branch；branch 已存在且 HEAD exact match 時，由 trusted Guard 的 canonical branch-create durable-readback auto-consume 路徑判成 `CONSUMED`，不得靠 reactivate/換 claim blob 來清掉 transaction。
 6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
 7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
 8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
@@ -689,3 +725,41 @@ next_action=<exact current non-null next_action>
 6. receiver-ready 後 target scheduler 在下一個合法 invocation **直接 resume exact checkpoint / next_action**；不得把已完成 planned handoff 重新分類成 stale takeover。
 7. handoff generation 防 replay；舊 generation、錯 claim blob、錯 checkpoint fingerprint、錯 next_action 一律 fail closed。
 8. 本 contract 不建立第二套 continuity/checkpoint state machine；fingerprint 與 next_action 語意仍由 canonical executable-continuity-controller 擁有。
+## MAIN_TO_X_BATCH_FIRST_PARITY_V1
+
+當 default/trusted `main` 上已有一批已驗收治理修補，且依 parity 要求必須同步到 `X = cleanup/2d-3d-sync` 時，固定採 **BATCH_FEASIBILITY_AUDIT → batch integration 優先 → selective fallback**，不得預設逐顆同步。
+
+### BATCH_FEASIBILITY_AUDIT
+
+任何 per-fix cherry-pick、copy、compatible-equivalent 或 helper ticket 之前，先 fresh-read：
+
+- `main` exact HEAD；
+- `X` exact HEAD；
+- merge-base / ahead-behind / changed-file overlap；
+- 待同步的 accepted governance commit/artifact set；
+- protected/config/workflow/Skill/AI Library drift；
+- 目前 active Master chains 的 `FROZEN_X_BASE_SHA` 與 isolation 約束。
+
+先回答「這批**符合 parity scope 的 accepted main governance changes**是否能作一次 bounded、non-force 的 batch integration」。
+
+### SELECTIVE_PROPAGATION_FALLBACK_ONLY
+
+只有 fresh evidence 證明 batch integration 不安全時，才可退回 selective compatible-equivalent propagation。合法理由至少包含其中一項：
+
+- 真正 merge conflict；
+- main 夾帶不在本次授權 scope 的 unrelated/unauthorized commit；
+- 會破壞 protected/config invariant；
+- 會把 sibling/active-chain 尚未允許的 lineage 污染帶進 X；
+- trusted-only artifact 在 X 不應成為 authority，需要 compatible-equivalent 而非原樣複製。
+
+fallback 必須 durable 記錄 exact excluded commits/files、原因、替代 artifact identity 與 post-write readback。不得只寫「diverged，所以 cherry-pick」。
+
+### NO_PER_FIX_HELPER_DEFAULT
+
+同一批 main→X parity 能由一個 batch audit / integration owner 處理時，**不得預設一個 fix 開一張 parity helper**。優先 reuse 現有 parity owner（例如 #692 類 owner）並一次 census 全部 eligible governance changes；只有存在不同 authority、不同 blocker 或不可共用 acceptance boundary 時才拆 helper。
+
+### Active-chain isolation 仍優先
+
+batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌進 active chain**。active chain 仍固定沿自己的 `FROZEN_X_BASE_SHA → WORK_ORDER_ACCEPTED_HEAD` 演進，直到原 chain 完成後才在 Integration Acceptance 面對新的 X。
+
+這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。

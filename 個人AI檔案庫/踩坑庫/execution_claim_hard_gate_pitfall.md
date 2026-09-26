@@ -99,3 +99,54 @@ evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接
 - candidate checkpoint 必須 canonical non-terminal 並 exact 綁 unchanged claim issue/branch/head。
 - coordination parent + prior claim blob 共同作 CAS identity；任何 drift fail closed。
 - repair 後的 branch HEAD drift仍走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得把 legacy repair 升格成 stale-head bypass。
+
+## BRANCH_CREATE_EXACT_READBACK_AUTO_CONSUME_V1（2026-09-26）
+
+### 事故
+#689、#691 都出現同一類停滯：`branch-create` Guard 已 GREEN，branch 也實際建立且 HEAD 正確，但 caller 沒把 action-specific durable readback交回 transaction classifier，就直接送下一顆 commit/write Guard。安全 gate 會正確回 `PENDING_GUARD_TRANSACTION / CONSUME_GUARD_TRANSACTION`，但流程因此卡死。
+
+### 永久規則
+- `branch-create` 的 mutation postcondition就是「remote branch 存在於 exact guarded HEAD」，因此 trusted Remote Guard 可直接 fresh-read GitHub branch 作 durable readback。
+- 只有 prior exact GREEN receipt 的 issue/worker/source/branch/base/claim blob/head/tested-target 全部仍匹配，且 live branch HEAD exact 等於 receipt head 時，才投影 `mutation_applied=true / reconciled=true / branch_exists=true / branch_head_sha=<exact>`。
+- canonical classifier 收到這份 readback後，transaction 直接進 `CONSUMED`；後續 Guard 可正常前進，不要求 caller 另寫 consume marker。
+- branch missing、wrong HEAD、identity drift 一律不建立 readback，維持 fail closed。
+- 這個 auto-consume **只適用 branch-create**。commit/write/pr-write/qa-dispatch/workflow-dispatch/claim-takeover 仍要原本的 action-specific mutation proof與 coordination reconciliation。
+- 禁止用 claim reactivate、換 claim blob、重送 Guard 來當 branch-create 的一般恢復流程。
+
+Regression：`tests/process/test_issue731_branch_create_auto_consume.py`。
+Main RED：run `36250856862`；Main GREEN：run `36251018227`。
+Live post-deploy smoke：#733 branch-create run `36251598650` 後未 reactivate，下一顆 commit Guard run `36251633978` 直接 GREEN。
+
+## LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_RECOVERY_V1（2026-09-26）
+
+### 事故
+#617 的歷史 mutation 已有 exact GREEN Guard request/receipt，H1 也是 claim H0 的直接子 commit且 changed files 完全吻合；但 commit timestamp 落在舊 receipt 的有效窗之外，因此 ordinary post-commit reconciliation 正確 RED。若直接放寬 receipt window，等於讓所有過期 GREEN 重新取得 mutation authority，會破壞 single-use / expiry contract。
+
+### 永久規則
+- ordinary `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1` 完全不改；沒有 recovery authority 時，過期 receipt 照舊 RED。
+- 唯一 migration 入口是 repository owner 在 owning Issue 留下 fixed-schema `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`。
+- recovery 必須 exact 綁 issue/worker/source/branch、claim H0、live H1、historical guard run id、request comment id、changed-file set。
+- canonical guard 必須先通過既有 current claim blob、direct-child H0→H1、historical request+GREEN receipt、base/head/tested-target/files identity；只有最後的 receipt-time-window check 可由 exact recovery authority取代。
+- wrong live head、wrong run/request、foreign owner/source、wrong files、non-direct child、malformed/foreign comment 一律 fail closed。
+- trusted Remote Guard 僅在 `action=write` 接受 `legacy_reconcile_recovery_comment_id`，fresh fetch exact comment 後驗 owner + issue + marker，再傳 `--legacy-reconcile-recovery`；禁止 arbitrary payload/shell。
+- recovery 只授權 coordination reconciliation，不重播原 implementation，也不把舊 GREEN receipt 升格為可重用 mutation token。
+- trusted workflow 必須先部署到 default branch `main` 並 readback，之後才能用於 #617/#671 的 live repair。
+
+Primary regression：`tests/process/test_issue675_legacy_expired_postcommit_recovery.py`。Governance owner：#675。
+
+## MAIN_TO_X_BATCH_FIRST_PARITY_V1 — per-fix helper fragmentation
+
+### 事故
+#731 修補已進 main 後，第一次處理 main→`cleanup/2d-3d-sync` parity 時，執行者看到兩分支 diverged，立即把問題縮成「只搬 #731」，並另開 per-fix parity helper。這雖然比 blind full-main merge 安全，但漏了更高一層的問題：**沒有先 census 同批 accepted governance changes，也沒有先判斷 bounded batch 是否能一次 non-force 整合**。結果會造成 per-fix helper fragmentation、重複 claim/Guard/QA，以及 main/X governance history 長期碎片化。
+
+### 永久規則
+- main→X parity 一律 **batch-first**。
+- diverged 只代表要做 BATCH_FEASIBILITY_AUDIT，不代表直接 cherry-pick。
+- 先 census eligible accepted governance set，再做 merge-base/overlap/conflict/protected/active-chain audit。
+- 安全時一次 bounded non-force batch integration。
+- selective compatible-equivalent 是 **fallback only**；必須 durable 記錄 excluded commits/files 與原因。
+- 同一 batch 能共用 owner 時，不得預設 one-fix-one-helper。
+- blind full-main merge 仍禁止；batch 必須受授權 scope 約束。
+- X 更新後不得倒灌 active frozen chains；`FROZEN_X_BASE_SHA` 不變。
+
+Governance owner：#736。Parent parity rule：#692。
