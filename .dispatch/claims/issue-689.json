@@ -9,14 +9,14 @@
   "work_branch": "work/issue689-takeover-substantive-action-20260926",
   "claimed_at": "2026-09-26T12:50:00Z",
   "base_sha": "fc75000d1d3115331923a1a1bc3c34f6bbdbddbc",
-  "head_sha": "d832b4af95ca42a479f816acc2ca2c24a77dacf9",
-  "phase": "RED",
-  "last_update": "2026-09-26T13:55:23.539208Z",
+  "head_sha": "6647ce01e1834e8c1eb8c5d15d30896187c69397",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T14:01:58.046798Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Implement canonical authority-progress machine gate for RED-STOP-06/07, then rerun focused tests to GREEN.",
+  "next_action": "Update canonical Skill/AI guidance for authority-progress semantics, run broader #689 governance regression, then hand terminal acceptance to #693 closure owner.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-689.json",
   "evidence": [
@@ -26,7 +26,9 @@
     "Work-order lineage base: accepted #687 head fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; do not restart from newer production X.",
     "worker.slot.2 is not implicitly rebound; child claim uses slot_id=UNBOUND provenance.",
     "Branch-create Guard GREEN run 36244663372 consumed by exact branch readback at fc75000d1d3115331923a1a1bc3c34f6bbdbddbc; branch creation does not count as substantive action.",
-    "First substantive action completed: focused RED test created, executed as 11 expected FAIL, and committed at d832b4af95ca42a479f816acc2ca2c24a77dacf9 under Guard run 36245089118."
+    "First substantive action completed: focused RED test created, executed as 11 expected FAIL, and committed at d832b4af95ca42a479f816acc2ca2c24a77dacf9 under Guard run 36245089118.",
+    "Implementation 6647ce01e1834e8c1eb8c5d15d30896187c69397: focused + continuity + turn-exit regression 47 PASS / 0 FAIL; git diff --check clean.",
+    "Post-implementation reconciliation Guard GREEN run 36247113580 / result comment 5846874377."
   ],
   "authority_progress": {
     "schema": "WHD_AUTHORITY_PROGRESS_V1",
