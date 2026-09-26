@@ -197,3 +197,22 @@ Continuity 的「non-terminal 不能停」與 Master chain 的「NEXT_CHILD_EXEC
 - `ISSUE_EXISTENCE_IS_NOT_EXECUTION_AUTHORITY`：open/unblocked Issue、空工作槽、next_action、Guard availability 皆不足以啟動新 scope。
 - `RECOVERY_IS_EXCEPTION_NOT_PHASE`：`RECOVERING` 只在 fresh machine evidence 證明 failure/drift/interruption 後存在；修復後立即回 `RUNNING` normal path。
 - 這些規則不放寬 claim/Guard/finalization safety；它們只限制 scope expansion 與 recovery routing。
+
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_PITFALL_V1
+
+### 事故
+
+#733 在 code/parity 已完成後，terminal checkpoint 被寫成不存在的 `closure_state=READY_FOR_FINALIZATION`。結果三條既有路全部正確 fail closed：
+
+- Remote Finalization 無法 parse checkpoint；
+- ordinary Remote Guard 回 `ACTIVE_CLAIM_REQUIRES_CHECKPOINT`；
+- Claim Activation `reactivate` 拒絕 active claim 搭 terminal checkpoint。
+
+### 永久規則
+
+這種狀態不能手改 `coord/dispatch-claims`、不能把 terminal checkpoint 降回 RUNNING、不能先把 claim RELEASED，也不能擴大 ordinary `reactivate`。
+
+唯一 recovery：
+`repair_malformed_terminal_checkpoint` 先對 raw prior payload做窄 canonical normalization，trusted Claim Activation `terminal-checkpoint-repair` 再用 exact prior claim/checkpoint blob + coord parent CAS 原子換成 candidate pair。
+
+Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 issue/branch/head/`TERMINAL_SUCCESS`，把 malformed closure lifecycle 正規化成 `FINALIZATION_PENDING`。任何其他 drift 或已合法 closure state 一律拒絕。Repair 之後仍必須重新走 Remote Finalization → Issue close/readback → atomic CLOSED + RELEASED。

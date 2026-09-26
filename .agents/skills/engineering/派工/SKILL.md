@@ -763,3 +763,32 @@ fallback 必須 durable 記錄 exact excluded commits/files、原因、替代 ar
 batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌進 active chain**。active chain 仍固定沿自己的 `FROZEN_X_BASE_SHA → WORK_ORDER_ACCEPTED_HEAD` 演進，直到原 chain 完成後才在 Integration Acceptance 面對新的 X。
 
 這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。
+
+## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
+
+若 active claim 對應的 checkpoint 已是 terminal，但 checkpoint JSON 因 closure lifecycle 欄位非法而無法被 canonical loader 解析，禁止用 ordinary Remote Guard、一般 `reactivate`、手寫 coord commit 或先 release claim 繞過。
+
+唯一合法 recovery 是 default/trusted `main` 上 Claim Activation 的固定 `transition=terminal-checkpoint-repair`：
+
+1. prior claim 與 prior checkpoint 都必須存在，並用 exact blob SHA 綁定 current `coord/dispatch-claims` parent；
+2. candidate claim blob 必須與 prior claim **byte-for-byte 相同**，owner / executor / branch / head / phase 不得順便改；
+3. prior checkpoint 必須由 `tools/continuity_controller.py::repair_malformed_terminal_checkpoint` 判定為可窄修復的 `TERMINAL_SUCCESS` malformed closure lifecycle；
+4. candidate checkpoint 必須逐欄等於 canonical repair 結果：保持 issue / branch / head / continuity state 不變，只正規化為 `closure_state=FINALIZATION_PENDING` 與 canonical `closure_next_action`；
+5. 不得藉 repair 跳到 `CLOSED`、`RELEASED`、改寫 evidence/identity 或處理其他任意 malformed JSON；
+6. exact coord parent CAS drift 立即 FAIL；repair GREEN 後必須 fresh-read candidate pair，再回 canonical finalization progression。
+
+此 transition 是 process-state migration repair，不是 takeover、不是 generic checkpoint editor。Primary regression：`tests/process/test_issue744_terminal_checkpoint_repair_transport.py`；governance repair：#744。
+
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
+
+`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
+
+- prior receipt 為 exact GREEN `action=pr-write`；
+- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
+- PR `base.ref == claim.production_target`；
+- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
+- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
+
+只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
