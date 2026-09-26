@@ -301,6 +301,144 @@ def durable_pr_write_readbacks_from_live_pulls(
         )
     return readbacks
 
+def durable_coord_write_readbacks_from_live_commits(
+    receipts: Iterable[Mapping[str, object]],
+    *,
+    live_coord_commits: Iterable[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    """Project exact shared-coordination writes into durable Guard readbacks.
+
+    Only the receipt Issue's claim/checkpoint paths are eligible. One exact commit
+    inside the GREEN window must prove the resulting owner identity. Arbitrary
+    repository writes and ambiguous multiple matches remain fail-closed.
+    """
+
+    commits = [item for item in live_coord_commits if isinstance(item, Mapping)]
+    readbacks: list[dict[str, object]] = []
+    for receipt in receipts:
+        if receipt.get("schema") != "WHD_REMOTE_GUARD_RECEIPT_V1":
+            continue
+        if receipt.get("result") != "GREEN":
+            continue
+        if str(receipt.get("action") or "") != "write":
+            continue
+
+        issue = receipt.get("issue")
+        if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
+            continue
+        claim_path = f".dispatch/claims/issue-{issue}.json"
+        checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
+        allowed_paths = {claim_path, checkpoint_path}
+        changed_files = _guard_tx_files(receipt)
+        if not changed_files or any(path not in allowed_paths for path in changed_files):
+            continue
+
+        worker = str(receipt.get("worker") or "")
+        executor_source = str(receipt.get("executor_source") or "")
+        branch = str(receipt.get("branch") or "")
+        head_sha = str(receipt.get("head_sha") or "")
+        if (
+            not worker
+            or not executor_source
+            or not branch
+            or not _SHA_RE.fullmatch(head_sha)
+            or str(receipt.get("tested_target_sha") or "") != head_sha
+        ):
+            continue
+
+        issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
+        expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+        matches: list[tuple[Mapping[str, object], datetime]] = []
+        for commit in commits:
+            commit_sha = str(commit.get("sha") or "")
+            if not _SHA_RE.fullmatch(commit_sha):
+                continue
+            try:
+                committed_at = _guard_tx_timestamp(
+                    commit.get("committed_at"), "coord commit"
+                )
+            except ExecutionClaimError:
+                continue
+            if not (issued_at <= committed_at <= expires_at):
+                continue
+
+            raw_files = commit.get("changed_files")
+            if not isinstance(raw_files, (list, tuple)):
+                continue
+            try:
+                commit_files = _normalize_changed_files(str(path) for path in raw_files)
+            except ExecutionClaimError:
+                continue
+            if commit_files != changed_files:
+                continue
+
+            targets = commit.get("targets")
+            if not isinstance(targets, Mapping):
+                continue
+            exact = True
+            for path in changed_files:
+                target = targets.get(path)
+                if not isinstance(target, Mapping):
+                    exact = False
+                    break
+                blob_sha = str(target.get("blob_sha") or "")
+                payload = target.get("payload")
+                if not _SHA_RE.fullmatch(blob_sha) or not isinstance(payload, Mapping):
+                    exact = False
+                    break
+
+                if path == claim_path:
+                    try:
+                        payload_issue = int(payload.get("issue"))
+                    except (TypeError, ValueError):
+                        exact = False
+                        break
+                    if (
+                        payload_issue != issue
+                        or str(payload.get("worker") or "") != worker
+                        or str(payload.get("executor_source") or "") != executor_source
+                        or str(payload.get("work_branch") or "") != branch
+                        or str(payload.get("head_sha") or "") != head_sha
+                    ):
+                        exact = False
+                        break
+                elif path == checkpoint_path:
+                    if (
+                        str(payload.get("issue") or "") != str(issue)
+                        or str(payload.get("branch") or "") != branch
+                        or str(payload.get("head_sha") or "") != head_sha
+                    ):
+                        exact = False
+                        break
+                else:
+                    exact = False
+                    break
+
+            if exact:
+                matches.append((commit, committed_at))
+
+        if len(matches) > 1:
+            raise ExecutionClaimError(
+                "ambiguous coordination write durable readback: multiple exact commits"
+            )
+        if not matches:
+            continue
+
+        commit, committed_at = matches[0]
+        readbacks.append(
+            {
+                "guard_run_id": _guard_tx_run_id(receipt),
+                "action": "write",
+                "mutation_applied": True,
+                "reconciled": True,
+                "target_changed": True,
+                "coord_commit_sha": str(commit.get("sha") or ""),
+                "coord_committed_at": committed_at.isoformat(),
+                "changed_files": sorted(changed_files),
+            }
+        )
+    return readbacks
+
 def _guard_tx_equivalence_key(
     receipt: Mapping[str, object],
 ) -> tuple[object, ...]:
