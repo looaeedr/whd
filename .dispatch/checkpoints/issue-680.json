@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "680",
   "branch": "work/issue680-planned-handoff-scheduler-receiver-20260926",
-  "head_sha": "3b5669765c5f1ed9af6a7899af22aee516aa8a85",
+  "head_sha": "1c9caa13f5aefe1e3e199ebb4c6fe7692e4bb51b",
   "state": "RUNNING",
-  "next_action": "Modify only .github/workflows/qa-issue680-planned-handoff.yml to add exact branch push trigger, commit under a fresh commit Guard, reconcile H1→H2, then monitor the automatically-created #680 RED run to terminal.",
+  "next_action": "Fix only .github/workflows/qa-issue680-planned-handoff.yml to install pytest before executing RED characterization, under a fresh commit Guard; reconcile H2→H3 and monitor the auto-created #680 RED run to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,7 +24,9 @@
     "H0→H1 reconciliation Guard run 36249598080 GREEN.",
     "qa-dispatch transaction consumed by exact run 36250084689 @ 3b5669765c5f1ed9af6a7899af22aee516aa8a85.",
     "Run 36250084689 terminal success; full collection 3573; artifact 10907744881. This proves dispatch/readback only, not WI-2 RED acceptance.",
-    "Next canonical action: make #680 QA workflow branch-push-triggerable, then run true RED at exact next head."
+    "Next canonical action: make #680 QA workflow branch-push-triggerable, then run true RED at exact next head.",
+    "H1→H2 reconciliation Guard 36250453566 GREEN.",
+    "Run 36250425966 invalid RED: pytest missing before test execution; fix QA dependency and rerun."
   ],
   "master_issue": null,
   "chain_state": "NONE",
