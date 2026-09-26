@@ -4,7 +4,7 @@
   "branch": "governance/issue719-deploy-interactive-takeover-main-20260926",
   "head_sha": "bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9",
   "state": "RUNNING",
-  "next_action": "Run exact diff/readback validation on bfda3db8..., then obtain pr-write Guard and open/merge the trusted-main deployment PR; after main readback, use the deployed interactive takeover path to take over #680.",
+  "next_action": "Obtain one fresh pr-write Guard for PR #720 merge at exact head bfda3db8..., merge non-force into main, fresh-read trusted main parser invariants, then prove the deployed path by taking over #680.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "Fresh branch readback proved branch_exists=true and exact head; failed commit Guard run 36234931899 exposed missing durable consume/reconciliation and performed no mutation.",
     "Commit Guard run 36235111542 completed success and authorized only .github/workflows/whd-remote-execution-guard.yml.",
     "Authorized commit bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9 applied the accepted interactive takeover transport delta while preserving later trusted-main recovery behavior.",
-    "Post-commit pair reconciliation Guard run 36235224456 completed success for exact live head bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9."
+    "Post-commit pair reconciliation Guard run 36235224456 completed success for exact live head bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9.",
+    "PR-write Guard run 36235357818 completed success.",
+    "PR #720 was created with exact head bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9, base main, one changed workflow file, and fresh mergeable=true readback."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

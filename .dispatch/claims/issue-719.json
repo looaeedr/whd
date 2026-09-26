@@ -10,24 +10,28 @@
   "claimed_at": "2026-09-26T10:04:35Z",
   "base_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
   "head_sha": "bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T10:15:27Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-26T10:18:18Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Run exact diff/readback validation on bfda3db8..., then obtain pr-write Guard and open/merge the trusted-main deployment PR; after main readback, use the deployed interactive takeover path to take over #680.",
+  "next_action": "Obtain one fresh pr-write Guard for PR #720 merge at exact head bfda3db8..., merge non-force into main, fresh-read trusted main parser invariants, then prove the deployed path by taking over #680.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-719.json",
   "guard_transaction": {
     "schema": "WHD_GUARD_TRANSACTION_READBACK_V1",
-    "guard_run_id": 36235224456,
-    "action": "write",
+    "guard_run_id": 36235357818,
+    "action": "pr-write",
     "mutation_applied": true,
-    "target_changed": true,
+    "pr_readback": true,
     "reconciled": true,
-    "changed_files": [
-      ".dispatch/claims/issue-719.json",
-      ".dispatch/checkpoints/issue-719.json"
-    ],
-    "evidence": "post-commit reconciliation Guard completed success; exact branch readback head=bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9"
+    "changed_files": [],
+    "evidence": "PR #720 fresh-read open/mergeable=true with exact head bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9 and base main"
+  },
+  "pr": {
+    "number": 720,
+    "state": "open",
+    "head_sha": "bfda3db8ff3e30d8ef2bbc89eb067db7d12baeb9",
+    "base": "main",
+    "mergeable": true
   }
 }
