@@ -11,7 +11,7 @@
   "base_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
   "head_sha": "a21dabe56e99201a106edac14460e8731ee435b4",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T05:51:17Z",
+  "last_update": "2026-09-26T05:52:36Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "acc38cd39ab548f802f6d18445ac8ca23550c335",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e",
     "protected_inputs": "GREEN"
   },
-  "next_action": "Run bound #620 finalization proof at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4, close/read back Issue #620, then advance RELEASE_HANDOFF_PENDING and atomically release claim while preserving successor #621 A5.",
+  "next_action": "Run bound WHD_REMOTE_FINALIZATION_REQUEST_V1 for #620 against the exact ISSUE_CLOSE_PENDING checkpoint blob/fingerprint; on GREEN close/read back Issue #620, then advance RELEASE_HANDOFF_PENDING and release claim.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-620.json",
   "predecessor": {
@@ -51,17 +51,18 @@
     "P7-R-D render-owner slice: RED 1 failed/3 passed because ae_engine.manufacturing_render was absent; GREEN build_part_render_data orchestration moved behind manufacturing_api thin facade at 883c40401e37f4303cb01172ce78fc865e026310. Structural test was refined from a false-positive bare 'gui' substring (matched fold_guides) to import-specific reverse-import checks without changing production semantics. Focused facade 4 passed; broader manufacturing/assembly-collision/EndCap/BoxBody/DXF regression 122 passed, 7 skipped, 0 failed; py_compile and git diff --check GREEN. Commit Guard 36220204130 GREEN; post-commit reconciliation Guard 36221395401 GREEN.",
     "Exact-head remote QA GREEN for #620 P7-R-D: workflow orchestration head 9f0c0670b8070cce1f5e7dcd8be9be7b3952e9c3 explicitly checked out TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310. Run 36221637524 / job 108347881676 completed success; structural+anti-regrowth, Manufacturing API/policy/collision, DXF export/reopen and protected-input verification steps all SUCCESS. Artifact 10899159285 digest sha256:854d1ae3221cbc2c3a88ee48c16853d00efe027542e60d4d140cf49ce095749e. Workflow commit Guard 36221552013 GREEN; orchestration post-commit Guard 36221678331 GREEN.",
     "One-shot QA workflow cleanup accepted: commit Guard 36221805056 GREEN removed only .github/workflows/qa-issue620-a4-final.yml; post-cleanup reconciliation Guard 36221921918 GREEN at cleaned head a21dabe56e99201a106edac14460e8731ee435b4. Compare TESTED_SHA 883c40401e37f4303cb01172ce78fc865e026310...a21dabe56e99201a106edac14460e8731ee435b4 shows ahead_by=2, files=[]; therefore zero production/test blob drift and exact-head QA evidence remains valid.",
-    "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed."
+    "Terminalization authority: write Guard 36222012979 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim phase CLEANUP and zero-drift exact-head evidence already consumed.",
+    "Closure advance authority: write Guard 36222077026 GREEN at accepted cleaned head a21dabe56e99201a106edac14460e8731ee435b4 with claim CLOSING and checkpoint TERMINAL_SUCCESS/FINALIZATION_PENDING."
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36222012979,
-    "request_comment_id": 5843661092,
+    "run_id": 36222077026,
+    "request_comment_id": 5843668219,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "cf6d2906fddcf2478020cdc7ef841211fca1ae34",
     "consumed": true,
-    "mutation": "terminalize #620 and establish Master #627 successor handoff"
+    "mutation": "advance #620 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "local_validation": {
     "verification_owner": {
