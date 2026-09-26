@@ -33,7 +33,8 @@
     ],
     "dynamic_callers": [
       "runtime-installed facade callbacks",
-      "Tk/presentation callbacks"
+      "Tk/presentation callbacks",
+      "Phase6FoldDesignerComposition namespace-required compatibility ports"
     ],
     "imports": [
       "phase6_designer_workspace",
@@ -66,29 +67,116 @@
     ],
     "current_tests": [
       "tests/test_original_fold_designer_bridge.py",
-      "tests/test_phase6_bridge_domain_ownership.py"
+      "tests/test_phase6_bridge_domain_ownership.py",
+      "tests/test_issue624_phase7_a7_bridge_residual_reduction.py"
     ]
   },
   "dt_1_remove_or_inline": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "SIX_NO_CALLER_REMOVE_FOUR_RUNTIME_PORT_KEEP",
+    "removed": [
+      "_phase6_active_mesh_profiles",
+      "_phase6_query_assembly_render_data",
+      "_phase6_final_scene_set_preview_enabled",
+      "_phase6_commit_output_draw_stock",
+      "_phase6_export_selected_dxf_from_3d",
+      "_phase6_toggle_parameter_panel"
+    ],
+    "keep_compatibility_ports": [
+      "_phase6_refresh_sticky_structure_tree",
+      "_phase6_install_keyboard_shortcuts",
+      "_phase6_final_scene_view_request",
+      "_phase6_save_settings_context_as_defaults"
+    ],
+    "evidence": [
+      "P7-R-A fresh census initially identified ten local NO_CALLER candidates.",
+      "Broader runtime/facade readback disproved four local-only classifications; the four restored functions are namespace-required compatibility ports, not deep owners.",
+      "Terminal Bridge at closing lineage has zero occurrences for the six removal targets and one definition each for the four retained compatibility ports."
+    ]
   },
   "dt_2_existing_owner_candidate": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "result": "DEEPEN_EXISTING_OWNER",
+    "owners": [
+      "gui_modules.application.command_router — update scheduler",
+      "Phase6FoldDesignerComposition/fold_designer_adapter — composition port wiring",
+      "phase6_workspace_navigation_controller / phase6_designer_workspace — workspace/navigation",
+      "phase6_final_scene_view + composition adapter — FinalScene",
+      "phase6_settings_panel + settings composition services — Settings"
+    ],
+    "rationale": "A7 removes dead Bridge glue and preserves only evidence-backed compatibility delegates; no new shallow owner is created."
   },
   "dt_3_bounded_owner_ports": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "full_app_dependency": false,
+    "reverse_import_to_fold_designer_bridge": false,
+    "second_composition_root": false,
+    "part_editor_order_preserved": true,
+    "scheduler_owner": "gui_modules.application.command_router",
+    "lifecycle_install_order_preserved": true,
+    "retained_compatibility_ports": [
+      "_phase6_refresh_sticky_structure_tree",
+      "_phase6_install_keyboard_shortcuts",
+      "_phase6_final_scene_view_request",
+      "_phase6_save_settings_context_as_defaults"
+    ]
   },
   "dt_4_variant_k": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "KEEP_CURRENT_BOUNDARY",
+    "result": "RED",
+    "evidence": {
+      "run_id": 36244553368,
+      "summary": "1 failed, 4 passed in 0.27s; failure proved fresh-census dead Bridge helpers remained while protected KEEP assertions stayed green."
+    }
   },
   "dt_5_variant_e": {
-    "status": "PENDING"
+    "status": "COMPLETE",
+    "variant": "DEEPEN_EXISTING_OWNER",
+    "result": "GREEN",
+    "initial_implementation_head": "942736f043237a6c12ecac79c7c3cab03963f298",
+    "accepted_behavior_head": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+    "focused_run": {
+      "run_id": 36247109736,
+      "result": "GREEN",
+      "summary": "6 passed in 0.38s"
+    },
+    "broader_run": {
+      "run_id": 36247109748,
+      "result": "GREEN",
+      "summary": "owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings",
+      "corrections": [
+        "restored _phase6_refresh_sticky_structure_tree and _phase6_install_keyboard_shortcuts after broader runtime readback",
+        "restored _phase6_final_scene_view_request and _phase6_save_settings_context_as_defaults after composition namespace readback"
+      ]
+    }
   },
   "dt_6_decision": {
-    "status": "PENDING",
+    "status": "COMPLETE",
     "allowed_decisions": [
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
-    ]
+    ],
+    "decision": "DEEPEN_EXISTING_OWNER",
+    "result": "ACCEPTED",
+    "target_completion_artifact": "docs/superpowers/checkpoints/issue624-a7-target-completion.json"
+  },
+  "terminal_owner_map": [
+    "fold_designer_bridge.py — bounded bootstrap/lifecycle/legacy host and evidence-backed compatibility root",
+    "gui_modules.application.command_router — update scheduler owner",
+    "Phase6FoldDesignerComposition/fold_designer_adapter — composition port wiring",
+    "phase6_workspace_navigation_controller / phase6_designer_workspace — workspace/navigation owners",
+    "phase6_final_scene_view + composition adapter — FinalScene owner",
+    "phase6_settings_panel + settings composition services — Settings owner"
+  ],
+  "terminal_evidence": {
+    "issue": 624,
+    "accepted_behavior_head": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+    "behavioral_closing_head": "f2a7745e8548965d9f44fbc3236367bf7165144a",
+    "terminal_bridge_blob_sha": "8701cb47265cfa8da12466ac6dfbff02af890f36",
+    "terminal_bridge_loc": 6403,
+    "focused_run_id": 36247109736,
+    "broader_run_id": 36247109748,
+    "tested_to_closing_drift": "PASS_WORKFLOW_DELETION_ONLY"
   }
 }

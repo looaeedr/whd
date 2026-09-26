@@ -126,3 +126,61 @@ Corrected classification:
 This correction does not move FinalScene or Settings ownership back into Bridge. Both restored
 functions are bounded delegates into the existing composition/deep owners. Runtime/facade
 readback continues to outrank Bridge-local text occurrence counts.
+
+
+## DT-5 — terminal broader verification
+
+Accepted behavior head: `da0abb85d287d05d6f3a6f27c335eb2a9f3b052c`.
+
+Final P7-R-A classification after runtime/facade readback:
+
+- **REMOVE / NO_CALLER**:
+  - `_phase6_active_mesh_profiles`
+  - `_phase6_query_assembly_render_data`
+  - `_phase6_final_scene_set_preview_enabled`
+  - `_phase6_commit_output_draw_stock`
+  - `_phase6_export_selected_dxf_from_3d`
+  - `_phase6_toggle_parameter_panel`
+- **KEEP_COMPATIBILITY_PORT**:
+  - `_phase6_refresh_sticky_structure_tree`
+  - `_phase6_install_keyboard_shortcuts`
+  - `_phase6_final_scene_view_request`
+  - `_phase6_save_settings_context_as_defaults`
+
+Terminal source readback at closing lineage:
+
+- Bridge blob: `8701cb47265cfa8da12466ac6dfbff02af890f36`
+- Bridge lines: **6403** (baseline census: 6477; delta: -74)
+- each REMOVE target occurrence count: **0**
+- each KEEP compatibility-port occurrence count: **1** (its bounded delegate definition)
+
+Verification evidence:
+
+- focused run `36247109736`: **6 passed in 0.38s**
+- broader run `36247109748`: owner-boundary **84 passed, 2 skipped**; original Bridge/GUI compatibility **47 passed, 64 warnings**
+- tested head: `da0abb85d287d05d6f3a6f27c335eb2a9f3b052c`
+- closing head after temporary workflow cleanup: `f2a7745e8548965d9f44fbc3236367bf7165144a`
+- tested→closing drift: **PASS_WORKFLOW_DELETION_ONLY**
+
+The broader runs are authoritative over Bridge-local text census. The two correction rounds are therefore accepted evidence, not regression debt: they prevented four live namespace ports from being incorrectly deleted.
+
+## DT-6 — terminal decision
+
+Status: **COMPLETE**
+
+Decision: **DEEPEN_EXISTING_OWNER**
+
+Result: **ACCEPTED**
+
+Rationale:
+
+1. no new `phase6_part_editor_session.py` or second composition root was created;
+2. six helpers with final fresh NO_CALLER evidence were removed;
+3. four dynamically consumed ports remain only as bounded compatibility delegates into established composition/deep owners;
+4. Part Editor plan → save → begin → finish ordering remains intact;
+5. update scheduling remains owned by `gui_modules.application.command_router`;
+6. bootstrap/lifecycle/install-order remains in the one Bridge compatibility root;
+7. no reverse import, duplicate deep owner, or full-app dependency was introduced.
+
+Target completion artifact:
+`docs/superpowers/checkpoints/issue624-a7-target-completion.json`
