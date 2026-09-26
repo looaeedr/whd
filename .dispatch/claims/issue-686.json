@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T03:32:54Z",
   "base_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
   "head_sha": "619da824bb589fa8261aec75efff7361633d152b",
-  "phase": "CLOSING",
-  "last_update": "2026-09-26T23:30:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-26T23:39:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED after a fresh final pair Guard; no successor handoff.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-686.json",
   "slot_id": "worker.slot.1",
@@ -62,17 +62,19 @@
     "Closure advance Guard run=36279416517 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run=36279493333 GREEN, reason=FINALIZATION_PROOF_VALID, artifact=10918780894.",
     "Issue #686 fresh-read closed/completed at 2026-09-26T23:29:04Z.",
-    "Release-handoff advance Guard run=36279597537 GREEN."
+    "Release-handoff advance Guard run=36279597537 GREEN.",
+    "Final atomic pair Guard run=36279667696 GREEN for current claim blob 07f080c7ea7ed1eb252280cd43694d9dd5af97c6.",
+    "Final coordination mutation atomically persists claim RELEASED + checkpoint CLOSED; no successor handoff."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36279597537,
-    "request_comment_id": 5850911535,
+    "run_id": 36279667696,
+    "request_comment_id": 5850919239,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #686 closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "atomic #686 claim RELEASED + checkpoint CLOSED"
   },
   "remote_qa": {
     "run_id": 36278818776,
