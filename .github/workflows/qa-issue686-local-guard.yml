@@ -2,6 +2,9 @@ name: WHD｜#686｜本機守門持久化對帳驗收
 run-name: WHD｜#686｜本機守門持久化對帳驗收｜${{ github.ref_name }}
 
 on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
   workflow_dispatch:
 
 permissions:
