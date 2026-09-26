@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "779",
+  "branch": "integration/issue779-phase7-x-conflict-20260927",
+  "head_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
+  "state": "RUNNING",
+  "next_action": "Create the guarded integration branch from exact current X, synthesize a two-parent merge result preserving current-X authority-map content plus Phase 7 writeback, run Integration Acceptance/post-integration sentinel, then merge non-force to X and hand exact production readback to #626.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Integration helper owns only current-X conflict resolution and post-integration verification.",
+    "Sealed #626 work-order branch must remain unchanged.",
+    "Integration branch base is exact current X a7f4d6f586cc338878531d36ed0a8baa12125e54."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
