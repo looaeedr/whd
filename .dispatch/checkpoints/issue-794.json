@@ -3,8 +3,8 @@
   "issue": "794",
   "branch": "governance/issue794-issue790-main-x-parity-20260927",
   "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
-  "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync and existing PR state for #794. If cleanup remains 24fa64f372eb7328c6ae521a067ac3a84982c18a and work head 65ac396dbef609e25334b5e0c9b9ca43734015fe is ahead with exact six-file parity delta, obtain one pr-write Guard and open/update the exact PR to cleanup; verify mergeability/checks, then obtain fresh merge pr-write Guard, merge non-force, read back X parity, and enter terminal closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,13 +22,16 @@
     "Pair reconciliation Guard 36287912946 GREEN; durable pair reconciled to H1.",
     "H2 65ac396dbef609e25334b5e0c9b9ca43734015fe is two-parent sync of H1 with cleanup@24fa64f3.",
     "Production drift overlap with six parity files = 0; effective H2 delta vs current X is exactly six authorized files.",
-    "Post-sync focused/adjacent 71 passed / 0 failed; pair reconciliation Guard 36288061171 GREEN."
+    "Post-sync focused/adjacent 71 passed / 0 failed; pair reconciliation Guard 36288061171 GREEN.",
+    "Accepted parity head 65ac396dbef609e25334b5e0c9b9ca43734015fe integrated by PR #797 to cleanup merge 44d1621f013d6181af7678e550254920cd6bcc71.",
+    "Focused/adjacent 71 passed / 0 failed; production readback confirms #790 recovery capability on X.",
+    "Terminal-entry Guard 36288266846 GREEN; checkpoint enters TERMINAL_SUCCESS / FINALIZATION_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance to ISSUE_CLOSE_PENDING under fresh Guard; then run bound finalization proof, close/read back owning Issue, advance RELEASE_HANDOFF_PENDING, and atomically persist CLOSED + RELEASED"
 }

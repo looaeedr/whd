@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T01:56:00Z",
   "base_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
   "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T02:18:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T02:22:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read cleanup/2d-3d-sync and existing PR state for #794. If cleanup remains 24fa64f372eb7328c6ae521a067ac3a84982c18a and work head 65ac396dbef609e25334b5e0c9b9ca43734015fe is ahead with exact six-file parity delta, obtain one pr-write Guard and open/update the exact PR to cleanup; verify mergeability/checks, then obtain fresh merge pr-write Guard, merge non-force, read back X parity, and enter terminal closure.",
+  "next_action": "Advance #794 terminal closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh Guard; then run canonical finalization proof, close/read back Issue #794, advance RELEASE_HANDOFF_PENDING, and atomically persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-794.json",
   "evidence": [
@@ -41,16 +41,21 @@
     "Merge-sync Guard run 36287993073 GREEN on H1 c0fb59b1 with production authority cleanup@24fa64f3.",
     "Two-parent merge-sync H2 65ac396dbef609e25334b5e0c9b9ca43734015fe cleanly incorporates cleanup@24fa64f3; effective work delta remains exactly six #794 files.",
     "Post-sync focused/adjacent acceptance: 71 passed / 0 failed.",
-    "Merge-head pair reconciliation Guard run 36288061171 GREEN."
+    "Merge-head pair reconciliation Guard run 36288061171 GREEN.",
+    "PR #797 merged non-force to cleanup/2d-3d-sync at 44d1621f013d6181af7678e550254920cd6bcc71.",
+    "Fresh production readback: cleanup/2d-3d-sync@44d1621f and accepted six-artifact #790 parity capability present.",
+    "PR #797 exact head 65ac396d / base 24fa64f3; Knowledge Governance Bootstrap run 36288160955 success.",
+    "Merge pr-write Guard run 36288193460 GREEN; exact PR merge consumed and read back.",
+    "Terminal-entry coordination Guard run 36288266846 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288061171,
-    "request_comment_id": 5851903293,
+    "run_id": 36288266846,
+    "request_comment_id": 5851927557,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #794 merge-sync H1->H2"
+    "mutation": "enter #794 terminal finalization after cleanup parity integration"
   }
 }
