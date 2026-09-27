@@ -12,7 +12,7 @@
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "cf230b396ff31d700b06711b375af9d0dc1fc27a",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:30:02Z",
+  "last_update": "2026-09-27T10:35:18Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,8 +25,8 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN"
   },
-  "next_action": "Open the #843 integration PR from governance/issue843-control-plane-characterization-20260927@cf230b396ff31d700b06711b375af9d0dc1fc27a to cleanup/2d-3d-sync, require exact-head required checks GREEN, then merge and read back production integration.",
-  "blocker": null,
+  "next_action": "Fresh-read #836 durable state and search for its replacement cleanup PR. If #836 replacement merges and cleanup/2d-3d-sync advances with the grandfathered governance delta, rerun/revalidate PR #849 exact-head Governance Mirror Hard Gate; otherwise remain blocked and do not mutate #843 implementation.",
+  "blocker": "EXTERNAL_DEPENDENCY: PR #849 Governance Mirror Hard Gate run 36312843112 failed after #843 change-scope evaluation GREEN because cleanup/2d-3d-sync still lacks the grandfathered #836 governance integration (UNKNOWN_DIVERGENCE tools/stale_claim_takeover.py). #836 canonical owner chatgpt.issue836.20260927a must open and merge its fresh replacement cleanup PR from governance/issue836-stop-helper-churn-sync-20260927@30ea9a19742c77d85c82036edc059b53ac30c3c3; superseded PR #840 must not be merged.",
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
     "authorization_source=user exact command /排程A 843",
@@ -46,6 +46,11 @@
     "post-commit pair reconciliation Guard 36312514886 GREEN after claim-only request 36312457098 correctly failed ACTIVE_CLAIM pair enforcement.",
     "one-shot QA workflow cleanup commit cf230b396ff31d700b06711b375af9d0dc1fc27a under Guard 36312649819 GREEN; duplicate request run 36312648593 fail-closed on PENDING_GUARD_TRANSACTION and conferred no authority.",
     "tested-to-closing drift 2f1cdc1f -> cf230b39 is one direct child and changes only removal of .github/workflows/qa-issue843-control-plane-characterization.yml.",
-    "closing-head pair reconciliation Guard 36312715755 GREEN; claim+checkpoint atomically advance to cf230b39."
+    "closing-head pair reconciliation Guard 36312715755 GREEN; claim+checkpoint atomically advance to cf230b39.",
+    "PR #849 opened under pr-write Guard 36312808498 at exact head cf230b396ff31d700b06711b375af9d0dc1fc27a targeting cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
+    "PR #849 Governance Mirror Hard Gate run 36312843112 failed: #843 own change scope was GREEN/non-governance; blocker was UNKNOWN_DIVERGENCE at tools/stale_claim_takeover.py plus missing reciprocal mirror marker.",
+    "#836 fresh durable owner=chatgpt.issue836.20260927a, replacement branch=governance/issue836-stop-helper-churn-sync-20260927@30ea9a19742c77d85c82036edc059b53ac30c3c3, next_action requires fresh cleanup replacement PR; search found no such open replacement PR.",
+    "Within #843 current authority there is no same-ticket workaround: PR #840 is superseded/ambiguous per #836 durable state, #849 cannot pair with #841, and #843 cannot absorb #836 governed scope.",
+    "external-dependency checkpoint write authorized by Remote Guard 36313001251 GREEN."
   ]
 }
