@@ -9,9 +9,9 @@
   "work_branch": "landing/issue780-current-production-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-27T06:24:05Z",
+  "head_sha": "75017779ae0ecdca2a7d2bb82a69706bdfcf4c80",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-27T06:29:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,15 +22,14 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36299899587,
-    "job_id": 108565501432,
-    "head_sha": "1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a",
-    "status": "completed",
-    "conclusion": "failure",
-    "artifact_id": null,
-    "summary": "Landing ancestry/BOM-only merge and governance gates GREEN. Repository-wide Python BOM census failed intentionally before pytest and reported exactly one remaining path: tests/process/test_issue774_guard_scope_grouping.py."
+    "run_id": 36300220692,
+    "job_id": 108566375743,
+    "head_sha": "75017779ae0ecdca2a7d2bb82a69706bdfcf4c80",
+    "status": "in_progress",
+    "conclusion": null,
+    "summary": "Exact post-#774-recovery landing QA is active; #774 leading BOM has been removed and the recovery workflow validates workflow+#774 as the only post-landing delta."
   },
-  "next_action": "Under a fresh commit Guard, change exactly tests/process/test_issue774_guard_scope_grouping.py and .github/workflows/qa-issue780-landing.yml. Remove only the leading UTF-8 BOM from the #774 test, and update the one-shot landing QA recovery validation so LANDING_MERGE..HEAD may contain only the QA workflow plus this pure BOM-removal path. Push non-force from 1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a, lock the exact new QA run, require repository-wide Python BOM census GREEN, focused landing tests GREEN, and protected production inputs unchanged.",
+  "next_action": "Poll exact landing QA run 36300220692 / job 108566375743 at head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80. Require ancestry/recovery validation GREEN, governance mirror/authority markers GREEN, repository-wide Python BOM census GREEN, focused landing regression GREEN, and protected production inputs unchanged. On full GREEN, record terminal QA evidence, remove only the one-shot landing QA workflow under a fresh Guard, then re-read current cleanup/2d-3d-sync for drift before PR/merge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -110,17 +109,22 @@
     "Deterministic repository-wide census output: ISSUE780_LANDING_BOM_CENSUS=tests/process/test_issue774_guard_scope_grouping.py; no other Python BOM paths were reported.",
     "Fresh #774 authority readback: Issue closed/completed; claim RELEASED; checkpoint TERMINAL_SUCCESS/CLOSED; no active owner conflict.",
     "Fresh production and landing readback: tests/process/test_issue774_guard_scope_grouping.py is identical BOM-bearing blob 07066edda99ef65352037a078af9d768c596feaa on both; first codepoint U+FEFF.",
-    "Census RED writeback Guard 36299972361 GREEN; request 5853349721, result 5853351008."
+    "Census RED writeback Guard 36299972361 GREEN; request 5853349721, result 5853351008.",
+    "Inherited #774 BOM recovery commit Guard 36300118871 GREEN; request 5853371506, result 5853378671.",
+    "Commit 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80 pushed non-force; changed exactly .github/workflows/qa-issue780-landing.yml and tests/process/test_issue774_guard_scope_grouping.py.",
+    "Fresh readback at 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80: #774 test first codepoint is no longer U+FEFF.",
+    "Exact landing QA run 36300220692 / job 108566375743 is active at the same head.",
+    "Pair reconciliation Guard 36300243436 GREEN; request 5853393196, result 5853394555."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36299972361,
-    "request_comment_id": 5853349721,
-    "result_comment_id": 5853351008,
+    "run_id": 36300243436,
+    "request_comment_id": 5853393196,
+    "result_comment_id": 5853394555,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "record full landing BOM census and authorize single inherited #774 BOM recovery"
+    "mutation": "reconcile #780 durable pair to #774 BOM recovery head and exact active landing QA"
   }
 }
