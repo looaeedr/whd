@@ -9,9 +9,9 @@
   "work_branch": "landing/issue780-current-production-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "f497dd2f3415620f54a10394e637813b8ee3d573",
+  "head_sha": "b051ce5a4b37b84f53b2ad794ccf121a12da77e7",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T06:12:23Z",
+  "last_update": "2026-09-27T06:20:06Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,16 +22,16 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36298544059,
-    "job_id": 108561782584,
-    "head_sha": "03ffd93042a246854365ac78b493e1bf733677a2",
+    "run_id": 36299712345,
+    "job_id": 108564995038,
+    "head_sha": "b051ce5a4b37b84f53b2ad794ccf121a12da77e7",
     "status": "completed",
-    "conclusion": "success",
-    "artifact_id": 10924777693,
-    "artifact_digest": "sha256:1cb89b12ce8b0c39b0c2436c10eed5642c3f4d81e0b483ef23dc62f42ff00baa",
-    "summary": "Full integration acceptance GREEN: recovery/BOM census, authority-map markers, structural targets, ownership invariants, manufacturing/collision/DXF, persistence, Xvfb GUI/Bridge/Settings/Door, and protected config/baseline checks all succeeded."
+    "conclusion": "failure",
+    "artifact_id": 10925038771,
+    "artifact_digest": "sha256:61c6993dee7e19b00b1e8cc8ed08e34704732f373ec82fd452235f4549c6c0a7",
+    "summary": "Landing ancestry/BOM-only first-parent diff and governance surface/authority markers GREEN. Focused pytest: 15 passed / 1 failed because tests/process/test_issue774_guard_scope_grouping.py begins with UTF-8 BOM and clean-break ast.parse rejects U+FEFF."
   },
-  "next_action": "Run focused landing acceptance on exact landing head f497dd2f3415620f54a10394e637813b8ee3d573. Acceptance must verify exact two-parent ancestry (98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf + 6ac40676bb4e2911d8b8227ec73875d6cc478e77), first-parent diff limited to the two pure BOM removals, authority-map dual markers preserved, scheduler governance mirror #816 intact, clean-break structural tests GREEN, and protected config/baseline unchanged. On GREEN, remove any one-shot QA workflow, then fresh-read cleanup/2d-3d-sync and continue guarded PR/merge.",
+  "next_action": "Under a fresh commit Guard, change only .github/workflows/qa-issue780-landing.yml to run a repository-wide *.py UTF-8 BOM census before focused pytest and print every remaining BOM path in one deterministic list. Push non-force from b051ce5a4b37b84f53b2ad794ccf121a12da77e7, lock the exact new QA run, and use the census output to fresh-read ownership/production presence for the full set before any BOM normalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -102,17 +102,21 @@
     "Landing commit Guard 36299342756 GREEN; two-parent landing merge f497dd2f3415620f54a10394e637813b8ee3d573 created non-force.",
     "Fresh merge readback: parents are exactly first=98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf and second=6ac40676bb4e2911d8b8227ec73875d6cc478e77.",
     "Fresh first-parent compare shows exactly two paths and both patches are pure leading UTF-8 BOM removals: tests/process/test_issue681_poweroff_gate.py and tests/process/test_scheduler_no_work_census_contract.py.",
-    "Post-commit write Guard 36299399841 failed closed only because canonical reconciliation cannot encode this production-root two-parent merge shape; no repository mutation was performed by that failed Guard. Trusted Claim Activation reactivate is used to resume exact live landing head without rewriting history."
+    "Post-commit write Guard 36299399841 failed closed only because canonical reconciliation cannot encode this production-root two-parent merge shape; no repository mutation was performed by that failed Guard. Trusted Claim Activation reactivate is used to resume exact live landing head without rewriting history.",
+    "Landing focused QA run 36299712345 / job 108564995038 at b051ce5a4b37b84f53b2ad794ccf121a12da77e7: exact landing ancestry and BOM-only first-parent diff GREEN; governance mirror/authority markers GREEN.",
+    "Focused pytest result: 15 passed / 1 failed. Sole failure is inherited UTF-8 BOM in tests/process/test_issue774_guard_scope_grouping.py detected by tests/test_clean_break_layout.py.",
+    "Landing QA artifact 10925038771 digest sha256:61c6993dee7e19b00b1e8cc8ed08e34704732f373ec82fd452235f4549c6c0a7.",
+    "Landing RED writeback Guard 36299776673 GREEN; request 5853321803, result 5853323217."
   ],
   "last_guard": {
-    "action": "pr-write",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36298961621,
-    "request_comment_id": 5853212563,
-    "result_comment_id": 5853213730,
+    "run_id": 36299776673,
+    "request_comment_id": 5853321803,
+    "result_comment_id": 5853323217,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "create PR #821 for canonical mergeability readback; dirty result selects fresh landing branch"
+    "mutation": "record first landing QA RED and advance to full Python BOM census"
   }
 }
