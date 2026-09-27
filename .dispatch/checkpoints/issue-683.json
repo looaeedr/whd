@@ -4,7 +4,7 @@
   "branch": "work/issue683-ha-transport-projection-20260927",
   "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "state": "RUNNING",
-  "next_action": "Open the exact non-draft integration PR from work/issue683-ha-transport-projection-20260927@6156cf8c222e1a87d2fe477288dc12282711ddb6 to cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then merge non-force with expected head locked and read back production integration.",
+  "next_action": "Create delegated main governance mirror branch governance/issue683-main-mirror-20260927 from main@cb80310e2643d1ab9624e90085d4abda6e4d125e; mirror only 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md from the accepted #683 delta; open paired PR to main; add reciprocal WHD-Governance-Mirror-Pair markers to the main PR and #848; require both Governance Mirror Hard Gate checks GREEN; merge the main mirror first, then revalidate and merge #848.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -37,7 +37,10 @@
     "Closing-head reconciliation Guard 36311774490 GREEN.",
     "Two-parent sync head 6156cf8c222e1a87d2fe477288dc12282711ddb6 under Guard 36311868602; parents closing cb4be343... + target 500e6f80....",
     "Relative-to-target diff is exactly the three retained #683 artifacts.",
-    "Sync-head reconciliation Guard 36311948057 GREEN."
+    "Sync-head reconciliation Guard 36311948057 GREEN.",
+    "PR #848 is open at exact accepted head; merge blocked only by required Governance Mirror Hard Gate.",
+    "Governance Mirror Hard Gate run 36312072884 requires an open reciprocal paired PR because opposite-production parity is not yet satisfied.",
+    "Same-ticket delegated main mirror branch reserved under #683; no parity helper Issue."
   ],
   "master_issue": null,
   "chain_state": "NONE",

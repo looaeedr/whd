@@ -11,11 +11,13 @@
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:16:00Z",
+  "last_update": "2026-09-27T10:37:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "governance/issue683-main-mirror-20260927"
+  ],
   "remote_qa": {
     "run_id": 36311528696,
     "job_id": 108598281168,
@@ -25,7 +27,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Open the exact non-draft integration PR from work/issue683-ha-transport-projection-20260927@6156cf8c222e1a87d2fe477288dc12282711ddb6 to cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then merge non-force with expected head locked and read back production integration.",
+  "next_action": "Create delegated main governance mirror branch governance/issue683-main-mirror-20260927 from main@cb80310e2643d1ab9624e90085d4abda6e4d125e; mirror only 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md from the accepted #683 delta; open paired PR to main; add reciprocal WHD-Governance-Mirror-Pair markers to the main PR and #848; require both Governance Mirror Hard Gate checks GREEN; merge the main mirror first, then revalidate and merge #848.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -71,17 +73,21 @@
     "Two-parent sync Guard 36311868602 GREEN against target authority cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
     "Sync commit 6156cf8c222e1a87d2fe477288dc12282711ddb6 parents=[cb4be343f59161ba8434f626947f3a8ba2d109a3,500e6f806de40a74ee8cd5bb4a6372245c5df53c].",
     "Relative to target, sync head retains only #683 files: tools/whd_poweroff_ha_bridge.py; tests/process/test_issue683_ha_transport_projection.py; canonical Authority Map.",
-    "Sync-head reconciliation Guard 36311948057 GREEN."
+    "Sync-head reconciliation Guard 36311948057 GREEN.",
+    "PR #848 exists at exact head 6156cf8c222e1a87d2fe477288dc12282711ddb6 -> cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
+    "Merge attempt was rejected by repository rules because Governance Mirror Hard Gate run 36312072884 failed: current cleanup PR has governed Authority Map delta but no reciprocal paired main PR marker.",
+    "Per accepted #836 current-ticket repair contract, parity repair stays on Issue #683; no helper Issue is opened. Delegated branch governance/issue683-main-mirror-20260927 reserved for same-owner main mirror.",
+    "Coord write consumes existing exact GREEN Guard 36312375461 / request 5855008090 / result 5855009519 for issue-683 claim+checkpoint pair."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36311948057,
-    "request_comment_id": 5854959619,
-    "result_comment_id": 5854961030,
+    "run_id": 36312375461,
+    "request_comment_id": 5855008090,
+    "result_comment_id": 5855009519,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 durable pair to two-parent sync head before integration PR"
+    "mutation": "delegate same-ticket main governance mirror branch and record Governance Mirror Hard Gate repair next_action"
   }
 }
