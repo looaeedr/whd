@@ -11,7 +11,7 @@
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
   "head_sha": "ec6680a0ebded06b6f481ad1b2cd7406e47923ed",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T04:09:00Z",
+  "last_update": "2026-09-27T04:14:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 77,
     "failed": 0
   },
-  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint; verify FINALIZATION_PROOF_VALID and artifact identity, close Issue #769, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Obtain one fresh final-pair write Guard on the exact RELEASE_HANDOFF_PENDING pair; then atomically persist checkpoint closure_state=CLOSED + claim phase=RELEASED + next_action=null. Fresh-read Issue #769 closed/completed and both durable blobs afterward.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -79,16 +79,20 @@
     "Fresh cleanup readback exact at cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
     "Merge pr-write Guard run 36292926948 GREEN and consumed by exact PR #788 merge event.",
     "Closure-entry Guard run 36293060557 GREEN.",
-    "Closure advance Guard run 36293430885 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36293430885 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36293598997 GREEN; FINALIZATION_PROOF_VALID on exact checkpoint blob dfc2439434d4a07bbd41a3025ce4f674ea4f8998 / fingerprint e22c7155d9218e1f1e20793e31e5c86d724b9d6541d677d96d39f58765881aff.",
+    "Finalization artifact 10923431017 uploaded successfully.",
+    "Issue #769 closed/completed at 2026-09-27T04:12:42Z and fresh-read closed/completed.",
+    "Release-handoff Guard run 36293660992 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36293430885,
-    "request_comment_id": 5852510586,
+    "run_id": 36293660992,
+    "request_comment_id": 5852536436,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #769 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #769 closure to RELEASE_HANDOFF_PENDING after finalization proof and issue-close readback"
   }
 }

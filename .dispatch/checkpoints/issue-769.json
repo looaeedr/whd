@@ -49,13 +49,16 @@
     "PR #788 merged to cleanup as cfbcaa1b4e50e117d8a3e1a738606814f48325d2; production readback exact.",
     "Accepted closing/integration head ec6680a0ebded06b6f481ad1b2cd7406e47923ed retained exact six-file #769 delta and 126 passed / 0 failed post-sync regression.",
     "Closure-entry Guard 36293060557 GREEN; acceptance terminal reached.",
-    "Closure advance Guard run 36293430885 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36293430885 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36293598997 / artifact 10923431017: FINALIZATION_PROOF_VALID.",
+    "Issue #769 close/readback: closed/completed.",
+    "Release-handoff Guard run 36293660992 GREEN; closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
