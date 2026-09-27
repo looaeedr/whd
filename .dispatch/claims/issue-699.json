@@ -11,7 +11,7 @@
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "93d5a527a711178233f64619750ad3d14ba20a08",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T06:34:15Z",
+  "last_update": "2026-09-27T06:35:32Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
@@ -24,8 +24,8 @@
     "bound_at": "2026-09-26T18:55:40Z",
     "binding_scope": "issue-699-only"
   },
-  "next_action": "Issue #702 must perform amendment-wide combined acceptance, AI Library writeback, and the canonical close/readback of Issue #699. Do not auto-start #702 under EXECUTE_TICKET scope.",
-  "blocker": "SCOPE_BOUNDARY: Issue Closure owner and Combined/AI Library owner are #702; /工作3 699 authorizes Issue #699 only.",
+  "next_action": "Advance canonical #699 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then continue #697 under #702 amendment-chain closure.",
+  "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-699.json",
   "evidence": [
     "authorization_source=user explicit /工作3 699",
@@ -46,7 +46,10 @@
     "Post-merge focused smoke at X: 151 passed / 0 failed in 5.33s.",
     "Issue #699 closure / amendment Combined Acceptance / AI Library writeback are explicitly owned by Issue #702; this EXECUTE_TICKET scope must not auto-start #702.",
     "Final coordination write Guard run 36274146580 GREEN.",
-    "Scheduler A stale takeover run 36300454293 GREEN: EXECUTOR_STUCK, stale_seconds=31483, exact live head 93d5a527a711178233f64619750ad3d14ba20a08, no active exact run/delegated helper."
+    "Scheduler A stale takeover run 36300454293 GREEN: EXECUTOR_STUCK, stale_seconds=31483, exact live head 93d5a527a711178233f64619750ad3d14ba20a08, no active exact run/delegated helper.",
+    "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf is a descendant of #699 closing head 93d5a527a711178233f64619750ad3d14ba20a08.",
+    "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
+    "Terminal transition authorized by Remote Guard run 36300537511."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -66,13 +69,29 @@
     "request_comment_id": 5853426875
   },
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36300454293,
-    "request_comment_id": 5853426875,
+    "run_id": 36300537511,
+    "request_comment_id": 5853437979,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "transfer #699 stale claim ownership to scheduler A for #702 closure"
+    "mutation": "enter #699 terminal finalization under #702 chain closure"
+  },
+  "acceptance": {
+    "red_ids": [
+      "RED-STOP-20",
+      "RED-STOP-21"
+    ],
+    "closing_head_sha": "93d5a527a711178233f64619750ad3d14ba20a08",
+    "focused_green": "151 passed / 0 failed",
+    "production_merge_commit_sha": "0374e9d35bcd8b02ceb6486002c203347a45b19b",
+    "production_readback_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+    "production_contains_closing_head": true,
+    "closure_owner_issue": 702,
+    "state": "ACCEPTED",
+    "amendment_combined_run_id": 36296278571,
+    "amendment_combined_job_id": 108555610910,
+    "amendment_combined_summary": "100 passed / 0 failed"
   }
 }
