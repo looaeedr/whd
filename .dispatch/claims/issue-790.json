@@ -11,7 +11,7 @@
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T01:58:20Z",
+  "last_update": "2026-09-27T02:44:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Follow active delegated helper #794 (helper_key issue790-main-x-parity) through branch, compatible-equivalent port, focused parity acceptance, non-force merge to cleanup/2d-3d-sync, and terminal close/release; after #794 terminal proof, terminalize the helper reservation and resume #790 → #769 recovery.",
+  "next_action": "Resume parent #769 exact recovery: fresh-read #769 claim/checkpoint/work branch and historical Guard request/receipt for H0 ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76 -> H1 4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab; create owner-authored WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1 binding current/historical claim blobs, prior Guard run 36282767458/request 5851288038, and exact QA-workflow changed file; invoke trusted pair reconciliation with intervening_coord_recovery_comment_id, persist remote QA run 36282840275, then remove the temporary #769 QA workflow under a fresh Guard and continue #769 drift audit/merge/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -60,23 +60,26 @@
     "Direct bounded apply audit: RED 926a9840 applies cleanly; implementation 551ae5e2 conflicts in 派工 Skill, remote-execution-guard Skill, tools/execution_claim_guard.py, and execution_claim_hard_gate_pitfall.md. Selective compatible-equivalent fallback required.",
     "Canonical reserve_helper_creation RESERVED helper_key=issue790-main-x-parity token=issue790-main-x-parity-20260927a.",
     "Helper #794 fresh-create Claim Activation GREEN at coord e3bccc3a80019bc2c1fce85067f5b65399ed41c4; child claim blob 8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625.",
-    "Canonical activate_helper_reservation returned ACTIVE for helper_key issue790-main-x-parity → child #794."
+    "Canonical activate_helper_reservation returned ACTIVE for helper_key issue790-main-x-parity → child #794.",
+    "Helper #794 terminal proof fresh-read: Issue closed/completed; claim ec595869a5965428fdc5b9a144d0ed44ba80a795 phase=RELEASED / next_action=null; checkpoint 671ddbeba70c382f0ca9d114e03fcada87d0fd7d state=TERMINAL_SUCCESS / closure=CLOSED; exact head has no active workflow run.",
+    "Canonical terminalize_helper_reservation() returned TERMINAL for helper_key issue790-main-x-parity with exact owner/token.",
+    "Parent pair-write Guard run 36289318019 GREEN; helper reservation terminalization and #769 recovery handoff authorized."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36287099915,
-    "request_comment_id": 5851796246,
+    "run_id": 36289318019,
+    "request_comment_id": 5852044689,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "activate #790 delegated parity helper #794"
+    "mutation": "terminalize #794 helper reservation and resume #790 -> #769 recovery"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue790-main-x-parity",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.sol260927.issue790.dep769.1",
       "reservation_token": "issue790-main-x-parity-20260927a",
       "reserved_at": "2026-09-27T01:53:49Z",
