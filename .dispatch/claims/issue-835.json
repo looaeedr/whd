@@ -9,9 +9,9 @@
   "work_branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
   "claimed_at": "2026-09-27T08:37:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
-  "head_sha": "aea43290d479f731e6f103703ae03123bcd6a81d",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T08:46:30Z",
+  "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T08:51:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Guard and delete the temporary .github/workflows/qa-issue835-scheduler-no-work.yml, verify tested-head to closing-head drift is workflow-deletion-only, then mirror the accepted governance delta to cleanup/2d-3d-sync and main under bidirectional governance gates before live A/B prompt sync.",
+  "next_action": "Integrate exact #835 closing delta into cleanup/2d-3d-sync and main under the bidirectional Governance Mirror Hard Gate, then synchronize live A 00/20/40 and B15/B45 prompts with SAME_LANE_NONTERMINAL_WORK_V1 and verify schedule/timing/lane/enabled invariants unchanged.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307245968,
-    "request_comment_id": 5854319133,
+    "run_id": 36307492191,
+    "request_comment_id": 5854359746,
     "result": "GREEN",
     "reason": "REMOTE_GUARD_RECONCILE_ONLY",
     "consumed": true,
-    "mutation": "reconcile GREEN head and exact QA evidence"
+    "mutation": "reconcile closing head after QA workflow deletion"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -44,6 +44,9 @@
     "VALID RED head 95fc690e484a85d90f6f93b4cea046c1502d2458; run 36306976846: 3 failed / 6 passed.",
     "GREEN implementation head aea43290d479f731e6f103703ae03123bcd6a81d changes only 排程模擬 and 寫排程 after RED head.",
     "Exact GREEN run 36307215802 / job 108586096868: 9 passed / 0 failed in 0.18s.",
-    "Post-GREEN reconciliation Guard run 36307245968 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-GREEN reconciliation Guard run 36307245968 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Temporary QA workflow deleted at closing head 95dd912c52a5c82f454a5088c7f1469fc78f7770 under commit Guard 36307309726 GREEN.",
+    "Tested head aea43290... -> closing head 95dd912c... changes exactly one removed temporary workflow.",
+    "Closing-head pair reconciliation Guard 36307492191 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ]
 }

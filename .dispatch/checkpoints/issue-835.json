@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "835",
   "branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
-  "head_sha": "aea43290d479f731e6f103703ae03123bcd6a81d",
+  "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
   "state": "RUNNING",
-  "next_action": "Guard and delete the temporary .github/workflows/qa-issue835-scheduler-no-work.yml, verify tested-head to closing-head drift is workflow-deletion-only, then mirror the accepted governance delta to cleanup/2d-3d-sync and main under bidirectional governance gates before live A/B prompt sync.",
+  "next_action": "Integrate exact #835 closing delta into cleanup/2d-3d-sync and main under the bidirectional Governance Mirror Hard Gate, then synchronize live A 00/20/40 and B15/B45 prompts with SAME_LANE_NONTERMINAL_WORK_V1 and verify schedule/timing/lane/enabled invariants unchanged.",
   "run_id": 36307215802,
   "job_id": 108586096868,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "VALID RED run 36306976846: 3 failed / 6 passed.",
     "GREEN head aea43290d479f731e6f103703ae03123bcd6a81d.",
     "GREEN run 36307215802 / job 108586096868: 9 passed / 0 failed in 0.18s.",
-    "Post-GREEN pair reconciliation Guard 36307245968 GREEN."
+    "Post-GREEN pair reconciliation Guard 36307245968 GREEN.",
+    "Temporary QA workflow removed at closing head 95dd912c52a5c82f454a5088c7f1469fc78f7770.",
+    "Tested→closing drift is workflow-deletion-only.",
+    "Closing-head pair reconciliation Guard 36307492191 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
