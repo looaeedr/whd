@@ -3,13 +3,13 @@
   "issue": "844",
   "branch": "governance/issue844-unified-execution-record-20260928",
   "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
-  "state": "RUNNING",
-  "next_action": "Run Phase6 Knowledge Preflight for #844 against the P0 behavior matrix, identify the canonical Execution Record owner/files, then add focused RED regression tests before implementation.",
+  "state": "BLOCKED",
+  "next_action": "When a trusted GitHub-only Phase6 preflight execution capability is available, run tools/phase6_skill_preflight.py for #844 at ec2651809952d2cda018186b0a132c0801ac68b7, read/persist all required Skill/reference evidence, then identify the canonical Execution Record owner/files and add focused RED regression tests.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
-  "blocked_count": 0,
-  "blocked_last_notified_at": null,
+  "blocked_count": 1,
+  "blocked_last_notified_at": "2026-09-27T22:50:02Z",
   "evidence": [
     "Parent relation=#842 is provenance while #844 is non-terminal; terminal chain metadata will be populated at closure handoff.",
     "#843 is terminal/released and handed off exact successor #844 from accepted HEAD ec2651809952d2cda018186b0a132c0801ac68b7.",
@@ -18,7 +18,10 @@
     "P0 behavior matrix is present and is the required regression compatibility baseline.",
     "Claim activation run 36356243796 established exact active pair.",
     "Branch-create Guard 36356323291 GREEN and branch fresh readback exact at ec2651809952d2cda018186b0a132c0801ac68b7.",
-    "Coordination writeback authorized by Guard 36356374641."
+    "Coordination writeback authorized by Guard 36356374641.",
+    "Capability blocker evidence is durable at Issue comment 5860563917.",
+    "Exhaustive allowed-path check found no legal GitHub-only Phase6 preflight executor; bootstrap workflow is circularly preflight-gated.",
+    "BLOCKED-state write authorized by fresh Guard 36356627525."
   ],
   "operation": null,
   "master_issue": null,
@@ -27,5 +30,19 @@
   "chain_next_action": null,
   "chain_reason": null,
   "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_next_action": null,
+  "blocked_exit_proof": {
+    "exhaustive": true,
+    "executable_leaf_count": 0,
+    "evidence": [
+      "Durable blocker comment #5860563917 records the exact required preflight action and GitHub-only execution boundary.",
+      "Fresh production workflow inventory at cleanup/2d-3d-sync@5a9626b7b45b0c2cea7f78f443ef395d2ab3af8b has no generic task-scoped Phase6 preflight runner for #844.",
+      "Current GitHub connector capability inventory exposes read/rerun-existing workflow primitives but no arbitrary workflow_dispatch or remote command execution.",
+      "Creating a bootstrap workflow would itself be a repository write subject to mandatory Phase6 preflight, so it is not a legal alternative."
+    ],
+    "stop_reason": "CAPABILITY_BLOCKED",
+    "blocker_id": "capability:remote-phase6-preflight-execution-unavailable",
+    "blocker_count": 1,
+    "observed_at": "2026-09-27T22:50:02Z"
+  }
 }
