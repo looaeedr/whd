@@ -12,11 +12,11 @@
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T13:07:00Z",
+  "last_update": "2026-09-27T13:08:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Advance the exact #851 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #851, then advance RELEASE_HANDOFF_PENDING and atomically write CLOSED + RELEASED.",
+  "next_action": "Mint trusted remote finalization proof against the exact #851 ISSUE_CLOSE_PENDING checkpoint bytes; if GREEN, close/readback Issue #851 without mutating the checkpoint, then advance RELEASE_HANDOFF_PENDING and atomically write CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -67,7 +67,8 @@
     "superseded PR #854 closed unmerged under pr-write Guard run=36320906200; fresh readback state=closed merged=false closed_at=2026-09-27T13:01:06Z",
     "primary authority handback Guard run=36320982976 GREEN",
     "fresh terminal audit: #856 merged at b427ae38f5a8921c273cc56e8da1b293154534a2; #857 merged at da3839b6e6c7d2f391b172ea753fe6cc13d28931; #854 closed unmerged; same-ticket open PR count=0 on all delegated/owner branches",
-    "terminal checkpoint transition Guard run=36321256735 GREEN"
+    "terminal checkpoint transition Guard run=36321256735 GREEN",
+    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard run=36321358546"
   ],
   "delegated_branches": [
     "governance/issue851-main-mirror-20260927",
@@ -76,12 +77,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36321256735,
-    "request_comment_id": 5856127636,
-    "result_comment_id": 5856129263,
+    "run_id": 36321358546,
+    "request_comment_id": 5856140556,
+    "result_comment_id": 5856142050,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #851 terminal checkpoint FINALIZATION_PENDING"
+    "mutation": "advance #851 closure to ISSUE_CLOSE_PENDING"
   }
 }

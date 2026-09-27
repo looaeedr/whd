@@ -50,7 +50,8 @@
     "#854 fresh readback closed/unmerged at 2026-09-27T13:01:06Z",
     "primary authority handback Guard 36320982976 GREEN",
     "fresh pre-terminal audit passed: #856/#857 merged, #854 closed unmerged, no same-ticket open PR",
-    "terminal checkpoint entered FINALIZATION_PENDING under write Guard 36321256735"
+    "terminal checkpoint entered FINALIZATION_PENDING under write Guard 36321256735",
+    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36321358546"
   ],
   "operation": null,
   "master_issue": null,
@@ -58,6 +59,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance the exact #851 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #851, then atomically write CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted finalization proof for the exact #851 checkpoint, close/readback Issue #851, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED."
 }
