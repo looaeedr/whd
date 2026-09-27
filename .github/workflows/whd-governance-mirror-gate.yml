@@ -2,6 +2,7 @@ name: Governance Mirror Hard Gate
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches:
       - main
       - cleanup/2d-3d-sync
@@ -70,6 +71,88 @@ jobs:
                   print("NON_GOVERNANCE_PATH_TO_MAIN")
               raise SystemExit(1)
           PY
+
+      - name: Verify merge-time governance candidate parity
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REF: ${{ github.base_ref }}
+          CANDIDATE_REF: ${{ github.sha }}
+          CURRENT_PR: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          if [ "$TARGET_REF" = "main" ]; then
+            OTHER_REF="cleanup/2d-3d-sync"
+          elif [ "$TARGET_REF" = "cleanup/2d-3d-sync" ]; then
+            OTHER_REF="main"
+          else
+            echo "INVALID_MIRROR_TARGET: $TARGET_REF" >&2
+            exit 1
+          fi
+
+          if python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --candidate-ref "$CANDIDATE_REF" \
+            --target-ref "$TARGET_REF" \
+            --opposite-ref "refs/remotes/origin/$OTHER_REF" \
+            --verify-pr-candidate-parity
+          then
+            echo "PR_CANDIDATE_PARITY_SOURCE=opposite-production"
+            exit 0
+          fi
+
+          PAIR="$(
+            python - <<'PY'
+          import os
+          import re
+          body = os.environ.get("PR_BODY") or ""
+          matches = re.findall(
+              r"(?m)^WHD-Governance-Mirror-Pair: #([0-9]+)[ 	]*$",
+              body,
+          )
+          if len(matches) != 1:
+              raise SystemExit(
+                  "GOVERNANCE_MIRROR_PAIR_REQUIRED: expected exactly one "
+                  "WHD-Governance-Mirror-Pair marker"
+              )
+          print(matches[0])
+          PY
+          )"
+
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PAIR" > /tmp/governance-pair.json
+          OTHER_REF="$OTHER_REF" CURRENT_PR="$CURRENT_PR" python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          pair = json.loads(
+              Path("/tmp/governance-pair.json").read_text(encoding="utf-8")
+          )
+          if pair.get("state") != "open":
+              raise SystemExit("GOVERNANCE_MIRROR_PAIR_NOT_OPEN")
+          base = pair.get("base") or {}
+          if base.get("ref") != os.environ["OTHER_REF"]:
+              raise SystemExit("GOVERNANCE_MIRROR_PAIR_WRONG_TARGET")
+          body = pair.get("body") or ""
+          reciprocal = re.findall(
+              r"(?m)^WHD-Governance-Mirror-Pair: #([0-9]+)[ 	]*$",
+              body,
+          )
+          if reciprocal != [os.environ["CURRENT_PR"]]:
+              raise SystemExit("GOVERNANCE_MIRROR_PAIR_NOT_RECIPROCAL")
+          PY
+
+          git fetch --no-tags origin \
+            "pull/$PAIR/head:refs/remotes/origin/governance-pair-$PAIR"
+
+          python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --candidate-ref "$CANDIDATE_REF" \
+            --target-ref "$TARGET_REF" \
+            --opposite-ref "refs/remotes/origin/governance-pair-$PAIR" \
+            --verify-pr-candidate-parity
 
       - name: Verify live bidirectional governance parity after branch push
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
