@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T11:44:01Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T11:47:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "PR #850 is merged to main at cb8a978f98d959727b93d706d097cb040741a041. Primary authority is back on cleanup repair2. Mint one fresh exact pr-write Guard for PR #853 at work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1; merge #853 to cleanup/2d-3d-sync; fresh-read integration and continue #683 terminal checkpoint/finalization.",
+  "next_action": "Advance the exact #683 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #683, then atomically write CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -109,17 +109,19 @@
     "Durable gate-terminal writeback consumes exact single-use write Guard 36315098720.",
     "Primary authority handoff to main mirror consumes exact write Guard 36316468837 / request 5855501410 / result 5855502749.",
     "PR #850 merged under exact pr-write Guard 36316626123; main readback cb8a978f98d959727b93d706d097cb040741a041.",
-    "Primary authority handback to cleanup repair2 consumes exact write Guard 36316675754 / request 5855525706 / result 5855527146."
+    "Primary authority handback to cleanup repair2 consumes exact write Guard 36316675754 / request 5855525706 / result 5855527146.",
+    "PR #853 merged under exact pr-write Guard 36316751641; cleanup/2d-3d-sync readback d41c257787c1fa298bb4e8a1fb7927432c9cbde1.",
+    "Terminal checkpoint transition consumes exact write Guard 36316853941 / request 5855547258 / result 5855548594."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36316675754,
-    "request_comment_id": 5855525706,
-    "result_comment_id": 5855527146,
+    "run_id": 36316853941,
+    "request_comment_id": 5855547258,
+    "result_comment_id": 5855548594,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handback #683 primary authority from merged main mirror to cleanup repair2"
+    "mutation": "enter #683 terminal checkpoint FINALIZATION_PENDING"
   }
 }

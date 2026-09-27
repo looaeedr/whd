@@ -3,8 +3,8 @@
   "issue": "683",
   "branch": "work/issue683-ha-transport-projection-repair2-20260927",
   "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
-  "state": "RUNNING",
-  "next_action": "PR #850 is merged to main at cb8a978f98d959727b93d706d097cb040741a041. Primary authority is back on cleanup repair2. Mint one fresh exact pr-write Guard for PR #853 at work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1; merge #853 to cleanup/2d-3d-sync; fresh-read integration and continue #683 terminal checkpoint/finalization.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -58,13 +58,15 @@
     "This durable gate-terminal writeback consumes exact write Guard 36315098720.",
     "Primary authority handoff to main mirror consumes exact write Guard 36316468837.",
     "PR #850 merged to main at cb8a978f98d959727b93d706d097cb040741a041 under pr-write Guard 36316626123.",
-    "Primary authority handback consumes exact write Guard 36316675754."
+    "Primary authority handback consumes exact write Guard 36316675754.",
+    "PR #853 merged to cleanup at d41c257787c1fa298bb4e8a1fb7927432c9cbde1 under pr-write Guard 36316751641.",
+    "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36316853941."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance the exact #683 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #683, then atomically write CLOSED + RELEASED."
 }
