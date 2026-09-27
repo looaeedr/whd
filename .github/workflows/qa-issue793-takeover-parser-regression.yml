@@ -1,0 +1,37 @@
+name: QA #793 takeover parser regression
+
+on:
+  push:
+    branches:
+      - governance/issue793-takeover-parser-regression-20260927
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install focused dependencies
+        run: python -m pip install --disable-pip-version-check pytest pyyaml
+      - name: Focused parser regression
+        run: |
+          pytest -q             tests/process/test_issue722_trusted_interactive_takeover_transport.py             tests/process/test_issue540_main_remote_guard_contract.py
+      - name: Reject literal-backslash takeover parser
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          path = Path(".github/workflows/whd-remote-execution-guard.yml")
+          text = path.read_text(encoding="utf-8")
+          broken = 'body.replace("\\\\r\\\\n", "\\\\n").split("\\\\n")'
+          if broken in text:
+              raise SystemExit("literal-backslash newline takeover parser remains")
+          yaml.safe_load(path.read_text(encoding="utf-8"))
+          print("ISSUE793_TAKEOVER_PARSER_GREEN=PASS")
+          PY
