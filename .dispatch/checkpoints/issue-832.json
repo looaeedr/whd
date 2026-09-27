@@ -18,13 +18,16 @@
     "Cleanup mirror PR #834 merged at b059ffeade3e8ade105f44a370e20e071a0127a7 and post-push parity run 36306702749 succeeded.",
     "Remote Finalization 36307763172 GREEN with FINALIZATION_PROOF_VALID; artifact 10927399704.",
     "Issue #832 remote readback: closed/completed at 2026-09-27T08:56:52Z.",
-    "Post-close coordination Guard 36307819669 GREEN; advancing to RELEASE_HANDOFF_PENDING."
+    "Post-close coordination Guard 36307819669 GREEN; advancing to RELEASE_HANDOFF_PENDING.",
+    "Final coordination Guard 36307874455 GREEN.",
+    "Issue #832 closed/completed; Remote Finalization 36307763172 GREEN.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "obtain final coordination write Guard, then atomically persist checkpoint CLOSED + claim RELEASED"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

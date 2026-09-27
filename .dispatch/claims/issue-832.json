@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T08:25:20Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "ccc6d588e7eb9aa372f44286d1b251d04ea1da1e",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T08:57:26Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T08:58:32Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Obtain one fresh final coordination write Guard, then atomically persist #832 checkpoint CLOSED + claim RELEASED; return terminal helper proof to parent #828.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-832.json",
   "evidence": [
@@ -34,16 +34,18 @@
     "The mirrored parent-branch identity repair was subsequently exercised successfully for #702 in trusted repair run 36306868118.",
     "Trusted Remote Finalization run 36307763172 GREEN / FINALIZATION_PROOF_VALID; artifact 10927399704.",
     "Issue #832 fresh-read closed/completed at 2026-09-27T08:56:52Z.",
-    "Post-close coordination Guard 36307819669 GREEN."
+    "Post-close coordination Guard 36307819669 GREEN.",
+    "Final coordination Guard 36307874455 GREEN for exact RELEASE_HANDOFF_PENDING pair.",
+    "Final atomic coordination transaction persists checkpoint CLOSED + claim RELEASED after #832 closed/completed and bound finalization proof."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307819669,
-    "request_comment_id": 5854418311,
+    "run_id": 36307874455,
+    "request_comment_id": 5854429842,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #832 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically persist #832 checkpoint CLOSED + claim RELEASED"
   }
 }
