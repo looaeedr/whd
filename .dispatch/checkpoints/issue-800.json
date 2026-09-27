@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "800",
+  "branch": "hotfix/issue800-github-blob-base64-20260927",
+  "head_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
+  "state": "RUNNING",
+  "next_action": "After parent #790 reservation issue790-github-blob-base64-hotfix is ACTIVE with this exact child claim blob, obtain branch-create Guard for hotfix/issue800-github-blob-base64-20260927 at main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690; create/read back branch, run RED for GitHub-style line-wrapped base64, then implement strict ASCII-whitespace normalization before validate=True decoding.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #790 reserved unique helper issue790-github-blob-base64-hotfix.",
+    "Frozen trusted main base d54f0410dee3c70489c8a2bdebb4b3b7c3564690.",
+    "Do not create branch or mutate implementation until parent reservation ACTIVE binds this child claim blob."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

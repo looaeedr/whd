@@ -1,0 +1,30 @@
+{
+  "issue": 800,
+  "issue_url": "https://github.com/looaeedr/whd/issues/800",
+  "worker": "chatgpt.sol260927.issue800.base64.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue800.base64.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "hotfix/issue800-github-blob-base64-20260927",
+  "claimed_at": "2026-09-27T02:51:00Z",
+  "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
+  "head_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T02:51:00Z",
+  "production_target": "main",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "After parent #790 reservation issue790-github-blob-base64-hotfix is ACTIVE with this exact child claim blob, obtain branch-create Guard for hotfix/issue800-github-blob-base64-20260927 at main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690; create/read back branch, run RED for GitHub-style line-wrapped base64, then implement strict ASCII-whitespace normalization before validate=True decoding.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-800.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: parent #790 requires executable recovery of #769; #800 is the unique reserved post-integration hotfix.",
+    "execution_intent=EXECUTE_TICKET",
+    "purpose=accept GitHub git/blob base64 transport line wrapping while preserving strict base64 validation and Git blob SHA verification",
+    "authorized_scope=Issue #800 exact four artifacts only; no product/UI/scheduler cadence/work-slot changes",
+    "production_target=main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
+    "parent_reservation=#790 helper_key issue790-github-blob-base64-hotfix token issue790-github-blob-base64-hotfix-20260927a",
+    "live RED=#769 recovery run 36289438955 fails at historical claim blob base64 decode on real GitHub transport"
+  ]
+}
