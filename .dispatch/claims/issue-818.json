@@ -9,9 +9,9 @@
   "work_branch": "governance/issue818-main-governance-mirror-20260927",
   "claimed_at": "2026-09-27T05:16:45Z",
   "base_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
-  "head_sha": "4dec5fd9c74522470e380653f65a783f2ff98f02",
-  "phase": "RED",
-  "last_update": "2026-09-27T05:22:18Z",
+  "head_sha": "09af852651e573b7fe4d7a6e8fa727afcf0fac02",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T05:25:30Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -21,7 +21,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "mirror the newly self-governed governance_mirror_manifest.json from #816 head 82b52afd, then rerun focused tests and exact live parity",
+  "next_action": "open guarded PR to main, verify governance-only changed paths and PR QA, then merge and close helper after paired X integration",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-818.json",
   "evidence": [
@@ -33,17 +33,21 @@
     "prohibited_scope=non-governance/product/WHD/Phase/CAD paths to main",
     "Phase6 planned-file preflight inherited from same #816 runtime; exact mirror diff will be machine-audited",
     "Main governance mirror commit 4dec5fd9 copies exactly 40 governed artifacts from #816 source; non-governance path count=0.",
-    "Main-side focused QA on 4dec5fd9: 14 passed / 1 failed because governance_mirror_manifest.json was omitted from its own mirror scope."
+    "Main-side focused QA on 4dec5fd9: 14 passed / 1 failed because governance_mirror_manifest.json was omitted from its own mirror scope.",
+    "Manifest self-mirror fix Guard 36297074499 GREEN; main helper head 09af8526 now includes exact source manifest blob.",
+    "Main-side focused regression at 09af8526: 15 passed / 0 failed.",
+    "Candidate governed snapshot evaluated GREEN: GOVERNANCE_MIRROR_PARITY_PROVEN.",
+    "main..helper diff contains governance-only paths; product path count=0."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296996891,
-    "request_comment_id": 5852948105,
+    "run_id": 36297152775,
+    "request_comment_id": 5852966956,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #818 to first main mirror head"
+    "mutation": "reconcile #818 to final governance mirror head"
   },
   "delegated_work": []
 }

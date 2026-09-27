@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "818",
   "branch": "governance/issue818-main-governance-mirror-20260927",
-  "head_sha": "4dec5fd9c74522470e380653f65a783f2ff98f02",
+  "head_sha": "09af852651e573b7fe4d7a6e8fa727afcf0fac02",
   "state": "RUNNING",
-  "next_action": "mirror the newly self-governed governance_mirror_manifest.json from #816 head 82b52afd, then rerun focused tests and exact live parity",
+  "next_action": "open guarded PR to main, verify governance-only changed paths and PR QA, then merge and close helper after paired X integration",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Child helper of #816 for distinct main production authority/base.",
     "No cleanup lineage may enter main.",
     "Main mirror head 4dec5fd9 contains 40 governance-only changes; QA exposed missing self-manifest scope.",
-    "Remote Guard 36296996891 GREEN authorizes pair reconciliation."
+    "Remote Guard 36296996891 GREEN authorizes pair reconciliation.",
+    "Final main mirror head 09af8526: focused 15 passed; governance parity candidate GREEN; zero product paths.",
+    "Remote Guard 36297152775 GREEN authorizes pair reconciliation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
