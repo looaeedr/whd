@@ -11,11 +11,11 @@
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "ccc6d588e7eb9aa372f44286d1b251d04ea1da1e",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T08:52:00Z",
+  "last_update": "2026-09-27T08:54:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Advance #832 FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, obtain trusted finalization proof, close/read back Issue #832, then atomically persist CLOSED + RELEASED.",
+  "next_action": "Run trusted Remote Finalization bound to #832 ISSUE_CLOSE_PENDING checkpoint; close/read back Issue #832 after GREEN, then atomically persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-832.json",
   "evidence": [

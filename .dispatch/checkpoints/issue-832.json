@@ -22,6 +22,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, mint/verify bound proof, close/read back Issue #832, then atomically persist CLOSED + RELEASED"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "mint/verify bound finalization proof, close/read back Issue #832, then advance RELEASE_HANDOFF_PENDING"
 }
