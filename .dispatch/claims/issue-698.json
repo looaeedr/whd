@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T10:40:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T04:00:58.272853Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T05:44:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "A3 accepted and integrated into cleanup/2d-3d-sync; trusted whd-turn-exit-gate durable-readback parity deployment is already present on main and fresh-read. Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, and canonical close/readback for #698. Do not independently close #698.",
+  "next_action": "Advance canonical #698 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then return amendment-chain continuation to #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-698.json",
   "evidence": {
@@ -56,6 +56,11 @@
       "prior_handoff_issue_680_state": "closed/completed",
       "amendment_closure_owner": 702,
       "observed_at": "2026-09-27T04:00:58.272853Z"
+    },
+    "chain_closure": {
+      "status": "TERMINAL_ACCEPTANCE_READY",
+      "note": "A3 trusted deployment remains on main at accepted blob; cleanup contains later compatible amendment changes. Byte equality is not asserted as current truth.",
+      "terminal_guard_run_id": 36298048071
     }
   },
   "guard_readbacks": [
@@ -97,11 +102,13 @@
   ],
   "last_guard": {
     "action": "write",
-    "mode": "local",
+    "mode": "remote",
+    "run_id": 36298048071,
+    "request_comment_id": 5853090050,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #698 accepted integration/deployment handoff to #702"
+    "mutation": "enter #698 terminal finalization under #702 chain closure"
   },
   "red_evidence": {
     "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
@@ -126,5 +133,20 @@
     "taken_over_at": "2026-09-27T03:59:25.534450Z",
     "guard_mode": "local",
     "guard_result": "GREEN"
+  },
+  "acceptance": {
+    "state": "ACCEPTED",
+    "focused_head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
+    "focused_run_id": 36255080858,
+    "focused_job_id": 108440214060,
+    "focused_summary": "3 passed / 0 failed",
+    "production_readback_sha": "22204c8fab12f3cddd6bd30fd112c8b7b0641931",
+    "production_contains_accepted_head": true,
+    "trusted_main_a3_deployment_blob_sha": "ad78c86da95e3d6349485412779bee0f505b1e6f",
+    "current_cleanup_turn_exit_blob_sha": "d7de36b59ac0d67e41694debbdc0753f54a0f6e8",
+    "amendment_combined_run_id": 36296278571,
+    "amendment_combined_job_id": 108555610910,
+    "amendment_combined_summary": "100 passed / 0 failed in 0.53s",
+    "closure_owner_issue": 702
   }
 }
