@@ -5,8 +5,8 @@
   "chain_next_action": null,
   "chain_reason": null,
   "chain_state": "NONE",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #787, then fresh-read Issue/claim/checkpoint/production/PR terminal state.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": null,
+  "closure_state": "CLOSED",
   "evidence": [
     "User-authorized scope is only the #787 turn-exit hard-gate correction.",
     "Progress/status/CHECKPOINT observations are explicitly non-terminal and must preserve continuation.",
@@ -22,7 +22,11 @@
     "Closure transition authorized by Remote Guard run 36285182732.",
     "Trusted Remote Finalization run 36285274351 GREEN with FINALIZATION_PROOF_VALID.",
     "Issue #787 close mutation authorized by bound finalization proof; remote readback state=closed state_reason=completed at 2026-09-27T01:24:42Z.",
-    "Closure advance authorized by Remote Guard run 36285419257."
+    "Closure advance authorized by Remote Guard run 36285419257.",
+    "Atomic terminal release authorized by Remote Guard run 36285542891.",
+    "Issue #787 remote readback is closed/completed.",
+    "PR #792 merged to cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e.",
+    "Atomic checkpoint CLOSED + claim RELEASED persisted together."
   ],
   "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
   "issue": "787",

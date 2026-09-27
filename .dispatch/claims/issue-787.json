@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-27T00:30:49Z",
   "base_sha": "54fef8c6cbceda4ecd20b3708e517b8beb909ce3",
   "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T01:16:48Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T01:28:07Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run trusted WHD Remote Finalization for #787, close/read back Issue #787, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-787.json",
   "evidence": [
@@ -32,6 +32,10 @@
     "Full tests/process after change: 842 passed / 3 failed; all 3 failures reproduce on pure baseline 54fef8c6 and are pre-existing debt, so introduced failures=0.",
     "PR #792 merged into cleanup/2d-3d-sync with merge commit c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e.",
     "Post-integration acceptance on cleanup@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e: 69 passed / 0 failed.",
-    "Terminal coordination write authorized by Remote Guard run 36284997600."
+    "Terminal coordination write authorized by Remote Guard run 36284997600.",
+    "Trusted Remote Finalization run 36285274351 GREEN; FINALIZATION_PROOF_VALID.",
+    "Issue #787 remote readback closed/completed.",
+    "Final atomic release authorized by Remote Guard run 36285542891.",
+    "Terminal target: checkpoint CLOSED + claim RELEASED."
   ]
 }
