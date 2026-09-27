@@ -11,7 +11,7 @@
   "base_sha": "85aef9c41be3629410c4345ed3d8aa66aa21f214",
   "head_sha": "7a0f381c93a3010b1e3ef9807abf60935370c92a",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:34:30Z",
+  "last_update": "2026-09-27T09:35:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [
@@ -26,7 +26,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Edit PR #841 after #840 reciprocal pair is GREEN to re-trigger main Governance Mirror Hard Gate; then verify both paired gates GREEN.",
+  "next_action": "Edit PR #841 to re-trigger Governance Mirror Hard Gate with reciprocal #840 already durable; then merge #841 to main, hand authority back to cleanup branch, and merge #840.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -52,6 +52,8 @@
     "Primary authority handed back to cleanup branch under Remote Guard 36309549427.",
     "PR #840 reciprocal marker now points to #841.",
     "Cleanup-side Governance Mirror Hard Gate run 36309725447 GREEN.",
-    "Primary authority handoff back to main mirror authorized by Remote Guard 36309774397."
+    "Primary authority handoff back to main mirror authorized by Remote Guard 36309774397.",
+    "Cleanup PR #840 reciprocal marker -> #841 durable; Governance Mirror Hard Gate run 36309725447 GREEN.",
+    "Primary authority hand to mirror branch authorized by Remote Guard 36309774397."
   ]
 }
