@@ -46,13 +46,14 @@
     "Replacement branch exact at 30ea9a19 under Guard 36311002241.",
     "Primary authority handoff authorized by Guard 36311033621.",
     "PR #852 Hard Gate and Knowledge Governance checks GREEN; merged at 8a6323f50860b5aa678e2bf4b8b21a75a82d41a0.",
-    "Superseded PR #840 is also marked merged to the same exact merge commit; no duplicate integration occurred."
+    "Superseded PR #840 is also marked merged to the same exact merge commit; no duplicate integration occurred.",
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; no finalization proof minted before this transition."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance the exact #836 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #836, then atomically write CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint, close/readback Issue #836 without mutating checkpoint, then atomically write CLOSED + RELEASED."
 }
