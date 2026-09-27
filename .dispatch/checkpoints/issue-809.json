@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "809",
   "branch": "parity/issue809-remote-guard-contract-cleanup-20260927",
-  "head_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
+  "head_sha": "ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e",
   "state": "RUNNING",
-  "next_action": "Run Phase6 planned-scope Preflight for the single authorized #809 test artifact, then obtain one exact commit Guard and replace tests/process/test_issue540_main_remote_guard_contract.py with accepted main blob c9e15498b085cf2017da121078fc793da32a58b2. Run focused GREEN and verify effective delta is exactly one file.",
+  "next_action": "Run python -m pytest tests/process/test_issue540_main_remote_guard_contract.py -q against H1 ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e; verify effective delta vs frozen cleanup base is exactly the one authorized test file; then advance to PR Guard.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,10 @@
     "Frozen cleanup base cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
     "Branch creation and all mutations remain Guard-gated.",
     "Branch-create Guard 36294050459 GREEN; branch exists/readback exact at frozen cleanup base.",
-    "Local pair write Guard GREEN; advance to planned-scope Preflight."
+    "Phase6 planned-scope Preflight GREEN in commit Guard run 36294258055.",
+    "H1 ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e is the exact one-file #809 parity implementation.",
+    "H1 test blob equals accepted main c9e15498b085cf2017da121078fc793da32a58b2.",
+    "Pair reconciliation Guard 36294321478 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "master_issue": null,
   "chain_state": "NONE",
