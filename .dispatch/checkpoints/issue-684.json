@@ -4,7 +4,7 @@
   "branch": "work/issue684-real-ha-integration-combined-20260927",
   "head_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "state": "RUNNING",
-  "next_action": "Obtain one exact branch-create Guard for work/issue684-real-ha-integration-combined-20260927 at frozen cleanup/2d-3d-sync@8a3058e5472aec4793cd26a398ae4920185d8002; create/readback branch; then establish repository-owned R11 RED for real leaving-home request -> WHD handoff/gate/projection -> HA/Node-RED actuator-decision boundary without implementing Windows shutdown in WHD.",
+  "next_action": "Establish repository-owned R11 behavior RED on work/issue684-real-ha-integration-combined-20260927@8a3058e5472aec4793cd26a398ae4920185d8002 for real leaving-home request -> WHD handoff/gate/projection -> HA/Node-RED actuator-decision boundary. RED must prove SAFE/NOT_SAFE/ERROR current-request binding, previous-request SAFE replay rejection, scheduler resume evidence, and WHD non-ownership of the Windows shutdown command.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,10 @@
   "evidence": [
     "#680/#681/#682/#683 predecessors are terminal/released.",
     "Frozen cleanup base 8a3058e5472aec4793cd26a398ae4920185d8002.",
-    "WHD authority stops at request-bound SAFE/NOT_SAFE/ERROR projection; Windows shutdown remains HA/Node-RED-owned."
+    "WHD authority stops at request-bound SAFE/NOT_SAFE/ERROR projection; Windows shutdown remains HA/Node-RED-owned.",
+    "Work branch exists exactly at frozen base under branch-create Guard 36327982362.",
+    "Durable branch-create effect recorded under Guard 36328158729.",
+    "Duplicate write Guard 36328167316 failed closed as pending transaction."
   ],
   "master_issue": null,
   "chain_state": "NONE",
