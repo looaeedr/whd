@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "843",
   "branch": "repair/issue843-sealed-premerge-20260927",
-  "head_sha": "cf230b396ff31d700b06711b375af9d0dc1fc27a",
+  "head_sha": "9d694dbe5fd33c48f5012e13bcdbb5fc194c0f2c",
   "state": "RUNNING",
-  "next_action": "Create one non-force two-parent sync commit with first parent cf230b396ff31d700b06711b375af9d0dc1fc27a and second parent cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0, then reconcile #843 claim/checkpoint and rerun the focused control-plane matrix plus PR #849 gates on the synced head.",
+  "next_action": "Add a one-shot #843 focused QA workflow on synced head 9d694dbe5fd33c48f5012e13bcdbb5fc194c0f2c, run the behavior-matrix regression contract on that exact head, then remove the one-shot workflow, reconcile the cleaned head, and open a replacement cleanup PR because PR #849 remains bound to the superseded original branch.",
   "run_id": 36312843112,
   "job_id": 108601943309,
   "log_cursor": null,
@@ -31,7 +31,10 @@
     "blocker checkpoint pair write authorized by Remote Guard 36313001251 GREEN.",
     "fresh canonical BLOCKED proof observed 2026-09-27T10:46:20Z; one unique external authority dependency remains #836 replacement cleanup integration.",
     "#836 dependency resolved and cleanup advanced to 8a6323f50860b5aa678e2bf4b8b21a75a82d41a0.",
-    "PR #849 is behind current cleanup; exact continuation is non-force sync then revalidation."
+    "PR #849 is behind current cleanup; exact continuation is non-force sync then revalidation.",
+    "parent-branch identity repaired to sealed replacement branch under run 36327086320",
+    "two-parent sync to cleanup@8a3058e5472aec4793cd26a398ae4920185d8002 created under production-parent Guard 36327174414",
+    "post-sync pair reconciliation Guard 36327254552 GREEN"
   ],
   "operation": null,
   "master_issue": null,
