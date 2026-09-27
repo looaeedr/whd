@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "823",
+  "branch": "governance/issue823-main-governance-required-check-20260927",
+  "head_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
+  "state": "RUNNING",
+  "next_action": "obtain branch-create Guard, then mirror four governed #822 blobs from e7782403",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Child of #822 for distinct main production authority.",
+    "Main frozen base aadf248f9b96e1e0a465817f870966db9cf97114.",
+    "Source governance closing head e778240364dc20ec4398cf576d286d7525db7e53.",
+    "No cleanup lineage may enter main."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
