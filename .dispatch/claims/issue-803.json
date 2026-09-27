@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T03:17:00Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
   "head_sha": "b0eb1df9f325912098bd5a912899f2e50c89f989",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T03:38:45Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T03:40:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one fresh final pair Guard and atomically persist #803 checkpoint closure_state=CLOSED + claim phase=RELEASED + next_action=null. Then fresh-read terminal proof and return to parent #800 to terminalize helper reservation issue800-main-x-parity.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-803.json",
   "evidence": [
@@ -49,16 +49,18 @@
     "Closure advance Guard run 36291816350 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36291895047 GREEN / FINALIZATION_PROOF_VALID; artifact 10922512224; exact checkpoint blob 72294a2d and fingerprint f7a792d4.",
     "Issue #803 close/readback succeeded: closed/completed.",
-    "Post-close closure Guard run 36291987857 GREEN."
+    "Post-close closure Guard run 36291987857 GREEN.",
+    "Final atomic pair Guard run 36292048508 GREEN.",
+    "Final coordination mutation atomically persists #803 claim RELEASED + checkpoint CLOSED after proven parent handoff target #800."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291987857,
-    "request_comment_id": 5852349517,
+    "run_id": 36292048508,
+    "request_comment_id": 5852356282,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #803 closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "atomic #803 claim RELEASED + checkpoint CLOSED"
   }
 }
