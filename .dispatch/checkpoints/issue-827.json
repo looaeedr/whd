@@ -4,7 +4,7 @@
   "branch": "governance/issue827-terminal-chain-metadata-repair-main-20260927",
   "head_sha": "548726f455c976375957037e4014b59080cbbc06",
   "state": "RUNNING",
-  "next_action": "Main-side PR #831 is merge-clean after canonical two-parent merge-sync to current main and its Governance Mirror Hard Gate run 36304372184 is GREEN. Retrigger cleanup-side PR #830 against paired #831 head 548726f455c976375957037e4014b59080cbbc06; require cleanup Governance Mirror Hard Gate GREEN, then merge paired PRs under protections, prove post-push live parity, close/release helper #829, and resume trusted #696 repair.",
+  "next_action": "Use deployed trusted Claim Activation transition terminal-chain-metadata-repair to repair exact #696 malformed terminal checkpoint without changing its claim, issue, branch, head, terminal state, acceptance, or closure lifecycle. Then resume canonical #696 closure through CLOSED+RELEASED; only after #696 terminal proof may #827 itself finalize.",
   "run_id": 36302668061,
   "job_id": 108573144488,
   "log_cursor": null,
@@ -26,7 +26,9 @@
     "Post-manifest reconciliation Guard 36303150050 GREEN.",
     "Two-parent main merge-sync head 548726f455c976375957037e4014b59080cbbc06; accepted #827 blobs preserved.",
     "Post-merge reconciliation Guard 36304384841 GREEN.",
-    "Main PR #831 hard gate 36304372184 GREEN."
+    "Main PR #831 hard gate 36304372184 GREEN.",
+    "Helper #829 CLOSED+RELEASED terminal proof verified.",
+    "Parent reservation terminalization Guard 36305168732 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

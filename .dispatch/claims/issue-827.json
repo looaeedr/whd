@@ -11,7 +11,7 @@
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
   "head_sha": "548726f455c976375957037e4014b59080cbbc06",
   "phase": "GREEN",
-  "last_update": "2026-09-27T07:51:31Z",
+  "last_update": "2026-09-27T08:06:49Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "11 passed / 0 failed in 0.08s"
   },
-  "next_action": "Main-side PR #831 is merge-clean after canonical two-parent merge-sync to current main and its Governance Mirror Hard Gate run 36304372184 is GREEN. Retrigger cleanup-side PR #830 against paired #831 head 548726f455c976375957037e4014b59080cbbc06; require cleanup Governance Mirror Hard Gate GREEN, then merge paired PRs under protections, prove post-push live parity, close/release helper #829, and resume trusted #696 repair.",
+  "next_action": "Use deployed trusted Claim Activation transition terminal-chain-metadata-repair to repair exact #696 malformed terminal checkpoint without changing its claim, issue, branch, head, terminal state, acceptance, or closure lifecycle. Then resume canonical #696 closure through CLOSED+RELEASED; only after #696 terminal proof may #827 itself finalize.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-827.json",
   "evidence": [
@@ -49,28 +49,31 @@
     "Canonical two-parent merge-sync head 548726f455c976375957037e4014b59080cbbc06 has parents #827 candidate 002ce570f74694c6671c440e69d43bc78fa187fa and current main 123fcd139762a7e36eaf110a8ce19a18cc177fb5; exact four #827 governed blobs are preserved.",
     "Merge-sync commit Guard 36304326498 GREEN.",
     "Post-merge reconciliation Guard 36304384841 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
-    "Main-side PR #831 Governance Mirror Hard Gate 36304372184 GREEN on head 548726f455c976375957037e4014b59080cbbc06."
+    "Main-side PR #831 Governance Mirror Hard Gate 36304372184 GREEN on head 548726f455c976375957037e4014b59080cbbc06.",
+    "Cleanup mirror helper #829 terminal proof: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED.",
+    "Helper #829 terminal claim blob 0156649ae727843e74c37dff99f7a9258b0c6035; terminal checkpoint blob 33577f3123eb74ef7cc5db720ae24d885983feb1.",
+    "Parent helper reservation terminalization authorized by Remote Guard 36305168732 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36304384841,
-    "request_comment_id": 5853963932,
+    "run_id": 36305168732,
+    "request_comment_id": 5854069339,
     "result": "GREEN",
-    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #827 two-parent main merge-sync head"
+    "mutation": "terminalize #829 helper reservation and route #827 to trusted #696 repair"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue827-cleanup-governance-mirror",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue827-cleanup-governance-mirror-20260927a",
       "reserved_at": "2026-09-27T07:29:17Z",
       "child_issue": 829,
-      "child_claim_blob_sha": "f5dd4503cd71c8915000095fa31962b226711019"
+      "child_claim_blob_sha": "0156649ae727843e74c37dff99f7a9258b0c6035"
     }
   ]
 }
