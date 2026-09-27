@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "682",
-  "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
-  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
+  "branch": "governance/issue682-main-mirror-20260927",
+  "head_sha": "17fd0e628e2c2c135c6465bc30969cbbca9ab196",
   "state": "RUNNING",
-  "next_action": "Create cleanup PR from work/issue682-unexpected-local-outage-recovery-20260927@aaec26d75f320f624fd9b42fcc1b2506132e60db to cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931 under pr-write Guard, with exactly one `WHD-Governance-Mirror-Pair: #858` marker. Then hand primary authority to #858 mirror branch and add the reciprocal cleanup PR marker to #858.",
+  "next_action": "Update main PR #858 body under pr-write Guard so it contains exactly one reciprocal marker `WHD-Governance-Mirror-Pair: #859`. Then hand primary authority back to cleanup branch, require fresh Governance Mirror Hard Gate / Knowledge Governance results on #858 and #859, and merge main first then cleanup.",
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -37,7 +37,9 @@
     "Same-ticket delegated main-mirror branch reserved under Guard 36324997341.",
     "Primary authority handed to main mirror at 17fd0e628e2c2c135c6465bc30969cbbca9ab196 under Guard 36325229346; original cleanup branch remains delegated.",
     "Main mirror PR #858 open at exact bridge head 17fd0e62.",
-    "Primary authority handed back to cleanup owner under Guard 36325391243."
+    "Primary authority handed back to cleanup owner under Guard 36325391243.",
+    "Cleanup PR #859 open and points reciprocally to #858.",
+    "Primary authority handed to mirror under Guard 36325497817."
   ],
   "master_issue": null,
   "chain_state": "NONE",
