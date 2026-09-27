@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
   "head_sha": "2a9a1d71b36b8b412abe77cf7488e8c03a669898",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T07:39:15.036511Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T07:40:27.607544Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "Persist final #822 CLOSED + RELEASED under a fresh exact write Guard, then fresh-read Issue/claim/checkpoint/production terminal identity.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -60,18 +60,19 @@
     "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization run 36303704206 GREEN / FINALIZATION_PROOF_VALID; artifact 10926940064 binds checkpoint d923165e and fingerprint 12a8d294.",
     "Issue #822 fresh readback confirmed closed/completed at 2026-09-27T07:38:42Z.",
-    "Remote Guard 36303751924 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Remote Guard 36303751924 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final Remote Guard 36303814652 GREEN authorizes #822 checkpoint CLOSED + claim RELEASED."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303751924,
-    "request_comment_id": 5853879488,
-    "result_comment_id": 5853880778,
+    "run_id": 36303814652,
+    "request_comment_id": 5853886397,
+    "result_comment_id": 5853887885,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #822 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "final #822 checkpoint CLOSED + claim RELEASED"
   },
   "delegated_work": [],
   "release_handoff": {
@@ -81,5 +82,14 @@
     "finalization_run_id": 36303704206,
     "finalization_artifact_id": 10926940064,
     "checkpoint_fingerprint": "12a8d294b8ff0f8179d1f7af52182a9c9dd71a7668b9e5f0f0ce2032a6b6a59a"
+  },
+  "closure": {
+    "state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "issue_closed_at": "2026-09-27T07:38:42Z",
+    "finalization_run_id": 36303704206,
+    "finalization_artifact_id": 10926940064,
+    "released_at": "2026-09-27T07:40:27.607544Z"
   }
 }
