@@ -111,3 +111,12 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - retained invariant: NO_MATCHING_HANDOFF is not NO_WORK; scheduler no-work requires exhaustive READY_WORK_CENSUS evidence.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+<!-- ISSUE808_SCHEDULER_REMOTE_ONLY_EXECUTION_V1 -->
+## 排程模擬不得退回本機執行
+
+- `排程模擬` 的 substantive execution 必須保持 remote-only；合法 execution location 固定為 `GITHUB | SCHEDULER | REMOTE_ACTION`。
+- `handoff_source=LOCAL` 只代表歷史來源/provenance，**不是** execution authority，也不得被解讀成可切換到本機。
+- GitHub / scheduler / remote action capability 暫時不可用時必須 fail closed 並保存 exact durable blocker；禁止改走本機 worktree、Remote Desktop、local shell 或其他 workstation fallback。
+- 需要 Guard 時走 trusted Remote Guard；需要測試/驗證時走 GitHub Actions / remote QA；需要 repository mutation 時走 GitHub durable mutation capability。
+- 此規則同時適用真實 recurring scheduled invocation 與 exact `/排程A` / `/排程B` interactive same-lane resume。
