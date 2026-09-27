@@ -61,13 +61,16 @@
     "Primary authority handback consumes exact write Guard 36316675754.",
     "PR #853 merged to cleanup at d41c257787c1fa298bb4e8a1fb7927432c9cbde1 under pr-write Guard 36316751641.",
     "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36316853941.",
-    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36316911324; no finalization proof minted before this transition."
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36316911324; no finalization proof minted before this transition.",
+    "Trusted Remote Finalization 36317070326 GREEN with FINALIZATION_PROOF_VALID; artifact 10930967979.",
+    "Issue #683 readback closed/completed; checkpoint remained exact through proof + close.",
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36317145317."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint trusted finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint, close/readback Issue #683 without mutating checkpoint, then atomically write CLOSED + RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve terminal acceptance evidence and leave no successor handoff."
 }

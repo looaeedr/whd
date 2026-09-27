@@ -11,7 +11,7 @@
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T11:48:27Z",
+  "last_update": "2026-09-27T11:52:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Mint trusted finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint, close/readback Issue #683 without mutating checkpoint, then atomically write CLOSED + RELEASED.",
+  "next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve terminal acceptance evidence and leave no successor handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -112,17 +112,20 @@
     "Primary authority handback to cleanup repair2 consumes exact write Guard 36316675754 / request 5855525706 / result 5855527146.",
     "PR #853 merged under exact pr-write Guard 36316751641; cleanup/2d-3d-sync readback d41c257787c1fa298bb4e8a1fb7927432c9cbde1.",
     "Terminal checkpoint transition consumes exact write Guard 36316853941 / request 5855547258 / result 5855548594.",
-    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under exact write Guard 36316911324 / request 5855554153 / result 5855555746; no finalization proof minted before this transition."
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under exact write Guard 36316911324 / request 5855554153 / result 5855555746; no finalization proof minted before this transition.",
+    "Trusted Remote Finalization run 36317070326 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID on exact checkpoint fingerprint be631d4ada093889d874f88a6d83e58bf175ada5a9c4ba8c40f370dccb1b37f7; artifact 10930967979.",
+    "Issue #683 fresh readback is closed/completed after finalization proof; checkpoint was not mutated between proof and Issue close.",
+    "Release-handoff transition consumes exact write Guard 36317145317 / request 5855581710 / result 5855583325."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36316911324,
-    "request_comment_id": 5855554153,
-    "result_comment_id": 5855555746,
+    "run_id": 36317145317,
+    "request_comment_id": 5855581710,
+    "result_comment_id": 5855583325,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #683 terminal checkpoint to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #683 to RELEASE_HANDOFF_PENDING after closed/completed readback"
   }
 }
