@@ -1,7 +1,7 @@
 {
   "version": 1,
   "issue": "702",
-  "branch": "work/issue702-crash-fault-combined-acceptance-20260927",
+  "branch": "repair/issue702-sealed-finalization-20260927",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "state": "RUNNING",
   "next_action": "Create one guarded PR from work/issue702-crash-fault-combined-acceptance-20260927@f8a3397551c5975dafd842e8dcd28c1d4edcca32 into current cleanup/2d-3d-sync, verify mergeability/CI and consume the integration result; then close child Issues #696-#701 canonically and finalize #702.",

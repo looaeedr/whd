@@ -6,7 +6,7 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerA.702.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue702-crash-fault-combined-acceptance-20260927",
+  "work_branch": "repair/issue702-sealed-finalization-20260927",
   "claimed_at": "2026-09-27T04:06:00Z",
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
