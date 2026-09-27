@@ -16,13 +16,14 @@
     "PR #848 must be closed without merge; no repository file delta is permitted.",
     "PR #853 replacement is already merged and is the accepted integration.",
     "PR #848 readback closed/unmerged under pr-write Guard 36318001892.",
-    "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36318053957."
+    "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36318053957.",
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36318131630."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance the exact #855 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #855, then atomically write CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint, close/readback Issue #855, then atomically write CLOSED + RELEASED."
 }
