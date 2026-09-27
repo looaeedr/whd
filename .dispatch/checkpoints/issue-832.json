@@ -3,8 +3,8 @@
   "issue": "832",
   "branch": "governance/issue832-parent-branch-identity-repair-cleanup-20260927",
   "head_sha": "ccc6d588e7eb9aa372f44286d1b251d04ea1da1e",
-  "state": "RUNNING",
-  "next_action": "Open cleanup-side PR from governance/issue832-parent-branch-identity-repair-cleanup-20260927@ccc6d588e7eb9aa372f44286d1b251d04ea1da1e to cleanup/2d-3d-sync and pair reciprocally with parent #828 main-side PR; require Governance Mirror Hard Gate GREEN on both before merge.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,13 +14,14 @@
     "Governance mirror helper for #828 only.",
     "Fresh cleanup base=50c2b157770a90224459e665537dc50c522ff2b8.",
     "No branch/repository mutation before branch-create Guard.",
-    "Cleanup candidate ccc6d588e7eb9aa372f44286d1b251d04ea1da1e differs from production by exactly six #828 governed files."
+    "Cleanup candidate ccc6d588e7eb9aa372f44286d1b251d04ea1da1e differs from production by exactly six #828 governed files.",
+    "Cleanup mirror PR #834 merged at b059ffeade3e8ade105f44a370e20e071a0127a7 and post-push parity run 36306702749 succeeded."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, mint/verify bound proof, close/read back Issue #832, then atomically persist CLOSED + RELEASED"
 }
