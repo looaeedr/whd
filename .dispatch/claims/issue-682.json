@@ -9,15 +9,23 @@
   "work_branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "claimed_at": "2026-09-27T12:20:00Z",
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
-  "head_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T12:40:28Z",
+  "head_sha": "4a0a61ba8a8f2941fed288a883f6653f60b12555",
+  "phase": "RED",
+  "last_update": "2026-09-27T12:44:21Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create repository-owned R9 behavior RED on the exact branch: prove outage recovery reuses WI-1 LocalDurabilityState, treats unavailable/local-only truth as LOCAL_UNPERSISTED_STATE_UNKNOWN, preserves exact active remote-run lock, routes planned handoff away from stale takeover, and requires UNKNOWN_MUTATION_OUTCOME reconcile-before-replay.",
+  "remote_qa": {
+    "run_id": 36319949778,
+    "job_id": 108621742599,
+    "head_sha": "4a0a61ba8a8f2941fed288a883f6653f60b12555",
+    "status": "completed",
+    "conclusion": "failure",
+    "pytest": "10 failed / 0 harness errors in 0.22s",
+    "marker": "R9_OUTAGE_RECOVERY_POLICY_MISSING"
+  },
+  "next_action": "Implement R9 in tools/stale_claim_takeover.py without creating a second local-state taxonomy: import WI-1 LocalDurabilityState; add pure outage recovery policy for durable-only resume, exact remote-run lock, planned-handoff priority, LOCAL_UNPERSISTED_STATE_UNKNOWN, and UNKNOWN_MUTATION_OUTCOME reconcile-before-replay; rerun exact #682 QA.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -33,17 +41,20 @@
     "Frozen production base cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1; intended work branch did not exist at claim construction.",
     "Branch-create Guard 36319612667 / request 5855878373 / result 5855880290 GREEN.",
     "Work branch readback exact at frozen base d41c257787c1fa298bb4e8a1fb7927432c9cbde1.",
-    "Branch-create durable writeback consumes exact write Guard 36319762461 / request 5855896779 / result 5855898148."
+    "Branch-create durable writeback consumes exact write Guard 36319762461 / request 5855896779 / result 5855898148.",
+    "R9 RED commit 4a0a61ba8a8f2941fed288a883f6653f60b12555 consumed commit Guard 36319857001.",
+    "Exact RED run 36319949778 / job 108621742599 completed failure: 10 failed in 0.22s; all failures are intended R9_OUTAGE_RECOVERY_POLICY_MISSING/token absence.",
+    "Post-commit reconciliation Guard 36319976585 / request 5855922725 / result 5855924314 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36319762461,
-    "request_comment_id": 5855896779,
-    "result_comment_id": 5855898148,
+    "run_id": 36319976585,
+    "request_comment_id": 5855922725,
+    "result_comment_id": 5855924314,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "record branch-create effect and advance #682 to R9 RED"
+    "mutation": "reconcile #682 claim/checkpoint to exact R9 RED head"
   }
 }
