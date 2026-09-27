@@ -4,7 +4,7 @@
   "branch": "hotfix/issue800-github-blob-base64-20260927",
   "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
   "state": "RUNNING",
-  "next_action": "Create exactly one cleanup parity helper for parent #800 using helper_key=issue800-main-x-parity and reservation_token=issue800-main-x-parity-20260927a; create the child claim/checkpoint against frozen cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71, then activate this exact reservation with the child Issue and child claim blob. Do not create a second helper.",
+  "next_action": "Follow delegated helper #803 (helper_key=issue800-main-x-parity, reservation_token=issue800-main-x-parity-20260927a) from its durable checkpoint until full terminal closure. Do not create another cleanup parity helper. After #803 proves cleanup parity and is closed/completed + RELEASED + checkpoint CLOSED, terminalize this reservation and continue #800 acceptance by retrying the live #769 recovery path.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,7 +24,10 @@
     "Phase6 Preflight GREEN; pair reconciliation Guard 36290480006 GREEN.",
     "Trusted-main deployment complete: PR #802 merged as 5684094f09317d7db52873aba9f82a1b378436b3.",
     "Cleanup parity still missing at cleanup@44d1621f013d6181af7678e550254920cd6bcc71.",
-    "Unique helper reservation issue800-main-x-parity is RESERVING; pair-write Guard 36290836389 GREEN."
+    "Unique helper reservation issue800-main-x-parity is RESERVING; pair-write Guard 36290836389 GREEN.",
+    "Child #803 durable pair fresh-created via trusted Claim Activation.",
+    "Parent helper reservation issue800-main-x-parity ACTIVE and binds child #803 / claim blob ea5320648da1fa252003e4799ccb40735d172bea.",
+    "Reservation activation Guard 36291051476 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

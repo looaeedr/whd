@@ -11,11 +11,11 @@
   "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T03:15:00Z",
+  "last_update": "2026-09-27T03:20:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create exactly one cleanup parity helper for parent #800 using helper_key=issue800-main-x-parity and reservation_token=issue800-main-x-parity-20260927a; create the child claim/checkpoint against frozen cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71, then activate this exact reservation with the child Issue and child claim blob. Do not create a second helper.",
+  "next_action": "Follow delegated helper #803 (helper_key=issue800-main-x-parity, reservation_token=issue800-main-x-parity-20260927a) from its durable checkpoint until full terminal closure. Do not create another cleanup parity helper. After #803 proves cleanup parity and is closed/completed + RELEASED + checkpoint CLOSED, terminalize this reservation and continue #800 acceptance by retrying the live #769 recovery path.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-800.json",
   "evidence": [
@@ -42,28 +42,31 @@
     "PR #802 merged to trusted main; merge commit 5684094f09317d7db52873aba9f82a1b378436b3.",
     "Fresh capability/authority readback: cleanup/2d-3d-sync remains at 44d1621f013d6181af7678e550254920cd6bcc71 and does not yet contain #800 wrapped-base64 transport normalization.",
     "Canonical reserve_helper_creation returned RESERVED for unique helper_key issue800-main-x-parity / token issue800-main-x-parity-20260927a.",
-    "Parent reservation pair-write Guard run 36290836389 GREEN."
+    "Parent reservation pair-write Guard run 36290836389 GREEN.",
+    "Child #803 fresh-create Claim Activation run 36290985091 GREEN; child claim blob ea5320648da1fa252003e4799ccb40735d172bea.",
+    "Canonical activate_helper_reservation returned ACTIVE for #803 + exact child claim blob.",
+    "Parent reservation activation Guard run 36291051476 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36290836389,
-    "request_comment_id": 5852219891,
+    "run_id": 36291051476,
+    "request_comment_id": 5852244261,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #800 main deployment and reserve unique cleanup parity helper"
+    "mutation": "activate #800 cleanup parity reservation for child #803"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue800-main-x-parity",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.sol260927.issue800.base64.1",
       "reservation_token": "issue800-main-x-parity-20260927a",
       "reserved_at": "2026-09-27T03:14:12Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 803,
+      "child_claim_blob_sha": "ea5320648da1fa252003e4799ccb40735d172bea"
     }
   ]
 }
