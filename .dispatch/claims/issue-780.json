@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T23:51:05Z",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-27T05:35:23Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,13 +22,15 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": null,
-    "job_id": null,
+    "run_id": 36280680113,
+    "job_id": 108511773338,
     "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
-    "status": "RUN_NOT_CREATED",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "artifact_id": 10919045721,
+    "summary": "1 failed / 53 passed; failure is inherited UTF-8 BOM in tests/process/test_issue681_poweroff_gate.py causing ast.parse SyntaxError U+FEFF in tests/test_clean_break_layout.py"
   },
-  "next_action": "Fresh-read the exact GitHub Actions run for .github/workflows/qa-issue780-phase7-integration.yml at d8406a9946d5e079eeaf2c55ddae1b6692130426. If no run exists, classify RUN_NOT_CREATED and establish a real remote QA producer on this same QA head under a fresh Remote Guard; if active, lock exact run_id + head_sha and poll to terminal. On GREEN, remove only the temporary QA workflow, drift-audit closing head against 2c0005a524bc2e2c824608aa94e80bf8f7353966, then guarded PR/non-force integration to current cleanup/2d-3d-sync, production readback, helper closure/release, and return terminal proof to #626.",
+  "next_action": "Under a fresh commit Guard, normalize only the leading UTF-8 BOM in tests/process/test_issue681_poweroff_gate.py with zero logical text change, and touch only the temporary #780 QA workflow as required to produce a new push-triggered exact-head run. Then lock the new run_id/head_sha and continue full integration acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -50,16 +52,22 @@
     "Canonical Claim Activation reactivate is used to resume the exact live authorized merge head without rewriting history.",
     "One-shot QA workflow commit d8406a9946d5e079eeaf2c55ddae1b6692130426 is a direct child of integration merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966 and changes only .github/workflows/qa-issue780-phase7-integration.yml.",
     "Commit Guard 36280631312 GREEN authorized the one-shot QA workflow commit.",
-    "Pair reconciliation Guard 36280702611 GREEN / REMOTE_GUARD_RECONCILE_ONLY for live QA head d8406a9946d5e079eeaf2c55ddae1b6692130426."
+    "Pair reconciliation Guard 36280702611 GREEN / REMOTE_GUARD_RECONCILE_ONLY for live QA head d8406a9946d5e079eeaf2c55ddae1b6692130426.",
+    "Exact QA run 36280680113 / job 108511773338 completed failure at d8406a9946d5e079eeaf2c55ddae1b6692130426: 53 passed / 1 failed.",
+    "Failure root cause: tests/process/test_issue681_poweroff_gate.py begins with UTF-8 BOM (base64 prefix 77u/); tests/test_clean_break_layout.py uses utf-8 + ast.parse and raises SyntaxError U+FEFF.",
+    "Fresh #681 authority readback: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED; no active owner conflict.",
+    "Fresh cleanup/2d-3d-sync readback shows the same BOM is present in production; this is inherited baseline hygiene, not Phase7 integration behavior.",
+    "Recovery-state write Guard 36297625673 GREEN, request 5853041376, result comment 5853043126."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36280702611,
-    "request_comment_id": 5851039690,
+    "run_id": 36297625673,
+    "request_comment_id": 5853041376,
+    "result_comment_id": 5853043126,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #780 durable pair to one-shot QA workflow head d8406a9946d5e079eeaf2c55ddae1b6692130426"
+    "mutation": "persist exact failed #780 QA observation and enter RECOVERING"
   }
 }
