@@ -144,6 +144,16 @@ WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
 - replacement prompt 的 **post-update readback** 必須驗證 `SAME_LANE_NONTERMINAL_WORK_V1`、`SAME_LANE_RESUME`、`RECONCILIATION_REQUIRED`、`SHARED_SCOPE_CONFLICT` 與 `NO_EXECUTABLE_WORK` anti-collapse 語意全部存在。
 
 
+### 4.0C SUBSTANTIVE_DURABLE_PROGRESS_HARD_GATE_V1
+
+所有新建或修改的 A/B recurring scheduler prompt 都必須保留 substantive durable progress turn-exit hard gate：
+
+- fresh reconstruction 只要存在 same-lane executable state（non-terminal + next_action、closure/finalization pending、in-flight transaction、canonical successor），本 invocation 在正常 return 前必須 fresh-read 到至少一個**本 invocation 新產生且可反讀的 substantive durable GitHub effect**。
+- read-only discovery、progress/CHECKPOINT、重述 next_action、heartbeat、claim activation、或只建立尚未 terminal/consume 的 Guard request都不算 substantive durable progress。
+- genuine capability/authority/platform blocker 只能在 exact blocker evidence + attempted action + exact next_action durable 化後，以 `SCHEDULER_EXECUTION_FAILURE` 結束當輪；不得 disable/pause/delete/reschedule recurring entrypoint。
+- 有 executable state、沒有 substantive durable effect、也沒有 fresh durable blocker evidence時，turn-exit fail closed並繼續 exact next_action。
+- replacement prompt 的 post-update readback 必須驗證 `SUBSTANTIVE_DURABLE_PROGRESS_HARD_GATE_V1`、`SCHEDULER_EXECUTION_FAILURE`、`substantive durable GitHub effect` 與 recurring `KEEP_ENABLED` 語意仍存在。
+
 ### 4.1 SKILL_FIRST_HARD_GATE
 
 在任何 Guard、claim、branch、PR、workflow、Issue、repository mutation、takeover、reconciliation 前：
@@ -267,9 +277,13 @@ Guard TTL / parser schema 仍由 live《遠端執行守門》擁有；本 Skill 
 - `RUNNING / WAITING_REMOTE / RECOVERING`
 - terminal child 仍有 `NEXT_CHILD_EXECUTABLE`
 
-只有 machine gate 放行時，才可寫 owner-authored `WHD_SCHEDULER_RUNTIME_END_V1`，並 fresh-read 驗證 END 與本 invocation identity exact match。
+只有 machine gate 放行時，才可寫 owner-authored `WHD_SCHEDULER_RUNTIME_END_V1`。current fixed schema 必須 exact 帶：
 
-沒有 matching END 的 invocation 不得被下一 wake 當成「正常完成」；必須依 live liveness / continuity 規則 resume。
+`issue / scheduler_lane / invocation_identity / claim_blob_sha / branch / head_sha / executor_source=scheduler / ended_at / request_comment_id / result_comment_id / checkpoint_fingerprint / turn_exit_run_id / ready_work_census_fingerprint`
+
+END comment 本身不是 machine completion authority；必須再 fresh-read matching bot-authored `WHD_SCHEDULER_RUNTIME_END_RESULT_V1`，且 `result=GREEN`、`reason=EXACT_TURN_EXIT_RECEIPT_BOUND`，才可把前一 invocation 分類為正常結束。validator FAIL / missing result 固定視為沒有 validated END，下一 wake 依 live liveness / continuity resume/reconcile。
+
+沒有 matching validated END 的 invocation 不得被下一 wake 當成「正常完成」。
 
 ## 4.9 Scheduler state mutation durable reconciliation
 
