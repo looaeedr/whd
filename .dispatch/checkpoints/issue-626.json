@@ -40,13 +40,14 @@
     "Master-chain continuation is terminal CHAIN_COMPLETE for Master #627.",
     "Trusted finalization 36281798478 SUCCESS.",
     "Issue #626 read back closed/completed.",
-    "Release-handoff transition Guard 36281849720 GREEN."
+    "Release-handoff transition Guard 36281849720 GREEN.",
+    "Final release Guard 36281949115 GREEN; checkpoint CLOSED with CHAIN_COMPLETE."
   ],
   "master_issue": 627,
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Phase 7 A9 production integration/readback accepted; all required child owners terminal.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist #626 checkpoint CLOSED + claim RELEASED with CHAIN_COMPLETE, then close/read back Master #627."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

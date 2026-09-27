@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T21:57:30Z",
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
   "head_sha": "ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T00:13:45Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T00:16:21Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -36,7 +36,7 @@
     "conclusion": "success",
     "artifact_id": 10916659077
   },
-  "next_action": "Atomically persist #626 checkpoint CLOSED + claim RELEASED with CHAIN_COMPLETE, then close/read back Master #627.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -79,6 +79,14 @@
     "Terminalization write Guard 36281710706 GREEN on trusted main 646968f0e0945707d4a87b6b57de769c5a474bb1.",
     "Trusted Remote Finalization run 36281798478 SUCCESS; artifact 10919012612.",
     "Issue #626 fresh-read closed/completed at 2026-09-27T00:13:07Z.",
-    "Release-handoff transition Guard 36281849720 GREEN."
-  ]
+    "Release-handoff transition Guard 36281849720 GREEN.",
+    "Final release Guard 36281949115 GREEN; claim released after #626 close/readback."
+  ],
+  "release_handoff": {
+    "master_issue": 627,
+    "chain_state": "CHAIN_COMPLETE",
+    "finalization_run_id": 36281798478,
+    "final_release_guard_run_id": 36281949115,
+    "production_head": "de2cd252a5494ff812c590c04380e69176ea7d56"
+  }
 }
