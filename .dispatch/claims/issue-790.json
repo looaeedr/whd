@@ -11,7 +11,7 @@
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T05:13:30.077441Z",
+  "last_update": "2026-09-27T05:15:02.699526Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Advance #790 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, close/read back Issue #790, then persist CLOSED + RELEASED.",
+  "next_action": "Run trusted bound finalization proof for #790 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #790, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -74,18 +74,19 @@
     "Activation parent pair Guard run 36289838719 GREEN.",
     "Scheduler B takeover: Remote Guard 36296506082 GREEN; prior chat owner classified EXECUTOR_STUCK after 8227s. Exact remote QA run 36286039323 is terminal success and no active delegated child remains.",
     "Fresh #800 terminal proof satisfies the active helper reservation; canonical transition target ACTIVE -> TERMINAL.",
-    "Remote Guard 36296571272 GREEN; #790 acceptance is terminal and closure lifecycle advances to FINALIZATION_PENDING."
+    "Remote Guard 36296571272 GREEN; #790 acceptance is terminal and closure lifecycle advances to FINALIZATION_PENDING.",
+    "Remote Guard 36296645177 GREEN; #790 durable closure is now ISSUE_CLOSE_PENDING and requires fresh bound finalization proof before issue close."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296571272,
-    "request_comment_id": 5852889446,
-    "result_comment_id": 5852890815,
+    "run_id": 36296645177,
+    "request_comment_id": 5852897887,
+    "result_comment_id": 5852899132,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "terminalize #800 reservation and enter #790 terminal finalization"
+    "mutation": "advance #790 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "delegated_work": [
     {
