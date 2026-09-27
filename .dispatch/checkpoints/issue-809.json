@@ -28,13 +28,16 @@
     "Fresh cleanup target 864264579c6acaa5e6f8474f94e43e24e1908453 contains accepted #540 test blob 1a4870aefddc07d7dc3d0da9358febd668870116.",
     "Terminal acceptance satisfied: focused 6/6, exact one-file delta, production workflow unchanged, integration/readback complete.",
     "Terminal coordination write Guard 36295163072 GREEN.",
-    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36295225660."
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36295225660.",
+    "Remote Finalization run 36295325451 GREEN / FINALIZATION_PROOF_VALID.",
+    "Issue #809 fresh-read closed/completed at 2026-09-27T04:48:02Z.",
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Remote Guard 36295370913."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "obtain bound finalization proof, close and read back owning Issue #809, then advance to RELEASE_HANDOFF_PENDING"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "obtain one final trusted write Guard, then atomically persist checkpoint CLOSED + claim RELEASED"
 }

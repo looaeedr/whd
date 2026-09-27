@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "9ba204c0303a67d8be6e2569f6ee52f8824e2ac5",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T04:45:27Z",
+  "last_update": "2026-09-27T04:48:31Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "worker.slot.1",
   "slot_binding": {
@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain trusted Remote Finalization proof bound to current ISSUE_CLOSE_PENDING checkpoint; close/read back Issue #809; then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED.",
+  "next_action": "obtain one final trusted write Guard, then atomically persist checkpoint CLOSED + claim RELEASED",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-809.json",
   "evidence": [
@@ -58,16 +58,19 @@
     "Fresh cleanup readback target=864264579c6acaa5e6f8474f94e43e24e1908453; #540 test blob=1a4870aefddc07d7dc3d0da9358febd668870116 exact H2 accepted blob.",
     "Merge consumed exact PR Guard group primary run 36295003049; equivalent run 36295004512 is shadow.",
     "Terminal coordination write Guard run 36295163072 GREEN for exact #809 claim+checkpoint pair.",
-    "Closure-state write Guard primary run 36295225660 GREEN; equivalent duplicate request is shadow."
+    "Closure-state write Guard primary run 36295225660 GREEN; equivalent duplicate request is shadow.",
+    "Remote Finalization run 36295325451 GREEN / FINALIZATION_PROOF_VALID, bound to checkpoint d3eae07e04ba1bf7752cab42952301603c102c38 and fingerprint f112b6e70df80a9c324d633d23a61449312f65a605f264a70beb00d1fedd6071.",
+    "Owning Issue #809 fresh-read closed/completed at 2026-09-27T04:48:02Z.",
+    "Remote Guard run 36295370913 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "run_id": 36295225660,
-    "request_comment_id": 5852711089,
+    "run_id": 36295370913,
+    "request_comment_id": 5852727457,
     "consumed": true,
-    "mutation": "advance #809 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #809 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   }
 }
