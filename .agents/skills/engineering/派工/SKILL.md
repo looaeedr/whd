@@ -854,3 +854,16 @@ Canonical implementation：`tools.execution_claim_guard.durable_coord_write_read
 - retained invariant: Retain shared claim ownership, guarded takeover/handoff, and durable checkpoint routing.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## INTERVENING_SAME_OWNER_COORD_POSTCOMMIT_RECONCILIATION_V1_BRIDGE
+
+當 Remote Guard 已對 H0 mint GREEN，合法 direct-child commit H1 也已在 receipt window 內落盤，但在 claim/checkpoint HEAD reconciliation 前，**同一 owner 的 coordination-only durable write**只刷新了 claim blob（例如 remote-QA/evidence/next_action），不得把 prior receipt 直接視為 current-blob authority，也不得手改 shared claim。
+
+唯一 recovery 由 `tools/execution_claim_guard.py` 擁有：
+
+- owner-authored `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1` exact 綁 current/historical claim blob、H0/H1、prior Guard run/request、changed files。
+- historical claim blob 必須由 GitHub blob API fresh-read並驗 blob SHA；current/historical claim 除 `last_update/evidence/last_guard/remote_qa/next_action` 等觀測欄位外，authority projection 必須完全一致。
+- 只允許 H1 是 H0 的**單一 direct child**、actual files exact 等於 prior GREEN receipt、commit time 在 receipt window 內。
+- recovery GREEN 只授權 atomic claim/checkpoint HEAD reconciliation到 H1；不得重播 implementation mutation，不得放寬 ordinary reconciliation。
+- owner/source/branch/base/head/phase/delegated/checkpoint等 authority drift、foreign recovery、wrong historical blob、multiple prior GREEN、extra file、merge/multi-hop一律 fail closed。
+- trusted transport使用 `intervening_coord_recovery_comment_id=<owner comment id>`；不得以 legacy-expired/local-proof/claim-handoff 代替。
