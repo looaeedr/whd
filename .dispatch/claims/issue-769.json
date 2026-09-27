@@ -9,9 +9,9 @@
   "work_branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "claimed_at": "2026-09-26T22:33:00Z",
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
-  "head_sha": "a8d54517a51cfe819f2ab639dae6f02aee02d9c1",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T03:52:00Z",
+  "head_sha": "ec6680a0ebded06b6f481ad1b2cd7406e47923ed",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T03:56:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 77,
     "failed": 0
   },
-  "next_action": "Fresh-read cleanup/2d-3d-sync and PR #788 against closing head a8d54517a51cfe819f2ab639dae6f02aee02d9c1; perform current production drift/overlap audit. If cleanup advanced, do one guarded non-force merge-sync preserving the six authorized #769 files, rerun focused acceptance, reconcile durable HEAD, then obtain a fresh merge pr-write Guard and complete PR #788 integration/closure.",
+  "next_action": "Fresh-read PR #788 checks and mergeability on exact head ec6680a0ebded06b6f481ad1b2cd7406e47923ed against cleanup/2d-3d-sync. If clean and all exact-head checks terminal success, obtain one fresh pr-write Guard for merge, merge #788 non-force, fresh-read production integration, then enter canonical terminal closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -68,16 +68,22 @@
     "Temporary QA workflow cleanup Guard run 36292533883 GREEN.",
     "Closing head a8d54517a51cfe819f2ab639dae6f02aee02d9c1 deletes only .github/workflows/qa-issue769-terminal-scheduler-census.yml from tested head 4ad9246a.",
     "Post-cleanup focused/adjacent acceptance: 77 passed / 0 failed.",
-    "Post-cleanup pair reconciliation Guard run 36292613180 GREEN."
+    "Post-cleanup pair reconciliation Guard run 36292613180 GREEN.",
+    "Fresh production drift audit: cleanup advanced to 8147c4319aa02824bd08ca4fd51491df7342e1a6; #769 remained exact six-file delta with overlap in three continuity artifacts.",
+    "Merge-tree found one content conflict in tools/continuity_controller.py; conflict was orthogonal constants only and resolved by retaining READY_WORK_CENSUS plus production BLOCKED_EXIT_PROOF timing constants.",
+    "Merge-sync Guard run 36292720150 GREEN.",
+    "Two-parent sync head ec6680a0ebded06b6f481ad1b2cd7406e47923ed incorporates cleanup@8147c431; effective delta vs production remains exactly six #769 files.",
+    "Post-sync #769 + production turn-exit/state regressions: 126 passed / 0 failed.",
+    "Merge-head pair reconciliation Guard run 36292841933 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36292613180,
-    "request_comment_id": 5852418381,
+    "run_id": 36292841933,
+    "request_comment_id": 5852444052,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #769 closing head after temporary QA deletion"
+    "mutation": "reconcile #769 current-production sync head"
   }
 }
