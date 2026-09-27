@@ -9,7 +9,7 @@
   "work_branch": "governance/issue836-stop-helper-churn-20260927",
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
-  "head_sha": "65bdabbfacd47c8ee138057bd0192237efa21a1d",
+  "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "phase": "GREEN",
   "last_update": "2026-09-27T09:10:00Z",
   "production_target": "cleanup/2d-3d-sync",

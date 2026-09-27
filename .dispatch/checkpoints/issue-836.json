@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "836",
   "branch": "governance/issue836-stop-helper-churn-20260927",
-  "head_sha": "65bdabbfacd47c8ee138057bd0192237efa21a1d",
+  "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "state": "RUNNING",
   "next_action": "Remove one-time #836 QA workflow, prove tested-head to closing-head drift is workflow-deletion-only, then integrate #836 into cleanup/2d-3d-sync and mirror the same governance delta to main without opening a parity helper.",
   "run_id": 36308394162,
