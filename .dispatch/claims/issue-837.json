@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-27T08:55:30Z",
   "base_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
   "head_sha": "2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T09:20:35Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T09:22:10Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Atomically persist #837 checkpoint CLOSED + claim RELEASED and update parent #835 helper reservation/next_action in the same coordination commit.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-837.json",
   "evidence": [
@@ -30,16 +30,18 @@
     "Closure advance Guard run 36308860752 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36308997129 GREEN; FINALIZATION_PROOF_VALID; artifact 10928386471; exact checkpoint fingerprint 8e6e080d5f99851d7aed566fd5ae17d978645d2e66e0a120677fbbbfe0a440d4.",
     "Issue #837 closed/completed and fresh-read at 2026-09-27T09:20:03Z.",
-    "Release-handoff Guard run 36309042057 GREEN."
+    "Release-handoff Guard run 36309042057 GREEN.",
+    "Final atomic release Guard run 36309126738 GREEN.",
+    "Final atomic coordination transaction persists #837 claim RELEASED + checkpoint CLOSED."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36309042057,
-    "request_comment_id": 5854589545,
+    "run_id": 36309126738,
+    "request_comment_id": 5854602380,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #837 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomic #837 claim RELEASED + checkpoint CLOSED"
   }
 }
