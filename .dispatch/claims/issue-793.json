@@ -61,12 +61,12 @@
     {
       "relationship": "helper",
       "helper_key": "bootstrap-trusted-takeover-parser",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.work1.260927.bootstrap793.1",
       "reservation_token": "bootstrap793-260927a",
       "reserved_at": "2026-09-27T02:16:07Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 796,
+      "child_claim_blob_sha": "9df6dc25e6fc02b44d53a5f52479c7d8156c8f27"
     }
   ]
 }
