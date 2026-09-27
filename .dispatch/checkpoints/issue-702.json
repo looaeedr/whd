@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "702",
   "branch": "work/issue702-crash-fault-combined-acceptance-20260927",
-  "head_sha": "e00f9d943576d267dcf277d025a20c5e4fdab40c",
+  "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "state": "RUNNING",
-  "next_action": "Delete the one-shot .github/workflows/qa-issue702-crash-fault-matrix.yml under a fresh commit Guard, verify the closing diff is workflow-deletion-only relative to accepted H3, then create a guarded PR to integrate #702 into current cleanup/2d-3d-sync.",
+  "next_action": "Create one guarded PR from work/issue702-crash-fault-combined-acceptance-20260927@f8a3397551c5975dafd842e8dcd28c1d4edcca32 into current cleanup/2d-3d-sync, verify mergeability/CI and consume the integration result; then close child Issues #696-#701 canonically and finalize #702.",
   "run_id": 36294590644,
   "job_id": 108550971085,
   "log_cursor": null,
@@ -31,7 +31,10 @@
     "Post-effect durable write Guard run 36294433168 GREEN.",
     "H3 AI Library/CURRENT writeback=e00f9d943576d267dcf277d025a20c5e4fdab40c.",
     "Post-writeback exact-head QA run 36294590644 SUCCESS: 100 passed / 0 failed.",
-    "Post-H3 reconciliation Guard run 36294624210 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-H3 reconciliation Guard run 36294624210 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Cleanup H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32.",
+    "H3->H4 closing diff verified workflow-deletion-only: .github/workflows/qa-issue702-crash-fault-matrix.yml.",
+    "Post-cleanup reconciliation Guard run 36294760023 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "master_issue": null,
   "chain_state": "NONE",
