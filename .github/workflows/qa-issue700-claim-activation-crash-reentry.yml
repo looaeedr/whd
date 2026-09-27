@@ -1,0 +1,62 @@
+name: WHD｜#700｜Claim Activation 崩潰重入驗收
+run-name: "WHD｜#700 A5｜Claim Activation 崩潰重入驗收｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue700-claim-activation-crash-reentry-20260927
+    paths:
+      - .github/workflows/qa-issue700-claim-activation-crash-reentry.yml
+      - tests/process/test_issue700_claim_activation_crash_reentry.py
+      - tools/claim_activation_recovery.py
+      - .github/workflows/whd-remote-claim-activation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: 驗證 RED-STOP-23 崩潰重入行為
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 執行 RED 或 GREEN focused regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f tools/claim_activation_recovery.py; then
+            python -m pytest -q tests/process/test_issue700_claim_activation_crash_reentry.py | tee /tmp/issue700-focused.log
+            echo "ISSUE700_RED_STOP_23_GREEN=PASS"
+          else
+            set +e
+            python -m pytest -q tests/process/test_issue700_claim_activation_crash_reentry.py > /tmp/issue700-focused.log 2>&1
+            rc=$?
+            set -e
+            cat /tmp/issue700-focused.log
+            test "$rc" -ne 0
+            grep -q "RED-STOP-23: canonical Claim Activation durable-readback recovery classifier is missing" /tmp/issue700-focused.log
+            echo "ISSUE700_RED_STOP_23_EXPECTED_RED=PASS"
+          fi
+
+      - name: 上傳 focused 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue700-claim-activation-crash-reentry-${{ github.run_id }}
+          path: /tmp/issue700-focused.log
+          if-no-files-found: error
+          retention-days: 14
