@@ -9,13 +9,13 @@
   "work_branch": "hotfix/issue800-github-blob-base64-20260927",
   "claimed_at": "2026-09-27T02:51:00Z",
   "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
-  "head_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T02:57:00Z",
+  "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T03:08:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run Phase6 planned-scope Preflight for Issue #800 exact four artifacts; add a RED regression that feeds GitHub-style line-wrapped/ASCII-whitespace base64 for a valid historical claim blob and proves current main rejects it; then minimally normalize only ASCII whitespace before base64.b64decode(..., validate=True), preserve Git blob SHA verification, and run focused #790 adjacent regressions.",
+  "next_action": "Fresh-read trusted main and compare against #800 GREEN head b507632dc3ae0f3cd0582d44af9c044cb4309872. If main has no conflicting drift and the effective delta is exactly the four #800 authorized artifacts, obtain one fresh pr-write Guard, open/update the exact PR to main, lock concrete checks to terminal, merge non-force under a second fresh pr-write Guard, fresh-read main capability, then propagate the accepted hotfix to cleanup/2d-3d-sync before terminal closure and #769 retry.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-800.json",
   "evidence": [
@@ -29,16 +29,25 @@
     "Parent #790 helper reservation ACTIVE and binds child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
     "Branch-create Guard run 36289912939 GREEN on frozen main base d54f0410dee3c70489c8a2bdebb4b3b7c3564690.",
     "Work branch created and fresh-read at exact frozen main base.",
-    "Pair transition Guard run 36289955188 GREEN; branch-create/readback consumed."
+    "Pair transition Guard run 36289955188 GREEN; branch-create/readback consumed.",
+    "Phase6 planned/post-write Preflight GREEN for all 10 required Skills and 8 required references.",
+    "Focused RED reproduced the live defect: wrapped valid GitHub base64 failed with binascii.Error / historical claim blob is not valid base64.",
+    "Implementation H1 b507632dc3ae0f3cd0582d44af9c044cb4309872 changes exactly the four authorized #800 artifacts.",
+    "Strict transport fix removes only ASCII whitespace SP/HT/CR/LF/VT/FF before base64.b64decode(..., validate=True); Git blob SHA verification remains exact.",
+    "Issue #790 focused regression file: 13 passed / 0 failed.",
+    "Adjacent reconciliation suite (#790/#558/#570/#643/#774): 64 passed / 0 failed.",
+    "Legacy #675 exact node failed unchanged on untouched main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690; classified baseline debt, not #800 regression.",
+    "Implementation commit Guard run 36290196245 GREEN.",
+    "Post-commit pair reconciliation Guard run 36290480006 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36289955188,
-    "request_comment_id": 5852117811,
+    "run_id": 36290480006,
+    "request_comment_id": 5852177976,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "consume #800 branch-create/readback and advance to RED"
+    "mutation": "reconcile #800 implementation H0->H1"
   }
 }
