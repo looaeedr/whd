@@ -76,6 +76,7 @@ jobs:
           if values["transition"] not in {
               "fresh-create", "successor-create", "takeover", "reactivate",
               "legacy-checkpoint-repair", "terminal-checkpoint-repair",
+              "terminal-chain-metadata-repair",
           }:
               raise SystemExit("invalid transition")
           if values["transition"] == "legacy-checkpoint-repair":
@@ -91,6 +92,11 @@ jobs:
               if "prior_claim_blob_sha" not in values or "prior_checkpoint_blob_sha" not in values:
                   raise SystemExit(
                       "terminal-checkpoint-repair requires prior_claim_blob_sha and prior_checkpoint_blob_sha"
+                  )
+          elif values["transition"] == "terminal-chain-metadata-repair":
+              if "prior_claim_blob_sha" not in values or "prior_checkpoint_blob_sha" not in values:
+                  raise SystemExit(
+                      "terminal-chain-metadata-repair requires prior_claim_blob_sha and prior_checkpoint_blob_sha"
                   )
           elif "prior_claim_blob_sha" in values or "prior_checkpoint_blob_sha" in values:
               raise SystemExit(
@@ -194,6 +200,7 @@ jobs:
           )
           from tools.continuity_controller import (
               checkpoint_to_payload,
+              repair_malformed_terminal_chain_metadata_checkpoint,
               repair_malformed_terminal_checkpoint,
           )
 
@@ -210,7 +217,7 @@ jobs:
           if claim.head_sha != request["head_sha"]:
               raise ExecutionClaimError("activation candidate head mismatch")
 
-          if request["transition"] != "terminal-checkpoint-repair":
+          if request["transition"] not in {"terminal-checkpoint-repair", "terminal-chain-metadata-repair"}:
               assert_active_claim_activation_transaction(
                   claim,
                   Path("/tmp/candidate-checkpoint.json"),
@@ -313,6 +320,54 @@ jobs:
               if candidate_checkpoint_payload != expected_candidate:
                   raise ExecutionClaimError(
                       "TERMINAL_CHECKPOINT_REPAIR: candidate checkpoint must equal canonical malformed-terminal repair"
+                  )
+          elif request["transition"] == "terminal-chain-metadata-repair":
+              if prior_claim is None:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: prior claim must exist"
+                  )
+              if prior_checkpoint is None:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: prior checkpoint must exist"
+                  )
+              if prior_claim != request["prior_claim_blob_sha"]:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: prior claim blob drift"
+                  )
+              if prior_checkpoint != request["prior_checkpoint_blob_sha"]:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: prior checkpoint blob drift"
+                  )
+              if request["candidate_claim_blob_sha"] != prior_claim:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: candidate claim must remain unchanged"
+                  )
+              prior_checkpoint_bytes = subprocess.run(
+                  ["git", "show", f"{parent}:{request['checkpoint_path']}"],
+                  capture_output=True,
+                  check=True,
+              ).stdout
+              try:
+                  prior_checkpoint_payload = json.loads(
+                      prior_checkpoint_bytes.decode("utf-8")
+                  )
+                  candidate_checkpoint_payload = json.loads(
+                      Path("/tmp/candidate-checkpoint.json").read_text(encoding="utf-8")
+                  )
+              except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: checkpoint JSON is malformed"
+                  ) from exc
+              repaired = repair_malformed_terminal_chain_metadata_checkpoint(
+                  prior_checkpoint_payload,
+                  expected_issue=str(request["issue"]),
+                  expected_branch=request["branch"],
+                  expected_head_sha=request["head_sha"],
+              )
+              expected_candidate = checkpoint_to_payload(repaired)
+              if candidate_checkpoint_payload != expected_candidate:
+                  raise ExecutionClaimError(
+                      "TERMINAL_CHAIN_METADATA_REPAIR: candidate checkpoint must equal canonical malformed-terminal chain-metadata repair"
                   )
           else:
               if prior_claim is None or prior_checkpoint is None:
