@@ -37,4 +37,8 @@ jobs:
       - name: Run #682 R9 behavioral acceptance
         env:
           PYTHONPATH: .
-        run: python -m pytest -q --tb=short tests/process/test_issue682_outage_recovery.py
+        run: >-
+          python -m pytest -q --tb=short
+          tests/process/test_issue682_outage_recovery.py
+          tests/process/test_issue540_stale_claim_takeover.py
+          tests/process/test_issue581_interactive_stale_takeover.py
