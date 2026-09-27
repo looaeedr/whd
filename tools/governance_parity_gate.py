@@ -303,14 +303,103 @@ def build_live_mirror_payload(
     }
 
 
+
+def build_pr_candidate_mirror_payload(
+    candidate_ref: str,
+    target_branch: str,
+    opposite_ref: str,
+    mirror_manifest: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Build governed-artifact parity evidence for a PR candidate.
+
+    The candidate tree is interpreted as the would-be state of target_branch.
+    opposite_ref may be the opposite production branch or an explicitly paired
+    opposite-branch PR candidate.
+    """
+    opposite_branch = next(
+        (branch for branch in MIRROR_BRANCHES if branch != target_branch),
+        "",
+    )
+    governed = set(str(x) for x in mirror_manifest.get("governance_paths", []))
+    governed |= _governed_tree_paths(candidate_ref, mirror_manifest)
+    governed |= _governed_tree_paths(opposite_ref, mirror_manifest)
+
+    artifacts: list[dict[str, Any]] = []
+    for path in sorted(governed):
+        candidate_blob = _blob_at(candidate_ref, path)
+        opposite_blob = _blob_at(opposite_ref, path)
+        exact = bool(
+            candidate_blob
+            and opposite_blob
+            and candidate_blob == opposite_blob
+        )
+        artifacts.append(
+            {
+                "path": path,
+                "source_blob_sha": candidate_blob or ("0" * 40),
+                "target_blob_sha": opposite_blob or ("0" * 40),
+                "status": "EXACT" if exact else "UNKNOWN_DIVERGENCE",
+            }
+        )
+
+    return {
+        "schema": MIRROR_SCHEMA,
+        "source_ref": target_branch,
+        "target_ref": opposite_branch,
+        "changed_paths": sorted(governed),
+        "artifacts": artifacts,
+        "deployment_readback": {
+            "durable": True,
+            "evidence": [
+                f"candidate:{candidate_ref}",
+                f"opposite:{opposite_ref}",
+            ],
+        },
+    }
+
+
+def evaluate_pr_candidate_parity(
+    *,
+    candidate_ref: str,
+    target_branch: str,
+    opposite_ref: str,
+    mirror_manifest: Mapping[str, Any],
+) -> Dict[str, Any]:
+    manifest_result = validate_mirror_manifest(mirror_manifest)
+    if manifest_result["result"] != "GREEN":
+        return manifest_result
+    if target_branch not in MIRROR_BRANCHES:
+        return _fail("INVALID_MIRROR_TARGET", target_ref=target_branch)
+
+    payload = build_pr_candidate_mirror_payload(
+        candidate_ref,
+        target_branch,
+        opposite_ref,
+        mirror_manifest,
+    )
+    result = evaluate_mirror_transaction(payload, mirror_manifest)
+    if result.get("result") != "GREEN":
+        return result
+    return {
+        **result,
+        "reason": "PR_CANDIDATE_GOVERNANCE_PARITY_PROVEN",
+        "candidate_ref": candidate_ref,
+        "opposite_ref": opposite_ref,
+        "target_branch": target_branch,
+    }
+
+
 def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="WHD governance parity / mirror hard gate")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--target-ref")
     parser.add_argument("--source-ref")
+    parser.add_argument("--candidate-ref")
+    parser.add_argument("--opposite-ref")
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument("--scope-only", action="store_true")
     parser.add_argument("--verify-live-parity", action="store_true")
+    parser.add_argument("--verify-pr-candidate-parity", action="store_true")
     args = parser.parse_args(argv)
 
     if args.manifest is None:
@@ -324,8 +413,23 @@ def _main(argv: list[str] | None = None) -> int:
             parser.error("--source-ref and --target-ref are required for live parity")
         payload = build_live_mirror_payload(args.source_ref, args.target_ref, manifest)
         result = evaluate_mirror_transaction(payload, manifest)
+    elif args.verify_pr_candidate_parity:
+        if not args.candidate_ref or not args.target_ref or not args.opposite_ref:
+            parser.error(
+                "--candidate-ref, --target-ref and --opposite-ref are required "
+                "for PR candidate parity"
+            )
+        result = evaluate_pr_candidate_parity(
+            candidate_ref=args.candidate_ref,
+            target_branch=args.target_ref,
+            opposite_ref=args.opposite_ref,
+            mirror_manifest=manifest,
+        )
     else:
-        parser.error("choose --scope-only or --verify-live-parity")
+        parser.error(
+            "choose --scope-only, --verify-live-parity, or "
+            "--verify-pr-candidate-parity"
+        )
 
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result.get("result") == "GREEN" else 1
