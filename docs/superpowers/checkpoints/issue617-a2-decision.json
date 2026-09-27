@@ -1,0 +1,121 @@
+{
+  "schema": "WHD_PHASE7_A2_DELETION_TEST_V1",
+  "issue": 617,
+  "master_issue": 627,
+  "target_id": "P7-B",
+  "requirement_authority": "User-approved Phase 7 v1.2 spec + approved RED/breakdown",
+  "approved_red_ids": [
+    "P7-R-B"
+  ],
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "accepted_parent_head": "587218f67b4b37c9fd8597aa9395800c1f51354e",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "source": {
+    "path": "gui.py",
+    "blob_sha": "2a31fe7f1bf2008cd6aee083bc938cdb2a3b8eab",
+    "phase6_application_host_span": 1873,
+    "host_method_count": 176
+  },
+  "dt_0": {
+    "status": "COMPLETE",
+    "source_artifact": "docs/superpowers/checkpoints/issue613-a1-dt-p7-b.json",
+    "observations": [
+      "Phase6ApplicationHost remains the application host, but prior Phase 6 work already deepened rendering, box-body interaction, editor routing, settings, workspace, and manufacturing into bounded owners.",
+      "The remaining high-concentration cluster with committed application state and transaction logic is Door Layout."
+    ]
+  },
+  "clusters": {
+    "door_layout_state_transaction": {
+      "evidence": {
+        "host_methods": [
+          "_new_door_layout_column span=14",
+          "set_door_layout_columns span=16",
+          "_recompute_column_height_remainder span=13",
+          "_recompute_door_layout_remainders span=53",
+          "get_door_layout_columns span=17",
+          "get_door_layout_cells span=12",
+          "get_selected_door_layout_cell span=10",
+          "commit_door_layout_width span=34",
+          "commit_door_layout_height span=41",
+          "_remap_door_layout_owned_data span=19",
+          "remove_door_layout_column span=19",
+          "remove_door_layout_height span=16"
+        ],
+        "existing_presentation_owner": "gui_modules/parts/panels/door.py",
+        "presentation_owner_contract": "door.py explicitly states committed structures remain owned by existing authoritative host/controller seam",
+        "existing_render_owner": "gui_modules/application/render_snapshots.py + gui_modules/rendering/door_view.py",
+        "domain_primitives": [
+          "complete_partition",
+          "validate_door_layout_dimensions"
+        ],
+        "current_problem": "application transaction/state logic remains concentrated in Phase6ApplicationHost despite presentation/render deepening"
+      },
+      "dt_1_remove_or_inline": {
+        "result": "REJECT",
+        "reason": "Deleting the host logic without a bounded owner would move remainder validation/remap/commit ordering into Tk panel callbacks or callers, recreating duplicate state/transaction ownership."
+      },
+      "dt_2_existing_owner_candidate": {
+        "result": "NO_EXISTING_SINGLE_FILE_OWNER",
+        "candidates": [
+          "gui_modules/parts/panels/door.py is presentation-only and must not acquire application state truth",
+          "gui_modules/application/render_snapshots.py owns immutable render snapshot acquisition, not mutations"
+        ]
+      },
+      "dt_3_bounded_owner_ports": {
+        "result": "PASS_CANDIDATE",
+        "candidate": "gui_modules/application/door_layout_controller.py::Phase6DoorLayoutController",
+        "boundary": [
+          "Own numeric Door Layout model/partition completion/remap/commit planning.",
+          "Consume bounded scalar/layout inputs and return immutable transition results.",
+          "No Tk widget construction, no manufacturing formulas, no renderer ownership, no full Phase6ApplicationHost dependency.",
+          "Host remains composition/application surface and applies presentation callbacks/update intent."
+        ]
+      },
+      "dt_4_variant_k": {
+        "result": "STRUCTURALLY_WEAKER",
+        "evidence": [
+          "Keeps 12 substantial state/transaction methods in 1873-line Phase6ApplicationHost.",
+          "Already-deep presentation/render owners cannot reduce this concentration while application mutation remains rooted in host."
+        ]
+      },
+      "dt_5_variant_e": {
+        "result": "PREFERRED",
+        "evidence": [
+          "Bounded controller can own numeric layout state transitions independently of Tk and manufacturing.",
+          "Host can retain thin delegates and explicit ports for warning/rebuild/update-intent effects.",
+          "No reverse import from application controller to gui.py is required."
+        ]
+      },
+      "dt_6_decision": {
+        "decision": "DEEPEN_EXISTING_OWNER",
+        "target_boundary": "existing gui_modules.application application-owner layer via bounded Phase6DoorLayoutController",
+        "production_scope": "Move Door Layout numeric state/transaction/remainder/remap logic; keep presentation in panels/door.py and render acquisition/presentation in existing render owners."
+      }
+    },
+    "indicator_rendering": {
+      "dt_6_decision": {
+        "decision": "KEEP_CURRENT_BOUNDARY",
+        "reason": "Prior extraction tests already require thin host draw_indicator_box/draw_indicator_door delegates; application render_snapshots owns acquisition and rendering/door_view remains presentation-only."
+      }
+    },
+    "box_body_interaction_and_render": {
+      "dt_6_decision": {
+        "decision": "KEEP_CURRENT_BOUNDARY",
+        "reason": "Existing tests already require thin root interaction methods and thin draw_box_body delegate with bounded interaction/render owners."
+      }
+    },
+    "editor_routing": {
+      "dt_6_decision": {
+        "decision": "KEEP_CURRENT_BOUNDARY",
+        "reason": "Existing hole-editor extraction tests already require thin open_part_hole_editor root delegation into gui_modules/editors/hole_editor.py."
+      }
+    }
+  },
+  "structural_invariants": {
+    "reverse_import_gui_from_new_controller": 0,
+    "duplicate_door_layout_state_owner": 0,
+    "second_composition_root": 0,
+    "unrestricted_full_app_dependency": false
+  },
+  "next_action": "Implement the Door Layout bounded application controller and convert the selected Phase6ApplicationHost bodies to thin delegates without changing presentation/manufacturing truth; then run focused headless/Xvfb regressions and emit WHD_PHASE7_TARGET_COMPLETION_V1."
+}
