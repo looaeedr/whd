@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T05:35:00Z",
+  "last_update": "2026-09-27T07:05:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Helper #815 is terminal: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED, PR #817 merged to cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931, and current-X #702 Combined Acceptance is GREEN (100 passed / 0 failed). Now close child Issues #696-#701 canonically under #702 ownership, verify closed/completed readback for each, then repair #702 parent branch/finalization identity without accepting unauthorized c59d73e245d2b4732c738a01bd062eb32763a05a as authority.",
+  "next_action": "Create exactly one helper for #696 terminal checkpoint chain-metadata repair. Scope is limited to adding a canonical trusted repair for malformed terminal chain metadata (CHAIN_COMPLETE carrying chain_next_action), repairing #696 exact durable pair, then returning terminal proof to #702. Do not accept or reconcile parent branch c59d73e245d2b4732c738a01bd062eb32763a05a.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -52,7 +52,9 @@
     "Integration helper #815 terminal proof: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED.",
     "Helper #815 PR #817 merged non-force; production readback cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931 contains exact #702 11-file accepted delta.",
     "Fresh-X Combined Acceptance run 36296278571 / job 108555610910: 100 passed / 0 failed in 0.53s.",
-    "Parent work branch live c59d73e245d2b4732c738a01bd062eb32763a05a remains non-authoritative; sealed parent H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32 is unchanged."
+    "Parent work branch live c59d73e245d2b4732c738a01bd062eb32763a05a remains non-authoritative; sealed parent H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32 is unchanged.",
+    "Issue #696 terminalization exposed a fail-closed transport gap: terminal checkpoint has valid closure_state but invalid CHAIN_COMPLETE metadata (chain_next_action non-null), so ordinary Remote Guard cannot parse it and #744 terminal-checkpoint-repair is intentionally too narrow.",
+    "Repair helper must preserve #696 issue/branch/head/state/acceptance and only canonicalize chain metadata plus the minimal trusted recovery transport needed to perform that exact repair."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
@@ -205,6 +207,16 @@
       "reserved_at": "2026-09-27T04:50:00Z",
       "child_issue": 815,
       "child_claim_blob_sha": "935388d50d037b545ce4b7f7dc0f53a1d5ebb112"
+    },
+    {
+      "relationship": "helper",
+      "helper_key": "issue696-terminal-chain-metadata-repair",
+      "state": "RESERVING",
+      "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
+      "reservation_token": "issue696-terminal-chain-metadata-repair-20260927a",
+      "reserved_at": "2026-09-27T07:05:00Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
     }
   ]
 }
