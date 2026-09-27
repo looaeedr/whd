@@ -6,17 +6,17 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.683.20260927T0832.ha-transport",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue683-main-mirror-20260927",
+  "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
-  "base_sha": "cb80310e2643d1ab9624e90085d4abda6e4d125e",
-  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
+  "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
+  "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:42:00Z",
-  "production_target": "main",
+  "last_update": "2026-09-27T10:44:00Z",
+  "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "work/issue683-ha-transport-projection-20260927"
+    "governance/issue683-main-mirror-20260927"
   ],
   "remote_qa": {
     "run_id": 36311528696,
@@ -27,7 +27,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Open the governance-only paired PR from governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 to main@cb80310e2643d1ab9624e90085d4abda6e4d125e; add reciprocal WHD-Governance-Mirror-Pair markers between that PR and #848; require the main paired Governance Mirror Hard Gate GREEN; merge main mirror first; hand primary authority back to work/issue683-ha-transport-projection-20260927; rerun #848 Governance Mirror Hard Gate and merge #848.",
+  "next_action": "Update cleanup PR #848 body to add exactly one reciprocal marker `WHD-Governance-Mirror-Pair: #850`, then require #848 Governance Mirror Hard Gate GREEN. After cleanup-side parity is GREEN, hand primary authority back to governance/issue683-main-mirror-20260927, re-trigger/recheck PR #850 Governance Mirror Hard Gate against reciprocal #848, merge #850 to main, then hand back and merge #848.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -79,17 +79,19 @@
     "Per accepted #836 current-ticket repair contract, parity repair stays on Issue #683; no helper Issue is opened. Delegated branch governance/issue683-main-mirror-20260927 reserved for same-owner main mirror.",
     "Coord write consumes existing exact GREEN Guard 36312375461 / request 5855008090 / result 5855009519 for issue-683 claim+checkpoint pair.",
     "Main mirror bridge commit 63ce016fc789c80aa110a0fd289779f48ada7821 is a two-parent commit connecting main@cb80310e... and accepted #683 head 6156cf8c...; fresh compare to main changes only canonical Authority Map.",
-    "Primary authority handoff to same-ticket main mirror consumes write Guard 36313318528 / request 5855116342 / result 5855117720; original cleanup branch remains delegated."
+    "Primary authority handoff to same-ticket main mirror consumes write Guard 36313318528 / request 5855116342 / result 5855117720; original cleanup branch remains delegated.",
+    "Paired main PR #850 created from same #683 owner at mirror head 63ce016f, base main@cb80310e, changed_files=1, body marker points to #848.",
+    "Primary authority handback to cleanup consumes write Guard 36313427044 / request 5855132981 / result 5855134889."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36313318528,
-    "request_comment_id": 5855116342,
-    "result_comment_id": 5855117720,
+    "run_id": 36313427044,
+    "request_comment_id": 5855132981,
+    "result_comment_id": 5855134889,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #683 primary authority to same-ticket main governance mirror"
+    "mutation": "handoff #683 primary authority back to cleanup branch for reciprocal PR marker"
   }
 }

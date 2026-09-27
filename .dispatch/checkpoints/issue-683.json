@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "683",
-  "branch": "governance/issue683-main-mirror-20260927",
-  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
+  "branch": "work/issue683-ha-transport-projection-20260927",
+  "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "state": "RUNNING",
-  "next_action": "Open the governance-only paired PR from governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 to main@cb80310e2643d1ab9624e90085d4abda6e4d125e; add reciprocal WHD-Governance-Mirror-Pair markers between that PR and #848; require the main paired Governance Mirror Hard Gate GREEN; merge main mirror first; hand primary authority back to work/issue683-ha-transport-projection-20260927; rerun #848 Governance Mirror Hard Gate and merge #848.",
+  "next_action": "Update cleanup PR #848 body to add exactly one reciprocal marker `WHD-Governance-Mirror-Pair: #850`, then require #848 Governance Mirror Hard Gate GREEN. After cleanup-side parity is GREEN, hand primary authority back to governance/issue683-main-mirror-20260927, re-trigger/recheck PR #850 Governance Mirror Hard Gate against reciprocal #848, merge #850 to main, then hand back and merge #848.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -42,7 +42,9 @@
     "Governance Mirror Hard Gate run 36312072884 requires an open reciprocal paired PR because opposite-production parity is not yet satisfied.",
     "Same-ticket delegated main mirror branch reserved under #683; no parity helper Issue.",
     "Main mirror bridge 63ce016f fresh compare to main is governance-only: exact Authority Map file.",
-    "Primary authority temporarily handed to governance/issue683-main-mirror-20260927 for paired PR; original cleanup branch retained delegated."
+    "Primary authority temporarily handed to governance/issue683-main-mirror-20260927 for paired PR; original cleanup branch retained delegated.",
+    "Main paired PR #850 exists and points to #848; cleanup PR #848 now needs reciprocal marker #850.",
+    "Primary authority handed back to cleanup branch under Guard 36313427044."
   ],
   "master_issue": null,
   "chain_state": "NONE",
