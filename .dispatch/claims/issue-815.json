@@ -9,14 +9,14 @@
   "work_branch": "integration/issue815-issue702-a7-20260927",
   "claimed_at": "2026-09-27T04:56:30Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T04:56:30Z",
+  "head_sha": "66014b568c921af2aa14fecb045b86b9cc60a955",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T05:05:21Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain exact branch-create Guard GREEN, create/read back integration branch from current cleanup/2d-3d-sync@82ae127615157528b3de12cd4bc3c01127d3fafd, reproduce only sealed #702 H4 f8a3397551c5975dafd842e8dcd28c1d4edcca32 effective 11-file delta compatibly on current X, run focused #702 acceptance, then integrate non-force back to cleanup and return terminal proof to #702.",
+  "next_action": "Run focused #702 amendment acceptance/regression remotely on exact integration head 66014b568c921af2aa14fecb045b86b9cc60a955. If GREEN, clean any temporary QA workflow, audit closing drift, obtain pr-write Guard, open integration PR to cleanup/2d-3d-sync, verify live target overlap/mergeability, then merge non-force.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-815.json",
   "evidence": [
@@ -24,6 +24,20 @@
     "Sealed accepted #702 source head=f8a3397551c5975dafd842e8dcd28c1d4edcca32.",
     "Current production integration base=cleanup/2d-3d-sync@82ae127615157528b3de12cd4bc3c01127d3fafd.",
     "Parent branch c59d73e245d2b4732c738a01bd062eb32763a05a and PR #811 are explicitly non-authoritative for integration and must not be merged/reconciled.",
-    "Scope is integration-resolution only; no new #702 product behavior."
-  ]
+    "Scope is integration-resolution only; no new #702 product behavior.",
+    "Branch-create Guard 36295900642 GREEN; integration branch created/read back at exact base 82ae127615157528b3de12cd4bc3c01127d3fafd.",
+    "11-file integration H1=66014b568c921af2aa14fecb045b86b9cc60a955 is a single direct child of current-X base and changes exactly the authorized #702 effective delta.",
+    "H1 core blobs exact sealed H4: manifest 03f955e9f137b8fb8f2f713962235ea21ebc38c1; matrix 8103498a222d1f39164a537d308ef23011b512dc; test ecc5e4b687571a76230456698402c51c8357e708.",
+    "All eight CURRENT/AI Library files preserve current-X content and contain exactly one ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 marker.",
+    "Post-commit reconciliation Guard 36296176345 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36296176345,
+    "result": "GREEN",
+    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "consumed": true,
+    "mutation": "reconcile #815 integration H1 and advance to focused acceptance"
+  }
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "815",
   "branch": "integration/issue815-issue702-a7-20260927",
-  "head_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
+  "head_sha": "66014b568c921af2aa14fecb045b86b9cc60a955",
   "state": "RUNNING",
-  "next_action": "Obtain exact branch-create Guard GREEN, create/read back integration branch from current cleanup/2d-3d-sync@82ae127615157528b3de12cd4bc3c01127d3fafd, reproduce only sealed #702 H4 f8a3397551c5975dafd842e8dcd28c1d4edcca32 effective 11-file delta compatibly on current X, run focused #702 acceptance, then integrate non-force back to cleanup and return terminal proof to #702.",
+  "next_action": "Run focused #702 amendment acceptance/regression remotely on exact integration head 66014b568c921af2aa14fecb045b86b9cc60a955. If GREEN, clean any temporary QA workflow, audit closing drift, obtain pr-write Guard, open integration PR to cleanup/2d-3d-sync, verify live target overlap/mergeability, then merge non-force.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "Helper #815 created only after parent #702 durable helper reservation.",
     "Current X base=82ae127615157528b3de12cd4bc3c01127d3fafd.",
     "Sealed accepted #702 H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32.",
-    "PR #811/c59 are not valid integration authority; fresh integration-resolution required."
+    "PR #811/c59 are not valid integration authority; fresh integration-resolution required.",
+    "Integration H1=66014b568c921af2aa14fecb045b86b9cc60a955 exact authorized 11-file delta from base 82ae127615157528b3de12cd4bc3c01127d3fafd.",
+    "Core sealed blobs exact; all eight writeback markers present exactly once.",
+    "Post-commit reconciliation Guard 36296176345 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "master_issue": null,
   "chain_state": "NONE",
