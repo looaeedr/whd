@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Mint and verify the bound finalization proof on exact ISSUE_CLOSE_PENDING checkpoint, close #805, fresh-read closed/completed, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED under a fresh local canonical write guard.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-805.json",
   "evidence": [
@@ -46,7 +46,10 @@
     "PR #807 merged non-force to cleanup/2d-3d-sync; merge commit 8147c4319aa02824bd08ca4fd51491df7342e1a6.",
     "Fresh cleanup capability readback: all takeover parser lines use real CRLF/LF normalization and #722 regression blob equals accepted main.",
     "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write.",
-    "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write."
+    "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write.",
+    "Remote Finalization run 36292884585 GREEN / FINALIZATION_PROOF_VALID for request 5852448918.",
+    "Owning Issue #805 fresh-read closed/completed at 2026-09-27T03:59:13Z.",
+    "Trusted-main local execution_claim_guard GREEN for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write."
   ],
   "last_guard": {
     "action": "write",
@@ -54,6 +57,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #805 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #805 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   }
 }
