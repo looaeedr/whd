@@ -172,6 +172,32 @@ GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consu
 ## Interactive liveness / provenance gap
 #646 暴露 scheduler 有 heartbeat、chatgpt_interactive 沒有對稱 runtime liveness，且 generic executor_source 無法指出哪個聊天室。Required follow-up：interactive heartbeat；conversation/chat identity + invocation identity；scheduler lane + invocation identity；heartbeat不得取代 ownership authority。
 
+## 2026-09-26 — legacy post-commit receipt-window drift
+
+症狀：historical work commit 已存在、claim/checkpoint 尚停在 H0；H1 又確實是 H0 direct child、changed files 也與 prior GREEN Guard 完全一致，但 commit timestamp 晚於該 receipt 的 `expires_at`。ordinary post-commit reconciliation 會正確 FAIL，不能因「看起來就是那顆 commit」直接補 claim HEAD。
+
+修復規則：只走 `LEGACY_POSTCOMMIT_RECONCILIATION_REPAIR_V1`。owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1` 必須 exact 綁 current claim blob、H0/H1、prior Guard run/request 與 actual changed files；trusted Remote Guard 再 fresh-read GitHub durable evidence。只允許 direct-child、唯一 expired matching receipt，且只做 claim/checkpoint HEAD reconciliation。任何 identity drift、merge/multi-hop、extra file 或 multiple candidate 都 fail closed。此 escape hatch 不得取代 normal receipt-window discipline。
+
+## EXECUTION_INTENT_SCOPE_EXPANSION_PITFALL_V1
+
+### 事故
+
+Continuity 的「non-terminal 不能停」與 Master chain 的「NEXT_CHILD_EXECUTABLE 要續做」若缺少 execution-intent boundary，會把正確的持續執行規則錯用到 `UPDATE_ONLY` 或單票 `EXECUTE_TICKET`：
+
+- 更新一條規則後因 repo 還有 open Issue 而自動開始施工；
+- 單票 closure 完成後只因 dependency graph 有 successor 就自動 claim 下一張；
+- recovery capability 被當成每張票固定 lifecycle phase。
+
+### 永久規則
+
+- Continuity 只能延續已授權 execution mode，不能創造 execution authority。
+- `UPDATE_ONLY` 不進 continuity execution state machine。
+- `EXECUTE_TICKET` 只 resume / close 當前 ticket，不因 successor 可見而擴張 scope。
+- 只有 `EXECUTE_CHAIN` / `SCHEDULER_LANE` 才能把 `NEXT_CHILD_EXECUTABLE` 當成跨 ticket continuation authority。
+- `ISSUE_EXISTENCE_IS_NOT_EXECUTION_AUTHORITY`：open/unblocked Issue、空工作槽、next_action、Guard availability 皆不足以啟動新 scope。
+- `RECOVERY_IS_EXCEPTION_NOT_PHASE`：`RECOVERING` 只在 fresh machine evidence 證明 failure/drift/interruption 後存在；修復後立即回 `RUNNING` normal path。
+- 這些規則不放寬 claim/Guard/finalization safety；它們只限制 scope expansion 與 recovery routing。
+
 ## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_PITFALL_V1
 
 ### 事故
@@ -191,3 +217,65 @@ GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consu
 
 Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 issue/branch/head/`TERMINAL_SUCCESS`，把 malformed closure lifecycle 正規化成 `FINALIZATION_PENDING`。任何其他 drift 或已合法 closure state 一律拒絕。Repair 之後仍必須重新走 Remote Finalization → Issue close/readback → atomic CLOSED + RELEASED。
 
+## 2026-09-27 — 中途回報被誤當停止點 / BLOCKED proof 不夠 fresh-unique
+
+### 事故
+
+#687 已把 bare `BLOCKED` 升級成需要 `exhaustive + executable_leaf_count=0` 的 machine proof，但仍留下三個可重複風險：
+
+- evidence 字串可以自稱「fresh」，沒有 machine timestamp freshness；
+- blocker 沒有 canonical identity/count，無法證明真的是**唯一** blocker；
+- blocker proof 只作 caller 參數，沒有持久化在 owning checkpoint；trusted/live gate 也容易把 genuine BLOCKED 與 terminal closure 混成同一路徑。
+
+這會讓「我已回報進度／我現在 BLOCKED」有機會被錯解成自然 turn boundary，或反過來讓 genuine external blocker 被 terminal close/release contract 卡住。
+
+### 永久修正
+
+`TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1`：
+
+1. **中途回報永遠不是停止權限**。progress/status/CHECKPOINT/Guard result/partial QA 都只是 observation。
+2. 正常 return 只有兩條：真正 terminal closure，或 canonical fresh unique BLOCKED proof。
+3. BLOCKED proof 必須 durable 寫入 owning checkpoint，並由 `tools/continuity_controller.py` 驗：
+   - `exhaustive=true`；
+   - `executable_leaf_count=0`；
+   - `blocker_count=1`；
+   - canonical `blocker_id` 類別與 stop reason 一致；
+   - timezone-aware `observed_at`，max age 300 秒、future skew 30 秒。
+4. progress/checkpoint/status 觀測 identity 不得冒充 blocker；proof stale、多 blocker、仍有 executable leaf一律 RED。
+5. genuine BLOCKED 是 non-terminal：Issue 保持 open、claim 保持 active；不可用 BLOCKED 順便 close/release。
+6. active remote run / delegated executable work 存在時，即使 blocker proof 其他欄位都對，也不得 turn-exit。
+7. proof 過期必須 fresh-read external durable state 並更新 checkpoint；禁止 replay 舊 evidence。
+8. hard gate RED 且仍有合法自主 path時，同一 turn 立即繼續，不得先回報後 return。
+
+Primary machine regression：`tests/process/test_issue787_turn_exit_blocker_authority.py`、`tests/process/test_issue644_trusted_turn_exit_gate.py`。文件只 bridge；唯一 runtime evaluator 仍是 `tools/continuity_controller.py`。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `continuity_controller`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Checkpoint/next_action continuity stays machine-owned; terminal closure requires verified finalization and atomic CLOSED+RELEASED.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## 2026-09-26 — local Guard stdout GREEN 不等於 durable post-commit authority
+
+症狀：runtime 本機執行 `tools/execution_claim_guard.py` 得到 `EXECUTION_CLAIM_GUARD_GREEN` 後完成 commit，但 shared claim 仍停在 H0；既有 reconciler 只會消耗 Remote Guard request/receipt，因此 H1 雖合法卻無 durable receipt 可被 machine 反讀。
+
+永久修正：local Guard mutation 若會讓 branch H0→H1，必須把結果持久化成 owning Issue 上唯一的 owner-authored `WHD_LOCAL_GUARD_RECONCILE_V1`，exact 綁 issue/worker/source/branch/base/current claim blob/H0/H1/actual changed files；reconciler 透過 `--local-guard-proof` fresh-read 驗證。local proof 僅允許單一 direct-child H1，duplicate/malformed/foreign/mismatched proof 一律 fail closed。若無法 durable 化 local GREEN，該 mutation 改走 Remote Guard，禁止再留下只有 stdout 的 Guard authority。
+
+## TERMINAL_SCHEDULER_NO_CENSUS_FALSE_EXIT_PITFALL_V1
+
+### 事故
+scheduler child 已 `TERMINAL_SUCCESS / CLOSED / RELEASED` 時，舊 canonical turn-exit 只驗 child closure、claim release、active run/delegated work；因此即使 lane 還有 scheduler-authorized ready leaf，也可能先產生 `TURN_EXIT_PERMITTED`，再由 scheduler END 合法收工。若 `READY_WORK_CENSUS_V1` 只存在 prompt/Skill，仍只是 documentation，不是 executable stop gate。
+
+### 永久防線
+- scheduler lane normal exit 另需 machine-readable `READY_WORK_CENSUS_V1` proof。
+- proof exact 綁 lane、invocation、claim/checkpoint blobs、checkpoint fingerprint 與本次 turn-exit request identity；舊 proof / replay / durable observation drift 一律 fail closed。
+- `MUST_CLAIM` 或 `executable_leaf_count > 0` 固定 `EXECUTABLE_LEAF_EXISTS` 並暴露 exact continuation；不能先 END 再等下一 wake。
+- zero-leaf 只有在 `exhaustive=true` 且每個 candidate 都有 fresh durable exclusion evidence + canonical exclusion classification 時可通過。
+- turn-exit receipt 必須帶 census fingerprint，scheduler END 必須 exact 綁同一 fingerprint，避免 pre-census permit 被重播。
+- #764 保持 producer/prompt SSoT；#769 consumer gate 不建立第二套 discovery authority。
+
+Primary owner：`tools/continuity_controller.py`；trusted transport：`.github/workflows/whd-turn-exit-gate.yml`；regression：`tests/process/test_issue769_terminal_scheduler_census_exit_gate.py`。

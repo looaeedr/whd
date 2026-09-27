@@ -100,6 +100,23 @@ evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接
 - coordination parent + prior claim blob 共同作 CAS identity；任何 drift fail closed。
 - repair 後的 branch HEAD drift仍走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得把 legacy repair 升格成 stale-head bypass。
 
+## BRANCH_CREATE_EXACT_READBACK_AUTO_CONSUME_V1（2026-09-26）
+
+### 事故
+#689、#691 都出現同一類停滯：`branch-create` Guard 已 GREEN，branch 也實際建立且 HEAD 正確，但 caller 沒把 action-specific durable readback交回 transaction classifier，就直接送下一顆 commit/write Guard。安全 gate 會正確回 `PENDING_GUARD_TRANSACTION / CONSUME_GUARD_TRANSACTION`，但流程因此卡死。
+
+### 永久規則
+- `branch-create` 的 mutation postcondition就是「remote branch 存在於 exact guarded HEAD」，因此 trusted Remote Guard 可直接 fresh-read GitHub branch 作 durable readback。
+- 只有 prior exact GREEN receipt 的 issue/worker/source/branch/base/claim blob/head/tested-target 全部仍匹配，且 live branch HEAD exact 等於 receipt head 時，才投影 `mutation_applied=true / reconciled=true / branch_exists=true / branch_head_sha=<exact>`。
+- canonical classifier 收到這份 readback後，transaction 直接進 `CONSUMED`；後續 Guard 可正常前進，不要求 caller 另寫 consume marker。
+- branch missing、wrong HEAD、identity drift 一律不建立 readback，維持 fail closed。
+- 這個 auto-consume **只適用 branch-create**。commit/write/pr-write/qa-dispatch/workflow-dispatch/claim-takeover 仍要原本的 action-specific mutation proof與 coordination reconciliation。
+- 禁止用 claim reactivate、換 claim blob、重送 Guard 來當 branch-create 的一般恢復流程。
+
+Regression：`tests/process/test_issue731_branch_create_auto_consume.py`。
+Main RED：run `36250856862`；Main GREEN：run `36251018227`。
+Live post-deploy smoke：#733 branch-create run `36251598650` 後未 reactivate，下一顆 commit Guard run `36251633978` 直接 GREEN。
+
 ## LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_RECOVERY_V1（2026-09-26）
 
 ### 事故
@@ -117,25 +134,6 @@ evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接
 
 Primary regression：`tests/process/test_issue675_legacy_expired_postcommit_recovery.py`。Governance owner：#675。
 
-## BRANCH_CREATE_EXACT_READBACK_AUTO_CONSUME_V1（2026-09-26）
-
-### 事故
-#689、#691 都出現同一類停滯：`branch-create` Guard 已 GREEN，branch 也實際建立且 HEAD 正確，但 caller 沒把 action-specific durable readback交回 transaction classifier，就直接送下一顆 commit/write Guard。安全 gate 會正確回 `PENDING_GUARD_TRANSACTION / CONSUME_GUARD_TRANSACTION`，但流程因此卡死；#689 曾用 reactivate/換 claim blob 才繞開，這不應成為常態 recovery。
-
-### 永久規則
-- `branch-create` 的 mutation postcondition就是「remote branch 存在於 exact guarded HEAD」，因此 trusted Remote Guard 可直接 fresh-read GitHub branch 作 durable readback。
-- 只有 prior exact GREEN receipt 的 issue/worker/source/branch/base/claim blob/head/tested-target 全部仍匹配，且 live branch HEAD exact 等於 receipt head 時，才投影 `mutation_applied=true / reconciled=true / branch_exists=true / branch_head_sha=<exact>`。
-- canonical classifier 收到這份 readback後，transaction 直接進 `CONSUMED`；後續 Guard 可正常前進，不要求 caller 另寫 consume marker。
-- branch missing、wrong HEAD、identity drift 一律不建立 readback，維持 fail closed。
-- 這個 auto-consume **只適用 branch-create**。commit/write/pr-write/qa-dispatch/workflow-dispatch/claim-takeover 仍要原本的 action-specific mutation proof與 coordination reconciliation，不能拿本規則擴張成 generic auto-consume。
-- 禁止用 claim reactivate、換 claim blob、重送 Guard 來當 branch-create 的一般恢復流程；那只是 #731 修補前的 bootstrap workaround。
-
-Regression：`tests/process/test_issue731_branch_create_auto_consume.py`。
-Focused RED：run `36250856862`。
-Focused GREEN：run `36251018227`。
-
-
-
 ## MAIN_TO_X_BATCH_FIRST_PARITY_V1 — per-fix helper fragmentation
 
 ### 事故
@@ -152,6 +150,7 @@ Focused GREEN：run `36251018227`。
 - X 更新後不得倒灌 active frozen chains；`FROZEN_X_BASE_SHA` 不變。
 
 Governance owner：#736。Parent parity rule：#692。
+
 ## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1（2026-09-26）
 
 ### 事故
@@ -166,6 +165,7 @@ Governance owner：#736。Parent parity rule：#692。
 - 這條規則只補 `pr-write` durable readback，不放寬 commit/write/dispatch/takeover。
 
 Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Owner：#739。
+
 ## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1（#739）
 
 ### 事故
@@ -181,7 +181,15 @@ Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Owner：#7
 
 Regression：`tests/process/test_issue739_write_auto_consume.py`。
 
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
 
+- domain: `execution_claim_guard`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Ownership mutation stays guarded; takeover authority must lead to a substantive action and planned handoff is distinct from stale takeover.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
 ## INTERVENING_CLAIM_BLOB_REFRESH_POSTCOMMIT_PITFALL_V1
 
@@ -223,3 +231,19 @@ Canonical owner：`tools/execution_claim_guard.py`；trusted transport：`.githu
 6. regression 必須同時鎖 valid wrapped content、malformed content、non-ASCII whitespace 與 SHA mismatch。
 
 Canonical owner：`tools/execution_claim_guard.py::_historical_claim_payload_from_blob`。
+
+
+## 2026-09-27 — governance parity 有 evaluator 但沒有雙向 mirror hard gate
+
+### 事故
+#692 已有 `tools/governance_parity_gate.py`，#736 也有 main→X batch-first contract，但它們仍可能留下三個洞：parity direction 被寫死成 main→X、main 可收到非治理主體、以及 evaluator 沒有常駐 workflow 對 branch tip fresh-read。
+
+### 永久防線：BIDIRECTIONAL_GOVERNANCE_MIRROR_HARD_GATE_V1
+- `main` 與 `cleanup/2d-3d-sync` 只在 governance manifest scope 形成雙向 mirror；產品 authority 固定 cleanup。
+- mirror evaluator 必須接受兩個方向，且 `UNKNOWN_DIVERGENCE` fail closed。
+- target=`main` 時，manifest 外任何 changed path 固定 `NON_GOVERNANCE_PATH_TO_MAIN`；禁止 full cleanup merge/cherry-pick 把產品碼帶入 main。
+- PR gate 先驗 changed-file scope；push sentinel 再 fresh-fetch 兩 branch 的 governed blobs。單邊先落盤可以短暫 RED，但工單不得 terminal/closure，直到另一邊 mirror 後 live parity GREEN。
+- ruleset 若未把 status check 設為 required，workflow RED 仍是 durable blocker，但不應被描述成 GitHub branch-protection 已硬擋 merge；required-check wiring 必須另有實際 ruleset evidence。
+- active X chains 保持 frozen base，不追 governance mirror tip。
+
+Canonical evaluator：`tools/governance_parity_gate.py`；scope：`docs/governance/governance_mirror_manifest.json`；transport：`.github/workflows/whd-governance-mirror-gate.yml`；regression：`tests/process/test_issue816_bidirectional_governance_mirror.py`。

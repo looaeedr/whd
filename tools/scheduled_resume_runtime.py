@@ -15,6 +15,7 @@ from tools.continuity_controller import (
     Checkpoint,
     CheckpointError,
     ContinuityState,
+    UNRESOLVED_OPERATION_STATES,
     transition_checkpoint,
 )
 
@@ -247,6 +248,21 @@ def evaluate_scheduled_wake(
     now = _normalize_now(now)
     if remote_stale_after.total_seconds() <= 0:
         raise CheckpointError("remote stale threshold must be positive")
+
+    if (
+        checkpoint.operation is not None
+        and checkpoint.operation.state in UNRESOLVED_OPERATION_STATES
+    ):
+        return ScheduledWakeEvaluation(
+            checkpoint=checkpoint,
+            disposition=ScheduledWakeDisposition.CONTINUE_RECOVERY,
+            next_action=checkpoint.operation.recovery_action,
+            reason=(
+                f"operation {checkpoint.operation.operation_id} "
+                f"state={checkpoint.operation.state.value} requires recovery "
+                "before ordinary checkpoint next_action"
+            ),
+        )
 
     if checkpoint.state is ContinuityState.RUNNING:
         return ScheduledWakeEvaluation(

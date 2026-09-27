@@ -9,6 +9,22 @@ whd_schema: WHD_DOC_META_V1
 
 # Executable Continuity Controller
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+Continuity 只延續**已授權 execution mode**，不能把 observation 或 update 自動升級成施工。
+
+- `UPDATE_ONLY 不進 continuity execution state machine`：update 完成 + 必要 readback 後即可結束該 update scope；不得因 repo 另有 open Issue 或 ready successor 進入 RUNNING。
+- `EXECUTE_TICKET`：先 resume exact owning ticket；不得把 arbitrary open/unblocked Issue 當 continuation。但本票若由 canonical durable state 明確進入 `NEXT_CHILD_EXECUTABLE`，或指定 exact closure/successor owner，必須把該 exact handoff 解讀為原授權鏈的 continuation。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE` 可依各自 broader chain/lane authority continuation；它們不是 `NEXT_CHILD_EXECUTABLE` 唯一允許的 mode。
+- 不得因單純 open / unblocked successor 自動升級 execution scope；只有 exact durable handoff authority 可自動續接。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+`RECOVERING` 是 fresh machine evidence 已證明 failure/drift/interruption 後的暫時 state，不是每張票都要走的 lifecycle phase。沒有 recovery evidence 時直接維持/回到 RUNNING normal path；condition 修復後立即離開 RECOVERING。
+
+本節只限制未授權 discovery，不得覆蓋後文 Master-chain continuation hard gate：若 checkpoint 只是「看得到」某個 successor，不能啟動；但若 canonical chain state 已是 `NEXT_CHILD_EXECUTABLE` / exact closure-successor handoff，該 successor 已是 durable execution authority，必須續接。
+
+
 ## EXECUTION_SCOPE_AUTHORITY_GATE_V1
 
 Continuity is allowed to continue **only inside an already-authorized execution scope**. It must never create authority for a new phase, architecture, ownership boundary, or task chain.
@@ -307,7 +323,7 @@ Turn-exit state contract：
 - `RUNNING`：**拒絕 turn exit**；立即執行 `next_action`。
 - `WAITING_REMOTE`：**拒絕 turn exit**；維持 exact run/head lock 並 poll。
 - `RECOVERING`：**拒絕 turn exit**；沿 evidence → root cause → fix → retry。
-- `BLOCKED`：允許結束目前 turn，因為它代表真正需要外部 authority/capability；但它仍是 non-terminal，state-only `assert_finalizable` 與 owned finalization guard 都必須失敗。
+- `BLOCKED`：**state 本身不授權 turn exit**。只有 owning checkpoint 內含 canonical、fresh、唯一 blocker 的 machine proof，且 exhaustive path census 證明沒有任何可自主執行 leaf，才可結束目前 turn；它仍是 non-terminal，Issue 保持 open、claim 保持 active，且 `assert_finalizable` / owned finalization guard 必須失敗。
 - `TERMINAL_SUCCESS / TERMINAL_FAILURE`：允許 turn exit；workflow/issue 是否可真正 closure 仍要求 owned finalization guard + current proof + owning closure gate。
 
 `assert_turn_exitable` 與 finalization authorization 不得互相取代。前者回答「目前 assistant response 能不能停」，後者回答「workflow/issue 能不能被宣告 terminal／執行 closure」。
@@ -365,6 +381,26 @@ checkpoint 在 guard 後只要被改寫，先前 proof 立即失效。`BLOCKED` 
 - successful guard invocation 產生 bound proof；
 - checkpoint 改寫後 proof stale 並 fail closed。
 
+## TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1
+
+**中途回報不等於停止點**：progress、status、CHECKPOINT、Guard result、局部 PASS/FAIL 都只可觀測目前 durable state；它們本身永遠不能 mint turn-exit authority。正常 assistant turn 只能從下列兩條 machine path 離開：
+
+1. **真正終態**：沿既有 terminal closure contract 完成 required acceptance、finalization、Issue close/readback、claim release 與 chain handoff；不得把 code integrated、QA GREEN 或 child terminal 假裝成完整終態。
+2. **fresh unique BLOCKED**：owning `Checkpoint.blocked_exit_proof` 必須由 `tools/continuity_controller.py` 驗證全部條件：
+   - `exhaustive=true`；
+   - `executable_leaf_count=0`，所有合法替代路徑已 fresh census；
+   - `blocker_count=1` 且 `blocker_id` 非空；
+   - `blocker_id` 類別必須與 `stop_reason` 一致：`external-authority:` / `capability:` / `no-executable-path:`；
+   - `observed_at` 必須是 timezone-aware fresh UTC evidence；canonical max age 為 **300 秒**、只容許 **30 秒** future clock skew；
+   - 不得存在 active remote run / delegated executable work；
+   - BLOCKED 是 non-terminal：owning Issue 必須仍 open，claim 必須仍是 active phase，不得先 RELEASE 或關 Issue。
+
+以下全部 fail closed：proof 缺失、timestamp stale、blocker 多於一個、blocker identity 缺失／類別不合、仍有 executable leaf、拿 `progress-report / checkpoint-report / status-update` 等觀測事件冒充 blocker、或 durable proof 與 supplied proof identity drift。
+
+BLOCKED proof 必須**持久化在 owning checkpoint**；外加參數只作同一 canonical proof 的 compatibility/readback boundary，不能建立第二個 proof source。proof freshness 過期後必須重新 fresh-read external durable state 並更新 checkpoint，禁止 replay 舊 blocker evidence。
+
+若 hard gate RED，且仍存在可自主執行 path，executor 必須在**同一 turn 立即繼續 next legal action**；不能先做 user-visible progress report 然後 return。Primary behavior authority：`tools/continuity_controller.py` + `tests/process/test_issue787_turn_exit_blocker_authority.py` + `tests/process/test_issue644_trusted_turn_exit_gate.py`。
+
 ## MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
 
 Checkpoint 的 `TERMINAL_SUCCESS / TERMINAL_FAILURE` 只描述**目前 child**。若 child 屬於仍未完成的 Master/work-order chain，還必須攜帶 structured continuation：
@@ -408,6 +444,42 @@ fresh claim/blob + live branch HEAD/commit time + exact remote run
 這個 **600 秒 claim-owner stale threshold** 仍保留給一般 foreign owner；foreign scheduler 另有 runtime-liveness orphan path，canonical grace 為 90 秒。兩者都不能繞過 active exact run：只要 exact remote run 還 active，就先服從 `RUN_LIVE`。scheduler lane 是 durable owner key，不等於上一輪 invocation 還活著；same-lane 新 invocation直接 resume，foreign sibling則以 owner-authored短效 lease判斷 runtime liveness。
 
 Machine behavior authority：`tests/process/test_issue540_stale_claim_takeover.py`。9m59s 必須 wait，10m00s 才可 `EXECUTOR_STUCK`；active exact run 永遠先阻擋 takeover。
+
+
+## GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1
+
+`GitHub durable state重新接` 是 runtime re-entry / stream-loss recovery 的 **machine execution hard gate**，不是聊天摘要，也不是 optional status check。
+
+下列任一事件發生時，在任何 resume、mutation、waiting/blocker/completion 判定之前都必須先執行本 gate：
+
+- fresh ChatGPT runtime / scheduled wake / work-slot wake；
+- `Resume stream unavailable`、connection/stream interruption、response hard-cut；
+- 使用者明確要求「從 GitHub durable state重新接」；
+- 對話上下文、聊天記憶、local checkpoint 與 GitHub durable evidence 可能 stale；
+- owning work 看似停在 PR merge、QA terminal、finalization、closure/release 或 successor handoff 中間。
+
+固定 fresh reconstruction set 至少包含：
+
+1. owning Issue：`state + state_reason + authority/dependency/closure owner`；
+2. shared claim：exact path、**claim blob SHA**、worker/executor/slot/branch/head/phase/next_action；
+3. checkpoint：exact path、**checkpoint blob SHA**、state、closure_state、chain_state、run_id、exact next_action；
+4. exact **work branch HEAD** 與 claim/checkpoint owner identity parity；
+5. exact **production target HEAD** 與 integration/readback relation；
+6. checkpoint/claim 指向 PR 或 remote run 時，fresh-read exact PR / Actions run terminal state；
+7. Remote Guard transaction：fresh classify pending / consumed / reconcile-only / expired / ambiguous；
+8. closure/chain handoff：fresh resolve exact `next_issue / closure_next_action / chain_next_action`。
+
+硬規則：
+
+- reconstruction 完成前，**不得宣告 WAITING**、**不得宣告 BLOCKED**、**不得宣告 COMPLETE**，也不得用聊天文字推斷 owner/next step。
+- **不得靠聊天記憶**、先前 assistant 回報、local branch 名稱、舊 stdout 或舊 run snapshot 補缺失欄位。
+- GitHub durable evidence 與聊天記憶衝突時，fresh GitHub durable state 為 execution authority；聊天只作 provenance。
+- stale snapshot / stale next_action 只能觸發 reconcile；不得成為停止理由。
+- reconstruction 得到 non-terminal executable action 後，必須在同一 invocation **立即執行 exact next_action**；不得只回報「已重新接回」後 return。
+- reconstruction 得到 `NEXT_CHILD_EXECUTABLE` 時立即沿 canonical successor handoff；得到 pending closure 時立即沿 closure transaction；得到 active exact run 時鎖 exact run/head 繼續 poll。
+- 只有 genuine external capability/authority blocker、explicit USER_STOPPED、或 evidence-backed terminal + closure/chain complete 才能形成合法 turn boundary。
+
+本 gate 不建立第二套 checkpoint schema；canonical state parser/transition 仍由本 Skill + `tools/continuity_controller.py` 擁有。各入口 Skill 只能 bridge，不得複製較鬆版本。
 
 ## CHATGPT_SCHEDULED_REENTRY_V1
 
@@ -529,3 +601,25 @@ Repair 只接受 exact `issue + branch + head_sha + TERMINAL_SUCCESS` identity�
 
 Trusted transport 必須 exact bind `prior_claim_blob_sha + prior_checkpoint_blob_sha + coord_parent_sha`；candidate claim byte-for-byte unchanged，candidate checkpoint 必須等於 pure repair 的 canonical payload。它不能 release claim、不能 close issue、不能取代 fresh Remote Finalization。Repair 完成後流程重新進入正常 closure transaction。
 
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `skill_continuity`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain canonical stop/continuity machine ownership; no prompt-local second state machine.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## TERMINAL_SCHEDULER_READY_WORK_CENSUS_TURN_EXIT_GATE_V1
+
+`TERMINAL_SUCCESS + closure_state=CLOSED + claim=RELEASED` 只證明目前 child 已完整收尾，**不等於 recurring scheduler lane 已無工作**。當 durable claim 的 logical worker 是 `scheduler.*` 時，normal turn exit 必須再通過 canonical `READY_WORK_CENSUS_V1` consumer gate。
+
+- proof 必須 exact 綁 `scheduler_lane + invocation_identity + claim_blob_sha + checkpoint_blob_sha + checkpoint_fingerprint + current turn-exit request comment id`；任一 drift / replay / 缺欄位都 `TURN_EXIT_BLOCKED`。
+- proof 必須 `exhaustive=true`；每個 candidate 都要有非空 fresh durable evidence 與合法 exclusion classification：`FOREIGN_LIVE_OWNER / DEPENDENCY_BLOCKED / ACTIVE_EXACT_RUN / AUTHORITY_MISMATCH / SHARED_SCOPE_CONFLICT`。
+- `executable_leaf_count > 0` 或任何 `MUST_CLAIM` candidate 固定 `TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_EXISTS`，並攜帶 exact continuation action。
+- 只有 exhaustive zero-leaf proof 可讓 scheduler lane 通過 turn-exit；interactive non-scheduler claim 不被此 lane-only gate 擴張。
+- trusted `.github/workflows/whd-turn-exit-gate.yml` 把 census JSON 綁入 exact request comment，回傳 `ready_work_census_fingerprint`；scheduler END 必須綁同一 fingerprint，因此舊的 pre-census TURN_EXIT receipt 不得再 mint 合法 END。
+- #764 仍是 census producer / prompt+Skill SSoT；本 gate 只做 machine consumer enforcement，不修改或複製 #764 的 scheduler discovery state machine。
+
+Canonical owner：`tools/continuity_controller.py`。Focused regression：`tests/process/test_issue769_terminal_scheduler_census_exit_gate.py`。

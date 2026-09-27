@@ -9,6 +9,28 @@ whd_schema: WHD_DOC_META_V1
 
 # 遠端執行守門
 
+## EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+Guard 只驗證已授權 mutation；它不建立 execution authority、也不選工單。Guard GREEN 不會建立 execution intent，也不代表可以開始下一張票。
+
+- 沒有 explicit execution mode 時不得因 Guard 可用而開始施工。
+- `UPDATE_ONLY` 若只更新 automation/control-plane，Remote Guard 不得藉此 discovery/claim implementation work。
+- `EXECUTE_TICKET / EXECUTE_CHAIN / SCHEDULER_LANE` 已由上層取得 authority 後，Guard 才驗該 exact mutation。
+
+## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+Remote Guard 不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- Remote Guard request 前，上層 execution entrypoint 必須已完成 canonical startup declaration，且其 authorized scope 與目前 issue / worker / branch / HEAD / changed-file mutation 不衝突。
+- declaration 缺失或 scope mismatch 時，不得用 Guard request、receipt 或 recovery capability 替它補授權；回上層 authority 修正。
+- **Guard 不建立 execution authority**。Guard GREEN 仍只授權 request 綁定的單次 mutation，不會擴大 declaration、execution intent 或 successor scope。
+- 本 Skill 只消費／核對既有 authority，不複製六欄 schema、不建立第二套 parser；machine Guard 的既有 fail-closed identity 規則完全不放寬。
+
+### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+Remote Guard 的 takeover、post-commit reconciliation、invalid-phase repair、legacy checkpoint repair 都只在 fresh machine evidence 命中對應 recovery condition 時使用。normal path 的 clean mutation只跑該 mutation真正需要的 prewrite Guard；不得因 recovery capability 存在而預先 mint recovery receipt。
+
+
 本 Skill 把「scheduler 沒有 shell，因此不能跑 canonical execution claim guard」從永久 blocker 變成可驗證的遠端 guard 路徑。它不放寬 `派工` 的 claim/prewrite hard gate；它要求 GitHub Actions 在 exact identity 上真正執行同一支 `tools/execution_claim_guard.py`，再回傳 machine-readable receipt。
 
 ## 1. Responsibility boundary
@@ -76,7 +98,7 @@ Issue comment 第一行固定：
 必要欄位：
 - `issue=<positive issue number>`
 - `worker=<claim owner identity>`
-- `action=<branch-create|claim-takeover|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
+- `action=<branch-create|claim-takeover|claim-handoff|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
 - `branch=<exact claimed/delegated branch>`
 - `base_sha=<40-char claim base SHA>`
 - `head_sha=<40-char current claimed HEAD>`
@@ -123,6 +145,7 @@ Interactive user-directed takeover 額外硬閘門：
 - workflow 傳給 `tools/stale_claim_takeover.py --requesting-executor-source chat --user-authority-json ...`；
 - 缺 authority、過期、identity mismatch、active exact run、active delegated work 或 evaluator non-actionable 都 FAIL。
 
+
 對 foreign scheduler claim，trusted workflow 在 evaluator 前必須 fresh-read owning Issue comments，使用 `tools/scheduler_runtime_liveness.py` 選出 repository-owner authored、exact `issue + scheduler_lane` 的最新 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` comment，並把 current exact `claim_blob_sha` 一起傳給 stale evaluator。selector 回 MISSING 可進 orphan grace 判定；malformed relevant heartbeat、claim/blob/branch/head identity drift一律 fail closed。
 
 `RUN_LIVE`、`WAIT_ON_FOREIGN_RUNTIME`、`ALREADY_SCHEDULER`、`TERMINAL` 或 evaluator error 一律 Remote Guard FAIL；不得 mutation claim。
@@ -157,14 +180,13 @@ Request 前：
 
 任一 receipt/request/claim blob/parent/file scope/time-window 不吻合 → `REMOTE_GUARD_FAILED`，維持 blocker，不得偷改 claim。
 
-##### LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_V1
+#### LOCAL_GUARD_DURABLE_PARITY_V1
 
-只有歷史 mutation 已由 exact GREEN receipt 授權、但 commit timestamp 落在該 receipt window 之外的 legacy 半完成 transaction，才可使用 owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`。此 recovery **只放寬 historical receipt-time-window**，不放寬任何其他 identity。
+Remote Guard 的 receipt reconciliation 保持不變；local Guard parity 由 canonical `tools/execution_claim_guard.py` + 《派工》擁有，不建立第二套 ownership authority。
 
-- owning Issue top-level comment 必須由 repository owner 發出，第一行 exact `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`；至少綁 `issue / worker / executor_source / branch / claim_head_sha(H0) / live_head_sha(H1) / prior_guard_run_id / prior_request_comment_id / changed_file`。
-- canonical guard 仍必須證明 current claim blob、owner/source/branch/base、H0→H1 direct child、prior request + GREEN receipt、exact run/request identity 與 commit changed-file set全部一致；wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 一律 fail closed。
-- trusted Remote Guard 只透過 fixed-schema `legacy_reconcile_recovery_comment_id` 取得 exact owner comment，驗 author/issue/marker 後傳入 `--legacy-reconcile-recovery`；不得接受自由文字或把 comment 本身當 mutation authority。
-- ordinary post-commit reconciliation 與正常 receipt-window 行為完全不變；此 recovery 不得用於一般 stale-head write、production/Skill mutation、takeover 或 replay implementation。新的 trusted workflow 必須先部署到 default branch `main` 並 fresh readback，之後才能用於 #617/#671 live repair。
+當 local Guard 可用時，呼叫端只有在能把該次 local GREEN 持久化成 owning Issue 上唯一的 `WHD_LOCAL_GUARD_RECONCILE_V1` durable proof 時，才可讓 mutation 使用 local path。commit 後 reconciliation 必須把 fresh-fetched proof JSON 透過 `--local-guard-proof` 交給 canonical guard；machine gate exact 驗 issue/worker/source/branch/base/current claim blob/H0/H1/actual changed-file set，並限制 H1 為 H0 的單一 direct child。
+
+無 durable local proof 能力時，`LOCAL_GUARD_AVAILABLE` 不代表可以留下只有 stdout 的 GREEN；該 mutation 應改走 Remote Guard，以免 commit 成功後無 durable authority 可 reconcile。duplicate/malformed/stale/mismatched local proof 一律 fail closed，不得 fallback 成「相信聊天紀錄」。
 
 ### qa-dispatch / workflow-dispatch / pr-write
 同樣要求 fresh claim/blob/branch/head identity。receipt 只授權 request 中那一種 action。
@@ -425,15 +447,42 @@ Required follow-up：interactive heartbeat/liveness；chat conversation identity
 - trusted Remote Guard fresh-read branch；只有 branch **已存在且 HEAD exact 等於 prior receipt head/tested_target** 時，才可把該 receipt 投影成 `mutation_applied=true + reconciled=true` durable readback，交給 canonical `classify_guard_transaction` 視為 `CONSUMED`。
 - branch missing、HEAD 不符、claim blob/owner/branch identity 漂移時，一律不得 auto-consume；維持既有 PENDING / AMBIGUOUS / reconcile fail-closed。
 - 這個例外只適用 `branch-create`。commit/write/pr-write/dispatch/takeover 仍必須保留各自既有 action-specific durable readback / reconciliation，禁止類推放寬。
-- caller 不得再用 `reactivate`、換 claim blob、重送 Guard 當一般 branch-create consume 手段；trusted Guard 應先用 live branch exact readback 自動完成 recovery。
+- caller 不得再用 `reactivate`、換 claim blob、重送 Guard 當一般 branch-create consume 手段；trusted Guard 應先用 live branch exact readback自動完成 recovery。
 
-Canonical implementation：`tools.execution_claim_guard.durable_branch_create_readbacks_from_live_branch`；trusted wiring：`.github/workflows/whd-remote-execution-guard.yml`。Regression owner：#731。
+Canonical implementation：`tools.execution_claim_guard.durable_branch_create_readbacks_from_live_branch`；trusted wiring：`.github/workflows/whd-remote-execution-guard.yml`。Regression owner：#731；cleanup parity owner：#733。
 
 ## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1
 
 Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到 legacy `claim exists + checkpoint missing` 時，不重送普通 Guard，也不人工補檔；改路由 trusted `.github/workflows/whd-remote-claim-activation.yml` 的 `legacy-checkpoint-repair`。
 
 該 repair 只允許 unchanged claim blob + 新 canonical checkpoint 的 atomic CAS。成功後普通 Remote Guard 才重新取得合法 checkpoint authority。任何 claim identity/head/phase 變更仍走既有 guarded reconciliation，不屬 legacy repair。
+
+
+## WHD_WORK_EXECUTOR_HANDOFF_V1 / claim-handoff
+
+Remote Guard 支援獨立 action=`claim-handoff` 作 planned ownership transfer；它與 `claim-takeover` 完全分離，不執行 stale evaluator。
+
+固定 request 除既有 common identity 外，`claim-handoff` 必須額外帶：
+
+- `target_lane=A|B`
+- `to_worker=<exact scheduler lane owner>`
+- `handoff_generation=<positive integer>`
+- `checkpoint_fingerprint=<64-hex canonical continuity fingerprint>`
+- `next_action=<exact nonblank checkpoint next_action>`
+
+`claim-handoff` 禁止 `takeover_worker`、禁止 `changed_file`。trusted workflow 必須 fresh-read exact claim/checkpoint/branch HEAD，使用 canonical executable-continuity-controller 計算 checkpoint fingerprint，並 exact 驗 `checkpoint_fingerprint + next_action + branch + head_sha + issue`。
+
+lane mapping 固定由 current scheduler authority驗證：A = `scheduler.6ab13fa557fc8191935c671214b865e2`；B = `scheduler.e58ea936e7d0b12bd0d475314709d6f1`。任何 mismatch fail closed。
+
+GREEN receipt 必須把 `target_lane / to_worker / handoff_generation / checkpoint_fingerprint / next_action` 全部綁入 receipt identity。receipt 只授權一次 exact shared-claim CAS；成功 readback 應以 `claim_handoff_cas_applied=true` 作 durable mutation proof。planned handoff 不等待 stale TTL，也不得借用 `claim-takeover` 的 stale/orphan evidence。
+##### LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_V1
+
+只有歷史 mutation 已由 exact GREEN receipt 授權、但 commit timestamp 落在該 receipt window 之外的 legacy 半完成 transaction，才可使用 owner-authored `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`。此 recovery **只放寬 historical receipt-time-window**，不放寬任何其他 identity。
+
+- owning Issue top-level comment 必須由 repository owner 發出，第一行 exact `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`；至少綁 `issue / worker / executor_source / branch / claim_head_sha(H0) / live_head_sha(H1) / prior_guard_run_id / prior_request_comment_id / changed_file`。
+- canonical guard 仍必須證明 current claim blob、owner/source/branch/base、H0→H1 direct child、prior request + GREEN receipt、exact run/request identity 與 commit changed-file set全部一致；wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 一律 fail closed。
+- trusted Remote Guard 只透過 fixed-schema `legacy_reconcile_recovery_comment_id` 取得 exact owner comment，驗 author/issue/marker 後傳入 `--legacy-reconcile-recovery`；不得接受自由文字或把 comment 本身當 mutation authority。
+- ordinary post-commit reconciliation 與正常 receipt-window 行為完全不變；此 recovery 不得用於一般 stale-head write、production/Skill mutation、takeover 或 replay implementation。新的 trusted workflow 必須先部署到 default branch `main` 並 fresh readback，之後才能用於 #617/#671 live repair。
 
 ## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
 
@@ -448,6 +497,7 @@ Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到
 只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
 
 Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+
 ## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1
 
 Remote Guard 的 `action=write` 若 scope 僅為 `.dispatch/claims/issue-N.json` 與／或 `.dispatch/checkpoints/issue-N.json`，可由 shared coordination branch 的 exact commit 作 durable mutation proof。
@@ -456,7 +506,15 @@ Workflow 必須查詢 receipt `issued_at..expires_at` 期間、相同 path 的 `
 
 缺 commit、identity mismatch、changed-file mismatch、payload mismatch 或多個 exact matches 時一律 fail closed。
 
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
 
+- domain: `skill_remote_guard`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain single-use guarded mutation receipts and exact durable readback semantics.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
 ## INTERVENING_COORD_POSTCOMMIT_RECOVERY_V1
 

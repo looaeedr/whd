@@ -43,6 +43,10 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=CURRENT path=tools/continuity_controller.py -->
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
 
+<!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->
+<!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
+<!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
+
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=CURRENT path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
 
@@ -64,6 +68,32 @@ whd_schema: WHD_DOC_META_V1
 - `fold-designer-bridge-ownership` 只擁有 composition/bootstrap/presentation owner boundary；不得覆蓋 geometry、manufacturing、Registry formula、project persistence 等 domain CURRENT owner。
 - `pitfall-ledger` 的 routing ownership 留在本 Map；實際 pitfall artifacts 全部保持 REFERENCE / incident evidence，不建立平行 process/domain CURRENT。
 - 日期化 acceptance、migration、combined guard 與 ticket provenance 留在 `docs/superpowers/verification/`、`docs/superpowers/checkpoints/`、Git history 或 GitHub Issue，不進本 Map 的 normative body。
+
+### local-durability-machine
+
+- Executable CURRENT owner：`tools/local_durability_gate.py`。
+- 只根據 fresh local-machine snapshot 分類 `LOCAL_CLEAN_SYNCED / LOCAL_DIRTY_RECOVERABLE / LOCAL_DIRTY_CONFLICT / LOCAL_UNPUSHED / LOCAL_MUTATION_IN_PROGRESS / LOCAL_MACHINE_UNAVAILABLE`。
+- Remote clean state 不得覆蓋 dirty / unknown local truth；local evidence 不完整時 fail closed 為 `LOCAL_DIRTY_CONFLICT / LOCAL_STATE_CONFLICT`。
+- `LOCAL_MACHINE_UNAVAILABLE` 必須投影 `ERROR / LOCAL_MACHINE_UNREACHABLE`，不得假裝 remote clean 或與 conflict 混用。
+- 此 owner 不負責 planned handoff、scheduler takeover 或 power-off aggregation。
+
+### interactive-runtime-liveness
+
+- Executable CURRENT owner：`tools/interactive_runtime_liveness.py`。
+- Interactive markers 固定為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1` / `WHD_INTERACTIVE_RUNTIME_END_V1`。
+- Heartbeat / END 必須綁 exact `issue + slot_id + worker + invocation_identity + conversation_identity + claim_blob_sha + branch + head_sha + executor_source=chat`；END identity drift fail closed。
+- `conversation_identity=UNAVAILABLE` 不構成有效 interactive liveness evidence；generic `executor_source=chat` 也不能取代 exact provenance。
+- Scheduler 的 `WHD_SCHEDULER_RUNTIME_*` 仍由 `tools/scheduler_runtime_liveness.py` 獨立擁有；兩者不得互相冒充。
+
+### workstation-poweroff-safety
+
+- Executable CURRENT owner：`tools/workstation_poweroff_gate.py`。
+- Public machine seam：`evaluate --snapshot` 與 `validate-safe`；兩者都必須 side-effect-free，不得執行 GitHub/claim/Guard/HA/Windows mutation。
+- Gate result domain 固定為 `SAFE / NOT_SAFE / ERROR`；unknown、parser failure、dependency failure 或不可觀測 local state 一律 fail closed，禁止轉成 `SAFE`。
+- `SAFE` receipt 必須綁 `poweroff_request_id + evidence_revision`；request/revision drift 或 receipt 非 SAFE 時 validator 必須失效。
+- Guard transaction、scheduler readiness、checkpoint HEAD/next_action、local runtime durability 與所有 local-dependent slots 聚合都由此 executable owner 判定；HA/Node-RED 只能消費 projection，不得另建平行 safety state machine。
+- `LOCAL_MACHINE_UNAVAILABLE` 的 canonical projection 是 `ERROR / LOCAL_MACHINE_UNREACHABLE`；不得與 `LOCAL_STATE_CONFLICT` 混用。
+- 真正 Windows shutdown actuator 不屬本 contract；此 owner 只提供 machine safety decision。
 
 ## Change contract
 
@@ -97,4 +127,44 @@ whd_schema: WHD_DOC_META_V1
 - trusted remote finalization：.github/workflows/whd-remote-finalization.yml
 - orchestration responsibility：.agents/skills/engineering/派工/SKILL.md
 
-Prompt/Skill/AI Library不得複製第二套 state machine。Capability gap：interactive heartbeat/liveness + exact provenance（chat conversation+invocation；scheduler lane+invocation）仍需 machine owner補齊；generic executor_source 不等於已解決。
+Prompt/Skill/AI Library不得複製第二套 state machine。Interactive heartbeat/liveness + exact provenance 已由 `tools/interactive_runtime_liveness.py` 擁有；scheduler lane + invocation 仍由 `tools/scheduler_runtime_liveness.py` 擁有。兩者 namespace / identity 不得混用；generic executor_source 永遠不等於 exact runtime provenance。
+
+<!-- ISSUE680_PLANNED_HANDOFF_AUTHORITY_MAP_V1 -->
+## #680 planned handoff authority map
+
+- Planned ownership/routing authority: `.agents/skills/engineering/派工/SKILL.md`.
+- Interactive Scheduler A/B receive/resume semantics: `.agents/skills/engineering/排程模擬/SKILL.md`.
+- `claim-handoff` machine enforcement: `tools/execution_claim_guard.py`.
+- Trusted remote parser/receipt transport: `.github/workflows/whd-remote-execution-guard.yml`.
+- Checkpoint fingerprint and `next_action` continuity: `tools/continuity_controller.py`.
+- Scheduler runtime liveness: `tools/scheduler_runtime_liveness.py`.
+- Long-term scheduled-resume architecture remains owned by the CURRENT scheduled-resume AI Library document above.
+
+Boundary: `WHD_WORK_EXECUTOR_HANDOFF_V1` / `claim-handoff` is a planned transfer. `claim-takeover` is stale/orphan recovery. After the planned CAS is fresh-read as owned by the exact target lane, the scheduler receiver resumes the same checkpoint / exact `next_action` without waiting for stale TTL or performing another takeover. Prompt/Skill/AI Library text documents routing and owner boundaries only; it must not create a second continuity state machine.
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `authority_map`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Production/trusted governance parity is machine-readable and unknown divergence fails closed.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+<!-- WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 -->
+## Phase 7 accepted ownership map
+
+Phase 7 Large Module Decomposition 的 CURRENT routing 結論如下。這些 rows 只描述穩定 owner boundary；ticket、run、commit 與 LOC 數字只作 provenance，不是 domain truth。
+
+- **P7-A / Fold Designer Bridge residual**：`fold_designer_bridge.py` 只保留 bounded bootstrap / lifecycle / legacy-host / evidence-backed compatibility surface。update scheduler owner 是 `gui_modules.application.command_router`；唯一 composition wiring root 是 `gui_modules/application/fold_designer_adapter.py::Phase6FoldDesignerComposition`；workspace/navigation 由 `phase6_workspace_navigation_controller.py` / `phase6_designer_workspace.py` 擁有；FinalScene 由 `phase6_final_scene_view.py` + composition adapter 擁有；Settings presentation 由 `phase6_settings_panel.py` +既有 Settings composition services 擁有。
+- **P7-B / Phase6ApplicationHost**：`gui.py::Phase6ApplicationHost` 是 thin application host/composition surface；Door Layout state/transaction owner 是 `gui_modules/application/door_layout_controller.py::Phase6DoorLayoutController`；Door presentation owner 是 `gui_modules/parts/panels/door.py`；render acquisition/presentation 由 `gui_modules/application/render_snapshots.py` + `gui_modules/rendering/door_view.py` 擁有。
+- **P7-C / ae.py**：`ae_engine/ae.py` 是 legacy/public compatibility facade；DXF serialization owner 是 `ae_engine/dxf_serialization.py`；baseline source/cache/resource owners 是 `ae_engine/baseline_source.py` + `ae_engine/baseline_resources.py`；baseline-to-scene adapter owner 是 `ae_engine/baseline_scene_adapters.py`。
+- **P7-D / manufacturing_api**：`ae_engine/manufacturing_api.py` 是 thin public facade；verification / export / request-precedence / render-data orchestration 分別由 `ae_engine/manufacturing_verification.py`、`ae_engine/manufacturing_export.py`、`ae_engine/manufacturing_requests.py`、`ae_engine/manufacturing_render.py` 擁有。
+- **P7-E / assembly_collision**：`ae_engine/assembly_collision.py` 是 thin shared collision/backprojection compatibility facade；generic collision/backprojection owner 是 `ae_engine/collision_backprojection.py`；Divider relief solver owner 是 `ae_engine/divider_relief_solver.py`；EndCap world-relief solver owner 是 `ae_engine/endcap_world_relief_solver.py`。
+- **P7-F / explicit-joint manufacturing**：`phase6_manufacturing_geometry.py::_phase6_resolve_explicit_joint_reliefs` 保持 thin compatibility/manufacturing facade；bounded explicit-joint orchestration owner 是 `phase6_explicit_joint_pipeline.py`；canonical collision/backprojection solver truth 仍在 `ae_engine.assembly_collision`；world/cut geometry truth 仍由 `phase6_manufacturing_geometry.py` 的 canonical helpers 透過 bounded ops 注入。
+- **P7-G / Settings presentation**：**KEEP_CURRENT_BOUNDARY**。CURRENT presentation owner 是 `phase6_settings_panel.py::Phase6SettingsPanel`；唯一 construction/wiring root 是 `Phase6FoldDesignerComposition`；`fold_designer_bridge.py` 僅保留 compatibility projection/dataflow delegates；canonical Settings mutation/state authority 留在既有 transaction/service/application owners；pure Settings→Profile planning owner 是 `phase6_settings_profile_projection.py`。
+
+永久 invariant：reverse-import Bridge = 0、duplicate production owner = 0、second composition root = 0、full-app service-bag owner interface = 0。後續變更若要搬移上述 owner，必須走 deletion-test / authority writeback / permanent guard；不得只靠 wrapper rename 或 facade forwarding 宣稱 ownership 已移動。
+
+Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#625；Combined Acceptance owner #626，combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
