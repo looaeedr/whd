@@ -345,3 +345,17 @@ def test_recovery_rejects_extra_commit_file(
     )
     with pytest.raises(guard.ExecutionClaimError, match="changed-file|matching prior GREEN"):
         _assert_reconcile(guard, current_path, recovery_path, current)
+
+
+def test_trusted_remote_guard_transports_intervening_coord_recovery() -> None:
+    workflow = Path(".github/workflows/whd-remote-execution-guard.yml").read_text(
+        encoding="utf-8"
+    )
+    for token in (
+        "intervening_coord_recovery_comment_id",
+        "RG_INTERVENING_COORD_RECOVERY_COMMENT_ID",
+        "WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1",
+        "--intervening-coord-recovery",
+        "intervening-coord-recovery.json",
+    ):
+        assert token in workflow
