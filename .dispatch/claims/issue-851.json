@@ -7,16 +7,16 @@
   "entrypoint": "interactive:chat",
   "invocation_identity": "chatgpt.issue851.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "repair/issue851-sealed-premerge-v2-20260927",
+  "work_branch": "governance/issue851-main-mirror-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
-  "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
+  "base_sha": "cb8a978f98d959727b93d706d097cb040741a041",
+  "head_sha": "da2164184cc25db3a8b4b04ca429d29d8a857150",
   "phase": "GREEN",
-  "last_update": "2026-09-27T12:05:45Z",
-  "production_target": "cleanup/2d-3d-sync",
+  "last_update": "2026-09-27T12:10:45Z",
+  "production_target": "main",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Open replacement cleanup PR from repair/issue851-sealed-premerge-v2-20260927@14902f707009d26c242f81ba386be3293ad2a708 to cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1; add reciprocal WHD-Governance-Mirror-Pair markers between it and main PR #856; require both Governance Mirror Hard Gate checks GREEN; merge #856 to main first, then revalidate and merge cleanup.",
+  "next_action": "Update main PR #856 body so it contains exactly one `WHD-Governance-Mirror-Pair: #857`; verify both #856 and #857 Governance Mirror Hard Gate checks GREEN; merge #856 to main first; hand primary authority back to cleanup repair branch; revalidate and merge #857; then close/release #851.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -44,20 +44,22 @@
     "main mirror bridge commit da2164184cc25db3a8b4b04ca429d29d8a857150 parents=[main@cb8a978f98d959727b93d706d097cb040741a041,#851@14902f707009d26c242f81ba386be3293ad2a708] and changes only 3 governed blobs relative to main",
     "primary authority handoff Guard run=36317655477 GREEN",
     "main mirror PR #856 created under pr-write Guard 36317747371; changed_files=3 governed blobs",
-    "primary authority handback Guard run=36317827939 GREEN"
+    "primary authority handback Guard run=36317827939 GREEN",
+    "replacement cleanup PR #857 created under pr-write Guard 36318035652; head=14902f707009d26c242f81ba386be3293ad2a708 base=cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1 and body marker points to #856",
+    "primary authority handoff Guard run=36318102735 GREEN"
   ],
   "delegated_branches": [
-    "governance/issue851-main-mirror-20260927"
+    "repair/issue851-sealed-premerge-v2-20260927"
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36317827939,
-    "request_comment_id": 5855662339,
-    "result_comment_id": 5855664016,
+    "run_id": 36318102735,
+    "request_comment_id": 5855695084,
+    "result_comment_id": 5855696555,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #851 primary authority back to cleanup repair branch for reciprocal PR pairing"
+    "mutation": "handoff #851 primary authority to main mirror for reciprocal PR marker update"
   }
 }

@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "851",
-  "branch": "repair/issue851-sealed-premerge-v2-20260927",
-  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
+  "branch": "governance/issue851-main-mirror-20260927",
+  "head_sha": "da2164184cc25db3a8b4b04ca429d29d8a857150",
   "state": "RUNNING",
-  "next_action": "Open replacement cleanup PR from repair/issue851-sealed-premerge-v2-20260927@14902f707009d26c242f81ba386be3293ad2a708 to cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1; add reciprocal WHD-Governance-Mirror-Pair markers between it and main PR #856; require both Governance Mirror Hard Gate checks GREEN; merge #856 to main first, then revalidate and merge cleanup.",
+  "next_action": "Update main PR #856 body so it contains exactly one `WHD-Governance-Mirror-Pair: #857`; verify both #856 and #857 Governance Mirror Hard Gate checks GREEN; merge #856 to main first; hand primary authority back to cleanup repair branch; revalidate and merge #857; then close/release #851.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -29,7 +29,9 @@
     "main mirror bridge da2164184cc25db3a8b4b04ca429d29d8a857150 contains only governed #851 parity delta relative to main",
     "primary authority handoff Guard 36317655477 GREEN",
     "main mirror PR #856 exists at da2164184cc25db3a8b4b04ca429d29d8a857150 -> main",
-    "primary authority handback Guard 36317827939 GREEN"
+    "primary authority handback Guard 36317827939 GREEN",
+    "replacement cleanup PR #857 exists and points to main mirror PR #856",
+    "primary authority handoff Guard 36318102735 GREEN"
   ],
   "operation": null,
   "master_issue": null,
