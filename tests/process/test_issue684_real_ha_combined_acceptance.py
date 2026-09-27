@@ -10,6 +10,12 @@ GATE = ROOT / "tools" / "workstation_poweroff_gate.py"
 BRIDGE = ROOT / "tools" / "whd_poweroff_ha_bridge.py"
 ACCEPTANCE = ROOT / "tools" / "whd_poweroff_end_to_end_acceptance.py"
 
+AUTHORITY_MAP = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "09_WHD_Canonical_Authority_Map.md"
+SCHEDULED_RESUME = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md"
+PITFALLS = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "06_踩坑記錄與防錯經驗庫.md"
+SCHEDULER_SKILL = ROOT / ".agents" / "skills" / "engineering" / "排程模擬" / "SKILL.md"
+USAGE = ROOT / "docs" / "governance" / "whd_ha_poweroff_integration_usage.md"
+
 
 def _request(*, request_id: str = "REQ-CURRENT", revision: str = "REV-1") -> dict:
     return {
@@ -350,3 +356,56 @@ def test_R11_whd_acceptance_owner_has_no_windows_shutdown_actuator() -> None:
         "powershell.exe",
     )
     assert all(token not in source for token in forbidden)
+
+
+def test_R11_authority_and_resume_writeback_is_machine_checked() -> None:
+    authority = AUTHORITY_MAP.read_text(encoding="utf-8")
+    resume = SCHEDULED_RESUME.read_text(encoding="utf-8")
+    pitfalls = PITFALLS.read_text(encoding="utf-8")
+    skill = SCHEDULER_SKILL.read_text(encoding="utf-8")
+    usage = USAGE.read_text(encoding="utf-8")
+
+    assert (
+        "<!-- WHD_AUTHORITY contract=ha-poweroff-end-to-end-acceptance "
+        "role=CURRENT path=tools/whd_poweroff_end_to_end_acceptance.py -->"
+    ) in authority
+    assert "WHD_END_TO_END_ACCEPTANCE_V1" in authority or "END_TO_END_ACCEPTANCE" in authority
+    assert "Windows graceful shutdown command" in authority
+
+    assert "<!-- WHD_POWEROFF_SCHEDULER_RESUME_EVIDENCE_V1 -->" in resume
+    for token in (
+        "pre_shutdown_local_head",
+        "remote_head",
+        "claim_owner_pre",
+        "claim_owner_post",
+        "scheduler_invocation_identity",
+        "next_action",
+    ):
+        assert token in resume
+
+    assert "<!-- HA_POWEROFF_STALE_SAFE_ACTUATOR_PITFALL_V1 -->" in pitfalls
+    assert "previous-request SAFE" in pitfalls
+    assert "actuator_invoked=false" in pitfalls
+
+    assert "<!-- WHD_POWEROFF_SCHEDULER_RESUME_BRIDGE_V1 -->" in skill
+    assert "tools/whd_poweroff_end_to_end_acceptance.py" in skill
+    assert "不得要求使用者再輸入「繼續」" in skill
+
+    assert "<!-- WHD_HA_POWEROFF_INTEGRATION_USAGE_V1 -->" in usage
+    assert "WHD_HA_ACTUATOR_DECISION_V1" in usage
+    assert "WHD_SCHEDULER_RESUME_EVIDENCE_V1" in usage
+    assert "WHD does not issue the Windows shutdown command" in usage
+
+
+def test_R11_combined_acceptance_workflow_keeps_predecessor_regressions() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "qa-issue684-real-ha-combined.yml").read_text(
+        encoding="utf-8"
+    )
+    for path in (
+        "tests/process/test_issue680_planned_handoff_scheduler_receiver.py",
+        "tests/process/test_issue681_poweroff_gate.py",
+        "tests/process/test_issue682_outage_recovery.py",
+        "tests/process/test_issue683_ha_transport_projection.py",
+        "tests/process/test_issue684_real_ha_combined_acceptance.py",
+    ):
+        assert path in workflow
