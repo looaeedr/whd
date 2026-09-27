@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "851",
-  "branch": "governance/issue851-recurring-lifecycle-turn-exit-20260927",
-  "head_sha": "3910e9d5b033b4ed8415671ba7340de7cc58d8c9",
+  "branch": "repair/issue851-sealed-premerge-v2-20260927",
+  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "state": "RUNNING",
-  "next_action": "Close superseded PR #854 unmerged under exact primary branch/head authority; fresh-read #854 closed; then hand primary authority back to repair/issue851-sealed-premerge-v2-20260927 and advance #851 terminal finalization/close/release.",
+  "next_action": "Run canonical terminal finalization for #851 after fresh audit confirms #856 merged, #857 merged, #854 closed unmerged, both production branches contain accepted governance, and no remaining same-ticket open PR; then close Issue #851 and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -46,7 +46,9 @@
     "closing/delegation Guard 36320224970 GREEN",
     "fresh #854 readback: OPEN/unmerged",
     "pre-close durable reconciliation Guard 36320515607 GREEN",
-    "temporary #854 cleanup authority handoff Guard 36320816673 GREEN"
+    "temporary #854 cleanup authority handoff Guard 36320816673 GREEN",
+    "#854 fresh readback closed/unmerged at 2026-09-27T13:01:06Z",
+    "primary authority handback Guard 36320982976 GREEN"
   ],
   "operation": null,
   "master_issue": null,

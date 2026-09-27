@@ -7,16 +7,16 @@
   "entrypoint": "interactive:chat",
   "invocation_identity": "chatgpt.issue851.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue851-recurring-lifecycle-turn-exit-20260927",
+  "work_branch": "repair/issue851-sealed-premerge-v2-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "3910e9d5b033b4ed8415671ba7340de7cc58d8c9",
+  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T12:59:30Z",
+  "last_update": "2026-09-27T13:02:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Close superseded PR #854 unmerged under exact primary branch/head authority; fresh-read #854 closed; then hand primary authority back to repair/issue851-sealed-premerge-v2-20260927 and advance #851 terminal finalization/close/release.",
+  "next_action": "Run canonical terminal finalization for #851 after fresh audit confirms #856 merged, #857 merged, #854 closed unmerged, both production branches contain accepted governance, and no remaining same-ticket open PR; then close Issue #851 and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -63,21 +63,23 @@
     "closing/delegation transition Guard run=36320224970 GREEN",
     "fresh readback at 2026-09-27T12:53Z: superseded PR #854 remains OPEN and unmerged",
     "pre-close durable reconciliation Guard run=36320515607 GREEN",
-    "temporary #854 cleanup authority handoff Guard run=36320816673 GREEN"
+    "temporary #854 cleanup authority handoff Guard run=36320816673 GREEN",
+    "superseded PR #854 closed unmerged under pr-write Guard run=36320906200; fresh readback state=closed merged=false closed_at=2026-09-27T13:01:06Z",
+    "primary authority handback Guard run=36320982976 GREEN"
   ],
   "delegated_branches": [
-    "repair/issue851-sealed-premerge-v2-20260927",
-    "governance/issue851-main-mirror-20260927"
+    "governance/issue851-main-mirror-20260927",
+    "governance/issue851-recurring-lifecycle-turn-exit-20260927"
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36320816673,
-    "request_comment_id": 5856075597,
-    "result_comment_id": 5856077131,
+    "run_id": 36320982976,
+    "request_comment_id": 5856094821,
+    "result_comment_id": 5856096438,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "temporarily hand #851 primary authority to superseded #854 branch for close-only cleanup"
+    "mutation": "hand #851 primary authority back to repair branch after #854 close"
   }
 }
