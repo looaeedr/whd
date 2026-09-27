@@ -9,14 +9,14 @@
   "work_branch": "work/issue700-claim-activation-crash-reentry-20260927",
   "claimed_at": "2026-09-27T01:00:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "c389c30dac0d6a52ad799da681d279d84ecdd15d",
+  "head_sha": "292e5dbf5d234fb9724606604d5954ddfb31bc51",
   "phase": "GREEN",
-  "last_update": "2026-09-27T01:20:45Z",
+  "last_update": "2026-09-27T01:24:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run broader Claim Activation regression on exact GREEN head c389c30dac0d6a52ad799da681d279d84ecdd15d, including active-claim checkpoint transaction invariants and legacy activation/recovery tests; then remove temporary QA workflow and integrate if all gates remain GREEN.",
+  "next_action": "Remove temporary qa-issue700-claim-activation-crash-reentry.yml under Guard, reconcile the cleanup head, review final diff, then create guarded integration PR into cleanup/2d-3d-sync. Issue closure remains owned by #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-700.json",
   "evidence": [
@@ -37,6 +37,9 @@
     "H3 pair reconciliation Guard run 36285083552 GREEN.",
     "Focused GREEN run 36285179371 @ c389c30dac0d6a52ad799da681d279d84ecdd15d: 8 passed / 0 failed.",
     "Focused GREEN artifact=10920531411.",
-    "H4 pair reconciliation Guard run 36285229339 GREEN."
+    "H4 pair reconciliation Guard run 36285229339 GREEN.",
+    "Broader GREEN run 36285375097 @ 292e5dbf5d234fb9724606604d5954ddfb31bc51: focused 8 passed + compatibility 44 passed.",
+    "Broader GREEN artifact=10920760774.",
+    "H5 pair reconciliation Guard run 36285413852 GREEN."
   ]
 }
