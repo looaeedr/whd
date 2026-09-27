@@ -456,3 +456,18 @@ Workflow 必須查詢 receipt `issued_at..expires_at` 期間、相同 path 的 `
 
 缺 commit、identity mismatch、changed-file mismatch、payload mismatch 或多個 exact matches 時一律 fail closed。
 
+
+
+## INTERVENING_COORD_POSTCOMMIT_RECOVERY_V1
+
+Remote Guard 支援一條窄的 same-owner coordination claim-blob refresh recovery，用於「Guard-time historical claim blob != current claim blob，但 authority 沒變」的 direct-child post-commit reconciliation。
+
+Request 仍使用 `action=write` + exact claim/checkpoint pair，另帶：
+
+`intervening_coord_recovery_comment_id=<positive owner-authored issue comment id>`
+
+該 comment 第一行固定 `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1`，並 exact 綁 issue/worker/executor_source/branch/current_claim_blob_sha/historical_claim_blob_sha/claim_head_sha/live_head_sha/prior_guard_run_id/prior_request_comment_id/recovery_reason=INTERVENING_SAME_OWNER_COORD_WRITE/changed_file。
+
+trusted workflow fresh-fetch exact comment並驗 repository owner + marker後，才傳 `--intervening-coord-recovery` 給 canonical `tools/execution_claim_guard.py`。此 recovery 與 `legacy_reconcile_recovery_comment_id` 互斥，且只允許 exact claim+checkpoint write scope。
+
+Historical claim blob 必須從 GitHub blob API fresh-read，且 current/historical authority projection完全一致；只允許 observational coordination metadata drift。任何 authority drift、receipt/file/time/topology mismatch都 FAIL。
