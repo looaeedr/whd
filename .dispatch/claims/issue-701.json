@@ -1,17 +1,17 @@
 {
   "issue": 701,
   "issue_url": "https://github.com/looaeedr/whd/issues/701",
-  "worker": "chatgpt.issue701.20260927a",
-  "executor_source": "chat",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.issue701.20260927a",
+  "invocation_identity": "chat.schedulerA.701.20260927.chain-closure",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue701-scheduler-state-reconciliation-20260927",
   "claimed_at": "2026-09-27T02:01:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "35cea40092d6c689b36342aca33805791651e47f",
   "phase": "GREEN",
-  "last_update": "2026-09-27T03:40:30Z",
+  "last_update": "2026-09-27T06:07:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -61,14 +61,14 @@
     "Parent reservation terminalization and #701 accepted-pending-chain-closure writeback authorized by Remote Guard run 36292058916."
   ],
   "last_guard": {
-    "action": "write",
+    "action": "claim-takeover",
     "mode": "remote",
-    "run_id": 36292058916,
-    "request_comment_id": 5852357590,
+    "run_id": 36299170423,
+    "request_comment_id": 5853236318,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "terminalize #701 integration helper reservation and restore ACCEPTED_PENDING_CHAIN_CLOSURE"
+    "mutation": "CAS #701 owner to scheduler A for #702 chain closure"
   },
   "delegated_work": [
     {
@@ -97,5 +97,22 @@
     "integration_qa_summary": "33 passed / 0 failed",
     "production_merge_commit_sha": "5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f",
     "closure_owner_issue": 702
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "previous_worker": "chatgpt.issue701.20260927a",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "requesting_executor_source": "scheduler",
+    "observed_stale_seconds": 8820,
+    "observed_live_head_sha": "35cea40092d6c689b36342aca33805791651e47f",
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "user_authority_comment_id": null,
+    "taken_over_at": "2026-09-27T06:07:40Z",
+    "guard_mode": "remote",
+    "guard_result": "GREEN",
+    "guard_run_id": 36299170423,
+    "request_comment_id": 5853236318
   }
 }
