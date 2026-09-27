@@ -9,14 +9,22 @@
   "work_branch": "governance/issue827-terminal-chain-metadata-repair-main-20260927",
   "claimed_at": "2026-09-27T07:06:30Z",
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
-  "head_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T07:06:30Z",
+  "head_sha": "87a1a5e54c59a9de0e0e9c57e25a918a1eb3ccfe",
+  "phase": "RED",
+  "last_update": "2026-09-27T07:13:10Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Obtain branch-create Guard and create governance/issue827-terminal-chain-metadata-repair-main-20260927 at exact main base aadf248f9b96e1e0a465817f870966db9cf97114. Then RED-test the missing narrow terminal chain-metadata repair, implement canonical continuity + trusted Claim Activation transport, run focused regression, and prepare exact governance mirror counterpart for cleanup/2d-3d-sync after #822/#823 merge-time gate is current.",
+  "remote_qa": {
+    "run_id": 36302379542,
+    "job_id": 108572310656,
+    "head_sha": "87a1a5e54c59a9de0e0e9c57e25a918a1eb3ccfe",
+    "status": "completed",
+    "conclusion": "failure",
+    "pytest": "9 failed / 2 passed in 0.11s",
+    "classification": "VALID_RED"
+  },
+  "next_action": "Implement the narrow terminal chain-metadata repair primitive and trusted Claim Activation transport on exact RED head 87a1a5e54c59a9de0e0e9c57e25a918a1eb3ccfe. Preserve existing terminal-checkpoint-repair semantics. Then run exact #827 focused QA to GREEN and mirror accepted governed artifacts to cleanup after current #822/#823 bidirectional gate is available.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-827.json",
   "evidence": [
@@ -24,7 +32,19 @@
     "#696 exact malformed checkpoint blob=4bf791d8725117a94fb8644fc5af960657f46b90; fail reason CHAIN_COMPLETE cannot carry next_issue or chain_next_action.",
     "Existing #744 terminal-checkpoint-repair is intentionally limited to invalid closure_state and cannot repair this valid-closure chain metadata defect.",
     "Scope is governance repair only; #696 product lineage/head remains immutable.",
-    "Active #822/#823 governance mirror hard-gate work does not overlap continuity/Claim Activation implementation files; #827 must consume their final gate before merge."
+    "Active #822/#823 governance mirror hard-gate work does not overlap continuity/Claim Activation implementation files; #827 must consume their final gate before merge.",
+    "RED characterization H1=87a1a5e54c59a9de0e0e9c57e25a918a1eb3ccfe adds only #827 regression test and one-shot QA workflow.",
+    "Exact RED run 36302379542 / job 108572310656: 9 failed / 2 passed in 0.11s; failures are missing canonical repair primitive and trusted transport markers, harness succeeded.",
+    "Post-RED reconciliation Guard 36302416189 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
-  "last_guard": null
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36302416189,
+    "request_comment_id": 5853680078,
+    "result": "GREEN",
+    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "consumed": true,
+    "mutation": "reconcile #827 RED head"
+  }
 }
