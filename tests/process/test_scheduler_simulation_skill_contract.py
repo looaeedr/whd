@@ -111,3 +111,13 @@ def test_scheduler_chain_successor_may_rebind_only_the_same_slot() -> None:
     assert "只有 SCHEDULER_LANE / chain authority" in text
     assert "terminal successor 可沿同一 slot_id rebind" in text
     assert "不得把 successor 靜默搬到另一個工作槽" in text
+
+def test_scheduler_simulation_forbids_local_execution_and_fallback() -> None:
+    text = _text()
+    assert "SCHEDULER_REMOTE_ONLY_EXECUTION_V1" in text
+    assert "execution_location=GITHUB|SCHEDULER|REMOTE_ACTION" in text
+    assert "LOCAL 只允許作為 handoff_source / provenance metadata" in text
+    assert "不得使用本機、Remote Desktop、local shell" in text
+    assert "禁止 fallback 到 LOCAL" in text
+    assert "remote capability 不可用時 fail closed" in text
+    assert "local/Remote Guard" not in text

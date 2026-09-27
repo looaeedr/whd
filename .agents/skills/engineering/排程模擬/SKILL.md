@@ -30,6 +30,19 @@ WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
 - scheduled invocation 必須保留真實 scheduler provenance；interactive invocation 必須保留真實 chat provenance。logical owner 相同不代表 physical source 相同。
 
 
+### SCHEDULER_REMOTE_ONLY_EXECUTION_V1
+
+排程模擬的 **execution location 固定為 remote-only**。這條同時適用於真實 recurring scheduled invocation 與使用者明確輸入 `/排程A` / `/排程B` 的 interactive same-lane resume。
+
+- machine-readable status 固定輸出：`execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`。
+- LOCAL 只允許作為 handoff_source / provenance metadata，用來描述工作最初從哪裡交接；**不得**把 `LOCAL` 解讀成可執行位置或 fallback execution path。
+- 排程模擬不得使用本機、Remote Desktop、local shell，也不得透過本機 worktree、CLI、檔案系統或背景程序代替 GitHub / scheduler / remote action 執行。
+- 禁止 fallback 到 LOCAL。若 GitHub / scheduler / REMOTE_ACTION 所需 capability 不可用，remote capability 不可用時 fail closed，記錄 exact capability blocker；不得為了繼續工作改走本機。
+- branch / commit / test / QA / claim / Guard / reconciliation / PR / closure 等 substantive action 必須能由 GitHub API、GitHub Actions、host scheduler 或其他明確 remote capability 觀測；無 remote evidence 不得宣稱已執行。
+- 本節只限制 execution location；不改 `lane_owner`、cadence、enabled state、claim ownership、handoff provenance 或 canonical continuity state machine。
+
+
+
 ### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
 
 本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
@@ -212,7 +225,7 @@ actual_invocation_source = chatgpt_interactive
 
 - 禁止把 worker 直接覆寫成 A/B；
 - 禁止因使用者輸入 `/排程A` 或 `/排程B` 就跳過 stale / active-run / delegated-work / Guard 判定；
-- 必須走 live `派工` + `stale_claim_takeover.py` + local/Remote Guard 的 canonical takeover；
+- 必須走 live `派工` + `stale_claim_takeover.py` + Remote Guard 的 canonical takeover；
 - Guard / evaluator 不允許時，fail closed。
 
 命令選擇的是**目標 lane**，不是繞過 ownership 的萬用鑰匙。
@@ -391,6 +404,7 @@ lane=A|B
 lane_owner=scheduler....
 slot_id=worker.slot.1|worker.slot.2|worker.slot.3|UNBOUND
 handoff_source=LOCAL|SCHEDULER|NONE
+execution_location=GITHUB|SCHEDULER|REMOTE_ACTION
 entrypoint=interactive:/排程A|/排程B
 invocation_identity=<exact or generated>
 conversation_identity=<exact|UNAVAILABLE>
