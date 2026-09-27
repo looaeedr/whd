@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:10:30Z",
   "base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "head_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T23:18:20Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T08:23:59Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "expected_parent_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
@@ -21,7 +21,7 @@
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Synthesize the guarded two-parent integration merge from current X a7f4d6f586cc338878531d36ed0a8baa12125e54 and sealed Phase 7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, resolving only AI09 by preserving current-X authority content and appending the Phase 7 writeback exactly once; then run integration acceptance.",
+  "next_action": "advance closure to ISSUE_CLOSE_PENDING, run trusted bound finalization proof, close/read back Issue #779 as not_planned because #780 superseded and completed the same integration scope, then atomically persist CLOSED + RELEASED",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-779.json",
   "evidence": [
@@ -32,6 +32,24 @@
     "git merge-tree classified exactly one conflict: AI Library CURRENT authority map; no production/test-code conflict.",
     "Branch-create Guard 36278924167 GREEN.",
     "Integration branch remote readback exists at exact current-X head a7f4d6f586cc338878531d36ed0a8baa12125e54.",
-    "Same-head reactivate rotates durable identity after branch-create receipt consumption before integration commit Guard."
-  ]
+    "Same-head reactivate rotates durable identity after branch-create receipt consumption before integration commit Guard.",
+    "Fresh #780 durable proof: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED, production merge commit 33e6a60b5eef5f07fbc23a48e85de9aba413f020.",
+    "Fresh production cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8 retains #780 merge commit in ancestry and accepted Phase 7 authority-map markers.",
+    "Fresh #779 work branch remains exactly at original base a7f4d6f586cc338878531d36ed0a8baa12125e54; no #779 integration mutation was accepted.",
+    "Issue #779 and #780 own the same Phase 7→X authority-map conflict replacement objective; #780 is the later canonical replacement path that completed the production integration.",
+    "Terminalization write Guard 36306060178 GREEN; request 5854177715, result 5854179056."
+  ],
+  "superseded_by_issue": 780,
+  "closure_intent": "NOT_PLANNED_SUPERSEDED",
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36306060178,
+    "request_comment_id": 5854177715,
+    "result_comment_id": 5854179056,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "terminalize superseded #779 without replaying integration"
+  }
 }
