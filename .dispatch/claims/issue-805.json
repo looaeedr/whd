@@ -11,7 +11,7 @@
   "base_sha": "1ca0026408fe0246d14c73479b147882a1f4d2ed",
   "head_sha": "1ca0026408fe0246d14c73479b147882a1f4d2ed",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T03:35:00Z",
+  "last_update": "2026-09-27T03:38:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "worker.slot.1",
   "slot_binding": {
@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one exact branch-create Guard for parity/issue805-takeover-parser-cleanup-20260927 at cleanup/2d-3d-sync@1ca0026408fe0246d14c73479b147882a1f4d2ed, create/read back the branch, run Phase6 planned-scope Preflight, then port only the #793/#722 takeover parser capability and regression test as compatible-equivalent parity.",
+  "next_action": "Run Phase6 planned-scope Preflight on the exact two authorized #805 artifacts, then obtain one commit Guard and port the accepted #793/#722 real-newline takeover parser + regression to the #805 branch without touching #803 artifacts.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-805.json",
   "evidence": [
@@ -35,6 +35,16 @@
     "must_not_overlap=#803 exact four artifacts",
     "frozen_cleanup_base=1ca0026408fe0246d14c73479b147882a1f4d2ed",
     "trusted_main_source=5684094f09317d7db52873aba9f82a1b378436b3",
-    "work_slot=worker.slot.1; previous #793 binding is closed/released"
-  ]
+    "work_slot=worker.slot.1; previous #793 binding is closed/released",
+    "Branch-create Guard run 36291941152 GREEN; branch readback exact at frozen cleanup base 1ca0026408fe0246d14c73479b147882a1f4d2ed.",
+    "Trusted-main local execution_claim_guard GREEN authorizes branch-create consumption pair write."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "local",
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "consume #805 branch-create readback and advance to planned-scope Preflight"
+  }
 }
