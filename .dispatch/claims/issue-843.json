@@ -5,14 +5,14 @@
   "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
   "entrypoint": "interactive:/排程A",
-  "invocation_identity": "chat.issue843.20260927c",
+  "invocation_identity": "chat.issue843.20260928a",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "repair/issue843-sealed-premerge-20260927",
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T15:19:40Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T22:38:53.789625Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,7 +25,7 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN_SYNCED"
   },
-  "next_action": "Advance #843 RELEASE_HANDOFF_PENDING -> CLOSED/RELEASED under one final fresh Remote Guard; preserve Master #842 NEXT_CHILD_EXECUTABLE handoff to #844, which becomes unblocked only after #843 terminal release.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -75,7 +75,9 @@
     "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard run=36328630444",
     "Trusted Remote Finalization run 36328988660 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; artifact 10934906932; exact checkpoint fingerprint 1d5ecd722cd3d2115fda31a33e77dc337ca92d3c58744edba01fb52be5efb269.",
     "Issue #843 fresh readback closed/completed at 2026-09-27T15:17:53Z; checkpoint remained exact through proof + close.",
-    "Release-handoff transition Guard run=36329113040 GREEN"
+    "Release-handoff transition Guard run=36329113040 GREEN",
+    "fresh final atomic release Guard run=36355998543 GREEN; prior run 36329290958 classified expired/unconsumable by trusted Guard recovery.",
+    "final atomic coordination handoff closes #843 process state and makes Master #842 successor #844 NEXT_CHILD_EXECUTABLE."
   ],
   "delegated_branches": [
     "governance/issue843-control-plane-characterization-20260927"
@@ -83,11 +85,21 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36329113040,
-    "request_comment_id": 5857124682,
+    "run_id": 36355998543,
+    "request_comment_id": 5860489817,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "6160c62847bd212c7503eaf632f20382b36fdcdd",
     "consumed": true,
-    "mutation": "advance #843 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after trusted proof and close readback"
+    "mutation": "atomic #843 checkpoint CLOSED + claim RELEASED + Master #842 successor handoff to #844"
+  },
+  "closure": {
+    "state": "CLOSED",
+    "finalization_run_id": 36328988660,
+    "release_handoff_guard_run_id": 36329113040,
+    "final_release_guard_run_id": 36355998543,
+    "accepted_head": "ec2651809952d2cda018186b0a132c0801ac68b7",
+    "accepted_integration_head": "e7d88f69e22a974a846660f52f58d6fd621834e8",
+    "next_issue": 844
   }
 }

@@ -49,14 +49,15 @@
     "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36328630444",
     "Trusted Remote Finalization 36328988660 GREEN with FINALIZATION_PROOF_VALID; artifact 10934906932.",
     "Issue #843 readback closed/completed; checkpoint remained exact through proof + close.",
-    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36329113040."
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36329113040.",
+    "Remote Guard run 36355998543 GREEN authorized final atomic checkpoint CLOSED + claim RELEASED + Master #842 successor handoff to #844; prior run 36329290958 was expired/unconsumable."
   ],
   "operation": null,
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
+  "master_issue": 842,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 844,
+  "chain_next_action": "Activate #844 Unified Execution Record from #843 accepted predecessor evidence under Master #842; fresh-read current production drift before branch/claim mutation.",
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve Master #842 NEXT_CHILD_EXECUTABLE handoff to #844."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
