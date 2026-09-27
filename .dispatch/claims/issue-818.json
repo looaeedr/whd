@@ -9,9 +9,9 @@
   "work_branch": "governance/issue818-main-governance-mirror-20260927",
   "claimed_at": "2026-09-27T05:16:45Z",
   "base_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
-  "head_sha": "493302cc7c645c4af565baf761c1923936240e85",
+  "head_sha": "b6fe1385f7925e6cdb40ee1d60089288ec6268e6",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:38:35Z",
+  "last_update": "2026-09-27T05:51:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -21,7 +21,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "obtain pr-write Guard, open governance-only PR to main, verify PR checks and merge after paired X PR is ready",
+  "next_action": "mirror latest cleanup governance delta (排程模擬 Skill), verify paired PR checks, then merge under fresh pr-write authority",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-818.json",
   "evidence": [
@@ -41,17 +41,21 @@
     "Governance refresh commit 493302cc copies exactly 10 changed governed blobs from X@77175dfe; no non-governance path.",
     "Post-refresh focused regression: 15 passed / 0 failed.",
     "Canonical candidate mirror evaluator: GOVERNANCE_MIRROR_PARITY_PROVEN.",
-    "Post-commit pair reconciliation Guard 36297777722 GREEN."
+    "Post-commit pair reconciliation Guard 36297777722 GREEN.",
+    "UTF-8 governance path mirror fix b6fe1385 changes only whd-governance-mirror-gate.yml and #816 regression test.",
+    "Post-fix focused regression: 15 passed / 0 failed; candidate governance parity GREEN.",
+    "PR #820 Governance Mirror Hard Gate run 36298077001 GREEN.",
+    "Post-commit pair reconciliation Guard 36298131703 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36297777722,
-    "request_comment_id": 5853059159,
+    "run_id": 36298131703,
+    "request_comment_id": 5853099237,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #818 to refreshed main mirror head 493302cc"
+    "mutation": "reconcile #818 to UTF-8 mirror fix b6fe1385"
   },
   "delegated_work": []
 }
