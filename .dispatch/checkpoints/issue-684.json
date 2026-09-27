@@ -4,7 +4,7 @@
   "branch": "work/issue684-real-ha-integration-combined-20260927",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "state": "RUNNING",
-  "next_action": "Create reciprocal cleanup/main governance-mirror PRs for #684 closing head a4fcfaf6af265b747f4bc838ff72df8a37025688; require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN; merge in legal order; then production readback and finalization/close/release.",
+  "next_action": "Create delegated main governance mirror branch governance/issue684-main-mirror-20260927 from main@f65ee095790ff6ec2e52ad7d158cecdc43886715; mirror only .agents/skills/engineering/排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11 from accepted #684 closing head a4fcfaf6af265b747f4bc838ff72df8a37025688; open paired cleanup/main PRs with reciprocal WHD-Governance-Mirror-Pair markers; require Governance Mirror Hard Gate + Knowledge Governance GREEN; merge legal order; finalize #684.",
   "run_id": 36329242279,
   "job_id": 108647885044,
   "log_cursor": null,
@@ -29,7 +29,9 @@
     "One-shot Combined Acceptance workflow removed at closing head 22e42713db60ae8587d4600c1f3c4964a23959bc under commit Guard 36329377430.",
     "Tested 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> closing 22e42713db60ae8587d4600c1f3c4964a23959bc drift is exactly the one-shot workflow deletion.",
     "Live cleanup drift e7d88f69e22a974a846660f52f58d6fd621834e8 is disjoint from #684 delta.",
-    "Two-parent closing head a4fcfaf6af265b747f4bc838ff72df8a37025688 parents 22e42713db60ae8587d4600c1f3c4964a23959bc + e7d88f69e22a974a846660f52f58d6fd621834e8; target-to-closing diff is exactly #684 seven files."
+    "Two-parent closing head a4fcfaf6af265b747f4bc838ff72df8a37025688 parents 22e42713db60ae8587d4600c1f3c4964a23959bc + e7d88f69e22a974a846660f52f58d6fd621834e8; target-to-closing diff is exactly #684 seven files.",
+    "Initial mirror branch-create Guard 36329762732 failed closed on missing delegated branch authority; no branch effect.",
+    "Guard 36329852752 authorizes durable delegated-branch reservation before retry."
   ],
   "master_issue": null,
   "chain_state": "NONE",
