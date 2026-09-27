@@ -3,22 +3,25 @@
   "issue": "774",
   "branch": "governance/issue774-guard-scope-grouping-20260927",
   "head_sha": "fea00e5dc38f717286e55951ae00141872d5c3f6",
-  "state": "RUNNING",
-  "next_action": "Create guarded follow-up PR to X, merge, verify main parity, then canonical closure chain.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "H3 commit=fea00e5dc38f717286e55951ae00141872d5c3f6",
-    "52 focused tests PASS"
+    "PR #786 merged to X.",
+    "52 focused tests PASS.",
+    "Main/X #774 classifier contract parity verified.",
+    "#776/#781/#783 helpers CLOSED+RELEASED.",
+    "#772 and #768 CLOSED+RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize proof, close/readback #774, then atomically CLOSED+RELEASED."
 }
