@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "794",
   "branch": "governance/issue794-issue790-main-x-parity-20260927",
-  "head_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
+  "head_sha": "c0fb59b17f0a1a8208d93812205c15daef505df1",
   "state": "RUNNING",
-  "next_action": "Run Phase6 planned-scope Preflight for Issue #794 exact six parity artifacts; port the accepted #790 same-owner intervening claim-blob reconciliation as a compatible-equivalent onto frozen cleanup base c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e without dropping newer X governance; run focused #790 + adjacent reconciliation regressions, workflow YAML/naming gates, then reconcile durable HEAD.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #794 GREEN head c0fb59b17f0a1a8208d93812205c15daef505df1; perform integration drift/overlap audit. If live X advanced from frozen c04f028f, use one guarded non-force merge-sync preserving the six-artifact compatible-equivalent parity, rerun focused acceptance, then open/update exact PR to cleanup and drive to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,10 @@
     "Do not begin branch/implementation before parent reservation ACTIVE binds this child claim blob.",
     "Parent #790 helper reservation ACTIVE for #794 exact child claim.",
     "Branch-create Guard 36287265949 GREEN; branch readback exact at frozen cleanup base c04f028f.",
-    "Pair transition Guard 36287338005 GREEN; next action advanced to six-artifact compatible-equivalent parity port."
+    "Pair transition Guard 36287338005 GREEN; next action advanced to six-artifact compatible-equivalent parity port.",
+    "H1 c0fb59b17f0a1a8208d93812205c15daef505df1 is the compatible-equivalent #790 parity port on frozen cleanup base.",
+    "Focused/adjacent 71 passed / 0 failed; workflow YAML/naming and Phase6 Preflight GREEN.",
+    "Pair reconciliation Guard 36287912946 GREEN; durable pair reconciled to H1."
   ],
   "master_issue": null,
   "chain_state": "NONE",
