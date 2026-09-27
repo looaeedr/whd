@@ -17,13 +17,14 @@
     "#776/#781/#783 helpers CLOSED+RELEASED.",
     "#772 and #768 CLOSED+RELEASED.",
     "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID.",
-    "Issue #774 fresh-read closed/completed."
+    "Issue #774 closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #774."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
