@@ -11,12 +11,12 @@
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T14:12:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T14:13:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve terminal acceptance/finalization evidence and leave no successor handoff.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -71,7 +71,8 @@
     "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard run=36321358546",
     "Trusted Remote Finalization run=36321490977 GREEN; artifact=10932333818; checkpoint fingerprint=ad7b4bbaf730953f7ed71981f8ebc01fd2e061e142c0a8b1f50ec471863293be",
     "Issue #851 fresh readback closed/completed at 2026-09-27T14:10:43Z; checkpoint blob remained 7b05983bd892473182d914c572ad13f87d7023e7 through proof + close",
-    "release-handoff transition Guard run=36325022832 GREEN"
+    "release-handoff transition Guard run=36325022832 GREEN",
+    "Final atomic terminal release consumes exact write Guard 36325119172 / request 5856608475 / result 5856610296."
   ],
   "delegated_branches": [
     "governance/issue851-main-mirror-20260927",
@@ -80,12 +81,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36325022832,
-    "request_comment_id": 5856596940,
-    "result_comment_id": 5856598585,
+    "run_id": 36325119172,
+    "request_comment_id": 5856608475,
+    "result_comment_id": 5856610296,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #851 closure to RELEASE_HANDOFF_PENDING after closed/completed readback"
+    "mutation": "atomically set #851 claim RELEASED + checkpoint CLOSED"
   }
 }
