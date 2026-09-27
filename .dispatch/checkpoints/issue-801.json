@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "801",
+  "branch": "integration/issue801-issue701-scheduler-reconcile-20260927",
+  "head_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
+  "state": "RUNNING",
+  "next_action": "Obtain exact branch-create Guard GREEN, create/read back integration branch from current cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71, merge accepted #701 closing head 35cea40092d6c689b36342aca33805791651e47f preserving both parents, resolve only conflicts, run focused #701 acceptance, then integrate non-force back to cleanup.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Helper #801 created only after parent #701 durable helper reservation.",
+    "Current X base=44d1621f013d6181af7678e550254920cd6bcc71.",
+    "Accepted #701 head=35cea40092d6c689b36342aca33805791651e47f.",
+    "PR #799 is dirty; integration-resolution required."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
