@@ -21,13 +21,15 @@
     "Pair reconciliation Guard 36288571301 GREEN.",
     "PR #798 merged non-force to trusted main d54f0410dee3c70489c8a2bdebb4b3b7c3564690.",
     "Trusted main parser readback shows all authority parser lines use real CRLF/LF normalization.",
-    "Focused #722 acceptance 3 passed / 0 failed; YAML parse PASS."
+    "Focused #722 acceptance 3 passed / 0 failed; YAML parse PASS.",
+    "Autoclose from PR #798 was reopened because no bound finalization proof existed; closure transaction resumed canonically.",
+    "Closure advance Guard 36289040475 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "mint and verify bound finalization proof, then close #796 and fresh-read closed/completed"
 }

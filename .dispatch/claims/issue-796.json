@@ -11,10 +11,10 @@
   "base_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
   "head_sha": "0e92ce4407d2e45f022c25a3d9c13374a7b8d61b",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T02:33:48Z",
+  "last_update": "2026-09-27T02:37:25Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Advance #796 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under an exact coordination Guard, mint a bound finalization proof, verify the already-closed owning Issue as closed/completed, then atomically persist checkpoint CLOSED + claim RELEASED and terminalize parent #793 helper reservation.",
+  "next_action": "Mint and verify the bound finalization proof on exact ISSUE_CLOSE_PENDING checkpoint, close #796, fresh-read closed/completed, then atomically persist checkpoint CLOSED + claim RELEASED and terminalize parent #793 helper reservation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-796.json",
   "slot_id": "worker.slot.1",
@@ -38,16 +38,17 @@
     "Post-commit pair reconciliation Guard run 36288571301 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "PR #798 merged non-force to trusted main d54f0410dee3c70489c8a2bdebb4b3b7c3564690 under merge pr-write Guard 36288727639.",
     "Trusted main parser readback: all takeover authority parser lines use real CRLF/LF normalization.",
-    "Terminal coordination Guard 36288865439 GREEN."
+    "Terminal coordination Guard 36288865439 GREEN.",
+    "Closure advance Guard run 36289040475 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288865439,
-    "request_comment_id": 5851994345,
+    "run_id": 36289040475,
+    "request_comment_id": 5852013595,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #796 TERMINAL_SUCCESS / FINALIZATION_PENDING"
+    "mutation": "advance #796 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   }
 }
