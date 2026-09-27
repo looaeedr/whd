@@ -7,6 +7,7 @@ snapshot as ownership.
 """
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -1750,6 +1751,318 @@ def _assert_local_guard_postcommit_proof(
         )
 
 
+_INTERVENING_COORD_OBSERVATIONAL_FIELDS = frozenset(
+    {
+        "last_update",
+        "evidence",
+        "last_guard",
+        "remote_qa",
+        "next_action",
+    }
+)
+
+
+def _load_intervening_coord_recovery(path: Path | None) -> dict[str, object]:
+    if path is None:
+        raise ExecutionClaimError(
+            "intervening coord postcommit reconciliation recovery evidence is required"
+        )
+    try:
+        payload = json.loads(
+            Path(path).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(
+            f"intervening coord postcommit reconciliation recovery evidence invalid: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "intervening coord postcommit reconciliation recovery evidence root must be object"
+        )
+    return payload
+
+
+def _git_blob_sha_bytes(data: bytes) -> str:
+    header = f"blob {len(data)}\0".encode("utf-8")
+    return hashlib.sha1(header + data).hexdigest()
+
+
+def _historical_claim_payload_from_blob(blob_sha: str) -> dict[str, object]:
+    blob_sha = _validate_sha(blob_sha, "historical claim blob SHA")
+    payload = _github_api_json(f"git/blobs/{blob_sha}")
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim blob response is malformed"
+        )
+    if str(payload.get("encoding") or "") != "base64":
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim blob encoding is unsupported"
+        )
+    content = payload.get("content")
+    if not isinstance(content, str):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim blob content is missing"
+        )
+    try:
+        raw = base64.b64decode(content.encode("ascii"), validate=True)
+    except (ValueError, UnicodeEncodeError) as exc:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim blob is not valid base64"
+        ) from exc
+    if _git_blob_sha_bytes(raw) != blob_sha:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim blob SHA mismatch"
+        )
+    try:
+        decoded = raw.decode("utf-8")
+        claim = json.loads(decoded, object_pairs_hook=_reject_duplicate_keys)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim blob is not valid claim JSON"
+        ) from exc
+    if not isinstance(claim, dict):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation historical claim root must be object"
+        )
+    return claim
+
+
+def _claim_authority_projection(payload: dict[str, object]) -> dict[str, object]:
+    return {
+        key: value
+        for key, value in payload.items()
+        if key not in _INTERVENING_COORD_OBSERVATIONAL_FIELDS
+    }
+
+
+def _assert_intervening_coord_reconcile_authority(
+    path: Path | None,
+    *,
+    current_claim: dict[str, object],
+    issue: int,
+    worker: str,
+    executor_source: str,
+    branch: str,
+    claim_head_sha: str,
+    live_head_sha: str,
+    current_claim_blob: str,
+    historical_claim_blob: str,
+    prior_guard_run_id: int,
+    prior_request_comment_id: int,
+    commit_file_set: tuple[str, ...],
+) -> None:
+    payload = _load_intervening_coord_recovery(path)
+    comment_id = payload.get("id")
+    if isinstance(comment_id, bool) or not isinstance(comment_id, int) or comment_id <= 0:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery comment id is invalid"
+        )
+    user = payload.get("user")
+    if not isinstance(user, dict) or str(user.get("login") or "") != "looaeedr":
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery must be owner-authored"
+        )
+    body = payload.get("body")
+    if not isinstance(body, str):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery comment body is missing"
+        )
+    lines = body.replace("\r\n", "\n").split("\n")
+    if (
+        not lines
+        or lines[0].strip()
+        != "WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1"
+    ):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery marker mismatch"
+        )
+
+    required = {
+        "issue",
+        "worker",
+        "executor_source",
+        "branch",
+        "current_claim_blob_sha",
+        "historical_claim_blob_sha",
+        "claim_head_sha",
+        "live_head_sha",
+        "prior_guard_run_id",
+        "prior_request_comment_id",
+        "recovery_reason",
+    }
+    fields: dict[str, str] = {}
+    changed_files: list[str] = []
+    for raw in lines[1:]:
+        if not raw.strip():
+            continue
+        if "=" not in raw:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation recovery contains malformed line"
+            )
+        key, value = raw.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if key == "changed_file":
+            if not value:
+                raise ExecutionClaimError(
+                    "intervening coord reconciliation recovery changed_file is blank"
+                )
+            changed_files.append(value)
+            continue
+        if key not in required or key in fields or not value:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation recovery contains unsupported/duplicate key"
+            )
+        fields[key] = value
+
+    if set(fields) != required or not changed_files:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery is missing required identity"
+        )
+    if len(changed_files) != len(set(changed_files)):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery changed_file is ambiguous"
+        )
+    if fields["issue"] != str(issue):
+        raise ExecutionClaimError("intervening coord reconciliation recovery issue mismatch")
+    if fields["worker"] != worker:
+        raise ExecutionClaimError("intervening coord reconciliation recovery worker mismatch")
+    if fields["executor_source"] != executor_source:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery executor_source mismatch"
+        )
+    if fields["branch"] != branch:
+        raise ExecutionClaimError("intervening coord reconciliation recovery branch mismatch")
+    if (
+        _validate_sha(
+            fields["current_claim_blob_sha"],
+            "intervening recovery current claim blob SHA",
+        )
+        != current_claim_blob
+    ):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery current claim blob mismatch"
+        )
+    if (
+        _validate_sha(
+            fields["historical_claim_blob_sha"],
+            "intervening recovery historical claim blob SHA",
+        )
+        != historical_claim_blob
+    ):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery historical claim blob mismatch"
+        )
+    if _validate_sha(fields["claim_head_sha"], "intervening recovery claim HEAD") != claim_head_sha:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery claim head mismatch"
+        )
+    if _validate_sha(fields["live_head_sha"], "intervening recovery live HEAD") != live_head_sha:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery live head mismatch"
+        )
+    try:
+        recovery_run_id = int(fields["prior_guard_run_id"])
+        recovery_request_id = int(fields["prior_request_comment_id"])
+    except ValueError as exc:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery prior identity is invalid"
+        ) from exc
+    if recovery_run_id <= 0 or recovery_run_id != prior_guard_run_id:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery prior guard run mismatch"
+        )
+    if recovery_request_id <= 0 or recovery_request_id != prior_request_comment_id:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery prior request mismatch"
+        )
+    if fields["recovery_reason"] != "INTERVENING_SAME_OWNER_COORD_WRITE":
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery reason mismatch"
+        )
+    if tuple(sorted(changed_files)) != commit_file_set:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery changed-file mismatch"
+        )
+
+    historical_claim = _historical_claim_payload_from_blob(historical_claim_blob)
+    if _claim_authority_projection(historical_claim) != _claim_authority_projection(
+        current_claim
+    ):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation authority mismatch between historical and current claim"
+        )
+
+
+
+
+def _intervening_coord_recovery_selector(
+    path: Path | None,
+) -> tuple[str, int, int, str, str]:
+    payload = _load_intervening_coord_recovery(path)
+    user = payload.get("user")
+    body = payload.get("body")
+    if not isinstance(user, dict) or str(user.get("login") or "") != "looaeedr":
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery must be owner-authored"
+        )
+    if not isinstance(body, str):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery comment body is missing"
+        )
+    lines = body.replace("\r\n", "\n").split("\n")
+    if (
+        not lines
+        or lines[0].strip()
+        != "WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1"
+    ):
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery marker mismatch"
+        )
+    fields: dict[str, str] = {}
+    for raw in lines[1:]:
+        if not raw.strip() or "=" not in raw:
+            continue
+        key, value = raw.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if key == "changed_file":
+            continue
+        if key in fields:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation recovery contains duplicate key"
+            )
+        fields[key] = value
+    try:
+        historical_blob = _validate_sha(
+            fields["historical_claim_blob_sha"],
+            "intervening recovery historical claim blob SHA",
+        )
+        run_id = int(fields["prior_guard_run_id"])
+        request_id = int(fields["prior_request_comment_id"])
+    except (KeyError, ValueError) as exc:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery selector identity is invalid"
+        ) from exc
+    if run_id <= 0 or request_id <= 0:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery selector identity is invalid"
+        )
+    try:
+        claim_head_sha = _validate_sha(
+            fields["claim_head_sha"],
+            "intervening recovery claim HEAD",
+        )
+        live_head_sha = _validate_sha(
+            fields["live_head_sha"],
+            "intervening recovery live HEAD",
+        )
+    except KeyError as exc:
+        raise ExecutionClaimError(
+            "intervening coord reconciliation recovery selector head identity is invalid"
+        ) from exc
+    return historical_blob, run_id, request_id, claim_head_sha, live_head_sha
+
+
 def _assert_post_commit_claim_head_reconciliation(
     path: Path,
     *,
@@ -1762,6 +2075,7 @@ def _assert_post_commit_claim_head_reconciliation(
     changed_files: tuple[str, ...],
     legacy_reconcile_recovery: Path | None = None,
     local_guard_proof: Path | None = None,
+    intervening_coord_recovery: Path | None = None,
 ) -> None:
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
     expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
@@ -1775,6 +2089,20 @@ def _assert_post_commit_claim_head_reconciliation(
             "post-commit claim-head reconciliation may write only the exact shared "
             "claim path or exact claim+checkpoint pair"
         )
+
+    intervening_selector: tuple[str, int, int, str, str] | None = None
+    if intervening_coord_recovery is not None:
+        intervening_selector = _intervening_coord_recovery_selector(
+            intervening_coord_recovery
+        )
+        if claim.head_sha != intervening_selector[3]:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation authority mismatch: current claim HEAD drift"
+            )
+        if expected_live_head_sha != intervening_selector[4]:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation authority mismatch: live HEAD drift"
+            )
 
     commit = _github_commit(expected_live_head_sha)
     if str(commit.get("sha") or "") != expected_live_head_sha:
@@ -1920,6 +2248,12 @@ def _assert_post_commit_claim_head_reconciliation(
     raw_source = str(raw_claim.get("executor_source") or "").strip()
     expected_executor_source = "scheduler" if raw_source == "scheduler" else "chat"
     expired_legacy_candidates: list[tuple[int, int]] = []
+    intervening_candidates: list[tuple[int, int, str]] = []
+    if intervening_coord_recovery is not None:
+        if not is_direct_child or merge_production_parent is not None:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation recovery is restricted to a single direct-child commit"
+            )
 
     for comment in comments:
         receipt = _parse_remote_guard_receipt_comment(comment)
@@ -1945,8 +2279,15 @@ def _assert_post_commit_claim_head_reconciliation(
             continue
         if str(receipt.get("tested_target_sha") or "") != claim.head_sha:
             continue
-        if str(receipt.get("claim_blob_sha") or "") != current_claim_blob:
-            continue
+        receipt_claim_blob = str(receipt.get("claim_blob_sha") or "")
+        intervening_candidate = False
+        if receipt_claim_blob != current_claim_blob:
+            if (
+                intervening_selector is None
+                or receipt_claim_blob != intervening_selector[0]
+            ):
+                continue
+            intervening_candidate = True
         if (
             merge_production_parent is not None
             and str(receipt.get("guard_authority_sha") or "")
@@ -1992,10 +2333,31 @@ def _assert_post_commit_claim_head_reconciliation(
 
         issued_epoch = _reconcile_timestamp_epoch("receipt issued_at", receipt.get("issued_at"))
         expires_epoch = _reconcile_timestamp_epoch("receipt expires_at", receipt.get("expires_at"))
+        run_id = receipt.get("run_id")
+
+        if intervening_candidate:
+            selector_blob = intervening_selector[0]
+            selector_run_id = intervening_selector[1]
+            selector_request_id = intervening_selector[2]
+            if (
+                is_direct_child
+                and merge_production_parent is None
+                and issued_epoch <= commit_epoch <= expires_epoch
+                and receipt_file_set == commit_file_set
+                and not isinstance(run_id, bool)
+                and isinstance(run_id, int)
+                and run_id == selector_run_id
+                and request_comment_id == selector_request_id
+                and receipt_claim_blob == selector_blob
+            ):
+                intervening_candidates.append(
+                    (run_id, request_comment_id, receipt_claim_blob)
+                )
+            continue
+
         if issued_epoch <= commit_epoch <= expires_epoch:
             return
 
-        run_id = receipt.get("run_id")
         if (
             is_direct_child
             and merge_production_parent is None
@@ -2006,6 +2368,31 @@ def _assert_post_commit_claim_head_reconciliation(
             and run_id > 0
         ):
             expired_legacy_candidates.append((run_id, request_comment_id))
+
+    if intervening_coord_recovery is not None:
+        if len(intervening_candidates) != 1:
+            raise ExecutionClaimError(
+                "intervening coord reconciliation recovery requires exactly one matching prior GREEN receipt"
+            )
+        prior_guard_run_id, prior_request_comment_id, historical_claim_blob = (
+            intervening_candidates[0]
+        )
+        _assert_intervening_coord_reconcile_authority(
+            intervening_coord_recovery,
+            current_claim=raw_claim,
+            issue=issue,
+            worker=worker,
+            executor_source=expected_executor_source,
+            branch=branch,
+            claim_head_sha=claim.head_sha,
+            live_head_sha=expected_live_head_sha,
+            current_claim_blob=current_claim_blob,
+            historical_claim_blob=historical_claim_blob,
+            prior_guard_run_id=prior_guard_run_id,
+            prior_request_comment_id=prior_request_comment_id,
+            commit_file_set=commit_file_set,
+        )
+        return
 
     if legacy_reconcile_recovery is not None:
         if not is_direct_child or merge_production_parent is not None:
@@ -2490,6 +2877,7 @@ def assert_execution_claim(
     user_authority_evidence: Path | None = None,
     legacy_reconcile_recovery: Path | None = None,
     local_guard_proof: Path | None = None,
+    intervening_coord_recovery: Path | None = None,
 ) -> ExecutionClaim:
     """Return the validated current claim or raise before one repository action."""
     if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
@@ -2580,6 +2968,7 @@ def assert_execution_claim(
                 changed_files=normalized_changed_files,
                 legacy_reconcile_recovery=legacy_reconcile_recovery,
                 local_guard_proof=local_guard_proof,
+                intervening_coord_recovery=intervening_coord_recovery,
             )
         else:
             raise ExecutionClaimError(
@@ -2653,6 +3042,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="owner-authored WHD_LOCAL_GUARD_RECONCILE_V1 durable issue-comment JSON for exact local-Guard post-commit reconciliation",
     )
+    parser.add_argument(
+        "--intervening-coord-recovery",
+        type=Path,
+        help="owner-authored WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1 issue-comment JSON; same-authority observational claim-blob refresh recovery only",
+    )
     return parser
 
 
@@ -2673,6 +3067,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             user_authority_evidence=args.user_authority_evidence,
             legacy_reconcile_recovery=args.legacy_reconcile_recovery,
             local_guard_proof=args.local_guard_proof,
+            intervening_coord_recovery=args.intervening_coord_recovery,
         )
 
         normalized_changed_files = _normalize_changed_files(args.changed_file)

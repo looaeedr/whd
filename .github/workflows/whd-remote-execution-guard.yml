@@ -1,4 +1,4 @@
-name: WHD Remote Execution Guard
+name: WHD｜遠端執行守門
 run-name: "WHD｜工單 #${{ github.event.issue.number }}｜${{ !startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1') && '非守門請求' || contains(github.event.comment.body, 'executor_source=scheduler') && '排程接手' || contains(github.event.comment.body, 'executor_source=chat') && '聊天室接手' || '來源未標記' }}"
 
 on:
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   guard:
+    name: 遠端執行守門驗證
     if: >-
       github.event.issue.pull_request == null &&
       startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1')
@@ -19,12 +20,12 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout trusted workflow repository
+      - name: 取出受信任守門程式碼
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Parse fixed-schema request
+      - name: 解析固定格式守門請求
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
           EVENT_ISSUE: ${{ github.event.issue.number }}
@@ -58,6 +59,7 @@ jobs:
               "executor_source",
               "takeover_worker",
               "legacy_reconcile_recovery_comment_id",
+              "intervening_coord_recovery_comment_id",
               "target_lane",
               "to_worker",
               "handoff_generation",
@@ -204,6 +206,17 @@ jobs:
               raise SystemExit(f"{singles['action']} must not carry changed_file")
 
           legacy_recovery_id = singles.get("legacy_reconcile_recovery_comment_id")
+          intervening_recovery_id = singles.get(
+              "intervening_coord_recovery_comment_id"
+          )
+          if legacy_recovery_id is not None and intervening_recovery_id is not None:
+              raise SystemExit(
+                  "legacy and intervening reconciliation recoveries are mutually exclusive"
+              )
+          expected_pair = {
+              f".dispatch/claims/issue-{issue}.json",
+              f".dispatch/checkpoints/issue-{issue}.json",
+          }
           if legacy_recovery_id is not None:
               try:
                   parsed_recovery_id = int(legacy_recovery_id)
@@ -211,10 +224,6 @@ jobs:
                   raise SystemExit("invalid legacy_reconcile_recovery_comment_id") from exc
               if parsed_recovery_id <= 0:
                   raise SystemExit("invalid legacy_reconcile_recovery_comment_id")
-              expected_pair = {
-                  f".dispatch/claims/issue-{issue}.json",
-                  f".dispatch/checkpoints/issue-{issue}.json",
-              }
               if (
                   singles["action"] != "write"
                   or len(normalized) != 2
@@ -222,6 +231,23 @@ jobs:
               ):
                   raise SystemExit(
                       "legacy reconciliation recovery requires exact claim+checkpoint write scope"
+                  )
+          if intervening_recovery_id is not None:
+              try:
+                  parsed_intervening_id = int(intervening_recovery_id)
+              except ValueError as exc:
+                  raise SystemExit(
+                      "invalid intervening_coord_recovery_comment_id"
+                  ) from exc
+              if parsed_intervening_id <= 0:
+                  raise SystemExit("invalid intervening_coord_recovery_comment_id")
+              if (
+                  singles["action"] != "write"
+                  or len(normalized) != 2
+                  or set(normalized) != expected_pair
+              ):
+                  raise SystemExit(
+                      "intervening coord reconciliation recovery requires exact claim+checkpoint write scope"
                   )
 
           request = {
@@ -247,7 +273,7 @@ jobs:
                   fh.write(value + "\n")
           PY
 
-      - name: Execute canonical remote guard
+      - name: 執行 canonical 遠端守門
         id: remote_guard
         shell: bash
         env:
@@ -563,6 +589,45 @@ jobs:
               )
             fi
 
+            intervening_coord_reconcile_arg=()
+            if [ -n "${RG_INTERVENING_COORD_RECOVERY_COMMENT_ID:-}" ]; then
+              test "$effective_live_head" != "$claim_head_sha"
+              rm -f /tmp/intervening-coord-recovery.json
+              gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${RG_INTERVENING_COORD_RECOVERY_COMMENT_ID}" > /tmp/intervening-coord-recovery.json
+              python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("/tmp/intervening-coord-recovery.json").read_text(encoding="utf-8")
+          )
+          user = payload.get("user")
+          body = payload.get("body")
+          if (
+              not isinstance(user, dict)
+              or user.get("login") != os.environ["GITHUB_REPOSITORY_OWNER"]
+          ):
+              raise SystemExit(
+                  "intervening coord reconciliation recovery comment must be repository-owner authored"
+              )
+          if not isinstance(body, str):
+              raise SystemExit(
+                  "intervening coord reconciliation recovery comment body missing"
+              )
+          lines = body.replace("\r\n", "\n").split("\n")
+          if (
+              not lines
+              or lines[0].strip()
+              != "WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1"
+          ):
+              raise SystemExit("intervening coord reconciliation recovery marker mismatch")
+          PY
+              intervening_coord_reconcile_arg=(
+                --intervening-coord-recovery /tmp/intervening-coord-recovery.json
+              )
+            fi
+
             takeover_live_commit_at=""
             rm -f /tmp/remote-run.json /tmp/remote-run-api.json /tmp/remote-run.err /tmp/stale-takeover-decision.json /tmp/stale-takeover.log
             remote_arg=()
@@ -770,6 +835,7 @@ jobs:
             fi
             guard_args+=(--preflight-evidence /tmp/preflight-evidence.txt)
             guard_args+=("${legacy_reconcile_arg[@]}")
+            guard_args+=("${intervening_coord_reconcile_arg[@]}")
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
             done < /tmp/remote-guard-changed-files.txt
@@ -822,6 +888,9 @@ jobs:
               "legacy_reconcile_recovery_comment_id": request.get(
                   "legacy_reconcile_recovery_comment_id"
               ),
+              "intervening_coord_recovery_comment_id": request.get(
+                  "intervening_coord_recovery_comment_id"
+              ),
               "run_id": int(os.environ["GITHUB_RUN_ID"]),
               "orchestrator_head_sha": os.environ["GITHUB_SHA"],
               "issued_at": now.isoformat().replace("+00:00", "Z"),
@@ -850,13 +919,16 @@ jobs:
           if [ -f /tmp/legacy-reconcile-recovery.json ]; then
             cp /tmp/legacy-reconcile-recovery.json "$GITHUB_WORKSPACE/remote-guard-artifact/legacy-reconcile-recovery.json"
           fi
+          if [ -f /tmp/intervening-coord-recovery.json ]; then
+            cp /tmp/intervening-coord-recovery.json "$GITHUB_WORKSPACE/remote-guard-artifact/intervening-coord-recovery.json"
+          fi
 
           {
             echo "result=$result"
             echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Publish machine-readable receipt
+      - name: 發布機器可讀守門收據
         if: always() && hashFiles('remote-guard-artifact/remote-guard-receipt.json') != ''
         uses: actions/github-script@v7
         with:
@@ -885,7 +957,7 @@ jobs:
               ].join('\n'),
             });
 
-      - name: Upload guard receipt
+      - name: 上傳守門收據 artifact
         if: always() && hashFiles('remote-guard-artifact/remote-guard-receipt.json') != ''
         uses: actions/upload-artifact@v4
         with:
@@ -894,6 +966,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Enforce terminal guard result
+      - name: 強制檢查守門終態結果
         if: steps.remote_guard.outputs.result != 'GREEN'
         run: exit 1

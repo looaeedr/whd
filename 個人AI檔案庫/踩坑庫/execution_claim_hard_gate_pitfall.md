@@ -190,3 +190,23 @@ Regression：`tests/process/test_issue739_write_auto_consume.py`。
 - retained invariant: Ownership mutation stays guarded; takeover authority must lead to a substantive action and planned handoff is distinct from stale takeover.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## INTERVENING_CLAIM_BLOB_REFRESH_POSTCOMMIT_PITFALL_V1
+
+### 事故
+
+合法 Remote Guard 綁 historical claim blob H0 後，direct-child commit H1 在 receipt window 內落盤；但另一個同-owner coordination write先更新 remote-QA/evidence/next_action，造成 current claim blob改變而 claim HEAD仍是 H0。ordinary post-commit reconciliation正確要求 receipt claim blob == current blob，因此無法消耗原 commit；直接忽略 blob mismatch會讓 stale receipt跨 authority變更重播。
+
+### 永久防線
+
+只允許 `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1` 窄 recovery：
+
+1. owner-authored evidence exact 綁 current/historical blob、H0/H1、prior run/request、files。
+2. historical blob從 GitHub blob API fresh-read並驗 Git blob SHA。
+3. historical/current claim除 observational欄位（`last_update/evidence/last_guard/remote_qa/next_action`）外 authority projection完全一致。
+4. H1只能是H0單一直子；merge/multi-hop禁止。
+5. commit files exact等於 prior GREEN receipt，commit timestamp必須仍在原 receipt window。
+6. recovery只授權 atomic claim+checkpoint HEAD reconciliation，不授權重播原 mutation。
+7. 與 legacy expired receipt、local Guard proof、claim-handoff recovery互不替代。
+
+Canonical owner：`tools/execution_claim_guard.py`；trusted transport：`.github/workflows/whd-remote-execution-guard.yml`；regression：`tests/process/test_issue790_intervening_claim_blob_reconciliation.py`。
