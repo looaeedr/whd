@@ -9,13 +9,13 @@
   "work_branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "claimed_at": "2026-09-26T22:33:00Z",
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
-  "head_sha": "1a8a3a815a1c6ec926d4c809951583faaec1f93c",
-  "phase": "RED",
-  "last_update": "2026-09-26T23:45:00Z",
+  "head_sha": "cda39c981915c51fde3881ba79db4b15fc59d433",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T00:04:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Implement the READY_WORK_CENSUS scheduler turn-exit machine gate in the canonical continuity controller with focused GREEN/negative tests, then wire the trusted turn-exit transport and required executable-continuity/AI writeback without touching #764-owned scheduler Skill files.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #769 GREEN head cda39c981915c51fde3881ba79db4b15fc59d433; if production advanced, perform one guarded evidence-bound merge-sync, rerun #769 focused+adjacent acceptance, then obtain remote QA/PR acceptance on the reconciled head.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -31,7 +31,14 @@
     "Focused RED fresh-run: 1 failed / 0 passed; expected TurnExitBlocked READY_WORK_CENSUS was not raised.",
     "Local canonical prewrite Guard GREEN for H0 and exact RED changed-file scope.",
     "Owner-authored WHD_LOCAL_GUARD_RECONCILE_V1 comment=5850997668.",
-    "Post-commit local-proof reconciliation Guard GREEN for H0 90a49393 -> H1 1a8a3a81."
+    "Post-commit local-proof reconciliation Guard GREEN for H0 90a49393 -> H1 1a8a3a81.",
+    "Implementation commit cda39c981915c51fde3881ba79db4b15fc59d433 is direct child of RED H1 and changes exactly 6 authorized #769 files.",
+    "Focused #769 + #691: 18 passed / 0 failed.",
+    "Adjacent continuity/turn-exit/successor/#764 census producer contracts: 75 passed / 0 failed; workflow YAML parsed successfully.",
+    "Full tests/process on #769 head: 817 passed / 2 failed.",
+    "The 2 full-suite failures reproduced unchanged on fresh cleanup/2d-3d-sync@5a29aacdc39805e6950362a8880f1513318389f0: issue423 assembly ownership assertion and legacy issue540 scheduler-only takeover assertion.",
+    "Phase6 planned-scope preflight: all 7 required Skills + 4 required references GREEN.",
+    "Owner-authored WHD_LOCAL_GUARD_RECONCILE_V1 comment=5851111385; canonical H1->H2 post-commit reconciliation Guard GREEN."
   ],
   "last_guard": {
     "action": "write",
@@ -39,6 +46,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #769 RED H0->H1 via durable local-Guard proof"
+    "mutation": "reconcile #769 implementation H1->H2 via durable local-Guard proof"
   }
 }
