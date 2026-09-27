@@ -23,13 +23,15 @@
     "Trusted main parser readback shows all authority parser lines use real CRLF/LF normalization.",
     "Focused #722 acceptance 3 passed / 0 failed; YAML parse PASS.",
     "Autoclose from PR #798 was reopened because no bound finalization proof existed; closure transaction resumed canonically.",
-    "Closure advance Guard 36289040475 GREEN."
+    "Closure advance Guard 36289040475 GREEN.",
+    "Owning Issue #796 fresh-read closed/completed at 2026-09-27T02:45:54Z.",
+    "Remote Finalization run 36289406298 GREEN / FINALIZATION_PROOF_VALID, request 5852054924."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "mint and verify bound finalization proof, then close #796 and fresh-read closed/completed"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then terminalize parent #793 bootstrap helper reservation and resume Work1 takeover"
 }
