@@ -580,6 +580,7 @@ def classify_guard_transaction(
     now: datetime,
     durable_readbacks: Iterable[Mapping[str, object]] = (),
     expected_changed_files: Iterable[str] | None = None,
+    expected_action: str | None = None,
 ) -> GuardTransactionDecision:
     """Classify one exact Remote Guard mutation, deduping equivalent GREEN receipts."""
 
@@ -599,18 +600,57 @@ def classify_guard_transaction(
     ]
     if not all_green:
         return GuardTransactionDecision(GuardTransactionState.NONE)
-    green = [
+    action_green = [
         item
         for item in all_green
+        if expected_action is None
+        or str(item.get("action") or "") == expected_action
+    ]
+    if not action_green:
+        return GuardTransactionDecision(GuardTransactionState.NONE)
+    readbacks = tuple(durable_readbacks)
+    green = [
+        item
+        for item in action_green
         if expected_scope is None or _guard_tx_files(item) == expected_scope
     ]
     if not green:
-        run_ids = tuple(sorted(_guard_tx_run_id(item) for item in all_green))
+        unresolved_scope_runs: list[int] = []
+        try:
+            for receipt in action_green:
+                run_id = _guard_tx_run_id(receipt)
+                readback = _guard_tx_readback_for(receipt, readbacks)
+                consumed = (
+                    readback is not None
+                    and _guard_tx_readback_proves_mutation(
+                        receipt,
+                        readback,
+                        live_branch_head_sha=live_branch_head_sha,
+                    )
+                    and readback.get("reconciled") is True
+                )
+                if not consumed:
+                    unresolved_scope_runs.append(run_id)
+        except ExecutionClaimError:
+            unresolved_scope_runs = [
+                _guard_tx_run_id(item) for item in action_green
+            ]
+        if unresolved_scope_runs:
+            return GuardTransactionDecision(
+                GuardTransactionState.AMBIGUOUS,
+                guard_run_ids=tuple(sorted(set(unresolved_scope_runs))),
+                required_next_action="FAIL_CLOSED",
+                reason=(
+                    "GREEN Guard receipts for current action have a different "
+                    "changed-file scope and are not durably consumed"
+                ),
+            )
         return GuardTransactionDecision(
-            GuardTransactionState.AMBIGUOUS,
-            guard_run_ids=run_ids,
-            required_next_action="FAIL_CLOSED",
-            reason="GREEN Guard receipts exist but none match expected changed-file scope",
+            GuardTransactionState.NONE,
+            reason=(
+                "same-action historical receipts use a different changed-file "
+                "scope but all are durably consumed"
+            ),
         )
 
     members: list[
@@ -684,7 +724,6 @@ def classify_guard_transaction(
             reason="Guard receipt/current ownership identity cannot be paired exactly",
         )
 
-    readbacks = tuple(durable_readbacks)
     proven: list[
         tuple[Mapping[str, object], Mapping[str, object], datetime, int]
     ] = []
