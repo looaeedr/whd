@@ -12,11 +12,11 @@
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "phase": "GREEN",
-  "last_update": "2026-09-27T11:49:23Z",
+  "last_update": "2026-09-27T11:53:38Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Open replacement cleanup/2d-3d-sync PR from head 14902f707009d26c242f81ba386be3293ad2a708, create same-owner governed main mirror candidate, pair both PRs, require Governance Mirror Hard Gate GREEN, then merge/read back both branches.",
+  "next_action": "Create delegated main mirror branch governance/issue851-main-mirror-20260927 under branch-create Guard; build a governance-only bridge against current main, then construct reciprocal cleanup/main PR pair.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -37,6 +37,12 @@
     "cleanup advanced to d41c257787c1fa298bb4e8a1fb7927432c9cbde1 via #683 with disjoint 3-file delta",
     "latest target-sync Guard run=36316890028 GREEN",
     "latest two-parent merge head=14902f707009d26c242f81ba386be3293ad2a708",
-    "latest pair reconciliation Guard run=36316955484 GREEN"
+    "latest pair reconciliation Guard run=36316955484 GREEN",
+    "same-owner mirror pattern follows accepted #683; no parity helper Issue",
+    "delegated-branch reservation write Guard run=36317185375 GREEN",
+    "pre-reservation branch-create attempt run=36317140890 failed closed because delegated branch authority was absent"
+  ],
+  "delegated_branches": [
+    "governance/issue851-main-mirror-20260927"
   ]
 }

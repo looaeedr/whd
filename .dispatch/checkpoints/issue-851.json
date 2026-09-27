@@ -4,7 +4,7 @@
   "branch": "repair/issue851-sealed-premerge-v2-20260927",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "state": "RUNNING",
-  "next_action": "Open replacement cleanup/2d-3d-sync PR from head 14902f707009d26c242f81ba386be3293ad2a708, create same-owner governed main mirror candidate, pair both PRs, require Governance Mirror Hard Gate GREEN, then merge/read back both branches.",
+  "next_action": "Create delegated main mirror branch governance/issue851-main-mirror-20260927 under branch-create Guard; build a governance-only bridge against current main, then construct reciprocal cleanup/main PR pair.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -23,7 +23,9 @@
     "cleanup target-sync with #683 is disjoint from #851 work delta",
     "target-sync Guard 36316890028 GREEN",
     "two-parent head 14902f707009d26c242f81ba386be3293ad2a708",
-    "pair reconciliation Guard 36316955484 GREEN"
+    "pair reconciliation Guard 36316955484 GREEN",
+    "main mirror delegated-branch reservation authorized by write Guard 36317185375",
+    "branch-create pre-reservation fail-closed evidence run 36317140890"
   ],
   "operation": null,
   "master_issue": null,
