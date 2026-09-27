@@ -51,8 +51,9 @@ jobs:
           test "$(git rev-parse HEAD)" = "${QA_HEAD}"
           git merge-base --is-ancestor "${LANDING_MERGE}" HEAD
           test "$(git show -s --format=%P "${LANDING_MERGE}")" = "${PROD_HEAD} ${CLOSING_HEAD}"
-          qa_only="$(git diff --name-only "${LANDING_MERGE}..HEAD" | LC_ALL=C sort)"
-          test "${qa_only}" = ".github/workflows/qa-issue780-landing.yml"
+          recovery_paths="$(git diff --name-only "${LANDING_MERGE}..HEAD" | LC_ALL=C sort)"
+          expected_recovery_paths="$(printf '%s\n' '.github/workflows/qa-issue780-landing.yml' 'tests/process/test_issue774_guard_scope_grouping.py' | LC_ALL=C sort)"
+          test "${recovery_paths}" = "${expected_recovery_paths}"
           actual="$(git diff --name-only "${PROD_HEAD}..${LANDING_MERGE}" | LC_ALL=C sort)"
           expected="$(printf '%s\n' 'tests/process/test_issue681_poweroff_gate.py' 'tests/process/test_scheduler_no_work_census_contract.py' | LC_ALL=C sort)"
           test "${actual}" = "${expected}"
@@ -73,6 +74,12 @@ jobs:
               after = subprocess.check_output(["git", "show", f"{landing}:{path}"])
               assert before.startswith(bom), path
               assert after == before[len(bom):], path
+          # Post-landing moving-production recovery: #774 was inherited with BOM at LANDING_MERGE.
+          path = "tests/process/test_issue774_guard_scope_grouping.py"
+          before = subprocess.check_output(["git", "show", f"{landing}:{path}"])
+          after = Path(path).read_bytes()
+          assert before.startswith(bom), path
+          assert after == before[len(bom):], path
           print("ISSUE780_LANDING_BOM_ONLY_GREEN=1")
           PY
 
