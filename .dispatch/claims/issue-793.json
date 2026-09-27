@@ -10,7 +10,7 @@
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "4c9be50f31a7ea4e91ed232f78050ec51deed17f",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "last_update": "2026-09-27T03:04:38Z",
   "production_target": "main",
   "slot_id": "worker.slot.1",
@@ -25,7 +25,7 @@
     "failed": 0,
     "marker": "ISSUE793_TAKEOVER_PARSER_GREEN=PASS"
   },
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED under a fresh trusted-main local guard, then fresh-read #790 dependency chain.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -59,7 +59,10 @@
     "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write.",
     "Remote Finalization run 36290307630 GREEN / FINALIZATION_PROOF_VALID for request 5852158625.",
     "Owning Issue #793 fresh-read closed/completed at 2026-09-27T03:04:38Z.",
-    "Trusted-main local execution_claim_guard GREEN for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write."
+    "Trusted-main local execution_claim_guard GREEN for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write.",
+    "Trusted-main local execution_claim_guard GREEN for final atomic closure/release write.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically.",
+    "Owning Issue #793 readback closed/completed; Remote Finalization run 36290307630 GREEN."
   ],
   "last_guard": {
     "action": "write",
@@ -67,7 +70,7 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #793 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically persist #793 checkpoint CLOSED + claim RELEASED"
   },
   "delegated_work": [
     {
