@@ -6,17 +6,17 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.683.20260927T0832.ha-transport",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue683-ha-transport-projection-20260927",
+  "work_branch": "governance/issue683-main-mirror-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
-  "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
+  "base_sha": "cb80310e2643d1ab9624e90085d4abda6e4d125e",
+  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:37:00Z",
-  "production_target": "cleanup/2d-3d-sync",
+  "last_update": "2026-09-27T10:42:00Z",
+  "production_target": "main",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue683-main-mirror-20260927"
+    "work/issue683-ha-transport-projection-20260927"
   ],
   "remote_qa": {
     "run_id": 36311528696,
@@ -27,7 +27,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Create delegated main governance mirror branch governance/issue683-main-mirror-20260927 from main@cb80310e2643d1ab9624e90085d4abda6e4d125e; mirror only 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md from the accepted #683 delta; open paired PR to main; add reciprocal WHD-Governance-Mirror-Pair markers to the main PR and #848; require both Governance Mirror Hard Gate checks GREEN; merge the main mirror first, then revalidate and merge #848.",
+  "next_action": "Open the governance-only paired PR from governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 to main@cb80310e2643d1ab9624e90085d4abda6e4d125e; add reciprocal WHD-Governance-Mirror-Pair markers between that PR and #848; require the main paired Governance Mirror Hard Gate GREEN; merge main mirror first; hand primary authority back to work/issue683-ha-transport-projection-20260927; rerun #848 Governance Mirror Hard Gate and merge #848.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -77,17 +77,19 @@
     "PR #848 exists at exact head 6156cf8c222e1a87d2fe477288dc12282711ddb6 -> cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
     "Merge attempt was rejected by repository rules because Governance Mirror Hard Gate run 36312072884 failed: current cleanup PR has governed Authority Map delta but no reciprocal paired main PR marker.",
     "Per accepted #836 current-ticket repair contract, parity repair stays on Issue #683; no helper Issue is opened. Delegated branch governance/issue683-main-mirror-20260927 reserved for same-owner main mirror.",
-    "Coord write consumes existing exact GREEN Guard 36312375461 / request 5855008090 / result 5855009519 for issue-683 claim+checkpoint pair."
+    "Coord write consumes existing exact GREEN Guard 36312375461 / request 5855008090 / result 5855009519 for issue-683 claim+checkpoint pair.",
+    "Main mirror bridge commit 63ce016fc789c80aa110a0fd289779f48ada7821 is a two-parent commit connecting main@cb80310e... and accepted #683 head 6156cf8c...; fresh compare to main changes only canonical Authority Map.",
+    "Primary authority handoff to same-ticket main mirror consumes write Guard 36313318528 / request 5855116342 / result 5855117720; original cleanup branch remains delegated."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36312375461,
-    "request_comment_id": 5855008090,
-    "result_comment_id": 5855009519,
+    "run_id": 36313318528,
+    "request_comment_id": 5855116342,
+    "result_comment_id": 5855117720,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "delegate same-ticket main governance mirror branch and record Governance Mirror Hard Gate repair next_action"
+    "mutation": "handoff #683 primary authority to same-ticket main governance mirror"
   }
 }
