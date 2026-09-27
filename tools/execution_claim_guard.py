@@ -33,6 +33,7 @@ ALLOWED_ACTIONS = frozenset(
         "qa-dispatch",
         "workflow-dispatch",
         "pr-write",
+        "parent-branch-identity-repair",
     }
 )
 ACTIVE_PHASES = frozenset(
