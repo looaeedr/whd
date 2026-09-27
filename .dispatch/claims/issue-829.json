@@ -9,14 +9,14 @@
   "work_branch": "governance/issue829-cleanup-terminal-chain-metadata-repair-20260927",
   "claimed_at": "2026-09-27T07:31:00Z",
   "base_sha": "497c5e145ab2506b9c4272392a15940164057066",
-  "head_sha": "497c5e145ab2506b9c4272392a15940164057066",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T07:31:00Z",
+  "head_sha": "3a7889259e949066dce3446bc067bf276271dba3",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T07:37:49Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain branch-create Guard and create the exact cleanup-side mirror branch at cleanup/2d-3d-sync@497c5e145ab2506b9c4272392a15940164057066. Then copy exactly four governed blobs from parent #827 main candidate 002ce570f74694c6671c440e69d43bc78fa187fa, verify blob parity, open cleanup PR and pair reciprocally with the parent main PR under Governance Mirror Hard Gate.",
+  "next_action": "Open the cleanup-side PR from 3a7889259e949066dce3446bc067bf276271dba3 to cleanup/2d-3d-sync and the parent #827 main-side PR from 002ce570f74694c6671c440e69d43bc78fa187fa to main. Add reciprocal WHD-Governance-Mirror-Pair markers, require Governance Mirror Hard Gate GREEN on both, merge both under protections, then prove post-push live parity.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-829.json",
   "evidence": [
@@ -28,7 +28,19 @@
     "prohibited_scope=no #696 durable repair; no WHD/product/CAD/Phase changes; no unrelated governance drift",
     "resume_authority=parent #827 reservation token issue827-cleanup-governance-mirror-20260927a",
     "Fresh production base cleanup/2d-3d-sync@497c5e145ab2506b9c4272392a15940164057066.",
-    "Parent source candidate #827@002ce570f74694c6671c440e69d43bc78fa187fa."
+    "Parent source candidate #827@002ce570f74694c6671c440e69d43bc78fa187fa.",
+    "Mirror commit 3a7889259e949066dce3446bc067bf276271dba3 changes exactly four governed paths under commit Guard 36303623255 GREEN.",
+    "Exact blob readback matches parent #827 candidate for all four paths: claim-activation cf43db21457734d253c8fcf12fd38ea6299fec5f; continuity 0046cbce3705ae270baca004ea52ebfd6aae0753; regression b997ba7977f455fba8ad41793630223a2811d172; manifest f892522d145b83f48711539919fbd230a5dd8259.",
+    "Post-mirror reconciliation Guard 36303682659 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
-  "last_guard": null
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36303682659,
+    "request_comment_id": 5853870682,
+    "result": "GREEN",
+    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "consumed": true,
+    "mutation": "reconcile exact #829 mirror head"
+  }
 }
