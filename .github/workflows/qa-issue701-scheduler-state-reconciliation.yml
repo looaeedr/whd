@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  red-stop-24:
+  scheduler-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,6 +20,11 @@ jobs:
           fetch-depth: 0
       - name: Install pytest
         run: python -m pip install --disable-pip-version-check pytest
-      - name: Run RED-STOP-24 characterization
+      - name: Run #701 and scheduler compatibility contracts
         run: |
-          python -m pytest -q --confcutdir=tests/process tests/process/test_issue701_scheduler_state_reconciliation.py
+          python -m pytest -q --confcutdir=tests/process \
+            tests/process/test_issue701_scheduler_state_reconciliation.py \
+            tests/process/test_scheduler_simulation_skill_contract.py \
+            tests/process/test_write_scheduler_skill_contract.py \
+            tests/process/test_issue696_startup_authorization_purpose.py \
+            tests/process/test_issue697_operation_transaction_core.py
