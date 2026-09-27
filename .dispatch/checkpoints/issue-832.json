@@ -15,13 +15,16 @@
     "Fresh cleanup base=50c2b157770a90224459e665537dc50c522ff2b8.",
     "No branch/repository mutation before branch-create Guard.",
     "Cleanup candidate ccc6d588e7eb9aa372f44286d1b251d04ea1da1e differs from production by exactly six #828 governed files.",
-    "Cleanup mirror PR #834 merged at b059ffeade3e8ade105f44a370e20e071a0127a7 and post-push parity run 36306702749 succeeded."
+    "Cleanup mirror PR #834 merged at b059ffeade3e8ade105f44a370e20e071a0127a7 and post-push parity run 36306702749 succeeded.",
+    "Remote Finalization 36307763172 GREEN with FINALIZATION_PROOF_VALID; artifact 10927399704.",
+    "Issue #832 remote readback: closed/completed at 2026-09-27T08:56:52Z.",
+    "Post-close coordination Guard 36307819669 GREEN; advancing to RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "mint/verify bound finalization proof, close/read back Issue #832, then advance RELEASE_HANDOFF_PENDING"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "obtain final coordination write Guard, then atomically persist checkpoint CLOSED + claim RELEASED"
 }
