@@ -7,12 +7,12 @@
   "entrypoint": "interactive:/排程A",
   "invocation_identity": "chat.issue843.20260927c",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "repair/issue843-sealed-premerge-20260927",
+  "work_branch": "governance/issue843-control-plane-characterization-20260927",
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
+  "head_sha": "7f70fe8a023bb37549fc4f637ae27f8b7ce9ae3f",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T14:57:30Z",
+  "last_update": "2026-09-27T15:04:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,7 +25,7 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN_SYNCED"
   },
-  "next_action": "Open a replacement cleanup PR from repair/issue843-sealed-premerge-20260927@ec2651809952d2cda018186b0a132c0801ac68b7 to the fresh cleanup/2d-3d-sync head; require PR checks GREEN and merge; then close superseded PR #849 unmerged and enter canonical finalization/closure for #843.",
+  "next_action": "Close superseded PR #849 unmerged under exact old-branch authority; fresh-read #849 closed; then hand primary authority back to repair/issue843-sealed-premerge-20260927@ec2651809952d2cda018186b0a132c0801ac68b7 and enter canonical terminal finalization for #843.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -64,6 +64,22 @@
     "synced-head focused QA run=36327480836 job=108642913706 GREEN: 6 passed / 0 failed in 0.18s",
     "post-QA pair reconciliation Guard run=36327548759 GREEN",
     "one-shot synced-head QA workflow deleted at cleaned head ec2651809952d2cda018186b0a132c0801ac68b7 under commit Guard 36327660483 GREEN",
-    "cleaned-head pair reconciliation Guard run=36327740406 GREEN"
-  ]
+    "cleaned-head pair reconciliation Guard run=36327740406 GREEN",
+    "replacement PR #860 merged to cleanup under exact pr-write authority; merge commit=e7d88f69e22a974a846660f52f58d6fd621834e8",
+    "temporary #849 cleanup authority handoff Guard run=36328202238 GREEN"
+  ],
+  "delegated_branches": [
+    "repair/issue843-sealed-premerge-20260927"
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36328202238,
+    "request_comment_id": 5857014458,
+    "result_comment_id": 5857016272,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "temporarily hand #843 primary authority to superseded #849 branch for close-only cleanup"
+  }
 }
