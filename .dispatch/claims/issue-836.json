@@ -26,7 +26,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Merge paired cleanup PR #840 under already-GREEN Governance Mirror Hard Gate, then fresh-read main/cleanup governed blobs and post-push parity before entering closure.",
+  "next_action": "Merge PR #840 to cleanup/2d-3d-sync under fresh pr-write authority, then verify live main↔cleanup governed blob parity and enter closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -57,6 +57,9 @@
     "Primary authority hand to mirror branch authorized by Remote Guard 36309774397.",
     "Main-side Governance Mirror Hard Gate run 36309882670 GREEN for PR #841.",
     "PR #841 merged to main as cb80310e2643d1ab9624e90085d4abda6e4d125e.",
-    "Primary handback to cleanup consumes pending write Guard 36309997981; no helper Issue opened."
+    "Primary handback to cleanup consumes pending write Guard 36309997981; no helper Issue opened.",
+    "Main mirror PR #841 Governance Mirror Hard Gate GREEN run 36309882670.",
+    "PR #841 merged to main as cb80310e2643d1ab9624e90085d4abda6e4d125e.",
+    "Pending write Guard 36309997981 is consumed by this atomic primary-authority handback to cleanup."
   ]
 }

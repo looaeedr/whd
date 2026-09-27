@@ -4,7 +4,7 @@
   "branch": "governance/issue836-stop-helper-churn-20260927",
   "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "state": "RUNNING",
-  "next_action": "Merge paired cleanup PR #840 under already-GREEN Governance Mirror Hard Gate, then fresh-read main/cleanup governed blobs and post-push parity before entering closure.",
+  "next_action": "Merge PR #840 to cleanup/2d-3d-sync under fresh pr-write authority, then verify live main↔cleanup governed blob parity and enter closure.",
   "run_id": 36308394162,
   "job_id": 108589422963,
   "log_cursor": null,
@@ -34,7 +34,10 @@
     "Primary authority hand to mirror branch authorized by Remote Guard 36309774397.",
     "Main-side Governance Mirror Hard Gate run 36309882670 GREEN.",
     "PR #841 merged as cb80310e2643d1ab9624e90085d4abda6e4d125e.",
-    "Primary handback consumes pending write Guard 36309997981."
+    "Primary handback consumes pending write Guard 36309997981.",
+    "PR #841 main mirror Hard Gate GREEN run 36309882670.",
+    "PR #841 merged to main at cb80310e2643d1ab9624e90085d4abda6e4d125e.",
+    "Primary authority handed back to cleanup under pending Guard 36309997981."
   ],
   "master_issue": null,
   "chain_state": "NONE",
