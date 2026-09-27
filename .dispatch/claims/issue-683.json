@@ -6,19 +6,19 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.683.20260927T0832.ha-transport",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue683-ha-transport-projection-repair2-20260927",
+  "work_branch": "governance/issue683-main-mirror-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
-  "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
+  "base_sha": "cb80310e2643d1ab9624e90085d4abda6e4d125e",
+  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T11:09:15Z",
-  "production_target": "cleanup/2d-3d-sync",
+  "last_update": "2026-09-27T11:11:00Z",
+  "production_target": "main",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue683-main-mirror-20260927",
     "work/issue683-ha-transport-projection-20260927",
-    "work/issue683-ha-transport-projection-repair-20260927"
+    "work/issue683-ha-transport-projection-repair-20260927",
+    "work/issue683-ha-transport-projection-repair2-20260927"
   ],
   "remote_qa": {
     "run_id": 36311528696,
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Mint fresh pr-write Guard and create the replacement cleanup PR from work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1 to cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0, paired with #850. Then update #850 reciprocal marker to that replacement PR, require both Governance Mirror Hard Gates GREEN, merge #850 first, then the replacement cleanup PR, and finalize #683.",
+  "next_action": "Update PR #850 reciprocal marker from #848 to replacement cleanup PR #853 under fresh pr-write Guard, then hand primary authority back to work/issue683-ha-transport-projection-repair2-20260927@1c4b976c; require #850 and #853 Governance Mirror Hard Gates GREEN; merge #850 first, then #853; continue #683 finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -99,17 +99,19 @@
     "Historical accepted #683 merge-sync Guard 36311868602 confirms the exact merge-sync changed-file scope is the three retained #683 artifacts relative to the production parent.",
     "Correct merge-sync Guard 36314691733 / request 5855287033 / result 5855288636 GREEN with production authority cleanup@8a6323f5 and exact three-file #683 work delta.",
     "Correct replacement merge-sync commit 1c4b976cfbe3be531c9592a167122b8102ceabb1 parents sealed 6156cf8c + cleanup 8a6323f5.",
-    "Post-sync pair reconciliation Guard 36314778009 / request 5855297273 / result 5855298793 GREEN."
+    "Post-sync pair reconciliation Guard 36314778009 / request 5855297273 / result 5855298793 GREEN.",
+    "Replacement cleanup PR #853 created from repair2 head 1c4b976c to cleanup@8a6323f5 under pr-write Guard 36314828039.",
+    "Primary handoff to main mirror authorized by write Guard 36314873870 / request 5855308921 / result 5855310582."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36314778009,
-    "request_comment_id": 5855297273,
-    "result_comment_id": 5855298793,
+    "run_id": 36314873870,
+    "request_comment_id": 5855308921,
+    "result_comment_id": 5855310582,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 claim/checkpoint HEAD to correct replacement merge-sync 1c4b976c"
+    "mutation": "handoff #683 primary authority to main mirror for #850 reciprocal marker update"
   }
 }
