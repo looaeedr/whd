@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "827",
   "branch": "governance/issue827-terminal-chain-metadata-repair-main-20260927",
-  "head_sha": "002ce570f74694c6671c440e69d43bc78fa187fa",
+  "head_sha": "548726f455c976375957037e4014b59080cbbc06",
   "state": "RUNNING",
-  "next_action": "Reserve and create exactly one cleanup-side governance mirror helper for #827. The helper must branch from current cleanup/2d-3d-sync, copy exact governed blobs from #827 main candidate for .github/workflows/whd-remote-claim-activation.yml, tools/continuity_controller.py, tests/process/test_issue827_terminal_chain_metadata_repair.py, and docs/governance/governance_mirror_manifest.json, then open reciprocal paired PRs and require Governance Mirror Hard Gate GREEN on both before merge.",
+  "next_action": "Main-side PR #831 is merge-clean after canonical two-parent merge-sync to current main and its Governance Mirror Hard Gate run 36304372184 is GREEN. Retrigger cleanup-side PR #830 against paired #831 head 548726f455c976375957037e4014b59080cbbc06; require cleanup Governance Mirror Hard Gate GREEN, then merge paired PRs under protections, prove post-push live parity, close/release helper #829, and resume trusted #696 repair.",
   "run_id": 36302668061,
   "job_id": 108573144488,
   "log_cursor": null,
@@ -23,7 +23,10 @@
     "Closing head 90fbf11cc7766975ba09d8b66e787eb61c4df85e removes only temporary #827 QA workflow.",
     "Post-cleanup reconciliation Guard 36302942332 GREEN.",
     "Governance manifest head 002ce570f74694c6671c440e69d43bc78fa187fa adds permanent #827 regression to bidirectional mirror scope.",
-    "Post-manifest reconciliation Guard 36303150050 GREEN."
+    "Post-manifest reconciliation Guard 36303150050 GREEN.",
+    "Two-parent main merge-sync head 548726f455c976375957037e4014b59080cbbc06; accepted #827 blobs preserved.",
+    "Post-merge reconciliation Guard 36304384841 GREEN.",
+    "Main PR #831 hard gate 36304372184 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
