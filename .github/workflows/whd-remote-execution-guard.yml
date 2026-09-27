@@ -715,7 +715,7 @@ jobs:
               elif isinstance(item, dict):
                   comments.append(item)
           def parse_fields(body):
-              lines = body.replace("\\r\\n", "\\n").split("\\n")
+              lines = body.replace("\r\n", "\n").split("\n")
               if not lines or lines[0].strip() != "WHD_USER_DIRECTED_TAKEOVER_V1":
                   return None
               fields = {}
