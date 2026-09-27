@@ -120,3 +120,14 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - GitHub / scheduler / remote action capability 暫時不可用時必須 fail closed 並保存 exact durable blocker；禁止改走本機 worktree、Remote Desktop、local shell 或其他 workstation fallback。
 - 需要 Guard 時走 trusted Remote Guard；需要測試/驗證時走 GitHub Actions / remote QA；需要 repository mutation 時走 GitHub durable mutation capability。
 - 此規則同時適用真實 recurring scheduled invocation 與 exact `/排程A` / `/排程B` interactive same-lane resume。
+<!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
+## Mutating toolcall crash-recovery canonical invariant
+
+- Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
+- Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
+- `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
+- `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
+- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
+- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
+

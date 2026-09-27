@@ -168,3 +168,15 @@ Phase 7 Large Module Decomposition 的 CURRENT routing 結論如下。這些 row
 永久 invariant：reverse-import Bridge = 0、duplicate production owner = 0、second composition root = 0、full-app service-bag owner interface = 0。後續變更若要搬移上述 owner，必須走 deletion-test / authority writeback / permanent guard；不得只靠 wrapper rename 或 facade forwarding 宣稱 ownership 已移動。
 
 Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#625；Combined Acceptance owner #626，combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
+
+<!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
+## Mutating toolcall crash-recovery canonical invariant
+
+- Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
+- Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
+- `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
+- `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
+- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
+- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
+
