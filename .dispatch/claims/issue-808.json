@@ -9,13 +9,13 @@
   "work_branch": "governance/issue808-scheduler-remote-only-20260927",
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "head_sha": "e8cca774fc20b11fd7cf175cbed3c5777292caab",
+  "head_sha": "69554f8738d3ff2d69273125f971303c666dda8f",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T04:05:00Z",
+  "last_update": "2026-09-27T04:09:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Modify 排程模擬 under Remote Guard so scheduler simulation execution is remote-only: add SCHEDULER_REMOTE_ONLY_EXECUTION_V1, forbid 本機/Remote Desktop/local shell and LOCAL fallback, keep LOCAL only as provenance metadata, and expose execution_location=GITHUB|SCHEDULER|REMOTE_ACTION; then rerun exact GitHub Actions contract to GREEN.",
+  "next_action": "Fix exact provenance token so Skill contains plain `LOCAL 只允許作為 handoff_source / provenance metadata`, then rerun GitHub Actions remote-only contract to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -27,16 +27,18 @@
     "fresh production target cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6",
     "RED contract commit ff79456251b2b2051bc528077771a63daab34003 changes only tests/process/test_scheduler_simulation_skill_contract.py under Remote Guard 36292938152.",
     "Remote RED workflow commit e8cca774fc20b11fd7cf175cbed3c5777292caab adds only qa-issue808-scheduler-remote-only.yml.",
-    "GitHub Actions run 36293212202 completed failure; exact scheduler remote-only contract step failed as expected."
+    "GitHub Actions run 36293212202 completed failure; exact scheduler remote-only contract step failed as expected.",
+    "Implementation head 69554f8738d3ff2d69273125f971303c666dda8f adds SCHEDULER_REMOTE_ONLY_EXECUTION_V1, forbids local execution/fallback, and removes local/Remote Guard wording.",
+    "GitHub Actions run 36293405983 failed only on exact provenance token formatting; follow-up Skill-only fix required."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36293252630,
-    "request_comment_id": 5852489995,
+    "run_id": 36293459403,
+    "request_comment_id": 5852513649,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #808 RED QA head and persist expected RED evidence"
+    "mutation": "reconcile #808 implementation head 69554f87 and persist exact-contract follow-up"
   }
 }
