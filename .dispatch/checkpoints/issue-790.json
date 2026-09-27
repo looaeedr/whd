@@ -42,13 +42,14 @@
     "Canonical helper reservation activation returned ACTIVE; parent Guard 36289838719 GREEN.",
     "Helper #800 terminal proof fresh-read: Issue closed/completed; claim RELEASED; checkpoint TERMINAL_SUCCESS/CLOSED; branch head b507632d exact.",
     "Canonical helper reservation issue790-github-blob-base64-hotfix is now eligible ACTIVE -> TERMINAL with exact helper_key/token/child identity.",
-    "Remote Guard 36296571272 GREEN authorizes #790 terminal acceptance pair transition."
+    "Remote Guard 36296571272 GREEN authorizes #790 terminal acceptance pair transition.",
+    "Remote Guard 36296645177 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #790 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, close/read back Issue #790, then persist CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted bound finalization proof for #790 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #790, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED."
 }
