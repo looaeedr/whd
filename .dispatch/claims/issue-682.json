@@ -11,11 +11,13 @@
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T13:31:59Z",
+  "last_update": "2026-09-27T14:11:21Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "governance/issue682-main-mirror-20260927"
+  ],
   "remote_qa": {
     "run_id": 36322127710,
     "job_id": 108627862832,
@@ -24,7 +26,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Reserve same-ticket delegated branch governance/issue682-main-mirror-20260927 in durable claim; then branch-create it and build a main bridge containing only governed #682 paths. Create reciprocal cleanup/main PR pair, require Governance Mirror Hard Gate + Knowledge Governance GREEN, then merge main first and cleanup second.",
+  "next_action": "Create delegated main-mirror branch governance/issue682-main-mirror-20260927 at exact owner head aaec26d75f320f624fd9b42fcc1b2506132e60db under branch-create Guard; then build a two-parent bridge rooted at current main and containing only governed #682 files: tools/stale_claim_takeover.py, Authority Map 09, Scheduled Resume 11.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -60,17 +62,19 @@
     "Production-parent commit Guard 36322603374 / request 5856289669 / result 5856291397 GREEN against cleanup@da3839b6e6c7d2f391b172ea753fe6cc13d28931.",
     "Two-parent sync aaec26d75f320f624fd9b42fcc1b2506132e60db parents=[5db406fb52a6417405be57905d43e6d1edab360a,da3839b6e6c7d2f391b172ea753fe6cc13d28931].",
     "Relative to current cleanup, sync head changes exactly six retained #682 files; AI pitfalls 06 preserves both #851 and #682 append-only sections.",
-    "Post-sync pair reconciliation Guard 36322712040 / request 5856301503 / result 5856303365 GREEN; consumed now."
+    "Post-sync pair reconciliation Guard 36322712040 / request 5856301503 / result 5856303365 GREEN; consumed now.",
+    "Delegated main-mirror reservation write Guard 36324997341 / request 5856594034 / result 5856595543 GREEN.",
+    "Duplicate stale reconciliation receipt 36324909370 was not consumed after claim blob advanced; no duplicate mutation."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36322712040,
-    "request_comment_id": 5856301503,
-    "result_comment_id": 5856303365,
+    "run_id": 36324997341,
+    "request_comment_id": 5856594034,
+    "result_comment_id": 5856595543,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #682 to two-parent sync head"
+    "mutation": "reserve #682 same-ticket delegated main-mirror branch"
   }
 }

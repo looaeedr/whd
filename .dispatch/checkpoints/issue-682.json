@@ -4,7 +4,7 @@
   "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
   "state": "RUNNING",
-  "next_action": "Reserve same-ticket delegated branch governance/issue682-main-mirror-20260927 in durable claim; then branch-create it and build a main bridge containing only governed #682 paths. Create reciprocal cleanup/main PR pair, require Governance Mirror Hard Gate + Knowledge Governance GREEN, then merge main first and cleanup second.",
+  "next_action": "Create delegated main-mirror branch governance/issue682-main-mirror-20260927 at exact owner head aaec26d75f320f624fd9b42fcc1b2506132e60db under branch-create Guard; then build a two-parent bridge rooted at current main and containing only governed #682 files: tools/stale_claim_takeover.py, Authority Map 09, Scheduled Resume 11.",
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -33,7 +33,8 @@
     "Production target da3839b6 drift overlaps only AI pitfalls 06 append-only writeback.",
     "Two-parent sync head aaec26d75f320f624fd9b42fcc1b2506132e60db.",
     "Sync parents are closing 5db406fb... + current cleanup da3839b6....",
-    "Pair reconciled under Guard 36322712040."
+    "Pair reconciled under Guard 36322712040.",
+    "Same-ticket delegated main-mirror branch reserved under Guard 36324997341."
   ],
   "master_issue": null,
   "chain_state": "NONE",
