@@ -20,13 +20,16 @@
     "Current production 50c2b157770a90224459e665537dc50c522ff2b8 contains #780 accepted integration ancestry; #779 branch itself remains unchanged at its original base.",
     "No duplicate 54-file/two-parent integration replay is permitted.",
     "Guard 36306060178 GREEN authorizes #779 terminalization for superseded-scope closure.",
-    "Guard 36306132790 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Guard 36306132790 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization 36306227959 SUCCESS; artifact 10927122110; proof bound exact ISSUE_CLOSE_PENDING checkpoint.",
+    "Issue #779 closed/not_planned fresh readback at 2026-09-27T08:27:51Z.",
+    "Guard 36306346361 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": "627",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Issue #779 integration scope was superseded and fully satisfied by canonical helper #780; parent #626 and Master #627 are already terminal/closed.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run trusted WHD Remote Finalization bound to this exact ISSUE_CLOSE_PENDING checkpoint; if GREEN close Issue #779 as not_planned (superseded by #780), fresh-read state_reason=not_planned, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "mint final fresh write Guard and atomically persist checkpoint CLOSED + claim RELEASED for superseded #779; preserve CHAIN_COMPLETE and #780 supersession evidence"
 }

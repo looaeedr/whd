@@ -11,7 +11,7 @@
   "base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "head_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T08:25:22Z",
+  "last_update": "2026-09-27T08:29:34Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "expected_parent_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
@@ -21,7 +21,7 @@
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "run trusted WHD Remote Finalization bound to this exact ISSUE_CLOSE_PENDING checkpoint; if GREEN close Issue #779 as not_planned (superseded by #780), fresh-read state_reason=not_planned, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED",
+  "next_action": "mint final fresh write Guard and atomically persist checkpoint CLOSED + claim RELEASED for superseded #779; preserve CHAIN_COMPLETE and #780 supersession evidence",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-779.json",
   "evidence": [
@@ -39,19 +39,40 @@
     "Issue #779 and #780 own the same Phase 7→X authority-map conflict replacement objective; #780 is the later canonical replacement path that completed the production integration.",
     "Terminalization write Guard 36306060178 GREEN; request 5854177715, result 5854179056.",
     "Closure progression write Guard 36306132790 completed SUCCESS; request 5854186015, result 5854187517.",
-    "Canonical adjacent closure transition authorized: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Canonical adjacent closure transition authorized: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization run 36306227959 completed SUCCESS with FINALIZATION_PROOF_VALID.",
+    "Finalization artifact 10927122110 digest sha256:5801ea74f094db58396a42ea733f235a9d624a2ad006759b7e0caf95fb400000.",
+    "Issue #779 fresh-read closed/not_planned at 2026-09-27T08:27:51Z; checkpoint remained exact ISSUE_CLOSE_PENDING until this readback.",
+    "Release-handoff transition Guard 36306346361 GREEN; request 5854211071, result 5854212715."
   ],
   "superseded_by_issue": 780,
   "closure_intent": "NOT_PLANNED_SUPERSEDED",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36306132790,
-    "request_comment_id": 5854186015,
-    "result_comment_id": 5854187517,
+    "run_id": 36306346361,
+    "request_comment_id": 5854211071,
+    "result_comment_id": 5854212715,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance superseded #779 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #779 to RELEASE_HANDOFF_PENDING after closed/not_planned readback"
+  },
+  "release_handoff": {
+    "master_issue": 627,
+    "chain_state": "CHAIN_COMPLETE",
+    "superseded_by_issue": 780,
+    "finalization_run_id": 36306227959,
+    "finalization_artifact_id": 10927122110,
+    "issue_closed_at": "2026-09-27T08:27:51Z",
+    "issue_state_reason": "not_planned"
+  },
+  "closure": {
+    "state": "RELEASE_HANDOFF_PENDING",
+    "issue_state": "closed",
+    "issue_state_reason": "not_planned",
+    "closed_at": "2026-09-27T08:27:51Z",
+    "finalization_run_id": 36306227959,
+    "finalization_artifact_id": 10927122110
   }
 }
