@@ -11,12 +11,12 @@
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "35cea40092d6c689b36342aca33805791651e47f",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T06:09:40Z",
+  "last_update": "2026-09-27T06:11:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Advance canonical #701 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then continue amendment-chain closure under #702.",
+  "next_action": "Run trusted Remote Finalization on exact ISSUE_CLOSE_PENDING checkpoint for #701, close/read back Issue #701, then advance to RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED; continue #702 chain.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -68,12 +68,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36299258018,
-    "request_comment_id": 5853246478,
+    "run_id": 36299350913,
+    "request_comment_id": 5853257261,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #701 terminal finalization under #702 chain closure"
+    "mutation": "advance #701 closure to ISSUE_CLOSE_PENDING"
   },
   "delegated_work": [
     {
