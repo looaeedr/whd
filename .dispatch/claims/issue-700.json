@@ -11,12 +11,12 @@
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "46b3219e2a36408b9a77c6dd1031b4135150c19e",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T06:27:01Z",
+  "last_update": "2026-09-27T06:31:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run trusted finalization proof for exact #700 ISSUE_CLOSE_PENDING checkpoint; if GREEN, close Issue #700 and fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED before continuing #699 under #702 chain closure.",
+  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #700, then continue #699 under #702 amendment-chain closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-700.json",
   "evidence": [
@@ -51,17 +51,20 @@
     "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #700 closing head.",
     "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
     "Terminal transition authorized by Remote Guard run 36299992795.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36300114705."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36300114705.",
+    "Remote Finalization run 36300232187 / job 108566408343: FINALIZATION_PROOF_VALID for exact ISSUE_CLOSE_PENDING checkpoint.",
+    "Issue #700 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36300296196."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36300114705,
-    "request_comment_id": 5853370798,
+    "run_id": 36300296196,
+    "request_comment_id": 5853400975,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #700 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #700 closure to RELEASE_HANDOFF_PENDING"
   },
   "acceptance": {
     "red_ids": [
