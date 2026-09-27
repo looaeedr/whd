@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T00:41:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T01:50:30Z",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-27T01:53:49Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "MAIN_TO_X_BATCH_FIRST_PARITY_V1: fresh-audit main@366b68101b30aa496fa4bc78d465b6c72a116807 against cleanup/2d-3d-sync, reuse an existing parity owner if authorized; otherwise create one bounded parity helper, propagate #790 trusted capability non-force to X, run focused parity acceptance, then return to #790 and consume the repair on #769.",
+  "next_action": "Create the single cleanup parity helper reserved as issue790-main-x-parity from cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e; port #790 as a selective compatible-equivalent because direct implementation cherry-pick conflicts in four governance authority files; activate the helper reservation with exact child claim blob, then let the child complete parity and return to #790.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -54,16 +54,32 @@
     "Post-cleanup pair reconciliation Guard 36286210620 GREEN for H3 a5633875 -> H4 51a04df8.",
     "PR #791 merged to trusted main with merge commit 366b68101b30aa496fa4bc78d465b6c72a116807.",
     "Post-merge durable transition authorized by Remote Guard run 36286704418.",
-    "Required next boundary is MAIN_TO_X_BATCH_FIRST_PARITY_V1 before #790 may be consumed on #769."
+    "Required next boundary is MAIN_TO_X_BATCH_FIRST_PARITY_V1 before #790 may be consumed on #769.",
+    "MAIN_TO_X_BATCH_FIRST_PARITY_V1 audit: main=366b6810, cleanup=c04f028f, merge-base=156bc20e, branches diverge 67 main-only / 169 cleanup-only commits; blind full-main merge prohibited.",
+    "Eligible missing parity set after prior equivalent readbacks is #790 only; no reusable active parity owner found.",
+    "Direct bounded apply audit: RED 926a9840 applies cleanly; implementation 551ae5e2 conflicts in 派工 Skill, remote-execution-guard Skill, tools/execution_claim_guard.py, and execution_claim_hard_gate_pitfall.md. Selective compatible-equivalent fallback required.",
+    "Canonical reserve_helper_creation RESERVED helper_key=issue790-main-x-parity token=issue790-main-x-parity-20260927a."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36286704418,
-    "request_comment_id": 5851747256,
+    "run_id": 36286860310,
+    "request_comment_id": 5851766462,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "record #790 trusted-main merge and enter required main-to-X parity"
-  }
+    "mutation": "persist #790 batch audit and parity helper reservation"
+  },
+  "delegated_work": [
+    {
+      "relationship": "helper",
+      "helper_key": "issue790-main-x-parity",
+      "state": "RESERVING",
+      "reserved_by": "chatgpt.sol260927.issue790.dep769.1",
+      "reservation_token": "issue790-main-x-parity-20260927a",
+      "reserved_at": "2026-09-27T01:53:49Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
+    }
+  ]
 }
