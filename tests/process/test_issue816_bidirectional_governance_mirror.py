@@ -128,6 +128,7 @@ def test_issue816_manifest_locks_product_authority_to_cleanup() -> None:
     assert set(payload["branches"]) == {"main", "cleanup/2d-3d-sync"}
     assert payload["product_authority"] == "cleanup/2d-3d-sync"
     assert payload["governance_mode"] == "BIDIRECTIONAL_MIRROR"
+    assert "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md" in payload["governance_paths"]
 
 
 def test_issue816_workflow_is_always_on_for_both_governance_branches() -> None:
