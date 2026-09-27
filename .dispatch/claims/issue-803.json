@@ -9,13 +9,13 @@
   "work_branch": "governance/issue803-issue800-main-x-parity-20260927",
   "claimed_at": "2026-09-27T03:17:00Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
-  "head_sha": "608f3e0aab6e7a8a705638bb71eed4231923f414",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T03:28:10Z",
+  "head_sha": "b0eb1df9f325912098bd5a912899f2e50c89f989",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T03:30:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #803 GREEN head 608f3e0aab6e7a8a705638bb71eed4231923f414. Audit production drift/overlap against the exact four authorized parity artifacts; if cleanup advanced from frozen 44d1621f, perform one guarded non-force merge-sync preserving the four-file parity, rerun focused acceptance, then reconcile durable HEAD and integrate by exact PR.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and existing PR state. If cleanup remains 5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f and #803 head b0eb1df9f325912098bd5a912899f2e50c89f989 is ahead with exact four-file parity delta, obtain one pr-write Guard and open/update the exact PR to cleanup; verify checks/mergeability, then obtain a fresh merge Guard, merge non-force, read back wrapped-base64 capability on cleanup, and enter terminal closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-803.json",
   "evidence": [
@@ -37,16 +37,21 @@
     "Focused #790 + adjacent reconciliation regressions on H1: 64 passed / 0 failed.",
     "git diff --check PASS; tools/execution_claim_guard.py py_compile PASS.",
     "Implementation Guard run 36291380738 GREEN.",
-    "Post-commit pair reconciliation Guard run 36291465138 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-commit pair reconciliation Guard run 36291465138 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Fresh cleanup drift audit from frozen 44d1621f to live 5042f9a9 found 16 production commits with zero overlap against the four #803 parity artifacts.",
+    "Merge-sync Guard run 36291525787 GREEN with cleanup authority 5042f9a9.",
+    "Two-parent H2 b0eb1df9f325912098bd5a912899f2e50c89f989 cleanly incorporates cleanup@5042f9a9; effective work delta remains exactly four authorized files.",
+    "Post-sync focused/adjacent acceptance: 64 passed / 0 failed.",
+    "Merge-head pair reconciliation Guard run 36291574895 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291465138,
-    "request_comment_id": 5852290763,
+    "run_id": 36291574895,
+    "request_comment_id": 5852303471,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #803 parity H0->H1"
+    "mutation": "reconcile #803 merge-sync H1->H2"
   }
 }
