@@ -1,0 +1,41 @@
+{
+  "issue": 816,
+  "issue_url": "https://github.com/looaeedr/whd/issues/816",
+  "worker": "chatgpt.sol260927.issue816.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue816.govmirror.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
+  "claimed_at": "2026-09-27T05:03:00Z",
+  "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
+  "head_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T05:03:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [
+    "governance/issue816-bidirectional-governance-mirror-main-20260927"
+  ],
+  "remote_qa": {
+    "run_id": null,
+    "job_id": null,
+    "head_sha": null,
+    "status": "RUN_NOT_CREATED",
+    "conclusion": null
+  },
+  "next_action": "obtain branch-create Guard for X-side governance branch, implement RED/GREEN mirror contract, then mirror governance-only artifacts to main and verify paired parity",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-816.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1",
+    "authorization_source=User directive 2026-09-27 recorded in GitHub Issue #816",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=bidirectional governance mirror hard gate between main and cleanup/2d-3d-sync",
+    "authorized_scope=#816 governance-only mirror transaction; product authority remains cleanup/2d-3d-sync",
+    "prohibited_scope=WHD/product/Phase/CAD propagation to main; arbitrary open Issues; product implementation",
+    "resume_authority=NONE",
+    "Phase6 planned-file preflight GREEN before claim activation"
+  ],
+  "last_guard": null,
+  "delegated_work": []
+}

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "816",
+  "branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
+  "head_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
+  "state": "RUNNING",
+  "next_action": "obtain branch-create Guard for X-side governance branch, then add RED for bidirectional governance-only mirror enforcement",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User-authorized UPDATE_ONLY governance transaction #816.",
+    "Product/application authority remains cleanup/2d-3d-sync; main receives governance mirror only.",
+    "Phase6 planned-file Preflight GREEN."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
