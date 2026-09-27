@@ -1,0 +1,29 @@
+{
+  "issue": 808,
+  "issue_url": "https://github.com/looaeedr/whd/issues/808",
+  "worker": "chatgpt.issue808.remoteonly.20260927a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue808.remoteonly.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue808-scheduler-remote-only-20260927",
+  "claimed_at": "2026-09-27T03:55:00Z",
+  "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
+  "head_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T03:55:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Guard for governance/issue808-scheduler-remote-only-20260927 at cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6; create/read back branch; add RED contract proving scheduler simulation must not execute or fallback through LOCAL/local shell/Remote Desktop; then implement remote-only Skill contract and validate through GitHub/remote actions only.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-808.json",
+  "evidence": [
+    "TASK_START authority: user explicitly requested 修排程模擬，不得使用本機",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=make 排程模擬 remote-only and forbid LOCAL/local shell/Remote Desktop execution fallback",
+    "authorized_scope=.agents/skills/engineering/排程模擬/SKILL.md + tests/process/test_scheduler_simulation_skill_contract.py + required scheduler pitfall writeback only",
+    "prohibited_scope=no cadence/enabled/lane-owner/product/UI changes; no local workstation or Remote Desktop use",
+    "fresh production target cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6"
+  ]
+}
