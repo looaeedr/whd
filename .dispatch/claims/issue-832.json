@@ -9,13 +9,13 @@
   "work_branch": "governance/issue832-parent-branch-identity-repair-cleanup-20260927",
   "claimed_at": "2026-09-27T08:25:20Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T08:25:20Z",
+  "head_sha": "ccc6d588e7eb9aa372f44286d1b251d04ea1da1e",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T08:30:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard for governance/issue832-parent-branch-identity-repair-cleanup-20260927 at cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8; then copy the six exact #828 governed blobs and open the cleanup-side paired PR.",
+  "next_action": "Open cleanup-side PR from governance/issue832-parent-branch-identity-repair-cleanup-20260927@ccc6d588e7eb9aa372f44286d1b251d04ea1da1e to cleanup/2d-3d-sync and pair reciprocally with parent #828 main-side PR; require Governance Mirror Hard Gate GREEN on both before merge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-832.json",
   "evidence": [
@@ -26,6 +26,8 @@
     "prohibited_scope=no product/CAD/Phase changes; no #702 durable repair; no unrelated Issue work",
     "resume_authority=parent #828 helper issue",
     "Fresh cleanup base=50c2b157770a90224459e665537dc50c522ff2b8.",
-    "Source #828 candidate=6b5c5f368633e38bc66a3077228e25f81871c4fe; focused acceptance run 36304109574 = 12 passed / 0 failed."
+    "Source #828 candidate=6b5c5f368633e38bc66a3077228e25f81871c4fe; focused acceptance run 36304109574 = 12 passed / 0 failed.",
+    "Cleanup mirror commit ccc6d588e7eb9aa372f44286d1b251d04ea1da1e is a direct child of cleanup base 50c2b157770a90224459e665537dc50c522ff2b8.",
+    "Fresh compare cleanup...#832 candidate: ahead 1 / behind 0; exact diff is the same six #828 governed files only."
   ]
 }
