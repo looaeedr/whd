@@ -9,9 +9,9 @@
   "work_branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
   "claimed_at": "2026-09-27T05:03:00Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "77175dfe9af61d618b0a2083d335d0eb4550e801",
+  "head_sha": "e3a72ae2acd1b239d5588d492e18d580020b2716",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:35:30Z",
+  "last_update": "2026-09-27T05:44:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "finish #818 mirror of the 10 cleanup-governance deltas, prove live governance parity, then open paired PRs",
+  "next_action": "verify #818 mirrored UTF-8 fix and paired PR checks, then merge #819/#820 under finalization gates",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-816.json",
   "evidence": [
@@ -43,17 +43,21 @@
     "Post-fix focused regression: 15 passed / 0 failed; YAML parse PASS.",
     "Two-parent X reconcile 77175dfe: first parent cleanup@22204c8f, second parent prior #816 head 82b52afd; tree preserves current cleanup and overlays only six #816 governance files.",
     "Post-reconcile focused regression: 15 passed / 0 failed; YAML parse PASS.",
-    "Normal post-commit pair reconcile Guard 36297587728 FAIL because merge commit is not a direct child of prior claim HEAD; recovery route is trusted Claim Activation reactivate."
+    "Normal post-commit pair reconcile Guard 36297587728 FAIL because merge commit is not a direct child of prior claim HEAD; recovery route is trusted Claim Activation reactivate.",
+    "UTF-8 governance path fix e3a72ae2 changes only mirror workflow + focused regression test.",
+    "Post-fix focused regression: 15 passed / 0 failed; YAML parse PASS.",
+    "PR #819 rerun Governance Mirror Hard Gate run 36298009882 GREEN.",
+    "Post-commit pair reconciliation Guard 36298032694 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36297587728,
-    "request_comment_id": 5853035676,
-    "result": "FAIL",
-    "reason": "REMOTE_GUARD_FAILED",
-    "consumed": false,
-    "mutation": "two-parent merge requires reactivate recovery"
+    "run_id": 36298032694,
+    "request_comment_id": 5853088191,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "reconcile #816 to UTF-8 path fix e3a72ae2"
   },
   "delegated_work": []
 }
