@@ -72,6 +72,15 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 8. 派工給 Subagent 時，Subagent 必須在自己的隔離工作上下文重新跑相同 Preflight、讀相同必讀來源並留下自己的 evidence；總控不得用自己的 evidence 代替 Subagent。
 9. 正式交付前依第 11 節要求再次跑帶 verification evidence 的 Preflight。
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
 ### 0.0.0A Skill mutation Preflight pre-write 硬閘門
 
 <!-- SKILL_MUTATION_PREFLIGHT_PREWRITE_V1 -->
