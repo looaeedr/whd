@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "701",
   "branch": "work/issue701-scheduler-state-reconciliation-20260927",
-  "head_sha": "4fa408e93c3f78bbb92d2c0cb882d9ea298cfdcf",
+  "head_sha": "dc2380342be0fc2df007230288526f5442042c58",
   "state": "RUNNING",
-  "next_action": "Run changed-file Phase6 Preflight on the combined A1+A2 dependency head 4fa408e93c3f78bbb92d2c0cb882d9ea298cfdcf, add the focused RED-STOP-24 scheduler-state reconciliation regression, prove RED, then implement the narrow adapter without changing cadence or lane-owner invariants.",
+  "next_action": "Dispatch the temporary qa-issue701-scheduler-state-reconciliation workflow on exact head dc2380342be0fc2df007230288526f5442042c58, lock the resulting run_id+head_sha to terminal, record expected RED-STOP-24 evidence, then implement the narrow canonical scheduler-state reconciliation adapter without changing cadence or lane-owner invariants.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,9 @@
     "Exact accepted A2 lineage base is 03da7a28d0aa04fae85fd9a92f13c0a8129af83e.",
     "Current X is observation/integration target only and does not replace accepted task lineage.",
     "Combined dependency head 4fa408e93c3f78bbb92d2c0cb882d9ea298cfdcf preserves both accepted A1 and A2 ancestry.",
-    "Dependency merge Guard 36287583611 GREEN; reactivation reconciles the durable pair before RED-STOP-24."
+    "Dependency merge Guard 36287583611 GREEN; reactivation reconciles the durable pair before RED-STOP-24.",
+    "RED characterization head=dc2380342be0fc2df007230288526f5442042c58.",
+    "Post-commit pair reconciliation Guard 36288310555 GREEN and consumed."
   ],
   "master_issue": null,
   "chain_state": "NONE",
