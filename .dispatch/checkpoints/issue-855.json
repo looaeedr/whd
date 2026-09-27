@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "855",
+  "branch": "work/issue683-ha-transport-projection-20260927",
+  "head_sha": "1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e",
+  "state": "RUNNING",
+  "next_action": "Obtain one fresh exact pr-write Guard for PR #848 at work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e; close PR #848 without merge; fresh-read state=closed and merged_at=null; then terminalize, finalize, close/readback, and atomically RELEASE claim + CLOSED checkpoint for Issue #855. No repository file mutation is authorized.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Issue #855 is a narrow closure-cleanup ticket created because #683 terminal checkpoint legally blocks pr-write.",
+    "Scheduler B owns this exact cleanup scope.",
+    "PR #848 must be closed without merge; no repository file delta is permitted.",
+    "PR #853 replacement is already merged and is the accepted integration."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
