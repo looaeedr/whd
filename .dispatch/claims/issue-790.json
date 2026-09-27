@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T00:41:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T05:20:58.417921Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T05:21:54.822520Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Persist final #790 CLOSED + RELEASED under a fresh exact write Guard, then fresh-read Issue/claim/checkpoint/branch terminal identity.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -78,18 +78,19 @@
     "Remote Guard 36296645177 GREEN; #790 durable closure is now ISSUE_CLOSE_PENDING and requires fresh bound finalization proof before issue close.",
     "Trusted Remote Finalization run 36296811374 GREEN; bound proof artifact 10924770142 matches #790 checkpoint blob 078b9335... and fingerprint 02be9f34....",
     "Issue #790 close mutation completed and fresh readback is closed/completed at 2026-09-27T05:20:24Z.",
-    "Remote Guard 36296937202 GREEN; closure advances to RELEASE_HANDOFF_PENDING before final claim release."
+    "Remote Guard 36296937202 GREEN; closure advances to RELEASE_HANDOFF_PENDING before final claim release.",
+    "Final Remote Guard 36296979003 GREEN; #790 process-state finalized as RELEASED/CLOSED after bound finalization proof and closed/completed readback."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296937202,
-    "request_comment_id": 5852941557,
-    "result_comment_id": 5852942749,
+    "run_id": 36296979003,
+    "request_comment_id": 5852946374,
+    "result_comment_id": 5852947854,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #790 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "final #790 checkpoint CLOSED + claim RELEASED"
   },
   "delegated_work": [
     {
@@ -142,5 +143,14 @@
     "finalization_run_id": 36296811374,
     "finalization_artifact_id": 10924770142,
     "checkpoint_fingerprint": "02be9f34a04e03a56d19beab9fd51ff59298fb61c8d42b2051b3947c49c00bd9"
+  },
+  "closure": {
+    "state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "issue_closed_at": "2026-09-27T05:20:24Z",
+    "finalization_run_id": 36296811374,
+    "finalization_artifact_id": 10924770142,
+    "released_at": "2026-09-27T05:21:54.822520Z"
   }
 }
