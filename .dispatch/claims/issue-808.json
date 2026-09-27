@@ -9,13 +9,20 @@
   "work_branch": "governance/issue808-scheduler-remote-only-20260927",
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "head_sha": "69554f8738d3ff2d69273125f971303c666dda8f",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T04:09:30Z",
+  "head_sha": "9c4fc6cbe2950ec1c50e5ff234ba391b1e752e34",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T04:12:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Fix exact provenance token so Skill contains plain `LOCAL 只允許作為 handoff_source / provenance metadata`, then rerun GitHub Actions remote-only contract to GREEN.",
+  "remote_qa": {
+    "run_id": 36293530173,
+    "job_id": 108548010193,
+    "head_sha": "9c4fc6cbe2950ec1c50e5ff234ba391b1e752e34",
+    "status": "completed",
+    "conclusion": "success",
+    "marker": "SCHEDULER_REMOTE_ONLY_EXECUTION_V1_GREEN"
+  },
+  "next_action": "Persist required scheduler-pitfall durable correction for remote-only execution, then remove temporary qa-issue808-scheduler-remote-only.yml under exact Guard; drift-audit tested head to closing head, integrate exact scoped delta to cleanup non-force, fresh-read production, then terminal close/release #808.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -29,16 +36,19 @@
     "Remote RED workflow commit e8cca774fc20b11fd7cf175cbed3c5777292caab adds only qa-issue808-scheduler-remote-only.yml.",
     "GitHub Actions run 36293212202 completed failure; exact scheduler remote-only contract step failed as expected.",
     "Implementation head 69554f8738d3ff2d69273125f971303c666dda8f adds SCHEDULER_REMOTE_ONLY_EXECUTION_V1, forbids local execution/fallback, and removes local/Remote Guard wording.",
-    "GitHub Actions run 36293405983 failed only on exact provenance token formatting; follow-up Skill-only fix required."
+    "GitHub Actions run 36293405983 failed only on exact provenance token formatting; follow-up Skill-only fix required.",
+    "Exact provenance normalization commit 9c4fc6cbe2950ec1c50e5ff234ba391b1e752e34.",
+    "GitHub Actions run 36293530173 completed success for tests/process/test_scheduler_simulation_skill_contract.py.",
+    "Post-commit pair reconciliation Guard run 36293573911 GREEN for 69554f87 -> 9c4fc6cb."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36293459403,
-    "request_comment_id": 5852513649,
+    "run_id": 36293573911,
+    "request_comment_id": 5852526553,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #808 implementation head 69554f87 and persist exact-contract follow-up"
+    "mutation": "reconcile #808 GREEN head and remote QA"
   }
 }
