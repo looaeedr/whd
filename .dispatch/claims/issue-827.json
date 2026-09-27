@@ -11,7 +11,7 @@
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
   "head_sha": "002ce570f74694c6671c440e69d43bc78fa187fa",
   "phase": "GREEN",
-  "last_update": "2026-09-27T07:29:17Z",
+  "last_update": "2026-09-27T07:34:08Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "11 passed / 0 failed in 0.08s"
   },
-  "next_action": "Create exactly one cleanup-side governance mirror helper for #827 from current cleanup/2d-3d-sync. Copy exact governed blobs for terminal chain-metadata repair + permanent regression + manifest, open reciprocal paired PRs with the #827 main candidate, require Governance Mirror Hard Gate GREEN on both, merge both, then return parity proof.",
+  "next_action": "Helper #829 is ACTIVE. Follow #829 through exact cleanup mirror commit, reciprocal paired PR hard-gate GREEN, paired merge, post-push parity and terminal close/release; then terminalize this reservation and resume #827 trusted #696 repair.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-827.json",
   "evidence": [
@@ -43,28 +43,30 @@
     "Post-cleanup reconciliation Guard 36302942332 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Governance manifest commit 002ce570f74694c6671c440e69d43bc78fa187fa preserves current main manifest and adds tests/process/test_issue827_terminal_chain_metadata_repair.py as a governed mirror path under commit Guard 36303082943 GREEN.",
     "Post-manifest reconciliation Guard 36303150050 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
-    "Cleanup mirror helper reservation authorized by Remote Guard 36303233362 GREEN."
+    "Cleanup mirror helper reservation authorized by Remote Guard 36303233362 GREEN.",
+    "Cleanup mirror helper #829 fresh-create Claim Activation GREEN; child claim blob f5dd4503cd71c8915000095fa31962b226711019.",
+    "Parent reservation activation authorized by Remote Guard 36303495606 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303233362,
-    "request_comment_id": 5853809280,
+    "run_id": 36303495606,
+    "request_comment_id": 5853844047,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reserve #827 cleanup governance mirror helper"
+    "mutation": "activate #829 cleanup mirror reservation"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue827-cleanup-governance-mirror",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue827-cleanup-governance-mirror-20260927a",
       "reserved_at": "2026-09-27T07:29:17Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 829,
+      "child_claim_blob_sha": "f5dd4503cd71c8915000095fa31962b226711019"
     }
   ]
 }
