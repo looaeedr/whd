@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-26T10:40:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T05:50:15Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T05:51:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #698, then continue amendment-chain closure under #702.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-698.json",
   "evidence": {
@@ -58,12 +58,13 @@
       "observed_at": "2026-09-27T04:00:58.272853Z"
     },
     "chain_closure": {
-      "status": "TERMINAL_ACCEPTANCE_READY",
+      "status": "CLOSED_RELEASED",
       "note": "A3 trusted deployment remains on main at accepted blob; cleanup contains later compatible amendment changes. Byte equality is not asserted as current truth.",
       "terminal_guard_run_id": 36298048071,
       "finalization_run_id": 36298270044,
       "issue_state": "closed/completed",
-      "release_handoff_guard_run_id": 36298327319
+      "release_handoff_guard_run_id": 36298327319,
+      "final_release_guard_run_id": 36298391486
     }
   },
   "guard_readbacks": [
@@ -106,12 +107,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36298327319,
-    "request_comment_id": 5853126336,
+    "run_id": 36298391486,
+    "request_comment_id": 5853135489,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #698 closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "final atomic #698 checkpoint CLOSED + claim RELEASED"
   },
   "red_evidence": {
     "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
