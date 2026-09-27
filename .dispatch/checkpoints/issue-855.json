@@ -17,13 +17,16 @@
     "PR #853 replacement is already merged and is the accepted integration.",
     "PR #848 readback closed/unmerged under pr-write Guard 36318001892.",
     "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36318053957.",
-    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36318131630."
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36318131630.",
+    "Trusted Remote Finalization 36318242320 GREEN; artifact 10931595960.",
+    "Issue #855 readback closed/completed; checkpoint remained exact through proof + close.",
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36318314056."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint trusted finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint, close/readback Issue #855, then atomically write CLOSED + RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED for Issue #855; preserve PR #848 closed/unmerged evidence."
 }
