@@ -1,0 +1,266 @@
+{
+  "schema": "WHD_CRASH_FAULT_INJECTION_MATRIX_V1",
+  "issue": 702,
+  "requirement": "REQ-MUTATING-TOOLCALL-CRASH-RECOVERY-01",
+  "red_id": "RED-STOP-22",
+  "accepted_lineage": "cleanup/2d-3d-sync",
+  "boundaries": [
+    "prepare",
+    "authorize",
+    "post-effect",
+    "readback",
+    "pre-reconcile",
+    "post-reconcile"
+  ],
+  "invariants": [
+    "read-only work may be repeated only after fresh readback",
+    "mutating work must recover unresolved operation state before ordinary next_action",
+    "EFFECT_OBSERVED reconciles from durable evidence without blind replay",
+    "AMBIGUOUS fails closed with deterministic repair authority",
+    "existing canonical continuity/Guard/scheduler owners remain semantic owners"
+  ],
+  "surfaces": [
+    {
+      "surface": "guard",
+      "path": ".github/workflows/whd-turn-exit-gate.yml",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "GUARD_DURABLE_READBACK_ACTIONS",
+        "_build_guard_durable_readback"
+      ]
+    },
+    {
+      "surface": "dispatch",
+      "path": ".agents/skills/engineering/派工/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE",
+        "FINALIZATION_TRANSACTION_HARD_GATE_V1"
+      ]
+    },
+    {
+      "surface": "development-task",
+      "path": ".agents/skills/engineering/執行開發任務/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "TASK_START_AUTHORITY_DECLARATION_V1",
+        "EXECUTION_INTENT_ROUTING_V1"
+      ]
+    },
+    {
+      "surface": "scheduler-simulation",
+      "path": ".agents/skills/engineering/排程模擬/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1",
+        "READY_WORK_CENSUS_V1"
+      ]
+    },
+    {
+      "surface": "scheduler-authoring",
+      "path": ".agents/skills/engineering/寫排程/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1"
+      ]
+    },
+    {
+      "surface": "forced-takeover",
+      "path": ".agents/skills/engineering/強制接手/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "stale_claim_takeover.py",
+        "claim-takeover"
+      ]
+    },
+    {
+      "surface": "scheduled-resume",
+      "path": "tools/scheduled_resume_runtime.py",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "CONTINUE_RECOVERY",
+        "ScheduledWakeDisposition"
+      ]
+    },
+    {
+      "surface": "recurring-scheduler",
+      "path": ".agents/skills/engineering/排程模擬/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1",
+        "SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1"
+      ]
+    },
+    {
+      "surface": "work-slot",
+      "path": ".agents/skills/engineering/工作槽/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "WORK_SLOT_FIXED_IDENTITY_V1",
+        "WORK_SLOT_IDENTITY_MODEL_V1"
+      ]
+    },
+    {
+      "surface": "scheduler-end",
+      "path": ".github/workflows/whd-turn-exit-gate.yml",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "WHD_SCHEDULER_RUNTIME_END_V1",
+        "scheduler-end:"
+      ]
+    },
+    {
+      "surface": "issue-closure",
+      "path": "tools/continuity_controller.py",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "OperationTransaction",
+        "reconcile_issue_close_operation"
+      ]
+    },
+    {
+      "surface": "helper-lifecycle",
+      "path": ".agents/skills/engineering/派工/SKILL.md",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "ACTIVE_DELEGATED_WORK_TAKEOVER_GATE_V1",
+        "delegated_work"
+      ]
+    },
+    {
+      "surface": "claim-activation",
+      "path": ".github/workflows/whd-remote-claim-activation.yml",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "ClaimActivationReadbackState",
+        "classify_claim_activation_readback"
+      ]
+    },
+    {
+      "surface": "poweroff",
+      "path": "tools/workstation_poweroff_gate.py",
+      "boundaries": [
+        "prepare",
+        "authorize",
+        "post-effect",
+        "readback",
+        "pre-reconcile",
+        "post-reconcile"
+      ],
+      "markers": [
+        "operation_state",
+        "UNRESOLVED_OPERATION"
+      ]
+    }
+  ],
+  "regression_suites": {
+    "amendment": [
+      "tests/process/test_issue696_startup_authorization_purpose.py",
+      "tests/process/test_issue697_operation_transaction_core.py",
+      "tests/process/test_issue698_remote_guard_durable_readback_parity.py",
+      "tests/process/test_issue699_turn_exit_poweroff_issue_close_recovery.py",
+      "tests/process/test_issue700_claim_activation_crash_reentry.py",
+      "tests/process/test_issue701_scheduler_state_reconciliation.py",
+      "tests/process/test_issue702_crash_fault_injection_matrix.py"
+    ],
+    "original_governance": [
+      "tests/process/test_issue687_stop_eligibility_machine_gate.py",
+      "tests/process/test_issue688_ticket_closure_owner_contract.py",
+      "tests/process/test_issue689_takeover_substantive_action_gate.py",
+      "tests/process/test_issue690_closure_drift_classification.py",
+      "tests/process/test_issue691_turn_exit_scheduler_end_parity.py",
+      "tests/process/test_issue692_governance_parity_gate.py"
+    ]
+  }
+}

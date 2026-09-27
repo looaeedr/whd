@@ -296,3 +296,15 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 ### CI_SHARDING_SKILL_OWNERSHIP_V1
 CI sharding 的 pytest isolation / deterministic ownership / concurrency budget / timing / tested-vs-orchestration identity 規則由 `Python測試實務` 擁有；remote polling/no-RUN recovery 仍由 `monitoring-remote-qa` + `executable-continuity-controller` 擁有；長 log classifier 語意由 `long-log-context-safe-execution` 擁有。不得再建立第二套 competing Skill authority。
+
+<!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
+## Mutating toolcall crash-recovery canonical invariant
+
+- Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
+- Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
+- `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
+- `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
+- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
+- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
+
