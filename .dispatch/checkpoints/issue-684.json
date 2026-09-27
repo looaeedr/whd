@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "684",
   "branch": "work/issue684-real-ha-integration-combined-20260927",
-  "head_sha": "2a65b8ebbd85c96083874a49aceb687cb56d2848",
+  "head_sha": "22e42713db60ae8587d4600c1f3c4964a23959bc",
   "state": "RUNNING",
-  "next_action": "Remove the one-shot #684 QA workflow under one commit Guard; prove tested 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> closing head drift is exactly that workflow deletion; fresh-audit production drift from frozen 8a3058e5472aec4793cd26a398ae4920185d8002 to live cleanup; create/sync a two-parent closing head preserving target drift; because #684 changes governed Scheduler Skill + Authority Map 09 + Scheduled Resume 11, create reciprocal cleanup/main governance-mirror PRs, require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN, merge in legal order, then finalization/close/release.",
+  "next_action": "Fresh-audit production drift from frozen 8a3058e5472aec4793cd26a398ae4920185d8002 to live cleanup; create/sync a two-parent closing head preserving target drift; because #684 changes governed Scheduler Skill + Authority Map 09 + Scheduled Resume 11, create reciprocal cleanup/main governance-mirror PRs, require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN, merge in legal order, then finalization/close/release.",
   "run_id": 36329242279,
   "job_id": 108647885044,
   "log_cursor": null,
@@ -25,7 +25,9 @@
     "Pair reconciled to GREEN head under Guard 36328863599.",
     "Combined Acceptance tested head 2a65b8ebbd85c96083874a49aceb687cb56d2848.",
     "Run 36329242279 / job 108647885044: 68 passed in 3.10s.",
-    "Pair reconciled under Guard 36329299014."
+    "Pair reconciled under Guard 36329299014.",
+    "One-shot Combined Acceptance workflow removed at closing head 22e42713db60ae8587d4600c1f3c4964a23959bc under commit Guard 36329377430.",
+    "Tested 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> closing 22e42713db60ae8587d4600c1f3c4964a23959bc drift is exactly the one-shot workflow deletion."
   ],
   "master_issue": null,
   "chain_state": "NONE",
