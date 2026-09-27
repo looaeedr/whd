@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "780",
   "branch": "landing/issue780-current-production-20260927",
-  "head_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+  "head_sha": "f497dd2f3415620f54a10394e637813b8ee3d573",
   "state": "RUNNING",
-  "next_action": "Run branch-create Guard for landing/issue780-current-production-20260927 at exact production head 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf. After GREEN, create the branch at that exact SHA. Then under a commit Guard create one two-parent landing merge commit with first parent=98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf and second parent=exact #780 closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77; keep the current production tree authoritative except the two proven leading-BOM removals. Verify exact parents/tree/diff, then run focused landing acceptance before PR/merge.",
+  "next_action": "Run focused landing acceptance on exact landing head f497dd2f3415620f54a10394e637813b8ee3d573. Acceptance must verify exact two-parent ancestry (98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf + 6ac40676bb4e2911d8b8227ec73875d6cc478e77), first-parent diff limited to the two pure BOM removals, authority-map dual markers preserved, scheduler governance mirror #816 intact, clean-break structural tests GREEN, and protected config/baseline unchanged. On GREEN, remove any one-shot QA workflow, then fresh-read cleanup/2d-3d-sync and continue guarded PR/merge.",
   "run_id": 36298544059,
   "job_id": 108561782584,
   "log_cursor": null,
@@ -52,7 +52,10 @@
     "PR #821 canonical mergeability readback is dirty/mergeable=false at production base 8e16aae98a5d838721f480284121f05f6591e51e.",
     "Landing strategy selected: move active durable authority to fresh production-rooted landing branch, then preserve #780 ancestry with a two-parent merge commit while keeping production tree authoritative except two accepted BOM removals.",
     "Production advanced linearly by #816 governance-mirror work before landing branch creation; exact current production is 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
-    "Landing branch is absent; checkpoint advances to current production head before any branch-create mutation."
+    "Landing branch is absent; checkpoint advances to current production head before any branch-create mutation.",
+    "Landing branch exists from exact production 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf under branch-create Guard 36299301594 GREEN.",
+    "Landing merge f497dd2f3415620f54a10394e637813b8ee3d573 has exact parents production + accepted #780 closing head, and first-parent diff is exactly two pure BOM removals.",
+    "Standard post-commit reconciliation Guard 36299399841 failed only on merge-shape evaluator limitation; activation repair is required."
   ],
   "master_issue": null,
   "chain_state": "NONE",
