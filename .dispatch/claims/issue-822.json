@@ -9,9 +9,9 @@
   "work_branch": "governance/issue822-governance-required-check-x-20260927",
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "head_sha": "e778240364dc20ec4398cf576d286d7525db7e53",
+  "head_sha": "2a9a1d71b36b8b412abe77cf7488e8c03a669898",
   "phase": "GREEN",
-  "last_update": "2026-09-27T06:51:30Z",
+  "last_update": "2026-09-27T07:10:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "activate #823 main-side mirror child, then open reciprocal paired PRs and prove merge-time Governance Mirror Hard Gate GREEN on both",
+  "next_action": "consume PR #824 synchronize Hard Gate on head 2a9a1d71; retrigger PR #825 to pair against final #824 head; require both fresh GREEN, then merge paired PRs and prove post-push parity",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -45,17 +45,20 @@
     "Focused GREEN run 36300968040 / job 108568405688 SUCCESS.",
     "Edited-trigger fix 74d6c43e makes reciprocal pair body updates retrigger Governance Mirror Hard Gate.",
     "Focused GREEN run 36301161957 / job 108568931757 on 74d6c43e.",
-    "Temporary QA cleanup commit e7782403 removes only qa-issue822 workflow after tested head 74d6c43e."
+    "Temporary QA cleanup commit e7782403 removes only qa-issue822 workflow after tested head 74d6c43e.",
+    "Merge-sync Guard 36302210726 GREEN against cleanup production parent 33e6a60b.",
+    "Merge-sync commit 2a9a1d71 has parents e7782403 + cleanup@33e6a60b and preserves exact four #822 governance blobs over current cleanup tree.",
+    "Post-merge reconciliation Guard 36302261117 GREEN."
   ],
   "last_guard": {
-    "action": "commit",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36301254497,
-    "request_comment_id": 5853524080,
+    "run_id": 36302261117,
+    "request_comment_id": 5853662231,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "temporary QA cleanup e7782403"
+    "mutation": "merge-sync reconciliation to 2a9a1d71"
   },
   "delegated_work": []
 }
