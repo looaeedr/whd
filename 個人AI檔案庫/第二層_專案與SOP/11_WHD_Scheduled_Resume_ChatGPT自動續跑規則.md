@@ -170,3 +170,27 @@ Unexpected PC loss / local runtime disappearance 與 planned handoff 必須永�
 6. 只有 abnormal outage 且不存在 planned-handoff / active-run lock，才可再進 canonical stale/orphan takeover evaluator。
 
 Machine owner：`tools/stale_claim_takeover.py::evaluate_outage_recovery`。Local vocabulary owner仍是 `tools/local_durability_gate.py::LocalDurabilityState`；本文件不得建立平行 classifier。
+
+
+<!-- WHD_POWEROFF_SCHEDULER_RESUME_EVIDENCE_V1 -->
+## Leaving-home power-off: scheduler resume evidence
+
+對 current leaving-home / 「上班了」request，WHD 在 local PC 可關機前只產生/驗證 SAFE boundary；真正 Windows shutdown actuator 由 HA/Node-RED 執行。PC 離線後，scheduler 必須直接從 durable GitHub state恢復，不得要求另一個 user `continue`。
+
+R11 SAFE combined evidence 的 resume 部分固定 schema=`WHD_SCHEDULER_RESUME_EVIDENCE_V1`，且必須與 current `poweroff_request_id` 綁定。至少保存：
+- `pre_shutdown_local_head`
+- `remote_head`
+- exact checkpoint path / durable checkpoint
+- `claim_owner_pre` / `claim_owner_post`
+- GREEN `WHD_WORK_EXECUTOR_HANDOFF_V1` receipt
+- `scheduler_invocation_identity`
+- exact nonblank `next_action`
+
+恢復順序：
+1. fresh-read current request id + claim + checkpoint + branch/remote HEAD + exact run；
+2. 若 exact remote run active，先鎖該 run；
+3. 驗 planned handoff / post-shutdown scheduler owner identity；
+4. 驗 exact checkpoint / `next_action`；
+5. 同一 scheduler invocation 直接執行 first substantive next_action。
+
+Previous-request SAFE、缺 request identity、缺 exact next_action、或 actuator decision 非 current request 都不得用來 resume/authorize actuator。Machine verifier：`tools/whd_poweroff_end_to_end_acceptance.py`；本文件只保存 resume contract，不複製 verifier implementation。
