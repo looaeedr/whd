@@ -20,13 +20,14 @@
     "PR #831 merged main@4bf93cf2073811bc86e1c0de33ef52eeca6249cd.",
     "PR #830 merged cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8.",
     "Post-push governance parity GREEN: main 36304637817, cleanup 36304641580.",
-    "Terminal transition Guard 36304758861 GREEN."
+    "Terminal transition Guard 36304758861 GREEN.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36304825792 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #829, then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED+RELEASED and return to #827."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint; if GREEN, close/read back Issue #829, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED."
 }
