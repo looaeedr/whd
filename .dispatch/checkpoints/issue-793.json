@@ -3,8 +3,8 @@
   "issue": "793",
   "branch": "governance/issue793-takeover-parser-regression-20260927",
   "head_sha": "4c9be50f31a7ea4e91ed232f78050ec51deed17f",
-  "state": "RUNNING",
-  "next_action": "Fresh-compare closing head 4c9be50f31a7ea4e91ed232f78050ec51deed17f against current trusted main. If #796 already deployed the exact parser + regression capability and merging #793 would reintroduce stale unrelated workflow state, record superseded production integration evidence and enter terminal closure without merging the obsolete branch; otherwise obtain a fresh pr-write Guard for the exact clean delta.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36286933222,
   "job_id": 108529335000,
   "log_cursor": null,
@@ -25,13 +25,16 @@
     "Exact QA run 36286933222 on H4: 3 passed / 0 failed; marker ISSUE793_TAKEOVER_PARSER_GREEN=PASS.",
     "Pair reconciliation Guard 36286951620 GREEN.",
     "Closing head 4c9be50f31a7ea4e91ed232f78050ec51deed17f removes only temporary #793 QA workflow.",
-    "Pair reconciliation Guard 36289935791 GREEN."
+    "Pair reconciliation Guard 36289935791 GREEN.",
+    "Trusted main d54f0410 contains the accepted parser fix and the exact #722 regression blob deployed by terminal helper #796.",
+    "Fresh drift audit proves #793 branch is obsolete/diverged and must not be merged over newer trusted main authority.",
+    "Temporary #793 QA workflow removed; closing head 4c9be50f contains no temporary workflow."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }

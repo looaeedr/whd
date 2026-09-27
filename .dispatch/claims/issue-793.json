@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "4c9be50f31a7ea4e91ed232f78050ec51deed17f",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T02:56:09Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T02:56:15Z",
   "production_target": "main",
   "slot_id": "worker.slot.1",
   "delegated_branches": [],
@@ -25,7 +25,7 @@
     "failed": 0,
     "marker": "ISSUE793_TAKEOVER_PARSER_GREEN=PASS"
   },
-  "next_action": "Fresh-compare closing head 4c9be50f31a7ea4e91ed232f78050ec51deed17f against current trusted main. If #796 already deployed the exact parser + regression capability and merging #793 would reintroduce stale unrelated workflow state, record superseded production integration evidence and enter terminal closure without merging the obsolete branch; otherwise obtain a fresh pr-write Guard for the exact clean delta.",
+  "next_action": "Advance #793 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint a bound finalization proof, close/read back #793, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -52,17 +52,18 @@
     "Takeover resumes existing #793 checkpoint/head/next_action without replaying implementation or remote QA.",
     "Temporary QA cleanup commit Guard run 36289870150 GREEN.",
     "Closing commit 4c9be50f31a7ea4e91ed232f78050ec51deed17f removes only .github/workflows/qa-issue793-takeover-parser-regression.yml (37 deletions).",
-    "Post-cleanup pair reconciliation Guard run 36289935791 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-cleanup pair reconciliation Guard run 36289935791 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Fresh production drift audit: trusted main d54f0410 already contains the accepted real-newline parser and exact #722 regression blob via terminal helper #796.",
+    "Direct merge of obsolete #793 branch is prohibited because branch diverged from newer trusted main authority; production acceptance is already satisfied on main.",
+    "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write."
   ],
   "last_guard": {
     "action": "write",
-    "mode": "remote",
-    "run_id": 36289935791,
-    "request_comment_id": 5852115673,
+    "mode": "local",
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #793 H4 -> closing head 4c9be50f"
+    "mutation": "persist #793 TERMINAL_SUCCESS / FINALIZATION_PENDING after superseded-branch drift audit"
   },
   "delegated_work": [
     {
