@@ -3,22 +3,22 @@
   "issue": "781",
   "branch": "trusted/issue781-action-scope-bootstrap-main-20260927",
   "head_sha": "11481a9a0a89ed6b65db62ab3595ad06a1012093",
-  "state": "RUNNING",
-  "next_action": "Create guarded PR to trusted main, merge, verify action-scope parity, then retry #774/#776.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "helper commit=11481a9a0a89ed6b65db62ab3595ad06a1012093",
-    "50 focused tests passed"
+    "PR #782 merged to main",
+    "Action-scope hard gate deployed and validated"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize proof, close/readback, then CLOSED+RELEASED."
 }
