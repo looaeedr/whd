@@ -21,13 +21,16 @@
     "PR #830 merged cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8.",
     "Post-push governance parity GREEN: main 36304637817, cleanup 36304641580.",
     "Terminal transition Guard 36304758861 GREEN.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36304825792 GREEN."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36304825792 GREEN.",
+    "Remote Finalization 36304954113 GREEN / FINALIZATION_PROOF_VALID; artifact 10926324073.",
+    "Issue #829 closed/completed readback.",
+    "Release-handoff advance authorized by Guard 36305011154 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint; if GREEN, close/read back Issue #829, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Obtain final coordination write Guard, then atomically persist checkpoint CLOSED + claim RELEASED and return terminal helper proof to #827."
 }
