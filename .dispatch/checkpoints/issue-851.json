@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "851",
-  "branch": "governance/issue851-main-mirror-20260927",
-  "head_sha": "da2164184cc25db3a8b4b04ca429d29d8a857150",
+  "branch": "repair/issue851-sealed-premerge-v2-20260927",
+  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "state": "RUNNING",
-  "next_action": "Merge main PR #856 under an exact pr-write Guard now that #856 Governance Mirror Hard Gate 36319510072 and #857 Governance Mirror Hard Gate 36319680580 are both GREEN; then hand primary authority back to cleanup, revalidate #857 against merged main, merge #857, and close/release #851.",
+  "next_action": "Trigger a fresh Governance Mirror Hard Gate on cleanup PR #857 against merged main@b427ae38f5a8921c273cc56e8da1b293154534a2; require GREEN; then merge #857 under an exact pr-write Guard; read back cleanup integration; close stale #854 if still open; then close/release #851.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -37,7 +37,9 @@
     "primary authority handback Guard 36319557448 GREEN",
     "#857 Governance Mirror Hard Gate 36319680580 GREEN",
     "paired gate set GREEN (#856=36319510072, #857=36319680580)",
-    "primary authority handoff Guard 36319744464 GREEN"
+    "primary authority handoff Guard 36319744464 GREEN",
+    "#856 merged to main at b427ae38f5a8921c273cc56e8da1b293154534a2",
+    "post-main-merge handback Guard 36320003324 GREEN"
   ],
   "operation": null,
   "master_issue": null,
