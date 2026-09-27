@@ -36,13 +36,15 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36306371637.",
     "Remote Finalization 36306489157 GREEN / FINALIZATION_PROOF_VALID.",
     "Issue #827 readback closed/completed at 2026-09-27T08:32:50Z.",
-    "Post-close coordination Guard 36306567567 GREEN."
+    "Post-close coordination Guard 36306567567 GREEN.",
+    "Final atomic CLOSED+RELEASED transaction authorized by Remote Guard 36306646336.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Obtain final coordination write Guard, atomically persist checkpoint CLOSED + claim RELEASED, then terminalize parent #702 helper reservation."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
