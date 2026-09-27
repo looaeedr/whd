@@ -9,9 +9,9 @@
   "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "f391641a7ca58b25b44eabbaef202b25942b77b9",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T10:09:00Z",
+  "head_sha": "cb4be343f59161ba8434f626947f3a8ba2d109a3",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T10:13:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -25,7 +25,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Delete the one-shot .github/workflows/qa-issue683-ha-transport-projection.yml under a fresh commit Guard, then prove tested-head→closing-head drift is workflow-deletion only, reconcile closing HEAD, and prepare non-force integration to cleanup/2d-3d-sync.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync HEAD and compare it with closing head cb4be343f59161ba8434f626947f3a8ba2d109a3. If target advanced, perform guarded non-force two-parent sync preserving #683 delta; then reconcile and open/merge the exact integration PR.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -63,17 +63,21 @@
     "Post-commit/failure reconciliation Guard 36311397490 GREEN.",
     "Second test-only syntax repair commit f391641a7ca58b25b44eabbaef202b25942b77b9 consumed Guard 36311481138.",
     "Exact QA 36311528696 / job 108598281168 GREEN: 8 passed / 0 failed in 0.38s.",
-    "GREEN reconciliation Guard 36311571037."
+    "GREEN reconciliation Guard 36311571037.",
+    "One-shot QA workflow deletion commit cb4be343f59161ba8434f626947f3a8ba2d109a3 consumed cleanup Guard 36311644606.",
+    "Duplicate cleanup Guard request 5854924689 was rejected by run 36311659794 because 36311644606 was pending; no duplicate GREEN.",
+    "Tested f391641a... -> closing cb4be343... drift is exactly removal of .github/workflows/qa-issue683-ha-transport-projection.yml.",
+    "Closing-head reconciliation Guard 36311774490 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36311571037,
-    "request_comment_id": 5854914467,
-    "result_comment_id": 5854915845,
+    "run_id": 36311774490,
+    "request_comment_id": 5854940247,
+    "result_comment_id": 5854941613,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 to accepted writeback head and exact 8/8 GREEN QA"
+    "mutation": "reconcile #683 closing head after one-shot workflow deletion"
   }
 }

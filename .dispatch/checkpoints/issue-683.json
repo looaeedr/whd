@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "683",
   "branch": "work/issue683-ha-transport-projection-20260927",
-  "head_sha": "f391641a7ca58b25b44eabbaef202b25942b77b9",
+  "head_sha": "cb4be343f59161ba8434f626947f3a8ba2d109a3",
   "state": "RUNNING",
-  "next_action": "Delete the one-shot .github/workflows/qa-issue683-ha-transport-projection.yml under a fresh commit Guard, then prove tested-head→closing-head drift is workflow-deletion only, reconcile closing HEAD, and prepare non-force integration to cleanup/2d-3d-sync.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync HEAD and compare it with closing head cb4be343f59161ba8434f626947f3a8ba2d109a3. If target advanced, perform guarded non-force two-parent sync preserving #683 delta; then reconcile and open/merge the exact integration PR.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -32,7 +32,9 @@
     "Reconciliation Guard 36311397490 GREEN.",
     "Second syntax repair head f391641a7ca58b25b44eabbaef202b25942b77b9 under Guard 36311481138.",
     "Exact QA 36311528696 / job 108598281168 GREEN: 8 passed / 0 failed in 0.38s.",
-    "GREEN reconciliation Guard 36311571037."
+    "GREEN reconciliation Guard 36311571037.",
+    "Closing head cb4be343f59161ba8434f626947f3a8ba2d109a3 removes only the one-shot QA workflow from tested f391641a....",
+    "Closing-head reconciliation Guard 36311774490 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
