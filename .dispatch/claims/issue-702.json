@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T04:06:00Z",
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T08:48:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T08:51:07Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Atomically persist #702 checkpoint closure_state=CLOSED with claim phase=RELEASED, next_action=null, after RELEASE_HANDOFF_PENDING is durably recorded.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -69,7 +69,9 @@
     "B15/B45 fresh-read remained enabled; no B-lane schedule/timing/prompt mutation was performed.",
     "Closure lifecycle write Guard 36307159479 GREEN for exact #702 terminal pair.",
     "Trusted Remote Finalization run 36307311017 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; bound checkpoint=b63a4a089d07f53a1c21da1a82911fd2bd3d1a7d fingerprint=0be7cafbdf25c1503d73e0ee6ced3bb87b418ac6ba4564834f35e418d9620234.",
-    "Issue #702 close readback: closed/completed at 2026-09-27T08:48:15Z."
+    "Issue #702 close readback: closed/completed at 2026-09-27T08:48:15Z.",
+    "Final coordination Guard 36307486885 GREEN for exact RELEASE_HANDOFF_PENDING pair.",
+    "Final atomic transaction persists checkpoint CLOSED + claim RELEASED only after Issue #702 closed/completed and bound finalization proof GREEN."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
@@ -83,12 +85,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307159479,
-    "request_comment_id": 5854309141,
+    "run_id": 36307486885,
+    "request_comment_id": 5854358927,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #702 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "atomically persist #702 checkpoint CLOSED + claim RELEASED"
   },
   "green_evidence": {
     "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",

@@ -43,13 +43,16 @@
     "Exit-time A-lane readback: 00/20/40 all enabled after changing only A40 enabled=false -> true; cadence/timing/prompt/title/lane identities unchanged.",
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36307159479.",
     "Trusted Remote Finalization run 36307311017 validated the exact ISSUE_CLOSE_PENDING checkpoint fingerprint 0be7cafbdf25c1503d73e0ee6ced3bb87b418ac6ba4564834f35e418d9620234.",
-    "Issue #702 fresh readback is closed/completed at 2026-09-27T08:48:15Z."
+    "Issue #702 fresh readback is closed/completed at 2026-09-27T08:48:15Z.",
+    "Final coordination Guard 36307486885 GREEN.",
+    "Issue #702 closed/completed; Remote Finalization 36307311017 GREEN; exit-time A-lane readback complete.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED with no successor handoff"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
