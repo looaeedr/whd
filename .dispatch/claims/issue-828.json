@@ -9,13 +9,13 @@
   "work_branch": "governance/issue828-parent-branch-sealed-identity-repair-main-20260927",
   "claimed_at": "2026-09-27T07:30:00Z",
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
-  "head_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T07:30:00Z",
+  "head_sha": "e7a2b0cdb40537cf695351adc0fe4731d77a189e",
+  "phase": "RED",
+  "last_update": "2026-09-27T07:38:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard for governance/issue828-parent-branch-sealed-identity-repair-main-20260927 at main@123fcd139762a7e36eaf110a8ce19a18cc177fb5; then add RED contract tests for non-force sealed-identity replacement-branch repair before implementation.",
+  "next_action": "Implement the narrow parent-branch identity repair: Remote Guard authorization + canonical candidate validator + trusted non-force replacement-branch/CAS transport; rerun exact #828 focused QA to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -27,6 +27,15 @@
     "resume_authority=parent #702 explicit helper authority",
     "#702 durable claim/checkpoint both remain sealed at f8a3397551c5975dafd842e8dcd28c1d4edcca32.",
     "#702 original work branch live c59d73e245d2b4732c738a01bd062eb32763a05a is 9 commits ahead of sealed H4 with merge-base exactly sealed H4.",
-    "Repair design uses a fresh replacement branch at sealed H4 and exact coordination CAS to rebind branch identity while preserving sealed HEAD."
-  ]
+    "Repair design uses a fresh replacement branch at sealed H4 and exact coordination CAS to rebind branch identity while preserving sealed HEAD.",
+    "VALID RED: run 36303646583 / job 108575929296 at e7a2b0cdb40537cf695351adc0fe4731d77a189e failed 12 tests only because repair action/transport/validator are absent; harness setup/checkout/pytest all succeeded."
+  ],
+  "remote_qa": {
+    "run_id": 36303646583,
+    "job_id": 108575929296,
+    "head_sha": "e7a2b0cdb40537cf695351adc0fe4731d77a189e",
+    "status": "completed",
+    "conclusion": "failure",
+    "pytest": "12 failed / 0 harness failure"
+  }
 }
