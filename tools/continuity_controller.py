@@ -24,6 +24,17 @@ from typing import Iterable, Mapping
 CHECKPOINT_VERSION = 1
 FINALIZATION_PROOF_VERSION = 1
 TURN_EXIT_PROOF_VERSION = 1
+READY_WORK_CENSUS_SCHEMA = "READY_WORK_CENSUS_V1"
+READY_WORK_CENSUS_ALLOWED_EXCLUSIONS = frozenset(
+    {
+        "FOREIGN_LIVE_OWNER",
+        "DEPENDENCY_BLOCKED",
+        "ACTIVE_EXACT_RUN",
+        "AUTHORITY_MISMATCH",
+        "SHARED_SCOPE_CONFLICT",
+    }
+)
+READY_WORK_CENSUS_EXECUTABLE_CLASSIFICATION = "MUST_CLAIM"
 BLOCKED_EXIT_PROOF_MAX_AGE_SECONDS = 300
 BLOCKED_EXIT_PROOF_FUTURE_SKEW_SECONDS = 30
 _UNSET = object()
@@ -332,6 +343,205 @@ def _authority_progress_from_claim_state(
     return _normalize_authority_progress(
         getattr(claim_state, "authority_progress", None)
     )
+
+
+def _claim_state_value(claim_state: object | None, key: str) -> object | None:
+    if claim_state is None:
+        return None
+    if isinstance(claim_state, Mapping):
+        return claim_state.get(key)
+    return getattr(claim_state, key, None)
+
+
+def _scheduler_lane_from_claim_state(claim_state: object | None) -> str | None:
+    worker = str(_claim_state_value(claim_state, "worker") or "").strip()
+    executor_source = str(
+        _claim_state_value(claim_state, "executor_source") or ""
+    ).strip().lower()
+    if worker.startswith("scheduler."):
+        return worker
+    if executor_source == "scheduler":
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS scheduler claim lacks exact scheduler lane owner"
+        )
+    return None
+
+
+def ready_work_census_fingerprint(proof: Mapping[str, object]) -> str:
+    if not isinstance(proof, Mapping):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS proof must be a mapping"
+        )
+    canonical = json.dumps(
+        dict(proof),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def assert_ready_work_census_proof(
+    checkpoint: "Checkpoint",
+    *,
+    claim_state: object | None,
+    proof: object | None,
+    current_claim_blob_sha: str | None,
+    current_checkpoint_blob_sha: str | None,
+    turn_exit_request_comment_id: int | None,
+) -> str | None:
+    """Require one exact exhaustive READY_WORK_CENSUS proof for scheduler-lane exit."""
+
+    scheduler_lane = _scheduler_lane_from_claim_state(claim_state)
+    if scheduler_lane is None:
+        return None
+    if not isinstance(proof, Mapping):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS proof is required for scheduler-lane exit"
+        )
+
+    required = {
+        "schema",
+        "scheduler_lane",
+        "invocation_identity",
+        "claim_blob_sha",
+        "checkpoint_blob_sha",
+        "checkpoint_fingerprint",
+        "turn_exit_request_comment_id",
+        "exhaustive",
+        "executable_leaf_count",
+        "continuation_action",
+        "candidates",
+    }
+    if set(proof) != required:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS proof fields are missing or unexpected"
+        )
+    if proof.get("schema") != READY_WORK_CENSUS_SCHEMA:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: READY_WORK_CENSUS schema mismatch")
+
+    invocation_identity = str(
+        _claim_state_value(claim_state, "invocation_identity") or ""
+    ).strip()
+    if not invocation_identity:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS current invocation identity is missing"
+        )
+    if str(proof.get("scheduler_lane") or "") != scheduler_lane:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS scheduler lane mismatch"
+        )
+    if str(proof.get("invocation_identity") or "") != invocation_identity:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS invocation identity mismatch"
+        )
+
+    expected_claim_blob = str(current_claim_blob_sha or "").strip()
+    expected_checkpoint_blob = str(current_checkpoint_blob_sha or "").strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", expected_claim_blob):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS current claim blob identity is missing"
+        )
+    if not re.fullmatch(r"[0-9a-f]{40}", expected_checkpoint_blob):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS current checkpoint blob identity is missing"
+        )
+    if str(proof.get("claim_blob_sha") or "") != expected_claim_blob:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: READY_WORK_CENSUS claim blob mismatch")
+    if str(proof.get("checkpoint_blob_sha") or "") != expected_checkpoint_blob:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS checkpoint blob mismatch"
+        )
+
+    expected_checkpoint_fingerprint = checkpoint_fingerprint(checkpoint)
+    if str(proof.get("checkpoint_fingerprint") or "") != expected_checkpoint_fingerprint:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS checkpoint fingerprint mismatch"
+        )
+
+    if (
+        isinstance(turn_exit_request_comment_id, bool)
+        or not isinstance(turn_exit_request_comment_id, int)
+        or turn_exit_request_comment_id <= 0
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS current turn-exit request identity is missing"
+        )
+    proof_request_id = proof.get("turn_exit_request_comment_id")
+    if (
+        isinstance(proof_request_id, bool)
+        or not isinstance(proof_request_id, int)
+        or proof_request_id != turn_exit_request_comment_id
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS turn-exit request mismatch"
+        )
+
+    exhaustive = proof.get("exhaustive")
+    leaf_count = proof.get("executable_leaf_count")
+    if isinstance(leaf_count, bool) or not isinstance(leaf_count, int) or leaf_count < 0:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS executable_leaf_count is invalid"
+        )
+
+    raw_candidates = proof.get("candidates")
+    if not isinstance(raw_candidates, list):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS candidates must be a list"
+        )
+
+    must_claim_actions: list[str] = []
+    for index, candidate in enumerate(raw_candidates):
+        if not isinstance(candidate, Mapping):
+            raise TurnExitBlocked(
+                f"TURN_EXIT_BLOCKED: READY_WORK_CENSUS candidate[{index}] is malformed"
+            )
+        candidate_required = {"issue", "classification", "evidence", "next_action"}
+        if set(candidate) != candidate_required:
+            raise TurnExitBlocked(
+                f"TURN_EXIT_BLOCKED: READY_WORK_CENSUS candidate[{index}] fields are invalid"
+            )
+        issue = str(candidate.get("issue") or "").strip()
+        classification = str(candidate.get("classification") or "").strip()
+        evidence = str(candidate.get("evidence") or "").strip()
+        next_action = str(candidate.get("next_action") or "").strip()
+        if not issue or not evidence:
+            raise TurnExitBlocked(
+                f"TURN_EXIT_BLOCKED: READY_WORK_CENSUS candidate[{index}] lacks fresh durable exclusion evidence"
+            )
+        if classification == READY_WORK_CENSUS_EXECUTABLE_CLASSIFICATION:
+            if not next_action:
+                raise TurnExitBlocked(
+                    f"TURN_EXIT_BLOCKED: READY_WORK_CENSUS candidate[{index}] MUST_CLAIM lacks exact next_action"
+                )
+            must_claim_actions.append(next_action)
+            continue
+        if classification not in READY_WORK_CENSUS_ALLOWED_EXCLUSIONS:
+            raise TurnExitBlocked(
+                f"TURN_EXIT_BLOCKED: READY_WORK_CENSUS candidate[{index}] exclusion classification is invalid"
+            )
+
+    continuation_action = str(proof.get("continuation_action") or "").strip()
+    if leaf_count > 0 or must_claim_actions:
+        action = continuation_action or (must_claim_actions[0] if must_claim_actions else "")
+        if not action:
+            raise TurnExitBlocked(
+                "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_EXISTS without exact continuation action"
+            )
+        raise TurnExitBlocked(
+            f"TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_EXISTS next_action={action!r}"
+        )
+
+    if exhaustive is not True:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS proof is not exhaustive"
+        )
+    if continuation_action:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: READY_WORK_CENSUS zero-leaf proof carries unexpected continuation action"
+        )
+
+    return ready_work_census_fingerprint(proof)
 
 
 def record_first_substantive_action(
@@ -1615,6 +1825,10 @@ def assert_turn_exitable(
     transaction_state: object | None = None,
     blocked_exit_proof: object | None = None,
     authority_progress: object | None = None,
+    ready_work_census_proof: object | None = None,
+    current_claim_blob_sha: str | None = None,
+    current_checkpoint_blob_sha: str | None = None,
+    turn_exit_request_comment_id: int | None = None,
 ) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
 
@@ -1703,6 +1917,14 @@ def assert_turn_exitable(
             f"next_action={checkpoint.chain_next_action!r}"
         )
 
+    assert_ready_work_census_proof(
+        checkpoint,
+        claim_state=claim_state,
+        proof=ready_work_census_proof,
+        current_claim_blob_sha=current_claim_blob_sha,
+        current_checkpoint_blob_sha=current_checkpoint_blob_sha,
+        turn_exit_request_comment_id=turn_exit_request_comment_id,
+    )
 
 
 def evaluate_turn_exit_from_durable_state(
@@ -1712,6 +1934,10 @@ def evaluate_turn_exit_from_durable_state(
     transaction_state: object | None = None,
     expected_master_issue: str | None = None,
     blocked_exit_proof: object | None = None,
+    ready_work_census_proof: object | None = None,
+    current_claim_blob_sha: str | None = None,
+    current_checkpoint_blob_sha: str | None = None,
+    turn_exit_request_comment_id: int | None = None,
 ) -> str:
     """Evaluate the turn boundary from current claim/checkpoint/Guard durable state."""
 
@@ -1729,6 +1955,10 @@ def evaluate_turn_exit_from_durable_state(
         claim_state=claim_state,
         transaction_state=transaction_state,
         blocked_exit_proof=blocked_exit_proof,
+        ready_work_census_proof=ready_work_census_proof,
+        current_claim_blob_sha=current_claim_blob_sha,
+        current_checkpoint_blob_sha=current_checkpoint_blob_sha,
+        turn_exit_request_comment_id=turn_exit_request_comment_id,
     )
     return "TURN_EXIT_PERMITTED"
 
@@ -1748,6 +1978,10 @@ def _evaluate_live_turn_exit_from_durable_state(
     expected_head_sha: str,
     expected_master_issue: str | None = None,
     blocked_exit_proof: object | None = None,
+    ready_work_census_proof: object | None = None,
+    current_claim_blob_sha: str | None = None,
+    current_checkpoint_blob_sha: str | None = None,
+    turn_exit_request_comment_id: int | None = None,
 ) -> str:
     """Shared local/remote turn-exit authority from the same fresh durable evidence."""
 
@@ -1772,6 +2006,10 @@ def _evaluate_live_turn_exit_from_durable_state(
         transaction_state=transaction_state,
         expected_master_issue=expected_master_issue,
         blocked_exit_proof=blocked_exit_proof,
+        ready_work_census_proof=ready_work_census_proof,
+        current_claim_blob_sha=current_claim_blob_sha,
+        current_checkpoint_blob_sha=current_checkpoint_blob_sha,
+        turn_exit_request_comment_id=turn_exit_request_comment_id,
     )
     if checkpoint is None:
         raise TurnExitBlocked("TURN_EXIT_BLOCKED: CHECKPOINT_MISSING")
@@ -1833,6 +2071,10 @@ def evaluate_local_turn_exit_from_durable_state(
     expected_head_sha: str,
     expected_master_issue: str | None = None,
     blocked_exit_proof: object | None = None,
+    ready_work_census_proof: object | None = None,
+    current_claim_blob_sha: str | None = None,
+    current_checkpoint_blob_sha: str | None = None,
+    turn_exit_request_comment_id: int | None = None,
 ) -> str:
     """Local/interactive gate with the same durable invariants as trusted remote."""
 
@@ -1850,6 +2092,10 @@ def evaluate_local_turn_exit_from_durable_state(
         expected_head_sha=expected_head_sha,
         expected_master_issue=expected_master_issue,
         blocked_exit_proof=blocked_exit_proof,
+        ready_work_census_proof=ready_work_census_proof,
+        current_claim_blob_sha=current_claim_blob_sha,
+        current_checkpoint_blob_sha=current_checkpoint_blob_sha,
+        turn_exit_request_comment_id=turn_exit_request_comment_id,
     )
 
 
@@ -1868,6 +2114,10 @@ def evaluate_remote_turn_exit_from_durable_state(
     expected_head_sha: str,
     expected_master_issue: str | None = None,
     blocked_exit_proof: object | None = None,
+    ready_work_census_proof: object | None = None,
+    current_claim_blob_sha: str | None = None,
+    current_checkpoint_blob_sha: str | None = None,
+    turn_exit_request_comment_id: int | None = None,
 ) -> str:
     """Trusted remote gate with the same durable invariants as local/interactive."""
 
@@ -1885,6 +2135,10 @@ def evaluate_remote_turn_exit_from_durable_state(
         expected_head_sha=expected_head_sha,
         expected_master_issue=expected_master_issue,
         blocked_exit_proof=blocked_exit_proof,
+        ready_work_census_proof=ready_work_census_proof,
+        current_claim_blob_sha=current_claim_blob_sha,
+        current_checkpoint_blob_sha=current_checkpoint_blob_sha,
+        turn_exit_request_comment_id=turn_exit_request_comment_id,
     )
 
 
@@ -1966,6 +2220,20 @@ def assert_scheduler_end_receipt(
         or end_fingerprint != receipt_fingerprint
     ):
         raise TurnExitBlocked("scheduler END checkpoint fingerprint mismatch")
+
+    end_census_fingerprint = str(
+        end_payload.get("ready_work_census_fingerprint") or ""
+    )
+    receipt_census_fingerprint = str(
+        turn_exit_receipt.get("ready_work_census_fingerprint") or ""
+    )
+    if (
+        not re.fullmatch(r"[0-9a-f]{64}", end_census_fingerprint)
+        or end_census_fingerprint != receipt_census_fingerprint
+    ):
+        raise TurnExitBlocked(
+            "scheduler END READY_WORK_CENSUS fingerprint mismatch"
+        )
 
     end_run_id = _positive_scheduler_end_int(
         "turn-exit run id", end_payload.get("turn_exit_run_id")

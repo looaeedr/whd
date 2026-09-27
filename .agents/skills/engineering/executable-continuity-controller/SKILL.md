@@ -610,3 +610,16 @@ Trusted transport 必須 exact bind `prior_claim_blob_sha + prior_checkpoint_blo
 - retained invariant: Retain canonical stop/continuity machine ownership; no prompt-local second state machine.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## TERMINAL_SCHEDULER_READY_WORK_CENSUS_TURN_EXIT_GATE_V1
+
+`TERMINAL_SUCCESS + closure_state=CLOSED + claim=RELEASED` 只證明目前 child 已完整收尾，**不等於 recurring scheduler lane 已無工作**。當 durable claim 的 logical worker 是 `scheduler.*` 時，normal turn exit 必須再通過 canonical `READY_WORK_CENSUS_V1` consumer gate。
+
+- proof 必須 exact 綁 `scheduler_lane + invocation_identity + claim_blob_sha + checkpoint_blob_sha + checkpoint_fingerprint + current turn-exit request comment id`；任一 drift / replay / 缺欄位都 `TURN_EXIT_BLOCKED`。
+- proof 必須 `exhaustive=true`；每個 candidate 都要有非空 fresh durable evidence 與合法 exclusion classification：`FOREIGN_LIVE_OWNER / DEPENDENCY_BLOCKED / ACTIVE_EXACT_RUN / AUTHORITY_MISMATCH / SHARED_SCOPE_CONFLICT`。
+- `executable_leaf_count > 0` 或任何 `MUST_CLAIM` candidate 固定 `TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_EXISTS`，並攜帶 exact continuation action。
+- 只有 exhaustive zero-leaf proof 可讓 scheduler lane 通過 turn-exit；interactive non-scheduler claim 不被此 lane-only gate 擴張。
+- trusted `.github/workflows/whd-turn-exit-gate.yml` 把 census JSON 綁入 exact request comment，回傳 `ready_work_census_fingerprint`；scheduler END 必須綁同一 fingerprint，因此舊的 pre-census TURN_EXIT receipt 不得再 mint 合法 END。
+- #764 仍是 census producer / prompt+Skill SSoT；本 gate 只做 machine consumer enforcement，不修改或複製 #764 的 scheduler discovery state machine。
+
+Canonical owner：`tools/continuity_controller.py`。Focused regression：`tests/process/test_issue769_terminal_scheduler_census_exit_gate.py`。

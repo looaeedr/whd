@@ -51,6 +51,7 @@ jobs:
               "claim_blob_sha", "checkpoint_blob_sha", "checkpoint_fingerprint",
               "guard_authority_sha",
           }
+          optional = {"ready_work_census_json"}
           values = {}
           for raw in lines[1:]:
               if not raw.strip():
@@ -59,7 +60,7 @@ jobs:
                   raise SystemExit(f"malformed request line: {raw!r}")
               key, value = raw.split("=", 1)
               key, value = key.strip(), value.strip()
-              if key not in required or key in values:
+              if key not in (required | optional) or key in values:
                   raise SystemExit(f"unsupported/duplicate request key: {key}")
               values[key] = value
           missing = sorted(required - set(values))
@@ -74,12 +75,29 @@ jobs:
                   raise SystemExit(f"invalid SHA: {key}")
           if not re.fullmatch(r"[0-9a-f]{64}", values["checkpoint_fingerprint"]):
               raise SystemExit("invalid checkpoint fingerprint")
+          request_payload = {
+              **values,
+              "issue": int(values["issue"]),
+              "request_comment_id": int(os.environ["COMMENT_ID"]),
+          }
+          raw_census = values.get("ready_work_census_json")
+          if raw_census:
+              try:
+                  census = json.loads(raw_census)
+              except json.JSONDecodeError as exc:
+                  raise SystemExit("invalid READY_WORK_CENSUS JSON") from exc
+              if not isinstance(census, dict):
+                  raise SystemExit("READY_WORK_CENSUS proof must be an object")
+              if "turn_exit_request_comment_id" in census:
+                  raise SystemExit(
+                      "READY_WORK_CENSUS request id is assigned by trusted transport"
+                  )
+              if census.get("schema") != "READY_WORK_CENSUS_V1":
+                  raise SystemExit("READY_WORK_CENSUS schema mismatch")
+              census["turn_exit_request_comment_id"] = int(os.environ["COMMENT_ID"])
+              request_payload["ready_work_census_proof"] = census
           Path("/tmp/turn-exit-request.json").write_text(
-              json.dumps({
-                  **values,
-                  "issue": int(values["issue"]),
-                  "request_comment_id": int(os.environ["COMMENT_ID"]),
-              }, sort_keys=True) + "\n",
+              json.dumps(request_payload, sort_keys=True) + "\n",
               encoding="utf-8",
           )
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
@@ -123,6 +141,7 @@ jobs:
               checkpoint_fingerprint,
               evaluate_remote_turn_exit_from_durable_state,
               load_checkpoint,
+              ready_work_census_fingerprint,
           )
           from tools.execution_claim_guard import (
               _parse_remote_guard_receipt_comment,
@@ -316,11 +335,21 @@ jobs:
                   expected_issue=str(request["issue"]),
                   expected_branch=request["branch"],
                   expected_head_sha=request["head_sha"],
+                  ready_work_census_proof=request.get("ready_work_census_proof"),
+                  current_claim_blob_sha=request["claim_blob_sha"],
+                  current_checkpoint_blob_sha=request["checkpoint_blob_sha"],
+                  turn_exit_request_comment_id=request["request_comment_id"],
               )
               reason = result
           except TurnExitBlocked as exc:
               reason = str(exc)
 
+          census_proof = request.get("ready_work_census_proof")
+          census_fingerprint = (
+              ready_work_census_fingerprint(census_proof)
+              if isinstance(census_proof, dict)
+              else None
+          )
           receipt = {
               "schema": "WHD_REMOTE_TURN_EXIT_RESULT_V1",
               "request_comment_id": request["request_comment_id"],
@@ -343,6 +372,7 @@ jobs:
               "required_end_marker": "WHD_SCHEDULER_RUNTIME_END_V1",
               "issued_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
               "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "ready_work_census_fingerprint": census_fingerprint,
           }
           Path("/tmp/turn-exit-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
@@ -418,6 +448,7 @@ jobs:
               "result_comment_id",
               "checkpoint_fingerprint",
               "turn_exit_run_id",
+              "ready_work_census_fingerprint",
           }
           values = {}
           for raw in lines[1:]:
