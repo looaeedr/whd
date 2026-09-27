@@ -4,7 +4,7 @@
   "branch": "hotfix/issue800-github-blob-base64-20260927",
   "head_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "state": "RUNNING",
-  "next_action": "After parent #790 reservation issue790-github-blob-base64-hotfix is ACTIVE with this exact child claim blob, obtain branch-create Guard for hotfix/issue800-github-blob-base64-20260927 at main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690; create/read back branch, run RED for GitHub-style line-wrapped base64, then implement strict ASCII-whitespace normalization before validate=True decoding.",
+  "next_action": "Run Phase6 planned-scope Preflight for Issue #800 exact four artifacts; add a RED regression that feeds GitHub-style line-wrapped/ASCII-whitespace base64 for a valid historical claim blob and proves current main rejects it; then minimally normalize only ASCII whitespace before base64.b64decode(..., validate=True), preserve Git blob SHA verification, and run focused #790 adjacent regressions.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,10 @@
   "evidence": [
     "Parent #790 reserved unique helper issue790-github-blob-base64-hotfix.",
     "Frozen trusted main base d54f0410dee3c70489c8a2bdebb4b3b7c3564690.",
-    "Do not create branch or mutate implementation until parent reservation ACTIVE binds this child claim blob."
+    "Do not create branch or mutate implementation until parent reservation ACTIVE binds this child claim blob.",
+    "Parent reservation ACTIVE for #800 exact child claim.",
+    "Branch-create Guard 36289912939 GREEN; branch readback exact at d54f0410.",
+    "Pair transition Guard 36289955188 GREEN; advance to Phase6/RED."
   ],
   "master_issue": null,
   "chain_state": "NONE",

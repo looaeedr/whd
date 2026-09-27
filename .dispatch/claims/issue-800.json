@@ -11,11 +11,11 @@
   "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "head_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T02:51:00Z",
+  "last_update": "2026-09-27T02:57:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "After parent #790 reservation issue790-github-blob-base64-hotfix is ACTIVE with this exact child claim blob, obtain branch-create Guard for hotfix/issue800-github-blob-base64-20260927 at main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690; create/read back branch, run RED for GitHub-style line-wrapped base64, then implement strict ASCII-whitespace normalization before validate=True decoding.",
+  "next_action": "Run Phase6 planned-scope Preflight for Issue #800 exact four artifacts; add a RED regression that feeds GitHub-style line-wrapped/ASCII-whitespace base64 for a valid historical claim blob and proves current main rejects it; then minimally normalize only ASCII whitespace before base64.b64decode(..., validate=True), preserve Git blob SHA verification, and run focused #790 adjacent regressions.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-800.json",
   "evidence": [
@@ -25,6 +25,20 @@
     "authorized_scope=Issue #800 exact four artifacts only; no product/UI/scheduler cadence/work-slot changes",
     "production_target=main@d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
     "parent_reservation=#790 helper_key issue790-github-blob-base64-hotfix token issue790-github-blob-base64-hotfix-20260927a",
-    "live RED=#769 recovery run 36289438955 fails at historical claim blob base64 decode on real GitHub transport"
-  ]
+    "live RED=#769 recovery run 36289438955 fails at historical claim blob base64 decode on real GitHub transport",
+    "Parent #790 helper reservation ACTIVE and binds child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
+    "Branch-create Guard run 36289912939 GREEN on frozen main base d54f0410dee3c70489c8a2bdebb4b3b7c3564690.",
+    "Work branch created and fresh-read at exact frozen main base.",
+    "Pair transition Guard run 36289955188 GREEN; branch-create/readback consumed."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36289955188,
+    "request_comment_id": 5852117811,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "consume #800 branch-create/readback and advance to RED"
+  }
 }
