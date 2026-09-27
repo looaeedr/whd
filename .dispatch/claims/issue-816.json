@@ -9,9 +9,9 @@
   "work_branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
   "claimed_at": "2026-09-27T05:03:00Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "82b52afd481467debc1abce3b19dbc828c40d3bb",
+  "head_sha": "77175dfe9af61d618b0a2083d335d0eb4550e801",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:22:15Z",
+  "last_update": "2026-09-27T05:35:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "complete #818 main governance mirror with self-manifest fix, prove exact governance parity, then paired PR integration",
+  "next_action": "finish #818 mirror of the 10 cleanup-governance deltas, prove live governance parity, then open paired PRs",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-816.json",
   "evidence": [
@@ -40,17 +40,20 @@
     "Implementation Guard 36296461331 GREEN; commit a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d changes only five authorized governance files.",
     "Focused regression on a637e531: 15 passed / 0 failed across #816 + #692 + #736; governance workflow YAML parse PASS.",
     "Manifest self-scope fix Guard 36296925233 GREEN; X head 82b52afd adds governance_mirror_manifest.json to its own mirror scope.",
-    "Post-fix focused regression: 15 passed / 0 failed; YAML parse PASS."
+    "Post-fix focused regression: 15 passed / 0 failed; YAML parse PASS.",
+    "Two-parent X reconcile 77175dfe: first parent cleanup@22204c8f, second parent prior #816 head 82b52afd; tree preserves current cleanup and overlays only six #816 governance files.",
+    "Post-reconcile focused regression: 15 passed / 0 failed; YAML parse PASS.",
+    "Normal post-commit pair reconcile Guard 36297587728 FAIL because merge commit is not a direct child of prior claim HEAD; recovery route is trusted Claim Activation reactivate."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296994514,
-    "request_comment_id": 5852947949,
-    "result": "GREEN",
-    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "consumed": true,
-    "mutation": "reconcile #816 to manifest-self-scope fix"
+    "run_id": 36297587728,
+    "request_comment_id": 5853035676,
+    "result": "FAIL",
+    "reason": "REMOTE_GUARD_FAILED",
+    "consumed": false,
+    "mutation": "two-parent merge requires reactivate recovery"
   },
   "delegated_work": []
 }

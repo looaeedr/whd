@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "816",
   "branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
-  "head_sha": "82b52afd481467debc1abce3b19dbc828c40d3bb",
+  "head_sha": "77175dfe9af61d618b0a2083d335d0eb4550e801",
   "state": "RUNNING",
-  "next_action": "complete #818 main governance mirror with self-manifest fix, prove exact governance parity, then paired PR integration",
+  "next_action": "finish #818 mirror of the 10 cleanup-governance deltas, prove live governance parity, then open paired PRs",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "GREEN head a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d: 15 passed, YAML parse PASS.",
     "Remote Guard 36296648660 GREEN authorizes atomic durable-pair reconciliation to implementation head.",
     "X canonical head advanced to 82b52afd; 15 passed and manifest self-scope fixed.",
-    "Remote Guard 36296994514 GREEN authorizes pair reconciliation."
+    "Remote Guard 36296994514 GREEN authorizes pair reconciliation.",
+    "X branch reconciled to current cleanup at 77175dfe; focused 15 passed.",
+    "Guard 36297587728 rejected ordinary direct-child reconciliation; trusted reactivate required for two-parent merge head."
   ],
   "master_issue": null,
   "chain_state": "NONE",
