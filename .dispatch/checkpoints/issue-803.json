@@ -3,8 +3,8 @@
   "issue": "803",
   "branch": "governance/issue803-issue800-main-x-parity-20260927",
   "head_sha": "b0eb1df9f325912098bd5a912899f2e50c89f989",
-  "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync and existing PR state. If cleanup remains 5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f and #803 head b0eb1df9f325912098bd5a912899f2e50c89f989 is ahead with exact four-file parity delta, obtain one pr-write Guard and open/update the exact PR to cleanup; verify checks/mergeability, then obtain a fresh merge Guard, merge non-force, read back wrapped-base64 capability on cleanup, and enter terminal closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,13 +22,16 @@
     "Pair reconciliation Guard 36291465138 GREEN; durable pair reconciled to H1.",
     "H2 b0eb1df9f325912098bd5a912899f2e50c89f989 is two-parent sync of #803 H1 with cleanup@5042f9a9.",
     "Effective delta vs current cleanup remains exactly four authorized parity files; post-sync regressions 64 passed / 0 failed.",
-    "Pair reconciliation Guard 36291574895 GREEN; durable pair reconciled to H2."
+    "Pair reconciliation Guard 36291574895 GREEN; durable pair reconciled to H2.",
+    "PR #806 merged to cleanup as 1ca0026408fe0246d14c73479b147882a1f4d2ed.",
+    "Cleanup capability readback proves wrapped-base64 transport hotfix parity.",
+    "Closure-entry Guard 36291761309 GREEN; terminal acceptance reached."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance closure to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #803, then atomically persist CLOSED + RELEASED"
 }
