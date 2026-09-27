@@ -39,13 +39,15 @@
     "Helper #827 closed/released terminal; parent reservation terminalized.",
     "Remote Guard 36306940551 GREEN for #702 reservation/finalization routing write.",
     "Trusted #702 parent-branch identity repair run 36306868118 SUCCESS; durable branch identity rebound non-force to repair/issue702-sealed-finalization-20260927 at sealed H4.",
-    "Fresh child census #696-#701: every child is closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED."
+    "Fresh child census #696-#701: every child is closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED.",
+    "Exit-time A-lane readback: 00/20/40 all enabled after changing only A40 enabled=false -> true; cadence/timing/prompt/title/lane identities unchanged.",
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36307159479."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "obtain bound trusted finalization proof, close/read back Issue #702, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED"
 }
