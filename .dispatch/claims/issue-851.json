@@ -12,11 +12,11 @@
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T13:02:15Z",
+  "last_update": "2026-09-27T13:07:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Run canonical terminal finalization for #851 after fresh audit confirms #856 merged, #857 merged, #854 closed unmerged, both production branches contain accepted governance, and no remaining same-ticket open PR; then close Issue #851 and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
+  "next_action": "Advance the exact #851 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #851, then advance RELEASE_HANDOFF_PENDING and atomically write CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -65,7 +65,9 @@
     "pre-close durable reconciliation Guard run=36320515607 GREEN",
     "temporary #854 cleanup authority handoff Guard run=36320816673 GREEN",
     "superseded PR #854 closed unmerged under pr-write Guard run=36320906200; fresh readback state=closed merged=false closed_at=2026-09-27T13:01:06Z",
-    "primary authority handback Guard run=36320982976 GREEN"
+    "primary authority handback Guard run=36320982976 GREEN",
+    "fresh terminal audit: #856 merged at b427ae38f5a8921c273cc56e8da1b293154534a2; #857 merged at da3839b6e6c7d2f391b172ea753fe6cc13d28931; #854 closed unmerged; same-ticket open PR count=0 on all delegated/owner branches",
+    "terminal checkpoint transition Guard run=36321256735 GREEN"
   ],
   "delegated_branches": [
     "governance/issue851-main-mirror-20260927",
@@ -74,12 +76,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36320982976,
-    "request_comment_id": 5856094821,
-    "result_comment_id": 5856096438,
+    "run_id": 36321256735,
+    "request_comment_id": 5856127636,
+    "result_comment_id": 5856129263,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "hand #851 primary authority back to repair branch after #854 close"
+    "mutation": "enter #851 terminal checkpoint FINALIZATION_PENDING"
   }
 }
