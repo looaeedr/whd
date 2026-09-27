@@ -9,9 +9,9 @@
   "work_branch": "integration/issue780-phase7-current-x-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
+  "head_sha": "150a9ab87b517668d1e0bc8a8ffdecfebbf9453f",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T05:35:23Z",
+  "last_update": "2026-09-27T05:38:18Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,15 +22,14 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36280680113,
-    "job_id": 108511773338,
-    "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
+    "run_id": 36297746632,
+    "job_id": 108559629107,
+    "head_sha": "150a9ab87b517668d1e0bc8a8ffdecfebbf9453f",
     "status": "completed",
     "conclusion": "failure",
-    "artifact_id": 10919045721,
-    "summary": "1 failed / 53 passed; failure is inherited UTF-8 BOM in tests/process/test_issue681_poweroff_gate.py causing ast.parse SyntaxError U+FEFF in tests/test_clean_break_layout.py"
+    "summary": "Recovery run reached lineage hard-check and failed because temporary workflow still required TESTED_SHA^ == MERGE_HEAD after the BOM recovery commit inserted an authorized extra ancestry layer."
   },
-  "next_action": "Under a fresh commit Guard, normalize only the leading UTF-8 BOM in tests/process/test_issue681_poweroff_gate.py with zero logical text change, and touch only the temporary #780 QA workflow as required to produce a new push-triggered exact-head run. Then lock the new run_id/head_sha and continue full integration acceptance.",
+  "next_action": "Under a fresh commit Guard, change only the temporary #780 QA workflow lineage check to validate the authorized recovery ancestry d8406a9946d5e079eeaf2c55ddae1b6692130426 -> 150a9ab87b517668d1e0bc8a8ffdecfebbf9453f above MERGE_HEAD 2c0005a524bc2e2c824608aa94e80bf8f7353966, and assert the cumulative recovery diff is exactly tests/process/test_issue681_poweroff_gate.py plus the temporary workflow. Push to trigger a third exact-head full QA run.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -57,17 +56,21 @@
     "Failure root cause: tests/process/test_issue681_poweroff_gate.py begins with UTF-8 BOM (base64 prefix 77u/); tests/test_clean_break_layout.py uses utf-8 + ast.parse and raises SyntaxError U+FEFF.",
     "Fresh #681 authority readback: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED; no active owner conflict.",
     "Fresh cleanup/2d-3d-sync readback shows the same BOM is present in production; this is inherited baseline hygiene, not Phase7 integration behavior.",
-    "Recovery-state write Guard 36297625673 GREEN, request 5853041376, result comment 5853043126."
+    "Recovery-state write Guard 36297625673 GREEN, request 5853041376, result comment 5853043126.",
+    "BOM recovery commit Guard 36297697777 GREEN; commit 150a9ab87b517668d1e0bc8a8ffdecfebbf9453f pushed non-force.",
+    "Fresh readback at 150a9ab87b517668d1e0bc8a8ffdecfebbf9453f: tests/process/test_issue681_poweroff_gate.py first codepoint is 105 ('i'), so BOM is removed with logical content preserved.",
+    "Recovery QA run 36297746632 / job 108559629107 completed failure at lineage step before functional tests because the one-shot workflow still asserted TESTED_SHA^ == MERGE_HEAD.",
+    "Pair reconciliation Guard 36297764084 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853057816, result 5853059041."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36297625673,
-    "request_comment_id": 5853041376,
-    "result_comment_id": 5853043126,
+    "run_id": 36297764084,
+    "request_comment_id": 5853057816,
+    "result_comment_id": 5853059041,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist exact failed #780 QA observation and enter RECOVERING"
+    "mutation": "reconcile #780 durable pair to BOM recovery head and exact failed recovery QA"
   }
 }
