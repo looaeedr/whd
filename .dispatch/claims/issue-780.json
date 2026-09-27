@@ -9,9 +9,9 @@
   "work_branch": "integration/issue780-phase7-current-x-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "32b6d4a02937b831a14a0255725010bf39676bd3",
+  "head_sha": "03ffd93042a246854365ac78b493e1bf733677a2",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T05:48:52Z",
+  "last_update": "2026-09-27T05:54:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,15 +22,14 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36298069830,
-    "job_id": 108560512368,
-    "head_sha": "32b6d4a02937b831a14a0255725010bf39676bd3",
-    "status": "completed",
-    "conclusion": "failure",
-    "artifact_id": 10924602775,
-    "summary": "Fourth exact-head QA passed workflow parsing, recovery lineage, BOM assertion, and authority-map dual-marker gates. Structural suite then failed 1/54 because tests/process/test_scheduler_no_work_census_contract.py has an inherited UTF-8 BOM; 53 tests passed."
+    "run_id": 36298544059,
+    "job_id": 108561782584,
+    "head_sha": "03ffd93042a246854365ac78b493e1bf733677a2",
+    "status": "in_progress",
+    "conclusion": null,
+    "summary": "Fifth exact-head QA is active. Stable recovery validation and repository-wide Python BOM census are installed; lineage and BOM recovery gate passed and structural suite is running."
   },
-  "next_action": "Under a fresh commit Guard, normalize only the leading UTF-8 BOM in tests/process/test_scheduler_no_work_census_contract.py and update only the temporary .github/workflows/qa-issue780-phase7-integration.yml so recovery validation is ancestry-based, permits only zero-semantic BOM stripping from Python files that had a BOM at MERGE_HEAD, and performs an all-*.py BOM census before structural tests. Push non-force, lock the exact new QA run, and continue full integration acceptance.",
+  "next_action": "Poll only exact QA run 36298544059 / job 108561782584 at head 03ffd93042a246854365ac78b493e1bf733677a2. If the BOM census reports remaining Python BOM files, fresh-read ownership and production presence for the full reported set, then normalize all eligible inherited BOMs in one guarded non-force commit. If QA is GREEN, remove only the temporary QA workflow, drift-audit recovery hygiene, and continue guarded integration into fresh cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -74,17 +73,21 @@
     "Failure path tests/process/test_scheduler_no_work_census_contract.py starts with UTF-8 BOM and causes ast.parse SyntaxError U+FEFF in tests/test_clean_break_layout.py.",
     "Fresh #764 authority readback: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED; no active owner conflict.",
     "Fresh cleanup/2d-3d-sync and #780 branch readback show identical BOM-bearing blob ed96a7bf68039f50ae7f9eb3b47e5eff2ade2d25; inherited production hygiene, not Phase7 behavior.",
-    "Prior scheduler durable write accidentally introduced unsupported phase QA_PENDING. Normal Remote Guard runs 36298216010 and 36298271894 both failed closed without mutation. Trusted Claim Activation reactivate is selected to atomically restore a canonical active phase."
+    "Prior scheduler durable write accidentally introduced unsupported phase QA_PENDING. Normal Remote Guard runs 36298216010 and 36298271894 both failed closed without mutation. Trusted Claim Activation reactivate is selected to atomically restore a canonical active phase.",
+    "Second inherited BOM recovery commit Guard 36298476405 GREEN; commit 03ffd93042a246854365ac78b493e1bf733677a2 pushed non-force.",
+    "Fresh readback: tests/process/test_scheduler_no_work_census_contract.py no longer begins with U+FEFF; temporary QA now validates only pure BOM-removal Python diffs relative to MERGE_HEAD and performs a repository-wide *.py BOM census.",
+    "Exact fifth QA run 36298544059 / job 108561782584 exists at head 03ffd93042a246854365ac78b493e1bf733677a2 and is an active external producer.",
+    "Pair reconciliation Guard 36298560483 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853157601, result 5853159072."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36298088598,
-    "request_comment_id": 5853094800,
-    "result_comment_id": 5853095691,
+    "run_id": 36298560483,
+    "request_comment_id": 5853157601,
+    "result_comment_id": 5853159072,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #780 durable pair to active fourth integration QA head/run"
+    "mutation": "reconcile #780 durable pair to stable BOM-recovery head and fifth exact QA"
   }
 }
