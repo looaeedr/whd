@@ -11,11 +11,12 @@
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:49:30Z",
+  "last_update": "2026-09-27T09:56:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue836-main-mirror-20260927"
+    "governance/issue836-main-mirror-20260927",
+    "governance/issue836-stop-helper-churn-sync-20260927"
   ],
   "remote_qa": {
     "run_id": 36308394162,
@@ -26,7 +27,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Wait for PR #840 synchronize Governance Mirror Hard Gate on sync head 30ea9a19, then merge under strict up-to-date ruleset and fresh-read live main↔cleanup parity.",
+  "next_action": "Create delegated replacement branch governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, then atomically hand primary authority to it and reopen integration as one fresh cleanup PR.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -64,6 +65,8 @@
     "Strict cleanup ruleset requires head up-to-date with production base.",
     "Two-parent sync head 30ea9a19742c77d85c82036edc059b53ac30c3c3 parents e1e648d2... + cleanup 500e6f80....",
     "Sync commit Guard 36310456556 GREEN; changed scope exact six #836 files.",
-    "Post-sync reconciliation Guard 36310566767 GREEN / RECONCILE_ONLY."
+    "Post-sync reconciliation Guard 36310566767 GREEN / RECONCILE_ONLY.",
+    "PR #840 cannot be safely reopened because two current pr-write GREEN receipts conflict on guard_authority_sha (36310687134, 36310687878).",
+    "Replacement branch is same Issue #836 / same accepted head, not a helper Issue; delegated-scope write Guard 36310935420 GREEN."
   ]
 }

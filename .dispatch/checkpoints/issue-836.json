@@ -4,7 +4,7 @@
   "branch": "governance/issue836-stop-helper-churn-20260927",
   "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
   "state": "RUNNING",
-  "next_action": "Wait for PR #840 synchronize Governance Mirror Hard Gate on sync head 30ea9a19, then merge under strict up-to-date ruleset and fresh-read live main↔cleanup parity.",
+  "next_action": "Create delegated replacement branch governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, then atomically hand primary authority to it and reopen integration as one fresh cleanup PR.",
   "run_id": 36308394162,
   "job_id": 108589422963,
   "log_cursor": null,
@@ -40,7 +40,9 @@
     "Primary authority handed back to cleanup under pending Guard 36309997981.",
     "Two-parent strict-base sync head 30ea9a19742c77d85c82036edc059b53ac30c3c3.",
     "Commit Guard 36310456556 GREEN.",
-    "Post-sync reconciliation Guard 36310566767 GREEN."
+    "Post-sync reconciliation Guard 36310566767 GREEN.",
+    "PR #840 current pr-write authority is ambiguous across runs 36310687134 / 36310687878.",
+    "Delegated replacement branch authorization Guard 36310935420 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
