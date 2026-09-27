@@ -9,9 +9,9 @@
   "work_branch": "governance/issue836-stop-helper-churn-20260927",
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
-  "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
+  "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:40:00Z",
+  "last_update": "2026-09-27T09:49:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
@@ -26,7 +26,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Merge PR #840 to cleanup/2d-3d-sync under fresh pr-write authority, then verify live main↔cleanup governed blob parity and enter closure.",
+  "next_action": "Wait for PR #840 synchronize Governance Mirror Hard Gate on sync head 30ea9a19, then merge under strict up-to-date ruleset and fresh-read live main↔cleanup parity.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -60,6 +60,10 @@
     "Primary handback to cleanup consumes pending write Guard 36309997981; no helper Issue opened.",
     "Main mirror PR #841 Governance Mirror Hard Gate GREEN run 36309882670.",
     "PR #841 merged to main as cb80310e2643d1ab9624e90085d4abda6e4d125e.",
-    "Pending write Guard 36309997981 is consumed by this atomic primary-authority handback to cleanup."
+    "Pending write Guard 36309997981 is consumed by this atomic primary-authority handback to cleanup.",
+    "Strict cleanup ruleset requires head up-to-date with production base.",
+    "Two-parent sync head 30ea9a19742c77d85c82036edc059b53ac30c3c3 parents e1e648d2... + cleanup 500e6f80....",
+    "Sync commit Guard 36310456556 GREEN; changed scope exact six #836 files.",
+    "Post-sync reconciliation Guard 36310566767 GREEN / RECONCILE_ONLY."
   ]
 }
