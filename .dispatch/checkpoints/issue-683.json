@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "683",
-  "branch": "governance/issue683-main-mirror-20260927",
-  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
+  "branch": "work/issue683-ha-transport-projection-repair2-20260927",
+  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
   "state": "RUNNING",
-  "next_action": "Update PR #850 reciprocal marker from #848 to replacement cleanup PR #853 under fresh pr-write Guard, then hand primary authority back to work/issue683-ha-transport-projection-repair2-20260927@1c4b976c; require #850 and #853 Governance Mirror Hard Gates GREEN; merge #850 first, then #853; continue #683 finalization.",
+  "next_action": "Wait only on the already-triggered exact Governance Mirror Hard Gates for paired PRs #850 and #853; when both are GREEN, merge #850 to main first under fresh pr-write Guard, then merge #853 to cleanup under fresh pr-write Guard, then continue #683 finalization. Do not recreate pair PRs or rerun while an exact run is active.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -51,7 +51,8 @@
     "Parent-branch sealed-identity repair 36314457052 GREEN; replacement branch created/read back at exact sealed head 6156cf8c.",
     "Second sealed replacement branch authorized because prior replacement merge-sync receipt used cleanup-delta files instead of the required #683 production-parent work-delta files.",
     "Correct merge-sync 1c4b976c accepted under Guard 36314691733; post-sync reconciliation 36314778009 GREEN.",
-    "Replacement cleanup PR #853 exists and points to #850; main PR #850 must now point reciprocally to #853."
+    "Replacement cleanup PR #853 exists and points to #850; main PR #850 must now point reciprocally to #853.",
+    "Pair is now #850↔#853; primary authority returned to replacement cleanup branch."
   ],
   "master_issue": null,
   "chain_state": "NONE",
