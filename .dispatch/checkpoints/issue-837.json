@@ -17,13 +17,15 @@
     "Reciprocal cleanup PR #838 merged to cleanup/2d-3d-sync at 500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
     "Governance Mirror Hard Gate GREEN on both merged branch heads.",
     "Parent #835 live scheduler prompt readback proves all five entrypoints carry the new contract without cadence/timing/lane/enabled drift.",
-    "Closure-entry Guard run 36308791748 GREEN."
+    "Closure-entry Guard run 36308791748 GREEN.",
+    "Closure advance Guard run 36308860752 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain and verify bound Remote Finalization proof, then close/read back Issue #837."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run and verify bound Remote Finalization proof on this exact checkpoint; then close Issue #837 and fresh-read closed/completed.",
+  "operation": null
 }
