@@ -10,6 +10,16 @@ whd_schema: WHD_DOC_META_V1
 
 # 強制接手
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
+
 本 Skill 是使用者明確要求接管既有 foreign execution claim 時的操作入口；它不創造新的 ownership 規則，也不允許跳過既有 hard gate。
 
 ## 0. Canonical chain

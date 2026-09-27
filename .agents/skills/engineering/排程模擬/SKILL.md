@@ -9,6 +9,16 @@ whd_schema: WHD_DOC_META_V1
 
 # 排程模擬
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
+
 這個 Skill 只處理 WHD A/B recurring lane 的**互動式接手與續跑**。它不是第三條 scheduler lane，也不是新的派工 authority。
 
 ## 0. Trigger
