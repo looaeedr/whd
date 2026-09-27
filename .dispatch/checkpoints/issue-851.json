@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "851",
-  "branch": "repair/issue851-sealed-premerge-v2-20260927",
-  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
+  "branch": "governance/issue851-main-mirror-20260927",
+  "head_sha": "da2164184cc25db3a8b4b04ca429d29d8a857150",
   "state": "RUNNING",
-  "next_action": "Create delegated main mirror branch governance/issue851-main-mirror-20260927 under branch-create Guard; build a governance-only bridge against current main, then construct reciprocal cleanup/main PR pair.",
+  "next_action": "Open the governance-only main PR from governance/issue851-main-mirror-20260927@da2164184cc25db3a8b4b04ca429d29d8a857150 to main@cb8a978f98d959727b93d706d097cb040741a041; then hand primary authority back to the cleanup repair branch, open the replacement cleanup PR, add reciprocal WHD-Governance-Mirror-Pair markers, require both Governance Mirror Hard Gate checks GREEN, merge main first, then cleanup.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -25,7 +25,9 @@
     "two-parent head 14902f707009d26c242f81ba386be3293ad2a708",
     "pair reconciliation Guard 36316955484 GREEN",
     "main mirror delegated-branch reservation authorized by write Guard 36317185375",
-    "branch-create pre-reservation fail-closed evidence run 36317140890"
+    "branch-create pre-reservation fail-closed evidence run 36317140890",
+    "main mirror bridge da2164184cc25db3a8b4b04ca429d29d8a857150 contains only governed #851 parity delta relative to main",
+    "primary authority handoff Guard 36317655477 GREEN"
   ],
   "operation": null,
   "master_issue": null,
