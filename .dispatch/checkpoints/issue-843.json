@@ -45,7 +45,8 @@
     "duplicate post-close pr-write receipt 36328360747 consumed by closed PR body update",
     "primary authority handback Guard 36328358537 GREEN",
     "fresh pre-terminal audit passed: #860 merged, #849 closed unmerged, no same-ticket open PR",
-    "terminal checkpoint entered FINALIZATION_PENDING under write Guard 36328519594"
+    "terminal checkpoint entered FINALIZATION_PENDING under write Guard 36328519594",
+    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36328630444"
   ],
   "operation": null,
   "master_issue": null,
@@ -53,6 +54,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance the exact #843 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #843, then atomically RELEASE claim + CLOSED checkpoint with Master #842 successor handoff to #844."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted finalization proof for exact #843 checkpoint, close/readback Issue #843, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED with Master #842 successor #844."
 }
