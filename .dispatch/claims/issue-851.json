@@ -7,7 +7,7 @@
   "entrypoint": "interactive:chat",
   "invocation_identity": "chatgpt.issue851.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue851-recurring-lifecycle-turn-exit-20260927",
+  "work_branch": "repair/issue851-sealed-premerge-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "ebae60d9fa02750c7677fb9b672de5b97f6a41aa",

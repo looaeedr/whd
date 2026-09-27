@@ -1,7 +1,7 @@
 {
   "version": 1,
   "issue": "851",
-  "branch": "governance/issue851-recurring-lifecycle-turn-exit-20260927",
+  "branch": "repair/issue851-sealed-premerge-20260927",
   "head_sha": "ebae60d9fa02750c7677fb9b672de5b97f6a41aa",
   "state": "RUNNING",
   "next_action": "Fresh-read cleanup/2d-3d-sync and main, then obtain exact pr-write Guard and open the #851 integration PR to cleanup/2d-3d-sync from cleaned head ebae60d9fa02750c7677fb9b672de5b97f6a41aa; after merge, mirror accepted governance to main.",
