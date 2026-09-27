@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "844",
   "branch": "governance/issue844-unified-execution-record-20260928",
-  "head_sha": "2761f86abb903d4765d6527aea9242890c7f1d5e",
+  "head_sha": "3758ad07ff788843fabaf29915c596818a5581c9",
   "state": "RUNNING",
   "next_action": "Run broader #844 acceptance against current head 2761f86abb903d4765d6527aea9242890c7f1d5e, then remove the temporary QA workflow, perform drift audit, and continue PR/merge/closure.",
   "run_id": null,
