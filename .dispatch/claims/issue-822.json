@@ -9,21 +9,21 @@
   "work_branch": "governance/issue822-governance-required-check-x-20260927",
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "head_sha": "3f20e36d995f6c81fa21b117b52f08f60c207919",
+  "head_sha": "74d6c43e3ec7af0ddfd0840b5ec39a869748fdd7",
   "phase": "GREEN",
-  "last_update": "2026-09-27T06:45:30Z",
+  "last_update": "2026-09-27T06:48:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
   ],
   "remote_qa": {
-    "run_id": 36300968040,
-    "job_id": 108568405688,
-    "head_sha": "3f20e36d995f6c81fa21b117b52f08f60c207919",
-    "status": "completed",
+    "run_id": 36301161957,
+    "job_id": 108568931757,
+    "head_sha": "74d6c43e3ec7af0ddfd0840b5ec39a869748fdd7",
+    "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "add pull_request edited trigger for reciprocal pair body updates, rerun focused GREEN, then create paired cleanup/main governance PRs",
+  "next_action": "remove temporary qa-issue822 workflow, mirror final governed artifacts to delegated main branch, open reciprocal paired PRs, prove Governance Mirror Hard Gate GREEN on both, then establish required ruleset checks",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -42,17 +42,19 @@
     "QA dependency fix commit 45aa46cd installs pytest in the temporary focused runner.",
     "Valid requirement RED run 36300717366 on 45aa46cd: 3 failed because evaluate_pr_candidate_parity is missing and pull_request workflow lacks merge-time candidate parity step.",
     "Implementation commit 3f20e36d adds merge-time candidate parity + reciprocal paired-PR fallback.",
-    "Focused GREEN run 36300968040 / job 108568405688 SUCCESS."
+    "Focused GREEN run 36300968040 / job 108568405688 SUCCESS.",
+    "Edited-trigger fix 74d6c43e makes reciprocal pair body updates retrigger Governance Mirror Hard Gate.",
+    "Focused GREEN run 36301161957 / job 108568931757 on 74d6c43e."
   ],
   "last_guard": {
     "action": "commit",
     "mode": "remote",
-    "run_id": 36300880799,
-    "request_comment_id": 5853477712,
+    "run_id": 36301124576,
+    "request_comment_id": 5853506054,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "merge-time candidate parity implementation 3f20e36d"
+    "mutation": "edited-trigger fix 74d6c43e"
   },
   "delegated_work": []
 }
