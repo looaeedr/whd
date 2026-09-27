@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T00:41:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-27T05:12:08.767572Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T05:13:30.077441Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Follow active helper #800 (issue790-github-blob-base64-hotfix) through branch-first RED/GREEN, trusted main deployment, cleanup compatible-equivalent parity, and terminal close/release. After #800 terminal proof, terminalize this reservation and retry #769 exact intervening-coord recovery.",
+  "next_action": "Advance #790 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, close/read back Issue #790, then persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -72,18 +72,20 @@
     "Helper #800 fresh-create Claim Activation GREEN at coord 29b462b3b9ea591fbdede3709eb52890c25a5ff6; child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
     "Canonical activate_helper_reservation() returned ACTIVE for helper_key issue790-github-blob-base64-hotfix -> child #800.",
     "Activation parent pair Guard run 36289838719 GREEN.",
-    "Scheduler B takeover: Remote Guard 36296506082 GREEN; prior chat owner classified EXECUTOR_STUCK after 8227s. Exact remote QA run 36286039323 is terminal success and no active delegated child remains."
+    "Scheduler B takeover: Remote Guard 36296506082 GREEN; prior chat owner classified EXECUTOR_STUCK after 8227s. Exact remote QA run 36286039323 is terminal success and no active delegated child remains.",
+    "Fresh #800 terminal proof satisfies the active helper reservation; canonical transition target ACTIVE -> TERMINAL.",
+    "Remote Guard 36296571272 GREEN; #790 acceptance is terminal and closure lifecycle advances to FINALIZATION_PENDING."
   ],
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36296506082,
-    "request_comment_id": 5852880627,
-    "result_comment_id": 5852881975,
+    "run_id": 36296571272,
+    "request_comment_id": 5852889446,
+    "result_comment_id": 5852890815,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "B-lane stale owner takeover CAS for #790"
+    "mutation": "terminalize #800 reservation and enter #790 terminal finalization"
   },
   "delegated_work": [
     {
@@ -99,7 +101,7 @@
     {
       "relationship": "helper",
       "helper_key": "issue790-github-blob-base64-hotfix",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.sol260927.issue790.dep769.1",
       "reservation_token": "issue790-github-blob-base64-hotfix-20260927a",
       "reserved_at": "2026-09-27T02:47:45Z",
