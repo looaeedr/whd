@@ -164,11 +164,16 @@ def _install(
 
     raw = historical_path.read_bytes()
 
+    encoded = base64.b64encode(raw).decode("ascii")
+    github_wrapped = "\n".join(
+        encoded[index : index + 76] for index in range(0, len(encoded), 76)
+    ) + "\n"
+
     def fake_api(path: str):
         if path == f"git/blobs/{historical_blob}":
             return {
                 "encoding": "base64",
-                "content": base64.b64encode(raw).decode("ascii"),
+                "content": github_wrapped,
             }
         raise AssertionError(f"unexpected API path: {path}")
 
@@ -263,6 +268,98 @@ def test_exact_intervening_same_owner_coord_refresh_can_reconcile(
         recovery=recovery,
     )
     _assert_reconcile(guard, current_path, recovery_path, current)
+
+
+def test_historical_claim_blob_accepts_github_ascii_whitespace_wrapping(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    guard = _guard()
+    historical = _claim_payload(last_update="2026-09-27T00:10:00Z", evidence=["old"])
+    current = _claim_payload(
+        last_update="2026-09-27T00:31:00Z",
+        evidence=["old", "remote QA accepted"],
+        remote_qa={"run_id": 999, "status": "completed", "conclusion": "success"},
+        next_action="merge after QA",
+    )
+    historical_path = _write_json(tmp_path / "historical.json", historical)
+    current_path = _write_json(tmp_path / "current.json", current)
+    current_blob = guard._git_blob_sha(current_path)
+    historical_blob = guard._git_blob_sha(historical_path)
+    recovery = _recovery(current_blob, historical_blob)
+    recovery_path = _write_json(tmp_path / "recovery.json", recovery)
+    _install(
+        monkeypatch,
+        guard,
+        current_path=current_path,
+        historical_path=historical_path,
+        recovery=recovery,
+    )
+
+    raw_b64 = base64.b64encode(historical_path.read_bytes()).decode("ascii")
+    wrapped = "\r\n\t ".join(
+        raw_b64[index : index + 24] for index in range(0, len(raw_b64), 24)
+    )
+
+    def fake_api(path: str):
+        if path == f"git/blobs/{historical_blob}":
+            return {"encoding": "base64", "content": wrapped}
+        raise AssertionError(f"unexpected API path: {path}")
+
+    monkeypatch.setattr(guard, "_github_api_json", fake_api)
+    _assert_reconcile(guard, current_path, recovery_path, current)
+
+
+def test_historical_claim_blob_rejects_malformed_base64_after_whitespace_normalization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    guard = _guard()
+    blob_sha = "a" * 40
+    monkeypatch.setattr(
+        guard,
+        "_github_api_json",
+        lambda path: {
+            "encoding": "base64",
+            "content": "eyJhIjogMX0=\r\n\t !",
+        },
+    )
+    with pytest.raises(guard.ExecutionClaimError, match="not valid base64"):
+        guard._historical_claim_payload_from_blob(blob_sha)
+
+
+def test_historical_claim_blob_rejects_non_ascii_whitespace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    guard = _guard()
+    blob_sha = "b" * 40
+    monkeypatch.setattr(
+        guard,
+        "_github_api_json",
+        lambda path: {
+            "encoding": "base64",
+            "content": "e30=\u00a0",
+        },
+    )
+    with pytest.raises(guard.ExecutionClaimError, match="not valid base64"):
+        guard._historical_claim_payload_from_blob(blob_sha)
+
+
+def test_historical_claim_blob_sha_verification_remains_strict_after_wrapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    guard = _guard()
+    expected_blob_sha = "c" * 40
+    raw = json.dumps(_claim_payload(), sort_keys=True).encode("utf-8")
+    encoded = base64.b64encode(raw).decode("ascii")
+    wrapped = "\n ".join(
+        encoded[index : index + 16] for index in range(0, len(encoded), 16)
+    )
+    monkeypatch.setattr(
+        guard,
+        "_github_api_json",
+        lambda path: {"encoding": "base64", "content": wrapped},
+    )
+    with pytest.raises(guard.ExecutionClaimError, match="SHA mismatch"):
+        guard._historical_claim_payload_from_blob(expected_blob_sha)
 
 
 @pytest.mark.parametrize(
