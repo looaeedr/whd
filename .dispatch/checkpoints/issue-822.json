@@ -26,13 +26,16 @@
     "PR #824/#825 merged to cleanup/main; required rulesets strict; production governance parity exact.",
     "Child #823 terminal CLOSED + RELEASED readback complete.",
     "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition.",
-    "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization 36303704206 GREEN / FINALIZATION_PROOF_VALID; artifact 10926940064.",
+    "Issue #822 closed/completed readback at 2026-09-27T07:38:42Z.",
+    "Remote Guard 36303751924 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted bound finalization proof for #822 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #822, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Persist final #822 CLOSED + RELEASED under a fresh exact write Guard, then fresh-read terminal identity."
 }

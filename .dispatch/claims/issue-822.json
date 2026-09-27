@@ -11,7 +11,7 @@
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
   "head_sha": "2a9a1d71b36b8b412abe77cf7488e8c03a669898",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T07:35:52.267391Z",
+  "last_update": "2026-09-27T07:39:15.036511Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "Run trusted bound finalization proof for #822 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #822, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED.",
+  "next_action": "Persist final #822 CLOSED + RELEASED under a fresh exact write Guard, then fresh-read Issue/claim/checkpoint/production terminal identity.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -57,18 +57,29 @@
     "Post-integration live parity GREEN: main push run 36302477154; cleanup rerun 36302430095 job 108572697706.",
     "Child #823 terminal readback: Issue closed/completed; claim=RELEASED blob 104bff05; checkpoint=TERMINAL_SUCCESS/CLOSED blob cecf35ef.",
     "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition.",
-    "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization run 36303704206 GREEN / FINALIZATION_PROOF_VALID; artifact 10926940064 binds checkpoint d923165e and fingerprint 12a8d294.",
+    "Issue #822 fresh readback confirmed closed/completed at 2026-09-27T07:38:42Z.",
+    "Remote Guard 36303751924 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303583559,
-    "request_comment_id": 5853856118,
-    "result_comment_id": 5853857820,
+    "run_id": 36303751924,
+    "request_comment_id": 5853879488,
+    "result_comment_id": 5853880778,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #822 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #822 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   },
-  "delegated_work": []
+  "delegated_work": [],
+  "release_handoff": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "issue_closed_at": "2026-09-27T07:38:42Z",
+    "finalization_run_id": 36303704206,
+    "finalization_artifact_id": 10926940064,
+    "checkpoint_fingerprint": "12a8d294b8ff0f8179d1f7af52182a9c9dd71a7668b9e5f0f0ce2032a6b6a59a"
+  }
 }
