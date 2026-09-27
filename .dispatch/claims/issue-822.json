@@ -9,9 +9,9 @@
   "work_branch": "governance/issue822-governance-required-check-x-20260927",
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "head_sha": "62ced146cc9d9e01015dd33c5f3c96813c6d54cc",
+  "head_sha": "23d6068e8ea662c17b46a0e014d22050b9df8ddd",
   "phase": "RED",
-  "last_update": "2026-09-27T06:34:30Z",
+  "last_update": "2026-09-27T06:38:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "run focused RED QA for test_issue822_governance_required_check.py, then implement candidate parity seam/workflow and rerun GREEN",
+  "next_action": "repair focused QA runner dependency, rerun RED until failure is caused by missing merge-time candidate parity behavior",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -35,17 +35,19 @@
     "prohibited_scope=WHD/product/Phase/CAD propagation to main; unrelated Issues; product implementation",
     "resume_authority=NONE",
     "Branch-create Guard 36300222234 GREEN; exact branch readback at cleanup base 98a11b89.",
-    "RED commit 62ced146 adds test_issue822_governance_required_check.py only."
+    "RED commit 62ced146 adds test_issue822_governance_required_check.py only.",
+    "Temporary QA workflow commit 23d6068e added push-triggered focused runner.",
+    "Run 36300618496 failed only because pytest was not installed; not accepted as requirement RED."
   ],
   "last_guard": {
     "action": "commit",
     "mode": "remote",
-    "run_id": 36300407938,
-    "request_comment_id": 5853418359,
+    "run_id": 36300596714,
+    "request_comment_id": 5853444335,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "RED commit 62ced146"
+    "mutation": "temporary QA workflow commit 23d6068e"
   },
   "delegated_work": []
 }
