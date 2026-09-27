@@ -9,9 +9,9 @@
   "work_branch": "governance/issue818-main-governance-mirror-20260927",
   "claimed_at": "2026-09-27T05:16:45Z",
   "base_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
-  "head_sha": "09af852651e573b7fe4d7a6e8fa727afcf0fac02",
+  "head_sha": "493302cc7c645c4af565baf761c1923936240e85",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:25:30Z",
+  "last_update": "2026-09-27T05:38:35Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -21,7 +21,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "open guarded PR to main, verify governance-only changed paths and PR QA, then merge and close helper after paired X integration",
+  "next_action": "obtain pr-write Guard, open governance-only PR to main, verify PR checks and merge after paired X PR is ready",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-818.json",
   "evidence": [
@@ -37,17 +37,21 @@
     "Manifest self-mirror fix Guard 36297074499 GREEN; main helper head 09af8526 now includes exact source manifest blob.",
     "Main-side focused regression at 09af8526: 15 passed / 0 failed.",
     "Candidate governed snapshot evaluated GREEN: GOVERNANCE_MIRROR_PARITY_PROVEN.",
-    "main..helper diff contains governance-only paths; product path count=0."
+    "main..helper diff contains governance-only paths; product path count=0.",
+    "Governance refresh commit 493302cc copies exactly 10 changed governed blobs from X@77175dfe; no non-governance path.",
+    "Post-refresh focused regression: 15 passed / 0 failed.",
+    "Canonical candidate mirror evaluator: GOVERNANCE_MIRROR_PARITY_PROVEN.",
+    "Post-commit pair reconciliation Guard 36297777722 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36297152775,
-    "request_comment_id": 5852966956,
+    "run_id": 36297777722,
+    "request_comment_id": 5853059159,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #818 to final governance mirror head"
+    "mutation": "reconcile #818 to refreshed main mirror head 493302cc"
   },
   "delegated_work": []
 }
