@@ -11,11 +11,11 @@
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
   "head_sha": "b0eb1df9f325912098bd5a912899f2e50c89f989",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T03:34:10Z",
+  "last_update": "2026-09-27T03:35:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Advance #803 terminal closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh pair Guard; then run bound Remote Finalization proof on the exact checkpoint, close/read back Issue #803, advance RELEASE_HANDOFF_PENDING, and atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint, verify FINALIZATION_PROOF_VALID, close Issue #803, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-803.json",
   "evidence": [
@@ -45,16 +45,17 @@
     "Merge-head pair reconciliation Guard run 36291574895 GREEN.",
     "PR #806 merged non-force to cleanup/2d-3d-sync; merge commit 1ca0026408fe0246d14c73479b147882a1f4d2ed.",
     "Production readback confirms strict ASCII whitespace normalization before base64 validate=True and exact Git blob SHA verification on cleanup.",
-    "Closure-entry Guard run 36291761309 GREEN."
+    "Closure-entry Guard run 36291761309 GREEN.",
+    "Closure advance Guard run 36291816350 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291761309,
-    "request_comment_id": 5852323837,
+    "run_id": 36291816350,
+    "request_comment_id": 5852330108,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #803 terminal finalization after cleanup parity integration"
+    "mutation": "advance #803 closure to ISSUE_CLOSE_PENDING"
   }
 }
