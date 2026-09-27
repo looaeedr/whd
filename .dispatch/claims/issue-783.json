@@ -10,19 +10,20 @@
   "claimed_at": "2026-09-27T00:00:30Z",
   "base_sha": "ae75066c74339f728a676b1c923fd5366331ae76",
   "head_sha": "178644c5212f8ee672cebe84ae04238000e55a33",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T00:07:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T00:21:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "issue774",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create guarded PR to trusted main, merge, verify generic consumed-history filter parity, then retry #774 H1 reconciliation and #776 final release.",
+  "next_action": "Advance canonical closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> close/readback -> CLOSED+RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-783.json",
   "evidence": [
+    "PR #785 merged to trusted main at 646968f0e0945707d4a87b6b57de769c5a474bb1",
+    "main helper commit=178644c5212f8ee672cebe84ae04238000e55a33",
     "52 focused tests passed / 0 failed",
-    "commit Guard run 36281465920 GREEN",
-    "helper commit=178644c5212f8ee672cebe84ae04238000e55a33"
+    "generic consumed-history filter verified live on trusted main"
   ]
 }

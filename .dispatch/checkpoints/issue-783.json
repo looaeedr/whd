@@ -3,22 +3,23 @@
   "issue": "783",
   "branch": "trusted/issue783-consumed-history-filter-main-20260927",
   "head_sha": "178644c5212f8ee672cebe84ae04238000e55a33",
-  "state": "RUNNING",
-  "next_action": "Create guarded PR to trusted main, merge, verify parity, then retry #774/#776.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "52 focused tests passed",
-    "helper commit=178644c5212f8ee672cebe84ae04238000e55a33"
+    "PR #785 merged to trusted main.",
+    "52 focused tests passed.",
+    "Generic consumed-history filter verified live on main."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize proof, close/readback #783, then atomically CLOSED+RELEASED."
 }
