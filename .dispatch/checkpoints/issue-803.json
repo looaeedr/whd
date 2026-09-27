@@ -26,13 +26,16 @@
     "PR #806 merged to cleanup as 1ca0026408fe0246d14c73479b147882a1f4d2ed.",
     "Cleanup capability readback proves wrapped-base64 transport hotfix parity.",
     "Closure-entry Guard 36291761309 GREEN; terminal acceptance reached.",
-    "Closure advance Guard 36291816350 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard 36291816350 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36291895047 / artifact 10922512224: FINALIZATION_PROOF_VALID.",
+    "Issue #803 fresh readback closed/completed.",
+    "Post-close closure Guard 36291987857 GREEN; closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back Issue #803, then atomically persist CLOSED + RELEASED"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED + parent helper handoff"
 }
