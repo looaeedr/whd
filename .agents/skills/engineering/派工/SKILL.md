@@ -702,6 +702,20 @@ foreign scheduler ownership 仍由 `tools/scheduler_runtime_liveness.py` + `tool
 
 禁止循環：parent 看似安靜 → 誤判 stale → takeover → 再開 helper → 無限 helper/takeover。
 
+<!-- ISSUE836_CURRENT_TICKET_REPAIR_FIRST_HARD_GATE_V1 -->
+## ISSUE836_CURRENT_TICKET_REPAIR_FIRST_HARD_GATE_V1 — 原票 repair first，禁止 helper 開→清循環
+
+helper reservation 不再只以 caller 自訂的 `helper_key` 判斷是否重複；canonical machine authority 仍是 `tools/stale_claim_takeover.py`，建立任何新 helper 前必須同時通過 **purpose / split-boundary / stable scope** 三層 gate：
+
+- `CURRENT_TICKET_DEFECT / QA_RETRY / TRANSPORT_RETRY / SAME_SCOPE_REPAIR`：固定 fail closed 為 `CURRENT_TICKET_REPAIR_REQUIRED`。只要修正仍在目前 Issue 的授權檔案與 acceptance boundary 內，必須在**原 Issue／原 branch repair + revalidate**；RED、Guard/CAS race、API transport failure、workflow retry 都不能成為另開 repair/helper Issue 的理由。
+- `PER_FIX_GOVERNANCE_MIRROR`：固定 fail closed 為 `PARITY_SAME_OWNER_OR_BATCH_REQUIRED`。雙向治理同步屬 originating governance owner 的 completion transaction，或交給已存在的 batch parity owner；不得一個 fix 再開一張 mirror helper。
+- 真正可拆 helper 只接受 `DISTINCT_AUTHORITY_BOUNDARY / DISTINCT_EXTERNAL_BLOCKER / NON_SHAREABLE_ACCEPTANCE_BOUNDARY`，而且 reservation 必須 durable 保存 `WHD_HELPER_SPLIT_EXCEPTION_V1`：`kind` 與 purpose exact match、`current_ticket_can_own=false`、可反讀的 `evidence_ref`、以及穩定 `scope_key`。
+- `scope_key` 是 semantic scope identity；即使換一個新的 `helper_key`，同一 active scope 仍回 `ACTIVE_HELPER_SCOPE_DUPLICATE` 並 reuse 現有 reservation，不能靠改名繞過 dedupe。
+- 新 RESERVING helper 在 activate/create 前必須反讀上述 split proof；缺 purpose、proof、scope 或 identity mismatch 一律 fail closed。既有已 ACTIVE 的歷史交易只允許沿原 leaf 收尾，不要求倒寫新的 scope metadata，也不得以此為由重開替代 helper。
+- parent/helper 遇到 coordination CAS 競爭時，流程固定是 fresh-read → 同票 CAS retry；不得把 `not a fast forward`、claim activation race、reconcile-only 轉成新 Issue。
+
+這條 gate 是 `NO_PER_FIX_HELPER_DEFAULT` 的 machine enforcement，也是對「換 helper_key 就能一直開一直清」漏洞的永久封口。
+
 <!-- ISSUE646_DISPATCH_WRITEBACK_V1 -->
 ## ISSUE646_DISPATCH_WRITEBACK_V1
 
