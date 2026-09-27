@@ -3,24 +3,27 @@
   "issue": "837",
   "branch": "governance/issue837-scheduler-no-work-main-mirror-20260927",
   "head_sha": "2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489",
-  "state": "RUNNING",
-  "next_action": "Create main PR from #837 mirror head and cleanup PR from #835 closing head, add reciprocal WHD-Governance-Mirror-Pair markers, require both Governance Mirror Hard Gate checks GREEN, then merge/readback both branches.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent relation is owned by #835 delegated_work; nonterminal checkpoint carries no master-chain metadata.",
-    "Fresh main base=9fdb592777828a5f843220e5cc8c82709974cda8",
-    "Main mirror commit 2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489 exact two-Skill delta.",
-    "Post-commit pair reconciliation Guard 36308144762 GREEN."
+    "Parent #835 authorized exact main governance mirror helper.",
+    "Main mirror head 2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489 contains the accepted two-Skill SAME_LANE_NONTERMINAL_WORK_V1 delta.",
+    "PR #839 merged to main at 85aef9c41be3629410c4345ed3d8aa66aa21f214.",
+    "Reciprocal cleanup PR #838 merged to cleanup/2d-3d-sync at 500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
+    "Governance Mirror Hard Gate GREEN on both merged branch heads.",
+    "Parent #835 live scheduler prompt readback proves all five entrypoints carry the new contract without cadence/timing/lane/enabled drift.",
+    "Closure-entry Guard run 36308791748 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain and verify bound Remote Finalization proof, then close/read back Issue #837."
 }

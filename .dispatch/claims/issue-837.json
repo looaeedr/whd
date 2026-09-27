@@ -10,30 +10,32 @@
   "claimed_at": "2026-09-27T08:55:30Z",
   "base_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
   "head_sha": "2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T09:03:40Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T09:16:10Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create main PR from #837 mirror head and cleanup PR from #835 closing head, add reciprocal WHD-Governance-Mirror-Pair markers, require both Governance Mirror Hard Gate checks GREEN, then merge/readback both branches.",
+  "next_action": "Advance #837 terminal closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof, close/read back Issue #837, then atomically RELEASED+CLOSED and hand helper completion back to #835.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-837.json",
   "evidence": [
-    "Parent #835 durable delegated_work pointer ACTIVE with helper_key issue835-main-governance-mirror.",
-    "Purpose is exact governance mirror only; no product paths or scheduler host mutation.",
-    "Fresh main base=9fdb592777828a5f843220e5cc8c82709974cda8",
-    "Main mirror commit 2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489 changes exactly 排程模擬/SKILL.md and 寫排程/SKILL.md.",
-    "Post-commit pair reconciliation Guard 36308144762 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Parent #835 delegated helper issue835-main-governance-mirror is ACTIVE and authorized.",
+    "Main mirror work head 2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489 changes exactly the two scheduler governance Skills.",
+    "PR #839 merged to main as 85aef9c41be3629410c4345ed3d8aa66aa21f214.",
+    "PR #838 merged parent #835 cleanup closing head to cleanup/2d-3d-sync as 500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
+    "Governance Mirror Hard Gate completed success on both merged heads.",
+    "Live A 00/20/40 and B B15/B45 prompt sync/readback completed under parent #835; all five preserved cadence/timing/lane/enabled invariants.",
+    "Closure-entry Guard run 36308791748 GREEN for exact #837 claim/checkpoint pair."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36308144762,
-    "request_comment_id": 5854467088,
+    "run_id": 36308791748,
+    "request_comment_id": 5854557215,
     "result": "GREEN",
-    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #837 main mirror commit"
+    "mutation": "terminal acceptance entry FINALIZATION_PENDING"
   }
 }
