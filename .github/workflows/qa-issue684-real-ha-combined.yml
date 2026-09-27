@@ -1,0 +1,41 @@
+name: "WHD｜#684｜Real HA Combined Acceptance"
+
+on:
+  push:
+    branches:
+      - work/issue684-real-ha-integration-combined-20260927
+    paths:
+      - tests/process/test_issue684_real_ha_combined_acceptance.py
+      - tools/whd_poweroff_end_to_end_acceptance.py
+      - tools/workstation_poweroff_gate.py
+      - tools/whd_poweroff_ha_bridge.py
+      - .github/workflows/qa-issue684-real-ha-combined.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue684-real-ha-combined
+  cancel-in-progress: false
+
+jobs:
+  r11:
+    name: "R11 end-to-end HA/Node-RED acceptance boundary"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact #684 head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install pytest
+
+      - name: Run #684 R11 behavioral acceptance
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q --tb=short tests/process/test_issue684_real_ha_combined_acceptance.py
