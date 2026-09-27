@@ -1,0 +1,27 @@
+name: "WHD｜#702 A7｜崩潰故障注入矩陣驗收"
+run-name: "WHD｜#702 A7｜RED-STOP-22 崩潰故障注入矩陣"
+
+on:
+  push:
+    branches:
+      - work/issue702-crash-fault-combined-acceptance-20260927
+
+permissions:
+  contents: read
+
+jobs:
+  fault-matrix:
+    name: "RED-STOP-22 故障注入矩陣"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "取出 #702 工作分支"
+        uses: actions/checkout@v4
+      - name: "設定 Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "安裝 focused 測試依賴"
+        run: python -m pip install pytest
+      - name: "執行 RED-STOP-22 故障注入驗收"
+        run: python -m pytest -q tests/process/test_issue702_crash_fault_injection_matrix.py
