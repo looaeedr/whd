@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "809",
   "branch": "parity/issue809-remote-guard-contract-cleanup-20260927",
-  "head_sha": "ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e",
+  "head_sha": "9ba204c0303a67d8be6e2569f6ee52f8824e2ac5",
   "state": "RUNNING",
-  "next_action": "Repair only tests/process/test_issue540_main_remote_guard_contract.py so it asserts the current generic no-changed_file contract for claim-takeover/claim-handoff instead of the stale literal 'claim-takeover must not carry changed_file'. Then rerun focused test on #809 branch and exact main baseline, run post-write Preflight, verify effective delta remains exactly one test file, and continue PR/closure.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and compare live target against #809 GREEN head 9ba204c0303a67d8be6e2569f6ee52f8824e2ac5. If effective delta remains exactly tests/process/test_issue540_main_remote_guard_contract.py and no target overlap exists, obtain pr-write Guard, open/update the exact PR to cleanup, verify mergeability/checks, obtain a fresh merge Guard, merge non-force, read back focused GREEN, then enter terminal closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,7 +20,10 @@
     "H1 test blob equals accepted main c9e15498b085cf2017da121078fc793da32a58b2.",
     "Pair reconciliation Guard 36294321478 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "H1 focused result 1 failed / 5 passed; exact main reproduces the same stale literal assertion failure.",
-    "Workflow blobs main/cleanup are identical; #809 remains a one-test-file contract repair."
+    "Workflow blobs main/cleanup are identical; #809 remains a one-test-file contract repair.",
+    "H2 9ba204c0303a67d8be6e2569f6ee52f8824e2ac5 is the final one-file #809 contract-test repair.",
+    "Focused #540 test 6/6; post-write Preflight GREEN; production workflow unchanged.",
+    "Local canonical pair-write Guard GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

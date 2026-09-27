@@ -9,9 +9,9 @@
   "work_branch": "parity/issue809-remote-guard-contract-cleanup-20260927",
   "claimed_at": "2026-09-27T04:20:00Z",
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
-  "head_sha": "ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e",
-  "phase": "RED",
-  "last_update": "2026-09-27T04:29:00Z",
+  "head_sha": "9ba204c0303a67d8be6e2569f6ee52f8824e2ac5",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T04:38:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "worker.slot.1",
   "slot_binding": {
@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Repair only tests/process/test_issue540_main_remote_guard_contract.py so it asserts the current generic no-changed_file contract for claim-takeover/claim-handoff instead of the stale literal 'claim-takeover must not carry changed_file'. Then rerun focused test on #809 branch and exact main baseline, run post-write Preflight, verify effective delta remains exactly one test file, and continue PR/closure.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and compare live target against #809 GREEN head 9ba204c0303a67d8be6e2569f6ee52f8824e2ac5. If effective delta remains exactly tests/process/test_issue540_main_remote_guard_contract.py and no target overlap exists, obtain pr-write Guard, open/update the exact PR to cleanup, verify mergeability/checks, obtain a fresh merge Guard, merge non-force, read back focused GREEN, then enter terminal closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-809.json",
   "evidence": [
@@ -47,7 +47,13 @@
     "H1 focused test: 1 failed / 5 passed because the copied main test asserts stale literal 'claim-takeover must not carry changed_file'.",
     "Exact trusted main@5684094f reproduces the same 1 failed / 5 passed, proving shared test-contract debt rather than cleanup-only regression.",
     "Main and cleanup Remote Guard workflow blobs are identical a9e217c13e7a1d45cbb1101f43bc2f79b57f621d and implement generic action interpolation for no-changed_file enforcement.",
-    "Trusted-main local execution_claim_guard GREEN authorizes durable RED classification write."
+    "Trusted-main local execution_claim_guard GREEN authorizes durable RED classification write.",
+    "H2 9ba204c0303a67d8be6e2569f6ee52f8824e2ac5 repairs only the stale generic changed_file assertion in tests/process/test_issue540_main_remote_guard_contract.py.",
+    "Focused #540 contract test on H2: 6 passed / 0 failed.",
+    "Phase6 post-write Preflight GREEN for all 5 required Skills and 4 required references.",
+    "Effective delta vs frozen cleanup is exactly one authorized test file.",
+    "Production Remote Guard workflow blob remains unchanged at a9e217c13e7a1d45cbb1101f43bc2f79b57f621d.",
+    "Trusted-main local execution_claim_guard GREEN authorizes H1->H2 durable pair write after remote reconcile-only path rejected local-Guard provenance."
   ],
   "last_guard": {
     "action": "write",
@@ -55,6 +61,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #809 shared-test RED classification and repair next_action"
+    "mutation": "reconcile #809 H1->H2 and persist focused GREEN"
   }
 }
