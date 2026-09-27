@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "700",
   "branch": "work/issue700-claim-activation-crash-reentry-20260927",
-  "head_sha": "292e5dbf5d234fb9724606604d5954ddfb31bc51",
+  "head_sha": "46b3219e2a36408b9a77c6dd1031b4135150c19e",
   "state": "RUNNING",
-  "next_action": "Remove temporary qa-issue700-claim-activation-crash-reentry.yml under Guard, reconcile the cleanup head, review final diff, then create guarded integration PR into cleanup/2d-3d-sync. Issue closure remains owned by #702.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync against closing head 46b3219e2a36408b9a77c6dd1031b4135150c19e, audit effective #700 diff/conflicts, preserve current X drift, then obtain guarded pr-write and integrate non-force. Issue closure remains owned by #702.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -27,7 +27,9 @@
     "H4 pair reconciliation Guard run 36285229339 GREEN.",
     "Broader GREEN run 36285375097: focused 8 passed + compatibility 44 passed.",
     "Broader GREEN artifact 10920760774.",
-    "H5 pair reconciliation Guard run 36285413852 GREEN."
+    "H5 pair reconciliation Guard run 36285413852 GREEN.",
+    "Closing head H6=46b3219e2a36408b9a77c6dd1031b4135150c19e removes the temporary #700 QA workflow only.",
+    "Post-cleanup pair reconciliation Guard 36285560972 GREEN and consumed."
   ],
   "master_issue": null,
   "chain_state": "NONE",
