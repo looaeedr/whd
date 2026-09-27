@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "787",
   "branch": "governance/issue787-turn-exit-hard-gate-20260927",
-  "head_sha": "54fef8c6cbceda4ecd20b3708e517b8beb909ce3",
+  "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
   "state": "RUNNING",
-  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back the work branch from cleanup/2d-3d-sync@54fef8c6cbceda4ecd20b3708e517b8beb909ce3, then run changed-file Phase6 Preflight and RED behavior tests before implementation.",
+  "next_action": "Create/read back the PR from governance/issue787-turn-exit-hard-gate-20260927@144b52525c2321a218094cd9dfc026a732893e53 to cleanup/2d-3d-sync, obtain required PR/integration authority, merge/read back the accepted head, then run terminal finalization/Issue closure/claim release.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,10 @@
     "User-authorized scope is only the #787 turn-exit hard-gate correction.",
     "Progress/status/CHECKPOINT observations are explicitly non-terminal and must preserve continuation.",
     "RED evidence: BLOCKED currently bypasses TURN_EXIT_BLOCKING_STATES without machine-verifiable blocker authority.",
-    "Fresh X base: 54fef8c6cbceda4ecd20b3708e517b8beb909ce3."
+    "Fresh X base: 54fef8c6cbceda4ecd20b3708e517b8beb909ce3.",
+    "Remote Guard reconciliation GREEN run=36284287250.",
+    "Commit/push readback H1=144b52525c2321a218094cd9dfc026a732893e53.",
+    "Focused acceptance 69 PASS; full process suite introduced failures=0 (842 PASS, same 3 baseline RED)."
   ],
   "master_issue": null,
   "chain_state": "NONE",

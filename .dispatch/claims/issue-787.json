@@ -9,14 +9,14 @@
   "work_branch": "governance/issue787-turn-exit-hard-gate-20260927",
   "claimed_at": "2026-09-27T00:30:49Z",
   "base_sha": "54fef8c6cbceda4ecd20b3708e517b8beb909ce3",
-  "head_sha": "54fef8c6cbceda4ecd20b3708e517b8beb909ce3",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T00:30:49Z",
+  "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T01:11:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back the work branch from cleanup/2d-3d-sync@54fef8c6cbceda4ecd20b3708e517b8beb909ce3, then run changed-file Phase6 Preflight and RED behavior tests before implementation.",
+  "next_action": "Create/read back the PR from governance/issue787-turn-exit-hard-gate-20260927@144b52525c2321a218094cd9dfc026a732893e53 to cleanup/2d-3d-sync, obtain required PR/integration authority, merge/read back the accepted head, then run terminal finalization/Issue closure/claim release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-787.json",
   "evidence": [
@@ -25,6 +25,10 @@
     "Execution intent: EXECUTE_TICKET for GitHub Issue #787 only; no unrelated Issue discovery or scope expansion.",
     "Production target: cleanup/2d-3d-sync.",
     "Fresh production base readback: 54fef8c6cbceda4ecd20b3708e517b8beb909ce3.",
-    "Current RED: canonical assert_turn_exitable accepts arbitrary BLOCKED checkpoint and can mint a path-level turn-exit proof without structured blocker authority."
+    "Current RED: canonical assert_turn_exitable accepts arbitrary BLOCKED checkpoint and can mint a path-level turn-exit proof without structured blocker authority.",
+    "POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1 consumed Remote Guard run 36284287250 for H0->H1 direct-child reconciliation.",
+    "Work branch fresh readback H1=144b52525c2321a218094cd9dfc026a732893e53; production cleanup/2d-3d-sync remains H0=54fef8c6cbceda4ecd20b3708e517b8beb909ce3.",
+    "Focused #787 behavior/contract regression: 69 passed / 0 failed.",
+    "Full tests/process after change: 842 passed / 3 failed; all 3 failures reproduce on pure baseline 54fef8c6 and are pre-existing debt, so introduced failures=0."
   ]
 }
