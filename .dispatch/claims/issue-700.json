@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-27T01:00:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "46b3219e2a36408b9a77c6dd1031b4135150c19e",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T06:20:15Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T06:24:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "A5 accepted and integrated into cleanup/2d-3d-sync; Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, and canonical close/readback for #700. Do not independently close #700.",
+  "next_action": "Advance canonical #700 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then continue #702 amendment-chain closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-700.json",
   "evidence": [
@@ -46,17 +46,21 @@
     "PR #795 merged non-force into cleanup/2d-3d-sync with merge commit 24fa64f372eb7328c6ae521a067ac3a84982c18a.",
     "Production fresh-read cleanup/2d-3d-sync@24fa64f372eb7328c6ae521a067ac3a84982c18a.",
     "Integration durable writeback authorized by Remote Guard run 36287198435.",
-    "A5 acceptance is complete; Issue closure/Combined Acceptance/AI Library writeback remain owned by #702."
+    "A5 acceptance is complete; Issue closure/Combined Acceptance/AI Library writeback remain owned by #702.",
+    "Scheduler A stale takeover run 36299774795 GREEN: EXECUTOR_STUCK, stale_seconds=15573, live head exact 46b3219e2a36408b9a77c6dd1031b4135150c19e.",
+    "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #700 closing head.",
+    "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
+    "Terminal transition authorized by Remote Guard run 36299992795."
   ],
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36299774795,
-    "request_comment_id": 5853321338,
+    "run_id": 36299992795,
+    "request_comment_id": 5853352336,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "CAS #700 owner to scheduler A for #702 chain closure"
+    "mutation": "enter #700 terminal finalization under #702 chain closure"
   },
   "acceptance": {
     "red_ids": [
@@ -69,9 +73,13 @@
     "broader_run_id": 36285375097,
     "pr_number": 795,
     "production_merge_commit_sha": "24fa64f372eb7328c6ae521a067ac3a84982c18a",
-    "production_readback_sha": "24fa64f372eb7328c6ae521a067ac3a84982c18a",
+    "production_readback_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
     "closure_owner_issue": 702,
-    "state": "ACCEPTED_PENDING_CHAIN_CLOSURE"
+    "state": "ACCEPTED",
+    "production_contains_closing_head": true,
+    "amendment_combined_run_id": 36296278571,
+    "amendment_combined_job_id": 108555610910,
+    "amendment_combined_summary": "100 passed / 0 failed"
   },
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",

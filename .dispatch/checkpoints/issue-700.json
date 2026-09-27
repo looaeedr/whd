@@ -3,8 +3,8 @@
   "issue": "700",
   "branch": "work/issue700-claim-activation-crash-reentry-20260927",
   "head_sha": "46b3219e2a36408b9a77c6dd1031b4135150c19e",
-  "state": "RUNNING",
-  "next_action": "A5 accepted and integrated into cleanup/2d-3d-sync; Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, and canonical close/readback for #700. Do not independently close #700.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -32,13 +32,17 @@
     "Post-cleanup pair reconciliation Guard 36285560972 GREEN and consumed.",
     "PR #795 merged non-force into cleanup/2d-3d-sync@24fa64f372eb7328c6ae521a067ac3a84982c18a.",
     "Integration durable writeback Guard 36287198435 GREEN and consumed.",
-    "A5 accepted pending amendment-chain closure by #702."
+    "A5 accepted pending amendment-chain closure by #702.",
+    "Scheduler A stale takeover 36299774795: exact owner transfer after EXECUTOR_STUCK classification.",
+    "Production remains descendant of #700 closing head.",
+    "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
+    "Terminal transition authorized by Remote Guard 36299992795."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "702",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "699",
+  "chain_next_action": "After #700 CLOSED+RELEASED, fresh-read #699 and continue canonical amendment-chain closure under #702.",
+  "chain_reason": "Issue #702 is amendment chain closure owner; #699/#697/#696 remain required children after #700.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #700, then atomically persist CLOSED+RELEASED and continue #702 amendment-chain closure."
 }
