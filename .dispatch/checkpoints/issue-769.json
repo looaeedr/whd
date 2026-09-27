@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "769",
   "branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
-  "head_sha": "e1439174b21b69842c0282d1dd5646f36a098826",
+  "head_sha": "ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76",
   "state": "RUNNING",
-  "next_action": "Run post-merge #769 focused+adjacent+full process acceptance on e1439174b21b69842c0282d1dd5646f36a098826, fresh-read production drift, then obtain pr-write Guard/create or update PR to cleanup/2d-3d-sync and lock remote acceptance to terminal.",
+  "next_action": "Run post-sync #769 focused+adjacent+full process acceptance on ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76; fresh-read cleanup/2d-3d-sync after acceptance; then obtain pr-write Guard/create or update the exact PR and lock remote acceptance to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -27,7 +27,10 @@
     "Merge-sync Guard run 36281478520 GREEN.",
     "Two-parent sync e1439174b21b69842c0282d1dd5646f36a098826; effective delta vs production exactly 6 #769 files; one pitfall conflict resolved production-first + #769 writeback.",
     "Merged-tree focused/adjacent acceptance: 58 passed / 0 failed.",
-    "Merge-head pair reconciliation Guard run 36281591334 GREEN."
+    "Merge-head pair reconciliation Guard run 36281591334 GREEN.",
+    "Fresh durable reconstruction confirmed live work head ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76.",
+    "Effective delta vs production 54fef8c6 remains exactly six #769 authorized files.",
+    "Guard 36282352176 GREEN for merge-sync; pair reconciliation Guard 36282402561 GREEN for ac1b45a0."
   ],
   "master_issue": null,
   "chain_state": "NONE",

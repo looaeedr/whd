@@ -9,13 +9,13 @@
   "work_branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "claimed_at": "2026-09-26T22:33:00Z",
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
-  "head_sha": "e1439174b21b69842c0282d1dd5646f36a098826",
+  "head_sha": "ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76",
   "phase": "GREEN",
-  "last_update": "2026-09-27T00:09:00Z",
+  "last_update": "2026-09-27T00:25:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run post-merge #769 focused+adjacent+full process acceptance on e1439174b21b69842c0282d1dd5646f36a098826, fresh-read production drift, then obtain pr-write Guard/create or update PR to cleanup/2d-3d-sync and lock remote acceptance to terminal.",
+  "next_action": "Run post-sync #769 focused+adjacent+full process acceptance on ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76; fresh-read cleanup/2d-3d-sync after acceptance; then obtain pr-write Guard/create or update the exact PR and lock remote acceptance to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -43,16 +43,20 @@
     "Production overlap touched executable-continuity Skill + continuity pitfall only; merge-tree found one content conflict in continuity pitfall.",
     "Merge-sync Guard run 36281478520 GREEN on exact six-file #769 work delta.",
     "Two-parent sync commit e1439174b21b69842c0282d1dd5646f36a098826 retained production pitfall content plus #769 section; merged-tree focused/adjacent 58 passed.",
-    "Merge-head pair reconciliation Guard run 36281591334 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Merge-head pair reconciliation Guard run 36281591334 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Fresh durable reconstruction found live work head ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76 ahead of durable e1439174.",
+    "ac1b45a0 is ahead of current production 54fef8c6 with effective #769 delta still exactly the six authorized files.",
+    "Merge-sync Guard run 36282352176 GREEN on e1439174 against production 54fef8c6.",
+    "Merge-head pair reconciliation Guard run 36282402561 GREEN / REMOTE_GUARD_RECONCILE_ONLY for live head ac1b45a0."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36281591334,
-    "request_comment_id": 5851146883,
+    "run_id": 36282402561,
+    "request_comment_id": 5851245408,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #769 merge head to e1439174"
+    "mutation": "reconcile #769 durable pair to ac1b45a0"
   }
 }
