@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T07:06:30Z",
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
   "head_sha": "548726f455c976375957037e4014b59080cbbc06",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T08:06:49Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T08:29:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "11 passed / 0 failed in 0.08s"
   },
-  "next_action": "Use deployed trusted Claim Activation transition terminal-chain-metadata-repair to repair exact #696 malformed terminal checkpoint without changing its claim, issue, branch, head, terminal state, acceptance, or closure lifecycle. Then resume canonical #696 closure through CLOSED+RELEASED; only after #696 terminal proof may #827 itself finalize.",
+  "next_action": "Advance canonical #827 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then terminalize parent #702 helper reservation and resume #702 finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-827.json",
   "evidence": [
@@ -52,17 +52,22 @@
     "Main-side PR #831 Governance Mirror Hard Gate 36304372184 GREEN on head 548726f455c976375957037e4014b59080cbbc06.",
     "Cleanup mirror helper #829 terminal proof: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED.",
     "Helper #829 terminal claim blob 0156649ae727843e74c37dff99f7a9258b0c6035; terminal checkpoint blob 33577f3123eb74ef7cc5db720ae24d885983feb1.",
-    "Parent helper reservation terminalization authorized by Remote Guard 36305168732 GREEN."
+    "Parent helper reservation terminalization authorized by Remote Guard 36305168732 GREEN.",
+    "Trusted terminal-chain-metadata repair deployed to main via PR #831 merge 4bf93cf2073811bc86e1c0de33ef52eeca6249cd.",
+    "Main/cleanup governed repair blobs are byte-identical for Claim Activation, continuity controller, and #827 regression test.",
+    "Trusted #696 terminal-chain-metadata-repair Claim Activation run 36305852970 GREEN; #696 is now closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED.",
+    "Cleanup mirror helper #829 is closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED.",
+    "Terminal transition authorized by pending GREEN Remote Guard run 36306242824."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36305168732,
-    "request_comment_id": 5854069339,
+    "run_id": 36306242824,
+    "request_comment_id": 5854199002,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "terminalize #829 helper reservation and route #827 to trusted #696 repair"
+    "mutation": "enter #827 terminal finalization after #696 repair proof"
   },
   "delegated_work": [
     {
@@ -75,5 +80,20 @@
       "child_issue": 829,
       "child_claim_blob_sha": "0156649ae727843e74c37dff99f7a9258b0c6035"
     }
-  ]
+  ],
+  "acceptance": {
+    "state": "ACCEPTED",
+    "focused_head_sha": "765584fc104b0d328b566ca803fa91be9087ac21",
+    "closing_head_sha": "548726f455c976375957037e4014b59080cbbc06",
+    "focused_run_id": 36302668061,
+    "focused_job_id": 108573144488,
+    "focused_summary": "11 passed / 0 failed in 0.08s",
+    "pr_number": 831,
+    "main_merge_commit_sha": "4bf93cf2073811bc86e1c0de33ef52eeca6249cd",
+    "cleanup_mirror_helper_issue": 829,
+    "cleanup_mirror_helper_terminal": true,
+    "repaired_child_issue": 696,
+    "repaired_child_terminal": true,
+    "return_owner_issue": 702
+  }
 }

@@ -3,8 +3,8 @@
   "issue": "827",
   "branch": "governance/issue827-terminal-chain-metadata-repair-main-20260927",
   "head_sha": "548726f455c976375957037e4014b59080cbbc06",
-  "state": "RUNNING",
-  "next_action": "Use deployed trusted Claim Activation transition terminal-chain-metadata-repair to repair exact #696 malformed terminal checkpoint without changing its claim, issue, branch, head, terminal state, acceptance, or closure lifecycle. Then resume canonical #696 closure through CLOSED+RELEASED; only after #696 terminal proof may #827 itself finalize.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36302668061,
   "job_id": 108573144488,
   "log_cursor": null,
@@ -28,13 +28,17 @@
     "Post-merge reconciliation Guard 36304384841 GREEN.",
     "Main PR #831 hard gate 36304372184 GREEN.",
     "Helper #829 CLOSED+RELEASED terminal proof verified.",
-    "Parent reservation terminalization Guard 36305168732 GREEN."
+    "Parent reservation terminalization Guard 36305168732 GREEN.",
+    "Focused #827 QA 36302668061 / 108573144488: 11 passed / 0 failed in 0.08s.",
+    "PR #831 merged repair to trusted main; governed repair blobs are mirrored to cleanup.",
+    "#696 repaired and terminal closed/released; #829 mirror helper terminal closed/released.",
+    "Terminal transition authorized by Remote Guard 36306242824."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #827, then atomically persist CLOSED+RELEASED and terminalize parent #702 helper reservation."
 }
