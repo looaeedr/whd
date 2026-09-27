@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "790",
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
-  "head_sha": "a5633875e9390b8bd50011efc106aa53ba31f971",
+  "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "state": "RUNNING",
-  "next_action": "Obtain one fresh commit Guard for deleting only .github/workflows/qa-issue790-intervening-claim-blob.yml from head a5633875e9390b8bd50011efc106aa53ba31f971; commit/push the deletion, reconcile the exact claim+checkpoint pair to the closing head, prove tested-head→closing-head delta is only that workflow deletion, then refresh PR #791 and continue trusted-main merge + cleanup parity.",
+  "next_action": "Fresh-read main and PR #791 at closing head 51a04df8d483f4af64fa9bf6218cd718a251f80d; require main still at the PR base and PR clean/mergeable, then obtain one fresh pr-write Guard, merge PR #791 to trusted main, fresh-read merged main identity, and begin required main→cleanup/2d-3d-sync parity before consuming #790 on #769.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -23,7 +23,10 @@
     "Pair reconciliation Guard 36284634540 GREEN.",
     "H3 a5633875e9390b8bd50011efc106aa53ba31f971 is the exact one-shot remote acceptance head.",
     "Run 36286039323 / job 108526890282 terminal success on H3: 60 passed / 0 failed.",
-    "Pair reconciliation Guard 36286068847 GREEN; durable pair reconciled to H3 and remote acceptance persisted."
+    "Pair reconciliation Guard 36286068847 GREEN; durable pair reconciled to H3 and remote acceptance persisted.",
+    "Closing head 51a04df8 removes only the temporary #790 QA workflow from tested head a5633875.",
+    "tested-head→closing-head drift audit PASS: exactly one removed temporary workflow, no production/test/Skill/AI drift.",
+    "Pair reconciliation Guard 36286210620 GREEN; durable pair reconciled to closing H4."
   ],
   "master_issue": null,
   "chain_state": "NONE",
