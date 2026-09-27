@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T04:50:00Z",
+  "last_update": "2026-09-27T04:58:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Create exactly one #702 integration-resolution helper from current cleanup/2d-3d-sync, using sealed accepted #702 H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32 as source authority. Do not reconcile or merge unauthorized branch head c59d73e245d2b4732c738a01bd062eb32763a05a or PR #811. The helper must non-force integrate the accepted #702 effective delta into current production, then return terminal proof so #702 can continue child closure and finalization.",
+  "next_action": "Helper #815 is ACTIVE. Do not mutate sealed #702 lineage, reconcile c59d73e245d2b4732c738a01bd062eb32763a05a, or merge PR #811. Follow #815 through fresh-X integration, GREEN acceptance, non-force production merge, terminal close/release; then terminalize this reservation and resume #702 child canonical closure/finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -195,12 +195,12 @@
     {
       "relationship": "helper",
       "helper_key": "issue702-integration-resolution",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue702-integration-resolution-20260927a",
       "reserved_at": "2026-09-27T04:50:00Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 815,
+      "child_claim_blob_sha": "935388d50d037b545ce4b7f7dc0f53a1d5ebb112"
     }
   ]
 }
