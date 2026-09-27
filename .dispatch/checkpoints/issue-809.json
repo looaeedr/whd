@@ -4,7 +4,7 @@
   "branch": "parity/issue809-remote-guard-contract-cleanup-20260927",
   "head_sha": "ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e",
   "state": "RUNNING",
-  "next_action": "Run python -m pytest tests/process/test_issue540_main_remote_guard_contract.py -q against H1 ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e; verify effective delta vs frozen cleanup base is exactly the one authorized test file; then advance to PR Guard.",
+  "next_action": "Repair only tests/process/test_issue540_main_remote_guard_contract.py so it asserts the current generic no-changed_file contract for claim-takeover/claim-handoff instead of the stale literal 'claim-takeover must not carry changed_file'. Then rerun focused test on #809 branch and exact main baseline, run post-write Preflight, verify effective delta remains exactly one test file, and continue PR/closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,9 @@
     "Phase6 planned-scope Preflight GREEN in commit Guard run 36294258055.",
     "H1 ddfffbefb2cbdfa48d4ff9a9195715f5d49ebe0e is the exact one-file #809 parity implementation.",
     "H1 test blob equals accepted main c9e15498b085cf2017da121078fc793da32a58b2.",
-    "Pair reconciliation Guard 36294321478 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Pair reconciliation Guard 36294321478 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "H1 focused result 1 failed / 5 passed; exact main reproduces the same stale literal assertion failure.",
+    "Workflow blobs main/cleanup are identical; #809 remains a one-test-file contract repair."
   ],
   "master_issue": null,
   "chain_state": "NONE",
