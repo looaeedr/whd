@@ -27,13 +27,14 @@
     "Legal stop condition is scope boundary: Issue #702 is the explicit closure/Combined/AI Library owner and /工作3 699 is EXECUTE_TICKET only.",
     "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #699 closing head.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
-    "Terminal transition authorized by Remote Guard run 36300537511."
+    "Terminal transition authorized by Remote Guard run 36300537511.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36300621062."
   ],
   "master_issue": "702",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "697",
   "chain_next_action": "After #699 CLOSED+RELEASED, fresh-read #697 and continue canonical amendment-chain closure under #702.",
   "chain_reason": "Issue #702 is amendment chain closure owner; #697/#696 remain required children after #699.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #699, then atomically persist CLOSED+RELEASED and continue #697 under #702."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint; if valid, close/read back Issue #699, advance RELEASE_HANDOFF_PENDING, then atomically persist CLOSED+RELEASED and continue #697."
 }
