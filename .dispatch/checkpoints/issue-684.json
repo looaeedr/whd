@@ -4,7 +4,7 @@
   "branch": "work/issue684-real-ha-integration-combined-20260927",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "state": "RUNNING",
-  "next_action": "Create replacement delegated mirror branch governance/issue684-main-mirror-repair-20260927 at exact accepted claim head a4fcfaf6af265b747f4bc838ff72df8a37025688; then create a two-parent governed-only mirror commit with current main as first parent and accepted #684 head as second parent, changing only 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11; open reciprocal main/cleanup PRs, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
+  "next_action": "Open reciprocal main/cleanup PRs for #684 governance mirror at governance/issue684-main-mirror-repair-20260927@8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
   "run_id": 36329242279,
   "job_id": 108647885044,
   "log_cursor": null,
@@ -33,7 +33,8 @@
     "Initial mirror branch-create Guard 36329762732 failed closed on missing delegated branch authority; no branch effect.",
     "Guard 36329852752 authorizes durable delegated-branch reservation before retry.",
     "Initial mirror branch exists at wrong live head main@f65ee095...; commit Guard 36330109287 failed closed; old branch retained as evidence.",
-    "Guard 36330218548 authorizes replacement delegated branch reservation."
+    "Guard 36330218548 authorizes replacement delegated branch reservation.",
+    "Fresh reconciliation: replacement mirror branch HEAD 8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2 is the intended governed-only mirror commit; relative current main@f65ee095790ff6ec2e52ad7d158cecdc43886715 content diff is exactly 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11. The apparent 30-commit ancestry versus accepted head is second-parent graph ancestry, not branch contamination. Commit effect observed; replay prohibited."
   ],
   "master_issue": null,
   "chain_state": "NONE",
