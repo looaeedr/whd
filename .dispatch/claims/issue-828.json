@@ -1,0 +1,32 @@
+{
+  "issue": 828,
+  "issue_url": "https://github.com/looaeedr/whd/issues/828",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.schedulerA.828.20260927.parent-branch-repair",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue828-parent-branch-sealed-identity-repair-main-20260927",
+  "claimed_at": "2026-09-27T07:30:00Z",
+  "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
+  "head_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T07:30:00Z",
+  "production_target": "main",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "next_action": "Obtain branch-create Guard for governance/issue828-parent-branch-sealed-identity-repair-main-20260927 at main@123fcd139762a7e36eaf110a8ce19a18cc177fb5; then add RED contract tests for non-force sealed-identity replacement-branch repair before implementation.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-828.json",
+  "evidence": [
+    "authorization_source=user explicit 補 after #702 parent-branch identity capability blocker",
+    "execution_intent=EXECUTE_TICKET",
+    "purpose=add one canonical non-force parent-branch sealed-identity repair transaction for #702",
+    "authorized_scope=Issue #828 governance implementation, tests, trusted Remote Guard transport, main↔cleanup mirror, and exact #702 repair",
+    "prohibited_scope=no acceptance of #702 live drift c59d73e245d2b4732c738a01bd062eb32763a05a; no force-reset/delete of drifted branch; no unrelated ticket closure",
+    "resume_authority=parent #702 explicit helper authority",
+    "#702 durable claim/checkpoint both remain sealed at f8a3397551c5975dafd842e8dcd28c1d4edcca32.",
+    "#702 original work branch live c59d73e245d2b4732c738a01bd062eb32763a05a is 9 commits ahead of sealed H4 with merge-base exactly sealed H4.",
+    "Repair design uses a fresh replacement branch at sealed H4 and exact coordination CAS to rebind branch identity while preserving sealed HEAD."
+  ]
+}
