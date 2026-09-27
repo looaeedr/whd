@@ -11,7 +11,7 @@
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T09:24:35Z",
+  "last_update": "2026-09-27T09:27:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Run bound Remote Finalization on exact ISSUE_CLOSE_PENDING checkpoint, then perform the canonical Issue-state transition/readback and atomic RELEASED+CLOSED transaction.",
+  "next_action": "Atomically persist #835 claim RELEASED + checkpoint CLOSED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36309252267,
-    "request_comment_id": 5854620756,
+    "run_id": 36309392744,
+    "request_comment_id": 5854637999,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #835 FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #835 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -55,7 +55,10 @@
     "Live scheduler prompt operation readback comment 5854541313 classified EFFECT_OBSERVED; all five entrypoints marker PASS and cadence/timing/lane/enabled invariants preserved.",
     "Helper #837 closed/completed + final claim RELEASED blob 7648a92feff14b97833f69155f29608e53f95bdf; parent reservation marked TERMINAL.",
     "Closure-entry Guard run 36309191971 GREEN; all #835 acceptance requirements complete.",
-    "Closure advance Guard run 36309252267 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36309252267 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36309351692 GREEN; FINALIZATION_PROOF_VALID; artifact 10928506080; checkpoint fingerprint dddf7187714df4dd332c8cc2d3e3960071e6244769fb887f5492e3a035faf33b.",
+    "Issue #835 closed/completed and fresh-read at 2026-09-27T09:26:33Z.",
+    "Release-handoff Guard run 36309392744 GREEN."
   ],
   "delegated_work": [
     {
