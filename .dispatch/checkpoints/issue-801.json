@@ -27,13 +27,14 @@
     "Post-cleanup pair reconciliation Guard 36291027925 GREEN and consumed.",
     "PR #804 merged non-force to cleanup/2d-3d-sync@5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f.",
     "Production readback confirms accepted #701 integration lineage is live.",
-    "Terminal transition authorized by Remote Guard 36291204157."
+    "Terminal transition authorized by Remote Guard 36291204157.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36291342913."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #801 and fresh-read closed/completed before any checkpoint mutation."
 }
