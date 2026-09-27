@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "780",
   "branch": "landing/issue780-current-production-20260927",
-  "head_sha": "8e16aae98a5d838721f480284121f05f6591e51e",
+  "head_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
   "state": "RUNNING",
-  "next_action": "Run branch-create Guard for landing/issue780-current-production-20260927 at exact production head 8e16aae98a5d838721f480284121f05f6591e51e. After GREEN, create the branch at that exact SHA. Then under a commit Guard create one two-parent landing merge commit with first parent=current production and second parent=exact #780 closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77; use the current production tree with only the two proven leading-BOM removals applied. Verify parents/tree/diff, then run focused landing acceptance before PR/merge.",
+  "next_action": "Run branch-create Guard for landing/issue780-current-production-20260927 at exact production head 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf. After GREEN, create the branch at that exact SHA. Then under a commit Guard create one two-parent landing merge commit with first parent=98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf and second parent=exact #780 closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77; keep the current production tree authoritative except the two proven leading-BOM removals. Verify exact parents/tree/diff, then run focused landing acceptance before PR/merge.",
   "run_id": 36298544059,
   "job_id": 108561782584,
   "log_cursor": null,
@@ -50,7 +50,9 @@
     "Fresh target X 8e16aae98a5d838721f480284121f05f6591e51e already contains both original current-X ancestry and sealed Phase7 ancestry, plus both authority-map markers, but still has both BOMs.",
     "Guard 36298838187 GREEN authorizes durable reconciliation to the exact cleanup closing head before PR/mergeability discovery.",
     "PR #821 canonical mergeability readback is dirty/mergeable=false at production base 8e16aae98a5d838721f480284121f05f6591e51e.",
-    "Landing strategy selected: move active durable authority to fresh production-rooted landing branch, then preserve #780 ancestry with a two-parent merge commit while keeping production tree authoritative except two accepted BOM removals."
+    "Landing strategy selected: move active durable authority to fresh production-rooted landing branch, then preserve #780 ancestry with a two-parent merge commit while keeping production tree authoritative except two accepted BOM removals.",
+    "Production advanced linearly by #816 governance-mirror work before landing branch creation; exact current production is 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
+    "Landing branch is absent; checkpoint advances to current production head before any branch-create mutation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
