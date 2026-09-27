@@ -3,10 +3,10 @@
   "issue": "822",
   "branch": "governance/issue822-governance-required-check-x-20260927",
   "head_sha": "2a9a1d71b36b8b412abe77cf7488e8c03a669898",
-  "state": "RUNNING",
-  "next_action": "consume PR #824 synchronize Hard Gate on head 2a9a1d71; retrigger PR #825 to pair against final #824 head; require both fresh GREEN, then merge paired PRs and prove post-push parity",
-  "run_id": 36301161957,
-  "job_id": 108568931757,
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": null,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -22,13 +22,16 @@
     "Implementation head 3f20e36d focused GREEN run 36300968040.",
     "Edited-trigger head 74d6c43e focused GREEN run 36301161957.",
     "Closing head e7782403 differs from tested GREEN head 74d6c43e only by removal of temporary QA workflow.",
-    "Canonical merge-sync head 2a9a1d71 reconciled after Guard 36302261117."
+    "Canonical merge-sync head 2a9a1d71 reconciled after Guard 36302261117.",
+    "PR #824/#825 merged to cleanup/main; required rulesets strict; production governance parity exact.",
+    "Child #823 terminal CLOSED + RELEASED readback complete.",
+    "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING with fresh Guard; mint trusted bound finalization proof for #822; close/read back Issue; then persist RELEASE_HANDOFF_PENDING -> CLOSED + RELEASED."
 }

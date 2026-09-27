@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
   "head_sha": "2a9a1d71b36b8b412abe77cf7488e8c03a669898",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T07:10:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T07:33:57.058385Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "consume PR #824 synchronize Hard Gate on head 2a9a1d71; retrigger PR #825 to pair against final #824 head; require both fresh GREEN, then merge paired PRs and prove post-push parity",
+  "next_action": "Advance #822 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING with fresh Guard; mint trusted finalization proof; close/read back Issue #822; then RELEASE_HANDOFF_PENDING -> CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -48,17 +48,26 @@
     "Temporary QA cleanup commit e7782403 removes only qa-issue822 workflow after tested head 74d6c43e.",
     "Merge-sync Guard 36302210726 GREEN against cleanup production parent 33e6a60b.",
     "Merge-sync commit 2a9a1d71 has parents e7782403 + cleanup@33e6a60b and preserves exact four #822 governance blobs over current cleanup tree.",
-    "Post-merge reconciliation Guard 36302261117 GREEN."
+    "Post-merge reconciliation Guard 36302261117 GREEN.",
+    "PR #824 merged governance gate to cleanup/2d-3d-sync as 497c5e145ab2506b9c4272392a15940164057066.",
+    "Paired PR #825 merged exact governance mirror to main as 123fcd139762a7e36eaf110a8ce19a18cc177fb5.",
+    "Final paired PR hard gates GREEN: #824 run 36302245484; #825 run 36302364028.",
+    "Both active branch rulesets fresh-read strict required Governance Mirror Hard Gate, GitHub Actions integration_id=15368, no bypass.",
+    "Production four-artifact governance blob parity exact across main@123fcd13 and cleanup@497c5e14.",
+    "Post-integration live parity GREEN: main push run 36302477154; cleanup rerun 36302430095 job 108572697706.",
+    "Child #823 terminal readback: Issue closed/completed; claim=RELEASED blob 104bff05; checkpoint=TERMINAL_SUCCESS/CLOSED blob cecf35ef.",
+    "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36302261117,
-    "request_comment_id": 5853662231,
+    "run_id": 36303484248,
+    "request_comment_id": 5853842397,
+    "result_comment_id": 5853844107,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "merge-sync reconciliation to 2a9a1d71"
+    "mutation": "enter #822 TERMINAL_SUCCESS + FINALIZATION_PENDING"
   },
   "delegated_work": []
 }
