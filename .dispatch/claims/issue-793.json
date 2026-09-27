@@ -9,14 +9,23 @@
   "work_branch": "governance/issue793-takeover-parser-regression-20260927",
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "head_sha": "e4d4d5a06779db0517648684dcfcbabf0f6a4b0f",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T01:52:00Z",
+  "head_sha": "403fee62c6124746e13efcce4434c7205cdc1719",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T01:55:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Narrow the temporary #793 QA transport to the exact #722 parser contract + literal-backslash rejection, rerun on H3, then delete the temporary QA workflow after GREEN and integrate the net parser+regression fix to current main.",
+  "remote_qa": {
+    "run_id": 36286933222,
+    "job_id": 108529335000,
+    "head_sha": "403fee62c6124746e13efcce4434c7205cdc1719",
+    "status": "completed",
+    "conclusion": "success",
+    "passed": 3,
+    "failed": 0,
+    "marker": "ISSUE793_TAKEOVER_PARSER_GREEN=PASS"
+  },
+  "next_action": "Delete temporary QA workflow under an exact commit Guard, reconcile closing head, then fresh-compare against current main; if net parser+regression delta is clean, obtain pr-write Guard and merge non-force to main.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -34,16 +43,18 @@
     "Pair reconciliation Guard run 36286636790 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Durable regression test commit e4d4d5a06779db0517648684dcfcbabf0f6a4b0f strengthens #722 to reject any literal-backslash newline parser.",
     "QA run 36286784431 on H3: 8 passed / 1 unrelated issue540 exact-string assertion failure; strengthened #722 regression passed.",
-    "H2->H3 pair reconciliation Guard run 36286797481 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "H2->H3 pair reconciliation Guard run 36286797481 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Exact #793 QA run 36286933222 on H4 completed success: 3 passed / 0 failed; ISSUE793_TAKEOVER_PARSER_GREEN=PASS.",
+    "H3->H4 pair reconciliation Guard run 36286951620 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36286797481,
-    "request_comment_id": 5851758387,
+    "run_id": 36286951620,
+    "request_comment_id": 5851778046,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #793 H2->H3 durable regression"
+    "mutation": "reconcile #793 H3->H4 exact GREEN head"
   }
 }
