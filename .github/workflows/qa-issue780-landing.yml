@@ -49,8 +49,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${QA_HEAD}"
-          test "$(git rev-parse HEAD^)" = "${LANDING_MERGE}"
+          git merge-base --is-ancestor "${LANDING_MERGE}" HEAD
           test "$(git show -s --format=%P "${LANDING_MERGE}")" = "${PROD_HEAD} ${CLOSING_HEAD}"
+          qa_only="$(git diff --name-only "${LANDING_MERGE}..HEAD" | LC_ALL=C sort)"
+          test "${qa_only}" = ".github/workflows/qa-issue780-landing.yml"
           actual="$(git diff --name-only "${PROD_HEAD}..${LANDING_MERGE}" | LC_ALL=C sort)"
           expected="$(printf '%s\n' 'tests/process/test_issue681_poweroff_gate.py' 'tests/process/test_scheduler_no_work_census_contract.py' | LC_ALL=C sort)"
           test "${actual}" = "${expected}"
@@ -86,6 +88,25 @@ jobs:
           grep -q 'ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1' "$f"
           grep -q 'WHD_PHASE7_OWNERSHIP_WRITEBACK_V1' "$f"
           echo "ISSUE780_GOVERNANCE_SURFACE_GREEN=1"
+
+      - name: "Census remaining Python UTF-8 BOM files"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          bom = bytes.fromhex("efbbbf")
+          remaining = sorted(
+              str(path)
+              for path in Path(".").rglob("*.py")
+              if path.is_file() and path.read_bytes().startswith(bom)
+          )
+          print("ISSUE780_LANDING_BOM_CENSUS=" + ",".join(remaining))
+          if remaining:
+              raise SystemExit("remaining Python UTF-8 BOM files detected")
+          print("ISSUE780_LANDING_BOM_CENSUS_GREEN=1")
+          PY
 
       - name: "Run focused landing regression"
         shell: bash
