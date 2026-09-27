@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "794",
+  "branch": "governance/issue794-issue790-main-x-parity-20260927",
+  "head_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
+  "state": "RUNNING",
+  "next_action": "After parent #790 reservation issue790-main-x-parity is activated with this exact child claim blob, obtain one branch-create Guard for governance/issue794-issue790-main-x-parity-20260927 at cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e; create/read back the branch, then port #790 as the bounded compatible-equivalent six-artifact parity set.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #790 parity reservation exists and helper creation machine gate passed.",
+    "Frozen cleanup base c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e.",
+    "Do not begin branch/implementation before parent reservation ACTIVE binds this child claim blob."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
