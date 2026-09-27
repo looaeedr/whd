@@ -9,9 +9,9 @@
   "work_branch": "integration/issue780-phase7-current-x-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "2c0005a524bc2e2c824608aa94e80bf8f7353966",
+  "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-26T23:45:20Z",
+  "last_update": "2026-09-26T23:51:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -21,8 +21,14 @@
   "sealed_chain_head": "ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6",
   "existing_pr": 777,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run integration acceptance QA on exact two-parent merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966, including Phase7 combined ownership/structural tests, manufacturing/collision/DXF/persistence and Xvfb GUI coverage plus authority-map dual-marker readback; then remove temporary QA workflow, drift-audit closing head, pr-write into current cleanup non-force, production readback and helper closure.",
+  "remote_qa": {
+    "run_id": null,
+    "job_id": null,
+    "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
+    "status": "RUN_NOT_CREATED",
+    "conclusion": null
+  },
+  "next_action": "Fresh-read the exact GitHub Actions run for .github/workflows/qa-issue780-phase7-integration.yml at d8406a9946d5e079eeaf2c55ddae1b6692130426. If no run exists, classify RUN_NOT_CREATED and establish a real remote QA producer on this same QA head under a fresh Remote Guard; if active, lock exact run_id + head_sha and poll to terminal. On GREEN, remove only the temporary QA workflow, drift-audit closing head against 2c0005a524bc2e2c824608aa94e80bf8f7353966, then guarded PR/non-force integration to current cleanup/2d-3d-sync, production readback, helper closure/release, and return terminal proof to #626.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -41,6 +47,19 @@
     "Non-force integration merge commit 2c0005a524bc2e2c824608aa94e80bf8f7353966 pushed with exact parents 5a29aacdc39805e6950362a8880f1513318389f0 and ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6.",
     "Merge commit contains exactly the 54 guarded paths; sole conflict resolution preserved ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 together.",
     "Post-merge reconciliation Guard 36280386889 failed closed because canonical merge reconciliation interprets the non-claim parent as production parent; this production-root integration branch shape is not representable by that evaluator.",
-    "Canonical Claim Activation reactivate is used to resume the exact live authorized merge head without rewriting history."
-  ]
+    "Canonical Claim Activation reactivate is used to resume the exact live authorized merge head without rewriting history.",
+    "One-shot QA workflow commit d8406a9946d5e079eeaf2c55ddae1b6692130426 is a direct child of integration merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966 and changes only .github/workflows/qa-issue780-phase7-integration.yml.",
+    "Commit Guard 36280631312 GREEN authorized the one-shot QA workflow commit.",
+    "Pair reconciliation Guard 36280702611 GREEN / REMOTE_GUARD_RECONCILE_ONLY for live QA head d8406a9946d5e079eeaf2c55ddae1b6692130426."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36280702611,
+    "request_comment_id": 5851039690,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "reconcile #780 durable pair to one-shot QA workflow head d8406a9946d5e079eeaf2c55ddae1b6692130426"
+  }
 }

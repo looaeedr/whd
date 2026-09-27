@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "780",
   "branch": "integration/issue780-phase7-current-x-20260927",
-  "head_sha": "2c0005a524bc2e2c824608aa94e80bf8f7353966",
+  "head_sha": "d8406a9946d5e079eeaf2c55ddae1b6692130426",
   "state": "RUNNING",
-  "next_action": "Run integration acceptance QA on exact two-parent merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966, including Phase7 combined ownership/structural tests, manufacturing/collision/DXF/persistence and Xvfb GUI coverage plus authority-map dual-marker readback; then remove temporary QA workflow, drift-audit closing head, pr-write into current cleanup non-force, production readback and helper closure.",
+  "next_action": "Fresh-read the exact GitHub Actions run for .github/workflows/qa-issue780-phase7-integration.yml at d8406a9946d5e079eeaf2c55ddae1b6692130426. If no run exists, classify RUN_NOT_CREATED and establish a real remote QA producer on this same QA head under a fresh Remote Guard; if active, lock exact run_id + head_sha and poll to terminal. On GREEN, remove only the temporary QA workflow, drift-audit closing head against 2c0005a524bc2e2c824608aa94e80bf8f7353966, then guarded PR/non-force integration to current cleanup/2d-3d-sync, production readback, helper closure/release, and return terminal proof to #626.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -21,7 +21,10 @@
     "Same-head reactivate rotates claim/checkpoint identity before fresh merge Guard.",
     "Authorized two-parent integration merge is live at 2c0005a524bc2e2c824608aa94e80bf8f7353966.",
     "Exact parents: current X 5a29aacdc39805e6950362a8880f1513318389f0 + sealed Phase7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6.",
-    "Reconciliation evaluator cannot encode production-root integration merge shape; reactivate resumes durable pair at exact live head."
+    "Reconciliation evaluator cannot encode production-root integration merge shape; reactivate resumes durable pair at exact live head.",
+    "One-shot QA workflow commit d8406a9946d5e079eeaf2c55ddae1b6692130426 is the exact direct child of integration merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966.",
+    "Commit Guard 36280631312 GREEN authorized only .github/workflows/qa-issue780-phase7-integration.yml.",
+    "Pair reconciliation Guard 36280702611 GREEN / REMOTE_GUARD_RECONCILE_ONLY; durable head advances to the live QA workflow commit before run discovery."
   ],
   "master_issue": null,
   "chain_state": "NONE",
