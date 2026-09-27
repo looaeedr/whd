@@ -36,13 +36,14 @@
     "Scheduler A stale takeover 36299774795: exact owner transfer after EXECUTOR_STUCK classification.",
     "Production remains descendant of #700 closing head.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
-    "Terminal transition authorized by Remote Guard 36299992795."
+    "Terminal transition authorized by Remote Guard 36299992795.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36300114705."
   ],
   "master_issue": "702",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "699",
   "chain_next_action": "After #700 CLOSED+RELEASED, fresh-read #699 and continue canonical amendment-chain closure under #702.",
   "chain_reason": "Issue #702 is amendment chain closure owner; #699/#697/#696 remain required children after #700.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #700, then atomically persist CLOSED+RELEASED and continue #702 amendment-chain closure."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint; if valid, close/read back Issue #700, advance RELEASE_HANDOFF_PENDING, then atomically persist CLOSED+RELEASED and continue #699."
 }
