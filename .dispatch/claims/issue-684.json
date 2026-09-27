@@ -6,7 +6,7 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.684.20260927.wi6",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue684-main-mirror-repair-20260927",
+  "work_branch": "repair/issue684-main-mirror-sealed-20260928",
   "claimed_at": "2026-09-27T14:59:30Z",
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "issue": "684",
-  "branch": "governance/issue684-main-mirror-repair-20260927",
+  "branch": "repair/issue684-main-mirror-sealed-20260928",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "state": "RUNNING",
   "next_action": "Open reciprocal main/cleanup PRs for #684 governance mirror at governance/issue684-main-mirror-repair-20260927@8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
