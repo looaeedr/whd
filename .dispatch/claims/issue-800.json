@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T02:51:00Z",
   "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-27T05:04:50.077235Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T05:08:27.324841Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Retry #769 exact intervening-coord postcommit reconciliation now that trusted main and cleanup both contain the wrapped-base64 fix; use the existing #769 owner-authored recovery evidence for ac1b45a0 -> 4ad9246a, reconcile durable HEAD, record remote QA success, remove temporary QA workflow under a fresh Guard, then continue #769 drift audit/merge/closure.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-800.json",
   "evidence": [
@@ -49,18 +49,20 @@
     "Helper #803 terminal proof fresh-read: Issue closed/completed; claim RELEASED / next_action=null; checkpoint TERMINAL_SUCCESS/CLOSED; head b0eb1df9 has no active workflow run.",
     "Canonical terminalize_helper_reservation() returned TERMINAL for helper_key issue800-main-x-parity with exact owner/token.",
     "Parent pair-write Guard run 36292345018 GREEN; #803 reservation terminalization and #769 recovery handoff authorized.",
-    "Scheduler B takeover: Remote Guard 36296147525 GREEN; canonical stale evaluator classified prior chat owner EXECUTOR_STUCK after 4719s, with no active exact run or active delegated work."
+    "Scheduler B takeover: Remote Guard 36296147525 GREEN; canonical stale evaluator classified prior chat owner EXECUTOR_STUCK after 4719s, with no active exact run or active delegated work.",
+    "Fresh process-state classification: Issue #800 closed/completed + closure_state=CLOSED + non-RELEASED claim => CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM.",
+    "Checkpoint terminalization persisted first under Guard 36296323480; claim release is the second recoverable CAS of the same bounded pair repair."
   ],
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36296147525,
-    "request_comment_id": 5852835042,
-    "result_comment_id": 5852836827,
+    "run_id": 36296323480,
+    "request_comment_id": 5852858784,
+    "result_comment_id": 5852860000,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "B-lane stale owner takeover CAS for #800"
+    "mutation": "process-state repair: checkpoint TERMINAL_SUCCESS/CLOSED then claim RELEASED"
   },
   "delegated_work": [
     {
@@ -95,5 +97,12 @@
     "guard_run_id": 36296147525,
     "guard_request_comment_id": 5852835042,
     "guard_result_comment_id": 5852836827
+  },
+  "closure": {
+    "state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "process_repair_classification": "CLOSED_CHECKPOINT_WITH_UNRELEASED_CLAIM",
+    "released_at": "2026-09-27T05:08:27.324841Z"
   }
 }
