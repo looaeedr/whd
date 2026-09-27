@@ -1,6 +1,9 @@
 name: "QA | Issue #701 | Scheduler state reconciliation"
 
 on:
+  push:
+    branches:
+      - work/issue701-scheduler-state-reconciliation-20260927
   workflow_dispatch:
 
 permissions:
