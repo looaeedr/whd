@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "836",
   "branch": "governance/issue836-stop-helper-churn-20260927",
-  "head_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+  "head_sha": "d3f9479b143271dba482937d839918c73eae9182",
   "state": "RUNNING",
   "next_action": "Lock focused RED for helper-scope churn: same-ticket repair/retry and per-fix governance mirror must not create new helper Issues.",
   "run_id": null,
@@ -13,7 +13,7 @@
   "evidence": [
     "User explicitly authorized 補.",
     "Fresh branch-first base b059ffeade3e8ade105f44a370e20e071a0127a7.",
-    "No repository file mutation has occurred on #836 branch before claim activation."
+    "RED commit d3f9479b143271dba482937d839918c73eae9182; pair reconciliation Guard 36307880047."
   ],
   "master_issue": null,
   "chain_state": "NONE",
