@@ -9,14 +9,14 @@
   "work_branch": "work/issue701-scheduler-state-reconciliation-20260927",
   "claimed_at": "2026-09-27T02:01:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "8428fb76f64efcfadde621bc9d813640d5458c9b",
-  "phase": "RED",
-  "last_update": "2026-09-27T02:29:00Z",
+  "head_sha": "dd095c8783118f27f83ddc0a127b45614bca7793",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T02:31:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Repair only the temporary #701 QA command to isolate tests/process from the repository-level GUI conftest using --confcutdir=tests/process; keep the RED-STOP-24 test unchanged. Then let the exact work-branch push produce one RED run and lock it to terminal. Runs 36288418044 and 36288589538 are harness failures, not RED evidence.",
+  "next_action": "Implement RED-STOP-24 minimally: add canonical tools/scheduler_state_reconciliation.py durable readback classifier and bridge both 排程模擬 and 寫排程 to SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1. Preserve lane owner, entrypoint, schedule, timing_mode, and enabled pre/post identity; unknown or drifted readback must fail closed. Then run exact-head GREEN using the existing temporary QA workflow.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -35,16 +35,19 @@
     "QA run 36288418044 @ cc473355f93dfc7b16040f87e483bde9064331da is HARNESS_FAIL: /usr/bin/python: No module named pytest; it is not RED-STOP-24 evidence.",
     "Post-workflow-trigger commit reconciliation Guard 36288437582 GREEN and consumed.",
     "QA run 36288589538 @ 8428fb76f64efcfadde621bc9d813640d5458c9b is HARNESS_FAIL: repository tests/conftest.py imported tkinter before test collection; it is not RED-STOP-24 evidence.",
-    "Post-harness-fix commit reconciliation Guard 36288607014 GREEN and consumed."
+    "Post-harness-fix commit reconciliation Guard 36288607014 GREEN and consumed.",
+    "RED-STOP-24 exact run 36288686607 @ dd095c8783118f27f83ddc0a127b45614bca7793: 7 failed / 1 passed; harness and pytest collection succeeded.",
+    "RED failures prove missing tools.scheduler_state_reconciliation canonical owner and missing SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1 bridges in 排程模擬/寫排程.",
+    "Post-isolated-harness reconciliation Guard 36288706748 GREEN and consumed."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288607014,
-    "request_comment_id": 5851965786,
+    "run_id": 36288706748,
+    "request_comment_id": 5851976828,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #701 pytest-install harness head"
+    "mutation": "reconcile #701 valid RED head"
   }
 }
