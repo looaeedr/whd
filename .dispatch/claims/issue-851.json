@@ -10,13 +10,13 @@
   "work_branch": "repair/issue851-sealed-premerge-v2-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "ebae60d9fa02750c7677fb9b672de5b97f6a41aa",
+  "head_sha": "44101a7f0d8e02df83d7b45f953fde4f554a8178",
   "phase": "GREEN",
-  "last_update": "2026-09-27T11:18:05Z",
+  "last_update": "2026-09-27T11:42:36Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Fresh-read cleanup/2d-3d-sync and main, then obtain exact pr-write Guard and open the #851 integration PR to cleanup/2d-3d-sync from cleaned head ebae60d9fa02750c7677fb9b672de5b97f6a41aa; after merge, mirror accepted governance to main.",
+  "next_action": "Run focused #851 acceptance on reconciled merge head 44101a7f0d8e02df83d7b45f953fde4f554a8178, then open the replacement cleanup/2d-3d-sync PR and mirror accepted governance to main.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -29,6 +29,10 @@
     "cleaned head=ebae60d9fa02750c7677fb9b672de5b97f6a41aa; only drift from tested head is deletion of one-shot QA workflow",
     "post-cleanup reconciliation Guard run=36315277102 GREEN",
     "fresh target cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0",
-    "target drift vs frozen base overlaps #851 only at AI pitfalls append-only governance file"
+    "target drift vs frozen base overlaps #851 only at AI pitfalls append-only governance file",
+    "parent-branch repair v2 run=36316496985 SUCCESS",
+    "production-parent commit Guard run=36316542571 GREEN against cleanup@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0",
+    "legal two-parent merge head=44101a7f0d8e02df83d7b45f953fde4f554a8178",
+    "post-merge pair reconciliation Guard run=36316599647 GREEN"
   ]
 }
