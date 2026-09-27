@@ -3,9 +3,9 @@
   "issue": "829",
   "branch": "governance/issue829-cleanup-terminal-chain-metadata-repair-20260927",
   "head_sha": "3a7889259e949066dce3446bc067bf276271dba3",
-  "state": "RUNNING",
-  "next_action": "Open the cleanup-side PR from 3a7889259e949066dce3446bc067bf276271dba3 to cleanup/2d-3d-sync and the parent #827 main-side PR from 002ce570f74694c6671c440e69d43bc78fa187fa to main. Add reciprocal WHD-Governance-Mirror-Pair markers, require Governance Mirror Hard Gate GREEN on both, merge both under protections, then prove post-push live parity.",
-  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36304641580,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -16,13 +16,17 @@
     "No branch/repository mutation before branch-create Guard.",
     "Exact four-blob mirror head 3a7889259e949066dce3446bc067bf276271dba3.",
     "Four governed blob SHAs match parent #827 candidate exactly.",
-    "Post-mirror reconciliation Guard 36303682659 GREEN."
+    "Post-mirror reconciliation Guard 36303682659 GREEN.",
+    "PR #831 merged main@4bf93cf2073811bc86e1c0de33ef52eeca6249cd.",
+    "PR #830 merged cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8.",
+    "Post-push governance parity GREEN: main 36304637817, cleanup 36304641580.",
+    "Terminal transition Guard 36304758861 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #829, then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED+RELEASED and return to #827."
 }

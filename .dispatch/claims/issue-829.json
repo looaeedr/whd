@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-27T07:31:00Z",
   "base_sha": "497c5e145ab2506b9c4272392a15940164057066",
   "head_sha": "3a7889259e949066dce3446bc067bf276271dba3",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T07:37:49Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T07:59:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Open the cleanup-side PR from 3a7889259e949066dce3446bc067bf276271dba3 to cleanup/2d-3d-sync and the parent #827 main-side PR from 002ce570f74694c6671c440e69d43bc78fa187fa to main. Add reciprocal WHD-Governance-Mirror-Pair markers, require Governance Mirror Hard Gate GREEN on both, merge both under protections, then prove post-push live parity.",
+  "next_action": "Advance #829 canonical closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; run trusted bound finalization proof; close/read back Issue #829; advance RELEASE_HANDOFF_PENDING; atomically persist CLOSED+RELEASED; then return terminal helper proof to parent #827.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-829.json",
   "evidence": [
@@ -31,16 +31,20 @@
     "Parent source candidate #827@002ce570f74694c6671c440e69d43bc78fa187fa.",
     "Mirror commit 3a7889259e949066dce3446bc067bf276271dba3 changes exactly four governed paths under commit Guard 36303623255 GREEN.",
     "Exact blob readback matches parent #827 candidate for all four paths: claim-activation cf43db21457734d253c8fcf12fd38ea6299fec5f; continuity 0046cbce3705ae270baca004ea52ebfd6aae0753; regression b997ba7977f455fba8ad41793630223a2811d172; manifest f892522d145b83f48711539919fbd230a5dd8259.",
-    "Post-mirror reconciliation Guard 36303682659 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-mirror reconciliation Guard 36303682659 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Paired governance PR #831 merged to main as 4bf93cf2073811bc86e1c0de33ef52eeca6249cd.",
+    "Paired governance PR #830 merged to cleanup/2d-3d-sync as 50c2b157770a90224459e665537dc50c522ff2b8.",
+    "Post-push Governance Mirror Hard Gate GREEN on main run 36304637817 and cleanup run 36304641580.",
+    "Terminal transition authorized by Remote Guard 36304758861 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303682659,
-    "request_comment_id": 5853870682,
+    "run_id": 36304758861,
+    "request_comment_id": 5854009687,
     "result": "GREEN",
-    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile exact #829 mirror head"
+    "mutation": "enter #829 terminal finalization"
   }
 }
