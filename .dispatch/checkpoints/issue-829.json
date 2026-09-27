@@ -24,13 +24,15 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36304825792 GREEN.",
     "Remote Finalization 36304954113 GREEN / FINALIZATION_PROOF_VALID; artifact 10926324073.",
     "Issue #829 closed/completed readback.",
-    "Release-handoff advance authorized by Guard 36305011154 GREEN."
+    "Release-handoff advance authorized by Guard 36305011154 GREEN.",
+    "Final coordination Guard 36305075638 GREEN.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Obtain final coordination write Guard, then atomically persist checkpoint CLOSED + claim RELEASED and return terminal helper proof to #827."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
