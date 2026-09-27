@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T02:58:30Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
   "head_sha": "8a436d69cb07890df336f33c5e6a969db0be4495",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T03:19:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T03:22:37Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "classification": "INTEGRATION_ACCEPTANCE_GREEN"
   },
-  "next_action": "Fresh-audit current cleanup/2d-3d-sync against closing head 8a436d69cb07890df336f33c5e6a969db0be4495, verify only accepted integration delta remains and temporary QA workflow is absent, then obtain fresh pr-write Guard and merge helper non-force into current X. Fresh-read production and terminalize helper #801.",
+  "next_action": "Advance canonical closure for #801: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then terminalize parent #701 helper reservation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-801.json",
   "evidence": [
@@ -47,16 +47,31 @@
     "Post-repair pair reconciliation Guard 36290915630 GREEN and consumed.",
     "Temporary QA workflow removed at closing head 8a436d69cb07890df336f33c5e6a969db0be4495.",
     "QA-workflow cleanup mutation authorized by Guard 36290982393.",
-    "Post-cleanup pair reconciliation Guard 36291027925 GREEN and consumed."
+    "Post-cleanup pair reconciliation Guard 36291027925 GREEN and consumed.",
+    "PR #804 merged non-force into cleanup/2d-3d-sync with merge commit 5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f.",
+    "Production fresh-read cleanup/2d-3d-sync@5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f.",
+    "Integration acceptance run 36290902531 remained GREEN: 33 passed / 0 failed.",
+    "Integration terminal transition authorized by Remote Guard run 36291204157."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291027925,
-    "request_comment_id": 5852241523,
+    "run_id": 36291204157,
+    "request_comment_id": 5852261027,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #801 closing head after QA cleanup"
+    "mutation": "persist #801 production integration acceptance and enter terminal finalization"
+  },
+  "acceptance": {
+    "state": "ACCEPTED",
+    "tested_head_sha": "c606d24021ac82df9ccd586ea9dc68b003dad20e",
+    "closing_head_sha": "8a436d69cb07890df336f33c5e6a969db0be4495",
+    "qa_run_id": 36290902531,
+    "qa_summary": "33 passed / 0 failed",
+    "pr_number": 804,
+    "production_merge_commit_sha": "5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f",
+    "production_readback_sha": "5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f",
+    "return_owner_issue": 701
   }
 }
