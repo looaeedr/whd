@@ -135,7 +135,6 @@ jobs:
 
           git fetch --no-tags origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
           current_coord="$(git rev-parse refs/remotes/origin/coord/dispatch-claims)"
-          test "$current_coord" = "$RA_COORD_PARENT_SHA"
 
           gh api "repos/$GITHUB_REPOSITORY/git/blobs/$RA_CANDIDATE_CLAIM_BLOB_SHA" > /tmp/candidate-claim-blob.json
           gh api "repos/$GITHUB_REPOSITORY/git/blobs/$RA_CANDIDATE_CHECKPOINT_BLOB_SHA" > /tmp/candidate-checkpoint-blob.json
@@ -265,8 +264,105 @@ jobs:
               )
           PY
 
-          parent_tree="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$RA_COORD_PARENT_SHA" --jq '.tree.sha')"
-          PARENT_TREE="$parent_tree" python - <<'PY'
+          CURRENT_COORD="$current_coord" python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          from tools.claim_activation_recovery import (
+              ClaimActivationReadbackState,
+              classify_claim_activation_readback,
+          )
+
+          request = json.loads(
+              Path("claim-activation-request.json").read_text(encoding="utf-8")
+          )
+          current_coord = os.environ["CURRENT_COORD"]
+          parent = request["coord_parent_sha"]
+
+          parents = ()
+          changed_files = ()
+          current_claim_blob = ""
+          current_checkpoint_blob = ""
+
+          if current_coord != parent:
+              commit = json.loads(
+                  subprocess.check_output(
+                      [
+                          "gh",
+                          "api",
+                          f"repos/{os.environ['GITHUB_REPOSITORY']}/commits/{current_coord}",
+                      ],
+                      text=True,
+                  )
+              )
+              parents = tuple(
+                  str(item.get("sha") or "")
+                  for item in commit.get("parents", [])
+                  if isinstance(item, dict)
+              )
+              changed_files = tuple(
+                  str(item.get("filename") or "")
+                  for item in commit.get("files", [])
+                  if isinstance(item, dict)
+              )
+
+              def live_blob(path: str) -> str:
+                  probe = subprocess.run(
+                      [
+                          "git",
+                          "rev-parse",
+                          f"refs/remotes/origin/coord/dispatch-claims:{path}",
+                      ],
+                      capture_output=True,
+                      text=True,
+                      check=False,
+                  )
+                  return probe.stdout.strip() if probe.returncode == 0 else ""
+
+              current_claim_blob = live_blob(request["claim_path"])
+              current_checkpoint_blob = live_blob(request["checkpoint_path"])
+
+          decision = classify_claim_activation_readback(
+              coord_parent_sha=parent,
+              current_coord_sha=current_coord,
+              current_parent_shas=parents,
+              current_changed_files=changed_files,
+              claim_path=request["claim_path"],
+              checkpoint_path=request["checkpoint_path"],
+              current_claim_blob_sha=current_claim_blob,
+              current_checkpoint_blob_sha=current_checkpoint_blob,
+              candidate_claim_blob_sha=request["candidate_claim_blob_sha"],
+              candidate_checkpoint_blob_sha=request["candidate_checkpoint_blob_sha"],
+          )
+          Path("/tmp/claim-activation-readback.json").write_text(
+              json.dumps(
+                  {
+                      "state": decision.state.value,
+                      "commit_sha": decision.commit_sha,
+                      "reason": decision.reason,
+                  },
+                  indent=2,
+                  sort_keys=True,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          if decision.state is ClaimActivationReadbackState.AMBIGUOUS:
+              raise SystemExit(
+                  "CLAIM_ACTIVATION_REENTRY_AMBIGUOUS: " + decision.reason
+              )
+          PY
+
+          readback_state="$(python -c 'import json; print(json.load(open("/tmp/claim-activation-readback.json", encoding="utf-8"))["state"])')"
+
+          if [ "$readback_state" = "EFFECT_OBSERVED" ]; then
+            commit_sha="$current_coord"
+            echo "CLAIM_ACTIVATION_REENTRY_EFFECT_OBSERVED commit_sha=$commit_sha"
+          elif [ "$readback_state" = "NOT_APPLIED" ]; then
+            parent_tree="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$RA_COORD_PARENT_SHA" --jq '.tree.sha')"
+            PARENT_TREE="$parent_tree" python - <<'PY'
           import json
           import os
           from pathlib import Path
@@ -291,9 +387,9 @@ jobs:
               json.dumps(payload) + "\n", encoding="utf-8"
           )
           PY
-          tree_sha="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/trees" --input /tmp/tree-request.json --jq '.sha')"
+            tree_sha="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/trees" --input /tmp/tree-request.json --jq '.sha')"
 
-          TREE_SHA="$tree_sha" python - <<'PY'
+            TREE_SHA="$tree_sha" python - <<'PY'
           import json
           import os
           from pathlib import Path
@@ -312,9 +408,9 @@ jobs:
               json.dumps(payload) + "\n", encoding="utf-8"
           )
           PY
-          commit_sha="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/commits" --input /tmp/commit-request.json --jq '.sha')"
+            commit_sha="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/commits" --input /tmp/commit-request.json --jq '.sha')"
 
-          COMMIT_SHA="$commit_sha" python - <<'PY'
+            COMMIT_SHA="$commit_sha" python - <<'PY'
           import json
           import os
           from pathlib import Path
@@ -323,9 +419,16 @@ jobs:
               encoding="utf-8",
           )
           PY
-          gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/coord/dispatch-claims" --input /tmp/ref-request.json >/dev/null
-          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/coord/dispatch-claims" --jq '.object.sha')" = "$commit_sha"
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/coord/dispatch-claims" --input /tmp/ref-request.json >/dev/null
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/coord/dispatch-claims" --jq '.object.sha')" = "$commit_sha"
+          else
+            echo "unexpected readback state: $readback_state" >&2
+            exit 1
+          fi
+
           echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+          echo "readback_state=$readback_state" >> "$GITHUB_OUTPUT"
+          echo "coordination_state=RECONCILED" >> "$GITHUB_OUTPUT"
 
       - name: Publish machine-readable activation receipt
         if: always() && hashFiles('claim-activation-request.json') != ''
@@ -335,6 +438,8 @@ jobs:
             const fs = require('fs');
             const req = JSON.parse(fs.readFileSync('claim-activation-request.json', 'utf8'));
             const commitSha = '${{ steps.cas.outputs.commit_sha }}';
+            const readbackState = '${{ steps.cas.outputs.readback_state }}';
+            const coordinationState = '${{ steps.cas.outputs.coordination_state }}';
             const result = '${{ steps.cas.outcome }}' === 'success' && commitSha ? 'GREEN' : 'FAIL';
             const receipt = {
               schema: 'WHD_REMOTE_CLAIM_ACTIVATION_RESULT_V1',
@@ -350,6 +455,8 @@ jobs:
               prior_claim_blob_sha: req.prior_claim_blob_sha || null,
               guard_authority_sha: req.guard_authority_sha,
               commit_sha: commitSha || null,
+              readback_state: readbackState || null,
+              coordination_state: coordinationState || null,
               result,
             };
             await github.rest.issues.createComment({
