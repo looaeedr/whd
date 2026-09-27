@@ -6,17 +6,17 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.682.20260927.wi5",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue682-main-mirror-20260927",
+  "work_branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "claimed_at": "2026-09-27T12:20:00Z",
-  "base_sha": "b427ae38f5a8921c273cc56e8da1b293154534a2",
-  "head_sha": "17fd0e628e2c2c135c6465bc30969cbbca9ab196",
+  "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
+  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T14:15:21Z",
-  "production_target": "main",
+  "last_update": "2026-09-27T14:17:54Z",
+  "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "work/issue682-unexpected-local-outage-recovery-20260927"
+    "governance/issue682-main-mirror-20260927"
   ],
   "remote_qa": {
     "run_id": 36322127710,
@@ -26,7 +26,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Create the governance-only main PR from governance/issue682-main-mirror-20260927@17fd0e628e2c2c135c6465bc30969cbbca9ab196 to main@b427ae38f5a8921c273cc56e8da1b293154534a2 under pr-write Guard. Then hand primary authority back to the cleanup work branch, create the cleanup PR to cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931 with marker to the main PR, update main PR reciprocally, and require both mirror gates GREEN.",
+  "next_action": "Create cleanup PR from work/issue682-unexpected-local-outage-recovery-20260927@aaec26d75f320f624fd9b42fcc1b2506132e60db to cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931 under pr-write Guard, with exactly one `WHD-Governance-Mirror-Pair: #858` marker. Then hand primary authority to #858 mirror branch and add the reciprocal cleanup PR marker to #858.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -68,17 +68,19 @@
     "Main mirror branch-create Guard 36325060128 / request 5856601383 / result 5856603114 GREEN; branch readback began at exact owner head aaec26d7.",
     "Main mirror bridge commit Guard 36325138355 / request 5856610876 / result 5856612455 GREEN.",
     "Mirror bridge 17fd0e628e2c2c135c6465bc30969cbbca9ab196 parents=[main b427ae38f5a8921c273cc56e8da1b293154534a2, owner aaec26d75f320f624fd9b42fcc1b2506132e60db] and changes exactly three governed files relative to main.",
-    "Primary authority handoff Guard 36325229346 / request 5856621654 / result 5856624068 GREEN."
+    "Primary authority handoff Guard 36325229346 / request 5856621654 / result 5856624068 GREEN.",
+    "Main mirror PR #858 created under pr-write Guard 36325324098 at exact head 17fd0e628e2c2c135c6465bc30969cbbca9ab196 -> main@b427ae38f5a8921c273cc56e8da1b293154534a2; changed_files=3 governed paths.",
+    "Primary authority handback Guard 36325391243 / request 5856641118 / result 5856642598 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36325229346,
-    "request_comment_id": 5856621654,
-    "result_comment_id": 5856624068,
+    "run_id": 36325391243,
+    "request_comment_id": 5856641118,
+    "result_comment_id": 5856642598,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #682 primary authority to same-ticket main governance mirror"
+    "mutation": "handoff #682 primary authority back to cleanup branch"
   }
 }
