@@ -212,6 +212,24 @@ Guard TTL / parser schema 仍由 live《遠端執行守門》擁有；本 Skill 
 
 沒有 matching END 的 invocation 不得被下一 wake 當成「正常完成」；必須依 live liveness / continuity 規則 resume。
 
+## 4.9 Scheduler state mutation durable reconciliation
+
+### SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1
+
+所有 WHD recurring scheduler prompt／host automation state mutation 都 bridge 到 canonical `tools/scheduler_state_reconciliation.py`；本 Skill 只負責 authoring contract，不複製第二套 readback classifier。
+
+任何 enable/disable state change 在呼叫 host mutation **之前**必須 durable 保存 exact：
+
+`lane_owner + entrypoint + automation_id + schedule + timing_mode + enabled_before + enabled_after`
+
+crash/re-entry 或 mutation 回傳不確定時，先 fresh-read exact live automation，再由 canonical classifier 判定：
+
+- `NOT_APPLIED` → exact pre-state 仍在，只允許一次 exact mutation attempt。
+- `EFFECT_OBSERVED` → exact post-state 已在，禁止 replay，改做 durable reconciliation。
+- `AMBIGUOUS` → identity/state/cadence/timing mode 任一不明或漂移，fail closed。
+
+除非使用者本輪明確要求，scheduler mutation transaction 不得順帶改 cadence、`timing_mode`、lane owner、entrypoint 或 automation id。生成／修改 A/B prompt 時必須保留這個 bridge，讓 real recurring wake 與 `/排程A` / `/排程B` interactive resume 共用同一 canonical scheduler-state recovery owner。
+
 ## 5. Dynamic Discovery，不准寫死工單
 
 Scheduler prompt 不得硬編：
