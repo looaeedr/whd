@@ -1,17 +1,17 @@
 {
   "issue": 836,
   "issue_url": "https://github.com/looaeedr/whd/issues/836",
-  "worker": "chatgpt.issue836.20260927a",
-  "executor_source": "chat",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.issue836.20260927a",
+  "invocation_identity": "chat.issue836.takeover.20260927a",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "governance/issue836-stop-helper-churn-sync-20260927",
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:59:00Z",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-27T10:49:32Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
@@ -27,7 +27,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Open one fresh cleanup PR from governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, require Governance Mirror Hard Gate GREEN, merge, then close superseded PR #840 and finalize #836.",
+  "next_action": "Consume stale takeover and mint a fresh exact pr-write Guard for governance/issue836-stop-helper-churn-sync-20260927@30ea9a19742c77d85c82036edc059b53ac30c3c3, create the replacement cleanup PR, require Governance Mirror Hard Gate GREEN, merge, close superseded PR #840, then finalize #836.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -69,6 +69,24 @@
     "PR #840 cannot be safely reopened because two current pr-write GREEN receipts conflict on guard_authority_sha (36310687134, 36310687878).",
     "Replacement branch is same Issue #836 / same accepted head, not a helper Issue; delegated-scope write Guard 36310935420 GREEN.",
     "Replacement branch governance/issue836-stop-helper-churn-sync-20260927 created at exact head 30ea9a19 under branch-create Guard 36311002241.",
-    "Primary authority handoff to replacement branch authorized by write Guard 36311033621."
-  ]
+    "Primary authority handoff to replacement branch authorized by write Guard 36311033621.",
+    "Scheduler A stale takeover Guard 36313761471 GREEN: EXECUTOR_STUCK, 3031s stale, exact remote run 36308394162 completed/success, live head 30ea9a19.",
+    "Takeover continues the existing #836 exact next_action; no helper Issue or new scope was created."
+  ],
+  "stale_takeover": {
+    "previous_worker": "chatgpt.issue836.20260927a",
+    "previous_executor_source": "chat",
+    "observed_stale_seconds": 3031,
+    "observed_live_head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
+    "evidence": {
+      "guard_run_id": 36313761471,
+      "guard_request_comment_id": 5855179072,
+      "classification": "EXECUTOR_STUCK",
+      "claim_blob_sha": "bea8bc04d6537c937ab947a5f29d3121dcb5e52b",
+      "remote_run_id": 36308394162,
+      "remote_run_status": "completed",
+      "remote_run_conclusion": "success"
+    },
+    "taken_over_at": "2026-09-27T10:49:32Z"
+  }
 }
