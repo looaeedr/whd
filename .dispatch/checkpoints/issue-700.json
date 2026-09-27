@@ -4,7 +4,7 @@
   "branch": "work/issue700-claim-activation-crash-reentry-20260927",
   "head_sha": "46b3219e2a36408b9a77c6dd1031b4135150c19e",
   "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync against closing head 46b3219e2a36408b9a77c6dd1031b4135150c19e, audit effective #700 diff/conflicts, preserve current X drift, then obtain guarded pr-write and integrate non-force. Issue closure remains owned by #702.",
+  "next_action": "A5 accepted and integrated into cleanup/2d-3d-sync; Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, and canonical close/readback for #700. Do not independently close #700.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -29,7 +29,10 @@
     "Broader GREEN artifact 10920760774.",
     "H5 pair reconciliation Guard run 36285413852 GREEN.",
     "Closing head H6=46b3219e2a36408b9a77c6dd1031b4135150c19e removes the temporary #700 QA workflow only.",
-    "Post-cleanup pair reconciliation Guard 36285560972 GREEN and consumed."
+    "Post-cleanup pair reconciliation Guard 36285560972 GREEN and consumed.",
+    "PR #795 merged non-force into cleanup/2d-3d-sync@24fa64f372eb7328c6ae521a067ac3a84982c18a.",
+    "Integration durable writeback Guard 36287198435 GREEN and consumed.",
+    "A5 accepted pending amendment-chain closure by #702."
   ],
   "master_issue": null,
   "chain_state": "NONE",
