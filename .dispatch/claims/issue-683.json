@@ -6,19 +6,19 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.683.20260927T0832.ha-transport",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue683-ha-transport-projection-repair2-20260927",
+  "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
+  "head_sha": "1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T11:52:50Z",
+  "last_update": "2026-09-27T11:53:57Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "work/issue683-ha-transport-projection-20260927",
     "work/issue683-ha-transport-projection-repair-20260927",
-    "governance/issue683-main-mirror-20260927"
+    "governance/issue683-main-mirror-20260927",
+    "work/issue683-ha-transport-projection-repair2-20260927"
   ],
   "remote_qa": {
     "run_id": 36311528696,
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve terminal acceptance evidence and leave no successor handoff.",
+  "next_action": "Close superseded PR #848 from work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e under one fresh exact pr-write Guard; read back #848 closed/unmerged; hand primary authority back to repair2@1c4b976cfbe3be531c9592a167122b8102ceabb1; then atomically write checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -115,17 +115,19 @@
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under exact write Guard 36316911324 / request 5855554153 / result 5855555746; no finalization proof minted before this transition.",
     "Trusted Remote Finalization run 36317070326 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID on exact checkpoint fingerprint be631d4ada093889d874f88a6d83e58bf175ada5a9c4ba8c40f370dccb1b37f7; artifact 10930967979.",
     "Issue #683 fresh readback is closed/completed after finalization proof; checkpoint was not mutated between proof and Issue close.",
-    "Release-handoff transition consumes exact write Guard 36317145317 / request 5855581710 / result 5855583325."
+    "Release-handoff transition consumes exact write Guard 36317145317 / request 5855581710 / result 5855583325.",
+    "Pre-release fresh audit found superseded PR #848 still OPEN; terminal release must not orphan it.",
+    "Pending write Guard 36317203466 / request 5855588952 / result 5855590521 is consumed by same-scope primary handoff to the superseded #848 branch instead of premature RELEASED/CLOSED."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36317145317,
-    "request_comment_id": 5855581710,
-    "result_comment_id": 5855583325,
+    "run_id": 36317203466,
+    "request_comment_id": 5855588952,
+    "result_comment_id": 5855590521,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #683 to RELEASE_HANDOFF_PENDING after closed/completed readback"
+    "mutation": "handoff #683 closure owner to superseded PR #848 branch for cleanup before release"
   }
 }

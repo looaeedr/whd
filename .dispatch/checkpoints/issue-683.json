@@ -1,8 +1,8 @@
 {
   "version": 1,
   "issue": "683",
-  "branch": "work/issue683-ha-transport-projection-repair2-20260927",
-  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
+  "branch": "work/issue683-ha-transport-projection-20260927",
+  "head_sha": "1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e",
   "state": "TERMINAL_SUCCESS",
   "next_action": null,
   "run_id": 36311528696,
@@ -64,7 +64,9 @@
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36316911324; no finalization proof minted before this transition.",
     "Trusted Remote Finalization 36317070326 GREEN with FINALIZATION_PROOF_VALID; artifact 10930967979.",
     "Issue #683 readback closed/completed; checkpoint remained exact through proof + close.",
-    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36317145317."
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36317145317.",
+    "Pre-release audit found superseded PR #848 still OPEN.",
+    "Primary authority handed to #848 branch under pending write Guard 36317203466 so PR cleanup can complete before CLOSED + RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
@@ -72,5 +74,5 @@
   "chain_next_action": null,
   "chain_reason": null,
   "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve terminal acceptance evidence and leave no successor handoff."
+  "closure_next_action": "Close superseded PR #848 from work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e under one fresh exact pr-write Guard; read back #848 closed/unmerged; hand primary authority back to repair2@1c4b976cfbe3be531c9592a167122b8102ceabb1; then atomically write checkpoint CLOSED + claim RELEASED."
 }
