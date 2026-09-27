@@ -4,7 +4,7 @@
   "branch": "work/issue683-ha-transport-projection-20260927",
   "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "state": "RUNNING",
-  "next_action": "Update cleanup PR #848 body to add exactly one reciprocal marker `WHD-Governance-Mirror-Pair: #850`, then require #848 Governance Mirror Hard Gate GREEN. After cleanup-side parity is GREEN, hand primary authority back to governance/issue683-main-mirror-20260927, re-trigger/recheck PR #850 Governance Mirror Hard Gate against reciprocal #848, merge #850 to main, then hand back and merge #848.",
+  "next_action": "BLOCKED_EXTERNAL_OWNER: wait for Issue #836 owner transaction to consume pending claim-takeover Guard 36313761471 (takeover_worker=scheduler.6ab13fa557fc8191935c671214b865e2), then integrate the accepted #836 governance delta (.agents/skills/engineering/派工/SKILL.md + tools/stale_claim_takeover.py) to cleanup/2d-3d-sync. After cleanup contains #836, retrigger PR #848 and paired PR #850 Governance Mirror Hard Gate; require both GREEN; merge #850 to main first, then merge #848 and finalize #683.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -44,7 +44,9 @@
     "Main mirror bridge 63ce016f fresh compare to main is governance-only: exact Authority Map file.",
     "Primary authority temporarily handed to governance/issue683-main-mirror-20260927 for paired PR; original cleanup branch retained delegated.",
     "Main paired PR #850 exists and points to #848; cleanup PR #848 now needs reciprocal marker #850.",
-    "Primary authority handed back to cleanup branch under Guard 36313427044."
+    "Primary authority handed back to cleanup branch under Guard 36313427044.",
+    "Both paired PRs #848/#850 are constructed; reciprocal markers are valid, but governance parity is blocked by #836-owned 派工/SKILL.md + tools/stale_claim_takeover.py not yet integrated to cleanup.",
+    "B cannot legally takeover #836 because A already holds pending GREEN claim-takeover Guard 36313761471; B request failed closed as PENDING_GUARD_TRANSACTION."
   ],
   "master_issue": null,
   "chain_state": "NONE",

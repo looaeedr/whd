@@ -11,7 +11,7 @@
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:44:00Z",
+  "last_update": "2026-09-27T10:51:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -27,8 +27,15 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Update cleanup PR #848 body to add exactly one reciprocal marker `WHD-Governance-Mirror-Pair: #850`, then require #848 Governance Mirror Hard Gate GREEN. After cleanup-side parity is GREEN, hand primary authority back to governance/issue683-main-mirror-20260927, re-trigger/recheck PR #850 Governance Mirror Hard Gate against reciprocal #848, merge #850 to main, then hand back and merge #848.",
-  "blocker": null,
+  "next_action": "BLOCKED_EXTERNAL_OWNER: wait for Issue #836 owner transaction to consume pending claim-takeover Guard 36313761471 (takeover_worker=scheduler.6ab13fa557fc8191935c671214b865e2), then integrate the accepted #836 governance delta (.agents/skills/engineering/派工/SKILL.md + tools/stale_claim_takeover.py) to cleanup/2d-3d-sync. After cleanup contains #836, retrigger PR #848 and paired PR #850 Governance Mirror Hard Gate; require both GREEN; merge #850 to main first, then merge #848 and finalize #683.",
+  "blocker": {
+    "type": "EXTERNAL_OWNER_PENDING_GUARD",
+    "issue": 836,
+    "owner": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "guard_run_id": 36313761471,
+    "guard_action": "claim-takeover",
+    "reason": "Issue #836 exact governance owner transaction must land its two governed blobs into cleanup/2d-3d-sync before #683 paired governance candidates can pass parity."
+  },
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
     "authorization_source=explicit /排程B lane continuation with READY_WORK_CENSUS_V1 after #779 terminal release",
@@ -81,17 +88,24 @@
     "Main mirror bridge commit 63ce016fc789c80aa110a0fd289779f48ada7821 is a two-parent commit connecting main@cb80310e... and accepted #683 head 6156cf8c...; fresh compare to main changes only canonical Authority Map.",
     "Primary authority handoff to same-ticket main mirror consumes write Guard 36313318528 / request 5855116342 / result 5855117720; original cleanup branch remains delegated.",
     "Paired main PR #850 created from same #683 owner at mirror head 63ce016f, base main@cb80310e, changed_files=1, body marker points to #848.",
-    "Primary authority handback to cleanup consumes write Guard 36313427044 / request 5855132981 / result 5855134889."
+    "Primary authority handback to cleanup consumes write Guard 36313427044 / request 5855132981 / result 5855134889.",
+    "PR #848 reciprocal marker to #850 is durable under pr-write Guard 36313471543.",
+    "PR #848 Governance Mirror Hard Gate run 36313496478 failed only on UNKNOWN_DIVERGENCE for tools/stale_claim_takeover.py after reciprocal pair validation succeeded.",
+    "PR #850 Governance Mirror Hard Gate run 36313416187 is also RED while cleanup lacks the same #836 governed delta.",
+    "Fresh governed blob audit: #683 branch already matches main for 寫排程/SKILL.md and 排程模擬/SKILL.md; the only known governed mismatches are 派工/SKILL.md and tools/stale_claim_takeover.py, both owned by live Issue #836.",
+    "B stale takeover request 5855183356 was rejected by run 36313797107 with PENDING_GUARD_TRANSACTION because A-lane takeover Guard 36313761471 had already won the exact #836 transaction.",
+    "A-lane #836 takeover Guard 36313761471 is GREEN with EXECUTOR_STUCK evidence (3031s stale, no active exact remote run) and must be consumed by its exact takeover_worker; B must not double-CAS.",
+    "Blocker write consumes exact #683 write Guard 36313837145 / request 5855187578 / result 5855189029."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36313427044,
-    "request_comment_id": 5855132981,
-    "result_comment_id": 5855134889,
+    "run_id": 36313837145,
+    "request_comment_id": 5855187578,
+    "result_comment_id": 5855189029,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #683 primary authority back to cleanup branch for reciprocal PR marker"
+    "mutation": "persist external #836 pending-owner blocker and exact post-unblock continuation for #683"
   }
 }
