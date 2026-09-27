@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Advance #805 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint a bound finalization proof, close/read back #805, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Mint and verify the bound finalization proof on exact ISSUE_CLOSE_PENDING checkpoint, close #805, fresh-read closed/completed, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-805.json",
   "evidence": [
@@ -45,7 +45,8 @@
     "Post-commit pair reconciliation Guard run 36292257166 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "PR #807 merged non-force to cleanup/2d-3d-sync; merge commit 8147c4319aa02824bd08ca4fd51491df7342e1a6.",
     "Fresh cleanup capability readback: all takeover parser lines use real CRLF/LF normalization and #722 regression blob equals accepted main.",
-    "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write."
+    "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write.",
+    "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write."
   ],
   "last_guard": {
     "action": "write",
@@ -53,6 +54,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #805 TERMINAL_SUCCESS / FINALIZATION_PENDING after cleanup parity readback"
+    "mutation": "advance #805 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   }
 }
