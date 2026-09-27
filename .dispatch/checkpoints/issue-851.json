@@ -4,7 +4,7 @@
   "branch": "repair/issue851-sealed-premerge-v2-20260927",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "state": "RUNNING",
-  "next_action": "Close superseded PR #854 unmerged under delegated same-ticket authority while checkpoint is still RUNNING; read back #854 closed; then advance #851 terminal checkpoint/finalization, close Issue #851, and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
+  "next_action": "Close superseded PR #854 unmerged under delegated same-ticket authority; read back #854 closed; then advance #851 terminal checkpoint/finalization, close Issue #851, and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -43,7 +43,9 @@
     "post-main-merge #857 Governance Mirror Hard Gate 36320138101 GREEN",
     "#857 merged to cleanup at da3839b6e6c7d2f391b172ea753fe6cc13d28931",
     "superseded PR #854 remains OPEN and is scheduled for pre-terminal cleanup",
-    "closing/delegation Guard 36320224970 GREEN"
+    "closing/delegation Guard 36320224970 GREEN",
+    "fresh #854 readback: OPEN/unmerged",
+    "pre-close durable reconciliation Guard 36320515607 GREEN"
   ],
   "operation": null,
   "master_issue": null,
