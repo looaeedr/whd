@@ -14,13 +14,14 @@
     "PR #782 merged to main.",
     "Action-scope hard gate deployed and validated.",
     "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID.",
-    "Issue #781 fresh-read closed/completed."
+    "Issue #781 closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #781."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
