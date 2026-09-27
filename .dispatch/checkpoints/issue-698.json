@@ -34,8 +34,11 @@
     "Trusted main retains accepted A3 deployment blob ad78c86da95e3d6349485412779bee0f505b1e6f; newer amendment changes make cleanup blob d7de36b59ac0d67e41694debbdc0753f54a0f6e8.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed in 0.53s.",
     "Terminal transition authorized by Remote Guard 36298048071.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36298178857."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36298178857.",
+    "Remote Finalization run 36298270044: FINALIZATION_PROOF_VALID.",
+    "Issue #698 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard 36298327319."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #698 and fresh-read closed/completed before any checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #698, then continue amendment-chain closure under #702."
 }
