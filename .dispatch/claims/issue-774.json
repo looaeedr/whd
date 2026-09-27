@@ -9,25 +9,21 @@
   "work_branch": "governance/issue774-guard-scope-grouping-20260927",
   "claimed_at": "2026-09-26T22:59:00Z",
   "base_sha": "1de50f9a63ae6f61c1614ae757a31bd471f27ac8",
-  "head_sha": "fcecb3560a3f3c3bcf067ac1adeb0e390edcfb85",
+  "head_sha": "fea00e5dc38f717286e55951ae00141872d5c3f6",
   "phase": "GREEN",
-  "last_update": "2026-09-26T23:58:30Z",
+  "last_update": "2026-09-27T00:12:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "handoff_source": "issue768",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create guarded PR to current X, merge action+consumed-scope hardening, then deploy exact trusted-main parity through #781 and close #781/#774.",
+  "next_action": "Create guarded follow-up PR to current X, merge, verify exact main parity, then finish #776/#781/#783/#774 closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-774.json",
   "evidence": [
-    "authorization_source=#768 parent authority",
-    "execution_intent=EXECUTE_TICKET",
-    "work H1=5102d9b6220c7834b6fbe44b893198d6ee442c3f",
-    "action-scope bootstrap #781 live on main@ae75066c74339f728a676b1c923fd5366331ae76",
-    "commit Guard run 36281004309 GREEN",
-    "work H2=fcecb3560a3f3c3bcf067ac1adeb0e390edcfb85",
-    "focused regression=52 passed / 0 failed",
-    "H2 adds expected_action plus durable-consumed same-action different-scope filtering; unconsumed scope mismatch remains fail-closed"
+    "H3 commit=fea00e5dc38f717286e55951ae00141872d5c3f6",
+    "52 focused tests PASS",
+    "commit Guard 36281764016 GREEN",
+    "trusted main generic filter=646968f0e0945707d4a87b6b57de769c5a474bb1"
   ]
 }

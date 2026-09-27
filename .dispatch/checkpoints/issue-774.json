@@ -2,18 +2,17 @@
   "version": 1,
   "issue": "774",
   "branch": "governance/issue774-guard-scope-grouping-20260927",
-  "head_sha": "fcecb3560a3f3c3bcf067ac1adeb0e390edcfb85",
+  "head_sha": "fea00e5dc38f717286e55951ae00141872d5c3f6",
   "state": "RUNNING",
-  "next_action": "Create guarded PR to current X; merge; deploy trusted-main parity via #781; then canonical closure.",
+  "next_action": "Create guarded follow-up PR to X, merge, verify main parity, then canonical closure chain.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "H2 commit=fcecb3560a3f3c3bcf067ac1adeb0e390edcfb85",
-    "52 focused tests passed.",
-    "Historical same-action different-scope receipts only stop a new scope when not durably consumed."
+    "H3 commit=fea00e5dc38f717286e55951ae00141872d5c3f6",
+    "52 focused tests PASS"
   ],
   "master_issue": null,
   "chain_state": "NONE",
