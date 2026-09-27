@@ -9,9 +9,9 @@
   "work_branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "claimed_at": "2026-09-27T12:20:00Z",
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
-  "head_sha": "e4cc3c9ed48d63dc0acf772036a7bafaacded916",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T13:22:38Z",
+  "head_sha": "5db406fb52a6417405be57905d43e6d1edab360a",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T13:28:37Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
@@ -24,7 +24,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Create paired cleanup/main governance-mirror PRs for #682 with reciprocal WHD-Governance-Mirror-Pair markers; main mirror must contain only manifest-governed files (tools/stale_claim_takeover.py + Authority Map 09 + Scheduled Resume 11). Run Hard Gate/Knowledge Governance, merge in legal order, drift-audit, then close/release #682 and continue #684.",
+  "next_action": "Obtain one exact production-parent commit Guard against cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931; create a two-parent sync preserving #851 target drift and #682 retained delta. The only overlapping file is AI pitfalls 06 and must retain both append-only sections. Reconcile the synced head, then create paired cleanup/main governance-mirror PRs.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -52,17 +52,21 @@
     "Post-commit reconciliation Guard 36322017303 / request 5856219894 / result 5856221388 GREEN.",
     "Scheduled Resume exact-phrase fix e4cc3c9ed48d63dc0acf772036a7bafaacded916 consumed commit Guard 36322081277 / request 5856227325 / result 5856229016.",
     "Exact QA run 36322127710 / job 108627862832 GREEN: 45 passed in 0.64s.",
-    "Post-commit reconciliation Guard 36322166286 / request 5856237326 / result 5856239058 GREEN."
+    "Post-commit reconciliation Guard 36322166286 / request 5856237326 / result 5856239058 GREEN.",
+    "One-shot QA workflow deletion commit 5db406fb52a6417405be57905d43e6d1edab360a consumed commit Guard 36322435032 / request 5856269711 / result 5856271265.",
+    "Tested e4cc3c9ed48d63dc0acf772036a7bafaacded916 -> closing 5db406fb52a6417405be57905d43e6d1edab360a drift is exactly removal of .github/workflows/qa-issue682-outage-recovery.yml.",
+    "Closing-head reconciliation Guard 36322512778 / request 5856278861 / result 5856280431 GREEN.",
+    "Fresh target drift d41c2577 -> cleanup da3839b6 overlaps #682 only at AI pitfalls 06; both sides are append-only."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36322166286,
-    "request_comment_id": 5856237326,
-    "result_comment_id": 5856239058,
+    "run_id": 36322512778,
+    "request_comment_id": 5856278861,
+    "result_comment_id": 5856280431,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #682 to final tested writeback head"
+    "mutation": "reconcile #682 to cleaned closing head"
   }
 }

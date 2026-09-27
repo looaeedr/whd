@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "682",
   "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
-  "head_sha": "e4cc3c9ed48d63dc0acf772036a7bafaacded916",
+  "head_sha": "5db406fb52a6417405be57905d43e6d1edab360a",
   "state": "RUNNING",
-  "next_action": "Create paired cleanup/main governance-mirror PRs for #682 with reciprocal WHD-Governance-Mirror-Pair markers; main mirror must contain only manifest-governed files (tools/stale_claim_takeover.py + Authority Map 09 + Scheduled Resume 11). Run Hard Gate/Knowledge Governance, merge in legal order, drift-audit, then close/release #682 and continue #684.",
+  "next_action": "Obtain one exact production-parent commit Guard against cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931; create a two-parent sync preserving #851 target drift and #682 retained delta. The only overlapping file is AI pitfalls 06 and must retain both append-only sections. Reconcile the synced head, then create paired cleanup/main governance-mirror PRs.",
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -27,7 +27,10 @@
     "Pair reconciled under Guard 36322017303.",
     "Final tested head e4cc3c9ed48d63dc0acf772036a7bafaacded916.",
     "QA 36322127710 / 108627862832 GREEN: 45 passed in 0.64s.",
-    "Pair reconciled under Guard 36322166286."
+    "Pair reconciled under Guard 36322166286.",
+    "Closing head 5db406fb52a6417405be57905d43e6d1edab360a differs from tested head only by one-shot QA workflow deletion.",
+    "Closing-head pair reconciled under Guard 36322512778.",
+    "Production target da3839b6 drift overlaps only AI pitfalls 06 append-only writeback."
   ],
   "master_issue": null,
   "chain_state": "NONE",
