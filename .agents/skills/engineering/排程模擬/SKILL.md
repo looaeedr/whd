@@ -35,7 +35,7 @@ WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
 排程模擬的 **execution location 固定為 remote-only**。這條同時適用於真實 recurring scheduled invocation 與使用者明確輸入 `/排程A` / `/排程B` 的 interactive same-lane resume。
 
 - machine-readable status 固定輸出：`execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`。
-- `LOCAL` 只允許作為 handoff_source / provenance metadata，用來描述工作最初從哪裡交接；**不得**把 `LOCAL` 解讀成可執行位置或 fallback execution path。
+- LOCAL 只允許作為 handoff_source / provenance metadata，用來描述工作最初從哪裡交接；**不得**把 `LOCAL` 解讀成可執行位置或 fallback execution path。
 - 排程模擬不得使用本機、Remote Desktop、local shell，也不得透過本機 worktree、CLI、檔案系統或背景程序代替 GitHub / scheduler / remote action 執行。
 - 禁止 fallback 到 LOCAL。若 GitHub / scheduler / REMOTE_ACTION 所需 capability 不可用，remote capability 不可用時 fail closed，記錄 exact capability blocker；不得為了繼續工作改走本機。
 - branch / commit / test / QA / claim / Guard / reconciliation / PR / closure 等 substantive action 必須能由 GitHub API、GitHub Actions、host scheduler 或其他明確 remote capability 觀測；無 remote evidence 不得宣稱已執行。
