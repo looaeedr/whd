@@ -1,0 +1,40 @@
+{
+  "issue": 822,
+  "issue_url": "https://github.com/looaeedr/whd/issues/822",
+  "worker": "chatgpt.sol260927.issue822.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue822.governance-required-check.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue822-governance-required-check-x-20260927",
+  "claimed_at": "2026-09-27T06:27:33Z",
+  "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+  "head_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T06:27:33Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [
+    "governance/issue822-governance-required-check-main-20260927"
+  ],
+  "remote_qa": {
+    "run_id": null,
+    "job_id": null,
+    "head_sha": null,
+    "status": "RUN_NOT_CREATED",
+    "conclusion": null
+  },
+  "next_action": "obtain branch-create Guard for cleanup governance branch, add RED/GREEN merge-time candidate parity enforcement, mirror governed artifacts to main, then establish required status checks on both branch rulesets",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-822.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1",
+    "authorization_source=User directive 2026-09-27 recorded in GitHub Issue #822",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=make bidirectional governance mirror a merge-time required hard gate",
+    "authorized_scope=#822 governance-only workflow/tool/test + repository ruleset enforcement for main and cleanup/2d-3d-sync",
+    "prohibited_scope=WHD/product/Phase/CAD propagation to main; unrelated Issues; product implementation",
+    "resume_authority=NONE"
+  ],
+  "last_guard": null,
+  "delegated_work": []
+}

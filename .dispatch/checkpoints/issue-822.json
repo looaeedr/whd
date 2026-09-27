@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "822",
+  "branch": "governance/issue822-governance-required-check-x-20260927",
+  "head_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+  "state": "RUNNING",
+  "next_action": "obtain branch-create Guard for cleanup governance branch, then add RED proving PR scope-only logic does not prove opposite-branch candidate parity",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User-authorized UPDATE_ONLY governance transaction #822.",
+    "Both #816 and #818 are terminal CLOSED + RELEASED before #822 starts.",
+    "Scope is governance-only merge-time parity plus repository required-status enforcement."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
