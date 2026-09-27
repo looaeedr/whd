@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "836",
   "branch": "governance/issue836-stop-helper-churn-20260927",
-  "head_sha": "d3f9479b143271dba482937d839918c73eae9182",
+  "head_sha": "65bdabbfacd47c8ee138057bd0192237efa21a1d",
   "state": "RUNNING",
   "next_action": "Implement required helper purpose/scope split authority in canonical reservation gate; keep current-ticket repair and per-fix parity in the same owner.",
   "run_id": 36307828944,
@@ -16,7 +16,8 @@
     "VALID RED run 36307828944: 8 failed / 7 passed in 0.31s.",
     "Pair reconciliation coord 19f6e30b4e54141bf596c2bbd3c295a74193a6df under Guard 36307880047.",
     "RED phase write Guard 36307947176 GREEN.",
-    "No nested helper Issue created."
+    "No nested helper Issue created.",
+    "Post-implementation HEAD reconciliation Guard 36308413202."
   ],
   "master_issue": null,
   "chain_state": "NONE",
