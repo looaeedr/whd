@@ -9,9 +9,9 @@
   "work_branch": "integration/issue815-issue702-a7-20260927",
   "claimed_at": "2026-09-27T04:56:30Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "711d0eb78fd10ea4c2d13c074b17d00f1533316d",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T05:09:00Z",
+  "head_sha": "971190bcc6da11a0ca8c95a266075582a21b8329",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T05:12:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "100 passed / 0 failed in 0.53s"
   },
-  "next_action": "Remove only .github/workflows/qa-issue815-issue702-integration.yml under a fresh commit Guard, reconcile the resulting closing head, audit tested→closing drift as workflow-deletion-only, then obtain pr-write Guard and integrate non-force into current cleanup/2d-3d-sync.",
+  "next_action": "Fresh-audit current cleanup/2d-3d-sync against closing head 971190bcc6da11a0ca8c95a266075582a21b8329, prove the effective delta remains exactly the accepted #702 11-file scope, then obtain pr-write Guard, open one integration PR, verify mergeability/checks, and merge non-force.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-815.json",
   "evidence": [
@@ -39,15 +39,18 @@
     "Post-commit reconciliation Guard 36296176345 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "One-shot QA workflow commit H2=711d0eb78fd10ea4c2d13c074b17d00f1533316d is a single direct child of integration H1 and adds only .github/workflows/qa-issue815-issue702-integration.yml under commit Guard 36296247166 GREEN.",
     "Exact QA run 36296278571 / job 108555610910 completed success at H2: 100 passed / 0 failed in 0.53s across #687-#692 and #696-#702 process suites.",
-    "Post-QA-head reconciliation Guard 36296338169 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-QA-head reconciliation Guard 36296338169 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Cleanup commit H3=971190bcc6da11a0ca8c95a266075582a21b8329 removed only .github/workflows/qa-issue815-issue702-integration.yml under commit Guard 36296410424 GREEN.",
+    "Tested H2=711d0eb78fd10ea4c2d13c074b17d00f1533316d -> closing H3 drift is exactly one 41-line workflow deletion; integration H1 and closing H3 trees are identical.",
+    "Closing-head reconciliation Guard 36296475847 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296338169,
+    "run_id": 36296475847,
     "result": "GREEN",
     "reason": "REMOTE_GUARD_RECONCILE_ONLY",
     "consumed": true,
-    "mutation": "reconcile #815 QA head H2 and record 100-pass acceptance"
+    "mutation": "reconcile #815 closing H3 and enter drift audit"
   }
 }

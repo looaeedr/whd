@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "815",
   "branch": "integration/issue815-issue702-a7-20260927",
-  "head_sha": "711d0eb78fd10ea4c2d13c074b17d00f1533316d",
+  "head_sha": "971190bcc6da11a0ca8c95a266075582a21b8329",
   "state": "RUNNING",
-  "next_action": "Remove only .github/workflows/qa-issue815-issue702-integration.yml under a fresh commit Guard, reconcile the resulting closing head, audit tested→closing drift as workflow-deletion-only, then obtain pr-write Guard and integrate non-force into current cleanup/2d-3d-sync.",
+  "next_action": "Fresh-audit current cleanup/2d-3d-sync against closing head 971190bcc6da11a0ca8c95a266075582a21b8329, prove the effective delta remains exactly the accepted #702 11-file scope, then obtain pr-write Guard, open one integration PR, verify mergeability/checks, and merge non-force.",
   "run_id": 36296278571,
   "job_id": 108555610910,
   "log_cursor": null,
@@ -20,7 +20,10 @@
     "Post-commit reconciliation Guard 36296176345 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "H1→H2 drift is exactly one added temporary QA workflow.",
     "Exact current-X Combined Acceptance run 36296278571 / job 108555610910: 100 passed / 0 failed in 0.53s.",
-    "Post-QA-head reconciliation Guard 36296338169 GREEN."
+    "Post-QA-head reconciliation Guard 36296338169 GREEN.",
+    "H2→H3 drift verified temporary-QA-workflow deletion only.",
+    "H1/H3 effective trees are identical; accepted 11-file integration content unchanged.",
+    "Closing-head reconciliation Guard 36296475847 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
