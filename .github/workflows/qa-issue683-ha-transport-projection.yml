@@ -1,0 +1,40 @@
+name: "WHD｜#683｜HA Transport Projection R7 R8"
+run-name: "WHD｜#683｜R7 R8 HA transport projection"
+
+on:
+  push:
+    branches:
+      - work/issue683-ha-transport-projection-20260927
+    paths:
+      - tests/process/test_issue683_ha_transport_projection.py
+      - tools/whd_poweroff_ha_bridge.py
+      - .github/workflows/qa-issue683-ha-transport-projection.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue683-ha-transport-projection
+  cancel-in-progress: false
+
+jobs:
+  r7-r8:
+    name: "R7/R8 current-request SAFE + timeout fail-closed"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact #683 head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install focused dependencies
+        run: python -m pip install pytest
+
+      - name: Run #683 R7/R8 behavioral acceptance
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q --tb=short tests/process/test_issue683_ha_transport_projection.py
