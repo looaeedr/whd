@@ -1,0 +1,89 @@
+name: Governance Mirror Hard Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+      - cleanup/2d-3d-sync
+  push:
+    branches:
+      - main
+      - cleanup/2d-3d-sync
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  governance-mirror:
+    name: Governance Mirror Hard Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch both governance authorities
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git fetch --no-tags origin cleanup/2d-3d-sync:refs/remotes/origin/cleanup/2d-3d-sync
+
+      - name: Validate changed-file scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TARGET_REF: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          : > /tmp/governance-changed.txt
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git -c core.quotePath=false diff --name-only "$PR_BASE_SHA...$HEAD_SHA" > /tmp/governance-changed.txt
+          elif [ "$EVENT_NAME" = "push" ]; then
+            if [ -n "${BEFORE_SHA:-}" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              git -c core.quotePath=false diff --name-only "$BEFORE_SHA..$HEAD_SHA" > /tmp/governance-changed.txt
+            elif git rev-parse "$HEAD_SHA^" >/dev/null 2>&1; then
+              git -c core.quotePath=false diff --name-only "$HEAD_SHA^..$HEAD_SHA" > /tmp/governance-changed.txt
+            fi
+          fi
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from tools.governance_parity_gate import evaluate_change_scope
+
+          manifest = json.loads(
+              Path("docs/governance/governance_mirror_manifest.json").read_text(encoding="utf-8")
+          )
+          changed = [
+              line.strip()
+              for line in Path("/tmp/governance-changed.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+          result = evaluate_change_scope(changed, manifest, target_ref=os.environ["TARGET_REF"])
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+          if result.get("result") != "GREEN":
+              if result.get("reason") == "NON_GOVERNANCE_PATH_TO_MAIN":
+                  print("NON_GOVERNANCE_PATH_TO_MAIN")
+              raise SystemExit(1)
+          PY
+
+      - name: Verify live bidirectional governance parity after branch push
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          CURRENT_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$CURRENT_REF" = "main" ]; then
+            OTHER_REF="cleanup/2d-3d-sync"
+          else
+            OTHER_REF="main"
+          fi
+          python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --source-ref "refs/remotes/origin/$CURRENT_REF" \
+            --target-ref "refs/remotes/origin/$OTHER_REF" \
+            --verify-live-parity
