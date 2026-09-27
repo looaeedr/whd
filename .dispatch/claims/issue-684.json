@@ -11,12 +11,13 @@
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T16:00:31Z",
+  "last_update": "2026-09-27T23:12:13Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue684-main-mirror-repair-20260927"
+    "governance/issue684-main-mirror-repair-20260927",
+    "governance/issue684-main-mirror-current-20260928"
   ],
   "remote_qa": {
     "run_id": 36329242279,
@@ -26,7 +27,7 @@
     "conclusion": "success",
     "pytest": "68 passed in 3.10s"
   },
-  "next_action": "Open reciprocal main/cleanup PRs for #684 governance mirror at governance/issue684-main-mirror-repair-20260927@8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
+  "next_action": "Create fresh governed-only #684 mirror on governance/issue684-main-mirror-current-20260928 from sealed a4fcfaf6 with current main as sync parent; preserve newer governance while applying only the missing #684 Scheduler Skill + Authority Map 09 + Scheduled Resume 11 writeback. Then refresh cleanup integration of the sealed #684 delta without regressing current governance, open reciprocal main/cleanup PRs, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-684.json",
   "evidence": [
@@ -60,17 +61,19 @@
     "Delegated main mirror reservation write authorized by Guard 36329852752 / request 5857245588 / result 5857248247.",
     "Initial delegated mirror branch governance/issue684-main-mirror-20260927 was mistakenly created at main f65ee095790ff6ec2e52ad7d158cecdc43886715; subsequent commit Guard 36330109287 failed closed with LIVE_CLAIM_HEAD_DRIFT_NOT_RECONCILIATION. Branch preserved as evidence; no force-reset/delete.",
     "Replacement delegated-branch reservation authorized by write Guard 36330218548 / request 5857292977 / result 5857294603.",
-    "Fresh reconciliation: replacement mirror branch HEAD 8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2 is the intended governed-only mirror commit; relative current main@f65ee095790ff6ec2e52ad7d158cecdc43886715 content diff is exactly 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11. The apparent 30-commit ancestry versus accepted head is second-parent graph ancestry, not branch contamination. Commit effect observed; replay prohibited."
+    "Fresh reconciliation: replacement mirror branch HEAD 8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2 is the intended governed-only mirror commit; relative current main@f65ee095790ff6ec2e52ad7d158cecdc43886715 content diff is exactly 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11. The apparent 30-commit ancestry versus accepted head is second-parent graph ancestry, not branch contamination. Commit effect observed; replay prohibited.",
+    "Fresh parent-branch repair Guard 36357535063 + trusted repair run 36357599079 re-bound owning claim/checkpoint to repair/issue684-main-mirror-sealed-20260928@a4fcfaf6 without accepting observed drift 8a81fe4a.",
+    "Fresh content readback: current main/cleanup share newer governance, but both still lack #684 Scheduler resume/Authority Map/Scheduled Resume writeback carried by stale mirror; stale mirror must not be merged directly."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36331608393,
-    "request_comment_id": 5857459948,
-    "result_comment_id": 5857461435,
+    "run_id": 36357881569,
+    "request_comment_id": 5860715123,
+    "result_comment_id": 5860716616,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile observed #684 governed-only mirror commit and advance next_action to reciprocal PRs"
+    "mutation": "reserve fresh governed-only #684 mirror branch and reconcile stale next_action"
   }
 }
