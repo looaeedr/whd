@@ -23,6 +23,8 @@ jobs:
     env:
       TESTED_SHA: ${{ github.sha }}
       MERGE_HEAD: 2c0005a524bc2e2c824608aa94e80bf8f7353966
+      RECOVERY_QA1_HEAD: d8406a9946d5e079eeaf2c55ddae1b6692130426
+      RECOVERY_BOM_HEAD: 150a9ab87b517668d1e0bc8a8ffdecfebbf9453f
       CURRENT_X_PARENT: 5a29aacdc39805e6950362a8880f1513318389f0
       SEALED_PHASE7_PARENT: ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6
     steps:
@@ -51,9 +53,19 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${TESTED_SHA}"
-          test "$(git rev-parse HEAD^)" = "${MERGE_HEAD}"
+          test "$(git rev-parse HEAD^)" = "${RECOVERY_BOM_HEAD}"
+          test "$(git rev-parse "${RECOVERY_BOM_HEAD}^")" = "${RECOVERY_QA1_HEAD}"
+          test "$(git rev-parse "${RECOVERY_QA1_HEAD}^")" = "${MERGE_HEAD}"
           test "$(git show -s --format=%P "${MERGE_HEAD}")" = "${CURRENT_X_PARENT} ${SEALED_PHASE7_PARENT}"
-          test "$(git diff --name-only "${MERGE_HEAD}..HEAD")" = ".github/workflows/qa-issue780-phase7-integration.yml"
+          actual_recovery_paths="$(git diff --name-only "${MERGE_HEAD}..HEAD" | LC_ALL=C sort)"
+          expected_recovery_paths="$(printf '%s\n' '.github/workflows/qa-issue780-phase7-integration.yml' 'tests/process/test_issue681_poweroff_gate.py' | LC_ALL=C sort)"
+          test "${actual_recovery_paths}" = "${expected_recovery_paths}"
+          test "$(python - <<'PY'
+from pathlib import Path
+p = Path('tests/process/test_issue681_poweroff_gate.py').read_bytes()
+print('BOM_FREE' if not p.startswith(b'\xef\xbb\xbf') else 'BOM_PRESENT')
+PY
+)" = "BOM_FREE"
           sha256sum config.ini > /tmp/i780-config-before.sha256
           find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/i780-dxf-before.sha256
           test -s /tmp/i780-dxf-before.sha256
