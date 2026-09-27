@@ -27,13 +27,16 @@
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36308030198.",
     "Remote Finalization 36308117269 GREEN with FINALIZATION_PROOF_VALID; artifact 10927368409.",
     "Issue #828 remote readback: closed/completed at 2026-09-27T09:03:42Z.",
-    "Post-close coordination Guard 36308185056 GREEN; advancing to RELEASE_HANDOFF_PENDING."
+    "Post-close coordination Guard 36308185056 GREEN; advancing to RELEASE_HANDOFF_PENDING.",
+    "Final coordination Guard 36308258197 GREEN.",
+    "Issue #828 closed/completed; Remote Finalization 36308117269 GREEN.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "obtain final coordination write Guard, then atomically persist checkpoint CLOSED + claim RELEASED"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T07:30:00Z",
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
   "head_sha": "6b5c5f368633e38bc66a3077228e25f81871c4fe",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T09:04:19Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T09:05:40Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Obtain one fresh final coordination write Guard, then atomically persist #828 checkpoint CLOSED + claim RELEASED; fresh-read terminal state.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -44,7 +44,9 @@
     "Closure lifecycle write Guard 36308030198 GREEN for exact #828 terminal pair.",
     "Trusted Remote Finalization run 36308117269 GREEN / FINALIZATION_PROOF_VALID; artifact 10927368409.",
     "Issue #828 fresh-read closed/completed at 2026-09-27T09:03:42Z.",
-    "Post-close coordination Guard 36308185056 GREEN."
+    "Post-close coordination Guard 36308185056 GREEN.",
+    "Final coordination Guard 36308258197 GREEN for exact RELEASE_HANDOFF_PENDING pair.",
+    "Final atomic coordination transaction persists checkpoint CLOSED + claim RELEASED only after #828 closed/completed and bound finalization proof GREEN."
   ],
   "remote_qa": {
     "run_id": 36304109574,
@@ -71,11 +73,11 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36308185056,
-    "request_comment_id": 5854473355,
+    "run_id": 36308258197,
+    "request_comment_id": 5854483846,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #828 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically persist #828 checkpoint CLOSED + claim RELEASED"
   }
 }
