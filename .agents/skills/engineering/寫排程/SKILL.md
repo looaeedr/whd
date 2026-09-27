@@ -1,261 +1,169 @@
 ---
-name: 寫排程
-description: 建立、修改、修復 WHD 的 recurring scheduler／ChatGPT automation prompt、lane、cadence 與續工契約。當使用者要求「新增排程」「修改排程」「寫排程」「排程 prompt」「排程一直停」「把排程補硬閘門」，或需要把 recurring automation 寫成可持續施工、可驗證、不可偷偷停工的 durable contract 時使用。
-whd_doc_role: CURRENT
+name: 撖急?蝔?description: 撱箇??耨?嫘耨敺?WHD ??recurring scheduler嚗hatGPT automation prompt?ane?adence ??撌亙?蝝雿輻??瘙憓?蝔耨?寞?蝔神????蝔?prompt??蝔??游?????鋆′??????閬? recurring automation 撖急??舀?蝥撌乓撽????臬?瑕?撌亦? durable contract ?蝙?具?whd_doc_role: CURRENT
 whd_contract: scheduler-authoring
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# 寫排程
-
+# 撖急?蝔?
 ## EXECUTION_INTENT_ROUTING_V1_BRIDGE
 
-本 Skill 的 scheduler authoring / automation update 預設為 `UPDATE_ONLY`。建立、改名、改 cadence、改 prompt、補 hard gate 或修 automation 設定，只授權該 automation update + 必要 validation/readback。
-
-更新 automation 不授權 claim Issue、建立 implementation branch 或執行 successor chain。只有使用者另外明確啟動 `/排程A` / `/排程B`、scheduled invocation 真正觸發，或明確要求施工，才交給對應 execution mode。
-
+??Skill ??scheduler authoring / automation update ?身??`UPDATE_ONLY`?遣蝡? cadence? prompt?? hard gate ?耨 automation 閮剖?嚗??閰?automation update + 敹? validation/readback??
+?湔 automation 銝?甈?claim Issue?遣蝡?implementation branch ?銵?successor chain??蝙?刻憭?蝣箏???`/??A` / `/??B`?cheduled invocation ?迤閫貊嚗??Ⅱ閬??賢極嚗?鈭斤策撠? execution mode??
 ### RECOVERY_IS_EXCEPTION_NOT_PHASE
 
-本 Skill 內的 drift / expired receipt / unconsumed GREEN / reconciliation 條款描述的是**被寫入 scheduler runtime 的 recovery capability**，不是 authoring update 自己要逐條執行的固定 phase。只有 runtime fresh machine evidence 命中條件時才進 recovery。
+??Skill ?抒? drift / expired receipt / unconsumed GREEN / reconciliation 璇狡?膩?**鋡怠神??scheduler runtime ??recovery capability**嚗???authoring update ?芸楛閬??瑁??摰?phase???runtime fresh machine evidence ?賭葉璇辣????recovery??
+`POST_UPDATE_READBACK` ??`UPDATE_ONLY` ?迤撣詨???gate嚗eadback GREEN 敺?authoring 隞餃?摰?嚗?敺?????scheduler lane ?賢極??unrelated Issue??
 
-`POST_UPDATE_READBACK` 是 `UPDATE_ONLY` 的正常完成 gate；readback GREEN 後 authoring 任務完成，不得順手啟動 scheduler lane 施工或 unrelated Issue。
-
-
-本 Skill 擁有「怎麼建立／修改 WHD recurring scheduler / automation prompt」的 authoring contract。它**不**擁有派工狀態機、execution claim、Remote Guard、Remote QA、continuity state 或 Issue closure；這些一律 bridge 回既有 canonical Skill / executable authority。
-
-目標不是把 prompt 寫得很長，而是避免每次「縮短、補一句、改名稱、改 cadence」時不小心刪掉真正的 safety / continuity contract。
-
-## 1. Authority 與啟動鏈
+??Skill ???獐撱箇?嚗耨??WHD recurring scheduler / automation prompt?? authoring contract??**銝?*??瘣曉極????xecution claim?emote Guard?emote QA?ontinuity state ??Issue closure嚗?銝敺?bridge ???canonical Skill / executable authority??
+?格?銝??prompt 撖怠?敺嚗?踹?瘥活?葬?准?銝?乓?迂? cadence??銝?敹??甇?? safety / continuity contract??
+## 1. Authority ????
 
 ### PROMPT_MINIMUM_CONTRACT_V1
 
-任何 WHD 施工型 scheduler prompt 建立或修改前，固定依序取得 authority：
+隞颱? WHD ?賢極??scheduler prompt 撱箇??耨?孵?嚗摰?摨?敺?authority嚗?
+1. 雿輻?頛芣?蝣箄?瘙?2. live automation state嚗utomation id?itle?chedule?iming_mode?nabled????prompt?pdated_at?ast_run_time??3. repo owning branch ??`.agents/skills/engineering/瘣曉極/SKILL.md`嚗????啁????嗉???fallback??4. `.agents/skills/engineering/remote-execution-guard/SKILL.md`嚗anonical name嚗?*?垢?瑁?摰?**嚗?5. `monitoring-remote-qa`?executable-continuity-controller` ?頛?Preflight required Skills / references??6. automation host ?祕??capability / cadence ???
+?箏?蝖祈???
 
-1. 使用者本輪明確要求。
-2. live automation state：automation id、title、schedule、timing_mode、enabled、完整 prompt、updated_at、last_run_time。
-3. repo owning branch 的 `.agents/skills/engineering/派工/SKILL.md`；無合法最新版才依其規則 fallback。
-4. `.agents/skills/engineering/remote-execution-guard/SKILL.md`（canonical name：**遠端執行守門**）。
-5. `monitoring-remote-qa`、`executable-continuity-controller` 與當輪 Preflight required Skills / references。
-6. automation host 的實際 capability / cadence 限制。
+- **瘣曉極 + ?垢?瑁?摰?**銝???prompt 憯葬?????韏瑚?撌脣瘣曉極 Skill 鋆～??乓?- prompt ?芾撘 live Skill / executable authority嚗?敺?鋆賭?憟?瞍宏??Guard schema?TL?tale threshold ??parser??- 靽格 repo ??Skill / SOP ??隞?韏?`AGENTS.md` + `撖急??窯 Preflight嚗 Skill 銝?隞????
+## 2. ?? Baseline Snapshot嚗?甇Ｙ?交
 
-固定硬規則：
-
-- **派工 + 遠端執行守門**不得因 prompt 壓縮、改名或「看起來已在派工 Skill 裡」而省略。
-- prompt 只能引用 live Skill / executable authority，不得複製一套會漂移的 Guard schema、TTL、stale threshold 或 parser。
-- 修改 repo 內 Skill / SOP 時，仍先走 `AGENTS.md` + `寫技能` Preflight；本 Skill 不取代它。
-
-## 2. 先做 Baseline Snapshot，禁止直接改
-
-每次修改 automation 前，先 fresh-read 並保存：
+瘥活靽格 automation ????fresh-read 銝虫?摮?
 
 - `automation_id`
 - `title`
 - `schedule`
 - `timing_mode`
 - `is_enabled`
-- 完整 `prompt`
+- 摰 `prompt`
 - `updated_at`
 - `last_run_time`
-- prompt 內的 durable lane owner
+- prompt ?抒? durable lane owner
 - entrypoint identity / label
 - sibling entrypoints / sibling lanes
 
-未取得 baseline snapshot，不得更新 automation。
-
-修改後必須能回答：
-
-- 哪些欄位是使用者要求改的；
-- 哪些欄位必須保持不變；
-- 哪些 sibling 明確不在本次 scope；
-- 若修改失敗，要用哪份 baseline rollback。
-
-## 3. Schedule、Lane、Entrypoint 三者必須分離
-
+?芸?敺?baseline snapshot嚗?敺??automation??
+靽格敺????嚗?
+- ?芯?甈??臭蝙?刻?瘙??
+- ?芯?甈?敹?靽?銝?嚗?- ?芯? sibling ?Ⅱ銝?祆活 scope嚗?- ?乩耨?孵仃??閬?芯遢 baseline rollback??
+## 3. Schedule?ane?ntrypoint 銝?????
 ### RECURRING_STAYS_ENABLED
 
-- `schedule` = 何時喚醒。
-- durable lane owner = 哪個 logical worker / mutex owner。
-- entrypoint = 同一 lane 的哪個喚醒入口。
+- `schedule` = 雿?????- durable lane owner = ?芸?logical worker / mutex owner??- entrypoint = ?? lane ???????
+蝳迫???毽??銝 identity??
+?? logical lane ????entrypoint ?臭誑?梁 durable owner嚗?? wake-up slots嚗??臬蝦甇文像銵? workers??
+?迤閬像銵撌交?嚗??蝙??*銝? durable lane owner**嚗蒂隞 shared claims / dependency / integration scope ?斗?賢摰撟唾???
+?日?雿輻??蝣箄?瘙?
 
-禁止把三者混成同一 identity。
+- 銝????扎????? recurring automation嚗?- 銝???sibling ??cadence嚗?- 銝???sibling ??durable lane identity嚗?- 銝?? invocation 蝯??神?ecurring task 摰???
+??host ?銝 automation ?敹怠?賣?撠?銝甈∴??蝙?刻?閬?30 ?? logical cadence嚗?典??hourly offset entrypoints 蝯?銝璇?lane嚗?血??owner ?捱?潦? lane 鈭???胯???lane ?像銵?銝?芰???瘙箏???
+## 4. Scheduler Prompt 敹?憟?
 
-同一 logical lane 的多個 entrypoint 可以共用 durable owner；它們是 wake-up slots，不是彼此平行的 workers。
-
-真正要平行施工時，必須使用**不同 durable lane owner**，並仍由 shared claims / dependency / integration scope 判斷能否安全平行。
-
-除非使用者明確要求：
-
-- 不得停用、刪除、完成或重排 recurring automation；
-- 不得改 sibling 的 cadence；
-- 不得改 sibling 的 durable lane identity；
-- 不得把「本 invocation 結束」寫成「recurring task 完成」。
-
-若 host 的單一 automation 最快只能每小時一次，而使用者需要 30 分鐘 logical cadence，可用兩個 hourly offset entrypoints 組成一條 lane；是否共用 owner 取決於「同 lane 互斥」還是「不同 lane 真平行」，不可只看時間決定。
-
-## 4. Scheduler Prompt 必備契約
-
-施工型 scheduler prompt 至少必須清楚包含以下語意；標題可調整，但責任不能刪：
+?賢極??scheduler prompt ?喳?敹?皜??隞乩?隤?嚗?憿隤踵嚗?鞎砌遙銝?迎?
 
 ### 4.0 REPORT_HANDLER_IDENTITY_PREFIX_V1
 
-所有新建或修改的 WHD scheduler prompt 都必須要求：每次 wake fresh-reconstruct `lane owner + active Issue + exact claim worker` 後，任何 user-visible status、progress、heartbeat 或 CHECKPOINT 回報，在全域 Skill announcement gate 之後，**該回報區塊的第一行**固定輸出：
-
+??撱箸?靽格??WHD scheduler prompt ?賢???瘙?瘥活 wake fresh-reconstruct `lane owner + active Issue + exact claim worker` 敺?隞颱? user-visible status?rogress?eartbeat ??CHECKPOINT ?嚗?典? Skill announcement gate 銋?嚗?*閰脣??勗?憛?蝚砌?銵?*?箏?頛詨嚗?
 ```text
-【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
-```
+????<handler>嚚wner=<exact owner|NONE>嚚極?殷?#<issue|NONE|UNBOUND>??```
 
-- scheduler lane 已持有 active Issue 時，`handler` 使用可辨識的 `排程A / 排程B`，`owner` 必須是 fresh-read exact lane owner / claim worker，`issue` 必須是 exact active Issue。
-- 尚未選出或尚未 claim 工單時，`issue=NONE`；legacy identity 無法建立 explicit binding 時用 `UNBOUND`，不得猜 Issue。
-- 發現 foreign owner 時不得把目前 scheduler lane 冒充處理者；回報 exact foreign owner，並在後續 detail 保留 requested lane / entrypoint。
-- replacement prompt 必須保留 `REPORT_HANDLER_IDENTITY_PREFIX_V1` 與上述模板；post-update readback 要驗證兩者存在，**不得刪除**來縮短 prompt。
-- prefix 只是 user-visible provenance，**不建立 execution authority**、不改 ownership、也不取代 claim / Guard / liveness / continuity gate。
-
+- scheduler lane 撌脫???active Issue ??`handler` 雿輻?航儘霅? `??A / ??B`嚗owner` 敹???fresh-read exact lane owner / claim worker嚗issue` 敹???exact active Issue??- 撠?詨????claim 撌亙??`issue=NONE`嚗egacy identity ?⊥?撱箇? explicit binding ? `UNBOUND`嚗?敺? Issue??- ?潛 foreign owner ??敺??桀? scheduler lane ??????? exact foreign owner嚗蒂?典?蝥?detail 靽? requested lane / entrypoint??- replacement prompt 敹?靽? `REPORT_HANDLER_IDENTITY_PREFIX_V1` ??餈唳芋?選?post-update readback 閬?霅???剁?**銝??芷**靘葬??prompt??- prefix ?芣 user-visible provenance嚗?*銝遣蝡?execution authority**????ownership??銝?隞?claim / Guard / liveness / continuity gate??
 
 
 ### 4.0A READY_WORK_CENSUS_V1
 
-所有新建或修改的 WHD scheduler prompt 都必須保留以下 no-work hard gate：
-
-- `NO_MATCHING_HANDOFF != NO_WORK`；沒有 matching planned handoff 時仍必須進 ordinary discovery。
-- 建立 `READY_WORK_CENSUS_V1`，fresh-read 並列出 `candidate executable leaves`；每張候選必須有 **fresh durable exclusion evidence**。
-- 合法 exclusion 至少能區分 `FOREIGN_LIVE_OWNER`、`DEPENDENCY_BLOCKED`、`ACTIVE_EXACT_RUN`、`AUTHORITY_MISMATCH`、`SHARED_SCOPE_CONFLICT`，但實際 evaluator/語意 owner 仍由 live《派工》與 Guard 擁有。
-- 遇到 `unclaimed + dependency-unblocked + scheduler-authorized` candidate 時必須 `MUST_CLAIM` → canonical claim path；不得回 NO_WORK。
-- 只有所有候選都被合法排除後才可輸出 `NO_EXECUTABLE_WORK`。沒有 handoff、UNBOUND、單一 foreign owner 都不足以證明 NO_WORK。
-- replacement prompt 的 post-update readback 必須驗證 `READY_WORK_CENSUS_V1`、`NO_MATCHING_HANDOFF != NO_WORK`、`NO_EXECUTABLE_WORK` 仍存在，**不得刪除**來縮短 prompt。
-- 此 contract **不建立 execution authority**、不改 lane owner、不改 claim ownership，也不改 cadence / enabled / takeover semantics。
-
+??撱箸?靽格??WHD scheduler prompt ?賢????誑銝?no-work hard gate嚗?
+- `NO_MATCHING_HANDOFF != NO_WORK`嚗???matching planned handoff ??敹???ordinary discovery??- 撱箇? `READY_WORK_CENSUS_V1`嚗resh-read 銝血???`candidate executable leaves`嚗?撘萄敹???**fresh durable exclusion evidence**??- ?? exclusion ?喳??賢???`FOREIGN_LIVE_OWNER`?DEPENDENCY_BLOCKED`?ACTIVE_EXACT_RUN`?AUTHORITY_MISMATCH`?SHARED_SCOPE_CONFLICT`嚗?撖阡? evaluator/隤? owner 隞 live?晷撌乓? Guard ????- ? `unclaimed + dependency-unblocked + scheduler-authorized` candidate ????`MUST_CLAIM` ??canonical claim path嚗?敺? NO_WORK??- ?芣????質◤???敺??航撓??`NO_EXECUTABLE_WORK`????handoff?NBOUND?銝 foreign owner ?賭?頞喃誑霅? NO_WORK??- replacement prompt ??post-update readback 敹?撽? `READY_WORK_CENSUS_V1`?NO_MATCHING_HANDOFF != NO_WORK`?NO_EXECUTABLE_WORK` 隞??剁?**銝??芷**靘葬??prompt??- 甇?contract **銝遣蝡?execution authority**????lane owner????claim ownership嚗?銝 cadence / enabled / takeover semantics??
 ### 4.1 SKILL_FIRST_HARD_GATE
 
-在任何 Guard、claim、branch、PR、workflow、Issue、repository mutation、takeover、reconciliation 前：
+?其遙雿?Guard?laim?ranch?R?orkflow?ssue?epository mutation?akeover?econciliation ??
 
-- fresh-read `派工`；
-- fresh-read `遠端執行守門`；
-- 依兩者載入 required `monitoring-remote-qa`、`executable-continuity-controller`；
-- 驗證 canonical name / contract；
-- live authority 與 prompt 衝突時，live authority 優先。
-
+- fresh-read `瘣曉極`嚗?- fresh-read `?垢?瑁?摰?`嚗?- 靘????required `monitoring-remote-qa`?executable-continuity-controller`嚗?- 撽? canonical name / contract嚗?- live authority ??prompt 銵???live authority ?芸???
 #### SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1
 
-所有新建或修改的 WHD A/B recurring scheduler prompt 都必須明確要求：**每次 wake** 在 handoff 判定、ordinary discovery 或任何 NO_WORK / `NO_EXECUTABLE_WORK` 結論之前，fresh-read production `.agents/skills/engineering/排程模擬/SKILL.md`。
-
-- 此 read **不論**本輪是否存在 matching planned handoff 都必須發生；不得把《排程模擬》綁成只有 work-slot handoff 才讀。
-- 真實 scheduled entrypoint 與 interactive same-lane resume 都使用同一 live《排程模擬》census / continuity contract，但必須保留各自真實 physical invocation provenance。
-- 《工作槽》仍可依是否存在 work-slot handoff 按需載入；這不影響《排程模擬》每輪必讀。
-- replacement prompt 的 post-update readback 必須驗證「每次 wake + `.agents/skills/engineering/排程模擬/SKILL.md` + 不論 handoff」語意仍存在，不能為縮短 prompt 刪除。
-
+??撱箸?靽格??WHD A/B recurring scheduler prompt ?賢???蝣箄?瘙?**瘥活 wake** ??handoff ?文??rdinary discovery ?遙雿?NO_WORK / `NO_EXECUTABLE_WORK` 蝯?銋?嚗resh-read production `.agents/skills/engineering/??璅⊥/SKILL.md`??
+- 甇?read **銝?**?祈憚?臬摮 matching planned handoff ?賢????銝???蝔芋?研????work-slot handoff ????- ?祕 scheduled entrypoint ??interactive same-lane resume ?賭蝙?典?銝 live??蝔芋?研ensus / continuity contract嚗?敹?靽???祕 physical invocation provenance??- ?極雿局???臭??臬摮 work-slot handoff ??頛嚗?敶梢??蝔芋?研?頛芸?霈??- replacement prompt ??post-update readback 敹?撽???甈?wake + `.agents/skills/engineering/??璅⊥/SKILL.md` + 銝? handoff????摮嚗??賜蝮桃 prompt ?芷??
 ### 4.2 LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY
 
 <!-- LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY -->
 
-每次 wake 在處理 pending Guard 或照 claim.next_action 施工前，先 fresh-read：
-
-- active owning Issue；
-- exact shared claim + claim blob；
-- work branch live HEAD；
-- canonical checkpoint（若有）；
-- latest Guard receipt / exact run evidence。
-
-若 `claim.head_sha != live branch HEAD`、claim.next_action 已被 branch/checkpoint durable evidence 完成、或 claim/checkpoint phase 已落後，固定分類為 `DURABLE_MUTATION_ALREADY_HAPPENED`：
-
-- **禁止重播**已完成 commit / checkpoint / workflow cleanup / finalization mutation；
-- 先依 live《派工》+《遠端執行守門》取得 fresh exact Guard，把 claim/checkpoint reconcile 到 live HEAD、current phase 與新的 exact next_action；
-- reconcile 後 fresh-read確認，再往下施工；
-- claim metadata 是 durable coordination snapshot，不得凌駕已存在的 branch/checkpoint live evidence。
-
+瘥活 wake ?刻???pending Guard ? claim.next_action ?賢極????fresh-read嚗?
+- active owning Issue嚗?- exact shared claim + claim blob嚗?- work branch live HEAD嚗?- canonical checkpoint嚗??嚗?- latest Guard receipt / exact run evidence??
+??`claim.head_sha != live branch HEAD`?laim.next_action 撌脰◤ branch/checkpoint durable evidence 摰??? claim/checkpoint phase 撌脰敺??箏?????`DURABLE_MUTATION_ALREADY_HAPPENED`嚗?
+- **蝳迫?**撌脣???commit / checkpoint / workflow cleanup / finalization mutation嚗?- ?? live?晷撌乓???蝡臬銵????敺?fresh exact Guard嚗? claim/checkpoint reconcile ??live HEAD?urrent phase ???exact next_action嚗?- reconcile 敺?fresh-read蝣箄?嚗?敺銝撌伐?
+- claim metadata ??durable coordination snapshot嚗?敺?擏歇摮??branch/checkpoint live evidence??
 ### 4.3 GREEN_EXPIRY_HARD_GATE
 
 <!-- GREEN_EXPIRY_HARD_GATE -->
 
-任何 `WHD_REMOTE_GUARD_RESULT_V1 result=GREEN` 在 consume 前都必須重新驗證 live receipt identity，並檢查 **current UTC time < receipt.expires_at**。
-
-固定 fail-closed：
-
-- `now >= expires_at` → 分類 `STALE_GUARD_RECEIPT`；
-- `STALE_GUARD_RECEIPT` 永久禁止 consume、禁止授權 mutation、禁止算 substantive progress；
-- mutation 尚未發生 → fresh reconcile claim/branch/blob/authority 後重新申請 Guard；
-- durable branch/checkpoint 已證明 mutation 發生 → 走 `LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY`，**不得重播 mutation**；
-- 不得把 GREEN 當跨 invocation session token；single-use 之外，還必須在 receipt 的 live 有效窗內使用。
-
-Guard TTL / parser schema 仍由 live《遠端執行守門》擁有；本 Skill 只要求每次 consume 都驗 `expires_at`，不硬編秒數。
-
+隞颱? `WHD_REMOTE_GUARD_RESULT_V1 result=GREEN` ??consume ?敹??撽? live receipt identity嚗蒂瑼Ｘ **current UTC time < receipt.expires_at**??
+?箏? fail-closed嚗?
+- `now >= expires_at` ???? `STALE_GUARD_RECEIPT`嚗?- `STALE_GUARD_RECEIPT` 瘞訾?蝳迫 consume??甇Ｘ?甈?mutation??甇Ｙ? substantive progress嚗?- mutation 撠?潛? ??fresh reconcile claim/branch/blob/authority 敺??啁隢?Guard嚗?- durable branch/checkpoint 撌脰???mutation ?潛? ??韏?`LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY`嚗?*銝?? mutation**嚗?- 銝???GREEN ?嗉楊 invocation session token嚗ingle-use 銋?嚗?敹???receipt ??live ??蝒雿輻??
+Guard TTL / parser schema 隞 live??蝡臬銵????????Skill ?芾?瘙?甈?consume ?賡? `expires_at`嚗?蝖祉楊蝘??
 ### 4.4 UNCONSUMED_GREEN_FIRST_RECOVERY
 
-上一 invocation 若留下 **仍 exact-valid 且尚未過期** 的 `WHD_REMOTE_GUARD_RESULT_V1 result=GREEN`，但授權 mutation 尚未發生：
-
-- 下一 wake 第一個 repo-side substantive action就是依《遠端執行守門》驗證 identity + `expires_at` 後 single-use consume；
-- consume → exact mutation → fresh readback 完成前，禁止新 Guard、禁止跳去別票、禁止正常 return；
-- identity drift 先走 `LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY`；
-- receipt 已過期則走 `GREEN_EXPIRY_HARD_GATE`，禁止盲 consume。
-
+銝? invocation ?亦?銝?**隞?exact-valid 銝??芷???* ??`WHD_REMOTE_GUARD_RESULT_V1 result=GREEN`嚗??? mutation 撠?潛?嚗?
+- 銝? wake 蝚砌???repo-side substantive action撠望靘?蝡臬銵????霅?identity + `expires_at` 敺?single-use consume嚗?- consume ??exact mutation ??fresh readback 摰???蝳迫??Guard??甇Ｚ歲?餃蟡具?甇Ｘ迤撣?return嚗?- identity drift ?粥 `LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY`嚗?- receipt 撌脤???韏?`GREEN_EXPIRY_HARD_GATE`嚗?甇Ｙ consume??
 ### 4.5 HEARTBEAT_IS_NOT_WORK
 
-`WHD_SCHEDULER_RUNTIME_LIVENESS_V1` 只是 runtime lease / liveness evidence。
-
-以下都**不等於 substantive work**：
-
+`WHD_SCHEDULER_RUNTIME_LIVENESS_V1` ?芣 runtime lease / liveness evidence??
+隞乩???*銝???substantive work**嚗?
 - heartbeat
 - progress comment
 - CHECKPOINT
 - Guard request
 - Guard GREEN receipt
-- QA PASS / workflow success 本身
+- QA PASS / workflow success ?祈澈
 
-只要 exact next_action 仍可執行，就必須繼續。不得因「本輪已有 durable comment」誤判成可以收工。
-
-若存在 pending unconsumed GREEN，應先 consume transaction，再發布新的 heartbeat；避免 heartbeat 變成假進度終點。
-
+?芾? exact next_action 隞?瑁?嚗停敹?蝜潛???敺??頛芸歇??durable comment?炊?斗??臭誑?嗅極??
+?亙???pending unconsumed GREEN嚗???consume transaction嚗??澆??啁? heartbeat嚗??heartbeat 霈??脣漲蝯???
 ### 4.6 BLOCKED_IS_NOT_AN_ESCAPE_HATCH
 
-`BLOCKED` 只允許 genuine external authority / capability / dependency blocker，且必須有 fresh durable evidence。
-
-下列 scheduler 自己能完成的事情不是 blocker：
-
+`BLOCKED` ?芸?閮?genuine external authority / capability / dependency blocker嚗?敹???fresh durable evidence??
+銝? scheduler ?芸楛?賢???鈭?銝 blocker嚗?
 - fresh discovery
-- 查 Actions run 是否存在
-- poll 已知 / 可發現 run
-- 讀 logs / Issue / claim / branch
-- 依 live Skill 發 Guard
+- ??Actions run ?臬摮
+- poll 撌脩 / ?舐??run
+- 霈 logs / Issue / claim / branch
+- 靘?live Skill ??Guard
 - consume GREEN
 - exact mutation
 - readback
 - stale metadata reconciliation
 
-「尚未找到 run」不等於 `RUN_NOT_CREATED`；先 fresh-query exact branch/head。存在 run 就鎖 exact `run_id + head_sha`。
-
+???芣??run??蝑 `RUN_NOT_CREATED`嚗? fresh-query exact branch/head????run 撠梢? exact `run_id + head_sha`??
 ### 4.7 EXACT_REMOTE_RUN_LOCK
 
-一旦 exact remote QA / Guard run 存在：
-
-- 鎖同一 `run_id + head_sha` / orchestrator identity；
-- poll 到 terminal；
-- 禁止 duplicate dispatch；
-- terminal success 同輪前進 acceptance / cleanup / closure；
-- terminal failure 同輪抓 exact evidence → recovery；
-- stale durable snapshot 不能壓過 live run。
-
+銝??exact remote QA / Guard run 摮嚗?
+- ??銝 `run_id + head_sha` / orchestrator identity嚗?- poll ??terminal嚗?- 蝳迫 duplicate dispatch嚗?- terminal success ?憚??acceptance / cleanup / closure嚗?- terminal failure ?憚??exact evidence ??recovery嚗?- stale durable snapshot 銝憯? live run??
 ### 4.8 TURN_EXIT_MACHINE_GATE
 
-正常 return 前不能只「文字判斷可以停」。
-
-必須實際走 live continuity authority 的 machine gate，例如 canonical `tools/continuity_controller.py ... assert-turn-exitable` / 等價 `ASSISTANT_TURN_EXIT_GATE_V1`。
-
-下列任一存在，都禁止正常 return：
-
-- unconsumed **且未過期** GREEN
-- claim/live branch/checkpoint drift 尚未 reconcile
-- 可執行 `next_action != null`
+甇?虜 return ???賢??摮?瑕隞亙???
+敹?撖阡?韏?live continuity authority ??machine gate嚗?憒?canonical `tools/continuity_controller.py ... assert-turn-exitable` / 蝑 `ASSISTANT_TURN_EXIT_GATE_V1`??
+銝?隞颱?摮嚗蝳迫甇?虜 return嚗?
+- unconsumed **銝??** GREEN
+- claim/live branch/checkpoint drift 撠 reconcile
+- ?臬銵?`next_action != null`
 - `RUNNING / WAITING_REMOTE / RECOVERING`
-- terminal child 仍有 `NEXT_CHILD_EXECUTABLE`
+- terminal child 隞? `NEXT_CHILD_EXECUTABLE`
 
-只有 machine gate 放行時，才可寫 owner-authored `WHD_SCHEDULER_RUNTIME_END_V1`，並 fresh-read 驗證 END 與本 invocation identity exact match。
+?芣? machine gate ?曇????撖?owner-authored `WHD_SCHEDULER_RUNTIME_END_V1`嚗蒂 fresh-read 撽? END ? invocation identity exact match??
+瘝? matching END ??invocation 銝?鋡思?銝 wake ?嗆??迤撣詨???敹?靘?live liveness / continuity 閬? resume??
 
-沒有 matching END 的 invocation 不得被下一 wake 當成「正常完成」；必須依 live liveness / continuity 規則 resume。
+## 4.9 Scheduler state mutation durable reconciliation
 
-## 5. Dynamic Discovery，不准寫死工單
+### SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1
 
-Scheduler prompt 不得硬編：
+???WHD recurring scheduler prompt嚗ost automation state mutation ??bridge ??canonical `tools/scheduler_state_reconciliation.py`嚗 Skill ?芾?鞎?authoring contract嚗?銴ˊ蝚砌?憟?readback classifier??
+隞颱? enable/disable state change ?典??host mutation **銋?**敹? durable 靽? exact嚗?
+`lane_owner + entrypoint + automation_id + schedule + timing_mode + enabled_before + enabled_after`
 
+crash/re-entry ??mutation ?銝Ⅱ摰?嚗? fresh-read exact live automation嚗???canonical classifier ?文?嚗?
+- `NOT_APPLIED` ??exact pre-state 隞嚗?迂銝甈?exact mutation attempt??- `EFFECT_OBSERVED` ??exact post-state 撌脣嚗?甇?replay嚗??durable reconciliation??- `AMBIGUOUS` ??identity/state/cadence/timing mode 隞颱?銝???蝘鳴?fail closed??
+?日?雿輻?頛芣?蝣箄?瘙?scheduler mutation transaction 銝??葆??cadence?timing_mode`?ane owner?ntrypoint ??automation id????靽格 A/B prompt ??????bridge嚗? real recurring wake ??`/??A` / `/??B` interactive resume ?梁?? canonical scheduler-state recovery owner??
+
+## 5. Dynamic Discovery嚗??神甇餃極??
+Scheduler prompt 銝?蝖祉楊嚗?
 - current Issue / child / master number
 - branch
 - SHA
@@ -264,43 +172,32 @@ Scheduler prompt 不得硬編：
 - next issue
 - current next_action
 
-固定 identity 只可以是：
-
+?箏? identity ?芸隞交嚗?
 - scheduler automation / lane own identity
 - entrypoint identity
-- 使用者明確要求固定的 target repo / logical role
+- 雿輻??蝣箄?瘙摰? target repo / logical role
 
-每次 invocation 從 live GitHub durable authority fresh-discover executable leaf。
-
-若是平行 lane，claim 前另外 fresh-read：
-
-- 全部 active claims
+瘥活 invocation 敺?live GitHub durable authority fresh-discover executable leaf??
+?交撟唾? lane嚗laim ?憭?fresh-read嚗?
+- ?券 active claims
 - dependency graph
 - work branch / mutation scope
 - integration / finalization ownership
 
-不同 lane identity **不是**搶同一 scope 的許可。
-
-## 6. 修改 Prompt 的 Transaction
+銝? lane identity **銝**?嗅?銝 scope ?迂?胯?
+## 6. 靽格 Prompt ??Transaction
 
 ### POST_UPDATE_READBACK
 
-每次更新 automation 固定：
-
-1. fresh-read baseline。
-2. 明列 intended delta。
-3. 建完整 replacement prompt；禁止用「縮短版」偷偷遺失 required Skills / gates。
-4. 更新**單一 automation**。
-5. 立刻 fresh-read同一 automation。
-6. 驗證：
-   - title（除非本輪要求改名）
+瘥活?湔 automation ?箏?嚗?
+1. fresh-read baseline??2. ?? intended delta??3. 撱箏???replacement prompt嚗?甇Ｙ?葬?剔???琿憭?required Skills / gates??4. ?湔**?桐? automation**??5. 蝡 fresh-read?? automation??6. 撽?嚗?   - title嚗?頛芾?瘙??
    - schedule
    - timing_mode
    - enabled
    - durable lane owner
    - entrypoint
-   - `派工`
-   - `遠端執行守門`
+   - `瘣曉極`
+   - `?垢?瑁?摰?`
    - LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY
    - GREEN_EXPIRY_HARD_GATE / STALE_GUARD_RECEIPT
    - UNCONSUMED GREEN responsibility
@@ -309,64 +206,31 @@ Scheduler prompt 不得硬編：
    - EXACT_REMOTE_RUN_LOCK
    - TURN_EXIT_MACHINE_GATE
    - RECURRING_STAYS_ENABLED
-7. 任一 invariant 漂移：立即以 baseline rollback；不得繼續修改 sibling。
-8. 多 entrypoint 需要相同 core contract 時，一個一個更新、一個一個 readback；不能假設第一個成功代表全部成功。
+7. 隞颱? invariant 瞍宏嚗??喃誑 baseline rollback嚗?敺匱蝥耨??sibling??8. 憭?entrypoint ?閬??core contract ??銝????啜?????readback嚗??賢?閮剔洵銝???誨銵典?冽???
+**蝳迫銵嚗?*
 
-**禁止行為：**
+- ?箔??? prompt ?凋?暺??Skill identity??- ?芯???`瘣曉極`嚗? `?垢?瑁?摰?` ?嗆??勗 prerequisite??- ?湔 prompt ??靘踵 cadence / enabled / lane identity??- ?芰? automation update API ??SUCCESS嚗???readback??- ??heartbeat ??BLOCKED ?抵? invocation continuity violation??
+## 7. Guard Transport 銝?閮蝖祆?
 
-- 為了「讓 prompt 短一點」刪掉 Skill identity。
-- 只保留 `派工`，把 `遠端執行守門` 當成隱含 prerequisite。
-- 更新 prompt 時順便改 cadence / enabled / lane identity。
-- 只看 automation update API 回 SUCCESS，不做 readback。
-- 用 heartbeat 或 BLOCKED 掩蓋 invocation continuity violation。
+Remote Guard request / receipt schema 摰??live??蝡臬銵??????
+?孵瘜冽?嚗?
+- host / claim ??provenance wording ?航??trusted transport parser 銝?嚗?- ??request ????fresh-read live Skill / workflow parser嚗?- ? parser FAIL嚗? exact log 靽?schema嚗?敺???Guard嚗?- Actions job success ?祈澈銝???Guard GREEN嚗?- GREEN ??single-use transaction嚗???session token嚗onsume ???fresh 撽? `now < expires_at`嚗??摰?`STALE_GUARD_RECEIPT`??
+## 8. RED ??GREEN 撽?
 
-## 7. Guard Transport 不從記憶硬抄
+撱箇??耨?寞 Skill / scheduler contract ??
 
-Remote Guard request / receipt schema 完全由 live《遠端執行守門》擁有。
-
-特別注意：
-
-- host / claim 的 provenance wording 可能和 trusted transport parser 不同；
-- 送 request 前必須 fresh-read live Skill / workflow parser；
-- 遇到 parser FAIL，讀 exact log 修 schema，不得繞過 Guard；
-- Actions job success 本身不等於 Guard GREEN；
-- GREEN 是 single-use transaction，不是 session token；consume 前另須 fresh 驗證 `now < expires_at`，過期固定 `STALE_GUARD_RECEIPT`。
-
-## 8. RED → GREEN 驗證
-
-建立或修改本 Skill / scheduler contract 時：
-
-1. 先建立 contract RED，能抓到「缺遠端執行守門」「expired GREEN 仍被 consume」「claim/live HEAD drift 未 reconcile」「heartbeat-only」「BLOCKED escape」「沒有 machine turn-exit」其中至少一項。
-2. 最小修改。
-3. 跑 targeted contract GREEN。
-4. Registry / Preflight route 驗證。
-5. 若啟動 remote QA，依 `monitoring-remote-qa` 鎖 exact run 到 terminal。
-6. 修改 automation 後，用實際 live readback驗 schedule / identity / enabled / prompt hard gates，不以文字宣告代替。
-
+1. ?遣蝡?contract RED嚗??撩?垢?瑁?摰??xpired GREEN 隞◤ consume?laim/live HEAD drift ??reconcile?eartbeat-only?LOCKED escape????machine turn-exit?銝剛撠???2. ?撠耨?嫘?3. 頝?targeted contract GREEN??4. Registry / Preflight route 撽???5. ?亙???remote QA嚗? `monitoring-remote-qa` ??exact run ??terminal??6. 靽格 automation 敺??典祕??live readback撽?schedule / identity / enabled / prompt hard gates嚗?隞交?摮恐?誨?踴?
 ## 9. Durable Correction Propagation
 
-只要發現 scheduler authoring 的可重複錯誤：
+?芾??潛 scheduler authoring ????航炊嚗?
+- ?湔??Skill嚗?- ?湔 scheduler prompt authoring pitfalls嚗?- 敹????Registry route / contract test嚗?- ?????敶梢??active automation prompt嚗Ⅱ隤?血??撩???
+- 銝??芯耨?澆?銝??entrypoint??
+## 10. 摰??
 
-- 更新本 Skill；
-- 更新 scheduler prompt authoring pitfalls；
-- 必要時更新 Registry route / contract test；
-- 搜尋所有受影響的 active automation prompt，確認是否同型缺口；
-- 不得只修眼前一個 entrypoint。
-
-## 10. 完成回報
-
-只回報可反讀 evidence：
-
-- 哪些 automation / Skill 被修改；
-- automation id / title / schedule / lane owner 是否保持；
-- Guard / Remote QA exact run；
-- repo branch / commit；
-- contract test / Preflight 結果；
-- post-update readback 結果；
-- 尚未完成的 next_action / blocker。
-
-不得說「寫進 prompt 了，所以一定不會再停」。真正 enforcement 仍以 live executable guard / continuity state / durable evidence 為準。
-
+?芸??勗?? evidence嚗?
+- ?芯? automation / Skill 鋡思耨?對?
+- automation id / title / schedule / lane owner ?臬靽?嚗?- Guard / Remote QA exact run嚗?- repo branch / commit嚗?- contract test / Preflight 蝯?嚗?- post-update readback 蝯?嚗?- 撠摰???next_action / blocker??
+銝?隤芥神??prompt 鈭??隞乩?摰?????甇?enforcement 隞誑 live executable guard / continuity state / durable evidence ?箸???
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback
 

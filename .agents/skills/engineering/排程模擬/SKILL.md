@@ -1,159 +1,90 @@
 ---
-name: 排程模擬
-description: WHD A/B recurring scheduler lane 的 shared runtime contract；同時適用於真實 recurring scheduled entrypoint 與使用者明確輸入 /排程A 或 /排程B 的互動式 same-lane resume。維持同一 durable logical owner、READY_WORK_CENSUS 與 continuity 規則；互動命令不得偽造成平台 scheduled trigger，scheduled invocation 也不得被誤當成只限互動模式。
-whd_doc_role: CURRENT
+name: ??璅⊥
+description: WHD A/B recurring scheduler lane ??shared runtime contract嚗???冽?祕 recurring scheduled entrypoint ?蝙?刻?蝣箄撓??/??A ??/??B ???? same-lane resume?雁??銝 durable logical owner?EADY_WORK_CENSUS ??continuity 閬?嚗??隞支?敺??撟喳 scheduled trigger嚗cheduled invocation 銋?敺◤隤斤????芋撘?whd_doc_role: CURRENT
 whd_contract: scheduler-interactive-lane-resume
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# 排程模擬
+# ??璅⊥
 
 ## EXECUTION_INTENT_ROUTING_V1_BRIDGE
 
-本 Skill 是 A/B durable scheduler lane 的 shared runtime entry contract。合法進入 `SCHEDULER_LANE` 有兩種 physical invocation：真實 recurring scheduled entrypoint，或使用者輸入 exact `/排程A` / `/排程B` 進行同 lane 的互動式 resume。普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式；互動式 resume 也不得宣稱自己是平台 scheduled trigger。
-
+??Skill ??A/B durable scheduler lane ??shared runtime entry contract??瘜脣 `SCHEDULER_LANE` ?蝔?physical invocation嚗?撖?recurring scheduled entrypoint嚗?雿輻?撓??exact `/??A` / `/??B` ?脰???lane ???? resume???摮?唳?蝔kill?ssue ??prompt 銝??芸??脣甇斗芋撘?鈭?撘?resume 銋?敺恐蝔梯撌望撟喳 scheduled trigger??
 ### REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1
 
-- `actual_invocation_source=scheduler`：host 真實觸發 A lane 的 `00 / 20 / 40` 或 B lane 的 `B15 / B45` 時，schedule trigger 本身就是該 invocation 的 `SCHEDULER_LANE` execution authority；entrypoint 仍不是 durable owner。
-- `actual_invocation_source=chatgpt_interactive`：只有使用者明確輸入 exact `/排程A` / `/排程B` 時，才可用相同 durable lane owner 做 same-lane interactive resume。
-- 兩種 physical source 進入後都套用同一份 handoff、`READY_WORK_CENSUS_V1`、claim/Guard、exact-run lock、continuity 與 turn-exit contract；不得因 scheduled source 沒有聊天室 command 就略過 census。
-- scheduled invocation 必須保留真實 scheduler provenance；interactive invocation 必須保留真實 chat provenance。logical owner 相同不代表 physical source 相同。
-
+- `actual_invocation_source=scheduler`嚗ost ?祕閫貊 A lane ??`00 / 20 / 40` ??B lane ??`B15 / B45` ??schedule trigger ?祈澈撠望閰?invocation ??`SCHEDULER_LANE` execution authority嚗ntrypoint 隞???durable owner??- `actual_invocation_source=chatgpt_interactive`嚗?蝙?刻?蝣箄撓??exact `/??A` / `/??B` ????函??durable lane owner ??same-lane interactive resume??- ?拍車 physical source ?脣敺憟??隞?handoff?READY_WORK_CENSUS_V1`?laim/Guard?xact-run lock?ontinuity ??turn-exit contract嚗?敺? scheduled source 瘝??予摰?command 撠梁??census??- scheduled invocation 敹?靽??祕 scheduler provenance嚗nteractive invocation 敹?靽??祕 chat provenance?ogical owner ?詨?銝誨銵?physical source ?詨???
 
 ### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
 
-本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
-
-- fresh runtime、scheduled/work-slot re-entry、stream/connection interruption、`Resume stream unavailable`，或使用者明確要求 **`GitHub durable state重新接`** 時，任何 mutation / waiting / blocker / completion 判定前先 fresh reconstruction。
-- 至少 fresh-read owning Issue、claim blob+payload、checkpoint blob+payload、work branch HEAD、production target HEAD，以及 durable state 指向的 exact PR/run/Guard/closure/chain evidence。
-- reconstruction 完成前**不得靠聊天記憶**補 owner、HEAD、run_id、closure state 或 next_action；不得宣告無工作、等待、卡住或完成。
-- reconstruction 得到 executable non-terminal state 後，同一 invocation 立即沿 canonical **exact next_action** 繼續；「已重新接回」只是 checkpoint observation，不是停止點。
-- 本入口只 bridge canonical gate，不自行建立第二套 durable parser 或較寬的 stop condition。
-
+?砍??撥?嗆?敺?`executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`??
+- fresh runtime?cheduled/work-slot re-entry?tream/connection interruption?Resume stream unavailable`嚗?雿輻??蝣箄?瘙?**`GitHub durable state??匝** ??隞颱? mutation / waiting / blocker / completion ?文??? fresh reconstruction??- ?喳? fresh-read owning Issue?laim blob+payload?heckpoint blob+payload?ork branch HEAD?roduction target HEAD嚗誑??durable state ????exact PR/run/Guard/closure/chain evidence??- reconstruction 摰???*銝???憭抵???*鋆?owner?EAD?un_id?losure state ??next_action嚗?敺恐?撌乩???敺雿?摰???- reconstruction 敺 executable non-terminal state 敺??? invocation 蝡瘝?canonical **exact next_action** 蝜潛?嚗歇??亙????checkpoint observation嚗??臬?甇ａ???- ?砍?? bridge canonical gate嚗??芾?撱箇?蝚砌?憟?durable parser ??撖祉? stop condition??
 ## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
 
-本 Skill 不建立第二套 startup declaration；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
-
-- 真實 recurring scheduled entrypoint 或 exact `/排程A` / `/排程B` 合法建立 `SCHEDULER_LANE` 後，Skill 公告後立即聲明 authorization source、purpose、lane-level authorized/prohibited scope 與 `resume_authority`，再做 claim 或 mutation；physical invocation source 必須如實記錄。
-- 若尚未選出 executable leaf，`authorized_scope` 只能寫 exact lane + canonical discovery boundary；不得預先聲稱某張 Issue 已授權。
-- discovery 後、第一個 claim / checkpoint mutation 前，把 exact issue / branch / HEAD / next_action 寫入 durable evidence；已有合法 same-lane claim 時，`resume_authority` 必須指向 exact checkpoint/next_action。
-- 其他 lane、unrelated ready leaf、空工作槽與 open Issue 都不能因 startup declaration 變成 execution authority。
-
+??Skill 銝遣蝡洵鈭? startup declaration嚗摰?bridge `?瑁??隞餃?::TASK_START_AUTHORITY_DECLARATION_V1`??
+- ?祕 recurring scheduled entrypoint ??exact `/??A` / `/??B` ??撱箇? `SCHEDULER_LANE` 敺?Skill ?砍?敺??唾??authorization source?urpose?ane-level authorized/prohibited scope ??`resume_authority`嚗???claim ??mutation嚗hysical invocation source 敹?憒祕閮???- ?亙??芷??executable leaf嚗authorized_scope` ?芾撖?exact lane + canonical discovery boundary嚗?敺??蝔望?撘?Issue 撌脫?甈?- discovery 敺洵銝??claim / checkpoint mutation ????exact issue / branch / HEAD / next_action 撖怠 durable evidence嚗歇??瘜?same-lane claim ??`resume_authority` 敹??? exact checkpoint/next_action??- ?嗡? lane?nrelated ready leaf?征撌乩?瑽質? open Issue ?賭??賢? startup declaration 霈? execution authority??
 ### NORMAL_PATH_FIRST
 
-取得/恢復 lane authority 後，先沿 current exact next_action 的 normal path。若沒有 drift、pending receipt、foreign-live owner 或 half-terminal evidence，就不得先跑 takeover/reactivate/reconciliation。
-
+??/?Ｗ儔 lane authority 敺??窒 current exact next_action ??normal path?瘝? drift?ending receipt?oreign-live owner ??half-terminal evidence嚗停銝??? takeover/reactivate/reconciliation??
 ### RECOVERY_IS_EXCEPTION_NOT_PHASE
 
-takeover、reconciliation、pending-Guard recovery 只在 fresh machine evidence 證明對應條件時啟動；condition 清掉後立即回 normal path。不能因 Skill「支援 recovery」就每輪預跑 recovery。
-
+takeover?econciliation?ending-Guard recovery ?芸 fresh machine evidence 霅?撠?璇辣????condition 皜?敺??喳? normal path???賢? Skill???recovery?停瘥憚?? recovery??
 ### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
 
-scheduler lane / work slot 是 routing 與互斥 identity，不是 execution authority。空工作槽、open / unblocked Issue 本身不構成 execution authority；本 Skill 只有在真實 recurring scheduled A/B entrypoint 已由 host 觸發，或 exact `/排程A` / `/排程B` 已建立 `SCHEDULER_LANE` mode 後，才可依 canonical discovery 選 executable leaf。
-
+scheduler lane / work slot ??routing ????identity嚗???execution authority?征撌乩?瑽賬pen / unblocked Issue ?祈澈銝???execution authority嚗 Skill ?芣??函?撖?recurring scheduled A/B entrypoint 撌脩 host 閫貊嚗? exact `/??A` / `/??B` 撌脣遣蝡?`SCHEDULER_LANE` mode 敺??靘?canonical discovery ??executable leaf??
 ### WORK_SLOT_HANDOFF_RECEIVER_V1
 
-當工作槽已建立合法 planned handoff 到本 lane 時，**planned handoff receiver 優先於 ordinary dynamic discovery**。
-
-- 每輪進入 A/B lane 後，先 fresh-read canonical handoff / claim / checkpoint evidence，再做 ordinary discovery。
-- 有 matching pending planned handoff 時不得先 claim/discover 另一張 Issue。
-- receiver 最低 exact identity 必須同時匹配：`slot_id + issue + branch + head_sha + checkpoint + target_lane`；若 owning state non-terminal，`next_action` 必須存在且非空。
-- 任一 identity 不一致都 fail closed，分類 `WORK_SLOT_HANDOFF_IDENTITY_MISMATCH`；不得只靠 Issue、lane、聊天室標題猜 receiver。
-- legacy state 沒有 explicit `slot_id` 時回 `UNBOUND`；**UNBOUND 不得猜 slot**。
-- handoff 成功只代表 execution owner/location 可轉到 scheduler；**scheduler owner/location change != work-slot identity change**。
-- `slot_id 必須原值保留`；不得把 worker.slot.1 改成 worker.slot.2，也不得清除既有 slot_id。
-- claim owner / executor provenance 仍依 live 派工與 handoff authority更新；slot_id 只是 durable provenance，不是第二套 ownership authority。
-
+?嗅極雿局撌脣遣蝡?瘜?planned handoff ?唳 lane ??**planned handoff receiver ?芸???ordinary dynamic discovery**??
+- 瘥憚?脣 A/B lane 敺???fresh-read canonical handoff / claim / checkpoint evidence嚗???ordinary discovery??- ??matching pending planned handoff ??敺? claim/discover ?虫?撘?Issue??- receiver ?雿?exact identity 敹????寥?嚗slot_id + issue + branch + head_sha + checkpoint + target_lane`嚗 owning state non-terminal嚗next_action` 敹?摮銝?蝛箝?- 隞颱? identity 銝??湧 fail closed嚗?憿?`WORK_SLOT_HANDOFF_IDENTITY_MISMATCH`嚗?敺??Issue?ane??憭拙恕璅???receiver??- legacy state 瘝? explicit `slot_id` ?? `UNBOUND`嚗?*UNBOUND 銝???slot**??- handoff ???芯誨銵?execution owner/location ?航???scheduler嚗?*scheduler owner/location change != work-slot identity change**??- `slot_id 敹??潔??嚗?敺? worker.slot.1 ?寞? worker.slot.2嚗?銝?皜?Ｘ? slot_id??- claim owner / executor provenance 隞? live 瘣曉極??handoff authority?湔嚗lot_id ?芣 durable provenance嚗??舐洵鈭? ownership authority??
 ### READY_WORK_CENSUS_V1
 
-`NO_MATCHING_HANDOFF != NO_WORK`。planned handoff receiver 只決定優先 routing；**沒有 matching handoff 不得直接推出沒有工作**。沒有 matching planned handoff 時，scheduler 必須繼續 ordinary dynamic discovery，建立本輪 `candidate executable leaves` census。
+`NO_MATCHING_HANDOFF != NO_WORK`?lanned handoff receiver ?芣捱摰??routing嚗?*瘝? matching handoff 銝??湔?典瘝?撌乩?**????matching planned handoff ??scheduler 敹?蝜潛? ordinary dynamic discovery嚗遣蝡頛?`candidate executable leaves` census??
+摰?? `NO_EXECUTABLE_WORK` ??????蝡?
 
-宣告 `NO_EXECUTABLE_WORK` 前必須同時成立：
-
-1. fresh-read live Issue / claim / checkpoint / dependency / branch / exact run authority，列出所有 candidate executable leaves；
-2. 每張候選都有 **fresh durable exclusion evidence** 與 machine-readable exclusion classification；
-3. 合法 exclusion 至少包含：`FOREIGN_LIVE_OWNER`、`DEPENDENCY_BLOCKED`、`ACTIVE_EXACT_RUN`、`AUTHORITY_MISMATCH`、`SHARED_SCOPE_CONFLICT`；實際分類仍服從 live《派工》/ Guard authority，不得用聊天推測；
-4. `unclaimed + dependency-unblocked + scheduler-authorized` 的候選不得被排除；分類固定 `MUST_CLAIM`，必須進 canonical claim path 並完成 first substantive action；
-5. 只有 census 中所有候選都被合法排除，且沒有 matching planned handoff / same-lane resume / canonical successor，才可輸出 `NO_EXECUTABLE_WORK`；
-6. `沒有 matching handoff`、`slot_id=UNBOUND`、聊天室看不到工作、或某一張候選有 foreign owner，任何一項單獨都**不得**當成 NO_WORK 證明。
-
-`READY_WORK_CENSUS_V1` 只補「是否真的無可執行工作」的 provenance / exhaustive proof，**不建立 execution authority**、不改 lane owner、不改 claim ownership、不繞過 dependency / parallel-scope / Guard / takeover gate。
-
+1. fresh-read live Issue / claim / checkpoint / dependency / branch / exact run authority嚗??箸???candidate executable leaves嚗?2. 瘥撐??賣? **fresh durable exclusion evidence** ??machine-readable exclusion classification嚗?3. ?? exclusion ?喳??嚗FOREIGN_LIVE_OWNER`?DEPENDENCY_BLOCKED`?ACTIVE_EXACT_RUN`?AUTHORITY_MISMATCH`?SHARED_SCOPE_CONFLICT`嚗祕??憿??? live?晷撌乓? Guard authority嚗?敺?予?冽葫嚗?4. `unclaimed + dependency-unblocked + scheduler-authorized` ?銝?鋡急??歹????箏? `MUST_CLAIM`嚗???canonical claim path 銝血???first substantive action嚗?5. ?芣? census 銝剜???質◤???嚗?瘝? matching planned handoff / same-lane resume / canonical successor嚗??航撓??`NO_EXECUTABLE_WORK`嚗?6. `瘝? matching handoff`?slot_id=UNBOUND`??憭拙恕???啣極雿???撘萄??foreign owner嚗遙雿???券**銝?**?嗆? NO_WORK 霅???
+`READY_WORK_CENSUS_V1` ?芾???衣???臬銵極雿? provenance / exhaustive proof嚗?*銝遣蝡?execution authority**????lane owner????claim ownership??蝜? dependency / parallel-scope / Guard / takeover gate??
 #### WORK_SLOT_SUCCESSOR_REBIND_V1
 
-terminal child 後，**只有 SCHEDULER_LANE / chain authority** 已合法允許 successor continuation 時，terminal successor 可沿同一 slot_id rebind。
+terminal child 敺?**?芣? SCHEDULER_LANE / chain authority** 撌脣?瘜?閮?successor continuation ??terminal successor ?舀窒?? slot_id rebind??
+- successor rebind ?? fresh-read canonical chain / dependency / claim authority??- ?? chain continuation ?芾靽???slot_id嚗?敺? successor ???砍?虫??極雿局??- 瘝? chain authority ???祉巨 closure/release 摰?敺?敺? slot 蝛箏?銵?discovery 銝?蟡具?
 
-- successor rebind 前仍 fresh-read canonical chain / dependency / claim authority。
-- 同一 chain continuation 只能保留原 slot_id；不得把 successor 靜默搬到另一個工作槽。
-- 沒有 chain authority 時，本票 closure/release 完成後不得因 slot 空出而自行 discovery 下一票。
-
-
-這個 Skill 是 WHD A/B recurring lane 的 **shared runtime contract**：同時約束真實 scheduled invocation 與互動式 same-lane 接手/續跑。它不是第三條 scheduler lane，也不是新的派工 authority。
-
+??Skill ??WHD A/B recurring lane ??**shared runtime contract**嚗?????撖?scheduled invocation ???? same-lane ?交?/蝥???銝蝚砌?璇?scheduler lane嚗?銝?啁?瘣曉極 authority??
 ## 0. Trigger
 
-本 Skill 有兩類合法 trigger，兩者都進入既有 A/B durable lane，不建立新 owner：
-
-1. **real recurring scheduled invocation**：host 實際喚醒 A 的 `00 / 20 / 40` 或 B 的 `B15 / B45` entrypoint；`actual_invocation_source=scheduler`。
-2. **interactive same-lane resume**：使用者明確輸入 `/排程A` 或 `/排程B`；`actual_invocation_source=chatgpt_interactive`。
-
-普通文字提到「排程 A/B」不自動取得 lane ownership；互動命令不得偽造 scheduled trigger，scheduled trigger 也不需要等待聊天室 exact command。
-
-固定 lane mapping：
-
+??Skill ?憿?瘜?trigger嚗??脣?Ｘ? A/B durable lane嚗?撱箇???owner嚗?
+1. **real recurring scheduled invocation**嚗ost 撖阡??? A ??`00 / 20 / 40` ??B ??`B15 / B45` entrypoint嚗actual_invocation_source=scheduler`??2. **interactive same-lane resume**嚗蝙?刻?蝣箄撓??`/??A` ??`/??B`嚗actual_invocation_source=chatgpt_interactive`??
+?桅?摮??啜?蝔?A/B???芸??? lane ownership嚗??隞支?敺??scheduled trigger嚗cheduled trigger 銋??閬?敺?憭拙恕 exact command??
+?箏? lane mapping嚗?
 ```text
-/排程A
+/??A
 lane_owner=scheduler.6ab13fa557fc8191935c671214b865e2
 behavior_profile=A
 live_prompt_source=00
 
-/排程B
+/??B
 lane_owner=scheduler.e58ea936e7d0b12bd0d475314709d6f1
 behavior_profile=B
 live_prompt_source=B15+B45
 ```
 
-A 的 `:00 / :20 / :40` 是同一 durable lane；entrypoint 不是 owner。
-B15 / B45 是同一 durable B lane；entrypoint 不是 owner。
-
+A ??`:00 / :20 / :40` ?臬?銝 durable lane嚗ntrypoint 銝 owner??B15 / B45 ?臬?銝 durable B lane嚗ntrypoint 銝 owner??
 ## 1. First hard gate
 
-任何 Guard、claim、branch、write、commit、PR、workflow、Issue mutation、takeover、reconciliation 前：
+隞颱? Guard?laim?ranch?rite?ommit?R?orkflow?ssue mutation?akeover?econciliation ??
 
-1. fresh-read owning branch `.agents/skills/engineering/派工/SKILL.md`，驗證 `name: 派工`、`whd_contract: dispatching-workflow`。
-2. fresh-read `.agents/skills/engineering/remote-execution-guard/SKILL.md`。
-3. 需要 remote QA / wait / recovery / finalization 時，fresh-read `monitoring-remote-qa` 與 `executable-continuity-controller`。
-4. 若 runtime 能讀 automation live state：
-   - A fresh-read live `00` prompt；`20/40` 只用於確認同 lane，不能建立新 owner。
-   - B fresh-read live B15 與 B45 prompt；兩者除 entrypoint/cadence 外若出現語意衝突，回 `SCHEDULER_PROFILE_DRIFT` 並 fail closed。
-5. prompt / 本 Skill 與 live canonical Skill 或 executable authority 衝突時，以 live authority 為準。
-
-不得因本 Skill 已記 lane id 就跳過 fresh read。
-
+1. fresh-read owning branch `.agents/skills/engineering/瘣曉極/SKILL.md`嚗?霅?`name: 瘣曉極`?whd_contract: dispatching-workflow`??2. fresh-read `.agents/skills/engineering/remote-execution-guard/SKILL.md`??3. ?閬?remote QA / wait / recovery / finalization ??fresh-read `monitoring-remote-qa` ??`executable-continuity-controller`??4. ??runtime ?質? automation live state嚗?   - A fresh-read live `00` prompt嚗20/40` ?芰?潛Ⅱ隤? lane嚗??賢遣蝡 owner??   - B fresh-read live B15 ??B45 prompt嚗? entrypoint/cadence 憭?箇隤?銵?嚗? `SCHEDULER_PROFILE_DRIFT` 銝?fail closed??5. prompt / ??Skill ??live canonical Skill ??executable authority 銵???隞?live authority ?箸???
+銝?? Skill 撌脰? lane id 撠梯歲??fresh read??
 ## 1.1 Exit-time recurring automation enable
 
 <!-- EXIT_TIME_SCHEDULER_ENABLE_GATE -->
 
-`/排程A` 或 `/排程B` 被使用者明確啟動時，先確認所選 durable lane 的 live automation identity/profile，但**不得在 command activation 階段 enable**。互動式 ownership/resume/施工期間不因命令啟動而改變 recurring enable state；本 gate 的目的，是避免同一 lane 的 scheduled trigger 與本輪 interactive runtime 在施工中重疊，同時確保本輪結束後 recurring lane 重新可喚醒。
-
-1. command start fresh-read/list live automations；不得只靠 title 猜 identity。
-2. 依 exact `lane_owner` + entrypoint profile 找 matching set：A = `00 / 20 / 40`；B = `B15 / B45`。
-3. matching set 缺少、重複、lane owner 漂移或 prompt profile 不一致 → `SCHEDULER_PROFILE_DRIFT`，fail closed；不得以猜測 title/entrypoint 補洞。
-4. command start 只記錄 matching set 的目前 `is_enabled` 狀態：已 enabled 不自動 disable，已 disabled 也不因 activation 自動 enable。
-5. 先完成本輪所有 GitHub durable work、Guard consume/readback、claim/checkpoint reconciliation、必要 QA/finalization、以及可執行的 Chat UI handoff；canonical turn-exit gate 未允許結束時，不得提前進入 enable step。
-6. 當 canonical authority 已允許本 invocation return / handoff，才執行 **允許的 turn exit 前最後一個 host-side automation control step**：只把所選 lane matching set 中仍為 `is_enabled=false` 的 entrypoint 更新成 `is_enabled=true`；已 enabled 則 no-op。
-7. **不得修改 cadence、timing_mode、prompt、title、entrypoint id、lane owner**；不得 enable、disable 或改寫另一 lane。
-8. update 後立即 fresh-read matching set；全部 `is_enabled=true` 才成立 `SCHEDULER_ENABLE_ESTABLISHED`。此 readback 是 exit gate 的一部分，不得只相信 update API 回傳。
-9. `SCHEDULER_ENABLE_ESTABLISHED` 後不得再做 repository/claim/checkpoint/Issue/PR/workflow/Chat UI mutation；只允許輸出最終狀態並 return。若在 return 前又發現新的 substantive next_action，回到施工流程，待下一次真正允許 exit 時重新執行本 gate。
-10. automation control capability 不可用時回 `SCHEDULER_ENABLE_UNAVAILABLE`，不得假稱已開啟；matching set identity 不成立時回 `SCHEDULER_PROFILE_DRIFT`。
-
+`/??A` ??`/??B` 鋡思蝙?刻?蝣箏???嚗?蝣箄????durable lane ??live automation identity/profile嚗?**銝???command activation ?挾 enable**???? ownership/resume/?賢極??銝??賭誘???霈?recurring enable state嚗 gate ????舫??銝 lane ??scheduled trigger ?頛?interactive runtime ?冽撌乩葉??嚗??Ⅱ靽頛芰??? recurring lane ??臬???
+1. command start fresh-read/list live automations嚗?敺??title ??identity??2. 靘?exact `lane_owner` + entrypoint profile ??matching set嚗 = `00 / 20 / 40`嚗 = `B15 / B45`??3. matching set 蝻箏???銴ane owner 瞍宏??prompt profile 銝?????`SCHEDULER_PROFILE_DRIFT`嚗ail closed嚗?敺誑?葫 title/entrypoint 鋆???4. command start ?芾???matching set ???`is_enabled` ???撌?enabled 銝??disable嚗歇 disabled 銋???activation ?芸? enable??5. ???頛芣???GitHub durable work?uard consume/readback?laim/checkpoint reconciliation??閬?QA/finalization?誑??瑁???Chat UI handoff嚗anonical turn-exit gate ?芸?閮梁???嚗?敺??脣 enable step??6. ??canonical authority 撌脣?閮望 invocation return / handoff嚗??瑁? **?迂??turn exit ??敺???host-side automation control step**嚗????lane matching set 銝凋???`is_enabled=false` ??entrypoint ?湔??`is_enabled=true`嚗歇 enabled ??no-op??7. **銝?靽格 cadence?iming_mode?rompt?itle?ntrypoint id?ane owner**嚗?敺?enable?isable ?撖怠銝 lane??8. update 敺???fresh-read matching set嚗??`is_enabled=true` ??蝡?`SCHEDULER_ENABLE_ESTABLISHED`?迨 readback ??exit gate ???典?嚗?敺?訾縑 update API ???9. `SCHEDULER_ENABLE_ESTABLISHED` 敺?敺???repository/claim/checkpoint/Issue/PR/workflow/Chat UI mutation嚗?迂頛詨?蝯??蒂 return???return ???潛?啁? substantive next_action嚗??唳撌交?蝔?敺?銝甈∠?甇??閮?exit ???啣銵 gate??10. automation control capability 銝?冽???`SCHEDULER_ENABLE_UNAVAILABLE`嚗?敺?蝔勗歇??嚗atching set identity 銝?蝡???`SCHEDULER_PROFILE_DRIFT`??
 ## 2. Identity contract
 
-### 2.1 Logical owner 與 physical invocation 分離
+### 2.1 Logical owner ??physical invocation ?
 
-`lane_owner` 是 durable ownership identity；physical invocation 必須依真實來源記錄，不能由 logical owner 反推。
-
+`lane_owner` ??durable ownership identity嚗hysical invocation 敹?靘?撖虫?皞???銝??logical owner ???
 ```text
 logical_owner = scheduler.<lane-id>
 
@@ -164,102 +95,51 @@ invocation_identity = exact scheduler invocation identity if exposed,
 actual_invocation_source = scheduler
 
 interactive:
-entrypoint = interactive:/排程A | interactive:/排程B
+entrypoint = interactive:/??A | interactive:/??B
 invocation_identity = exact current chat/conversation identity if exposed,
                       otherwise a fresh stable-per-invocation chat.<token>
 actual_invocation_source = chatgpt_interactive
 ```
 
-**不得把「logical owner 相同」解讀成 physical source 相同，也不得把 interactive resume 說成平台 scheduler trigger。**
+**銝??ogical owner ?詨??圾霈??physical source ?詨?嚗?銝???interactive resume 隤芣?撟喳 scheduler trigger??*
 
-如果 host 不暴露 conversation id：
-- 不得杜撰 conversation id；
-- 使用合法 `chat.<token>` 作本輪唯一 invocation identity；
-- durable provenance 明記 `conversation_identity=UNAVAILABLE`。
-
+憒? host 銝??conversation id嚗?- 銝?? conversation id嚗?- 雿輻?? `chat.<token>` 雿頛芸銝 invocation identity嚗?- durable provenance ?? `conversation_identity=UNAVAILABLE`??
 ### 2.2 Same-lane resume
 
-當 active claim 的 exact `worker == lane_owner`：
-
-- 視為同一 logical owner；
-- **SAME_LANE_RESUME_NO_RECLAIM**：不得另建 parallel claim，不得把 worker 改成 `chatgpt.*`，也不得送 self takeover；
-- 保留 claim 既有 `executor_source`，不得只因本輪來自聊天室就做 cosmetic owner/source rewrite；
-- fresh-read claim/checkpoint/branch HEAD/Guard transaction/liveness 後，直接沿 exact next_action 續跑。
-
-這是「直接接手」的主要路徑。
-
+??active claim ??exact `worker == lane_owner`嚗?
+- 閬?? logical owner嚗?- **SAME_LANE_RESUME_NO_RECLAIM**嚗?敺撱?parallel claim嚗?敺? worker ?寞? `chatgpt.*`嚗?銝???self takeover嚗?- 靽? claim ?Ｘ? `executor_source`嚗?敺?頛芯??芾?憭拙恕撠勗? cosmetic owner/source rewrite嚗?- fresh-read claim/checkpoint/branch HEAD/Guard transaction/liveness 敺??湔瘝?exact next_action 蝥???
+???交??銝餉?頝臬???
 ### 2.3 New claim
 
-沒有 active owner、且 canonical 派工判定該 leaf 可認領時，`/排程A` 或 `/排程B` 可用對應 `lane_owner` 建立新 claim。
-
-因實際 invocation 是聊天室：
-- claim provenance 必須另外保存 `actual_invocation_source=chatgpt_interactive` 與本輪 `invocation_identity`；
-- 不得聲稱本輪有 platform scheduled invocation；
-- claim / Guard 所需 legacy routing 欄位依 live 派工與 Guard schema 寫入，不自行發明格式。
-
+瘝? active owner?? canonical 瘣曉極?文?閰?leaf ?航???嚗/??A` ??`/??B` ?舐撠? `lane_owner` 撱箇???claim??
+?祕??invocation ?航?憭拙恕嚗?- claim provenance 敹??血?靽? `actual_invocation_source=chatgpt_interactive` ?頛?`invocation_identity`嚗?- 銝??脩迂?祈憚??platform scheduled invocation嚗?- claim / Guard ?? legacy routing 甈?靘?live 瘣曉極??Guard schema 撖怠嚗??芾??潭??澆???
 ### 2.4 Foreign owner
 
-若 active claim 的 worker 不是本 lane：
-
-- 禁止把 worker 直接覆寫成 A/B；
-- 禁止因使用者輸入 `/排程A` 或 `/排程B` 就跳過 stale / active-run / delegated-work / Guard 判定；
-- 必須走 live `派工` + `stale_claim_takeover.py` + local/Remote Guard 的 canonical takeover；
-- Guard / evaluator 不允許時，fail closed。
-
-命令選擇的是**目標 lane**，不是繞過 ownership 的萬用鑰匙。
-
+??active claim ??worker 銝??lane嚗?
+- 蝳迫??worker ?湔閬神??A/B嚗?- 蝳迫?蝙?刻撓??`/??A` ??`/??B` 撠梯歲??stale / active-run / delegated-work / Guard ?文?嚗?- 敹?韏?live `瘣曉極` + `stale_claim_takeover.py` + local/Remote Guard ??canonical takeover嚗?- Guard / evaluator 銝?閮望?嚗ail closed??
+?賭誘?豢??**?格? lane**嚗??舐???ownership ??券??
 ## 3. Exact invocation provenance + liveness
 
-持有 lane active claim 時，本輪必須有唯一 `invocation_identity`。
+?? lane active claim ???祈憚敹??銝 `invocation_identity`??
+??live authority 閬? `WHD_SCHEDULER_RUNTIME_LIVENESS_V1`嚗?- `scheduler_lane` ?箏?蝑 A/B `lane_owner`嚗?- `invocation_identity` 敹??賢???憭拙恕 invocation嚗?- legacy V1 ??`executor_source=scheduler` ?芯誨銵?scheduler-lane liveness schema/routing嚗??胯像?啁??誑??閫貊??霅?嚗?- ????durable observation 敹??血?靽? `actual_invocation_source=chatgpt_interactive` / interactive entrypoint provenance嚗?- 銝??芰?銝?generic `scheduler` ??憭望頛?invocation identity??
+same-lane latest heartbeat ??matching END 銝???live window ???啁? A/B invocation ?芾??霈???live window?靘?live authority??same-lane resume嚗?銝 self-takeover??
+canonical same-lane liveness window = **300 蝘?*嚗atching END ?舐??喟???exact invocation 瘣餅扼?
+## 4. A profile ??/??A
 
-若 live authority 要求 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1`：
-- `scheduler_lane` 固定等於 A/B `lane_owner`；
-- `invocation_identity` 必須能區分聊天室 invocation；
-- legacy V1 的 `executor_source=scheduler` 只代表 scheduler-lane liveness schema/routing，不是「平台真的以排程觸發」的證據；
-- 同一個 durable observation 必須另外保留 `actual_invocation_source=chatgpt_interactive` / interactive entrypoint provenance；
-- 不得只留下 generic `scheduler` 而丟失本輪 invocation identity。
+A 璅⊥?桀? `00` ?撌亥???銝? `20/40` ?梁?? lane owner??
+?箏?靽?嚗?
+1. **DYNAMIC DISCOVERY**嚗?敺′蝺?issue/master/child/branch/SHA/run_id/next issue嚗?頛芸? live GitHub durable claim/checkpoint/Issue/dependency/branch/Actions ?遣 executable leaf??2. **EXACT PROVENANCE + LIVENESS**嚗ane owner ?箏? A嚗nvocation identity 瘥憚?臭???3. **GUARD TRANSACTION FIRST**嚗resh classify `PENDING / MUTATION_DONE_RECONCILE_ONLY / EXPIRED_UNCONSUMED / AMBIGUOUS`嚗ENDING ?芾 consume canonical live receipt嚗MBIGUOUS fail closed??4. **LIVE DRIFT RECONCILIATION**嚗ranch 撌脣??脖? metadata ?賢??? reconcile嚗?甇?replay mutation??5. **DELEGATED-BEFORE-STALE**嚗?瘝?delegated child ?啁?甇?executable leaf嚗hild stale ? child嚗? takeover parent??6. **STALE / TAKEOVER**嚗雿輻 canonical machine evaluator嚗??刻?憭拇?????stale??7. **GREEN SINGLE-USE**嚗resh exact GREEN ??consume ???臭? mutation ??fresh readback嚗???GREEN 瘞訾? consume??8. **SUBSTANTIVE CONTINUITY**嚗eartbeat/CHECKPOINT/Guard/QA PASS ?賭???substantive completion嚗xact next_action ?臬?撠梁匱蝥?9. **TURN EXIT / FINALIZATION**嚗anonical turn-exit gate ?芣銵?敺迤撣?return嚗erminal child 隞? closure/release/successor handoff??
+`/??A` ?芣??冽頛?canonical gate 撌脣?閮梁???嚗???exit-time final step ??exact A lane ??00/20/40 閮剔 `is_enabled=true`嚗ommand activation 銝?enable嚗?敺耨??cadence?iming_mode?rompt?utomation id ??lane owner??
+## 5. B profile ??/??B
 
-same-lane latest heartbeat 無 matching END 且仍在 live window 時，新的 A/B invocation 只讀退讓；逾 live window才可依 live authority做 same-lane resume，仍不是 self-takeover。
+B 靽? A ??冽敹?gate嚗憭?????B lane ?像銵撌仿??塚?
 
-canonical same-lane liveness window = **300 秒**；matching END 可立即結束 exact invocation 活性。
-
-## 4. A profile — /排程A
-
-A 模擬目前 `00` 的施工語意，且與 `20/40` 共用同一 lane owner。
-
-固定保留：
-
-1. **DYNAMIC DISCOVERY**：不得硬編 issue/master/child/branch/SHA/run_id/next issue；每輪從 live GitHub durable claim/checkpoint/Issue/dependency/branch/Actions 重建 executable leaf。
-2. **EXACT PROVENANCE + LIVENESS**：lane owner 固定 A，invocation identity 每輪唯一。
-3. **GUARD TRANSACTION FIRST**：fresh classify `PENDING / MUTATION_DONE_RECONCILE_ONLY / EXPIRED_UNCONSUMED / AMBIGUOUS`；PENDING 只能 consume canonical live receipt；AMBIGUOUS fail closed。
-4. **LIVE DRIFT RECONCILIATION**：branch 已前進但 metadata 落後時先 reconcile，禁止 replay mutation。
-5. **DELEGATED-BEFORE-STALE**：先沿 delegated child 到真正 executable leaf；child stale 才接 child，不 takeover parent。
-6. **STALE / TAKEOVER**：只使用 canonical machine evaluator，不用聊天時間感猜 stale。
-7. **GREEN SINGLE-USE**：fresh exact GREEN → consume → 唯一 mutation → fresh readback；過期 GREEN 永不 consume。
-8. **SUBSTANTIVE CONTINUITY**：heartbeat/CHECKPOINT/Guard/QA PASS 都不是 substantive completion；exact next_action 可做就繼續。
-9. **TURN EXIT / FINALIZATION**：canonical turn-exit gate 未放行不得正常 return；terminal child 仍需 closure/release/successor handoff。
-
-`/排程A` 只有在本輪 canonical gate 已允許結束時，才於 exit-time final step 把 exact A lane 的 00/20/40 設為 `is_enabled=true`；command activation 不 enable；不得修改 cadence、timing_mode、prompt、automation id 或 lane owner。
-
-## 5. B profile — /排程B
-
-B 保留 A 的全部核心 gate，另外必須保留 B lane 的平行施工限制：
-
-- B 是獨立 durable lane：`scheduler.e58ea936e7d0b12bd0d475314709d6f1`。
-- 不得修改、停用、重排 A 的 00/20/40。
-- **PARALLEL CLAIM RULE**：B 只能 claim 與其他 active owner 安全平行的不同 executable leaf。
-- claim 前 fresh-read 全部 active claims、dependency graph、branch/mutation scope、integration/finalization ownership。
-- 已有 active owner、dependency blocked、共享不可平行 scope、exclusive integration/finalization gate 的候選一律跳過。
-- 不同 lane identity 絕不是搶同一 scope 的許可。
-
-`/排程B` 只有在本輪 canonical gate 已允許結束時，才於 exit-time final step 把 exact B lane 的 B15/B45 設為 `is_enabled=true`；command activation 不 enable；不得修改 cadence、timing_mode、prompt、automation id 或 lane owner。
-
+- B ?舐蝡?durable lane嚗scheduler.e58ea936e7d0b12bd0d475314709d6f1`??- 銝?靽格???具???A ??00/20/40??- **PARALLEL CLAIM RULE**嚗 ?芾 claim ?隞?active owner 摰撟唾?????executable leaf??- claim ??fresh-read ?券 active claims?ependency graph?ranch/mutation scope?ntegration/finalization ownership??- 撌脫? active owner?ependency blocked?鈭思??臬像銵?scope?xclusive integration/finalization gate ?銝敺歲??- 銝? lane identity 蝯??舀?? scope ?迂?胯?
+`/??B` ?芣??冽頛?canonical gate 撌脣?閮梁???嚗???exit-time final step ??exact B lane ??B15/B45 閮剔 `is_enabled=true`嚗ommand activation 銝?enable嚗?敺耨??cadence?iming_mode?rompt?utomation id ??lane owner??
 ## 6. Chat UI handoff
 
-只有 durable ownership/resume readback 已成立後才做 UI handoff。
-
-成功 gate：
-
+?芣? durable ownership/resume readback 撌脫?蝡??? UI handoff??
+?? gate嚗?
 ```text
 LANE_RESUME_ESTABLISHED =
   selected_lane exact
@@ -268,97 +148,71 @@ LANE_RESUME_ESTABLISHED =
   AND current invocation is allowed to continue
 ```
 
-未達此 gate：
-- 不改目前聊天室標題；
-- 不改 pin；
-- 不清舊聊天室的 `NEW`。
+?芷?甇?gate嚗?- 銝?桀??予摰斗?憿?
+- 銝 pin嚗?- 銝???憭拙恕??`NEW`??
+### 6.1 /??A
 
-### 6.1 /排程A
+靘蝙?刻?摰?摨?
 
-依使用者指定順序：
+1. ?桀??予摰斗?憿???`NEW??A`??2. ?桀??予摰??????3. ?曉?嗡??? exact `NEW??A` ?予摰扎?4. ??憭拙恕 ???????5. ??憭拙恕璅?蝘駁?韌 `NEW` ??`??A`??
+摰?敺?invariant嚗?- ?憭???`NEW??A`嚗?- ?憭???A control chat 鋡恍??賂?
+- `NEW??A` ???祈憚??唳????鈭??予摰扎?
+### 6.2 /??B
 
-1. 目前聊天室標題 → `NEW排程A`。
-2. 目前聊天室 → 釘選。
-3. 找到其他舊的 exact `NEW排程A` 聊天室。
-4. 舊聊天室 → 取消釘選。
-5. 舊聊天室標題移除前綴 `NEW` → `排程A`。
-
-完成後 invariant：
-- 最多一個 `NEW排程A`；
-- 最多一個 A control chat 被釘選；
-- `NEW排程A` 指向本輪最新成功接手的互動聊天室。
-
-### 6.2 /排程B
-
-同樣順序：
-
-1. 目前聊天室標題 → `NEW排程B`。
-2. 目前聊天室 → 釘選。
-3. 找到其他舊的 exact `NEW排程B` 聊天室。
-4. 舊聊天室 → 取消釘選。
-5. 舊聊天室標題 → `排程B`。
-
-完成後 invariant 同 B lane。
-
+?見??嚗?
+1. ?桀??予摰斗?憿???`NEW??B`??2. ?桀??予摰??????3. ?曉?嗡??? exact `NEW??B` ?予摰扎?4. ??憭拙恕 ???????5. ??憭拙恕璅? ??`??B`??
+摰?敺?invariant ??B lane??
 ### 6.3 UI capability hard gate
 
-在做 UI handoff 前，必須確認 runtime 真正具備：
-- current chat rename；
-- chat discovery / exact old-chat selection；
-- pin；
-- unpin。
-
-能力缺任一項：
-- 不得聲稱已改名或已釘選；
-- durable lane resume 可以繼續；
-- user-visible 回報固定含 `CHAT_UI_HANDOFF_UNAVAILABLE` 與缺少的 capability。
-
-部分 UI mutation 後失敗：
-- 回 `CHAT_UI_HANDOFF_PARTIAL`；
-- 列出已完成與未完成步驟；
-- 下一次同 lane invocation 先 reconcile UI invariant，再做新的 handoff；
-- 禁止假報完整成功。
-
+?典? UI handoff ??敹?蝣箄? runtime ?迤?瑕?嚗?- current chat rename嚗?- chat discovery / exact old-chat selection嚗?- pin嚗?- unpin??
+?賢?蝻箔遙銝??
+- 銝??脩迂撌脫??撌脤??賂?
+- durable lane resume ?臭誑蝜潛?嚗?- user-visible ??箏???`CHAT_UI_HANDOFF_UNAVAILABLE` ?撩撠? capability??
+?典? UI mutation 敺仃??
+- ??`CHAT_UI_HANDOFF_PARTIAL`嚗?- ?撌脣????芸??郊撽?
+- 銝?甈∪? lane invocation ??reconcile UI invariant嚗????handoff嚗?- 蝳迫?摰????
 ## 7. Guard transaction / duplicate GREEN
 
-本 Skill 不建立自己的 Guard state machine。
-
-每次 mutation 前一律沿 live `派工` + `遠端執行守門`：
-
-- exact active claim；
-- exact branch/base/head/blob；
-- exact changed-file scope；
-- fresh unexpired receipt；
-- receipt single-use；
-- mutation 後 fresh readback；
-- post-commit claim HEAD reconciliation。
-
-Equivalent duplicate GREEN 的 canonical/shadow 規則完全服從 live authority；不得因「我是同一 A/B lane」重播 shadow receipt。
-
+??Skill 銝遣蝡撌梁? Guard state machine??
+瘥活 mutation ??敺窒 live `瘣曉極` + `?垢?瑁?摰?`嚗?
+- exact active claim嚗?- exact branch/base/head/blob嚗?- exact changed-file scope嚗?- fresh unexpired receipt嚗?- receipt single-use嚗?- mutation 敺?fresh readback嚗?- post-commit claim HEAD reconciliation??
+Equivalent duplicate GREEN ??canonical/shadow 閬?摰?? live authority嚗?敺????臬?銝 A/B lane????shadow receipt??
 ## REPORT_HANDLER_IDENTITY_PREFIX_V1
 
-`/排程A` / `/排程B` 的任何 user-visible 狀態、progress、CHECKPOINT 回報，在全域 Skill announcement gate 之後，**每一個回報區塊的第一行**固定先輸出：
+`/??A` / `/??B` ?遙雿?user-visible ??rogress?HECKPOINT ?嚗?典? Skill announcement gate 銋?嚗?*瘥????勗?憛?蝚砌?銵?*?箏??撓?綽?
 
 ```text
-【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】
-```
+????<handler>嚚wner=<exact owner|NONE>嚚極?殷?#<issue|NONE|UNBOUND>??```
 
-- same-lane active claim：`handler=排程A|排程B`，`owner=lane_owner`（亦即 exact `claim_worker`），`issue=claim_issue`。
-- 尚未建立 claim、仍在合法 discovery：可顯示 `handler=排程A|排程B`、`owner=lane_owner`、`issue=NONE`；不得預先猜票。
-- 若 fresh-read 發現 **foreign** live owner，prefix 必須把 `handler` 與 `owner` 顯示為 exact foreign `claim_worker`；selected lane 只能留在後續 `lane=` 欄位，**不得冒充處理者**。
-- `claim_issue` / `claim_worker` / `lane_owner` 必須來自本輪 fresh durable readback；聊天室 title、`NEW排程A/B` 或記憶不得作來源。
-- prefix 只提供 provenance，**不建立 execution authority**、不改 claim ownership、不取代 liveness / Guard / checkpoint gate。
+- same-lane active claim嚗handler=??A|??B`嚗owner=lane_owner`嚗漲??exact `claim_worker`嚗?`issue=claim_issue`??- 撠撱箇? claim???典?瘜?discovery嚗憿舐內 `handler=??A|??B`?owner=lane_owner`?issue=NONE`嚗?敺???蟡具?- ??fresh-read ?潛 **foreign** live owner嚗refix 敹???`handler` ??`owner` 憿舐內??exact foreign `claim_worker`嚗elected lane ?芾?敺? `lane=` 甈?嚗?*銝???????*??- `claim_issue` / `claim_worker` / `lane_owner` 敹?靘?祈憚 fresh durable readback嚗?憭拙恕 title?NEW??A/B` ???嗡?敺?靘???- prefix ?芣?靘?provenance嚗?*銝遣蝡?execution authority**????claim ownership???誨 liveness / Guard / checkpoint gate??
+
+## 7A. Scheduler state mutation crash/re-entry
+
+### SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1
+
+隞颱? `/??A` / `/??B` 瘚??亦???靽格 host recurring automation ??live state嚗anonical readback owner ?箏???`tools/scheduler_state_reconciliation.py`嚗 Skill 銝??血遣蝚砌?憟?scheduler mutation state machine??
+??host mutation **銋?**??durable 靽? exact intent identity嚗?
+- `lane_owner`
+- `entrypoint`
+- `automation_id`
+- `schedule`
+- `timing_mode`
+- `enabled_before`
+- `enabled_after`
+
+mutation 敺untime crash/re-entry 敺?隞颱???蝣箏???????????嚗??fresh-read exact live automation嚗???durable intent + live observation 鈭斤策 canonical classifier嚗?
+- `NOT_APPLIED`嚗xact pre-state 隞?蝡??芸?閮勗銵?durable intent ?膩?**銝甈?* mutation??- `EFFECT_OBSERVED`嚗xact requested post-state 撌脫?蝡?蝳迫 replay嚗??durable reconciliation/readback??- `AMBIGUOUS`嚗utomation/lane/entrypoint identity 蝻箏仃??蝚艾chedule/timing_mode 瞍宏?tate ?芰嚗摰?fail closed嚗??葫?????
+?日?雿輻??蝣箄?瘙??嚗lane_owner / entrypoint / automation_id / schedule / timing_mode` ?賣銝瞍宏 identity??contract ?芸?憿歇???芸?嚗???銝銵?enable/disable automation嚗?銝?隞?exit-time gate?晷撌乓uard ??continuity authority??
 
 ## 8. Turn output
 
-每次 `/排程A` / `/排程B` 至少可反讀：
-
+瘥活 `/??A` / `/??B` ?喳??臬?霈嚗?
 ```text
 lane=A|B
 lane_owner=scheduler....
 slot_id=worker.slot.1|worker.slot.2|worker.slot.3|UNBOUND
 handoff_source=LOCAL|SCHEDULER|NONE
-entrypoint=interactive:/排程A|/排程B
+entrypoint=interactive:/??A|/??B
 invocation_identity=<exact or generated>
 conversation_identity=<exact|UNAVAILABLE>
 claim_issue=<N|NONE>
@@ -373,47 +227,26 @@ scheduler_enable=UNCHANGED_DURING_RUN|SCHEDULER_ENABLE_ESTABLISHED|SCHEDULER_ENA
 next_action=<exact>
 ```
 
-不得只回「已接手」。只要 canonical next_action 可自主執行，就繼續到合法 turn-exit gate。
-
+銝??芸??歇?交??閬?canonical next_action ?航銝餃銵?撠梁匱蝥?? turn-exit gate??
 ## 9. Forbidden shortcuts
 
-- 不把互動 runtime 假稱為平台 scheduled invocation。
-- 不用 `chatgpt.*` 另開第二個 claim 來「模擬」同一 A/B 工作。
-- 不因 A/B logical owner 一樣就忽略仍活著的 same-lane invocation。
-- 不用聊天室 title/pin 當 claim authority。
-- 不用 `NEW排程A/B` 判斷 GitHub owner。
-- 不因 UI handoff 做不到就回滾已合法建立的 durable lane resume。
-- 不因 UI handoff 成功就宣稱 GitHub takeover 成功。
-- 禁止在 command activation 階段把所選 lane 從 disabled 改成 enabled；activation 只 fresh-read/verify identity/profile。
-- 除 exit-time final gate 將所選 lane matching recurring entrypoints 設為 `is_enabled=true` 外，不自動 enable、disable、reschedule 或改寫任何 automation；另一 lane 絕不碰。
+- 銝?鈭? runtime ?迂?箏像??scheduled invocation??- 銝 `chatgpt.*` ?阡?蝚砌???claim 靘芋?研?銝 A/B 撌乩???- 銝? A/B logical owner 銝璅?停敹賜隞暑?? same-lane invocation??- 銝?予摰?title/pin ??claim authority??- 銝 `NEW??A/B` ?斗 GitHub owner??- 銝? UI handoff ???啣停?遝撌脣?瘜遣蝡? durable lane resume??- 銝? UI handoff ??撠勗恐蝔?GitHub takeover ????- 蝳迫??command activation ?挾????lane 敺?disabled ?寞? enabled嚗ctivation ??fresh-read/verify identity/profile??- ??exit-time final gate 撠???lane matching recurring entrypoints 閮剔 `is_enabled=true` 憭?銝??enable?isable?eschedule ?撖思遙雿?automation嚗銝 lane 蝯?蝣啜?
 
+## WHD_WORK_EXECUTOR_HANDOFF_V1 ??Scheduler Receiver
 
-## WHD_WORK_EXECUTOR_HANDOFF_V1 — Scheduler Receiver
-
-planned handoff receiver 同時適用 **排程A** 與 **排程B**。它只做 exact routing / receive，continuity 狀態仍由 canonical checkpoint 擁有。
-
-固定 lane identity：
-
+planned handoff receiver ???拍 **??A** ??**??B**???芸? exact routing / receive嚗ontinuity ?????canonical checkpoint ????
+?箏? lane identity嚗?
 ```text
 target_lane=A -> to_worker=scheduler.6ab13fa557fc8191935c671214b865e2
 target_lane=B -> to_worker=scheduler.e58ea936e7d0b12bd0d475314709d6f1
 ```
 
-每次 receiver fresh-read pending handoff transaction + shared claim + checkpoint + branch HEAD，必須 exact 驗證：
+瘥活 receiver fresh-read pending handoff transaction + shared claim + checkpoint + branch HEAD嚗???exact 撽?嚗?
+- `target_lane` ??selected ??A/??B ?詨?嚗?- `to_worker` 蝑閰?lane exact owner嚗?- `handoff_generation` ??current generation嚗???replay嚗?- `claim_blob`?ranch?EAD exact嚗?- `checkpoint_fingerprint` 蝑 canonical current checkpoint fingerprint嚗?- `next_action` ?征銝???checkpoint current next_action??
+隞颱? mismatch ??`WORK_EXECUTOR_HANDOFF_IDENTITY_MISMATCH`嚗ail closed嚗?敺?????claim mutation??
+??sender 撌脣 Guard GREEN 敺???claim-handoff CAS嚗resh-read claim.worker 撌脩???exact `to_worker` 銝?餈?identity ?券隞??湛?receiver ?湔??`SAME_LANE_RESUME` / resume exact `next_action`??*銝??? stale evaluator嚗?敺?`claim-takeover`嚗?敺?敺?stale TTL??*
 
-- `target_lane` 與 selected 排程A/排程B 相同；
-- `to_worker` 等於該 lane exact owner；
-- `handoff_generation` 是 current generation，不能 replay；
-- `claim_blob`、branch、HEAD exact；
-- `checkpoint_fingerprint` 等於 canonical current checkpoint fingerprint；
-- `next_action` 非空且等於 checkpoint current next_action。
-
-任一 mismatch → `WORK_EXECUTOR_HANDOFF_IDENTITY_MISMATCH`，fail closed，不得猜、不做 claim mutation。
-
-若 sender 已在 Guard GREEN 後完成 claim-handoff CAS，fresh-read claim.worker 已等於 exact `to_worker` 且上述 identity 全部仍一致，receiver 直接進 `SAME_LANE_RESUME` / resume exact `next_action`。**不得再跑 stale evaluator，不得送 `claim-takeover`，不得等待 stale TTL。**
-
-成功接收後同一 scheduler invocation 必須完成 first substantive next_action；只回報「已接手」不算完成。此 receiver 不改 recurring cadence / enabled，不改 lane owner，不建立第二套 checkpoint/continuity machine。
-
+???交敺?銝 scheduler invocation 敹?摰? first substantive next_action嚗??歇?交???蝞??迨 receiver 銝 recurring cadence / enabled嚗???lane owner嚗?撱箇?蝚砌?憟?checkpoint/continuity machine??
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback
 
