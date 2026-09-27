@@ -9,9 +9,9 @@
   "work_branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
   "claimed_at": "2026-09-27T05:03:00Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "bc0dcc196865c6647cc835f080e652eff63cab67",
-  "phase": "RED",
-  "last_update": "2026-09-27T05:09:20Z",
+  "head_sha": "a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T05:15:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "implement bidirectional governance mirror evaluator + manifest + always-on workflow, then run focused GREEN",
+  "next_action": "create guarded main-side governance mirror branch from current main, copy only manifest-governed blobs, run paired parity and PR/QA",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-816.json",
   "evidence": [
@@ -36,17 +36,19 @@
     "resume_authority=NONE",
     "Phase6 planned-file preflight GREEN before claim activation",
     "RED Guard 36296297683 GREEN; RED commit bc0dcc196865c6647cc835f080e652eff63cab67 changes only test_issue816_bidirectional_governance_mirror.py.",
-    "RED focused pytest: 6 failed as expected (missing bidirectional evaluator, mirror manifest, and always-on workflow)."
+    "RED focused pytest: 6 failed as expected (missing bidirectional evaluator, mirror manifest, and always-on workflow).",
+    "Implementation Guard 36296461331 GREEN; commit a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d changes only five authorized governance files.",
+    "Focused regression on a637e531: 15 passed / 0 failed across #816 + #692 + #736; governance workflow YAML parse PASS."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296364116,
-    "request_comment_id": 5852863368,
+    "run_id": 36296648660,
+    "request_comment_id": 5852898301,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile durable pair to RED head bc0dcc19"
+    "mutation": "reconcile durable pair to GREEN implementation head a637e531"
   },
   "delegated_work": []
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "816",
   "branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
-  "head_sha": "bc0dcc196865c6647cc835f080e652eff63cab67",
+  "head_sha": "a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d",
   "state": "RUNNING",
-  "next_action": "implement bidirectional governance mirror evaluator + manifest + always-on workflow, then run focused GREEN",
+  "next_action": "create guarded main-side governance mirror branch from current main, copy only manifest-governed blobs, run paired parity and PR/QA",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,9 @@
     "Product/application authority remains cleanup/2d-3d-sync; main receives governance mirror only.",
     "Phase6 planned-file Preflight GREEN.",
     "RED head bc0dcc196865c6647cc835f080e652eff63cab67: focused #816 test has 6 expected failures.",
-    "Remote Guard 36296364116 GREEN authorizes atomic claim/checkpoint reconciliation to RED head."
+    "Remote Guard 36296364116 GREEN authorizes atomic claim/checkpoint reconciliation to RED head.",
+    "GREEN head a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d: 15 passed, YAML parse PASS.",
+    "Remote Guard 36296648660 GREEN authorizes atomic durable-pair reconciliation to implementation head."
   ],
   "master_issue": null,
   "chain_state": "NONE",
