@@ -11,11 +11,19 @@
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
   "head_sha": "ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76",
   "phase": "GREEN",
-  "last_update": "2026-09-27T00:25:00Z",
+  "last_update": "2026-09-27T00:31:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run post-sync #769 focused+adjacent+full process acceptance on ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76; fresh-read cleanup/2d-3d-sync after acceptance; then obtain pr-write Guard/create or update the exact PR and lock remote acceptance to terminal.",
+  "remote_qa": {
+    "run_id": 36282606873,
+    "job_id": 108517206906,
+    "head_sha": "ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76",
+    "status": "completed",
+    "conclusion": "success",
+    "passed": 1,
+    "failed": 0
+  },
+  "next_action": "Fresh-read PR #788 and cleanup/2d-3d-sync; if PR remains clean at head ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76 and base 54fef8c6cbceda4ecd20b3708e517b8beb909ce3, obtain a fresh single-use pr-write Guard for merge, merge PR #788, fresh-read production integration, then enter terminal closure transaction.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -47,16 +55,22 @@
     "Fresh durable reconstruction found live work head ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76 ahead of durable e1439174.",
     "ac1b45a0 is ahead of current production 54fef8c6 with effective #769 delta still exactly the six authorized files.",
     "Merge-sync Guard run 36282352176 GREEN on e1439174 against production 54fef8c6.",
-    "Merge-head pair reconciliation Guard run 36282402561 GREEN / REMOTE_GUARD_RECONCILE_ONLY for live head ac1b45a0."
+    "Merge-head pair reconciliation Guard run 36282402561 GREEN / REMOTE_GUARD_RECONCILE_ONLY for live head ac1b45a0.",
+    "Final integration-head focused/adjacent acceptance on ac1b45a0: 77 passed / 0 failed.",
+    "Final integration-head full tests/process: 845 passed / 3 failed; all 3 exact failures were reproduced on production 54fef8c6 and are baseline debt.",
+    "PR #788 created by pr-write Guard run 36282570275; exact head ac1b45a0 -> base cleanup@54fef8c6; changed_files=6.",
+    "PR remote acceptance run 36282606873 / job 108517206906 completed success; bootstrap-governance GREEN.",
+    "PR #788 fresh-read mergeable=true / mergeable_state=clean.",
+    "QA terminal durable writeback Guard run 36282664379 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36282402561,
-    "request_comment_id": 5851245408,
+    "run_id": 36282664379,
+    "request_comment_id": 5851277027,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #769 durable pair to ac1b45a0"
+    "mutation": "persist #769 PR #788 terminal remote QA and merge next_action"
   }
 }
