@@ -9,15 +9,23 @@
   "work_branch": "work/issue684-real-ha-integration-combined-20260927",
   "claimed_at": "2026-09-27T14:59:30Z",
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
-  "head_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
+  "head_sha": "cc97ece600a520548ffb16bbc4ca3ce6bf80e5cd",
   "phase": "RED",
-  "last_update": "2026-09-27T15:05:10Z",
+  "last_update": "2026-09-27T15:11:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Establish repository-owned R11 behavior RED on work/issue684-real-ha-integration-combined-20260927@8a3058e5472aec4793cd26a398ae4920185d8002 for real leaving-home request -> WHD handoff/gate/projection -> HA/Node-RED actuator-decision boundary. RED must prove SAFE/NOT_SAFE/ERROR current-request binding, previous-request SAFE replay rejection, scheduler resume evidence, and WHD non-ownership of the Windows shutdown command.",
+  "remote_qa": {
+    "run_id": 36328570159,
+    "job_id": 108645981759,
+    "head_sha": "cc97ece600a520548ffb16bbc4ca3ce6bf80e5cd",
+    "status": "completed",
+    "conclusion": "failure",
+    "pytest": "9 failed / 0 harness errors",
+    "marker": "R11_REAL_SHUTDOWN_ACCEPTANCE missing canonical owner"
+  },
+  "next_action": "Implement canonical R11 owner tools/whd_poweroff_end_to_end_acceptance.py as a pure evidence verifier. It must preserve current request/revision identity across gate receipt, HA projection, HA/Node-RED actuator-decision evidence, and scheduler resume evidence; SAFE requires ALLOW+invoked and complete resume evidence, NOT_SAFE/ERROR require BLOCK+not-invoked, stale SAFE replay fails closed, and WHD must contain no Windows shutdown actuator.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-684.json",
   "evidence": [
@@ -33,17 +41,20 @@
     "Frozen production base cleanup/2d-3d-sync@8a3058e5472aec4793cd26a398ae4920185d8002; intended #684 work branch does not exist.",
     "Branch-create Guard 36327982362 / request 5856988586 / result 5856994509 GREEN; work branch readback exact at frozen base 8a3058e5472aec4793cd26a398ae4920185d8002.",
     "Branch-create effect writeback consumes exact write Guard 36328158729 / request 5857009433 / result 5857010994.",
-    "Duplicate same-scope write request 5857010347 failed closed as PENDING_GUARD_TRANSACTION / run 36328167316; no duplicate mutation authority was created."
+    "Duplicate same-scope write request 5857010347 failed closed as PENDING_GUARD_TRANSACTION / run 36328167316; no duplicate mutation authority was created.",
+    "R11 RED commit cc97ece600a520548ffb16bbc4ca3ce6bf80e5cd consumed commit Guard 36328476149 / request 5857046969 / result 5857048805.",
+    "Exact RED run 36328570159 / job 108645981759: 9 failed; all failures are the intended missing canonical owner tools/whd_poweroff_end_to_end_acceptance.py.",
+    "Post-commit reconciliation Guard 36328618629 / request 5857063866 / result 5857065199 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36328158729,
-    "request_comment_id": 5857009433,
-    "result_comment_id": 5857010994,
+    "run_id": 36328618629,
+    "request_comment_id": 5857063866,
+    "result_comment_id": 5857065199,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "record #684 branch-create effect and advance to R11 RED"
+    "mutation": "reconcile #684 claim/checkpoint to exact R11 RED head"
   }
 }
