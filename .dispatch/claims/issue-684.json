@@ -11,7 +11,7 @@
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T15:38:00Z",
+  "last_update": "2026-09-27T16:00:31Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "slot_id": "UNBOUND",
@@ -26,7 +26,7 @@
     "conclusion": "success",
     "pytest": "68 passed in 3.10s"
   },
-  "next_action": "Create replacement delegated mirror branch governance/issue684-main-mirror-repair-20260927 at exact accepted claim head a4fcfaf6af265b747f4bc838ff72df8a37025688; then create a two-parent governed-only mirror commit with current main as first parent and accepted #684 head as second parent, changing only 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11; open reciprocal main/cleanup PRs, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
+  "next_action": "Open reciprocal main/cleanup PRs for #684 governance mirror at governance/issue684-main-mirror-repair-20260927@8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-684.json",
   "evidence": [
@@ -59,17 +59,18 @@
     "Initial main-mirror branch-create Guard 36329762732 failed closed because delegated_branches was empty; no branch was created.",
     "Delegated main mirror reservation write authorized by Guard 36329852752 / request 5857245588 / result 5857248247.",
     "Initial delegated mirror branch governance/issue684-main-mirror-20260927 was mistakenly created at main f65ee095790ff6ec2e52ad7d158cecdc43886715; subsequent commit Guard 36330109287 failed closed with LIVE_CLAIM_HEAD_DRIFT_NOT_RECONCILIATION. Branch preserved as evidence; no force-reset/delete.",
-    "Replacement delegated-branch reservation authorized by write Guard 36330218548 / request 5857292977 / result 5857294603."
+    "Replacement delegated-branch reservation authorized by write Guard 36330218548 / request 5857292977 / result 5857294603.",
+    "Fresh reconciliation: replacement mirror branch HEAD 8a81fe4ab04bad7c21b395d0cb52c6d15014f9b2 is the intended governed-only mirror commit; relative current main@f65ee095790ff6ec2e52ad7d158cecdc43886715 content diff is exactly 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11. The apparent 30-commit ancestry versus accepted head is second-parent graph ancestry, not branch contamination. Commit effect observed; replay prohibited."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36330218548,
-    "request_comment_id": 5857292977,
-    "result_comment_id": 5857294603,
+    "run_id": 36331608393,
+    "request_comment_id": 5857459948,
+    "result_comment_id": 5857461435,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "replace incorrect mirror delegation with exact-head replacement branch"
+    "mutation": "reconcile observed #684 governed-only mirror commit and advance next_action to reciprocal PRs"
   }
 }
