@@ -9,9 +9,9 @@
   "work_branch": "work/issue683-ha-transport-projection-repair2-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
+  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T11:06:30Z",
+  "last_update": "2026-09-27T11:09:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Redo the #683 merge-sync from sealed 6156cf8c onto cleanup@8a6323f5 with commit Guard scoped to production-parent→candidate work delta only: tools/whd_poweroff_ha_bridge.py, tests/process/test_issue683_ha_transport_projection.py, and 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md; then reconcile, open replacement cleanup PR paired with #850, GREEN both gates, merge #850 first, then replacement cleanup PR, then finalize #683.",
+  "next_action": "Mint fresh pr-write Guard and create the replacement cleanup PR from work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1 to cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0, paired with #850. Then update #850 reciprocal marker to that replacement PR, require both Governance Mirror Hard Gates GREEN, merge #850 first, then the replacement cleanup PR, and finalize #683.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -96,17 +96,20 @@
     "Parent-branch identity repair Guard 36314457052 GREEN / request 5855259712 / result 5855261359 authorized non-force replacement work/issue683-ha-transport-projection-repair-20260927 at sealed head 6156cf8c.",
     "Replacement branch readback is exact sealed head 6156cf8c; old drifted branch retained delegated as evidence.",
     "Second parent-branch repair Guard 36314602306 GREEN / request 5855276243 / result 5855277464 preserves sealed head after first replacement sync used wrong receipt changed-file scope.",
-    "Historical accepted #683 merge-sync Guard 36311868602 confirms the exact merge-sync changed-file scope is the three retained #683 artifacts relative to the production parent."
+    "Historical accepted #683 merge-sync Guard 36311868602 confirms the exact merge-sync changed-file scope is the three retained #683 artifacts relative to the production parent.",
+    "Correct merge-sync Guard 36314691733 / request 5855287033 / result 5855288636 GREEN with production authority cleanup@8a6323f5 and exact three-file #683 work delta.",
+    "Correct replacement merge-sync commit 1c4b976cfbe3be531c9592a167122b8102ceabb1 parents sealed 6156cf8c + cleanup 8a6323f5.",
+    "Post-sync pair reconciliation Guard 36314778009 / request 5855297273 / result 5855298793 GREEN."
   ],
   "last_guard": {
-    "action": "parent-branch-identity-repair",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36314602306,
-    "request_comment_id": 5855276243,
-    "result_comment_id": 5855277464,
+    "run_id": 36314778009,
+    "request_comment_id": 5855297273,
+    "result_comment_id": 5855298793,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "rebind sealed #683 authority to second replacement branch for correct merge-sync scope"
+    "mutation": "reconcile #683 claim/checkpoint HEAD to correct replacement merge-sync 1c4b976c"
   }
 }
