@@ -25,7 +25,7 @@
     "failed": 0,
     "marker": "ISSUE793_TAKEOVER_PARSER_GREEN=PASS"
   },
-  "next_action": "Advance #793 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint a bound finalization proof, close/read back #793, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Mint and verify the bound finalization proof on exact ISSUE_CLOSE_PENDING checkpoint, close #793, fresh-read closed/completed, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -55,7 +55,8 @@
     "Post-cleanup pair reconciliation Guard run 36289935791 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Fresh production drift audit: trusted main d54f0410 already contains the accepted real-newline parser and exact #722 regression blob via terminal helper #796.",
     "Direct merge of obsolete #793 branch is prohibited because branch diverged from newer trusted main authority; production acceptance is already satisfied on main.",
-    "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write."
+    "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write.",
+    "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write."
   ],
   "last_guard": {
     "action": "write",
@@ -63,7 +64,7 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #793 TERMINAL_SUCCESS / FINALIZATION_PENDING after superseded-branch drift audit"
+    "mutation": "advance #793 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "delegated_work": [
     {

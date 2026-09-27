@@ -28,13 +28,14 @@
     "Pair reconciliation Guard 36289935791 GREEN.",
     "Trusted main d54f0410 contains the accepted parser fix and the exact #722 regression blob deployed by terminal helper #796.",
     "Fresh drift audit proves #793 branch is obsolete/diverged and must not be merged over newer trusted main authority.",
-    "Temporary #793 QA workflow removed; closing head 4c9be50f contains no temporary workflow."
+    "Temporary #793 QA workflow removed; closing head 4c9be50f contains no temporary workflow.",
+    "TERMINAL_SUCCESS / FINALIZATION_PENDING persisted and fresh-read from coord/dispatch-claims."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run bound finalization proof, then close owning Issue #793 and fresh-read closed/completed"
 }
