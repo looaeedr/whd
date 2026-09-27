@@ -4,7 +4,7 @@
   "branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
   "state": "RUNNING",
-  "next_action": "Integrate exact #835 closing delta into cleanup/2d-3d-sync and main under the bidirectional Governance Mirror Hard Gate, then synchronize live A 00/20/40 and B15/B45 prompts with SAME_LANE_NONTERMINAL_WORK_V1 and verify schedule/timing/lane/enabled invariants unchanged.",
+  "next_action": "Perform prompt-only host mutation on exact A 00/20/40 + B15/B45 automation ids to add SAME_LANE_NONTERMINAL_WORK_V1; then fresh-read all five and reconcile EFFECT_OBSERVED only if schedule/timing/lane/enabled invariants remain unchanged.",
   "run_id": 36307215802,
   "job_id": 108586096868,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "Post-GREEN pair reconciliation Guard 36307245968 GREEN.",
     "Temporary QA workflow removed at closing head 95dd912c52a5c82f454a5088c7f1469fc78f7770.",
     "Tested→closing drift is workflow-deletion-only.",
-    "Closing-head pair reconciliation Guard 36307492191 GREEN."
+    "Closing-head pair reconciliation Guard 36307492191 GREEN.",
+    "Bidirectional governance mirror merged/read back: cleanup #838=500e6f80..., main #839=85aef9c4....",
+    "Host scheduler prompt-only PREPARED identity authorized by Guard 36308456564 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

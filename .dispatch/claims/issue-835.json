@@ -11,7 +11,7 @@
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T08:54:55Z",
+  "last_update": "2026-09-27T09:09:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Helper #837 is ACTIVE for the main governance mirror. Fresh-claim #837, build exact main-side scheduler Skill candidate, pair its PR with #835 cleanup PR under Governance Mirror Hard Gate, merge/readback both, terminalize helper, then synchronize live A/B prompts.",
+  "next_action": "Perform prompt-only host mutation on exact A 00/20/40 + B15/B45 automation ids to add SAME_LANE_NONTERMINAL_WORK_V1; then fresh-read all five and reconcile EFFECT_OBSERVED only if schedule/timing/lane/enabled invariants remain unchanged.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307628279,
-    "request_comment_id": 5854383491,
+    "run_id": 36308456564,
+    "request_comment_id": 5854513907,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "register #837 canonical delegated_work pointer"
+    "mutation": "persist live scheduler prompt-only PREPARED identity"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -48,7 +48,10 @@
     "Temporary QA workflow deleted at closing head 95dd912c52a5c82f454a5088c7f1469fc78f7770 under commit Guard 36307309726 GREEN.",
     "Tested head aea43290... -> closing head 95dd912c... changes exactly one removed temporary workflow.",
     "Closing-head pair reconciliation Guard 36307492191 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
-    "Helper #837 created with stable helper_key issue835-main-governance-mirror; parent pointer write authorized by Guard 36307628279 GREEN."
+    "Helper #837 created with stable helper_key issue835-main-governance-mirror; parent pointer write authorized by Guard 36307628279 GREEN.",
+    "PR #838 merged to cleanup as 500e6f806de40a74ee8cd5bb4a6372245c5df53c; PR #839 merged to main as 85aef9c41be3629410c4345ed3d8aa66aa21f214.",
+    "Production readback: 排程模擬 blob 9ee972d6ab0b55f0154b3288b32f7730a7eb9db3 and 寫排程 blob d4e82b82b1d7f7b0efdfe8c264074b8ce05a6e6a are identical on main and cleanup.",
+    "Scheduler host pre-intent pair write authorized by Guard 36308456564 GREEN."
   ],
   "delegated_work": [
     {
@@ -60,5 +63,82 @@
       "reserved_at": "2026-09-27T08:54:43Z",
       "child_issue": 837
     }
-  ]
+  ],
+  "scheduler_live_deployment": {
+    "schema": "WHD_SCHEDULER_LIVE_DEPLOYMENT_V1",
+    "state": "PREPARED",
+    "operation_id": "issue835-same-lane-nonterminal-prompt-deploy-v1",
+    "mutation": "prompt-only",
+    "required_prompt_markers": [
+      "SAME_LANE_NONTERMINAL_WORK_V1",
+      "SAME_LANE_RESUME",
+      "RECONCILIATION_REQUIRED",
+      "SHARED_SCOPE_CONFLICT"
+    ],
+    "targets": [
+      {
+        "lane_owner": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "entrypoint": "00",
+        "automation_id": "6ab13f881c34819180cee63f5dd9446b",
+        "schedule": "BEGIN:VEVENT\nDTSTART:20260924T091801\nRRULE:FREQ=HOURLY;BYMINUTE=0;BYSECOND=0\nEND:VEVENT",
+        "timing_mode": "exact_schedule",
+        "enabled_before": true,
+        "enabled_after": true,
+        "prompt_marker_before": false,
+        "prompt_marker_after": true
+      },
+      {
+        "lane_owner": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "entrypoint": "20",
+        "automation_id": "6ab4eaee5e008191a0e7e23303f64cea",
+        "schedule": "BEGIN:VEVENT\nDTSTART:20260924T091838\nRRULE:FREQ=HOURLY;BYMINUTE=20;BYSECOND=0\nEND:VEVENT",
+        "timing_mode": "exact_schedule",
+        "enabled_before": true,
+        "enabled_after": true,
+        "prompt_marker_before": false,
+        "prompt_marker_after": true
+      },
+      {
+        "lane_owner": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "entrypoint": "40",
+        "automation_id": "6ab13fa557fc8191935c671214b865e2",
+        "schedule": "BEGIN:VEVENT\nDTSTART:20260924T091819\nRRULE:FREQ=HOURLY;BYMINUTE=40;BYSECOND=0\nEND:VEVENT",
+        "timing_mode": "exact_schedule",
+        "enabled_before": true,
+        "enabled_after": true,
+        "prompt_marker_before": false,
+        "prompt_marker_after": true
+      },
+      {
+        "lane_owner": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+        "entrypoint": "B15",
+        "automation_id": "6ab51d9226808191b9ae0c624e28c246",
+        "schedule": "BEGIN:VEVENT\nDTSTART:20260924T125442\nRRULE:FREQ=HOURLY;BYMINUTE=15;BYSECOND=0\nEND:VEVENT",
+        "timing_mode": "exact_schedule",
+        "enabled_before": true,
+        "enabled_after": true,
+        "prompt_marker_before": false,
+        "prompt_marker_after": true
+      },
+      {
+        "lane_owner": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+        "entrypoint": "B45",
+        "automation_id": "6ab51d9ec6708191a578d67065f8979b",
+        "schedule": "BEGIN:VEVENT\nDTSTART:20260924T125454\nRRULE:FREQ=HOURLY;BYMINUTE=45;BYSECOND=0\nEND:VEVENT",
+        "timing_mode": "exact_schedule",
+        "enabled_before": true,
+        "enabled_after": true,
+        "prompt_marker_before": false,
+        "prompt_marker_after": true
+      }
+    ],
+    "invariants": [
+      "schedule unchanged",
+      "timing_mode unchanged",
+      "lane_owner unchanged",
+      "entrypoint unchanged",
+      "enabled state unchanged"
+    ],
+    "effect_state": "NOT_APPLIED"
+  }
 }
