@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "783",
+  "branch": "trusted/issue783-consumed-history-filter-main-20260927",
+  "head_sha": "ae75066c74339f728a676b1c923fd5366331ae76",
+  "state": "RUNNING",
+  "next_action": "Create guarded helper branch and apply exact consumed-history filter delta.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #774 bootstrap helper for generic consumed-history filter."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
