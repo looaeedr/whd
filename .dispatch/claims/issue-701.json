@@ -11,12 +11,12 @@
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "35cea40092d6c689b36342aca33805791651e47f",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T02:57:08Z",
+  "last_update": "2026-09-27T03:01:16Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create exactly one #701 integration-resolution helper from current cleanup/2d-3d-sync, bind it to helper reservation issue701-integration-resolution, resolve PR #799 dirty integration while preserving accepted #701 delta, then return terminal proof to #701.",
+  "next_action": "Helper #801 is ACTIVE. Do not mutate sealed #701 lineage or merge PR #799 directly. Follow #801 to terminal integration proof, terminalize helper reservation, then return #701 to ACCEPTED_PENDING_CHAIN_CLOSURE under #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -49,28 +49,31 @@
     "Closing-head pair reconciliation authorized by Remote Guard run 36289345768.",
     "PR #799 fresh-read mergeable_state=dirty against cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71.",
     "Helper reservation write authorized by Remote Guard run 36289984094.",
-    "Reserved helper_key=issue701-integration-resolution before child Issue creation."
+    "Reserved helper_key=issue701-integration-resolution before child Issue creation.",
+    "Helper #801 Claim Activation GREEN commit=e394cf711cac388b6bb5de1ef9968978288e1dae; child claim blob=c985043c8efa2526829ececb32956deb12c8469a.",
+    "Helper reservation activation authorized by Remote Guard run 36290181553.",
+    "Parent reservation issue701-integration-resolution bound ACTIVE to child #801."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36289984094,
-    "request_comment_id": 5852121193,
+    "run_id": 36290181553,
+    "request_comment_id": 5852143373,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reserve #701 integration-resolution helper"
+    "mutation": "activate #701 integration helper reservation -> #801"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue701-integration-resolution",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.issue701.20260927a",
       "reservation_token": "issue701-integration-resolution-20260927a",
       "reserved_at": "2026-09-27T02:57:08Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 801,
+      "child_claim_blob_sha": "c985043c8efa2526829ececb32956deb12c8469a"
     }
   ]
 }
