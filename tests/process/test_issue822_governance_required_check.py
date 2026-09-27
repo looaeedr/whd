@@ -111,6 +111,7 @@ def test_issue822_workflow_runs_candidate_parity_on_pull_request() -> None:
         "WHD-Governance-Mirror-Pair",
         "GOVERNANCE_MIRROR_PAIR_NOT_RECIPROCAL",
         "pull/$PAIR/head",
+        "types: [opened, synchronize, reopened, edited]",
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"RED: merge-time governance hard gate missing tokens: {missing}"
