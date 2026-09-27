@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "827",
   "branch": "governance/issue827-terminal-chain-metadata-repair-main-20260927",
-  "head_sha": "90fbf11cc7766975ba09d8b66e787eb61c4df85e",
+  "head_sha": "002ce570f74694c6671c440e69d43bc78fa187fa",
   "state": "RUNNING",
-  "next_action": "Sync current main governance hard-gate surface into the #827 main candidate without changing accepted #827 blobs, add the durable #827 regression test to governance_mirror_manifest, then construct an exact cleanup/2d-3d-sync counterpart with identical governed blobs. Open reciprocal paired PRs, require both Governance Mirror Hard Gate checks GREEN, merge both, prove post-push parity, then deploy/use terminal-chain-metadata-repair on #696.",
+  "next_action": "Reserve and create exactly one cleanup-side governance mirror helper for #827. The helper must branch from current cleanup/2d-3d-sync, copy exact governed blobs from #827 main candidate for .github/workflows/whd-remote-claim-activation.yml, tools/continuity_controller.py, tests/process/test_issue827_terminal_chain_metadata_repair.py, and docs/governance/governance_mirror_manifest.json, then open reciprocal paired PRs and require Governance Mirror Hard Gate GREEN on both before merge.",
   "run_id": 36302668061,
   "job_id": 108573144488,
   "log_cursor": null,
@@ -21,7 +21,9 @@
     "Focused #827 QA run 36302668061 / job 108573144488: 11 passed / 0 failed in 0.08s.",
     "Post-implementation reconciliation Guard 36302762135 GREEN.",
     "Closing head 90fbf11cc7766975ba09d8b66e787eb61c4df85e removes only temporary #827 QA workflow.",
-    "Post-cleanup reconciliation Guard 36302942332 GREEN."
+    "Post-cleanup reconciliation Guard 36302942332 GREEN.",
+    "Governance manifest head 002ce570f74694c6671c440e69d43bc78fa187fa adds permanent #827 regression to bidirectional mirror scope.",
+    "Post-manifest reconciliation Guard 36303150050 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
