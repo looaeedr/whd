@@ -11,11 +11,11 @@
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
   "head_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T03:17:00Z",
+  "last_update": "2026-09-27T03:22:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read owning branch 派工 Skill (fallback cleanup if branch does not yet exist), confirm parent #800 helper reservation issue800-main-x-parity is RESERVING and binds this child claim, then obtain branch-create Guard for frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71; create/read back the work branch before any parity mutation.",
+  "next_action": "Run Phase6 planned-scope Preflight for Issue #803 exact four parity artifacts; port accepted #800 implementation b507632dc3ae0f3cd0582d44af9c044cb4309872 as a compatible-equivalent change onto frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71, preserving newer cleanup-only governance; run focused #790 + adjacent reconciliation regressions, then reconcile durable HEAD before integration.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-803.json",
   "evidence": [
@@ -27,6 +27,20 @@
     "helper_key=issue800-main-x-parity",
     "reservation_token=issue800-main-x-parity-20260927a",
     "frozen_cleanup_base=44d1621f013d6181af7678e550254920cd6bcc71",
-    "accepted_main_source=5684094f09317d7db52873aba9f82a1b378436b3"
-  ]
+    "accepted_main_source=5684094f09317d7db52873aba9f82a1b378436b3",
+    "Parent #800 helper reservation issue800-main-x-parity is ACTIVE and binds this child claim blob ea5320648da1fa252003e4799ccb40735d172bea.",
+    "Branch-create Guard run 36291137452 GREEN on frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71.",
+    "Work branch created and fresh-read at exact frozen cleanup base.",
+    "Pair transition Guard run 36291180224 GREEN; branch-create/readback consumed."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36291180224,
+    "request_comment_id": 5852258374,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "consume #803 branch creation and advance to parity port"
+  }
 }
