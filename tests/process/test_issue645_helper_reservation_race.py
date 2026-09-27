@@ -17,6 +17,16 @@ TOKEN_A = "reserve-a-20260925"
 TOKEN_B = "reserve-b-20260925"
 
 
+def _split():
+    return {
+        "schema": "WHD_HELPER_SPLIT_EXCEPTION_V1",
+        "kind": "DISTINCT_AUTHORITY_BOUNDARY",
+        "current_ticket_can_own": False,
+        "evidence_ref": "issue:#640:finalization-proof-authority",
+        "scope_key": "issue640.finalization-proof-authority",
+    }
+
+
 def _parent_claim():
     return {
         "issue": 640,
@@ -46,6 +56,8 @@ def _reserve(claim, *, current_blob, expected_blob, lane, token, now=NOW):
         reserved_by=lane,
         reservation_token=token,
         now=now,
+        purpose_class="DISTINCT_AUTHORITY_BOUNDARY",
+        split_exception=_split(),
     )
 
 

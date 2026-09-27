@@ -22,6 +22,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Mapping, Sequence
 
+from tools.local_durability_gate import LocalDurabilityState
+
 DEFAULT_STALE_AFTER_SECONDS = 600
 DEFAULT_ORPHAN_GRACE_SECONDS = 90
 MAX_RUNTIME_LIVENESS_SECONDS = 300
@@ -58,6 +60,29 @@ _ALLOWED_DELEGATED_RELATIONSHIPS = frozenset(
 _HELPER_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
 _RESERVATION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
 _HELPER_RESERVATION_STATES = frozenset({"RESERVING", "ACTIVE", "TERMINAL"})
+_HELPER_REPAIR_IN_PLACE_PURPOSES = frozenset(
+    {
+        "CURRENT_TICKET_DEFECT",
+        "QA_RETRY",
+        "TRANSPORT_RETRY",
+        "SAME_SCOPE_REPAIR",
+    }
+)
+_HELPER_PER_FIX_PARITY_PURPOSE = "PER_FIX_GOVERNANCE_MIRROR"
+_HELPER_SPLIT_PURPOSES = frozenset(
+    {
+        "DISTINCT_AUTHORITY_BOUNDARY",
+        "DISTINCT_EXTERNAL_BLOCKER",
+        "NON_SHAREABLE_ACCEPTANCE_BOUNDARY",
+    }
+)
+_HELPER_PURPOSE_CLASSES = (
+    _HELPER_REPAIR_IN_PLACE_PURPOSES
+    | _HELPER_SPLIT_PURPOSES
+    | frozenset({_HELPER_PER_FIX_PARITY_PURPOSE})
+)
+_HELPER_SPLIT_EXCEPTION_SCHEMA = "WHD_HELPER_SPLIT_EXCEPTION_V1"
+_HELPER_SCOPE_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
 
 
 class StaleTakeoverError(RuntimeError):
@@ -266,6 +291,65 @@ def _require_reservation_token(value: object) -> str:
     return text
 
 
+def _require_helper_purpose_class(value: object) -> str:
+    purpose = str(value or "").strip().upper()
+    if purpose not in _HELPER_PURPOSE_CLASSES:
+        raise StaleTakeoverError(
+            "HELPER_PURPOSE_CLASS_REQUIRED "
+            f"allowed={sorted(_HELPER_PURPOSE_CLASSES)}"
+        )
+    return purpose
+
+
+def _normalize_helper_split_exception(
+    purpose_class: object,
+    split_exception: Mapping[str, object] | None,
+) -> tuple[str, dict[str, object]]:
+    purpose = _require_helper_purpose_class(purpose_class)
+    if purpose in _HELPER_REPAIR_IN_PLACE_PURPOSES:
+        raise StaleTakeoverError(
+            f"CURRENT_TICKET_REPAIR_REQUIRED purpose_class={purpose}"
+        )
+    if purpose == _HELPER_PER_FIX_PARITY_PURPOSE:
+        raise StaleTakeoverError(
+            "PARITY_SAME_OWNER_OR_BATCH_REQUIRED "
+            f"purpose_class={purpose}"
+        )
+    if not isinstance(split_exception, Mapping):
+        raise StaleTakeoverError(
+            f"HELPER_SPLIT_EXCEPTION_REQUIRED purpose_class={purpose}"
+        )
+    if str(split_exception.get("schema") or "").strip() != _HELPER_SPLIT_EXCEPTION_SCHEMA:
+        raise StaleTakeoverError("HELPER_SPLIT_EXCEPTION_SCHEMA_MISMATCH")
+    kind = str(split_exception.get("kind") or "").strip().upper()
+    if kind != purpose:
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_MISMATCH "
+            f"purpose_class={purpose} kind={kind or 'MISSING'}"
+        )
+    if split_exception.get("current_ticket_can_own") is not False:
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_REQUIRED current_ticket_can_own=false"
+        )
+    evidence_ref = str(split_exception.get("evidence_ref") or "").strip()
+    if not evidence_ref or len(evidence_ref) > 500:
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_REQUIRED evidence_ref"
+        )
+    scope_key = str(split_exception.get("scope_key") or "").strip()
+    if not _HELPER_SCOPE_KEY_RE.fullmatch(scope_key):
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_REQUIRED scope_key"
+        )
+    return purpose, {
+        "schema": _HELPER_SPLIT_EXCEPTION_SCHEMA,
+        "kind": purpose,
+        "current_ticket_can_own": False,
+        "evidence_ref": evidence_ref,
+        "scope_key": scope_key,
+    }
+
+
 def _helper_reservations(
     parent_claim: Mapping[str, object],
     *,
@@ -364,6 +448,30 @@ def _find_live_helper_reservation(
     return entries[0] if entries else None
 
 
+def _find_live_helper_scope_reservation(
+    parent_claim: Mapping[str, object],
+    scope_key: str,
+) -> dict[str, object] | None:
+    wanted = str(scope_key or "").strip()
+    if not _HELPER_SCOPE_KEY_RE.fullmatch(wanted):
+        raise StaleTakeoverError("helper scope_key is missing or malformed")
+    matches: list[dict[str, object]] = []
+    for item in _helper_reservations(parent_claim):
+        if item["state"] not in {"RESERVING", "ACTIVE"}:
+            continue
+        proof = item.get("split_exception")
+        if not isinstance(proof, Mapping):
+            continue
+        observed = str(proof.get("scope_key") or "").strip()
+        if observed == wanted:
+            matches.append(item)
+    if len(matches) > 1:
+        raise StaleTakeoverError(
+            f"AMBIGUOUS_HELPER_SCOPE_RESERVATION scope_key={wanted}"
+        )
+    return matches[0] if matches else None
+
+
 def _legacy_same_key_helper_exists(
     parent_claim: Mapping[str, object],
     helper_key: str,
@@ -392,6 +500,8 @@ def reserve_helper_creation(
     reserved_by: str,
     reservation_token: str,
     now: datetime,
+    purpose_class: str,
+    split_exception: Mapping[str, object] | None,
 ) -> HelperReservationDecision:
     """Build one RESERVING parent-claim CAS candidate."""
 
@@ -436,6 +546,22 @@ def reserve_helper_creation(
             expected_parent_claim_blob_sha=current_blob,
         )
 
+    purpose, split_proof = _normalize_helper_split_exception(
+        purpose_class,
+        split_exception,
+    )
+    same_scope = _find_live_helper_scope_reservation(
+        parent_claim,
+        str(split_proof["scope_key"]),
+    )
+    if same_scope is not None:
+        return HelperReservationDecision(
+            outcome="ACTIVE_HELPER_SCOPE_DUPLICATE",
+            parent_claim=deepcopy(dict(parent_claim)),
+            reservation=deepcopy(same_scope),
+            expected_parent_claim_blob_sha=current_blob,
+        )
+
     candidate = deepcopy(dict(parent_claim))
     delegated = candidate.get("delegated_work")
     if delegated is None:
@@ -451,6 +577,8 @@ def reserve_helper_creation(
         "reserved_by": owner,
         "reservation_token": token,
         "reserved_at": _iso_utc(reserved_at),
+        "purpose_class": purpose,
+        "split_exception": split_proof,
         "child_issue": None,
         "child_claim_blob_sha": None,
     }
@@ -504,6 +632,12 @@ def activate_helper_reservation(
         existing,
         reserved_by=reserved_by,
         reservation_token=reservation_token,
+    )
+    _normalize_helper_split_exception(
+        existing.get("purpose_class"),
+        existing.get("split_exception")
+        if isinstance(existing.get("split_exception"), Mapping)
+        else None,
     )
     child = _positive_int("helper child_issue", child_issue)
     child_blob = _require_sha("helper child_claim_blob_sha", child_claim_blob_sha)
@@ -900,6 +1034,12 @@ def assert_helper_creation_allowed(
                 "ACTIVE_HELPER_DUPLICATE "
                 f"helper_key={candidate_key} child_issue={reservation['child_issue']}"
             )
+        _normalize_helper_split_exception(
+            reservation.get("purpose_class"),
+            reservation.get("split_exception")
+            if isinstance(reservation.get("split_exception"), Mapping)
+            else None,
+        )
 
     observations = _normalize_delegated_work(
         parent_claim, delegated_work, now=now_utc
@@ -1226,6 +1366,147 @@ def _scheduler_runtime_liveness(
     status = "ACTIVE" if now < expires_at else "EXPIRED"
     return status, invocation, emitted_at, expires_at
 
+def evaluate_outage_recovery(
+    *,
+    local_state: LocalDurabilityState,
+    planned_handoff_verified: bool,
+    exact_remote_run_active: bool,
+    durable_checkpoint_present: bool,
+    durable_next_action: str | None,
+    mutation_outcome: str,
+    mutation_idempotent: bool,
+    abnormal_outage: bool,
+) -> dict[str, object]:
+    """Classify replay-safe outage recovery from durable evidence only.
+
+    This policy deliberately reuses WI-1 LocalDurabilityState instead of defining
+    a second local-state taxonomy. It is pure: callers must perform any required
+    reconciliation/readback before replaying an external mutation.
+    """
+
+    if not isinstance(local_state, LocalDurabilityState):
+        try:
+            local_state = LocalDurabilityState(str(local_state))
+        except ValueError as exc:
+            raise StaleTakeoverError("local_state must be a WI-1 LocalDurabilityState") from exc
+
+    if not isinstance(planned_handoff_verified, bool):
+        raise StaleTakeoverError("planned_handoff_verified must be boolean")
+    if not isinstance(exact_remote_run_active, bool):
+        raise StaleTakeoverError("exact_remote_run_active must be boolean")
+    if not isinstance(durable_checkpoint_present, bool):
+        raise StaleTakeoverError("durable_checkpoint_present must be boolean")
+    if not isinstance(mutation_idempotent, bool):
+        raise StaleTakeoverError("mutation_idempotent must be boolean")
+    if not isinstance(abnormal_outage, bool):
+        raise StaleTakeoverError("abnormal_outage must be boolean")
+
+    next_action = str(durable_next_action or "").strip() or None
+    mutation = str(mutation_outcome or "").strip().upper()
+    if mutation not in {"NONE", "NOT_APPLIED", "APPLIED", "UNKNOWN"}:
+        raise StaleTakeoverError(
+            "mutation_outcome must be NONE, NOT_APPLIED, APPLIED, or UNKNOWN"
+        )
+
+    def decision(
+        value: str,
+        reason: str,
+        *,
+        replay_allowed: bool,
+        reconcile_before_replay: bool = False,
+        stale_takeover_allowed: bool = False,
+        local_truth_recovered: bool = False,
+    ) -> dict[str, object]:
+        return {
+            "schema": "WHD_OUTAGE_RECOVERY_V1",
+            "decision": value,
+            "reason": reason,
+            "local_state": local_state.value,
+            "resume_source": "DURABLE_GITHUB_ONLY",
+            "durable_next_action": next_action,
+            "local_truth_recovered": local_truth_recovered,
+            "exact_remote_run_active": exact_remote_run_active,
+            "planned_handoff_verified": planned_handoff_verified,
+            "mutation_outcome": mutation,
+            "mutation_idempotent": mutation_idempotent,
+            "reconcile_before_replay": reconcile_before_replay,
+            "replay_allowed": replay_allowed,
+            "stale_takeover_allowed": stale_takeover_allowed,
+        }
+
+    # An exact active remote run is an absolute lock, even during outage recovery.
+    if exact_remote_run_active:
+        return decision(
+            "REMOTE_RUN_LOCKED",
+            "EXACT_ACTIVE_REMOTE_RUN",
+            replay_allowed=False,
+        )
+
+    # A verified planned handoff is authoritative and must never degrade into
+    # stale-owner semantics merely because the local machine later disappears.
+    if planned_handoff_verified:
+        return decision(
+            "PLANNED_HANDOFF",
+            "PLANNED_HANDOFF_VERIFIED",
+            replay_allowed=False,
+        )
+
+    if not durable_checkpoint_present or next_action is None:
+        return decision(
+            "DURABLE_EVIDENCE_MISSING",
+            "DURABLE_CHECKPOINT_REQUIRED",
+            replay_allowed=False,
+        )
+
+    # Local-only/unpushed truth cannot be reconstructed from GitHub after an
+    # unexpected outage. Preserve WI-1 state and explicitly mark it unknown.
+    if local_state in {
+        LocalDurabilityState.LOCAL_MACHINE_UNAVAILABLE,
+        LocalDurabilityState.LOCAL_UNPUSHED,
+        LocalDurabilityState.LOCAL_DIRTY_RECOVERABLE,
+        LocalDurabilityState.LOCAL_DIRTY_CONFLICT,
+        LocalDurabilityState.LOCAL_MUTATION_IN_PROGRESS,
+    }:
+        return decision(
+            "LOCAL_STATE_UNKNOWN",
+            "LOCAL_UNPERSISTED_STATE_UNKNOWN",
+            replay_allowed=False,
+        )
+
+    # Unknown non-idempotent side effects must be read back/reconciled before
+    # any replay. This is intentionally stricter than ordinary stale takeover.
+    if mutation == "UNKNOWN" and not mutation_idempotent:
+        return decision(
+            "RECONCILE_BEFORE_REPLAY",
+            "UNKNOWN_MUTATION_OUTCOME",
+            replay_allowed=False,
+            reconcile_before_replay=True,
+        )
+
+    if mutation == "APPLIED":
+        return decision(
+            "DURABLE_RESUME",
+            "MUTATION_ALREADY_APPLIED",
+            replay_allowed=False,
+            stale_takeover_allowed=abnormal_outage,
+        )
+
+    if mutation == "UNKNOWN":
+        return decision(
+            "DURABLE_RESUME",
+            "IDEMPOTENT_UNKNOWN_MUTATION_REPLAY",
+            replay_allowed=True,
+            stale_takeover_allowed=abnormal_outage,
+        )
+
+    return decision(
+        "DURABLE_RESUME",
+        "DURABLE_CHECKPOINT_RESUME",
+        replay_allowed=True,
+        stale_takeover_allowed=abnormal_outage,
+    )
+
+
 def evaluate_stale_claim_takeover(
     claim: Mapping[str, object],
     *,
@@ -1510,6 +1791,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "--delegated-work-json", action="append", type=Path, default=[]
     )
     parser.add_argument("--candidate-helper-key")
+    parser.add_argument("--helper-reservation-owner")
+    parser.add_argument("--helper-reservation-token")
     parser.add_argument("--claim-blob-sha")
     parser.add_argument(
         "--orphan-grace-seconds",
@@ -1568,6 +1851,8 @@ def main(argv: list[str] | None = None) -> int:
                 delegated_work=delegated_work,
                 now=now,
                 stale_after_seconds=args.stale_after_seconds,
+                reservation_owner=args.helper_reservation_owner,
+                reservation_token=args.helper_reservation_token,
             )
             print(
                 "HELPER_CREATION_GUARD_GREEN "

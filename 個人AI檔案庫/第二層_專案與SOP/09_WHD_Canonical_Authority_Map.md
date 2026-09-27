@@ -43,7 +43,7 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=CURRENT path=tools/continuity_controller.py -->
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
 
-<!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->
+<!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->\n<!-- WHD_AUTHORITY contract=ha-poweroff-projection role=CURRENT path=tools/whd_poweroff_ha_bridge.py -->
 <!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
 <!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
 
@@ -93,7 +93,19 @@ whd_schema: WHD_DOC_META_V1
 - `SAFE` receipt 必須綁 `poweroff_request_id + evidence_revision`；request/revision drift 或 receipt 非 SAFE 時 validator 必須失效。
 - Guard transaction、scheduler readiness、checkpoint HEAD/next_action、local runtime durability 與所有 local-dependent slots 聚合都由此 executable owner 判定；HA/Node-RED 只能消費 projection，不得另建平行 safety state machine。
 - `LOCAL_MACHINE_UNAVAILABLE` 的 canonical projection 是 `ERROR / LOCAL_MACHINE_UNREACHABLE`；不得與 `LOCAL_STATE_CONFLICT` 混用。
+
 - 真正 Windows shutdown actuator 不屬本 contract；此 owner 只提供 machine safety decision。
+
+### ha-poweroff-projection
+
+- Executable CURRENT owner：`tools/whd_poweroff_ha_bridge.py`。
+- Transport 選定 `NODE_RED_EXEC`：既有家庭自動化能力已有 Node-RED，但 repository 在本次 acceptance 沒有 canonical REST / MQTT / whd-monitor server owner；因此採用 thin exec transport，避免新增常駐 server 或第二套 state machine。
+- Input request schema 固定為 `WHD_HANDOFF_REQUEST_V1`；HA / Node-RED 只搬運 `poweroff_request_id + evidence_revision + requested_at_epoch_seconds + timeout_seconds` 與 gate receipt，不推導 Git / claim / checkpoint / Guard state。
+- Projection schema 固定為 `WHD_HA_POWER_OFF_PROJECTION_V1`，結果域只允許 `SAFE / NOT_SAFE / ERROR`；projection transport marker 固定為 `NODE_RED_EXEC`。
+- `SAFE` 唯一可接受來源是 `tools/workstation_poweroff_gate.py::validate_safe_receipt` 對 current `poweroff_request_id + evidence_revision` 的成功驗證；舊 request / 舊 revision 的 SAFE 一律 fail closed。
+- Freshness 由 request 的 `requested_at_epoch_seconds + timeout_seconds` 決定；超時固定投影 `ERROR / TIMEOUT`。Malformed / unknown receipt 固定投影 `ERROR`，不得轉成 SAFE。
+- `NOT_SAFE` / `ERROR` receipt 只做 fail-closed transport projection，不得升格。Projection 本身 side-effect-free；同一 current request 在 timeout 前可安全 retry，timeout 後必須建立 fresh request。
+- HA / Node-RED 不是 WHD authority，也不得重建 claim/checkpoint/Guard evaluator。此 contract 不連接真正 Windows shutdown actuator。
 
 ## Change contract
 
@@ -180,3 +192,15 @@ Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#62
 - Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+<!-- WHD_OUTAGE_RECOVERY_REPLAY_SAFETY_V1 -->
+### outage-recovery-replay-safety
+
+- Executable CURRENT owner：`tools/stale_claim_takeover.py::evaluate_outage_recovery`。
+- Local-state vocabulary 必須直接重用 WI-1 `tools/local_durability_gate.py::LocalDurabilityState`；不得建立第二套 outage local-state enum。
+- Verified planned handoff 是正常 ownership transfer；fresh evidence 命中 planned handoff 時不得降級成 stale takeover，也不得等待 stale TTL。
+- Exact active remote run 是 absolute lock；outage/stale recovery 不得在同一 exact run 尚 active 時 takeover、replay 或啟動競爭 mutation。
+- Unexpected local outage 只能從 durable GitHub checkpoint / exact `next_action` 恢復。local machine unavailable、unpushed、dirty/conflict 或 mutation-in-progress 的 local-only truth 一律保留為未知，reason 固定 `LOCAL_UNPERSISTED_STATE_UNKNOWN`；不得宣稱已從 remote clean state「復原本機真相」。
+- External mutation outcome 若為 unknown，尤其 non-idempotent mutation，reason 固定 `UNKNOWN_MUTATION_OUTCOME`，必須先 readback/reconcile 才能 replay。
+- Stale takeover 只屬 abnormal recovery；planned handoff、same-lane resume、known durable continuation 都不是 stale takeover trigger。
+- Prompt / Skill / AI Library 只描述 routing 與 invariant；不得複製 `evaluate_outage_recovery` 或 `LocalDurabilityState` 成第二套 machine state。

@@ -281,3 +281,20 @@ Only when no valid planned handoff exists and a foreign owner is proven stale/or
 - retained invariant: Planned claim-handoff and stale/orphan claim-takeover remain separate guarded paths with exact durable identity.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+
+<!-- WHD_UNEXPECTED_OUTAGE_REPLAY_SAFE_USAGE_V1 -->
+## 17. Unexpected local outage is durable-only recovery
+
+Unexpected PC loss / local runtime disappearance does not become a planned handoff and does not automatically authorize stale takeover.
+
+Canonical order:
+
+1. fresh-read claim + checkpoint + work HEAD + exact remote run;
+2. verified planned handoff → resume the transferred owner/checkpoint directly;
+3. exact active remote run → absolute lock, poll/reconcile only;
+4. missing/local-only truth → `LOCAL_UNPERSISTED_STATE_UNKNOWN`; never infer local recovery from remote clean state;
+5. unknown non-idempotent external mutation → `UNKNOWN_MUTATION_OUTCOME`, read back/reconcile before replay;
+6. only abnormal outage with no planned handoff and no active exact run may proceed to stale/orphan takeover evaluation.
+
+The pure policy owner is `tools/stale_claim_takeover.py::evaluate_outage_recovery`. It reuses `tools/local_durability_gate.py::LocalDurabilityState`; do not create a second outage-state taxonomy in prompts, Skills, or runbooks.

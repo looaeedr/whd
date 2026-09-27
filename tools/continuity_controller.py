@@ -2315,6 +2315,32 @@ def assert_scheduler_end_receipt(
             "scheduler END requires exact TURN_EXIT_PERMITTED receipt"
         )
 
+    recurring_lifecycle_fields = {
+        "invocation_end_allowed",
+        "recurring_automation_action",
+        "recurring_automation_terminal",
+    }
+    present_recurring_lifecycle_fields = recurring_lifecycle_fields.intersection(
+        turn_exit_receipt
+    )
+    if present_recurring_lifecycle_fields:
+        if present_recurring_lifecycle_fields != recurring_lifecycle_fields:
+            raise TurnExitBlocked(
+                "scheduler END recurring lifecycle receipt is incomplete"
+            )
+        if turn_exit_receipt.get("invocation_end_allowed") is not True:
+            raise TurnExitBlocked(
+                "scheduler END invocation lifecycle is not permitted"
+            )
+        if turn_exit_receipt.get("recurring_automation_action") != "KEEP_ENABLED":
+            raise TurnExitBlocked(
+                "scheduler END recurring lifecycle must KEEP_ENABLED"
+            )
+        if turn_exit_receipt.get("recurring_automation_terminal") is not False:
+            raise TurnExitBlocked(
+                "scheduler END recurring lifecycle cannot be terminal"
+            )
+
     actual_result_comment_id = _positive_scheduler_end_int(
         "result comment id", result_comment_id
     )
