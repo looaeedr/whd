@@ -4,7 +4,7 @@
   "branch": "repair/issue851-sealed-premerge-v2-20260927",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "state": "RUNNING",
-  "next_action": "Trigger a fresh Governance Mirror Hard Gate on cleanup PR #857 against merged main@b427ae38f5a8921c273cc56e8da1b293154534a2; require GREEN; then merge #857 under an exact pr-write Guard; read back cleanup integration; close stale #854 if still open; then close/release #851.",
+  "next_action": "Close superseded PR #854 unmerged under delegated same-ticket authority while checkpoint is still RUNNING; read back #854 closed; then advance #851 terminal checkpoint/finalization, close Issue #851, and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -39,7 +39,11 @@
     "paired gate set GREEN (#856=36319510072, #857=36319680580)",
     "primary authority handoff Guard 36319744464 GREEN",
     "#856 merged to main at b427ae38f5a8921c273cc56e8da1b293154534a2",
-    "post-main-merge handback Guard 36320003324 GREEN"
+    "post-main-merge handback Guard 36320003324 GREEN",
+    "post-main-merge #857 Governance Mirror Hard Gate 36320138101 GREEN",
+    "#857 merged to cleanup at da3839b6e6c7d2f391b172ea753fe6cc13d28931",
+    "superseded PR #854 remains OPEN and is scheduled for pre-terminal cleanup",
+    "closing/delegation Guard 36320224970 GREEN"
   ],
   "operation": null,
   "master_issue": null,

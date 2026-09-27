@@ -11,12 +11,12 @@
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T12:45:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T12:49:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Trigger a fresh Governance Mirror Hard Gate on cleanup PR #857 against merged main@b427ae38f5a8921c273cc56e8da1b293154534a2; require GREEN; then merge #857 under an exact pr-write Guard; read back cleanup integration; close stale #854 if still open; then close/release #851.",
+  "next_action": "Close superseded PR #854 unmerged under delegated same-ticket authority while checkpoint is still RUNNING; read back #854 closed; then advance #851 terminal checkpoint/finalization, close Issue #851, and atomically RELEASE claim + TERMINAL_SUCCESS/CLOSED checkpoint.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -55,20 +55,26 @@
     "primary authority handoff Guard run=36319744464 GREEN",
     "main PR #856 merged under pr-write Guard 36319934730",
     "main merge commit=b427ae38f5a8921c273cc56e8da1b293154534a2",
-    "post-main-merge authority handback Guard run=36320003324 GREEN"
+    "post-main-merge authority handback Guard run=36320003324 GREEN",
+    "post-main-merge cleanup Governance Mirror Hard Gate run=36320138101 GREEN",
+    "cleanup PR #857 merged under existing exact pr-write Guard 36320103177",
+    "cleanup merge commit=da3839b6e6c7d2f391b172ea753fe6cc13d28931",
+    "fresh pre-closure audit: superseded PR #854 remains OPEN and must be closed before terminal checkpoint",
+    "closing/delegation transition Guard run=36320224970 GREEN"
   ],
   "delegated_branches": [
-    "governance/issue851-main-mirror-20260927"
+    "governance/issue851-main-mirror-20260927",
+    "governance/issue851-recurring-lifecycle-turn-exit-20260927"
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36320003324,
-    "request_comment_id": 5855926000,
-    "result_comment_id": 5855927662,
+    "run_id": 36320224970,
+    "request_comment_id": 5855960591,
+    "result_comment_id": 5855962612,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #851 primary authority back to cleanup after #856 merge"
+    "mutation": "enter #851 CLOSING and delegate superseded #854 branch for pre-terminal cleanup"
   }
 }
