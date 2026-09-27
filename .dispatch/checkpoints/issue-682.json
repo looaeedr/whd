@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "682",
   "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
-  "head_sha": "5db406fb52a6417405be57905d43e6d1edab360a",
+  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
   "state": "RUNNING",
-  "next_action": "Obtain one exact production-parent commit Guard against cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931; create a two-parent sync preserving #851 target drift and #682 retained delta. The only overlapping file is AI pitfalls 06 and must retain both append-only sections. Reconcile the synced head, then create paired cleanup/main governance-mirror PRs.",
+  "next_action": "Reserve same-ticket delegated branch governance/issue682-main-mirror-20260927 in durable claim; then branch-create it and build a main bridge containing only governed #682 paths. Create reciprocal cleanup/main PR pair, require Governance Mirror Hard Gate + Knowledge Governance GREEN, then merge main first and cleanup second.",
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -30,7 +30,10 @@
     "Pair reconciled under Guard 36322166286.",
     "Closing head 5db406fb52a6417405be57905d43e6d1edab360a differs from tested head only by one-shot QA workflow deletion.",
     "Closing-head pair reconciled under Guard 36322512778.",
-    "Production target da3839b6 drift overlaps only AI pitfalls 06 append-only writeback."
+    "Production target da3839b6 drift overlaps only AI pitfalls 06 append-only writeback.",
+    "Two-parent sync head aaec26d75f320f624fd9b42fcc1b2506132e60db.",
+    "Sync parents are closing 5db406fb... + current cleanup da3839b6....",
+    "Pair reconciled under Guard 36322712040."
   ],
   "master_issue": null,
   "chain_state": "NONE",

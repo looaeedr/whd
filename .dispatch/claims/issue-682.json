@@ -9,9 +9,9 @@
   "work_branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "claimed_at": "2026-09-27T12:20:00Z",
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
-  "head_sha": "5db406fb52a6417405be57905d43e6d1edab360a",
+  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T13:28:37Z",
+  "last_update": "2026-09-27T13:31:59Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
@@ -24,7 +24,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Obtain one exact production-parent commit Guard against cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931; create a two-parent sync preserving #851 target drift and #682 retained delta. The only overlapping file is AI pitfalls 06 and must retain both append-only sections. Reconcile the synced head, then create paired cleanup/main governance-mirror PRs.",
+  "next_action": "Reserve same-ticket delegated branch governance/issue682-main-mirror-20260927 in durable claim; then branch-create it and build a main bridge containing only governed #682 paths. Create reciprocal cleanup/main PR pair, require Governance Mirror Hard Gate + Knowledge Governance GREEN, then merge main first and cleanup second.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -56,17 +56,21 @@
     "One-shot QA workflow deletion commit 5db406fb52a6417405be57905d43e6d1edab360a consumed commit Guard 36322435032 / request 5856269711 / result 5856271265.",
     "Tested e4cc3c9ed48d63dc0acf772036a7bafaacded916 -> closing 5db406fb52a6417405be57905d43e6d1edab360a drift is exactly removal of .github/workflows/qa-issue682-outage-recovery.yml.",
     "Closing-head reconciliation Guard 36322512778 / request 5856278861 / result 5856280431 GREEN.",
-    "Fresh target drift d41c2577 -> cleanup da3839b6 overlaps #682 only at AI pitfalls 06; both sides are append-only."
+    "Fresh target drift d41c2577 -> cleanup da3839b6 overlaps #682 only at AI pitfalls 06; both sides are append-only.",
+    "Production-parent commit Guard 36322603374 / request 5856289669 / result 5856291397 GREEN against cleanup@da3839b6e6c7d2f391b172ea753fe6cc13d28931.",
+    "Two-parent sync aaec26d75f320f624fd9b42fcc1b2506132e60db parents=[5db406fb52a6417405be57905d43e6d1edab360a,da3839b6e6c7d2f391b172ea753fe6cc13d28931].",
+    "Relative to current cleanup, sync head changes exactly six retained #682 files; AI pitfalls 06 preserves both #851 and #682 append-only sections.",
+    "Post-sync pair reconciliation Guard 36322712040 / request 5856301503 / result 5856303365 GREEN; consumed now."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36322512778,
-    "request_comment_id": 5856278861,
-    "result_comment_id": 5856280431,
+    "run_id": 36322712040,
+    "request_comment_id": 5856301503,
+    "result_comment_id": 5856303365,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #682 to cleaned closing head"
+    "mutation": "reconcile #682 to two-parent sync head"
   }
 }
