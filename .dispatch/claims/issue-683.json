@@ -11,7 +11,7 @@
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T11:53:57Z",
+  "last_update": "2026-09-27T11:59:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Close superseded PR #848 from work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e under one fresh exact pr-write Guard; read back #848 closed/unmerged; hand primary authority back to repair2@1c4b976cfbe3be531c9592a167122b8102ceabb1; then atomically write checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Execute exact closure-cleanup Issue #855 under scheduler B: establish its active claim/checkpoint on work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e, obtain one pr-write Guard, close PR #848 without merge, read back closed/unmerged, terminalize/finalize/release #855; then return to #683 and atomically write checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -117,17 +117,20 @@
     "Issue #683 fresh readback is closed/completed after finalization proof; checkpoint was not mutated between proof and Issue close.",
     "Release-handoff transition consumes exact write Guard 36317145317 / request 5855581710 / result 5855583325.",
     "Pre-release fresh audit found superseded PR #848 still OPEN; terminal release must not orphan it.",
-    "Pending write Guard 36317203466 / request 5855588952 / result 5855590521 is consumed by same-scope primary handoff to the superseded #848 branch instead of premature RELEASED/CLOSED."
+    "Pending write Guard 36317203466 / request 5855588952 / result 5855590521 is consumed by same-scope primary handoff to the superseded #848 branch instead of premature RELEASED/CLOSED.",
+    "Terminal checkpoint pr-write attempt 36317352737 failed closed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT; terminal owner cannot legally close superseded PR #848.",
+    "Distinct-boundary closure-cleanup Issue #855 created under TERMINAL_CHECKPOINT_PR_WRITE_BOUNDARY; no code/governance mutation authorized.",
+    "Exact terminal coordination write Guard 36317500411 / request 5855624816 / result 5855626357 consumed to persist #855 as the required closure handoff before final #683 release."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36317203466,
-    "request_comment_id": 5855588952,
-    "result_comment_id": 5855590521,
+    "run_id": 36317500411,
+    "request_comment_id": 5855624816,
+    "result_comment_id": 5855626357,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #683 closure owner to superseded PR #848 branch for cleanup before release"
+    "mutation": "persist #855 distinct closure-cleanup handoff before #683 release"
   }
 }

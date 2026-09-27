@@ -66,7 +66,9 @@
     "Issue #683 readback closed/completed; checkpoint remained exact through proof + close.",
     "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36317145317.",
     "Pre-release audit found superseded PR #848 still OPEN.",
-    "Primary authority handed to #848 branch under pending write Guard 36317203466 so PR cleanup can complete before CLOSED + RELEASED."
+    "Primary authority handed to #848 branch under pending write Guard 36317203466 so PR cleanup can complete before CLOSED + RELEASED.",
+    "Terminal pr-write is machine-blocked; Issue #855 is the distinct active authority boundary for closing superseded PR #848.",
+    "Coordination write Guard 36317500411 consumed to persist the #855 closure handoff."
   ],
   "master_issue": null,
   "chain_state": "NONE",
@@ -74,5 +76,5 @@
   "chain_next_action": null,
   "chain_reason": null,
   "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Close superseded PR #848 from work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e under one fresh exact pr-write Guard; read back #848 closed/unmerged; hand primary authority back to repair2@1c4b976cfbe3be531c9592a167122b8102ceabb1; then atomically write checkpoint CLOSED + claim RELEASED."
+  "closure_next_action": "Execute exact closure-cleanup Issue #855 under scheduler B: establish its active claim/checkpoint on work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e, obtain one pr-write Guard, close PR #848 without merge, read back closed/unmerged, terminalize/finalize/release #855; then return to #683 and atomically write checkpoint CLOSED + claim RELEASED."
 }
