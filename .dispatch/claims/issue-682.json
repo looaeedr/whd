@@ -11,13 +11,13 @@
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "head_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T12:20:00Z",
+  "last_update": "2026-09-27T12:40:28Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one fresh branch-create Guard for work/issue682-unexpected-local-outage-recovery-20260927 at frozen cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1; create/readback exact branch; then establish repository-owned R9 RED for unexpected local outage + replay-safe recovery before any implementation.",
+  "next_action": "Create repository-owned R9 behavior RED on the exact branch: prove outage recovery reuses WI-1 LocalDurabilityState, treats unavailable/local-only truth as LOCAL_UNPERSISTED_STATE_UNKNOWN, preserves exact active remote-run lock, routes planned handoff away from stale takeover, and requires UNKNOWN_MUTATION_OUTCOME reconcile-before-replay.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -30,6 +30,20 @@
     "prohibited_scope=no unrelated issue/lane takeover; no LOCAL fallback; no new architecture outside accepted #682 requirement authority",
     "resume_authority=fresh #682 owning Issue + this exact active claim/checkpoint",
     "#678 and #679 fresh readback closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED",
-    "Frozen production base cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1; intended work branch did not exist at claim construction."
-  ]
+    "Frozen production base cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1; intended work branch did not exist at claim construction.",
+    "Branch-create Guard 36319612667 / request 5855878373 / result 5855880290 GREEN.",
+    "Work branch readback exact at frozen base d41c257787c1fa298bb4e8a1fb7927432c9cbde1.",
+    "Branch-create durable writeback consumes exact write Guard 36319762461 / request 5855896779 / result 5855898148."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36319762461,
+    "request_comment_id": 5855896779,
+    "result_comment_id": 5855898148,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "record branch-create effect and advance #682 to R9 RED"
+  }
 }
