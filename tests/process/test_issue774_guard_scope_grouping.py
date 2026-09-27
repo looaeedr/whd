@@ -34,17 +34,33 @@ def classify(receipts, expected, *, expected_action="write"):
         expected_action=expected_action,
     )
 
-def test_issue774_different_historical_scope_does_not_contaminate_current_pair():
+def test_issue774_different_consumed_historical_scope_does_not_contaminate_current_pair():
     old_checkpoint=receipt(1,(CP,))
     current_pair=receipt(2,(CLAIM,CP))
-    decision=classify([old_checkpoint,current_pair],(CLAIM,CP))
+    decision=guard.classify_guard_transaction(
+        receipts=[old_checkpoint,current_pair],
+        current_issue=ISSUE,current_worker=WORKER,current_executor_source="chat",
+        current_branch=BRANCH,current_claim_head_sha=H,live_branch_head_sha=H,
+        current_claim_blob_sha=BLOB,
+        now=datetime.fromisoformat("2026-09-26T23:10:00+00:00"),
+        durable_readbacks=[_readback(old_checkpoint)],
+        expected_changed_files=(CLAIM,CP),expected_action="write",
+    )
     assert decision.state is guard.GuardTransactionState.PENDING
     assert decision.guard_run_ids == (2,)
 
-def test_issue774_checkpoint_scope_can_select_checkpoint_transaction():
+def test_issue774_consumed_pair_scope_does_not_block_current_checkpoint_transaction():
     checkpoint=receipt(3,(CP,))
     pair=receipt(4,(CLAIM,CP))
-    decision=classify([checkpoint,pair],(CP,))
+    decision=guard.classify_guard_transaction(
+        receipts=[checkpoint,pair],
+        current_issue=ISSUE,current_worker=WORKER,current_executor_source="chat",
+        current_branch=BRANCH,current_claim_head_sha=H,live_branch_head_sha=H,
+        current_claim_blob_sha=BLOB,
+        now=datetime.fromisoformat("2026-09-26T23:10:00+00:00"),
+        durable_readbacks=[_readback(pair)],
+        expected_changed_files=(CP,),expected_action="write",
+    )
     assert decision.state is guard.GuardTransactionState.PENDING
     assert decision.guard_run_ids == (3,)
 
@@ -91,7 +107,7 @@ def _readback(receipt, *, reconciled=True):
         "tested_target_sha": receipt["tested_target_sha"],
         "changed_files": receipt["changed_files"],
         "coord_commit_sha": str(receipt["run_id"]).zfill(40)[-40:],
-        "committed_at": "2026-09-26T23:55:00Z",
+        "committed_at": "2026-09-26T23:00:00Z",
         "mutation_applied": True,
         "target_changed": True,
         "reconciled": reconciled,
