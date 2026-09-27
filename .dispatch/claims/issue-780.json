@@ -9,9 +9,9 @@
   "work_branch": "integration/issue780-phase7-current-x-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "0e80d68cfc38f70c7183f7a171f8e4709fa3b085",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-27T05:41:03Z",
+  "head_sha": "32b6d4a02937b831a14a0255725010bf39676bd3",
+  "phase": "QA_PENDING",
+  "last_update": "2026-09-27T05:44:59Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,14 +22,14 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36297870084,
-    "job_id": null,
-    "head_sha": "0e80d68cfc38f70c7183f7a171f8e4709fa3b085",
-    "status": "completed",
-    "conclusion": "failure",
-    "summary": "Temporary #780 QA workflow failed GitHub workflow parsing before job creation (jobs=[]). Root cause is an unindented multi-line Python heredoc embedded inside the YAML run block; no repository tests executed."
+    "run_id": 36298069830,
+    "job_id": 108560512368,
+    "head_sha": "32b6d4a02937b831a14a0255725010bf39676bd3",
+    "status": "in_progress",
+    "conclusion": null,
+    "summary": "Fourth exact-head integration acceptance run is active. Workflow parsing, recovery lineage, BOM assertion, and dual authority-map marker gates have passed; structural suite is running."
   },
-  "next_action": "Under a fresh commit Guard, change only .github/workflows/qa-issue780-phase7-integration.yml: replace the invalid unindented Python heredoc BOM assertion with a YAML-safe single-line python -c assertion, and extend the recovery ancestry check so the next QA head is a direct child of 0e80d68cfc38f70c7183f7a171f8e4709fa3b085, whose parent chain is 150a9ab87b517668d1e0bc8a8ffdecfebbf9453f -> d8406a9946d5e079eeaf2c55ddae1b6692130426 -> 2c0005a524bc2e2c824608aa94e80bf8f7353966. Keep cumulative recovery diff restricted to the temporary workflow plus tests/process/test_issue681_poweroff_gate.py, then push non-force and lock the exact new QA run.",
+  "next_action": "Poll exact GitHub Actions run 36298069830 / job 108560512368 only. If terminal GREEN, remove only the temporary .github/workflows/qa-issue780-phase7-integration.yml under a fresh Guard, preserve the BOM normalization recovery, then drift-audit the closing head against integration merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966 before guarded non-force integration into fresh cleanup/2d-3d-sync and final #780 closure/release. If RED, inspect the exact failed step/log and continue RECOVERING without opening a duplicate helper unless durable authority requires it.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -64,17 +64,21 @@
     "Workflow-only recovery-lineage commit Guard 36297831553 GREEN; commit 0e80d68cfc38f70c7183f7a171f8e4709fa3b085 pushed non-force.",
     "Exact QA run 36297870084 at 0e80d68cfc38f70c7183f7a171f8e4709fa3b085 completed failure with jobs=[] and workflow display name degraded to its path, proving parse/validation failure before job creation.",
     "Root cause is confined to temporary .github/workflows/qa-issue780-phase7-integration.yml: heredoc Python body lines were not indented inside YAML block scalar.",
-    "Pair reconciliation Guard 36297898611 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853072895, result 5853074178."
+    "Pair reconciliation Guard 36297898611 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853072895, result 5853074178.",
+    "Temporary workflow syntax repair Guard 36298031643 GREEN; commit 32b6d4a02937b831a14a0255725010bf39676bd3 pushed non-force.",
+    "Exact QA run 36298069830 / job 108560512368 exists at head 32b6d4a02937b831a14a0255725010bf39676bd3 and is an active external producer.",
+    "Fresh active-run readback: workflow parsed normally; recovery lineage gate GREEN; authority-map dual-marker gate GREEN; structural suite in progress.",
+    "Pair reconciliation Guard 36298088598 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853094800, result 5853095691."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36297898611,
-    "request_comment_id": 5853072895,
-    "result_comment_id": 5853074178,
+    "run_id": 36298088598,
+    "request_comment_id": 5853094800,
+    "result_comment_id": 5853095691,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #780 durable pair to temporary-workflow parse-failure head 0e80d68cfc38f70c7183f7a171f8e4709fa3b085"
+    "mutation": "reconcile #780 durable pair to active fourth integration QA head/run"
   }
 }
