@@ -25,14 +25,16 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36305891308.",
     "Trusted Remote Finalization run 36305990149: FINALIZATION_PROOF_VALID.",
     "Issue #696 fresh-read closed/completed.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard 36306059844."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard 36306059844.",
+    "Final atomic CLOSED+RELEASED transaction authorized by Remote Guard run 36306163305.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": "702",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Issue #696 is the final remaining amendment child; all #696-#701 child closures must be complete before #702 finalizes.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #696, then return terminal child proof to #827/#702.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "operation": null
 }

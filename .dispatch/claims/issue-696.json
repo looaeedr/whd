@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T06:03:00Z",
   "base_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
   "head_sha": "7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T08:24:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T08:26:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,18 +24,18 @@
     "failed": 0,
     "marker": "ISSUE696_A1_REMOTE_GREEN=PASS"
   },
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #696, then return terminal child proof to #827/#702 and continue parent finalization.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-696.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36306059844,
-    "request_comment_id": 5854177591,
+    "run_id": 36306163305,
+    "request_comment_id": 5854189465,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #696 closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "final atomic #696 checkpoint CLOSED + claim RELEASED"
   },
   "green_commit": {
     "implementation_head_sha": "43b5ff0c063e1dc5d2238e0d4623dca433bf83ca",
@@ -75,7 +75,8 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36305891308.",
     "Trusted Remote Finalization run 36305990149 completed success with FINALIZATION_PROOF_VALID bound to claim 56a6c3c2180ef584be509231d29471d457be02d3 and checkpoint b9a2aa8c1a8268f8aecffc4d7b587387b078b0ae.",
     "Issue #696 fresh-read closed/completed.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36306059844."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36306059844.",
+    "Final atomic CLOSED+RELEASED transaction authorized by Remote Guard run 36306163305."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
