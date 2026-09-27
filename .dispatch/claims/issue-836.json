@@ -11,10 +11,12 @@
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:15:00Z",
+  "last_update": "2026-09-27T09:24:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "governance/issue836-main-mirror-20260927"
+  ],
   "remote_qa": {
     "run_id": 36308394162,
     "job_id": 108589422963,
@@ -24,7 +26,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Open #836 PR to cleanup/2d-3d-sync, merge after readback, then mirror the same accepted governance delta to main under the same #836 owner without creating a parity helper.",
+  "next_action": "Create delegated mirror branch governance/issue836-main-mirror-20260927 at sealed #836 closing head, then bridge latest main as second parent with only governed #836 blobs.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -42,6 +44,7 @@
     "One-time QA workflow removed at closing head e1e648d267f749e07893c4ffc5846e12670c6b21.",
     "tested 65bdabbf... -> closing e1e648d2... drift is exactly one removed QA workflow.",
     "closing-head pair reconciliation coord af1bcdb610b839e20310a7d5ee957a472e2f08af.",
-    "CLEANUP transition authorized by Remote Guard 36308740634."
+    "CLEANUP transition authorized by Remote Guard 36308740634.",
+    "Same-owner main mirror branch delegated under #836; no parity helper Issue created. Guard 36309200479 GREEN."
   ]
 }
