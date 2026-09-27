@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "836",
-  "branch": "governance/issue836-stop-helper-churn-20260927",
+  "branch": "governance/issue836-stop-helper-churn-sync-20260927",
   "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
   "state": "RUNNING",
-  "next_action": "Create delegated replacement branch governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, then atomically hand primary authority to it and reopen integration as one fresh cleanup PR.",
+  "next_action": "Open one fresh cleanup PR from governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, require Governance Mirror Hard Gate GREEN, merge, then close superseded PR #840 and finalize #836.",
   "run_id": 36308394162,
   "job_id": 108589422963,
   "log_cursor": null,
@@ -42,7 +42,9 @@
     "Commit Guard 36310456556 GREEN.",
     "Post-sync reconciliation Guard 36310566767 GREEN.",
     "PR #840 current pr-write authority is ambiguous across runs 36310687134 / 36310687878.",
-    "Delegated replacement branch authorization Guard 36310935420 GREEN."
+    "Delegated replacement branch authorization Guard 36310935420 GREEN.",
+    "Replacement branch exact at 30ea9a19 under Guard 36311002241.",
+    "Primary authority handoff authorized by Guard 36311033621."
   ],
   "master_issue": null,
   "chain_state": "NONE",

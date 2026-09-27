@@ -6,17 +6,17 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.issue836.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue836-stop-helper-churn-20260927",
+  "work_branch": "governance/issue836-stop-helper-churn-sync-20260927",
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:56:40Z",
+  "last_update": "2026-09-27T09:59:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
     "governance/issue836-main-mirror-20260927",
-    "governance/issue836-stop-helper-churn-sync-20260927"
+    "governance/issue836-stop-helper-churn-20260927"
   ],
   "remote_qa": {
     "run_id": 36308394162,
@@ -27,7 +27,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Create delegated replacement branch governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, then atomically hand primary authority to it and reopen integration as one fresh cleanup PR.",
+  "next_action": "Open one fresh cleanup PR from governance/issue836-stop-helper-churn-sync-20260927 at exact head 30ea9a19, require Governance Mirror Hard Gate GREEN, merge, then close superseded PR #840 and finalize #836.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -67,6 +67,8 @@
     "Sync commit Guard 36310456556 GREEN; changed scope exact six #836 files.",
     "Post-sync reconciliation Guard 36310566767 GREEN / RECONCILE_ONLY.",
     "PR #840 cannot be safely reopened because two current pr-write GREEN receipts conflict on guard_authority_sha (36310687134, 36310687878).",
-    "Replacement branch is same Issue #836 / same accepted head, not a helper Issue; delegated-scope write Guard 36310935420 GREEN."
+    "Replacement branch is same Issue #836 / same accepted head, not a helper Issue; delegated-scope write Guard 36310935420 GREEN.",
+    "Replacement branch governance/issue836-stop-helper-churn-sync-20260927 created at exact head 30ea9a19 under branch-create Guard 36311002241.",
+    "Primary authority handoff to replacement branch authorized by write Guard 36311033621."
   ]
 }
