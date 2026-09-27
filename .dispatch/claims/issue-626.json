@@ -11,7 +11,7 @@
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
   "head_sha": "ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T00:11:05Z",
+  "last_update": "2026-09-27T00:13:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -36,7 +36,7 @@
     "conclusion": "success",
     "artifact_id": 10916659077
   },
-  "next_action": "Run trusted finalization bound to exact #626 terminal checkpoint, close/read back #626, atomically persist #626 CLOSED + RELEASED with CHAIN_COMPLETE, then close/read back Master #627.",
+  "next_action": "Atomically persist #626 checkpoint CLOSED + claim RELEASED with CHAIN_COMPLETE, then close/read back Master #627.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -76,6 +76,9 @@
     "Closing-head reconciliation Guard 36278548074 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "PR #777 merged non-force into cleanup/2d-3d-sync as de2cd252a5494ff812c590c04380e69176ea7d56.",
     "WHD_PHASE7_PRODUCTION_READBACK_V1 comment 5851138037 result=ACCEPTED; combined regression SUCCESS; core owner blob readback PASS_7_OF_7_EXACT; authority_drift=0.",
-    "Terminalization write Guard 36281710706 GREEN on trusted main 646968f0e0945707d4a87b6b57de769c5a474bb1."
+    "Terminalization write Guard 36281710706 GREEN on trusted main 646968f0e0945707d4a87b6b57de769c5a474bb1.",
+    "Trusted Remote Finalization run 36281798478 SUCCESS; artifact 10919012612.",
+    "Issue #626 fresh-read closed/completed at 2026-09-27T00:13:07Z.",
+    "Release-handoff transition Guard 36281849720 GREEN."
   ]
 }

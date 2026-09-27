@@ -37,13 +37,16 @@
     "Production integration PR #777 merged as de2cd252a5494ff812c590c04380e69176ea7d56.",
     "Production readback comment 5851138037 ACCEPTED with authority_drift=0.",
     "Terminalization Guard 36281710706 GREEN.",
-    "Master-chain continuation is terminal CHAIN_COMPLETE for Master #627."
+    "Master-chain continuation is terminal CHAIN_COMPLETE for Master #627.",
+    "Trusted finalization 36281798478 SUCCESS.",
+    "Issue #626 read back closed/completed.",
+    "Release-handoff transition Guard 36281849720 GREEN."
   ],
   "master_issue": 627,
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Phase 7 A9 production integration/readback accepted; all required child owners terminal.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted finalization on this exact checkpoint, close/read back Issue #626, then atomically persist CLOSED + RELEASED and close/read back Master #627."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist #626 checkpoint CLOSED + claim RELEASED with CHAIN_COMPLETE, then close/read back Master #627."
 }
