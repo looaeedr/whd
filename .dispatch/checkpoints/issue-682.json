@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "682",
-  "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
-  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
+  "branch": "governance/issue682-main-mirror-20260927",
+  "head_sha": "17fd0e628e2c2c135c6465bc30969cbbca9ab196",
   "state": "RUNNING",
-  "next_action": "Create delegated main-mirror branch governance/issue682-main-mirror-20260927 at exact owner head aaec26d75f320f624fd9b42fcc1b2506132e60db under branch-create Guard; then build a two-parent bridge rooted at current main and containing only governed #682 files: tools/stale_claim_takeover.py, Authority Map 09, Scheduled Resume 11.",
+  "next_action": "Create the governance-only main PR from governance/issue682-main-mirror-20260927@17fd0e628e2c2c135c6465bc30969cbbca9ab196 to main@b427ae38f5a8921c273cc56e8da1b293154534a2 under pr-write Guard. Then hand primary authority back to the cleanup work branch, create the cleanup PR to cleanup/2d-3d-sync@da3839b6e6c7d2f391b172ea753fe6cc13d28931 with marker to the main PR, update main PR reciprocally, and require both mirror gates GREEN.",
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -34,7 +34,8 @@
     "Two-parent sync head aaec26d75f320f624fd9b42fcc1b2506132e60db.",
     "Sync parents are closing 5db406fb... + current cleanup da3839b6....",
     "Pair reconciled under Guard 36322712040.",
-    "Same-ticket delegated main-mirror branch reserved under Guard 36324997341."
+    "Same-ticket delegated main-mirror branch reserved under Guard 36324997341.",
+    "Primary authority handed to main mirror at 17fd0e628e2c2c135c6465bc30969cbbca9ab196 under Guard 36325229346; original cleanup branch remains delegated."
   ],
   "master_issue": null,
   "chain_state": "NONE",
