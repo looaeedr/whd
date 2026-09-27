@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-27T02:01:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "35cea40092d6c689b36342aca33805791651e47f",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T06:07:40Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T06:09:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "A6 accepted and integrated into cleanup/2d-3d-sync through terminal helper #801; Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, scheduler deployment/readback, and canonical close/readback for #701. Do not independently close #701.",
+  "next_action": "Advance canonical #701 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then continue amendment-chain closure under #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -58,17 +58,22 @@
     "Helper #801 integration QA run 36290902531: 33 passed / 0 failed.",
     "PR #804 merged non-force to cleanup/2d-3d-sync as 5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f.",
     "Current cleanup/2d-3d-sync remains a descendant of #801 merge commit; #701 accepted production integration has not been overwritten.",
-    "Parent reservation terminalization and #701 accepted-pending-chain-closure writeback authorized by Remote Guard run 36292058916."
+    "Parent reservation terminalization and #701 accepted-pending-chain-closure writeback authorized by Remote Guard run 36292058916.",
+    "Scheduler A stale takeover run 36299170423 GREEN: EXECUTOR_STUCK, stale_seconds=8820, live head exact 35cea40092d6c689b36342aca33805791651e47f.",
+    "Fresh helper #801 terminal readback: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED.",
+    "Fresh production readback cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #701 closing head.",
+    "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
+    "Terminal transition authorized by Remote Guard run 36299258018."
   ],
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36299170423,
-    "request_comment_id": 5853236318,
+    "run_id": 36299258018,
+    "request_comment_id": 5853246478,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "CAS #701 owner to scheduler A for #702 chain closure"
+    "mutation": "enter #701 terminal finalization under #702 chain closure"
   },
   "delegated_work": [
     {
@@ -83,7 +88,7 @@
     }
   ],
   "acceptance": {
-    "state": "ACCEPTED_PENDING_CHAIN_CLOSURE",
+    "state": "ACCEPTED",
     "red_ids": [
       "RED-STOP-24"
     ],
@@ -96,7 +101,12 @@
     "integration_qa_run_id": 36290902531,
     "integration_qa_summary": "33 passed / 0 failed",
     "production_merge_commit_sha": "5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f",
-    "closure_owner_issue": 702
+    "closure_owner_issue": 702,
+    "production_readback_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+    "production_contains_closing_head": true,
+    "amendment_combined_run_id": 36296278571,
+    "amendment_combined_job_id": 108555610910,
+    "amendment_combined_summary": "100 passed / 0 failed"
   },
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
