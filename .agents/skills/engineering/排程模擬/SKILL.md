@@ -102,6 +102,16 @@ scheduler lane / work slot 是 routing 與互斥 identity，不是 execution aut
 
 `READY_WORK_CENSUS_V1` 只補「是否真的無可執行工作」的 provenance / exhaustive proof，**不建立 execution authority**、不改 lane owner、不改 claim ownership、不繞過 dependency / parallel-scope / Guard / takeover gate。
 
+### SAME_LANE_NONTERMINAL_WORK_V1
+
+同一 durable scheduler lane 只要 fresh reconstruction 找到 **same-lane active/non-terminal claim + nonblank `next_action`**，該票就不是 NO_WORK 候選，而是必須處理的 continuity work。
+
+- `claim.worker == lane_owner` 且 owning checkpoint 為 non-terminal、`next_action` 非空時，分類固定包含 `SAME_LANE_RESUME`；不得把它當 exclusion，也不得輸出 `NO_EXECUTABLE_WORK`。
+- 若 same-lane durable identity 的 **target/head/checkpoint** 有 drift 或 claim/checkpoint next_action 不一致，分類為 `RECONCILIATION_REQUIRED`，並保留 machine reason `AUTHORITY_MISMATCH`；這代表有 reconciliation 工作，**不是 NO_WORK**。沿 live《派工》/ Guard canonical reconciliation 修正後立即續跑。
+- 若 exact work 暫時因另一 live owner 佔用相同 protected/shared scope，分類 `SHARED_SCOPE_CONFLICT`，保存 exact Issue、owner、scope evidence 與原 `next_action`，下一次 wake fresh revalidate；不得把 scope conflict 改寫成「沒有任務」。
+- `NO_EXECUTABLE_WORK` 除既有 exhaustive census 外，還必須證明 **zero same-lane `SAME_LANE_RESUME` candidates** 且沒有任何 `RECONCILIATION_REQUIRED` candidate；否則 fail closed toward continuity/reconciliation。
+
+
 #### WORK_SLOT_SUCCESSOR_REBIND_V1
 
 terminal child 後，**只有 SCHEDULER_LANE / chain authority** 已合法允許 successor continuation 時，terminal successor 可沿同一 slot_id rebind。
