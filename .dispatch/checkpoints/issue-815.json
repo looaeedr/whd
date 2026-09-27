@@ -26,13 +26,14 @@
     "Closing-head reconciliation Guard 36296475847 GREEN.",
     "PR #817 merged non-force to cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931.",
     "Production readback verifies exact 11-file accepted #702 delta, core sealed blobs, and exactly-one durable marker in all eight CURRENT files.",
-    "Terminal transition authorized by Remote Guard 36296768873."
+    "Terminal transition authorized by Remote Guard 36296768873.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36296868350."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED and terminalize parent #702 helper reservation"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #815 and fresh-read closed/completed before any checkpoint mutation."
 }

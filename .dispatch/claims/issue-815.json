@@ -11,7 +11,7 @@
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
   "head_sha": "971190bcc6da11a0ca8c95a266075582a21b8329",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T05:18:00Z",
+  "last_update": "2026-09-27T05:20:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "100 passed / 0 failed in 0.53s"
   },
-  "next_action": "Advance canonical closure for #815: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then terminalize parent #702 helper reservation and resume #702 child closure/finalization.",
+  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint, close/read back Issue #815, then advance to RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED; finally terminalize parent #702 helper reservation and resume #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-815.json",
   "evidence": [
@@ -46,17 +46,18 @@
     "PR #817 merged non-force into cleanup/2d-3d-sync with merge commit 22204c8fab12f3cddd6bd30fd112c8b7b0641931 under merge pr-write Guard 36296637351 GREEN.",
     "Production fresh-read cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931; old-X→production delta is exact accepted #702 11-file scope.",
     "Production readback confirms core blobs exact sealed H4 and all eight ISSUE702 writeback markers exactly once.",
-    "Integration terminal transition authorized by Remote Guard run 36296768873."
+    "Integration terminal transition authorized by Remote Guard run 36296768873.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36296868350."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296768873,
-    "request_comment_id": 5852916609,
+    "run_id": 36296868350,
+    "request_comment_id": 5852933272,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #815 production integration acceptance and enter terminal finalization"
+    "mutation": "advance #815 closure to ISSUE_CLOSE_PENDING"
   },
   "acceptance": {
     "state": "ACCEPTED",
