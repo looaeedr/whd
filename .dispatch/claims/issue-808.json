@@ -9,13 +9,13 @@
   "work_branch": "governance/issue808-scheduler-remote-only-20260927",
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "head_sha": "ff79456251b2b2051bc528077771a63daab34003",
+  "head_sha": "e8cca774fc20b11fd7cf175cbed3c5777292caab",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T04:00:00Z",
+  "last_update": "2026-09-27T04:05:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run the new scheduler-simulation remote-only contract as RED using GitHub Actions only. After expected RED, add SCHEDULER_REMOTE_ONLY_EXECUTION_V1 to 排程模擬, remove local/Remote Guard wording, add explicit execution_location remote-only status, then run remote GREEN.",
+  "next_action": "Modify 排程模擬 under Remote Guard so scheduler simulation execution is remote-only: add SCHEDULER_REMOTE_ONLY_EXECUTION_V1, forbid 本機/Remote Desktop/local shell and LOCAL fallback, keep LOCAL only as provenance metadata, and expose execution_location=GITHUB|SCHEDULER|REMOTE_ACTION; then rerun exact GitHub Actions contract to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -25,6 +25,18 @@
     "authorized_scope=.agents/skills/engineering/排程模擬/SKILL.md + tests/process/test_scheduler_simulation_skill_contract.py + required scheduler pitfall writeback only",
     "prohibited_scope=no cadence/enabled/lane-owner/product/UI changes; no local workstation or Remote Desktop use",
     "fresh production target cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6",
-    "RED contract commit ff79456251b2b2051bc528077771a63daab34003 changes only tests/process/test_scheduler_simulation_skill_contract.py under Remote Guard 36292938152."
-  ]
+    "RED contract commit ff79456251b2b2051bc528077771a63daab34003 changes only tests/process/test_scheduler_simulation_skill_contract.py under Remote Guard 36292938152.",
+    "Remote RED workflow commit e8cca774fc20b11fd7cf175cbed3c5777292caab adds only qa-issue808-scheduler-remote-only.yml.",
+    "GitHub Actions run 36293212202 completed failure; exact scheduler remote-only contract step failed as expected."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36293252630,
+    "request_comment_id": 5852489995,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "reconcile #808 RED QA head and persist expected RED evidence"
+  }
 }
