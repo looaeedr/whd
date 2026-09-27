@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "851",
-  "branch": "repair/issue851-sealed-premerge-v2-20260927",
-  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
+  "branch": "governance/issue851-main-mirror-20260927",
+  "head_sha": "da2164184cc25db3a8b4b04ca429d29d8a857150",
   "state": "RUNNING",
-  "next_action": "Trigger a fresh Governance Mirror Hard Gate for cleanup PR #857 after reciprocal marker #856<->#857 is complete; require #857 GREEN; then hand primary authority to main mirror, merge #856 to main, hand back to cleanup, revalidate #857 against merged main governance, merge #857, then close/release #851.",
+  "next_action": "Merge main PR #856 under an exact pr-write Guard now that #856 Governance Mirror Hard Gate 36319510072 and #857 Governance Mirror Hard Gate 36319680580 are both GREEN; then hand primary authority back to cleanup, revalidate #857 against merged main, merge #857, and close/release #851.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -34,7 +34,10 @@
     "primary authority handoff Guard 36318102735 GREEN",
     "#856 reciprocal marker points to #857",
     "#856 Governance Mirror Hard Gate 36319510072 GREEN",
-    "primary authority handback Guard 36319557448 GREEN"
+    "primary authority handback Guard 36319557448 GREEN",
+    "#857 Governance Mirror Hard Gate 36319680580 GREEN",
+    "paired gate set GREEN (#856=36319510072, #857=36319680580)",
+    "primary authority handoff Guard 36319744464 GREEN"
   ],
   "operation": null,
   "master_issue": null,

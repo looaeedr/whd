@@ -7,16 +7,16 @@
   "entrypoint": "interactive:chat",
   "invocation_identity": "chatgpt.issue851.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "repair/issue851-sealed-premerge-v2-20260927",
+  "work_branch": "governance/issue851-main-mirror-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
-  "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
+  "base_sha": "cb8a978f98d959727b93d706d097cb040741a041",
+  "head_sha": "da2164184cc25db3a8b4b04ca429d29d8a857150",
   "phase": "GREEN",
-  "last_update": "2026-09-27T12:36:50Z",
-  "production_target": "cleanup/2d-3d-sync",
+  "last_update": "2026-09-27T12:40:20Z",
+  "production_target": "main",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Trigger a fresh Governance Mirror Hard Gate for cleanup PR #857 after reciprocal marker #856<->#857 is complete; require #857 GREEN; then hand primary authority to main mirror, merge #856 to main, hand back to cleanup, revalidate #857 against merged main governance, merge #857, then close/release #851.",
+  "next_action": "Merge main PR #856 under an exact pr-write Guard now that #856 Governance Mirror Hard Gate 36319510072 and #857 Governance Mirror Hard Gate 36319680580 are both GREEN; then hand primary authority back to cleanup, revalidate #857 against merged main, merge #857, and close/release #851.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -49,20 +49,23 @@
     "primary authority handoff Guard run=36318102735 GREEN",
     "main PR #856 body now contains exactly one reciprocal marker WHD-Governance-Mirror-Pair: #857 under pr-write Guard 36319480776",
     "main PR #856 Governance Mirror Hard Gate run=36319510072 GREEN",
-    "primary authority handback Guard run=36319557448 GREEN"
+    "primary authority handback Guard run=36319557448 GREEN",
+    "cleanup PR #857 fresh Governance Mirror Hard Gate run=36319680580 GREEN after reciprocal pair completion",
+    "both paired governance gates are GREEN: #856=36319510072, #857=36319680580",
+    "primary authority handoff Guard run=36319744464 GREEN"
   ],
   "delegated_branches": [
-    "governance/issue851-main-mirror-20260927"
+    "repair/issue851-sealed-premerge-v2-20260927"
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36319557448,
-    "request_comment_id": 5855871602,
-    "result_comment_id": 5855872771,
+    "run_id": 36319744464,
+    "request_comment_id": 5855894835,
+    "result_comment_id": 5855896304,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #851 primary authority back to cleanup for fresh reciprocal gate"
+    "mutation": "handoff #851 primary authority to main mirror for main-first merge"
   }
 }
