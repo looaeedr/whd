@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T08:37:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T09:27:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T09:29:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Atomically persist #835 claim RELEASED + checkpoint CLOSED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36309392744,
-    "request_comment_id": 5854637999,
+    "run_id": 36309524190,
+    "request_comment_id": 5854653908,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #835 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomic #835 claim RELEASED + checkpoint CLOSED"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -58,7 +58,9 @@
     "Closure advance Guard run 36309252267 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36309351692 GREEN; FINALIZATION_PROOF_VALID; artifact 10928506080; checkpoint fingerprint dddf7187714df4dd332c8cc2d3e3960071e6244769fb887f5492e3a035faf33b.",
     "Issue #835 closed/completed and fresh-read at 2026-09-27T09:26:33Z.",
-    "Release-handoff Guard run 36309392744 GREEN."
+    "Release-handoff Guard run 36309392744 GREEN.",
+    "Final atomic release Guard run 36309524190 GREEN.",
+    "Final atomic coordination transaction persists #835 claim RELEASED + checkpoint CLOSED; no successor."
   ],
   "delegated_work": [
     {
