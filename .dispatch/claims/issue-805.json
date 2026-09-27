@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T03:35:00Z",
   "base_sha": "1ca0026408fe0246d14c73479b147882a1f4d2ed",
   "head_sha": "7e1ad5991d8b5ca41492ef4ecac921f1c32e920f",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T03:50:03Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T03:59:13Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "worker.slot.1",
   "slot_binding": {
@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED under a fresh local canonical write guard.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-805.json",
   "evidence": [
@@ -49,7 +49,10 @@
     "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write.",
     "Remote Finalization run 36292884585 GREEN / FINALIZATION_PROOF_VALID for request 5852448918.",
     "Owning Issue #805 fresh-read closed/completed at 2026-09-27T03:59:13Z.",
-    "Trusted-main local execution_claim_guard GREEN for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write."
+    "Trusted-main local execution_claim_guard GREEN for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write.",
+    "Trusted-main local execution_claim_guard GREEN for final atomic #805 close/release write.",
+    "Owning Issue #805 is closed/completed; Remote Finalization proof is GREEN; cleanup parity readback is satisfied.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically."
   ],
   "last_guard": {
     "action": "write",
@@ -57,6 +60,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #805 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically persist #805 checkpoint CLOSED + claim RELEASED"
   }
 }

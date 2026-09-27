@@ -25,13 +25,15 @@
     "Focused #722 acceptance 3 passed / 0 failed; workflow YAML parse PASS; Phase6 Preflight GREEN.",
     "TERMINAL_SUCCESS / FINALIZATION_PENDING persisted after PR #807 cleanup parity readback.",
     "Owning Issue #805 fresh-read closed/completed at 2026-09-27T03:59:13Z.",
-    "Remote Finalization run 36292884585 GREEN / FINALIZATION_PROOF_VALID, request 5852448918."
+    "Remote Finalization run 36292884585 GREEN / FINALIZATION_PROOF_VALID, request 5852448918.",
+    "Final atomic close/release write authorized by trusted-main local execution_claim_guard.",
+    "Owning Issue #805 is closed/completed; Remote Finalization proof is GREEN; cleanup parity readback is satisfied."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
