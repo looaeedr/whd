@@ -25,13 +25,15 @@
     "Post-sync focused/adjacent 71 passed / 0 failed; pair reconciliation Guard 36288061171 GREEN.",
     "Accepted parity head 65ac396dbef609e25334b5e0c9b9ca43734015fe integrated by PR #797 to cleanup merge 44d1621f013d6181af7678e550254920cd6bcc71.",
     "Focused/adjacent 71 passed / 0 failed; production readback confirms #790 recovery capability on X.",
-    "Terminal-entry Guard 36288266846 GREEN; checkpoint enters TERMINAL_SUCCESS / FINALIZATION_PENDING."
+    "Terminal-entry Guard 36288266846 GREEN; checkpoint enters TERMINAL_SUCCESS / FINALIZATION_PENDING.",
+    "Issue #794 closed/completed; final pair-write Guard 36288508614 GREEN.",
+    "Atomic terminal closure persists checkpoint CLOSED with claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then parent #790 may consume terminal helper evidence"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

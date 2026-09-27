@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T01:56:00Z",
   "base_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
   "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T02:26:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T02:39:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one final pair-write Guard and atomically persist checkpoint closure_state=CLOSED + claim phase=RELEASED for #794; then fresh-read terminal pair and hand terminal reservation evidence back to parent #790.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-794.json",
   "evidence": [
@@ -50,16 +50,18 @@
     "Closure advance Guard run 36288327564 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36288406986 GREEN / FINALIZATION_PROOF_VALID; artifact 10920853535.",
     "Issue #794 closed/completed and fresh-read closed at 2026-09-27T02:24:56Z.",
-    "Release-handoff advance Guard run 36288456969 GREEN."
+    "Release-handoff advance Guard run 36288456969 GREEN.",
+    "Final closure pair-write Guard run 36288508614 GREEN; exact claim blob a417170587976c4326012c78576cff62875d7f0b, head 65ac396d, production authority cleanup@44d1621f.",
+    "Resume duplicate Guard run 36289081887 correctly FAILed with PENDING_GUARD_TRANSACTION and was not consumed."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288456969,
-    "request_comment_id": 5851949183,
+    "run_id": 36288508614,
+    "request_comment_id": 5851955017,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #794 closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "atomic #794 CLOSED + RELEASED"
   }
 }
