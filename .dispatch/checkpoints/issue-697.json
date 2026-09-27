@@ -3,8 +3,8 @@
   "issue": "697",
   "branch": "work/issue697-operation-transaction-core-20260926",
   "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "state": "RUNNING",
-  "next_action": "A2 accepted pending amendment-chain closure by #702. Successors #698/#699/#700 are unblocked by A2 evidence; do not auto-claim from this ticket closure without explicit chain/scheduler execution authority.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,13 +20,16 @@
     "User-directed takeover transferred ownership to chatgpt.sol260926.cleanup.1; normal new-owner reconciliation run 36231154918 fail-closed because prior mutation receipt remained bound to the old owner/blob.",
     "Trusted Claim Activation reactivate is used solely to atomically synchronize the active claim/checkpoint pair to the already-existing cleanup H1.",
     "Tested-head → closing-head audit GREEN: 3969ac5d0ffdffa975824921b85b1168713abc21..03da7a28d0aa04fae85fd9a92f13c0a8129af83e changes only deletion of .github/workflows/qa-issue697-operation-transaction.yml; tools/tests/Skills/AI Library/docs drift empty; git diff --check GREEN.",
-    "A2 accepted-pending-chain-closure write authorized by Remote Guard run 36231339593; Issue Closure owner remains #702."
+    "A2 accepted-pending-chain-closure write authorized by Remote Guard run 36231339593; Issue Closure owner remains #702.",
+    "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #697 closing head.",
+    "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
+    "Terminal transition authorized by Remote Guard run 36300954531."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "702",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "696",
+  "chain_next_action": "After #697 CLOSED+RELEASED, fresh-read #696 and continue canonical amendment-chain closure under #702.",
+  "chain_reason": "Issue #702 is amendment chain closure owner; #696 remains required child after #697.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #697, then atomically persist CLOSED+RELEASED and continue #696 under #702."
 }
