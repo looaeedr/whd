@@ -9,12 +9,12 @@
   "work_branch": "bootstrap/issue796-trusted-takeover-parser-20260927",
   "claimed_at": "2026-09-27T02:17:00Z",
   "base_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
-  "head_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T02:23:23Z",
+  "head_sha": "0e92ce4407d2e45f022c25a3d9c13374a7b8d61b",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T02:27:46Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Apply only the accepted real-newline takeover parser fix to .github/workflows/whd-remote-execution-guard.yml under an exact commit Guard, run the focused #722/#793 takeover parser regression, then open a non-force PR to main.",
+  "next_action": "Fresh-read trusted main and compare the exact #796 two-file delta. If main still preserves a clean non-force integration path, obtain one pr-write Guard, open the exact PR to main, verify mergeability/checks, then obtain a fresh merge pr-write Guard and merge non-force. Fresh-read main parser after merge, then immediately resume Work1 user-directed takeover of #793.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-796.json",
   "slot_id": "worker.slot.1",
@@ -30,16 +30,21 @@
   "helper_key": "bootstrap-trusted-takeover-parser",
   "evidence": [
     "Branch-create Guard run 36288291696 GREEN from request 5851930220.",
-    "Bootstrap branch bootstrap/issue796-trusted-takeover-parser-20260927 created and read back at exact trusted main base 366b68101b30aa496fa4bc78d465b6c72a116807."
+    "Bootstrap branch bootstrap/issue796-trusted-takeover-parser-20260927 created and read back at exact trusted main base 366b68101b30aa496fa4bc78d465b6c72a116807.",
+    "Implementation commit Guard run 36288470390 GREEN for exact workflow + #722 regression scope.",
+    "H1 0e92ce4407d2e45f022c25a3d9c13374a7b8d61b changes only .github/workflows/whd-remote-execution-guard.yml and tests/process/test_issue722_trusted_interactive_takeover_transport.py.",
+    "Focused acceptance on H1: tests/process/test_issue722_trusted_interactive_takeover_transport.py = 3 passed / 0 failed.",
+    "Trusted workflow YAML parse PASS.",
+    "Post-commit pair reconciliation Guard run 36288571301 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288361942,
-    "request_comment_id": 5851938407,
+    "run_id": 36288571301,
+    "request_comment_id": 5851961957,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #796 branch-create consumption and advance to parser implementation"
+    "mutation": "reconcile #796 implementation H0->H1 and persist focused acceptance"
   }
 }
