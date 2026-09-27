@@ -4,7 +4,7 @@
   "branch": "work/issue698-remote-guard-readback-parity-20260926",
   "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
   "state": "RUNNING",
-  "next_action": "Integrate exact GREEN head ec27e4a8f6960b2f62df658d3d1713c1653bae04 into cleanup/2d-3d-sync, deploy trusted whd-turn-exit-gate durable-readback parity to main, fresh-read deployed parity, then hand control back to blocked #680.",
+  "next_action": "A3 accepted and integrated into cleanup/2d-3d-sync; trusted whd-turn-exit-gate durable-readback parity deployment is already present on main and fresh-read. Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, and canonical close/readback for #698. Do not independently close #698.",
   "run_id": 36255080858,
   "job_id": 108440214060,
   "log_cursor": null,
@@ -24,7 +24,11 @@
     "VALID RED: QA run 36237519280 executed pytest and failed exactly at RED-STOP-19 with AssertionError 'trusted durable-readback producer is still commit-only'; 1 failed.",
     "Post-instrumentation reconciliation Guard run 36237537824 GREEN for the exact claim+checkpoint pair.",
     "RED-STOP-19 implementation commit ec27e4a8f6960b2f62df658d3d1713c1653bae04.",
-    "Focused QA run 36255080858 completed/success at exact head; focused pytest 3 passed."
+    "Focused QA run 36255080858 completed/success at exact head; focused pytest 3 passed.",
+    "Fresh durable readback: accepted A3 head ec27e4a8f6960b2f62df658d3d1713c1653bae04 is an ancestor of cleanup/2d-3d-sync; integration is already complete.",
+    "Fresh trusted deployment readback: helper 8352e8f4673ad4409e51a259099ec0f8dcd7cd25 is an ancestor of main; current main and cleanup whd-turn-exit-gate blob is ad78c86da95e3d6349485412779bee0f505b1e6f.",
+    "Prior handback target #680 is already closed/completed; stale #680 handback is not an executable next action.",
+    "Issue #702 remains amendment-wide Combined Acceptance / AI Library writeback / canonical child close-readback owner; #698 stays open pending #702."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

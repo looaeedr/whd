@@ -11,10 +11,10 @@
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
   "phase": "GREEN",
-  "last_update": "2026-09-27T03:59:25.534450Z",
+  "last_update": "2026-09-27T04:00:58.272853Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Integrate exact GREEN head ec27e4a8f6960b2f62df658d3d1713c1653bae04 into cleanup/2d-3d-sync, deploy trusted whd-turn-exit-gate durable-readback parity to main, fresh-read deployed parity, then hand control back to blocked #680.",
+  "next_action": "A3 accepted and integrated into cleanup/2d-3d-sync; trusted whd-turn-exit-gate durable-readback parity deployment is already present on main and fresh-read. Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, and canonical close/readback for #698. Do not independently close #698.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-698.json",
   "evidence": {
@@ -44,6 +44,18 @@
       "conclusion": "success",
       "pytest": "3 passed",
       "status": "GREEN"
+    },
+    "durable_reconciliation": {
+      "status": "ACCEPTED_INTEGRATED_PENDING_ISSUE_702_CLOSURE",
+      "accepted_head_sha": "ec27e4a8f6960b2f62df658d3d1713c1653bae04",
+      "cleanup_contains_accepted_head": true,
+      "trusted_deployment_helper_sha": "8352e8f4673ad4409e51a259099ec0f8dcd7cd25",
+      "main_contains_trusted_deployment_helper": true,
+      "turn_exit_gate_main_blob_sha": "ad78c86da95e3d6349485412779bee0f505b1e6f",
+      "turn_exit_gate_cleanup_blob_sha": "ad78c86da95e3d6349485412779bee0f505b1e6f",
+      "prior_handoff_issue_680_state": "closed/completed",
+      "amendment_closure_owner": 702,
+      "observed_at": "2026-09-27T04:00:58.272853Z"
     }
   },
   "guard_readbacks": [
@@ -84,11 +96,12 @@
     }
   ],
   "last_guard": {
-    "action": "commit",
+    "action": "write",
+    "mode": "local",
     "result": "GREEN",
-    "reason": "LOCAL_EXECUTION_CLAIM_GUARD_GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "RED-STOP-19 implementation commit ec27e4a8"
+    "mutation": "reconcile #698 accepted integration/deployment handoff to #702"
   },
   "red_evidence": {
     "head_sha": "37c98050dc25aecca9f092dd21370e4c08ffba67",
