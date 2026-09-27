@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "822",
   "branch": "governance/issue822-governance-required-check-x-20260927",
-  "head_sha": "74d6c43e3ec7af0ddfd0840b5ec39a869748fdd7",
+  "head_sha": "e778240364dc20ec4398cf576d286d7525db7e53",
   "state": "RUNNING",
-  "next_action": "remove temporary qa-issue822 workflow, mirror final governed artifacts to delegated main branch, open reciprocal paired PRs, prove Governance Mirror Hard Gate GREEN on both, then establish required ruleset checks",
+  "next_action": "activate #823 main-side mirror child, then open reciprocal paired PRs and prove merge-time Governance Mirror Hard Gate GREEN on both",
   "run_id": 36301161957,
   "job_id": 108568931757,
   "log_cursor": null,
@@ -20,7 +20,8 @@
     "QA dependency fix head 45aa46cd.",
     "Valid requirement RED run 36300717366: 3 expected contract failures (missing candidate parity seam/workflow).",
     "Implementation head 3f20e36d focused GREEN run 36300968040.",
-    "Edited-trigger head 74d6c43e focused GREEN run 36301161957."
+    "Edited-trigger head 74d6c43e focused GREEN run 36301161957.",
+    "Closing head e7782403 differs from tested GREEN head 74d6c43e only by removal of temporary QA workflow."
   ],
   "master_issue": null,
   "chain_state": "NONE",

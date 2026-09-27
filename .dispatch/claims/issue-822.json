@@ -9,9 +9,9 @@
   "work_branch": "governance/issue822-governance-required-check-x-20260927",
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "head_sha": "74d6c43e3ec7af0ddfd0840b5ec39a869748fdd7",
+  "head_sha": "e778240364dc20ec4398cf576d286d7525db7e53",
   "phase": "GREEN",
-  "last_update": "2026-09-27T06:48:30Z",
+  "last_update": "2026-09-27T06:51:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "remove temporary qa-issue822 workflow, mirror final governed artifacts to delegated main branch, open reciprocal paired PRs, prove Governance Mirror Hard Gate GREEN on both, then establish required ruleset checks",
+  "next_action": "activate #823 main-side mirror child, then open reciprocal paired PRs and prove merge-time Governance Mirror Hard Gate GREEN on both",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -44,17 +44,18 @@
     "Implementation commit 3f20e36d adds merge-time candidate parity + reciprocal paired-PR fallback.",
     "Focused GREEN run 36300968040 / job 108568405688 SUCCESS.",
     "Edited-trigger fix 74d6c43e makes reciprocal pair body updates retrigger Governance Mirror Hard Gate.",
-    "Focused GREEN run 36301161957 / job 108568931757 on 74d6c43e."
+    "Focused GREEN run 36301161957 / job 108568931757 on 74d6c43e.",
+    "Temporary QA cleanup commit e7782403 removes only qa-issue822 workflow after tested head 74d6c43e."
   ],
   "last_guard": {
     "action": "commit",
     "mode": "remote",
-    "run_id": 36301124576,
-    "request_comment_id": 5853506054,
+    "run_id": 36301254497,
+    "request_comment_id": 5853524080,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "edited-trigger fix 74d6c43e"
+    "mutation": "temporary QA cleanup e7782403"
   },
   "delegated_work": []
 }
