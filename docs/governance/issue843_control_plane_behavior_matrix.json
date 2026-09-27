@@ -1,0 +1,251 @@
+{
+  "schema": "WHD_CONTROL_PLANE_BEHAVIOR_MATRIX_V1",
+  "issue": 843,
+  "parent_issue": 842,
+  "baseline": {
+    "authoritative_branch": "cleanup/2d-3d-sync",
+    "head_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
+    "default_branch": "main",
+    "default_head_sha": "cb80310e2643d1ab9624e90085d4abda6e4d125e"
+  },
+  "production_behavior_change": false,
+  "prohibited_changes": [
+    "new_execution_record",
+    "remote_guard_semantic_change",
+    "scheduler_discovery_redesign"
+  ],
+  "skill_owners": [
+    ".agents/skills/engineering/派工/SKILL.md",
+    ".agents/skills/engineering/執行開發任務/SKILL.md",
+    ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+    ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+    ".agents/skills/engineering/排程模擬/SKILL.md",
+    ".agents/skills/engineering/工作槽/SKILL.md",
+    ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+    ".agents/skills/engineering/monitoring-remote-qa/SKILL.md"
+  ],
+  "required_domains": [
+    "normal_path",
+    "resume",
+    "remote_qa_identity",
+    "finalization",
+    "takeover_recovery",
+    "scheduler_wakeup",
+    "work_slot_projection"
+  ],
+  "rules": [
+    {
+      "id": "CP-NORMAL-01",
+      "domain": "normal_path",
+      "classification": "invariant",
+      "summary": "Repository mutations require exact active claim ownership plus branch/base/head identity and fail closed on competing or stale identity.",
+      "machine_owners": [
+        "tools/execution_claim_guard.py",
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_issue256_execution_claim_guard.py",
+          "nodes": [
+            "test_owner_on_claimed_branch_is_allowed",
+            "test_competing_worker_is_rejected",
+            "test_stale_head_sha_is_rejected"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-RESUME-01",
+      "domain": "resume",
+      "classification": "invariant",
+      "summary": "Resume reconstructs durable state, verifies drift, preserves branch/head/run identity, and continues the exact next action without replaying accepted phases.",
+      "machine_owners": [
+        "tools/continuity_controller.py",
+        ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_checkpoint_resume_contract.py",
+          "nodes": [
+            "test_resume_checks_drift_then_continues_exact_action",
+            "test_resume_preserves_branch_head_and_remote_run_lock_identity",
+            "test_execution_window_interruption_recovers_without_replaying_completed_phases"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-RQA-01",
+      "domain": "remote_qa_identity",
+      "classification": "invariant",
+      "summary": "Remote QA is bound to an exact run_id plus head_sha; a non-terminal locked run blocks unrelated work and assistant turn exit.",
+      "machine_owners": [
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_checkpoint_resume_contract.py",
+          "nodes": [
+            "test_resume_preserves_branch_head_and_remote_run_lock_identity"
+          ]
+        },
+        {
+          "file": "tests/process/test_monitoring_remote_qa_turn_boundary_contract.py",
+          "nodes": [
+            "test_nonterminal_progress_update_cannot_end_assistant_turn",
+            "test_final_response_is_blocked_while_remote_qa_lock_is_nonterminal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-FINAL-01",
+      "domain": "finalization",
+      "classification": "invariant",
+      "summary": "Finalization proof is allowed only from ISSUE_CLOSE_PENDING and is bound to exact issue/branch/head/checkpoint identity; later checkpoint mutation makes it stale.",
+      "machine_owners": [
+        "tools/continuity_controller.py",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_finalization_owner_guard.py",
+          "nodes": [
+            "test_owned_finalization_guard_rejects_proof_before_issue_close_pending",
+            "test_bound_proof_becomes_stale_if_checkpoint_advances_after_authorization",
+            "test_owned_finalization_guard_returns_bound_machine_proof",
+            "test_closure_verifier_accepts_only_current_proof_from_owned_guard"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-TAKEOVER-01",
+      "domain": "takeover_recovery",
+      "classification": "invariant",
+      "summary": "Same scheduler lane resumes without self-takeover; foreign scheduler takeover remains fail-closed while exact work is live and becomes actionable only under canonical stale/orphan evidence.",
+      "machine_owners": [
+        "tools/scheduler_runtime_liveness.py",
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+        ".agents/skills/engineering/派工/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_issue573_sibling_scheduler_takeover.py",
+          "nodes": [
+            "test_same_scheduler_lane_never_stale_takeovers_itself",
+            "test_stale_foreign_sibling_scheduler_is_actionable",
+            "test_active_foreign_sibling_scheduler_run_blocks_takeover",
+            "test_recent_foreign_sibling_scheduler_progress_blocks_takeover"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-SCHED-01",
+      "domain": "scheduler_wakeup",
+      "classification": "invariant",
+      "summary": "Scheduler wake-up must prefer same-lane non-terminal continuation, route drift to reconciliation, and may report no work only after exhaustive canonical census.",
+      "machine_owners": [
+        "tools/scheduler_state_reconciliation.py",
+        ".agents/skills/engineering/排程模擬/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_scheduler_no_work_census_contract.py",
+          "nodes": [
+            "test_scheduler_simulation_requires_exhaustive_no_work_census",
+            "test_same_lane_nonterminal_claim_is_never_collapsed_to_no_work",
+            "test_scheduler_routes_drift_to_reconciliation_not_no_work"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-SLOT-01",
+      "domain": "work_slot_projection",
+      "classification": "invariant",
+      "summary": "Work-slot identity is routing/projection only, distinct from execution owner and location; query-only or empty slots do not create execution authority and planned handoff requires exact identity.",
+      "machine_owners": [
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md"
+      ],
+      "regressions": [
+        {
+          "file": "tests/process/test_issue715_work_slot_skill_contract.py",
+          "nodes": [
+            "test_slot_issue_claim_runtime_and_location_are_distinct_identities",
+            "test_query_only_never_claims_branches_or_successors",
+            "test_update_only_and_empty_slots_never_auto_start_existing_issues"
+          ]
+        },
+        {
+          "file": "tests/process/test_issue680_planned_handoff_scheduler_receiver.py",
+          "nodes": [
+            "test_scheduler_receiver_validates_exact_planned_handoff_identity",
+            "test_claim_handoff_is_a_distinct_guarded_action_with_durable_readback"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CP-COMPAT-01",
+      "domain": "resume",
+      "classification": "compatibility_behavior",
+      "summary": "Legacy claim/checkpoint forms remain compatibility inputs during migration but do not become a second semantic authority.",
+      "machine_owners": [
+        "tools/continuity_controller.py",
+        ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
+      ]
+    },
+    {
+      "id": "CP-IMPL-01",
+      "domain": "normal_path",
+      "classification": "implementation_detail",
+      "summary": "Guard request, receipt consumption, CAS and readback are internal control-plane mechanics; later simplification may encapsulate their ceremony while preserving invariant outcomes.",
+      "machine_owners": [
+        "tools/execution_claim_guard.py",
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md"
+      ]
+    }
+  ],
+  "duplicated_bridges": [
+    {
+      "id": "BRIDGE-CHECKPOINT-01",
+      "classification": "duplicated_bridge_prose",
+      "action": "identify_only_no_deletion",
+      "authoritative_owner": ".agents/skills/engineering/執行開發任務/SKILL.md",
+      "duplicates": [
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md"
+      ],
+      "subject": "user-visible checkpoint and execution-intent bridge prose"
+    },
+    {
+      "id": "BRIDGE-CONTINUITY-01",
+      "classification": "duplicated_bridge_prose",
+      "action": "identify_only_no_deletion",
+      "authoritative_owner": ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+      "duplicates": [
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md"
+      ],
+      "subject": "durable reconstruction and turn-exit continuity bridge prose"
+    },
+    {
+      "id": "BRIDGE-GUARD-01",
+      "classification": "duplicated_bridge_prose",
+      "action": "identify_only_no_deletion",
+      "authoritative_owner": ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+      "duplicates": [
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md"
+      ],
+      "subject": "remote Guard request, single-use receipt and readback bridge prose"
+    }
+  ]
+}
