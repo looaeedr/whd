@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "805",
   "branch": "parity/issue805-takeover-parser-cleanup-20260927",
-  "head_sha": "1ca0026408fe0246d14c73479b147882a1f4d2ed",
+  "head_sha": "7e1ad5991d8b5ca41492ef4ecac921f1c32e920f",
   "state": "RUNNING",
-  "next_action": "Run Phase6 planned-scope Preflight on the exact two authorized #805 artifacts, then obtain one commit Guard and port the accepted #793/#722 real-newline takeover parser + regression to the #805 branch without touching #803 artifacts.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and compare live target against #805 GREEN head 7e1ad5991d8b5ca41492ef4ecac921f1c32e920f. If the effective delta remains exactly the two authorized artifacts and no overlapping target drift exists, obtain pr-write Guard, open/update the exact PR to cleanup, verify mergeability/checks, obtain a fresh merge Guard, merge non-force, read back parity, then enter terminal closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,10 @@
     "Frozen cleanup base 1ca0026408fe0246d14c73479b147882a1f4d2ed.",
     "Branch creation and mutations remain Guard-gated.",
     "Branch-create Guard 36291941152 GREEN; branch exists/readback exact at frozen cleanup base.",
-    "Local pair write Guard GREEN; advance to planned-scope Preflight."
+    "Local pair write Guard GREEN; advance to planned-scope Preflight.",
+    "H1 7e1ad5991d8b5ca41492ef4ecac921f1c32e920f is the exact two-file #805 parity implementation.",
+    "Focused #722 regression 3/3; workflow YAML parse PASS; Phase6 post-write Preflight GREEN.",
+    "Pair reconciliation Guard 36292257166 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
