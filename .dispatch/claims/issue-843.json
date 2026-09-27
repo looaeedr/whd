@@ -10,22 +10,22 @@
   "work_branch": "governance/issue843-control-plane-characterization-20260927",
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "d5e327cc7d1f92b6073d0d173e8a8f1ae8231b89",
-  "phase": "RED",
-  "last_update": "2026-09-27T10:10:27Z",
+  "head_sha": "2f1cdc1fe52224a478856a2939026edfbeed4a68",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T10:27:06Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
-    "run_id": 36311673594,
-    "job_id": 108598687989,
-    "head_sha": "d5e327cc7d1f92b6073d0d173e8a8f1ae8231b89",
+    "run_id": 36312417825,
+    "job_id": 108600785305,
+    "head_sha": "2f1cdc1fe52224a478856a2939026edfbeed4a68",
     "status": "completed",
-    "conclusion": "failure",
-    "pytest": "6 failed / 0 passed in 0.20s",
-    "classification": "EXPECTED_RED_MATRIX_MISSING",
-    "marker": "ISSUE843_RED"
+    "conclusion": "success",
+    "pytest": "6 passed / 0 failed in 0.14s",
+    "classification": "FOCUSED_GREEN",
+    "marker": "ISSUE843_GREEN"
   },
-  "next_action": "Implement docs/governance/issue843_control_plane_behavior_matrix.json against the frozen #842 baseline, then run the same #843 focused workflow to GREEN and preserve all existing production behavior.",
+  "next_action": "Remove .github/workflows/qa-issue843-control-plane-characterization.yml as tested-to-closing cleanup-only drift, verify H1->H2 changes only that workflow deletion, then open the #843 integration PR to cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -40,6 +40,9 @@
     "default main@cb80310e2643d1ab9624e90085d4abda6e4d125e",
     "branch-create Guard 36311261762 GREEN; exact branch effect observed at frozen X.",
     "RED commit Guard 36311641922 GREEN; H0 500e6f80 -> H1 d5e327cc; changed only contract test + one-shot QA workflow.",
-    "RED run 36311673594 / job 108598687989 terminal failure: 6 failed / 0 passed; every failure is ISSUE843_RED matrix missing; workflow naming gate passed."
+    "RED run 36311673594 / job 108598687989 terminal failure: 6 failed / 0 passed; every failure is ISSUE843_RED matrix missing; workflow naming gate passed.",
+    "matrix implementation commit Guard 36312351192 GREEN; d5e327cc -> 2f1cdc1f changed only docs/governance/issue843_control_plane_behavior_matrix.json.",
+    "focused GREEN run 36312417825 / job 108600785305 on 2f1cdc1fe52224a478856a2939026edfbeed4a68: 6 passed / 0 failed in 0.14s.",
+    "post-commit pair reconciliation Guard 36312514886 GREEN after claim-only request 36312457098 correctly failed ACTIVE_CLAIM pair enforcement."
   ]
 }
