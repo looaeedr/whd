@@ -4,7 +4,7 @@
   "branch": "integration/issue780-phase7-current-x-20260927",
   "head_sha": "32b6d4a02937b831a14a0255725010bf39676bd3",
   "state": "RUNNING",
-  "next_action": "Poll exact GitHub Actions run 36298069830 / job 108560512368 only. If terminal GREEN, remove only the temporary .github/workflows/qa-issue780-phase7-integration.yml under a fresh Guard, preserve the BOM normalization recovery, then drift-audit the closing head against integration merge head 2c0005a524bc2e2c824608aa94e80bf8f7353966 before guarded non-force integration into fresh cleanup/2d-3d-sync and final #780 closure/release. If RED, inspect the exact failed step/log and continue RECOVERING without opening a duplicate helper unless durable authority requires it.",
+  "next_action": "Under a fresh commit Guard, normalize only the leading UTF-8 BOM in tests/process/test_scheduler_no_work_census_contract.py and update only the temporary .github/workflows/qa-issue780-phase7-integration.yml so recovery validation is ancestry-based, permits only zero-semantic BOM stripping from Python files that had a BOM at MERGE_HEAD, and performs an all-*.py BOM census before structural tests. Push non-force, lock the exact new QA run, and continue full integration acceptance.",
   "run_id": 36298069830,
   "job_id": 108560512368,
   "log_cursor": null,
@@ -36,7 +36,10 @@
     "Guard 36297898611 GREEN authorizes durable reconciliation to this exact live parse-failure head.",
     "Workflow syntax repair head 32b6d4a02937b831a14a0255725010bf39676bd3 is live under Guard 36298031643 GREEN.",
     "Exact QA run 36298069830 / job 108560512368 is active; lineage and authority-map gates have passed.",
-    "Guard 36298088598 GREEN authorizes durable reconciliation to the exact active QA head/run."
+    "Guard 36298088598 GREEN authorizes durable reconciliation to the exact active QA head/run.",
+    "Exact fourth QA run 36298069830 / job 108560512368 reached the real structural suite after recovery lineage and authority-map gates passed.",
+    "Structural result: 53 passed / 1 failed; inherited UTF-8 BOM in tests/process/test_scheduler_no_work_census_contract.py caused ast.parse U+FEFF.",
+    "#764 is terminal/released and current production has the same BOM-bearing file blob; recovery remains zero-semantic hygiene."
   ],
   "master_issue": null,
   "chain_state": "NONE",
