@@ -3,8 +3,8 @@
   "issue": "682",
   "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
-  "state": "RUNNING",
-  "next_action": "Retrigger PR #859 Governance Mirror Hard Gate after main merged at f65ee095790ff6ec2e52ad7d158cecdc43886715; require fresh GREEN against live opposite-production main. Then obtain a fresh pr-write Guard and merge #859 with expected head aaec26d75f320f624fd9b42fcc1b2506132e60db; fresh-read cleanup merge SHA; then perform terminal audit and trusted finalization/closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -45,13 +45,17 @@
     "Paired gates GREEN: #858=36325645178, #859=36325782560; Knowledge #859=36325486517.",
     "Primary authority handed to main mirror under Guard 36325828671.",
     "PR #858 merged; main=f65ee095790ff6ec2e52ad7d158cecdc43886715.",
-    "Primary authority returned to cleanup under Guard 36325949559."
+    "Primary authority returned to cleanup under Guard 36325949559.",
+    "Post-main PR gate 36326734430 GREEN; #859 merged at 8a3058e5472aec4793cd26a398ae4920185d8002.",
+    "Post-merge live Governance Mirror push gate 36326898388 GREEN.",
+    "Three governed blobs are byte-identical across main/cleanup.",
+    "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36326953983."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance #682 exact terminal checkpoint to ISSUE_CLOSE_PENDING; mint trusted finalization proof against current terminal fingerprint; close/readback Issue #682; then atomically write RELEASE_HANDOFF_PENDING followed by CLOSED + RELEASED. After #682 terminal release, resume parent #684."
 }

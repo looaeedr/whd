@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T12:20:00Z",
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T14:27:10Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T14:43:44Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
@@ -26,7 +26,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Retrigger PR #859 Governance Mirror Hard Gate after main merged at f65ee095790ff6ec2e52ad7d158cecdc43886715; require fresh GREEN against live opposite-production main. Then obtain a fresh pr-write Guard and merge #859 with expected head aaec26d75f320f624fd9b42fcc1b2506132e60db; fresh-read cleanup merge SHA; then perform terminal audit and trusted finalization/closure.",
+  "next_action": "Advance #682 exact terminal checkpoint to ISSUE_CLOSE_PENDING; mint trusted finalization proof against current terminal fingerprint; close/readback Issue #682; then atomically write RELEASE_HANDOFF_PENDING followed by CLOSED + RELEASED. After #682 terminal release, resume parent #684.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -80,17 +80,23 @@
     "PR #859 Knowledge Governance Bootstrap 36325486517 GREEN.",
     "Primary authority handoff-to-main Guard 36325828671 / request 5856693100 / result 5856694596 GREEN.",
     "PR #858 merged to main at f65ee095790ff6ec2e52ad7d158cecdc43886715 under pr-write Guard 36325900921.",
-    "Post-main primary handback Guard 36325949559 / request 5856706970 / result 5856708841 GREEN using new main authority f65ee095790ff6ec2e52ad7d158cecdc43886715."
+    "Post-main primary handback Guard 36325949559 / request 5856706970 / result 5856708841 GREEN using new main authority f65ee095790ff6ec2e52ad7d158cecdc43886715.",
+    "Post-main PR #859 Governance Mirror Hard Gate 36326734430 GREEN against live main@f65ee095790ff6ec2e52ad7d158cecdc43886715.",
+    "Pending pr-write Guard 36326117676 was canonically consumed by PR #859 merge event; duplicate replacement Guard 36326771516 failed closed as PENDING_GUARD_TRANSACTION.",
+    "PR #859 merged at cleanup/2d-3d-sync@8a3058e5472aec4793cd26a398ae4920185d8002 with expected head aaec26d75f320f624fd9b42fcc1b2506132e60db.",
+    "Post-merge live Governance Mirror push gate 36326898388 GREEN.",
+    "Governed blob parity exact after both merges: stale_claim_takeover=90b8e78f..., Authority Map 09=e0768c9b..., Scheduled Resume 11=513e4d00... on both main and cleanup.",
+    "Terminal audit transition consumes write Guard 36326953983 / request 5856843970 / result 5856846510."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36325949559,
-    "request_comment_id": 5856706970,
-    "result_comment_id": 5856708841,
+    "run_id": 36326953983,
+    "request_comment_id": 5856843970,
+    "result_comment_id": 5856846510,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #682 primary authority back to cleanup after #858 merge"
+    "mutation": "enter #682 terminal finalization after paired merge + live parity audit"
   }
 }
