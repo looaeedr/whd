@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T08:44:59Z",
+  "last_update": "2026-09-27T08:48:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Obtain trusted Remote Finalization proof bound to the exact #702 ISSUE_CLOSE_PENDING checkpoint; verify FINALIZATION_PROOF_VALID, then close/read back Issue #702 and advance RELEASE_HANDOFF_PENDING -> atomic CLOSED + RELEASED.",
+  "next_action": "Atomically persist #702 checkpoint closure_state=CLOSED with claim phase=RELEASED, next_action=null, after RELEASE_HANDOFF_PENDING is durably recorded.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -67,7 +67,9 @@
     "A-lane exit-time scheduler readback completed: A00 id 6ab13f881c34819180cee63f5dd9446b enabled=true; A20 id 6ab4eaee5e008191a0e7e23303f64cea enabled=true; A40 id 6ab13fa557fc8191935c671214b865e2 was the only disabled A entrypoint and was changed only to enabled=true.",
     "A40 exit-time mutation preserved title=40, exact_schedule timing, prompt identity, lane owner, and RRULE FREQ=HOURLY;BYMINUTE=40;BYSECOND=0; fresh-read confirmed A00/A20/A40 all enabled.",
     "B15/B45 fresh-read remained enabled; no B-lane schedule/timing/prompt mutation was performed.",
-    "Closure lifecycle write Guard 36307159479 GREEN for exact #702 terminal pair."
+    "Closure lifecycle write Guard 36307159479 GREEN for exact #702 terminal pair.",
+    "Trusted Remote Finalization run 36307311017 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; bound checkpoint=b63a4a089d07f53a1c21da1a82911fd2bd3d1a7d fingerprint=0be7cafbdf25c1503d73e0ee6ced3bb87b418ac6ba4564834f35e418d9620234.",
+    "Issue #702 close readback: closed/completed at 2026-09-27T08:48:15Z."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
