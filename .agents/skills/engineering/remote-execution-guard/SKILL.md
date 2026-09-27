@@ -529,3 +529,18 @@ Request 仍使用 `action=write` + exact claim/checkpoint pair，另帶：
 trusted workflow fresh-fetch exact comment並驗 repository owner + marker後，才傳 `--intervening-coord-recovery` 給 canonical `tools/execution_claim_guard.py`。此 recovery 與 `legacy_reconcile_recovery_comment_id` 互斥，且只允許 exact claim+checkpoint write scope。
 
 Historical claim blob 必須從 GitHub blob API fresh-read，且 current/historical authority projection完全一致；只允許 observational coordination metadata drift。任何 authority drift、receipt/file/time/topology mismatch都 FAIL。
+
+
+## GITHUB_BLOB_BASE64_TRANSPORT_NORMALIZATION_V1
+
+GitHub `git/blobs/{sha}` 的 `encoding=base64` transport 可能包含 line wrapping。Remote Guard 讀 historical claim blob 時，transport formatting 不得被誤判為 claim corruption。
+
+固定規則：
+
+- decode 前只允許移除 ASCII whitespace：space、tab、CR、LF、vertical-tab、form-feed；
+- whitespace 移除後仍必須使用 `base64.b64decode(..., validate=True)`，禁止改成寬鬆 decode；
+- 非 ASCII whitespace、非法 base64 字元、padding 錯誤仍 fail closed；
+- decode 完的 raw bytes 必須重新計算 Git blob SHA，且 exact 等於 requested blob SHA；transport normalization 不得繞過 object identity；
+- 此規則只處理 GitHub transport formatting，不放寬 `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1` 的 owner / authority / topology / changed-file / receipt identity gate。
+
+Primary regression：`tests/process/test_issue790_intervening_claim_blob_reconciliation.py` 的 wrapped-base64、malformed-base64、non-ASCII whitespace 與 SHA-mismatch cases。

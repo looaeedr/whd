@@ -1804,8 +1804,11 @@ def _historical_claim_payload_from_blob(blob_sha: str) -> dict[str, object]:
         raise ExecutionClaimError(
             "intervening coord reconciliation historical claim blob content is missing"
         )
+    normalized_content = content.translate(
+        {ord(char): None for char in " \t\r\n\v\f"}
+    )
     try:
-        raw = base64.b64decode(content.encode("ascii"), validate=True)
+        raw = base64.b64decode(normalized_content.encode("ascii"), validate=True)
     except (ValueError, UnicodeEncodeError) as exc:
         raise ExecutionClaimError(
             "intervening coord reconciliation historical claim blob is not valid base64"
