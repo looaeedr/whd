@@ -9,14 +9,14 @@
   "work_branch": "governance/issue793-takeover-parser-regression-20260927",
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "head_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T01:39:00Z",
+  "head_sha": "e6edebe8920e87e8d63e045ed8ddddad8bbbc089",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T01:43:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain exact branch-create Guard, create/read back governance/issue793-takeover-parser-regression-20260927 at main@646968f0e0945707d4a87b6b57de769c5a474bb1, then commit focused RED proving the #722 multiline parser regression before implementation.",
+  "next_action": "Run focused #722 interactive takeover transport regression and workflow syntax/readback on H1; if GREEN, obtain pr-write Guard, open PR to main, merge non-force, then live-smoke #790 takeover.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -26,6 +26,18 @@
     "Production target main@646968f0e0945707d4a87b6b57de769c5a474bb1.",
     "Fresh live RED on #790: takeover Guard runs 36285949808 and 36285992306 fail before stale evaluator with missing matching WHD_USER_DIRECTED_TAKEOVER_V1.",
     "Exact authority comment 5851658714 independently matches the selector identity.",
-    "Regression first appears at #776 commit 201f66b3c9b692a7f26846f2eaa8ed489ff61f16."
-  ]
+    "Regression first appears at #776 commit 201f66b3c9b692a7f26846f2eaa8ed489ff61f16.",
+    "1-line parser fix commit e6edebe8920e87e8d63e045ed8ddddad8bbbc089 created under commit Guard run 36286301274.",
+    "Post-commit pair reconciliation Guard run 36286356043 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36286356043,
+    "request_comment_id": 5851704088,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "reconcile #793 H0->H1"
+  }
 }

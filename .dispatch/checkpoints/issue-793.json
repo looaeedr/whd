@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "793",
   "branch": "governance/issue793-takeover-parser-regression-20260927",
-  "head_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
+  "head_sha": "e6edebe8920e87e8d63e045ed8ddddad8bbbc089",
   "state": "RUNNING",
-  "next_action": "Obtain exact branch-create Guard, create/read back governance/issue793-takeover-parser-regression-20260927 at main@646968f0e0945707d4a87b6b57de769c5a474bb1, then commit focused RED proving the #722 multiline parser regression before implementation.",
+  "next_action": "Run focused #722 interactive takeover transport regression and workflow syntax/readback on H1; if GREEN, obtain pr-write Guard, open PR to main, merge non-force, then live-smoke #790 takeover.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,9 @@
   "evidence": [
     "Authorized scope: trusted Remote Guard workflow + focused takeover transport regression only.",
     "Current main parser uses literal escaped newline separators; #722 accepted parser used real newline separators.",
-    "No product/UI/scheduler cadence changes."
+    "No product/UI/scheduler cadence changes.",
+    "H1 e6edebe8920e87e8d63e045ed8ddddad8bbbc089 restores #722 real-newline parsing in trusted Remote Guard selector.",
+    "Pair reconciliation Guard 36286356043 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
