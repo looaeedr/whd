@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "829",
+  "branch": "governance/issue829-cleanup-terminal-chain-metadata-repair-20260927",
+  "head_sha": "497c5e145ab2506b9c4272392a15940164057066",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard and create the exact cleanup-side mirror branch at cleanup/2d-3d-sync@497c5e145ab2506b9c4272392a15940164057066. Then copy exactly four governed blobs from parent #827 main candidate 002ce570f74694c6671c440e69d43bc78fa187fa, verify blob parity, open cleanup PR and pair reciprocally with the parent main PR under Governance Mirror Hard Gate.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Helper #829 is the unique cleanup-side governance mirror for parent #827.",
+    "Fresh cleanup base 497c5e145ab2506b9c4272392a15940164057066.",
+    "No branch/repository mutation before branch-create Guard."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
