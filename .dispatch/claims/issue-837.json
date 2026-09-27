@@ -11,12 +11,12 @@
   "base_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
   "head_sha": "2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T09:17:20Z",
+  "last_update": "2026-09-27T09:20:35Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run bound Remote Finalization on exact ISSUE_CLOSE_PENDING checkpoint, close/read back Issue #837, then atomically persist RELEASED+CLOSED and hand helper completion to #835.",
+  "next_action": "Atomically persist #837 checkpoint CLOSED + claim RELEASED and update parent #835 helper reservation/next_action in the same coordination commit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-837.json",
   "evidence": [
@@ -27,16 +27,19 @@
     "Governance Mirror Hard Gate completed success on both merged heads.",
     "Live A 00/20/40 and B B15/B45 prompt sync/readback completed under parent #835; all five preserved cadence/timing/lane/enabled invariants.",
     "Closure-entry Guard run 36308791748 GREEN for exact #837 claim/checkpoint pair.",
-    "Closure advance Guard run 36308860752 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36308860752 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36308997129 GREEN; FINALIZATION_PROOF_VALID; artifact 10928386471; exact checkpoint fingerprint 8e6e080d5f99851d7aed566fd5ae17d978645d2e66e0a120677fbbbfe0a440d4.",
+    "Issue #837 closed/completed and fresh-read at 2026-09-27T09:20:03Z.",
+    "Release-handoff Guard run 36309042057 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36308860752,
-    "request_comment_id": 5854565960,
+    "run_id": 36309042057,
+    "request_comment_id": 5854589545,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #837 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #837 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   }
 }

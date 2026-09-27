@@ -18,14 +18,17 @@
     "Governance Mirror Hard Gate GREEN on both merged branch heads.",
     "Parent #835 live scheduler prompt readback proves all five entrypoints carry the new contract without cadence/timing/lane/enabled drift.",
     "Closure-entry Guard run 36308791748 GREEN.",
-    "Closure advance Guard run 36308860752 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36308860752 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36308997129 / artifact 10928386471: FINALIZATION_PROOF_VALID on exact ISSUE_CLOSE_PENDING checkpoint.",
+    "Issue #837 close/readback: closed/completed at 2026-09-27T09:20:03Z.",
+    "Release-handoff Guard run 36309042057 GREEN; closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run and verify bound Remote Finalization proof on this exact checkpoint; then close Issue #837 and fresh-read closed/completed.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED and parent #835 helper completion/handoff.",
   "operation": null
 }
