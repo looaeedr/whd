@@ -9,9 +9,9 @@
   "work_branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
   "claimed_at": "2026-09-27T05:03:00Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T05:03:00Z",
+  "head_sha": "bc0dcc196865c6647cc835f080e652eff63cab67",
+  "phase": "RED",
+  "last_update": "2026-09-27T05:09:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "obtain branch-create Guard for X-side governance branch, implement RED/GREEN mirror contract, then mirror governance-only artifacts to main and verify paired parity",
+  "next_action": "implement bidirectional governance mirror evaluator + manifest + always-on workflow, then run focused GREEN",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-816.json",
   "evidence": [
@@ -34,8 +34,19 @@
     "authorized_scope=#816 governance-only mirror transaction; product authority remains cleanup/2d-3d-sync",
     "prohibited_scope=WHD/product/Phase/CAD propagation to main; arbitrary open Issues; product implementation",
     "resume_authority=NONE",
-    "Phase6 planned-file preflight GREEN before claim activation"
+    "Phase6 planned-file preflight GREEN before claim activation",
+    "RED Guard 36296297683 GREEN; RED commit bc0dcc196865c6647cc835f080e652eff63cab67 changes only test_issue816_bidirectional_governance_mirror.py.",
+    "RED focused pytest: 6 failed as expected (missing bidirectional evaluator, mirror manifest, and always-on workflow)."
   ],
-  "last_guard": null,
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36296364116,
+    "request_comment_id": 5852863368,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "reconcile durable pair to RED head bc0dcc19"
+  },
   "delegated_work": []
 }
