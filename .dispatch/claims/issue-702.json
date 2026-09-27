@@ -9,14 +9,19 @@
   "work_branch": "work/issue702-crash-fault-combined-acceptance-20260927",
   "claimed_at": "2026-09-27T04:06:00Z",
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
-  "head_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T04:06:00Z",
+  "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
+  "phase": "RED",
+  "last_update": "2026-09-27T04:15:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back work/issue702-crash-fault-combined-acceptance-20260927 at current accepted production lineage cfbcaa1b4e50e117d8a3e1a738606814f48325d2, then run Phase6 Preflight and establish RED-STOP-22 plus the amendment-wide fault-injection/combined-acceptance matrix before implementation/writeback.",
+  "remote_qa": {
+    "run_id": 36293705643,
+    "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "next_action": "Implement RED-STOP-22 GREEN by adding the amendment-wide crash fault-injection matrix artifact and expanding #702 QA to combined regression across RED-STOP-16..24 plus original governance regressions; then run exact-head GREEN and continue durable writeback/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -28,6 +33,27 @@
     "resume_authority=NONE (fresh #702 claim)",
     "Fresh dependency census: #696/#697/#698/#700/#701 are accepted pending #702 closure; #699 is implementation GREEN/integrated and BLOCKED only by its explicit scope boundary requiring #702.",
     "Fresh lineage proof: accepted heads for #696/#697/#698/#699/#700/#701 are all ancestors of cleanup/2d-3d-sync.",
-    "Production target current observation=cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2; #702 Combined Acceptance starts from this current integrated lineage."
-  ]
+    "Production target current observation=cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2; #702 Combined Acceptance starts from this current integrated lineage.",
+    "Branch-create Guard run 36293450001 GREEN; work branch created/read back at cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
+    "RED characterization commit ab7d3ccbcc92035fe43634f76962a35e160812f4 changed only the #702 fault-matrix test and one-shot QA workflow under commit Guard 36293604088 GREEN.",
+    "VALID RED-STOP-22: QA run 36293705643 failed exactly because docs/governance/issue702_crash_fault_injection_matrix.json is absent; 1 failed / 12 passed in 0.22s."
+  ],
+  "red_evidence": {
+    "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
+    "qa_run_id": 36293705643,
+    "job_id": 108548507149,
+    "conclusion": "failure",
+    "pytest": "1 failed / 12 passed",
+    "expected_failure": "RED-STOP-22: amendment-wide crash-after-side-effect fault-injection matrix artifact is missing",
+    "status": "VALID_RED"
+  },
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36293745134,
+    "result": "GREEN",
+    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "consumed": true,
+    "mutation": "reconcile #702 RED characterization head and evidence"
+  }
 }
