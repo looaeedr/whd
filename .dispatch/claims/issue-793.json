@@ -11,7 +11,7 @@
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "4c9be50f31a7ea4e91ed232f78050ec51deed17f",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T02:56:15Z",
+  "last_update": "2026-09-27T03:04:38Z",
   "production_target": "main",
   "slot_id": "worker.slot.1",
   "delegated_branches": [],
@@ -25,7 +25,7 @@
     "failed": 0,
     "marker": "ISSUE793_TAKEOVER_PARSER_GREEN=PASS"
   },
-  "next_action": "Mint and verify the bound finalization proof on exact ISSUE_CLOSE_PENDING checkpoint, close #793, fresh-read closed/completed, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED under a fresh trusted-main local guard, then fresh-read #790 dependency chain.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -56,7 +56,10 @@
     "Fresh production drift audit: trusted main d54f0410 already contains the accepted real-newline parser and exact #722 regression blob via terminal helper #796.",
     "Direct merge of obsolete #793 branch is prohibited because branch diverged from newer trusted main authority; production acceptance is already satisfied on main.",
     "Trusted-main local execution_claim_guard GREEN for terminal coordination pair write.",
-    "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write."
+    "Trusted-main local execution_claim_guard GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING coordination write.",
+    "Remote Finalization run 36290307630 GREEN / FINALIZATION_PROOF_VALID for request 5852158625.",
+    "Owning Issue #793 fresh-read closed/completed at 2026-09-27T03:04:38Z.",
+    "Trusted-main local execution_claim_guard GREEN for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write."
   ],
   "last_guard": {
     "action": "write",
@@ -64,7 +67,7 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #793 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #793 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   },
   "delegated_work": [
     {

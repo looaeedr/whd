@@ -29,13 +29,15 @@
     "Trusted main d54f0410 contains the accepted parser fix and the exact #722 regression blob deployed by terminal helper #796.",
     "Fresh drift audit proves #793 branch is obsolete/diverged and must not be merged over newer trusted main authority.",
     "Temporary #793 QA workflow removed; closing head 4c9be50f contains no temporary workflow.",
-    "TERMINAL_SUCCESS / FINALIZATION_PENDING persisted and fresh-read from coord/dispatch-claims."
+    "TERMINAL_SUCCESS / FINALIZATION_PENDING persisted and fresh-read from coord/dispatch-claims.",
+    "Owning Issue #793 fresh-read closed/completed at 2026-09-27T03:04:38Z.",
+    "Remote Finalization run 36290307630 GREEN / FINALIZATION_PROOF_VALID, request 5852158625."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof, then close owning Issue #793 and fresh-read closed/completed"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then fresh-read #790 dependency chain"
 }
