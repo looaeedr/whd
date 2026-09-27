@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T06:03:00Z",
   "base_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
   "head_sha": "7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T06:56:21Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T06:58:12Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,18 +24,18 @@
     "failed": 0,
     "marker": "ISSUE696_A1_REMOTE_GREEN=PASS"
   },
-  "next_action": "record A1 accepted handoff to #702 and activate canonical successor #697 from accepted A1 lineage",
+  "next_action": "Advance canonical #696 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then return to Master #702 finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-696.json",
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36301564508,
-    "request_comment_id": 5853573788,
+    "run_id": 36301653665,
+    "request_comment_id": 5853588770,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "CAS #696 owner to scheduler A for #702 chain closure"
+    "mutation": "enter #696 terminal finalization under #702 chain closure"
   },
   "green_commit": {
     "implementation_head_sha": "43b5ff0c063e1dc5d2238e0d4623dca433bf83ca",
@@ -59,10 +59,18 @@
     "remote_marker": "ISSUE696_A1_REMOTE_GREEN=PASS",
     "closure_owner_issue": 702,
     "successor_issue": 697,
-    "state": "ACCEPTED_PENDING_CHAIN_CLOSURE"
+    "state": "ACCEPTED",
+    "production_readback_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+    "production_contains_closing_head": true,
+    "amendment_combined_run_id": 36296278571,
+    "amendment_combined_job_id": 108555610910,
+    "amendment_combined_summary": "100 passed / 0 failed"
   },
   "evidence": [
-    "Scheduler A stale takeover run 36301564508 GREEN: EXECUTOR_STUCK, stale_seconds=85340, exact live head 7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785; prior remote run terminal success and no active exact run."
+    "Scheduler A stale takeover run 36301564508 GREEN: EXECUTOR_STUCK, stale_seconds=85340, exact live head 7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785; prior remote run terminal success and no active exact run.",
+    "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf is a descendant of #696 closing head 7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785.",
+    "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
+    "Terminal transition authorized by Remote Guard run 36301653665."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
