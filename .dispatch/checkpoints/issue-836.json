@@ -47,13 +47,15 @@
     "Primary authority handoff authorized by Guard 36311033621.",
     "PR #852 Hard Gate and Knowledge Governance checks GREEN; merged at 8a6323f50860b5aa678e2bf4b8b21a75a82d41a0.",
     "Superseded PR #840 is also marked merged to the same exact merge commit; no duplicate integration occurred.",
-    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; no finalization proof minted before this transition."
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; no finalization proof minted before this transition.",
+    "Trusted finalization run 36314279895 GREEN on exact checkpoint fingerprint.",
+    "Issue #836 readback closed/completed; advancing to RELEASE_HANDOFF_PENDING without changing owner/head/state."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint trusted finalization proof on this exact ISSUE_CLOSE_PENDING checkpoint, close/readback Issue #836 without mutating checkpoint, then atomically write CLOSED + RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED and claim phase=RELEASED for #836, then fresh-read terminal closure."
 }
