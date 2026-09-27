@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "801",
   "branch": "integration/issue801-issue701-scheduler-reconcile-20260927",
-  "head_sha": "c606d24021ac82df9ccd586ea9dc68b003dad20e",
+  "head_sha": "8a436d69cb07890df336f33c5e6a969db0be4495",
   "state": "RUNNING",
-  "next_action": "Remove temporary .github/workflows/qa-issue801-scheduler-state-integration.yml under fresh Guard, reconcile closing head, fresh-audit current cleanup/2d-3d-sync drift/mergeability, then guarded non-force PR merge. After production readback, close/release helper #801 and terminalize parent #701 reservation.",
+  "next_action": "Fresh-audit current cleanup/2d-3d-sync against closing head 8a436d69cb07890df336f33c5e6a969db0be4495, verify only accepted integration delta remains and temporary QA workflow is absent, then obtain fresh pr-write Guard and merge helper non-force into current X. Fresh-read production and terminalize helper #801.",
   "run_id": 36290902531,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,9 @@
     "QA run 36290706266: 11 failed / 22 passed; failure is integration-resolution semantics/encoding, not harness.",
     "Recovery scope fixed to four conflicted Skill files.",
     "Repair head c606d24021ac82df9ccd586ea9dc68b003dad20e reconciled under Guard 36290915630.",
-    "Integration QA run 36290902531: 33 passed / 0 failed."
+    "Integration QA run 36290902531: 33 passed / 0 failed.",
+    "Closing head 8a436d69cb07890df336f33c5e6a969db0be4495 removes only the temporary integration QA workflow.",
+    "Post-cleanup pair reconciliation Guard 36291027925 GREEN and consumed."
   ],
   "master_issue": null,
   "chain_state": "NONE",

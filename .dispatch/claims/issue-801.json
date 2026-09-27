@@ -9,9 +9,9 @@
   "work_branch": "integration/issue801-issue701-scheduler-reconcile-20260927",
   "claimed_at": "2026-09-27T02:58:30Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
-  "head_sha": "c606d24021ac82df9ccd586ea9dc68b003dad20e",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T03:17:00Z",
+  "head_sha": "8a436d69cb07890df336f33c5e6a969db0be4495",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T03:19:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "classification": "INTEGRATION_ACCEPTANCE_GREEN"
   },
-  "next_action": "Remove temporary .github/workflows/qa-issue801-scheduler-state-integration.yml under fresh Guard, reconcile closing head, fresh-audit current cleanup/2d-3d-sync drift/mergeability, then guarded non-force PR merge. After production readback, close/release helper #801 and terminalize parent #701 reservation.",
+  "next_action": "Fresh-audit current cleanup/2d-3d-sync against closing head 8a436d69cb07890df336f33c5e6a969db0be4495, verify only accepted integration delta remains and temporary QA workflow is absent, then obtain fresh pr-write Guard and merge helper non-force into current X. Fresh-read production and terminalize helper #801.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-801.json",
   "evidence": [
@@ -44,16 +44,19 @@
     "Skill-resolution repair commit c606d24021ac82df9ccd586ea9dc68b003dad20e changes exactly four conflicted Skill files.",
     "Repair mutation authorized by Remote Guard run 36290874081.",
     "Integration acceptance run 36290902531 @ c606d24021ac82df9ccd586ea9dc68b003dad20e: 33 passed / 0 failed.",
-    "Post-repair pair reconciliation Guard 36290915630 GREEN and consumed."
+    "Post-repair pair reconciliation Guard 36290915630 GREEN and consumed.",
+    "Temporary QA workflow removed at closing head 8a436d69cb07890df336f33c5e6a969db0be4495.",
+    "QA-workflow cleanup mutation authorized by Guard 36290982393.",
+    "Post-cleanup pair reconciliation Guard 36291027925 GREEN and consumed."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36290915630,
-    "request_comment_id": 5852228543,
+    "run_id": 36291027925,
+    "request_comment_id": 5852241523,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #801 repair head and GREEN QA"
+    "mutation": "reconcile #801 closing head after QA cleanup"
   }
 }
