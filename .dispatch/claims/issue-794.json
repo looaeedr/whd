@@ -9,13 +9,13 @@
   "work_branch": "governance/issue794-issue790-main-x-parity-20260927",
   "claimed_at": "2026-09-27T01:56:00Z",
   "base_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
-  "head_sha": "c0fb59b17f0a1a8208d93812205c15daef505df1",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T02:15:00Z",
+  "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T02:18:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #794 GREEN head c0fb59b17f0a1a8208d93812205c15daef505df1; perform integration drift/overlap audit. If live X advanced from frozen c04f028f, use one guarded non-force merge-sync preserving the six-artifact compatible-equivalent parity, rerun focused acceptance, then open/update exact PR to cleanup and drive to terminal.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and existing PR state for #794. If cleanup remains 24fa64f372eb7328c6ae521a067ac3a84982c18a and work head 65ac396dbef609e25334b5e0c9b9ca43734015fe is ahead with exact six-file parity delta, obtain one pr-write Guard and open/update the exact PR to cleanup; verify mergeability/checks, then obtain fresh merge pr-write Guard, merge non-force, read back X parity, and enter terminal closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-794.json",
   "evidence": [
@@ -36,16 +36,21 @@
     "Remote Guard workflow YAML parse PASS; Actions visible naming guard GREEN.",
     "Phase6 post-write Preflight GREEN for all 10 required Skills and 6 required references.",
     "Implementation Guard run 36287491890 GREEN.",
-    "Post-commit pair reconciliation Guard run 36287912946 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-commit pair reconciliation Guard run 36287912946 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Fresh X drift audit: frozen c04f028f -> live cleanup 24fa64f3 advanced by 7 commits touching only claim-activation three-file scope; overlap with #794 six-file scope = 0.",
+    "Merge-sync Guard run 36287993073 GREEN on H1 c0fb59b1 with production authority cleanup@24fa64f3.",
+    "Two-parent merge-sync H2 65ac396dbef609e25334b5e0c9b9ca43734015fe cleanly incorporates cleanup@24fa64f3; effective work delta remains exactly six #794 files.",
+    "Post-sync focused/adjacent acceptance: 71 passed / 0 failed.",
+    "Merge-head pair reconciliation Guard run 36288061171 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36287912946,
-    "request_comment_id": 5851886009,
+    "run_id": 36288061171,
+    "request_comment_id": 5851903293,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #794 compatible-equivalent parity H0->H1"
+    "mutation": "reconcile #794 merge-sync H1->H2"
   }
 }

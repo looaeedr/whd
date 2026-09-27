@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "794",
   "branch": "governance/issue794-issue790-main-x-parity-20260927",
-  "head_sha": "c0fb59b17f0a1a8208d93812205c15daef505df1",
+  "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
   "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #794 GREEN head c0fb59b17f0a1a8208d93812205c15daef505df1; perform integration drift/overlap audit. If live X advanced from frozen c04f028f, use one guarded non-force merge-sync preserving the six-artifact compatible-equivalent parity, rerun focused acceptance, then open/update exact PR to cleanup and drive to terminal.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and existing PR state for #794. If cleanup remains 24fa64f372eb7328c6ae521a067ac3a84982c18a and work head 65ac396dbef609e25334b5e0c9b9ca43734015fe is ahead with exact six-file parity delta, obtain one pr-write Guard and open/update the exact PR to cleanup; verify mergeability/checks, then obtain fresh merge pr-write Guard, merge non-force, read back X parity, and enter terminal closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,10 @@
     "Pair transition Guard 36287338005 GREEN; next action advanced to six-artifact compatible-equivalent parity port.",
     "H1 c0fb59b17f0a1a8208d93812205c15daef505df1 is the compatible-equivalent #790 parity port on frozen cleanup base.",
     "Focused/adjacent 71 passed / 0 failed; workflow YAML/naming and Phase6 Preflight GREEN.",
-    "Pair reconciliation Guard 36287912946 GREEN; durable pair reconciled to H1."
+    "Pair reconciliation Guard 36287912946 GREEN; durable pair reconciled to H1.",
+    "H2 65ac396dbef609e25334b5e0c9b9ca43734015fe is two-parent sync of H1 with cleanup@24fa64f3.",
+    "Production drift overlap with six parity files = 0; effective H2 delta vs current X is exactly six authorized files.",
+    "Post-sync focused/adjacent 71 passed / 0 failed; pair reconciliation Guard 36288061171 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
