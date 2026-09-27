@@ -50,13 +50,16 @@
     "Post-merge live Governance Mirror push gate 36326898388 GREEN.",
     "Three governed blobs are byte-identical across main/cleanup.",
     "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36326953983.",
-    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36327059057."
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36327059057.",
+    "Remote Finalization 36327655558 GREEN; artifact 10934581970.",
+    "Issue #682 readback closed/completed.",
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard 36327735386."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint trusted remote finalization proof bound to this exact ISSUE_CLOSE_PENDING checkpoint; close Issue #682 only after FINALIZATION_PROOF_VALID; fresh-read closed/completed; then advance RELEASE_HANDOFF_PENDING and atomically CLOSED + RELEASED; finally resume parent #684."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically write #682 checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve finalization proof + closed/completed readback; then resume parent #684."
 }
