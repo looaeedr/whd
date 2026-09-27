@@ -9,19 +9,19 @@
   "work_branch": "work/issue702-crash-fault-combined-acceptance-20260927",
   "claimed_at": "2026-09-27T04:06:00Z",
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
-  "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
-  "phase": "RED",
-  "last_update": "2026-09-27T04:15:05Z",
+  "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T04:21:34Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36293705643,
-    "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
+    "run_id": 36294035297,
+    "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "Implement RED-STOP-22 GREEN by adding the amendment-wide crash fault-injection matrix artifact and expanding #702 QA to combined regression across RED-STOP-16..24 plus original governance regressions; then run exact-head GREEN and continue durable writeback/closure.",
+  "next_action": "Perform #702 REQUIRED AI Library/CURRENT authority writeback and fresh live scheduler prompt/state deployment-readback for the accepted RED-STOP-16..24 lineage; then run closing drift audit, canonical child #696-#701 closure/readback, and #702 finalization/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -36,7 +36,10 @@
     "Production target current observation=cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2; #702 Combined Acceptance starts from this current integrated lineage.",
     "Branch-create Guard run 36293450001 GREEN; work branch created/read back at cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
     "RED characterization commit ab7d3ccbcc92035fe43634f76962a35e160812f4 changed only the #702 fault-matrix test and one-shot QA workflow under commit Guard 36293604088 GREEN.",
-    "VALID RED-STOP-22: QA run 36293705643 failed exactly because docs/governance/issue702_crash_fault_injection_matrix.json is absent; 1 failed / 12 passed in 0.22s."
+    "VALID RED-STOP-22: QA run 36293705643 failed exactly because docs/governance/issue702_crash_fault_injection_matrix.json is absent; 1 failed / 12 passed in 0.22s.",
+    "GREEN implementation H2=339dc1d25ca509b64a27a6bfadc2cf7b857492f3 adds docs/governance/issue702_crash_fault_injection_matrix.json and expands the same #702 QA workflow under commit Guard 36293970815 GREEN.",
+    "Combined Acceptance run 36294035297 completed/success at exact H2: 100 passed / 0 failed in 0.86s across #687-#692 and #696-#702 process suites.",
+    "Post-H2 reconciliation Guard run 36294067125 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
@@ -50,10 +53,20 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36293745134,
+    "run_id": 36294067125,
     "result": "GREEN",
     "reason": "REMOTE_GUARD_RECONCILE_ONLY",
     "consumed": true,
-    "mutation": "reconcile #702 RED characterization head and evidence"
+    "mutation": "reconcile #702 GREEN H2 and Combined Acceptance evidence"
+  },
+  "green_evidence": {
+    "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
+    "qa_run_id": 36294035297,
+    "job_id": 108549429915,
+    "conclusion": "success",
+    "pytest": "100 passed / 0 failed",
+    "red_stop_22": "GREEN",
+    "amendment_regression": "RED-STOP-16..24 GREEN on accepted lineage",
+    "original_governance_regression": "#687-#692 process regression GREEN"
   }
 }
