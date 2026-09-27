@@ -4,7 +4,7 @@
   "branch": "governance/issue844-unified-execution-record-20260928",
   "head_sha": "2761f86abb903d4765d6527aea9242890c7f1d5e",
   "state": "RUNNING",
-  "next_action": "Implement the minimal canonical tools/execution_record.py model/legacy adapter required by the focused #844 RED, then rerun exact focused QA.",
+  "next_action": "Run broader #844 acceptance against current head 2761f86abb903d4765d6527aea9242890c7f1d5e, then remove the temporary QA workflow, perform drift audit, and continue PR/merge/closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,8 @@
     "Focused RED test commit 254cb61e198c106a25051c6d718448e852531d3e is the current work head.",
     "Pair reconciliation Guard 36358042352 GREEN; obsolete REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE blocker cleared.",
     "Focused RED runner is present at c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd; pair reconciliation Guard 36358198545 GREEN.",
-    "Focused RED run 36358270773 terminal failure is expected: tools.execution_record does not exist."
+    "Focused RED run 36358270773 terminal failure is expected: tools.execution_record does not exist.",
+    "Focused GREEN run 36358444789 at exact head 2761f86abb903d4765d6527aea9242890c7f1d5e: 7 passed in 0.14s."
   ],
   "operation": null,
   "master_issue": null,
