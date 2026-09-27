@@ -42,13 +42,16 @@
     "Production remains descendant of #701 closing head.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
     "Terminal transition authorized by Remote Guard 36299258018.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36299350913."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36299350913.",
+    "Remote Finalization run 36299486140: FINALIZATION_PROOF_VALID.",
+    "Issue #701 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard 36299551004."
   ],
   "master_issue": "702",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "700",
   "chain_next_action": "After #701 CLOSED+RELEASED, fresh-read remaining amendment children and continue canonical closure under #702.",
   "chain_reason": "Issue #702 is amendment chain closure owner; #700/#699/#697/#696 remain required children after #701.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #701 and fresh-read closed/completed before any checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #701, then continue #702 amendment-chain closure."
 }
