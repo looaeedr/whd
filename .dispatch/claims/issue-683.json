@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T08:32:00Z",
+  "phase": "RED",
+  "last_update": "2026-09-27T08:41:02Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Under a fresh branch-create Guard, create work/issue683-ha-transport-projection-20260927 at cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8; fresh-read the required Phase6 knowledge/preflight and existing HA/Node-RED/whd-monitor transport seams; then establish repository-owned R7/R8 RED evidence before any production implementation.",
+  "next_action": "Under a fresh commit Guard, add only tests/process/test_issue683_ha_transport_projection.py and .github/workflows/qa-issue683-ha-transport-projection.yml as repository-owned R7/R8 RED characterization. Push non-force, lock the exact push-triggered QA run, and require pytest to fail because tools/whd_poweroff_ha_bridge.py is absent before any production implementation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -29,6 +29,22 @@
     "resume_authority=READY_WORK_CENSUS MUST_CLAIM #683 at fresh cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8",
     "Fresh dependencies #679/#680/#681 are closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED and their accepted heads are ancestors of current X.",
     "Fresh parallel-scope audit: active #832/#828/#827/#702 are A-lane governance/closure work; #743 is foreign claim on execution-claim multi-hop governance. #683 HA transport/projection scope is separate.",
-    "Issue #683 had no prior claim/checkpoint and intended work branch did not exist at claim construction."
-  ]
+    "Issue #683 had no prior claim/checkpoint and intended work branch did not exist at claim construction.",
+    "Branch-create Guard 36306802217 GREEN; request 5854262285, result 5854263794.",
+    "work/issue683-ha-transport-projection-20260927 created/read back at exact frozen base 50c2b157770a90224459e665537dc50c522ff2b8.",
+    "Approved R7/R8 authority in issue678 requirement RED requires tools/whd_poweroff_ha_bridge.py to bind SAFE to current poweroff_request_id and make timeout fail closed.",
+    "Fresh tree audit found no existing repository HA/Node-RED/whd-monitor REST/MQTT server owner; #683 will use a thin Node-RED exec transport bridge and reuse tools/workstation_poweroff_gate.py validation rather than creating a second WHD state machine.",
+    "Branch-create effect writeback Guard 36306957050 GREEN; request 5854282260, result 5854283930."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36306957050,
+    "request_comment_id": 5854282260,
+    "result_comment_id": 5854283930,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "persist #683 branch-create effect and advance to R7/R8 RED characterization"
+  }
 }
