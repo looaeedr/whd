@@ -53,10 +53,23 @@ jobs:
             echo "ISSUE700_RED_STOP_23_EXPECTED_RED=PASS"
           fi
 
-      - name: 上傳 focused 證據
+      - name: 執行 Claim Activation 相容性回歸
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/process/test_issue642_active_claim_checkpoint_gate.py \
+            tests/process/test_issue671_legacy_checkpoint_repair.py \
+            tests/process/test_issue697_operation_transaction_core.py \
+            | tee /tmp/issue700-regression.log
+          echo "ISSUE700_ACTIVATION_REGRESSION_GREEN=PASS"
+
+      - name: 上傳 focused 與回歸證據
         uses: actions/upload-artifact@v4
         with:
           name: issue700-claim-activation-crash-reentry-${{ github.run_id }}
-          path: /tmp/issue700-focused.log
+          path: |
+            /tmp/issue700-focused.log
+            /tmp/issue700-regression.log
           if-no-files-found: error
           retention-days: 14
