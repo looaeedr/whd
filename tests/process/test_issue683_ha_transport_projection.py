@@ -134,4 +134,3 @@ def test_ha_projection_authority_writeback_is_current_and_transport_only() -> No
     assert "validate_safe_receipt" in text
     assert "HA / Node-RED 不是 WHD authority" in text
     assert "不連接真正 Windows shutdown actuator" in text
-\n
