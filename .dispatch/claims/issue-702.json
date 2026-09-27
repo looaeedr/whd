@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T07:08:00Z",
+  "last_update": "2026-09-27T08:40:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Helper #827 is ACTIVE for the #696 terminal chain-metadata repair gap. Follow #827 through canonical repair implementation, bidirectional governance mirror acceptance, trusted #696 durable pair repair, and terminal close/release; then terminalize this reservation and resume #702 finalization. Do not accept parent branch c59d73e245d2b4732c738a01bd062eb32763a05a.",
+  "next_action": "Perform /排程A exit-time scheduler enable/readback without changing schedule/timing/lane/prompt identity; verify all amendment children #696-#701 and helpers #815/#827 are closed/completed + RELEASED + terminal CLOSED; verify current cleanup contains the accepted #702 delta and fresh-X Combined Acceptance remains GREEN; then enter #702 TERMINAL_SUCCESS / FINALIZATION_PENDING and run canonical finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -55,7 +55,12 @@
     "Parent work branch live c59d73e245d2b4732c738a01bd062eb32763a05a remains non-authoritative; sealed parent H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32 is unchanged.",
     "Issue #696 terminalization exposed a fail-closed transport gap: terminal checkpoint has valid closure_state but invalid CHAIN_COMPLETE metadata (chain_next_action non-null), so ordinary Remote Guard cannot parse it and #744 terminal-checkpoint-repair is intentionally too narrow.",
     "Repair helper must preserve #696 issue/branch/head/state/acceptance and only canonicalize chain metadata plus the minimal trusted recovery transport needed to perform that exact repair.",
-    "Repair helper #827 Claim Activation fresh-create GREEN; child claim blob 3c666c856613ce94ed03a722ebd0834af7af3361."
+    "Repair helper #827 Claim Activation fresh-create GREEN; child claim blob 3c666c856613ce94ed03a722ebd0834af7af3361.",
+    "Canonical parent-branch sealed-identity repair run 36306868118 success: replacement repair/issue702-sealed-finalization-20260927 created at exact sealed H4 f8a3397551c5975dafd842e8dcd28c1d4edcca32; original c59d73e245d2b4732c738a01bd062eb32763a05a preserved unchanged.",
+    "Parent-branch repair authorization Guard 36306875119 GREEN.",
+    "Repair helper #827 terminal: claim 791f7fa871bf99818bf39e3bef9ef28dec8c3388, checkpoint a5f281b787273d1253b500d7b982f19a2e4a1595, Issue closed/completed.",
+    "Parent reservation issue696-terminal-chain-metadata-repair transitioned ACTIVE -> TERMINAL.",
+    "Reservation/finalization routing write authorized by Remote Guard 36306940551 GREEN."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
@@ -69,11 +74,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36294760023,
+    "run_id": 36306940551,
+    "request_comment_id": 5854279705,
     "result": "GREEN",
-    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #702 cleanup H4 and closing diff proof"
+    "mutation": "terminalize #827 parent reservation and advance #702 to exit-time finalization"
   },
   "green_evidence": {
     "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
@@ -212,12 +218,12 @@
     {
       "relationship": "helper",
       "helper_key": "issue696-terminal-chain-metadata-repair",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue696-terminal-chain-metadata-repair-20260927a",
       "reserved_at": "2026-09-27T07:05:00Z",
       "child_issue": 827,
-      "child_claim_blob_sha": "3c666c856613ce94ed03a722ebd0834af7af3361"
+      "child_claim_blob_sha": "791f7fa871bf99818bf39e3bef9ef28dec8c3388"
     }
   ]
 }
