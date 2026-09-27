@@ -3,8 +3,8 @@
   "issue": "769",
   "branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "head_sha": "ec6680a0ebded06b6f481ad1b2cd7406e47923ed",
-  "state": "RUNNING",
-  "next_action": "Fresh-read PR #788 checks and mergeability on exact head ec6680a0ebded06b6f481ad1b2cd7406e47923ed against cleanup/2d-3d-sync. If clean and all exact-head checks terminal success, obtain one fresh pr-write Guard for merge, merge #788 non-force, fresh-read production integration, then enter canonical terminal closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36282840275,
   "job_id": 108517868728,
   "log_cursor": null,
@@ -45,13 +45,16 @@
     "H2 ec6680a0ebded06b6f481ad1b2cd7406e47923ed is the current-production merge-sync head.",
     "Effective delta vs cleanup@8147c431 remains exactly six #769 authorized artifacts.",
     "Post-sync focused/adjacent/current-production regressions: 126 passed / 0 failed.",
-    "Pair reconciliation Guard 36292841933 GREEN."
+    "Pair reconciliation Guard 36292841933 GREEN.",
+    "PR #788 merged to cleanup as cfbcaa1b4e50e117d8a3e1a738606814f48325d2; production readback exact.",
+    "Accepted closing/integration head ec6680a0ebded06b6f481ad1b2cd7406e47923ed retained exact six-file #769 delta and 126 passed / 0 failed post-sync regression.",
+    "Closure-entry Guard 36293060557 GREEN; acceptance terminal reached."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }

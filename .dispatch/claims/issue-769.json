@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T22:33:00Z",
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
   "head_sha": "ec6680a0ebded06b6f481ad1b2cd7406e47923ed",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T03:56:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T04:02:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 77,
     "failed": 0
   },
-  "next_action": "Fresh-read PR #788 checks and mergeability on exact head ec6680a0ebded06b6f481ad1b2cd7406e47923ed against cleanup/2d-3d-sync. If clean and all exact-head checks terminal success, obtain one fresh pr-write Guard for merge, merge #788 non-force, fresh-read production integration, then enter canonical terminal closure.",
+  "next_action": "Advance closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh Guard; then run bound Remote Finalization proof on the exact frozen checkpoint, close/read back Issue #769, advance RELEASE_HANDOFF_PENDING, and atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -74,16 +74,20 @@
     "Merge-sync Guard run 36292720150 GREEN.",
     "Two-parent sync head ec6680a0ebded06b6f481ad1b2cd7406e47923ed incorporates cleanup@8147c431; effective delta vs production remains exactly six #769 files.",
     "Post-sync #769 + production turn-exit/state regressions: 126 passed / 0 failed.",
-    "Merge-head pair reconciliation Guard run 36292841933 GREEN."
+    "Merge-head pair reconciliation Guard run 36292841933 GREEN.",
+    "PR #788 merged non-force to cleanup/2d-3d-sync as cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
+    "Fresh cleanup readback exact at cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
+    "Merge pr-write Guard run 36292926948 GREEN and consumed by exact PR #788 merge event.",
+    "Closure-entry Guard run 36293060557 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36292841933,
-    "request_comment_id": 5852444052,
+    "run_id": 36293060557,
+    "request_comment_id": 5852468831,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #769 current-production sync head"
+    "mutation": "enter #769 terminal finalization after production merge"
   }
 }
