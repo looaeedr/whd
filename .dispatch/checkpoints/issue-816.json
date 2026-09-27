@@ -3,8 +3,8 @@
   "issue": "816",
   "branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
   "head_sha": "9625fd08693a2c535e70dee2e3850a76cb8ecfd0",
-  "state": "RUNNING",
-  "next_action": "mirror latest cleanup 排程模擬 governance blob to #818, verify paired PR checks/parity, then merge with fresh pr-write authority",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -25,13 +25,17 @@
     "UTF-8 quotePath fix at e3a72ae2; 15 passed; PR #819 hard gate GREEN.",
     "Remote Guard 36298032694 GREEN authorizes pair reconciliation.",
     "Latest cleanup governance drift incorporated at 9625fd08; focused 15 passed.",
-    "Merge-sync postcommit matcher requires production-parent guard authority; trusted reactivate recovery required for already-written correct merge head."
+    "Merge-sync postcommit matcher requires production-parent guard authority; trusted reactivate recovery required for already-written correct merge head.",
+    "PR #819 merged to cleanup production at 98a11b89; paired main mirror PR #820 merged at aadf248f.",
+    "Both production push governance hard gates GREEN: 36298990616 / 36298994158.",
+    "Production governance parity readback: 48 governed artifacts, 0 mismatches.",
+    "Remote Guard 36299173209 GREEN authorizes #816 terminal acceptance pair transition."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance #816 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, close/read back Issue #816, then persist CLOSED + RELEASED."
 }

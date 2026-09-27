@@ -11,7 +11,7 @@
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
   "head_sha": "9625fd08693a2c535e70dee2e3850a76cb8ecfd0",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:51:30Z",
+  "last_update": "2026-09-27T06:07:33.333648Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -51,17 +51,23 @@
     "Latest cleanup drift 8e16aae9 changes exactly .agents/skills/engineering/排程模擬/SKILL.md.",
     "Merge-sync head 9625fd08 parents current #816 e3a72ae2 + cleanup@8e16aae9; work-delta versus cleanup remains exactly six #816 governance files.",
     "Post-merge focused regression: 15 passed / 0 failed.",
-    "Ordinary merge-sync reconciliation Guard 36298335899 failed because its prior mutation receipt used trusted-main authority instead of merge production parent; reactivate recovery selected without rewriting history."
+    "Ordinary merge-sync reconciliation Guard 36298335899 failed because its prior mutation receipt used trusted-main authority instead of merge production parent; reactivate recovery selected without rewriting history.",
+    "PR #819 merged to cleanup/2d-3d-sync as 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
+    "Paired PR #820 merged governance-only mirror to main as aadf248f9b96e1e0a465817f870966db9cf97114.",
+    "Production push Governance Mirror Hard Gate: cleanup run 36298990616 GREEN; main run 36298994158 GREEN.",
+    "Production governed snapshot: BIDIRECTIONAL_MIRROR, 48 artifacts, 0 mismatches.",
+    "Terminal acceptance pair-write Guard 36299173209 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36298335899,
-    "request_comment_id": 5853127513,
-    "result": "FAIL",
-    "reason": "REMOTE_GUARD_FAILED",
-    "consumed": false,
-    "mutation": "merge-sync authority identity mismatch; reactivate recovery"
+    "run_id": 36299173209,
+    "request_comment_id": 5853236659,
+    "result_comment_id": 5853237680,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "enter #816 TERMINAL_SUCCESS / FINALIZATION_PENDING"
   },
   "delegated_work": []
 }
