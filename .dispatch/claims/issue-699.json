@@ -1,17 +1,17 @@
 {
   "issue": 699,
   "issue_url": "https://github.com/looaeedr/whd/issues/699",
-  "worker": "chatgpt.work3.260927.a4",
-  "executor_source": "chat",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.work3.699.20260927T0255",
+  "invocation_identity": "chat.schedulerA.699.20260927.chain-closure",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue699-turn-exit-poweroff-close-recovery-20260927",
   "claimed_at": "2026-09-26T18:55:40Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "93d5a527a711178233f64619750ad3d14ba20a08",
   "phase": "CLOSING",
-  "last_update": "2026-09-26T21:49:07Z",
+  "last_update": "2026-09-27T06:34:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
@@ -45,6 +45,34 @@
     "Post-merge readback: X HEAD=0374e9d35bcd8b02ceb6486002c203347a45b19b; PR #761 merged=true.",
     "Post-merge focused smoke at X: 151 passed / 0 failed in 5.33s.",
     "Issue #699 closure / amendment Combined Acceptance / AI Library writeback are explicitly owned by Issue #702; this EXECUTE_TICKET scope must not auto-start #702.",
-    "Final coordination write Guard run 36274146580 GREEN."
-  ]
+    "Final coordination write Guard run 36274146580 GREEN.",
+    "Scheduler A stale takeover run 36300454293 GREEN: EXECUTOR_STUCK, stale_seconds=31483, exact live head 93d5a527a711178233f64619750ad3d14ba20a08, no active exact run/delegated helper."
+  ],
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "previous_worker": "chatgpt.work3.260927.a4",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "requesting_executor_source": "scheduler",
+    "observed_stale_seconds": 31483,
+    "observed_live_head_sha": "93d5a527a711178233f64619750ad3d14ba20a08",
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "user_authority_comment_id": null,
+    "taken_over_at": "2026-09-27T06:34:15Z",
+    "guard_mode": "remote",
+    "guard_result": "GREEN",
+    "guard_run_id": 36300454293,
+    "request_comment_id": 5853426875
+  },
+  "last_guard": {
+    "action": "claim-takeover",
+    "mode": "remote",
+    "run_id": 36300454293,
+    "request_comment_id": 5853426875,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "transfer #699 stale claim ownership to scheduler A for #702 closure"
+  }
 }
