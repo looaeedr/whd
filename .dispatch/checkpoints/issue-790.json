@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "790",
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
-  "head_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
+  "head_sha": "926a9840c3287210eef1a13d0b21912da074fbaf",
   "state": "RUNNING",
-  "next_action": "Create isolated worktree at exact #790 branch head; write RED regression reproducing #769 direct-child commit with historical Guard blob != current same-authority claim blob; prove ordinary reconciliation rejects before implementation.",
+  "next_action": "Fresh-run tests/process/test_issue790_intervening_claim_blob_reconciliation.py on 926a9840c3287210eef1a13d0b21912da074fbaf to prove the historical-blob/current-blob shape is RED, then implement the narrow same-authority observational claim-blob refresh reconciliation repair.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Parent #769 live RED: Guarded direct-child H0->H1 exists, but intervening same-owner coord write changed current claim blob.",
     "Helper #790 exact target: trusted main first, then cleanup parity before use on #769.",
     "Branch governance/issue790-intervening-claim-blob-reconcile-20260927 established at main@646968f0.",
-    "Guard 36283281614 GREEN authorizes durable transition to RED."
+    "Guard 36283281614 GREEN authorizes durable transition to RED.",
+    "RED H1 926a9840c3287210eef1a13d0b21912da074fbaf is exact direct child of 646968f0 and changes only the #790 focused regression.",
+    "Pair reconciliation Guard run 36283518034 GREEN; durable pair reconciled to RED H1."
   ],
   "master_issue": null,
   "chain_state": "NONE",
