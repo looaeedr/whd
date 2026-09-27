@@ -4,7 +4,7 @@
   "branch": "work/issue683-ha-transport-projection-repair2-20260927",
   "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
   "state": "RUNNING",
-  "next_action": "Wait only on the already-triggered exact Governance Mirror Hard Gates for paired PRs #850 and #853; when both are GREEN, merge #850 to main first under fresh pr-write Guard, then merge #853 to cleanup under fresh pr-write Guard, then continue #683 finalization. Do not recreate pair PRs or rerun while an exact run is active.",
+  "next_action": "Both exact Governance Mirror Hard Gates are GREEN (#850 run 36314943208; #853 run 36314850616). Mint one fresh exact pr-write Guard for PR #850 on governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 and merge #850 to main first; fresh-read main/claim, then mint one fresh exact pr-write Guard for PR #853 on work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1 and merge #853 to cleanup; then continue #683 finalization.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -52,7 +52,10 @@
     "Second sealed replacement branch authorized because prior replacement merge-sync receipt used cleanup-delta files instead of the required #683 production-parent work-delta files.",
     "Correct merge-sync 1c4b976c accepted under Guard 36314691733; post-sync reconciliation 36314778009 GREEN.",
     "Replacement cleanup PR #853 exists and points to #850; main PR #850 must now point reciprocally to #853.",
-    "Pair is now #850↔#853; primary authority returned to replacement cleanup branch."
+    "Pair is now #850↔#853; primary authority returned to replacement cleanup branch.",
+    "Paired PR #850 Governance Mirror Hard Gate run 36314943208 GREEN.",
+    "Replacement cleanup PR #853 Governance Mirror Hard Gate run 36314850616 GREEN; Knowledge Governance Bootstrap 36314850635 GREEN.",
+    "This durable gate-terminal writeback consumes exact write Guard 36315098720."
   ],
   "master_issue": null,
   "chain_state": "NONE",
