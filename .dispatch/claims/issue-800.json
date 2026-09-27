@@ -1,17 +1,17 @@
 {
   "issue": 800,
   "issue_url": "https://github.com/looaeedr/whd/issues/800",
-  "worker": "chatgpt.sol260927.issue800.base64.1",
-  "executor_source": "chat",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.issue800.base64.20260927a",
+  "invocation_identity": "chat.schedulerB.800.20260927T0504",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "hotfix/issue800-github-blob-base64-20260927",
   "claimed_at": "2026-09-27T02:51:00Z",
   "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T03:46:10Z",
+  "last_update": "2026-09-27T05:04:50.077235Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
@@ -48,17 +48,19 @@
     "Parent reservation activation Guard run 36291051476 GREEN.",
     "Helper #803 terminal proof fresh-read: Issue closed/completed; claim RELEASED / next_action=null; checkpoint TERMINAL_SUCCESS/CLOSED; head b0eb1df9 has no active workflow run.",
     "Canonical terminalize_helper_reservation() returned TERMINAL for helper_key issue800-main-x-parity with exact owner/token.",
-    "Parent pair-write Guard run 36292345018 GREEN; #803 reservation terminalization and #769 recovery handoff authorized."
+    "Parent pair-write Guard run 36292345018 GREEN; #803 reservation terminalization and #769 recovery handoff authorized.",
+    "Scheduler B takeover: Remote Guard 36296147525 GREEN; canonical stale evaluator classified prior chat owner EXECUTOR_STUCK after 4719s, with no active exact run or active delegated work."
   ],
   "last_guard": {
-    "action": "write",
+    "action": "claim-takeover",
     "mode": "remote",
-    "run_id": 36292345018,
-    "request_comment_id": 5852388318,
+    "run_id": 36296147525,
+    "request_comment_id": 5852835042,
+    "result_comment_id": 5852836827,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "terminalize #800 delegated cleanup parity helper #803 and hand off to #769 recovery"
+    "mutation": "B-lane stale owner takeover CAS for #800"
   },
   "delegated_work": [
     {
@@ -71,5 +73,27 @@
       "child_issue": 803,
       "child_claim_blob_sha": "ea5320648da1fa252003e4799ccb40735d172bea"
     }
-  ]
+  ],
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "previous_worker": "chatgpt.sol260927.issue800.base64.1",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    "requesting_executor_source": "scheduler",
+    "stale_seconds": 4719,
+    "observed_live_head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
+    "claim_blob_sha": "bb8a8cff9ccd896b0ccbb81b510b8e2698cc146a",
+    "claim_head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
+    "claim_last_update": "2026-09-27T03:46:10Z",
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "user_authority_comment_id": null,
+    "taken_over_at": "2026-09-27T05:04:50.077235Z",
+    "guard_mode": "remote",
+    "guard_result": "GREEN",
+    "guard_run_id": 36296147525,
+    "guard_request_comment_id": 5852835042,
+    "guard_result_comment_id": 5852836827
+  }
 }
