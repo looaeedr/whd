@@ -4,7 +4,7 @@
   "branch": "work/issue702-crash-fault-combined-acceptance-20260927",
   "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
   "state": "RUNNING",
-  "next_action": "Deploy the exact #702 canonical startup/reconciliation bridge block prompt-only to A 00/20/40 and B B15/B45 while preserving schedule/timing/enable state; fresh-read all five exact identities, then persist EFFECT_OBSERVED/RECONCILED live deployment evidence before AI Library writeback.",
+  "next_action": "Write #702 accepted crash-recovery authority into the exact CURRENT AI Library references and create a durable combined-acceptance/writeback manifest on the #702 branch; run exact-head QA, remove the one-shot #702 QA workflow with closing drift audit, integrate to cleanup/2d-3d-sync, then perform canonical child #696-#701 close/readback and #702 finalization/closure.",
   "run_id": 36294035297,
   "job_id": 108549429915,
   "log_cursor": null,
@@ -25,7 +25,10 @@
     "Post-H2 reconciliation Guard run 36294067125 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Scheduler live deployment PREPARED before host mutation: exact A 00/20/40 + B15/B45 ids/schedules/timing/enabled states captured in claim.scheduler_live_deployment.",
     "Required prompt markers are EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1 and SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1; mutation is prompt-only.",
-    "A20 observed disabled before deployment; prompt deployment must preserve it disabled until the canonical /排程A exit-time enable gate."
+    "A20 observed disabled before deployment; prompt deployment must preserve it disabled until the canonical /排程A exit-time enable gate.",
+    "Host-side prompt-only deployment fresh-read RECONCILED: A 00/20/40 + B15/B45 carry EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1 and SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1.",
+    "No schedule/timing/lane/entrypoint/enabled-state drift from prepared identity; A20 remains false pending final exit-time enable gate.",
+    "Post-effect durable write Guard run 36294433168 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

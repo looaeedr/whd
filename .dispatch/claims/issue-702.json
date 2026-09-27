@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
   "phase": "GREEN",
-  "last_update": "2026-09-27T04:24:10Z",
+  "last_update": "2026-09-27T04:29:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Deploy the exact #702 canonical startup/reconciliation bridge block prompt-only to A 00/20/40 and B B15/B45 while preserving schedule/timing/enable state; fresh-read all five exact identities, then persist EFFECT_OBSERVED/RECONCILED live deployment evidence before AI Library writeback.",
+  "next_action": "Write #702 accepted crash-recovery authority into the exact CURRENT AI Library references and create a durable combined-acceptance/writeback manifest on the #702 branch; run exact-head QA, remove the one-shot #702 QA workflow with closing drift audit, integrate to cleanup/2d-3d-sync, then perform canonical child #696-#701 close/readback and #702 finalization/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -39,7 +39,10 @@
     "VALID RED-STOP-22: QA run 36293705643 failed exactly because docs/governance/issue702_crash_fault_injection_matrix.json is absent; 1 failed / 12 passed in 0.22s.",
     "GREEN implementation H2=339dc1d25ca509b64a27a6bfadc2cf7b857492f3 adds docs/governance/issue702_crash_fault_injection_matrix.json and expands the same #702 QA workflow under commit Guard 36293970815 GREEN.",
     "Combined Acceptance run 36294035297 completed/success at exact H2: 100 passed / 0 failed in 0.86s across #687-#692 and #696-#702 process suites.",
-    "Post-H2 reconciliation Guard run 36294067125 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-H2 reconciliation Guard run 36294067125 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Live scheduler prompt deployment effect observed and fresh-read across A 00/20/40 + B15/B45: both canonical prompt markers present on all five exact automation ids.",
+    "Post-deployment readback preserved schedule, timing_mode, lane/entrypoint identity and enabled state; A20 intentionally remains disabled until /排程A exit-time enable gate.",
+    "Scheduler host mutation durable reconciliation Guard run 36294433168 GREEN."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
@@ -53,11 +56,11 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36294191163,
+    "run_id": 36294433168,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #702 scheduler live prompt deployment PREPARED identity"
+    "mutation": "persist live scheduler prompt deployment EFFECT_OBSERVED/RECONCILED readback"
   },
   "green_evidence": {
     "head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
@@ -71,7 +74,7 @@
   },
   "scheduler_live_deployment": {
     "schema": "WHD_SCHEDULER_LIVE_DEPLOYMENT_V1",
-    "state": "PREPARED",
+    "state": "RECONCILED",
     "operation_id": "issue702-live-scheduler-prompt-deployment-v1",
     "observed_at": "2026-09-27T04:23:58Z",
     "mutation": "prompt-only",
@@ -128,6 +131,49 @@
       "entrypoint unchanged",
       "enabled state unchanged during prompt deployment",
       "A20 remains disabled until /排程A exit-time enable gate"
-    ]
+    ],
+    "effect_state": "EFFECT_OBSERVED",
+    "reconciled_at": "2026-09-27T04:29:17Z",
+    "readback": [
+      {
+        "entrypoint": "00",
+        "automation_id": "6ab13f881c34819180cee63f5dd9446b",
+        "enabled_after": true,
+        "prompt_markers": true
+      },
+      {
+        "entrypoint": "20",
+        "automation_id": "6ab4eaee5e008191a0e7e23303f64cea",
+        "enabled_after": false,
+        "prompt_markers": true
+      },
+      {
+        "entrypoint": "40",
+        "automation_id": "6ab13fa557fc8191935c671214b865e2",
+        "enabled_after": true,
+        "prompt_markers": true
+      },
+      {
+        "entrypoint": "B15",
+        "automation_id": "6ab51d9226808191b9ae0c624e28c246",
+        "enabled_after": true,
+        "prompt_markers": true
+      },
+      {
+        "entrypoint": "B45",
+        "automation_id": "6ab51d9ec6708191a578d67065f8979b",
+        "enabled_after": true,
+        "prompt_markers": true
+      }
+    ],
+    "readback_invariants": {
+      "schedule_unchanged": true,
+      "timing_mode_unchanged": true,
+      "lane_owner_unchanged": true,
+      "entrypoint_unchanged": true,
+      "enabled_state_unchanged_during_prompt_deploy": true,
+      "required_prompt_markers_present_on_all_targets": true,
+      "a20_exit_enable_deferred": true
+    }
   }
 }
