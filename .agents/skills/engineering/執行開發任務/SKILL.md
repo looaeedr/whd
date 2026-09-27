@@ -10,6 +10,14 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
 
 ### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
 
@@ -250,9 +258,20 @@ Validation / fixture / expected / probe 只能判定 implementation 是否符合
 
 `progress update 只能觀測狀態`，**不得改變 execution state**。回報前是 `RUNNING`、`WAITING_REMOTE` 或 `RECOVERING`，回報後仍保持同一語意 state 與同一合法 next action；`回報後若仍有合法 next action，必須繼續執行`。
 
+#### TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1
+
+**中途回報不等於停止點**。progress/status/CHECKPOINT/Guard result/partial PASS/FAIL 只可觀測狀態，永遠不能自己成為 return condition。
+
+正常 assistant turn 只允許兩種出口：
+
+1. **真正終態**：目前已授權 scope 的 acceptance、QA/invariant/cleanup、finalization、Issue close/readback、claim release 與 applicable chain handoff 全部完成。
+2. **fresh unique BLOCKED**：必須由 canonical `tools/continuity_controller.py` 驗 owning checkpoint 內 durable `blocked_exit_proof`；至少要求 fresh `observed_at`（max age 300 秒、future skew 30 秒）、`blocker_count=1`、canonical `blocker_id`、`exhaustive=true`、`executable_leaf_count=0`，且沒有 active remote/delegated work。BLOCKED 時 Issue 保持 open、claim 保持 active。
+
+proof 缺失／stale、多 blocker、blocker identity 不合法、仍有 executable leaf，或把 progress/checkpoint/status 事件冒充 blocker，一律 turn-exit RED；若仍有合法自主 path，**同一 turn 立即續做**，不得先回報再停止。
+
 #### NORMAL_TERMINATION_GATE
 
-正常終止只允許兩種：`genuine BLOCKED` 或 `evidence-backed COMPLETE`。`non-terminal state 不能產生 COMPLETE / final response`。若遇到 `system hard-cut`，只能留下 durable checkpoint 並依 `CHECKPOINT_RESUME_CONTRACT` 續跑，不能冒充正常終止。
+正常終止只允許兩種：符合上述 hard gate 的 genuine BLOCKED / fresh unique `BLOCKED`，或真正 evidence-backed COMPLETE / terminal completion。**non-terminal state 不能產生 COMPLETE / final response**；單純進度回報或可恢復 FAIL 也不能產生 final response。若遇到 `system hard-cut`，只能留下 durable checkpoint 並依 `CHECKPOINT_RESUME_CONTRACT` 續跑，不能冒充正常終止。
 
 ### NONTERMINAL_NEXT_ACTION_GATE
 
@@ -293,7 +312,7 @@ Remote QA 的 polling cadence、run lock 與 final gate 不在此重複定義，
 所有長流程的 user-visible response boundary 必須 bridge 到 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1`。在準備結束 assistant turn 前，先載入 owning durable checkpoint 並執行 `assert_turn_exitable`／`assert-turn-exitable`。
 
 - `RUNNING / WAITING_REMOTE / RECOVERING` 被 machine guard 拒絕時，輸出只能是 observation，下一個動作必須立刻執行 checkpoint 的 `next_action`；不得把使用者當 scheduler。
-- `BLOCKED` 才能因真正外部 authority/capability wait 把控制權交回使用者；但它仍不能通過 `assert_finalizable`。
+- `BLOCKED` 只有通過 `TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1` 的 durable fresh unique blocker proof 才能把控制權交回使用者；state label 本身不授權退出，且它仍不能通過 `assert_finalizable`。
 - Remote QA terminal 後若轉成 `RUNNING(cleanup / invariant / drift / closure)`，remote lock 雖解除，global turn-exit lock 立即接手；PASS 回報不是停工點。
 - `USER_VISIBLE_CHECKPOINT_GATE` 只負責呈現/恢復面，不取代 executable turn-exit gate。
 

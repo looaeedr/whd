@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -259,10 +260,23 @@ def test_blocked_checkpoint_requires_exhaustive_proof_and_remains_nonfinalizable
         executable_leaf_count=0,
         evidence=("fresh blocker census: no other executable leaf",),
         stop_reason=continuity.StopReason.EXTERNAL_AUTHORITY_REQUIRED,
+        blocker_id="external-authority:test:missing-user-authority",
+        blocker_count=1,
+        observed_at=(
+            datetime.now(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        ),
     )
-    guard(checkpoint, blocked_exit_proof=proof)
+    durable_checkpoint = _running(
+        state=ContinuityState.BLOCKED,
+        next_action="wait for missing external authority",
+        blocked_exit_proof=proof,
+    )
+    guard(durable_checkpoint)
     with pytest.raises(FinalizationBlocked, match="non-terminal"):
-        assert_finalizable(checkpoint)
+        assert_finalizable(durable_checkpoint)
 
 
 def test_terminal_checkpoints_can_exit_turn():

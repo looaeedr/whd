@@ -515,3 +515,32 @@ Workflow 必須查詢 receipt `issued_at..expires_at` 期間、相同 path 的 `
 - retained invariant: Retain single-use guarded mutation receipts and exact durable readback semantics.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## INTERVENING_COORD_POSTCOMMIT_RECOVERY_V1
+
+Remote Guard 支援一條窄的 same-owner coordination claim-blob refresh recovery，用於「Guard-time historical claim blob != current claim blob，但 authority 沒變」的 direct-child post-commit reconciliation。
+
+Request 仍使用 `action=write` + exact claim/checkpoint pair，另帶：
+
+`intervening_coord_recovery_comment_id=<positive owner-authored issue comment id>`
+
+該 comment 第一行固定 `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1`，並 exact 綁 issue/worker/executor_source/branch/current_claim_blob_sha/historical_claim_blob_sha/claim_head_sha/live_head_sha/prior_guard_run_id/prior_request_comment_id/recovery_reason=INTERVENING_SAME_OWNER_COORD_WRITE/changed_file。
+
+trusted workflow fresh-fetch exact comment並驗 repository owner + marker後，才傳 `--intervening-coord-recovery` 給 canonical `tools/execution_claim_guard.py`。此 recovery 與 `legacy_reconcile_recovery_comment_id` 互斥，且只允許 exact claim+checkpoint write scope。
+
+Historical claim blob 必須從 GitHub blob API fresh-read，且 current/historical authority projection完全一致；只允許 observational coordination metadata drift。任何 authority drift、receipt/file/time/topology mismatch都 FAIL。
+
+
+## GITHUB_BLOB_BASE64_TRANSPORT_NORMALIZATION_V1
+
+GitHub `git/blobs/{sha}` 的 `encoding=base64` transport 可能包含 line wrapping。Remote Guard 讀 historical claim blob 時，transport formatting 不得被誤判為 claim corruption。
+
+固定規則：
+
+- decode 前只允許移除 ASCII whitespace：space、tab、CR、LF、vertical-tab、form-feed；
+- whitespace 移除後仍必須使用 `base64.b64decode(..., validate=True)`，禁止改成寬鬆 decode；
+- 非 ASCII whitespace、非法 base64 字元、padding 錯誤仍 fail closed；
+- decode 完的 raw bytes 必須重新計算 Git blob SHA，且 exact 等於 requested blob SHA；transport normalization 不得繞過 object identity；
+- 此規則只處理 GitHub transport formatting，不放寬 `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1` 的 owner / authority / topology / changed-file / receipt identity gate。
+
+Primary regression：`tests/process/test_issue790_intervening_claim_blob_reconciliation.py` 的 wrapped-base64、malformed-base64、non-ASCII whitespace 與 SHA-mismatch cases。

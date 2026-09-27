@@ -10,6 +10,15 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
 ### EXECUTION_INTENT_ROUTING_V1_BRIDGE
 
 派工不自行推導 execution intent；先服從 `執行開發任務::EXECUTION_INTENT_ROUTING_V1`。
@@ -527,6 +536,19 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 
 未完成前不得只回「還在跑」後結束；TIMEOUT 也不是停工理由，而是進入 log 判讀、process-group cleanup、縮批與 resume 的觸發條件。
 
+### TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1
+
+**中途回報不等於停止點**。任何 progress/CHECKPOINT/status/Guard receipt/局部 QA 結果之後，只要仍有合法 autonomous action，就必須同一 turn 繼續執行。
+
+合法 return 只有兩類：
+
+- **真正終態**：目前已授權 execution scope 已完成 acceptance + applicable closure/readback/release/handoff。
+- **fresh unique blocker**：canonical continuity controller fresh-read owning checkpoint，驗證 durable `blocked_exit_proof` 為 `exhaustive=true`、`executable_leaf_count=0`、`blocker_count=1`、合法 canonical `blocker_id`，且 `observed_at` 在 300 秒 freshness window 內（future skew 最多 30 秒）。同時不可有 active remote run / delegated executable work。
+
+`BLOCKED` 只是 non-terminal state label，不是 exit authority。proof 缺失/stale、多 blocker、仍有 executable leaf、或 blocker identity 只是 `progress-report / checkpoint-report / status-update` 等觀測事件，一律 fail closed 並繼續下一個合法 action。genuine BLOCKED 時 Issue 仍 open、claim 仍 active；不得用 BLOCKED 順便 close/release。
+
+Machine authority 唯一委派 `tools/continuity_controller.py`；本 Skill 不複製第二套 evaluator。
+
 ## 9. 掃描深模組來源檢查
 若工作由 `掃描深模組` 候選轉入實作，任何 Implementer production write 前再確認：
 
@@ -548,6 +570,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] `X_SECOND_MAIN_INDEPENDENT_CHAIN_CONTRACT`：每個 Master 凍結自己的 X base；active chain 不追 X；A/B/C/D 彼此隔離；child 只接 previous accepted HEAD；完整 Master Task Acceptance 後才進 Integration Acceptance；`DO_NOT_MERGE_X` 時停在 `READY_FOR_X_INTEGRATION`。
 - [ ] X task-chain dispatch / checkpoint / QA identity 帶 `MASTER_ID / TASK_ID / TARGET_X / FROZEN_X_BASE_SHA / EXPECTED_PARENT_SHA / WORK_ORDER_BRANCH / CHAIN_HEAD`，current X 只作 observation；RUN 不存在時標示 `RUN_NOT_CREATED` 並立即修 prerequisite，不等待不存在的 run。
 - [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可當 observation；沒有合法 stop condition 時立即執行下一個可執行 action。
+- [ ] `TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1`：正常 return 只有真正 terminal closure，或 owning checkpoint 內 fresh（≤300 秒）+ unique（count=1）+ exhaustive + zero-executable-leaf blocker proof；中途回報永遠不是 stop authority。
 - [ ] 「不假報完成」與「持續施工」兩個義務都存在，前者不能被拿來當停工理由。
 - [ ] PM → Implementer → QA 角色標記完整。
 - [ ] Requirement RED-first + 使用者核准 + breakdown 第二次核准完整。
@@ -602,7 +625,7 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 
 對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。
 
-`BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。
+`BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait，且通過 `TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1` 的 durable fresh unique blocker proof，才能合法 turn-exit；`BLOCKED` label 本身沒有 exit authority，也不得冒充 workflow COMPLETE。
 
 ### TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1_BRIDGE
 
@@ -840,3 +863,16 @@ Canonical implementation：`tools.execution_claim_guard.durable_coord_write_read
 - retained invariant: Retain shared claim ownership, guarded takeover/handoff, and durable checkpoint routing.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## INTERVENING_SAME_OWNER_COORD_POSTCOMMIT_RECONCILIATION_V1_BRIDGE
+
+當 Remote Guard 已對 H0 mint GREEN，合法 direct-child commit H1 也已在 receipt window 內落盤，但在 claim/checkpoint HEAD reconciliation 前，**同一 owner 的 coordination-only durable write**只刷新了 claim blob（例如 remote-QA/evidence/next_action），不得把 prior receipt 直接視為 current-blob authority，也不得手改 shared claim。
+
+唯一 recovery 由 `tools/execution_claim_guard.py` 擁有：
+
+- owner-authored `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1` exact 綁 current/historical claim blob、H0/H1、prior Guard run/request、changed files。
+- historical claim blob 必須由 GitHub blob API fresh-read並驗 blob SHA；current/historical claim 除 `last_update/evidence/last_guard/remote_qa/next_action` 等觀測欄位外，authority projection 必須完全一致。
+- 只允許 H1 是 H0 的**單一 direct child**、actual files exact 等於 prior GREEN receipt、commit time 在 receipt window 內。
+- recovery GREEN 只授權 atomic claim/checkpoint HEAD reconciliation到 H1；不得重播 implementation mutation，不得放寬 ordinary reconciliation。
+- owner/source/branch/base/head/phase/delegated/checkpoint等 authority drift、foreign recovery、wrong historical blob、multiple prior GREEN、extra file、merge/multi-hop一律 fail closed。
+- trusted transport使用 `intervening_coord_recovery_comment_id=<owner comment id>`；不得以 legacy-expired/local-proof/claim-handoff 代替。

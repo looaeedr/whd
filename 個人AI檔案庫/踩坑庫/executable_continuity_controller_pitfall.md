@@ -217,6 +217,38 @@ Continuity 的「non-terminal 不能停」與 Master chain 的「NEXT_CHILD_EXEC
 
 Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 issue/branch/head/`TERMINAL_SUCCESS`，把 malformed closure lifecycle 正規化成 `FINALIZATION_PENDING`。任何其他 drift 或已合法 closure state 一律拒絕。Repair 之後仍必須重新走 Remote Finalization → Issue close/readback → atomic CLOSED + RELEASED。
 
+## 2026-09-27 — 中途回報被誤當停止點 / BLOCKED proof 不夠 fresh-unique
+
+### 事故
+
+#687 已把 bare `BLOCKED` 升級成需要 `exhaustive + executable_leaf_count=0` 的 machine proof，但仍留下三個可重複風險：
+
+- evidence 字串可以自稱「fresh」，沒有 machine timestamp freshness；
+- blocker 沒有 canonical identity/count，無法證明真的是**唯一** blocker；
+- blocker proof 只作 caller 參數，沒有持久化在 owning checkpoint；trusted/live gate 也容易把 genuine BLOCKED 與 terminal closure 混成同一路徑。
+
+這會讓「我已回報進度／我現在 BLOCKED」有機會被錯解成自然 turn boundary，或反過來讓 genuine external blocker 被 terminal close/release contract 卡住。
+
+### 永久修正
+
+`TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1`：
+
+1. **中途回報永遠不是停止權限**。progress/status/CHECKPOINT/Guard result/partial QA 都只是 observation。
+2. 正常 return 只有兩條：真正 terminal closure，或 canonical fresh unique BLOCKED proof。
+3. BLOCKED proof 必須 durable 寫入 owning checkpoint，並由 `tools/continuity_controller.py` 驗：
+   - `exhaustive=true`；
+   - `executable_leaf_count=0`；
+   - `blocker_count=1`；
+   - canonical `blocker_id` 類別與 stop reason 一致；
+   - timezone-aware `observed_at`，max age 300 秒、future skew 30 秒。
+4. progress/checkpoint/status 觀測 identity 不得冒充 blocker；proof stale、多 blocker、仍有 executable leaf一律 RED。
+5. genuine BLOCKED 是 non-terminal：Issue 保持 open、claim 保持 active；不可用 BLOCKED 順便 close/release。
+6. active remote run / delegated executable work 存在時，即使 blocker proof 其他欄位都對，也不得 turn-exit。
+7. proof 過期必須 fresh-read external durable state 並更新 checkpoint；禁止 replay 舊 evidence。
+8. hard gate RED 且仍有合法自主 path時，同一 turn 立即繼續，不得先回報後 return。
+
+Primary machine regression：`tests/process/test_issue787_turn_exit_blocker_authority.py`、`tests/process/test_issue644_trusted_turn_exit_gate.py`。文件只 bridge；唯一 runtime evaluator 仍是 `tools/continuity_controller.py`。
+
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback
 

@@ -35,6 +35,8 @@ READY_WORK_CENSUS_ALLOWED_EXCLUSIONS = frozenset(
     }
 )
 READY_WORK_CENSUS_EXECUTABLE_CLASSIFICATION = "MUST_CLAIM"
+BLOCKED_EXIT_PROOF_MAX_AGE_SECONDS = 300
+BLOCKED_EXIT_PROOF_FUTURE_SKEW_SECONDS = 30
 _UNSET = object()
 
 
@@ -173,6 +175,9 @@ class StopReason(str, Enum):
     """Canonical machine reasons used when deciding whether a turn may stop."""
 
     BLOCKER_NOT_EXHAUSTIVELY_PROVEN = "BLOCKER_NOT_EXHAUSTIVELY_PROVEN"
+    BLOCKER_NOT_UNIQUE = "BLOCKER_NOT_UNIQUE"
+    BLOCKER_ID_NOT_EXTERNAL = "BLOCKER_ID_NOT_EXTERNAL"
+    STALE_BLOCKER_EVIDENCE = "STALE_BLOCKER_EVIDENCE"
     EXECUTABLE_LEAF_EXISTS = "EXECUTABLE_LEAF_EXISTS"
     NO_EXECUTABLE_PATH = "NO_EXECUTABLE_PATH"
     EXTERNAL_AUTHORITY_REQUIRED = "EXTERNAL_AUTHORITY_REQUIRED"
@@ -186,6 +191,12 @@ LEGAL_BLOCKED_EXIT_REASONS = frozenset(
         StopReason.CAPABILITY_BLOCKED,
     }
 )
+
+_BLOCKER_ID_PREFIX_BY_REASON = {
+    StopReason.NO_EXECUTABLE_PATH: "no-executable-path:",
+    StopReason.EXTERNAL_AUTHORITY_REQUIRED: "external-authority:",
+    StopReason.CAPABILITY_BLOCKED: "capability:",
+}
 
 
 DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION = (
@@ -220,6 +231,19 @@ TURN_EXIT_BLOCKING_STATES = frozenset(
         ContinuityState.RUNNING,
         ContinuityState.WAITING_REMOTE,
         ContinuityState.RECOVERING,
+    }
+)
+ACTIVE_EXECUTION_CLAIM_PHASES = frozenset(
+    {
+        "CLAIMED",
+        "RED",
+        "IMPLEMENTING",
+        "GREEN",
+        "REMOTE_QA",
+        "RECOVERING",
+        "CLEANUP",
+        "DRIFT_AUDIT",
+        "CLOSING",
     }
 )
 
@@ -550,6 +574,9 @@ class BlockedExitProof:
     executable_leaf_count: int
     evidence: tuple[str, ...]
     stop_reason: StopReason
+    blocker_id: str = ""
+    blocker_count: int = 0
+    observed_at: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.exhaustive, bool):
@@ -575,8 +602,70 @@ class BlockedExitProof:
                 raise CheckpointError(
                     f"unsupported blocked exit stop reason {self.stop_reason!r}"
                 ) from exc
+        blocker_id = str(self.blocker_id or "").strip()
+        if (
+            isinstance(self.blocker_count, bool)
+            or not isinstance(self.blocker_count, int)
+            or self.blocker_count < 0
+        ):
+            raise CheckpointError(
+                "blocked exit proof blocker_count must be a non-negative integer"
+            )
+        observed_at = str(self.observed_at or "").strip()
+        if observed_at:
+            try:
+                parsed_observed_at = datetime.fromisoformat(
+                    observed_at.replace("Z", "+00:00")
+                )
+            except ValueError as exc:
+                raise CheckpointError(
+                    "blocked exit proof observed_at must be ISO-8601"
+                ) from exc
+            if (
+                parsed_observed_at.tzinfo is None
+                or parsed_observed_at.utcoffset() is None
+            ):
+                raise CheckpointError(
+                    "blocked exit proof observed_at must be timezone-aware"
+                )
+            observed_at = (
+                parsed_observed_at.astimezone(timezone.utc)
+                .replace(microsecond=0)
+                .isoformat()
+                .replace("+00:00", "Z")
+            )
         object.__setattr__(self, "evidence", normalized_evidence)
         object.__setattr__(self, "stop_reason", reason)
+        object.__setattr__(self, "blocker_id", blocker_id)
+        object.__setattr__(self, "observed_at", observed_at)
+
+
+def _normalize_blocked_exit_proof_shape(
+    proof: object | None,
+) -> BlockedExitProof | None:
+    if proof is None:
+        return None
+    if isinstance(proof, BlockedExitProof):
+        return proof
+    if isinstance(proof, Mapping):
+        return BlockedExitProof(
+            exhaustive=proof.get("exhaustive"),
+            executable_leaf_count=proof.get("executable_leaf_count"),
+            evidence=tuple(proof.get("evidence") or ()),
+            stop_reason=proof.get("stop_reason"),
+            blocker_id=proof.get("blocker_id") or "",
+            blocker_count=proof.get("blocker_count", 0),
+            observed_at=proof.get("observed_at") or "",
+        )
+    return BlockedExitProof(
+        exhaustive=getattr(proof, "exhaustive"),
+        executable_leaf_count=getattr(proof, "executable_leaf_count"),
+        evidence=tuple(getattr(proof, "evidence")),
+        stop_reason=getattr(proof, "stop_reason"),
+        blocker_id=getattr(proof, "blocker_id", ""),
+        blocker_count=getattr(proof, "blocker_count", 0),
+        observed_at=getattr(proof, "observed_at", ""),
+    )
 
 
 def _assert_blocked_exit_proof(proof: object | None) -> BlockedExitProof:
@@ -589,22 +678,9 @@ def _assert_blocked_exit_proof(proof: object | None) -> BlockedExitProof:
     if proof is None:
         raise not_proven("BLOCKED checkpoint has no exhaustive machine proof")
     try:
-        if isinstance(proof, BlockedExitProof):
-            normalized = proof
-        elif isinstance(proof, Mapping):
-            normalized = BlockedExitProof(
-                exhaustive=proof.get("exhaustive"),
-                executable_leaf_count=proof.get("executable_leaf_count"),
-                evidence=tuple(proof.get("evidence") or ()),
-                stop_reason=proof.get("stop_reason"),
-            )
-        else:
-            normalized = BlockedExitProof(
-                exhaustive=getattr(proof, "exhaustive"),
-                executable_leaf_count=getattr(proof, "executable_leaf_count"),
-                evidence=tuple(getattr(proof, "evidence")),
-                stop_reason=getattr(proof, "stop_reason"),
-            )
+        normalized = _normalize_blocked_exit_proof_shape(proof)
+        if normalized is None:
+            raise CheckpointError("blocked exit proof is missing")
     except (AttributeError, TypeError, CheckpointError) as exc:
         raise not_proven(f"invalid or incomplete blocked exit proof: {exc}") from exc
 
@@ -619,6 +695,38 @@ def _assert_blocked_exit_proof(proof: object | None) -> BlockedExitProof:
     if normalized.stop_reason not in LEGAL_BLOCKED_EXIT_REASONS:
         raise not_proven(
             f"stop_reason={normalized.stop_reason.value} is not a legal BLOCKED exit reason"
+        )
+    if normalized.blocker_count != 1 or not normalized.blocker_id:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.BLOCKER_NOT_UNIQUE.value}: "
+            f"blocker_count={normalized.blocker_count} blocker_id={normalized.blocker_id!r}"
+        )
+    expected_prefix = _BLOCKER_ID_PREFIX_BY_REASON[normalized.stop_reason]
+    if not normalized.blocker_id.startswith(expected_prefix):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.BLOCKER_ID_NOT_EXTERNAL.value}: "
+            f"blocker_id={normalized.blocker_id!r} expected_prefix={expected_prefix!r}"
+        )
+    if not normalized.observed_at:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.STALE_BLOCKER_EVIDENCE.value}: observed_at is missing"
+        )
+    observed = datetime.fromisoformat(
+        normalized.observed_at.replace("Z", "+00:00")
+    ).astimezone(timezone.utc)
+    now = datetime.now(timezone.utc)
+    age_seconds = (now - observed).total_seconds()
+    if (
+        age_seconds > BLOCKED_EXIT_PROOF_MAX_AGE_SECONDS
+        or age_seconds < -BLOCKED_EXIT_PROOF_FUTURE_SKEW_SECONDS
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: "
+            f"{StopReason.STALE_BLOCKER_EVIDENCE.value}: "
+            f"age_seconds={age_seconds:.1f} max_age={BLOCKED_EXIT_PROOF_MAX_AGE_SECONDS}"
         )
     return normalized
 
@@ -676,6 +784,7 @@ class Checkpoint:
     log_cursor: str | None = None
     blocked_count: int = 0
     blocked_last_notified_at: str | None = None
+    blocked_exit_proof: BlockedExitProof | None = None
     evidence: tuple[str, ...] = ()
     operation: OperationTransaction | None = None
     master_issue: str | None = None
@@ -726,6 +835,14 @@ class Checkpoint:
         blocked_last_notified_at = _normalize_optional_utc_timestamp(
             self.blocked_last_notified_at
         )
+        try:
+            blocked_exit_proof = _normalize_blocked_exit_proof_shape(
+                self.blocked_exit_proof
+            )
+        except (AttributeError, TypeError, CheckpointError) as exc:
+            raise CheckpointError(
+                f"invalid blocked_exit_proof: {exc}"
+            ) from exc
         operation = self.operation
         if operation is not None and not isinstance(operation, OperationTransaction):
             raise CheckpointError("operation must be OperationTransaction when present")
@@ -734,7 +851,9 @@ class Checkpoint:
         _validate_nonnegative_int("blocked_count", self.blocked_count)
 
         if state is not ContinuityState.BLOCKED and (
-            self.blocked_count != 0 or blocked_last_notified_at is not None
+            self.blocked_count != 0
+            or blocked_last_notified_at is not None
+            or blocked_exit_proof is not None
         ):
             raise CheckpointError(
                 "blocked metadata is only valid while state is BLOCKED"
@@ -830,6 +949,7 @@ class Checkpoint:
         object.__setattr__(self, "closure_state", closure_state)
         object.__setattr__(self, "closure_next_action", closure_next_action)
         object.__setattr__(self, "blocked_last_notified_at", blocked_last_notified_at)
+        object.__setattr__(self, "blocked_exit_proof", blocked_exit_proof)
         object.__setattr__(self, "evidence", tuple(normalized_evidence))
         object.__setattr__(self, "operation", operation)
 
@@ -946,6 +1066,18 @@ def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     data["chain_state"] = checkpoint.chain_state.value
     data["closure_state"] = checkpoint.closure_state.value
     data["evidence"] = list(checkpoint.evidence)
+    if checkpoint.blocked_exit_proof is None:
+        data.pop("blocked_exit_proof", None)
+    else:
+        data["blocked_exit_proof"] = {
+            "exhaustive": checkpoint.blocked_exit_proof.exhaustive,
+            "executable_leaf_count": checkpoint.blocked_exit_proof.executable_leaf_count,
+            "evidence": list(checkpoint.blocked_exit_proof.evidence),
+            "stop_reason": checkpoint.blocked_exit_proof.stop_reason.value,
+            "blocker_id": checkpoint.blocked_exit_proof.blocker_id,
+            "blocker_count": checkpoint.blocked_exit_proof.blocker_count,
+            "observed_at": checkpoint.blocked_exit_proof.observed_at,
+        }
     data["operation"] = _operation_to_payload(checkpoint.operation)
     return {"version": CHECKPOINT_VERSION, **data}
 
@@ -1031,6 +1163,7 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
         "log_cursor",
         "blocked_count",
         "blocked_last_notified_at",
+        "blocked_exit_proof",
         "evidence",
         "operation",
         "master_issue",
@@ -1071,6 +1204,7 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
             log_cursor=payload.get("log_cursor"),
             blocked_count=payload.get("blocked_count", 0),
             blocked_last_notified_at=payload.get("blocked_last_notified_at"),
+            blocked_exit_proof=payload.get("blocked_exit_proof"),
             evidence=tuple(evidence),
             operation=_operation_from_payload(payload.get("operation")),
             master_issue=payload.get("master_issue"),
@@ -1140,6 +1274,7 @@ def repair_malformed_terminal_checkpoint(
         "log_cursor",
         "blocked_count",
         "blocked_last_notified_at",
+        "blocked_exit_proof",
         "evidence",
         "master_issue",
         "chain_state",
@@ -1194,6 +1329,7 @@ def transition_checkpoint(
     log_cursor: str | None | object = _UNSET,
     blocked_count: int | object = _UNSET,
     blocked_last_notified_at: str | None | object = _UNSET,
+    blocked_exit_proof: BlockedExitProof | Mapping[str, object] | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
     operation: OperationTransaction | None | object = _UNSET,
     master_issue: str | None | object = _UNSET,
@@ -1248,9 +1384,18 @@ def transition_checkpoint(
             if blocked_last_notified_at is _UNSET
             else blocked_last_notified_at
         )
+        if blocked_exit_proof is _UNSET:
+            next_blocked_exit_proof = (
+                checkpoint.blocked_exit_proof
+                if checkpoint.state is ContinuityState.BLOCKED
+                else None
+            )
+        else:
+            next_blocked_exit_proof = blocked_exit_proof
     else:
         next_blocked_count = 0
         next_blocked_last_notified_at = None
+        next_blocked_exit_proof = None
 
     if state in TERMINAL_STATES:
         next_closure_state = (
@@ -1285,6 +1430,7 @@ def transition_checkpoint(
         log_cursor=next_log_cursor,
         blocked_count=next_blocked_count,
         blocked_last_notified_at=next_blocked_last_notified_at,
+        blocked_exit_proof=next_blocked_exit_proof,
         evidence=merged_evidence,
         operation=checkpoint.operation if operation is _UNSET else operation,
         master_issue=checkpoint.master_issue if master_issue is _UNSET else master_issue,
@@ -1733,7 +1879,25 @@ def assert_turn_exitable(
         )
 
     if checkpoint.state is ContinuityState.BLOCKED:
-        _assert_blocked_exit_proof(blocked_exit_proof)
+        durable_proof = checkpoint.blocked_exit_proof
+        if durable_proof is None:
+            raise TurnExitBlocked(
+                "TURN_EXIT_BLOCKED: "
+                f"{StopReason.BLOCKER_NOT_EXHAUSTIVELY_PROVEN.value}: "
+                "BLOCKED checkpoint has no durable blocked_exit_proof"
+            )
+        if blocked_exit_proof is not None:
+            try:
+                supplied = _normalize_blocked_exit_proof_shape(blocked_exit_proof)
+            except (AttributeError, TypeError, CheckpointError) as exc:
+                raise TurnExitBlocked(
+                    f"TURN_EXIT_BLOCKED: invalid supplied blocked exit proof: {exc}"
+                ) from exc
+            if supplied != durable_proof:
+                raise TurnExitBlocked(
+                    "TURN_EXIT_BLOCKED: BLOCKER_PROOF_IDENTITY_DRIFT"
+                )
+        _assert_blocked_exit_proof(durable_proof)
 
     if checkpoint.is_terminal and checkpoint.closure_state is not ClosureState.CLOSED:
         raise TurnExitBlocked(
@@ -1777,20 +1941,9 @@ def evaluate_turn_exit_from_durable_state(
 ) -> str:
     """Evaluate the turn boundary from current claim/checkpoint/Guard durable state."""
 
-    active_phases = {
-        "CLAIMED",
-        "RED",
-        "IMPLEMENTING",
-        "GREEN",
-        "REMOTE_QA",
-        "RECOVERING",
-        "CLEANUP",
-        "DRIFT_AUDIT",
-        "CLOSING",
-    }
     claim_phase = _claim_phase_value(claim_state)
     if checkpoint is None:
-        if claim_phase in active_phases:
+        if claim_phase in ACTIVE_EXECUTION_CLAIM_PHASES:
             raise TurnExitBlocked(
                 "TURN_EXIT_BLOCKED: ACTIVE_CLAIM_REQUIRES_CHECKPOINT"
             )
@@ -1877,6 +2030,20 @@ def _evaluate_live_turn_exit_from_durable_state(
             "TURN_EXIT_BLOCKED: IDENTITY_DRIFT: live branch HEAD does not match expected HEAD"
         )
 
+    if active_remote_run:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: ACTIVE_REMOTE_RUN")
+
+    delegated = str(delegated_work_state or "NONE").strip().upper() or "NONE"
+    if delegated != "NONE":
+        raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: {delegated}")
+
+    if checkpoint.state is ContinuityState.BLOCKED:
+        if str(issue_state or "").strip().lower() != "open":
+            raise TurnExitBlocked("TURN_EXIT_BLOCKED: BLOCKED_ISSUE_NOT_OPEN")
+        if _claim_phase_value(claim_state) not in ACTIVE_EXECUTION_CLAIM_PHASES:
+            raise TurnExitBlocked("TURN_EXIT_BLOCKED: BLOCKED_CLAIM_NOT_ACTIVE")
+        return result
+
     if (
         str(issue_state or "").lower() != "closed"
         or str(issue_state_reason or "").lower() != "completed"
@@ -1885,13 +2052,6 @@ def _evaluate_live_turn_exit_from_durable_state(
 
     if _claim_phase_value(claim_state) != "RELEASED":
         raise TurnExitBlocked("TURN_EXIT_BLOCKED: CLAIM_NOT_RELEASED")
-
-    if active_remote_run:
-        raise TurnExitBlocked("TURN_EXIT_BLOCKED: ACTIVE_REMOTE_RUN")
-
-    delegated = str(delegated_work_state or "NONE").strip().upper() or "NONE"
-    if delegated != "NONE":
-        raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: {delegated}")
 
     return result
 
@@ -2143,12 +2303,17 @@ def _turn_exit_proof_payload(
 ) -> dict[str, object]:
     normalized_blocked_proof = None
     if checkpoint.state is ContinuityState.BLOCKED:
-        normalized = _assert_blocked_exit_proof(blocked_exit_proof)
+        normalized = _assert_blocked_exit_proof(
+            checkpoint.blocked_exit_proof
+        )
         normalized_blocked_proof = {
             "exhaustive": normalized.exhaustive,
             "executable_leaf_count": normalized.executable_leaf_count,
             "evidence": list(normalized.evidence),
             "stop_reason": normalized.stop_reason.value,
+            "blocker_id": normalized.blocker_id,
+            "blocker_count": normalized.blocker_count,
+            "observed_at": normalized.observed_at,
         }
     return {
         "version": TURN_EXIT_PROOF_VERSION,
