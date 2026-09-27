@@ -10,13 +10,13 @@
   "work_branch": "governance/issue851-recurring-lifecycle-turn-exit-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T10:52:00Z",
+  "head_sha": "ecc745d3cd7d3bc8b4d9f6cb906ec980baff2e60",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T11:03:01Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Create work branch at cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then run Phase6 Knowledge Preflight for the trusted turn-exit lifecycle hotfix before the first work-branch write.",
+  "next_action": "Implement explicit recurring lifecycle fields in the trusted turn-exit receipt and verifier, update 排程模擬 to bind that machine contract, then rerun focused #851 validation on the new head.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -27,6 +27,10 @@
     "prohibited_scope=no external watchdog; no cadence change; no lane owner change; no scheduler discovery redesign",
     "actual_invocation_source=chatgpt_interactive; conversation_identity=UNAVAILABLE; invocation_identity=chatgpt.issue851.20260927a",
     "baseline cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-    "default main@cb80310e2643d1ab9624e90085d4abda6e4d125e"
+    "default main@cb80310e2643d1ab9624e90085d4abda6e4d125e",
+    "branch-create Guard run=36314058052 GREEN",
+    "RED commit=ecc745d3cd7d3bc8b4d9f6cb906ec980baff2e60",
+    "RED run=36314274409 job=108605906198 terminal failure expected: 5 failed / 2 passed",
+    "post-RED canonical pair reconciliation Guard run=36314465691 GREEN"
   ]
 }
