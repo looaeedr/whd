@@ -27,13 +27,16 @@
     "PR #817 merged non-force to cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931.",
     "Production readback verifies exact 11-file accepted #702 delta, core sealed blobs, and exactly-one durable marker in all eight CURRENT files.",
     "Terminal transition authorized by Remote Guard 36296768873.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36296868350."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36296868350.",
+    "Remote Finalization run 36297435690: FINALIZATION_PROOF_VALID.",
+    "Issue #815 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36297496195."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #815 and fresh-read closed/completed before any checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #815, then terminalize parent #702 helper reservation."
 }

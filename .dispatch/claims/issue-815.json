@@ -11,7 +11,7 @@
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
   "head_sha": "971190bcc6da11a0ca8c95a266075582a21b8329",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T05:20:00Z",
+  "last_update": "2026-09-27T05:33:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "100 passed / 0 failed in 0.53s"
   },
-  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint, close/read back Issue #815, then advance to RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED; finally terminalize parent #702 helper reservation and resume #702.",
+  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #815, then terminalize parent #702 helper reservation and resume #702 child canonical closure/finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-815.json",
   "evidence": [
@@ -47,17 +47,20 @@
     "Production fresh-read cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931; old-X→production delta is exact accepted #702 11-file scope.",
     "Production readback confirms core blobs exact sealed H4 and all eight ISSUE702 writeback markers exactly once.",
     "Integration terminal transition authorized by Remote Guard run 36296768873.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36296868350."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36296868350.",
+    "Remote Finalization run 36297435690: FINALIZATION_PROOF_VALID for exact checkpoint blob db14ac9cfba04d26e064496cfbb06f33ce09ecd0 / fingerprint a820f56bae7e006b0d41a1ca8dc0bd71ea671152c6b1b394797f3c5aa05bd976.",
+    "Issue #815 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36297496195."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296868350,
-    "request_comment_id": 5852933272,
+    "run_id": 36297496195,
+    "request_comment_id": 5853020606,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #815 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #815 closure to RELEASE_HANDOFF_PENDING"
   },
   "acceptance": {
     "state": "ACCEPTED",
