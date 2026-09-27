@@ -49,13 +49,14 @@
     "Post-main PR gate 36326734430 GREEN; #859 merged at 8a3058e5472aec4793cd26a398ae4920185d8002.",
     "Post-merge live Governance Mirror push gate 36326898388 GREEN.",
     "Three governed blobs are byte-identical across main/cleanup.",
-    "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36326953983."
+    "Terminal checkpoint entered FINALIZATION_PENDING under write Guard 36326953983.",
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36327059057."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #682 exact terminal checkpoint to ISSUE_CLOSE_PENDING; mint trusted finalization proof against current terminal fingerprint; close/readback Issue #682; then atomically write RELEASE_HANDOFF_PENDING followed by CLOSED + RELEASED. After #682 terminal release, resume parent #684."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint trusted remote finalization proof bound to this exact ISSUE_CLOSE_PENDING checkpoint; close Issue #682 only after FINALIZATION_PROOF_VALID; fresh-read closed/completed; then advance RELEASE_HANDOFF_PENDING and atomically CLOSED + RELEASED; finally resume parent #684."
 }
