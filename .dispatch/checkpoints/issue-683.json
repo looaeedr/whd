@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "683",
-  "branch": "work/issue683-ha-transport-projection-repair-20260927",
+  "branch": "work/issue683-ha-transport-projection-repair2-20260927",
   "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "state": "RUNNING",
-  "next_action": "Redo the #683 two-parent sync from sealed head 6156cf8c222e1a87d2fe477288dc12282711ddb6 onto cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0 using guard_authority_sha=8a6323f50860b5aa678e2bf4b8b21a75a82d41a0; retain only #683 bridge/test/Authority Map relative to cleanup; reconcile pair; create replacement cleanup PR paired with #850; require both Governance Mirror Hard Gates GREEN; merge #850 first, then replacement cleanup PR, then finalize #683.",
+  "next_action": "Redo the #683 merge-sync from sealed 6156cf8c onto cleanup@8a6323f5 with commit Guard scoped to production-parent→candidate work delta only: tools/whd_poweroff_ha_bridge.py, tests/process/test_issue683_ha_transport_projection.py, and 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md; then reconcile, open replacement cleanup PR paired with #850, GREEN both gates, merge #850 first, then replacement cleanup PR, then finalize #683.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -48,7 +48,8 @@
     "Both paired PRs #848/#850 are constructed; reciprocal markers are valid, but governance parity is blocked by #836-owned 派工/SKILL.md + tools/stale_claim_takeover.py not yet integrated to cleanup.",
     "B cannot legally takeover #836 because A already holds pending GREEN claim-takeover Guard 36313761471; B request failed closed as PENDING_GUARD_TRANSACTION.",
     "Old #848 branch drifted to 1ae5caf7 under a commit receipt with wrong merge production authority; reconciliation failed closed.",
-    "Parent-branch sealed-identity repair 36314457052 GREEN; replacement branch created/read back at exact sealed head 6156cf8c."
+    "Parent-branch sealed-identity repair 36314457052 GREEN; replacement branch created/read back at exact sealed head 6156cf8c.",
+    "Second sealed replacement branch authorized because prior replacement merge-sync receipt used cleanup-delta files instead of the required #683 production-parent work-delta files."
   ],
   "master_issue": null,
   "chain_state": "NONE",
