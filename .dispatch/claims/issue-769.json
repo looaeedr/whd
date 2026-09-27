@@ -9,13 +9,13 @@
   "work_branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "claimed_at": "2026-09-26T22:33:00Z",
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
-  "head_sha": "cda39c981915c51fde3881ba79db4b15fc59d433",
+  "head_sha": "e1439174b21b69842c0282d1dd5646f36a098826",
   "phase": "GREEN",
-  "last_update": "2026-09-27T00:04:00Z",
+  "last_update": "2026-09-27T00:09:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #769 GREEN head cda39c981915c51fde3881ba79db4b15fc59d433; if production advanced, perform one guarded evidence-bound merge-sync, rerun #769 focused+adjacent acceptance, then obtain remote QA/PR acceptance on the reconciled head.",
+  "next_action": "Run post-merge #769 focused+adjacent+full process acceptance on e1439174b21b69842c0282d1dd5646f36a098826, fresh-read production drift, then obtain pr-write Guard/create or update PR to cleanup/2d-3d-sync and lock remote acceptance to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -38,14 +38,21 @@
     "Full tests/process on #769 head: 817 passed / 2 failed.",
     "The 2 full-suite failures reproduced unchanged on fresh cleanup/2d-3d-sync@5a29aacdc39805e6950362a8880f1513318389f0: issue423 assembly ownership assertion and legacy issue540 scheduler-only takeover assertion.",
     "Phase6 planned-scope preflight: all 7 required Skills + 4 required references GREEN.",
-    "Owner-authored WHD_LOCAL_GUARD_RECONCILE_V1 comment=5851111385; canonical H1->H2 post-commit reconciliation Guard GREEN."
+    "Owner-authored WHD_LOCAL_GUARD_RECONCILE_V1 comment=5851111385; canonical H1->H2 post-commit reconciliation Guard GREEN.",
+    "Fresh production drift audit: cleanup/2d-3d-sync advanced to b08b4ce398488fc7830870b894896348f8e8991d; #769 effective delta remained exactly 6 authorized files.",
+    "Production overlap touched executable-continuity Skill + continuity pitfall only; merge-tree found one content conflict in continuity pitfall.",
+    "Merge-sync Guard run 36281478520 GREEN on exact six-file #769 work delta.",
+    "Two-parent sync commit e1439174b21b69842c0282d1dd5646f36a098826 retained production pitfall content plus #769 section; merged-tree focused/adjacent 58 passed.",
+    "Merge-head pair reconciliation Guard run 36281591334 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
-    "mode": "local",
+    "mode": "remote",
+    "run_id": 36281591334,
+    "request_comment_id": 5851146883,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #769 implementation H1->H2 via durable local-Guard proof"
+    "mutation": "reconcile #769 merge head to e1439174"
   }
 }
