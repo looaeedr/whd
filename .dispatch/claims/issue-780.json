@@ -9,9 +9,9 @@
   "work_branch": "landing/issue780-current-production-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "b051ce5a4b37b84f53b2ad794ccf121a12da77e7",
+  "head_sha": "1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T06:20:06Z",
+  "last_update": "2026-09-27T06:24:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -22,16 +22,15 @@
   "existing_pr": 777,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36299712345,
-    "job_id": 108564995038,
-    "head_sha": "b051ce5a4b37b84f53b2ad794ccf121a12da77e7",
+    "run_id": 36299899587,
+    "job_id": 108565501432,
+    "head_sha": "1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a",
     "status": "completed",
     "conclusion": "failure",
-    "artifact_id": 10925038771,
-    "artifact_digest": "sha256:61c6993dee7e19b00b1e8cc8ed08e34704732f373ec82fd452235f4549c6c0a7",
-    "summary": "Landing ancestry/BOM-only first-parent diff and governance surface/authority markers GREEN. Focused pytest: 15 passed / 1 failed because tests/process/test_issue774_guard_scope_grouping.py begins with UTF-8 BOM and clean-break ast.parse rejects U+FEFF."
+    "artifact_id": null,
+    "summary": "Landing ancestry/BOM-only merge and governance gates GREEN. Repository-wide Python BOM census failed intentionally before pytest and reported exactly one remaining path: tests/process/test_issue774_guard_scope_grouping.py."
   },
-  "next_action": "Under a fresh commit Guard, change only .github/workflows/qa-issue780-landing.yml to run a repository-wide *.py UTF-8 BOM census before focused pytest and print every remaining BOM path in one deterministic list. Push non-force from b051ce5a4b37b84f53b2ad794ccf121a12da77e7, lock the exact new QA run, and use the census output to fresh-read ownership/production presence for the full set before any BOM normalization.",
+  "next_action": "Under a fresh commit Guard, change exactly tests/process/test_issue774_guard_scope_grouping.py and .github/workflows/qa-issue780-landing.yml. Remove only the leading UTF-8 BOM from the #774 test, and update the one-shot landing QA recovery validation so LANDING_MERGE..HEAD may contain only the QA workflow plus this pure BOM-removal path. Push non-force from 1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a, lock the exact new QA run, require repository-wide Python BOM census GREEN, focused landing tests GREEN, and protected production inputs unchanged.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -106,17 +105,22 @@
     "Landing focused QA run 36299712345 / job 108564995038 at b051ce5a4b37b84f53b2ad794ccf121a12da77e7: exact landing ancestry and BOM-only first-parent diff GREEN; governance mirror/authority markers GREEN.",
     "Focused pytest result: 15 passed / 1 failed. Sole failure is inherited UTF-8 BOM in tests/process/test_issue774_guard_scope_grouping.py detected by tests/test_clean_break_layout.py.",
     "Landing QA artifact 10925038771 digest sha256:61c6993dee7e19b00b1e8cc8ed08e34704732f373ec82fd452235f4549c6c0a7.",
-    "Landing RED writeback Guard 36299776673 GREEN; request 5853321803, result 5853323217."
+    "Landing RED writeback Guard 36299776673 GREEN; request 5853321803, result 5853323217.",
+    "Exact landing BOM census run 36299899587 / job 108565501432 at 1793dd0dc61665cb0e48bc7c564b2d5e530d1a4a: ancestry/BOM-only landing gate GREEN; governance mirror/authority markers GREEN.",
+    "Deterministic repository-wide census output: ISSUE780_LANDING_BOM_CENSUS=tests/process/test_issue774_guard_scope_grouping.py; no other Python BOM paths were reported.",
+    "Fresh #774 authority readback: Issue closed/completed; claim RELEASED; checkpoint TERMINAL_SUCCESS/CLOSED; no active owner conflict.",
+    "Fresh production and landing readback: tests/process/test_issue774_guard_scope_grouping.py is identical BOM-bearing blob 07066edda99ef65352037a078af9d768c596feaa on both; first codepoint U+FEFF.",
+    "Census RED writeback Guard 36299972361 GREEN; request 5853349721, result 5853351008."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36299776673,
-    "request_comment_id": 5853321803,
-    "result_comment_id": 5853323217,
+    "run_id": 36299972361,
+    "request_comment_id": 5853349721,
+    "result_comment_id": 5853351008,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "record first landing QA RED and advance to full Python BOM census"
+    "mutation": "record full landing BOM census and authorize single inherited #774 BOM recovery"
   }
 }
