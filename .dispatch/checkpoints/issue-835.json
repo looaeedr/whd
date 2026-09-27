@@ -22,14 +22,15 @@
     "Host scheduler prompt-only PREPARED identity authorized by Guard 36308456564 GREEN.",
     "Live scheduler prompt readback comment 5854541313: EFFECT_OBSERVED; 00/20/40/B15/B45 marker PASS; schedule/timing/lane/enabled unchanged.",
     "Helper #837 closed/completed + RELEASED/CLOSED; final child claim blob 7648a92feff14b97833f69155f29608e53f95bdf.",
-    "Closure-entry Guard run 36309191971 GREEN; #835 acceptance terminal reached."
+    "Closure-entry Guard run 36309191971 GREEN; #835 acceptance terminal reached.",
+    "Closure advance Guard run 36309252267 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain and verify bound Remote Finalization proof, then close/read back Issue #835.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run and verify bound Remote Finalization proof on this exact checkpoint, then perform canonical Issue-state transition/readback.",
   "operation": null
 }

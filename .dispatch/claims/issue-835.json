@@ -11,7 +11,7 @@
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T09:23:25Z",
+  "last_update": "2026-09-27T09:24:35Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Advance #835 terminal closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof, close/read back Issue #835, then atomically RELEASED+CLOSED.",
+  "next_action": "Run bound Remote Finalization on exact ISSUE_CLOSE_PENDING checkpoint, then perform the canonical Issue-state transition/readback and atomic RELEASED+CLOSED transaction.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36309191971,
-    "request_comment_id": 5854612203,
+    "run_id": 36309252267,
+    "request_comment_id": 5854620756,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "consume helper #837 + live prompt readback and enter #835 terminal finalization"
+    "mutation": "advance #835 FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -54,7 +54,8 @@
     "Scheduler host pre-intent pair write authorized by Guard 36308456564 GREEN.",
     "Live scheduler prompt operation readback comment 5854541313 classified EFFECT_OBSERVED; all five entrypoints marker PASS and cadence/timing/lane/enabled invariants preserved.",
     "Helper #837 closed/completed + final claim RELEASED blob 7648a92feff14b97833f69155f29608e53f95bdf; parent reservation marked TERMINAL.",
-    "Closure-entry Guard run 36309191971 GREEN; all #835 acceptance requirements complete."
+    "Closure-entry Guard run 36309191971 GREEN; all #835 acceptance requirements complete.",
+    "Closure advance Guard run 36309252267 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "delegated_work": [
     {
