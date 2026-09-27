@@ -11,7 +11,7 @@
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T01:53:49Z",
+  "last_update": "2026-09-27T01:58:20Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Create the single cleanup parity helper reserved as issue790-main-x-parity from cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e; port #790 as a selective compatible-equivalent because direct implementation cherry-pick conflicts in four governance authority files; activate the helper reservation with exact child claim blob, then let the child complete parity and return to #790.",
+  "next_action": "Follow active delegated helper #794 (helper_key issue790-main-x-parity) through branch, compatible-equivalent port, focused parity acceptance, non-force merge to cleanup/2d-3d-sync, and terminal close/release; after #794 terminal proof, terminalize the helper reservation and resume #790 → #769 recovery.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -58,28 +58,30 @@
     "MAIN_TO_X_BATCH_FIRST_PARITY_V1 audit: main=366b6810, cleanup=c04f028f, merge-base=156bc20e, branches diverge 67 main-only / 169 cleanup-only commits; blind full-main merge prohibited.",
     "Eligible missing parity set after prior equivalent readbacks is #790 only; no reusable active parity owner found.",
     "Direct bounded apply audit: RED 926a9840 applies cleanly; implementation 551ae5e2 conflicts in 派工 Skill, remote-execution-guard Skill, tools/execution_claim_guard.py, and execution_claim_hard_gate_pitfall.md. Selective compatible-equivalent fallback required.",
-    "Canonical reserve_helper_creation RESERVED helper_key=issue790-main-x-parity token=issue790-main-x-parity-20260927a."
+    "Canonical reserve_helper_creation RESERVED helper_key=issue790-main-x-parity token=issue790-main-x-parity-20260927a.",
+    "Helper #794 fresh-create Claim Activation GREEN at coord e3bccc3a80019bc2c1fce85067f5b65399ed41c4; child claim blob 8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625.",
+    "Canonical activate_helper_reservation returned ACTIVE for helper_key issue790-main-x-parity → child #794."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36286860310,
-    "request_comment_id": 5851766462,
+    "run_id": 36287099915,
+    "request_comment_id": 5851796246,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #790 batch audit and parity helper reservation"
+    "mutation": "activate #790 delegated parity helper #794"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue790-main-x-parity",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.sol260927.issue790.dep769.1",
       "reservation_token": "issue790-main-x-parity-20260927a",
       "reserved_at": "2026-09-27T01:53:49Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 794,
+      "child_claim_blob_sha": "8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625"
     }
   ]
 }

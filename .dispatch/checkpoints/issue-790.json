@@ -4,7 +4,7 @@
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "state": "RUNNING",
-  "next_action": "Create the single cleanup parity helper reserved as issue790-main-x-parity from cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e; port #790 as a selective compatible-equivalent because direct implementation cherry-pick conflicts in four governance authority files; activate the helper reservation with exact child claim blob, then let the child complete parity and return to #790.",
+  "next_action": "Follow active delegated helper #794 (helper_key issue790-main-x-parity) through branch, compatible-equivalent port, focused parity acceptance, non-force merge to cleanup/2d-3d-sync, and terminal close/release; after #794 terminal proof, terminalize the helper reservation and resume #790 → #769 recovery.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -31,7 +31,8 @@
     "Remote Guard 36286704418 GREEN authorizes post-merge durable transition.",
     "Required main→X parity remains pending before parent #769 recovery.",
     "Batch feasibility audit rejects blind/direct main→X propagation; bounded #790 implementation produces four governance-file conflicts on cleanup@c04f028f.",
-    "Single helper reservation issue790-main-x-parity is required because cleanup is a distinct production authority/base and no reusable active parity owner exists."
+    "Single helper reservation issue790-main-x-parity is required because cleanup is a distinct production authority/base and no reusable active parity owner exists.",
+    "Parent delegated helper pointer ACTIVE: #794 / claim blob 8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625. Parent must follow active child; do not create duplicate parity helper."
   ],
   "master_issue": null,
   "chain_state": "NONE",
