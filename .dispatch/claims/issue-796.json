@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-27T02:17:00Z",
   "base_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
   "head_sha": "0e92ce4407d2e45f022c25a3d9c13374a7b8d61b",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "last_update": "2026-09-27T02:45:54Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED under a fresh local canonical write guard, then terminalize parent #793 helper reservation and resume Work1 takeover.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-796.json",
   "slot_id": "worker.slot.1",
@@ -42,7 +42,10 @@
     "Closure advance Guard run 36289040475 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36289406298 GREEN / FINALIZATION_PROOF_VALID for request 5852054924, checkpoint blob e0c60005fe6ec39e0bef450bab8e142460e53dca.",
     "Owning Issue #796 fresh-read closed/completed at 2026-09-27T02:45:54Z.",
-    "Trusted-main local execution_claim_guard GREEN for exact claim+checkpoint RELEASE_HANDOFF_PENDING coordination write."
+    "Trusted-main local execution_claim_guard GREEN for exact claim+checkpoint RELEASE_HANDOFF_PENDING coordination write.",
+    "Trusted-main local execution_claim_guard GREEN for final atomic closure/release write.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically.",
+    "Owning Issue #796 readback closed/completed; Remote Finalization run 36289406298 GREEN."
   ],
   "last_guard": {
     "action": "write",
@@ -50,6 +53,6 @@
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #796 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically persist #796 checkpoint CLOSED + claim RELEASED"
   }
 }
