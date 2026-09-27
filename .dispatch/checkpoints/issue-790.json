@@ -4,7 +4,7 @@
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "state": "RUNNING",
-  "next_action": "Fresh-read main and PR #791 at closing head 51a04df8d483f4af64fa9bf6218cd718a251f80d; require main still at the PR base and PR clean/mergeable, then obtain one fresh pr-write Guard, merge PR #791 to trusted main, fresh-read merged main identity, and begin required main→cleanup/2d-3d-sync parity before consuming #790 on #769.",
+  "next_action": "MAIN_TO_X_BATCH_FIRST_PARITY_V1: fresh-audit main@366b68101b30aa496fa4bc78d465b6c72a116807 against cleanup/2d-3d-sync, reuse an existing parity owner if authorized; otherwise create one bounded parity helper, propagate #790 trusted capability non-force to X, run focused parity acceptance, then return to #790 and consume the repair on #769.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,10 @@
     "Pair reconciliation Guard 36286068847 GREEN; durable pair reconciled to H3 and remote acceptance persisted.",
     "Closing head 51a04df8 removes only the temporary #790 QA workflow from tested head a5633875.",
     "tested-head→closing-head drift audit PASS: exactly one removed temporary workflow, no production/test/Skill/AI drift.",
-    "Pair reconciliation Guard 36286210620 GREEN; durable pair reconciled to closing H4."
+    "Pair reconciliation Guard 36286210620 GREEN; durable pair reconciled to closing H4.",
+    "PR #791 merged to trusted main@366b68101b30aa496fa4bc78d465b6c72a116807.",
+    "Remote Guard 36286704418 GREEN authorizes post-merge durable transition.",
+    "Required main→X parity remains pending before parent #769 recovery."
   ],
   "master_issue": null,
   "chain_state": "NONE",
