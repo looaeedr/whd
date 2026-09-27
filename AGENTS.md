@@ -54,6 +54,16 @@ whd_schema: WHD_DOC_META_V1
 python tools/phase6_skill_preflight.py --task "<本次任務完整描述>"
 ```
 
+### GITHUB_ONLY_REMOTE_PHASE6_PREFLIGHT_V1
+
+GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力，**不得**因無法直接執行上面的 Python command 就把 mandatory Preflight 降級、略過或永久 BLOCKED。固定 remote transport 為：
+
+`.github/workflows/whd-phase6-preflight.yml`
+
+owner-authored owning-Issue request 第一行固定 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`，並 exact 綁定 `issue + worker + executor_source + branch + head_sha + task`；預計修改檔已知時逐一加入 `changed_file=`。trusted runner 只允許 checkout/read exact HEAD、執行 canonical `tools/phase6_skill_preflight.py`、讀取 required Skill/reference 並發布 `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`；不接受 arbitrary command，也沒有 repository contents write 權限。
+
+remote result `GREEN` 只證明 exact task/HEAD 的 canonical Preflight 已執行且 requirements 可解析；**呼叫端仍必須 fresh-read result列出的每一個 required Skill / required reference，並留下自己的 `READ_SKILL` / `READ_REFERENCE` evidence，才可開始 substantive analysis 或 mutation。** generic Remote Guard 內部的 preflight 若未綁本次完整 task，不得替代這個 startup Preflight。
+
 當預計修改檔案已知後，必須再次帶入所有預計修改檔：
 
 ```powershell

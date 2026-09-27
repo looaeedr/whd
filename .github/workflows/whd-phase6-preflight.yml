@@ -1,0 +1,266 @@
+name: WHD Remote Phase6 Preflight
+run-name: "WHD｜Phase6 Preflight｜Issue #${{ github.event.issue.number }}"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  preflight:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, 'WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout trusted workflow repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse fixed preflight request
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import PurePosixPath
+
+          body = os.environ["COMMENT_BODY"].replace("\r\n", "\n")
+          lines = body.split("\n")
+          if not lines or lines[0].strip() != "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1":
+              raise SystemExit("invalid remote preflight marker")
+
+          required_single = {
+              "issue", "worker", "executor_source", "branch", "head_sha", "task"
+          }
+          allowed_multi = {"changed_file"}
+          singles = {}
+          changed_files = []
+          for raw in lines[1:]:
+              if not raw.strip():
+                  continue
+              if "=" not in raw:
+                  raise SystemExit(f"malformed request line: {raw!r}")
+              key, value = raw.split("=", 1)
+              key, value = key.strip(), value.strip()
+              if key in required_single:
+                  if key in singles:
+                      raise SystemExit(f"duplicate request key: {key}")
+                  singles[key] = value
+              elif key in allowed_multi:
+                  changed_files.append(value)
+              else:
+                  raise SystemExit(f"unsupported request key: {key}")
+
+          missing = sorted(required_single - set(singles))
+          if missing:
+              raise SystemExit(f"missing request keys: {missing}")
+          if os.environ["COMMENT_AUTHOR"] != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("remote preflight request must be authored by repository owner")
+          if int(singles["issue"]) != int(os.environ["EVENT_ISSUE"]):
+              raise SystemExit("remote preflight issue mismatch")
+          if singles["executor_source"] not in {"scheduler", "chat"}:
+              raise SystemExit("invalid executor_source")
+          if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
+              raise SystemExit("invalid worker")
+          branch = singles["branch"]
+          if (
+              not re.fullmatch(r"[A-Za-z0-9._/-]{1,200}", branch)
+              or branch.startswith("/")
+              or branch.endswith("/")
+              or ".." in branch
+              or "//" in branch
+              or "@{" in branch
+          ):
+              raise SystemExit("invalid branch")
+          if not re.fullmatch(r"[0-9a-f]{40}", singles["head_sha"]):
+              raise SystemExit("invalid head_sha")
+          task = singles["task"]
+          if not task or len(task) > 4000:
+              raise SystemExit("task must be nonblank and <=4000 chars")
+
+          normalized_files = []
+          for raw in changed_files:
+              path = PurePosixPath(raw)
+              if (
+                  not raw
+                  or path.is_absolute()
+                  or ".." in path.parts
+                  or raw.startswith("./")
+                  or "\\" in raw
+              ):
+                  raise SystemExit(f"invalid changed_file: {raw!r}")
+              normalized_files.append(path.as_posix())
+          if len(normalized_files) > 100:
+              raise SystemExit("too many changed_file entries")
+
+          payload = {
+              "schema": "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1",
+              "request_comment_id": int(os.environ["COMMENT_ID"]),
+              **singles,
+              "issue": int(singles["issue"]),
+              "changed_files": normalized_files,
+          }
+          with open("/tmp/phase6-preflight-request.json", "w", encoding="utf-8") as handle:
+              json.dump(payload, handle, ensure_ascii=False, indent=2, sort_keys=True)
+          PY
+
+      - name: Checkout exact requested branch HEAD
+        env:
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+
+          request = json.load(open("/tmp/phase6-preflight-request.json", encoding="utf-8"))
+          branch = request["branch"]
+          head = request["head_sha"]
+          raw = subprocess.check_output(
+              ["git", "ls-remote", "origin", f"refs/heads/{branch}"],
+              text=True,
+          ).strip()
+          if not raw:
+              raise SystemExit("requested branch does not exist")
+          live_head = raw.split()[0]
+          if live_head != head:
+              raise SystemExit(
+                  f"requested branch HEAD drift expected={head} actual={live_head}"
+              )
+          subprocess.run(["git", "fetch", "--no-tags", "origin", head], check=True)
+          subprocess.run(["git", "checkout", "--detach", head], check=True)
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != head:
+              raise SystemExit("exact requested HEAD checkout failed")
+          PY
+
+      - name: Run canonical Phase6 Knowledge Preflight
+        env:
+          GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          from tools.phase6_skill_preflight import (
+              required_references_for,
+              required_skills_for,
+          )
+
+          request = json.load(open("/tmp/phase6-preflight-request.json", encoding="utf-8"))
+          task = request["task"]
+          changed_files = request["changed_files"]
+          skills = required_skills_for(task=task, changed_files=changed_files)
+          refs = required_references_for(task=task, changed_files=changed_files)
+
+          def declared_skill_name(path: Path):
+              lines = path.read_text(encoding="utf-8").splitlines()
+              if not lines or lines[0].strip() != "---":
+                  return None
+              for raw in lines[1:]:
+                  if raw.strip() == "---":
+                      break
+                  if raw.startswith("name:"):
+                      return raw.split(":", 1)[1].strip().strip("'\"")
+              return None
+
+          skill_paths = []
+          evidence_lines = []
+          all_skill_paths = list(Path(".agents/skills").glob("**/SKILL.md"))
+          for skill in skills:
+              matches = [p for p in all_skill_paths if declared_skill_name(p) == skill]
+              if len(matches) != 1:
+                  raise SystemExit(
+                      f"required skill unavailable or ambiguous: {skill}: {matches}"
+                  )
+              path = matches[0]
+              path.read_text(encoding="utf-8")
+              skill_paths.append({"name": skill, "path": path.as_posix()})
+              evidence_lines.append(f"READ_SKILL: {skill} path={path.as_posix()}")
+
+          for ref in refs:
+              path = Path(ref)
+              if not path.is_file():
+                  raise SystemExit(f"required reference missing: {ref}")
+              path.read_text(encoding="utf-8")
+              evidence_lines.append(f"READ_REFERENCE: {ref}")
+
+          evidence_path = Path("/tmp/phase6-preflight-evidence.txt")
+          evidence_text = "\n".join(evidence_lines) + "\n"
+          evidence_path.write_text(evidence_text, encoding="utf-8")
+
+          args = [
+              "python", "tools/phase6_skill_preflight.py",
+              "--task", task,
+              "--evidence", evidence_path.as_posix(),
+          ]
+          for path in changed_files:
+              args.extend(["--changed-file", path])
+          completed = subprocess.run(args, text=True, capture_output=True)
+          if completed.returncode != 0:
+              raise SystemExit(
+                  "canonical phase6 preflight failed:\n"
+                  + completed.stdout
+                  + completed.stderr
+              )
+
+          receipt = {
+              "schema": "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1",
+              "request_comment_id": request["request_comment_id"],
+              "issue": request["issue"],
+              "worker": request["worker"],
+              "executor_source": request["executor_source"],
+              "branch": request["branch"],
+              "head_sha": request["head_sha"],
+              "task_sha256": hashlib.sha256(task.encode("utf-8")).hexdigest(),
+              "changed_files": changed_files,
+              "required_skills": skill_paths,
+              "required_references": list(refs),
+              "evidence_sha256": hashlib.sha256(
+                  evidence_text.encode("utf-8")
+              ).hexdigest(),
+              "result": "GREEN",
+              "reason": "PHASE6_PREFLIGHT_EXECUTED_AND_REQUIREMENTS_RESOLVED",
+              "run_id": int(os.environ["GITHUB_RUN_ID_VALUE"]),
+          }
+          Path("/tmp/phase6-preflight-result.json").write_text(
+              json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(completed.stdout)
+          PY
+
+      - name: Publish machine-readable preflight receipt
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const receipt = fs.readFileSync('/tmp/phase6-preflight-result.json', 'utf8').trim();
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: ['WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1', '~~~json', receipt, '~~~'].join('\n'),
+            });
