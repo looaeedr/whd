@@ -6,19 +6,19 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.683.20260927T0832.ha-transport",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue683-ha-transport-projection-repair2-20260927",
+  "work_branch": "governance/issue683-main-mirror-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
-  "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
+  "base_sha": "cb80310e2643d1ab9624e90085d4abda6e4d125e",
+  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T11:14:51Z",
-  "production_target": "cleanup/2d-3d-sync",
+  "last_update": "2026-09-27T11:40:12Z",
+  "production_target": "main",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [
     "work/issue683-ha-transport-projection-20260927",
     "work/issue683-ha-transport-projection-repair-20260927",
-    "governance/issue683-main-mirror-20260927"
+    "work/issue683-ha-transport-projection-repair2-20260927"
   ],
   "remote_qa": {
     "run_id": 36311528696,
@@ -29,7 +29,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Both exact Governance Mirror Hard Gates are GREEN (#850 run 36314943208; #853 run 36314850616). Mint one fresh exact pr-write Guard for PR #850 on governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 and merge #850 to main first; fresh-read main/claim, then mint one fresh exact pr-write Guard for PR #853 on work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1 and merge #853 to cleanup; then continue #683 finalization.",
+  "next_action": "Primary authority is on the #683 main mirror. Mint one fresh exact pr-write Guard for PR #850 at governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 and merge #850 to main; fresh-read main/claim, hand primary authority back to cleanup repair2@1c4b976cfbe3be531c9592a167122b8102ceabb1, then merge PR #853 under its own fresh pr-write Guard and continue #683 finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -106,17 +106,18 @@
     "Primary authority handback to cleanup replacement branch authorized by write Guard 36314951884 / request 5855317976 / result 5855323374.",
     "Paired PR #850 Governance Mirror Hard Gate run 36314943208 completed SUCCESS at exact mirror head 63ce016f.",
     "Replacement cleanup PR #853 Governance Mirror Hard Gate run 36314850616 completed SUCCESS at exact cleanup head 1c4b976c; Knowledge Governance Bootstrap 36314850635 also SUCCESS.",
-    "Durable gate-terminal writeback consumes exact single-use write Guard 36315098720."
+    "Durable gate-terminal writeback consumes exact single-use write Guard 36315098720.",
+    "Primary authority handoff to main mirror consumes exact write Guard 36316468837 / request 5855501410 / result 5855502749."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36314951884,
-    "request_comment_id": 5855317976,
-    "result_comment_id": 5855323374,
+    "run_id": 36316468837,
+    "request_comment_id": 5855501410,
+    "result_comment_id": 5855502749,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #683 primary authority back to replacement cleanup branch after #850 marker update"
+    "mutation": "handoff #683 primary authority from cleanup repair2 to same-ticket main mirror"
   }
 }

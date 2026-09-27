@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "683",
-  "branch": "work/issue683-ha-transport-projection-repair2-20260927",
-  "head_sha": "1c4b976cfbe3be531c9592a167122b8102ceabb1",
+  "branch": "governance/issue683-main-mirror-20260927",
+  "head_sha": "63ce016fc789c80aa110a0fd289779f48ada7821",
   "state": "RUNNING",
-  "next_action": "Both exact Governance Mirror Hard Gates are GREEN (#850 run 36314943208; #853 run 36314850616). Mint one fresh exact pr-write Guard for PR #850 on governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 and merge #850 to main first; fresh-read main/claim, then mint one fresh exact pr-write Guard for PR #853 on work/issue683-ha-transport-projection-repair2-20260927@1c4b976cfbe3be531c9592a167122b8102ceabb1 and merge #853 to cleanup; then continue #683 finalization.",
+  "next_action": "Primary authority is on the #683 main mirror. Mint one fresh exact pr-write Guard for PR #850 at governance/issue683-main-mirror-20260927@63ce016fc789c80aa110a0fd289779f48ada7821 and merge #850 to main; fresh-read main/claim, hand primary authority back to cleanup repair2@1c4b976cfbe3be531c9592a167122b8102ceabb1, then merge PR #853 under its own fresh pr-write Guard and continue #683 finalization.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -55,7 +55,8 @@
     "Pair is now #850↔#853; primary authority returned to replacement cleanup branch.",
     "Paired PR #850 Governance Mirror Hard Gate run 36314943208 GREEN.",
     "Replacement cleanup PR #853 Governance Mirror Hard Gate run 36314850616 GREEN; Knowledge Governance Bootstrap 36314850635 GREEN.",
-    "This durable gate-terminal writeback consumes exact write Guard 36315098720."
+    "This durable gate-terminal writeback consumes exact write Guard 36315098720.",
+    "Primary authority handoff to main mirror consumes exact write Guard 36316468837."
   ],
   "master_issue": null,
   "chain_state": "NONE",
