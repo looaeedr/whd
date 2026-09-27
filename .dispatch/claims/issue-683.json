@@ -6,17 +6,18 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.683.20260927T0832.ha-transport",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "work/issue683-ha-transport-projection-20260927",
+  "work_branch": "work/issue683-ha-transport-projection-repair-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:51:30Z",
+  "last_update": "2026-09-27T11:03:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue683-main-mirror-20260927"
+    "governance/issue683-main-mirror-20260927",
+    "work/issue683-ha-transport-projection-20260927"
   ],
   "remote_qa": {
     "run_id": 36311528696,
@@ -27,15 +28,8 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "BLOCKED_EXTERNAL_OWNER: wait for Issue #836 owner transaction to consume pending claim-takeover Guard 36313761471 (takeover_worker=scheduler.6ab13fa557fc8191935c671214b865e2), then integrate the accepted #836 governance delta (.agents/skills/engineering/派工/SKILL.md + tools/stale_claim_takeover.py) to cleanup/2d-3d-sync. After cleanup contains #836, retrigger PR #848 and paired PR #850 Governance Mirror Hard Gate; require both GREEN; merge #850 to main first, then merge #848 and finalize #683.",
-  "blocker": {
-    "type": "EXTERNAL_OWNER_PENDING_GUARD",
-    "issue": 836,
-    "owner": "scheduler.6ab13fa557fc8191935c671214b865e2",
-    "guard_run_id": 36313761471,
-    "guard_action": "claim-takeover",
-    "reason": "Issue #836 exact governance owner transaction must land its two governed blobs into cleanup/2d-3d-sync before #683 paired governance candidates can pass parity."
-  },
+  "next_action": "Redo the #683 two-parent sync from sealed head 6156cf8c222e1a87d2fe477288dc12282711ddb6 onto cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0 using guard_authority_sha=8a6323f50860b5aa678e2bf4b8b21a75a82d41a0; retain only #683 bridge/test/Authority Map relative to cleanup; reconcile pair; create replacement cleanup PR paired with #850; require both Governance Mirror Hard Gates GREEN; merge #850 first, then replacement cleanup PR, then finalize #683.",
+  "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
     "authorization_source=explicit /排程B lane continuation with READY_WORK_CENSUS_V1 after #779 terminal release",
@@ -95,17 +89,21 @@
     "Fresh governed blob audit: #683 branch already matches main for 寫排程/SKILL.md and 排程模擬/SKILL.md; the only known governed mismatches are 派工/SKILL.md and tools/stale_claim_takeover.py, both owned by live Issue #836.",
     "B stale takeover request 5855183356 was rejected by run 36313797107 with PENDING_GUARD_TRANSACTION because A-lane takeover Guard 36313761471 had already won the exact #836 transaction.",
     "A-lane #836 takeover Guard 36313761471 is GREEN with EXECUTOR_STUCK evidence (3031s stale, no active exact remote run) and must be consumed by its exact takeover_worker; B must not double-CAS.",
-    "Blocker write consumes exact #683 write Guard 36313837145 / request 5855187578 / result 5855189029."
+    "Blocker write consumes exact #683 write Guard 36313837145 / request 5855187578 / result 5855189029.",
+    "Attempted refresh of old PR #848 candidate after #836 landed; rerun 36313496478 attempt job 108605860289 failed because the old candidate merge tree remained rooted at cleanup@500e6f80 and therefore carried stale tools/stale_claim_takeover.py.",
+    "A first corrective merge-sync commit 1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e was created, but its commit Guard 36314299147 used guard_authority_sha=main@cb80310e rather than the required production parent cleanup@8a6323f5; ordinary pair reconciliation correctly failed run 36314359702. This drifted branch is preserved as evidence and is not force-reset.",
+    "Parent-branch identity repair Guard 36314457052 GREEN / request 5855259712 / result 5855261359 authorized non-force replacement work/issue683-ha-transport-projection-repair-20260927 at sealed head 6156cf8c.",
+    "Replacement branch readback is exact sealed head 6156cf8c; old drifted branch retained delegated as evidence."
   ],
   "last_guard": {
-    "action": "write",
+    "action": "parent-branch-identity-repair",
     "mode": "remote",
-    "run_id": 36313837145,
-    "request_comment_id": 5855187578,
-    "result_comment_id": 5855189029,
+    "run_id": 36314457052,
+    "request_comment_id": 5855259712,
+    "result_comment_id": 5855261359,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist external #836 pending-owner blocker and exact post-unblock continuation for #683"
+    "mutation": "create sealed replacement branch and atomically rebind #683 claim/checkpoint branch identity"
   }
 }
