@@ -1,0 +1,31 @@
+{
+  "issue": 835,
+  "issue_url": "https://github.com/looaeedr/whd/issues/835",
+  "worker": "chatgpt.issue835.20260927a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue835.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
+  "claimed_at": "2026-09-27T08:37:00Z",
+  "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+  "head_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T08:37:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded work branch from exact cleanup/2d-3d-sync@b059ffeade3e8ade105f44a370e20e071a0127a7, establish focused RED for same-lane nonterminal anti-NO_WORK invariant, then implement GREEN and bidirectional governance mirror.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-835.json",
+  "evidence": [
+    "authorization_source=user explicit 補",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=repair scheduler false NO_WORK for same-lane nonterminal claims with nonblank next_action",
+    "authorized_scope=Issue #835 scheduler Skills/tests + required governance mirror + live A/B prompt sync",
+    "prohibited_scope=no product/UI; no cadence/timing/lane owner changes; no #779/#827/#828 claim mutation",
+    "fresh cleanup base=b059ffeade3e8ade105f44a370e20e071a0127a7",
+    "fresh trusted main=9fdb592777828a5f843220e5cc8c82709974cda8"
+  ]
+}

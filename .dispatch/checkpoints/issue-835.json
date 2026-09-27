@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "835",
+  "branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
+  "head_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+  "state": "RUNNING",
+  "next_action": "Create guarded work branch from exact cleanup/2d-3d-sync@b059ffeade3e8ade105f44a370e20e071a0127a7, establish focused RED for same-lane nonterminal anti-NO_WORK invariant, then implement GREEN and bidirectional governance mirror.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Issue #835 UPDATE_ONLY authority established by user explicit 補.",
+    "Fresh cleanup base b059ffeade3e8ade105f44a370e20e071a0127a7.",
+    "No production mutation before claim + branch Guard."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
