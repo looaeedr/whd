@@ -1,0 +1,244 @@
+name: "WHD｜Parent branch sealed-identity repair"
+run-name: "WHD｜工單 #${{ github.event.issue.number }}｜Parent branch identity repair"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  repair:
+    name: "Trusted non-force sealed-identity repair"
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, 'WHD_REMOTE_PARENT_BRANCH_IDENTITY_REPAIR_REQUEST_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Checkout trusted governance"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Parse exact repair request"
+        env:
+          COMMENT_BODY: "${{ github.event.comment.body }}"
+          EVENT_ISSUE: "${{ github.event.issue.number }}"
+          COMMENT_AUTHOR: "${{ github.event.comment.user.login }}"
+          REPOSITORY_OWNER: "${{ github.repository_owner }}"
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          body = os.environ["COMMENT_BODY"].replace("\r\n", "\n")
+          lines = body.split("\n")
+          if not lines or lines[0].strip() != "WHD_REMOTE_PARENT_BRANCH_IDENTITY_REPAIR_REQUEST_V1":
+              raise SystemExit("invalid repair request marker")
+          required = {
+              "issue", "worker", "executor_source", "original_branch",
+              "observed_live_head_sha", "sealed_head_sha", "replacement_branch",
+              "coord_parent_sha", "claim_path", "checkpoint_path",
+              "prior_claim_blob_sha", "prior_checkpoint_blob_sha",
+              "candidate_claim_blob_sha", "candidate_checkpoint_blob_sha",
+              "guard_result_comment_id", "guard_authority_sha",
+          }
+          fields = {}
+          for raw in lines[1:]:
+              if not raw.strip():
+                  continue
+              if "=" not in raw:
+                  raise SystemExit(f"malformed request line: {raw!r}")
+              key, value = (part.strip() for part in raw.split("=", 1))
+              if key not in required or key in fields or not value:
+                  raise SystemExit(f"unsupported/duplicate/blank request key: {key}")
+              fields[key] = value
+          if set(fields) != required:
+              raise SystemExit(f"repair request missing keys: {sorted(required - set(fields))}")
+          if os.environ["COMMENT_AUTHOR"] != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("repair request must be repository-owner authored")
+          if fields["issue"] != os.environ["EVENT_ISSUE"]:
+              raise SystemExit("repair request issue mismatch")
+          if fields["executor_source"] not in {"scheduler", "chat"}:
+              raise SystemExit("invalid executor_source")
+          if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", fields["worker"]):
+              raise SystemExit("invalid worker")
+          for key in ("observed_live_head_sha", "sealed_head_sha", "coord_parent_sha", "prior_claim_blob_sha", "prior_checkpoint_blob_sha", "candidate_claim_blob_sha", "candidate_checkpoint_blob_sha", "guard_authority_sha"):
+              if not re.fullmatch(r"[0-9a-f]{40}", fields[key]):
+                  raise SystemExit(f"invalid SHA: {key}")
+          if fields["claim_path"] != f".dispatch/claims/issue-{fields['issue']}.json":
+              raise SystemExit("claim_path mismatch")
+          if fields["checkpoint_path"] != f".dispatch/checkpoints/issue-{fields['issue']}.json":
+              raise SystemExit("checkpoint_path mismatch")
+          if not fields["guard_result_comment_id"].isdigit() or int(fields["guard_result_comment_id"]) <= 0:
+              raise SystemExit("invalid guard_result_comment_id")
+          if fields["original_branch"] == fields["replacement_branch"]:
+              raise SystemExit("replacement branch must differ from original branch")
+          with open("/tmp/parent-branch-repair-request.json", "w", encoding="utf-8") as fh:
+              json.dump(fields, fh, indent=2, sort_keys=True)
+              fh.write("\n")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
+              for key, value in fields.items():
+                  fh.write(f"R_{key.upper()}={value}\n")
+          PY
+
+      - name: "Validate authority and apply exact non-force repair"
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$R_GUARD_AUTHORITY_SHA"
+          git checkout --detach "$R_GUARD_AUTHORITY_SHA"
+          gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${R_GUARD_RESULT_COMMENT_ID}" > /tmp/guard-comment.json
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          comment = json.loads(Path("/tmp/guard-comment.json").read_text(encoding="utf-8"))
+          if (comment.get("user") or {}).get("login") != "github-actions[bot]":
+              raise SystemExit("repair authorization comment is not GitHub Actions")
+          body = str(comment.get("body") or "")
+          match = re.search(r"WHD_REMOTE_GUARD_RESULT_V1\s*~~~json\s*(\{.*?\})\s*~~~", body, re.S)
+          if not match:
+              raise SystemExit("repair authorization receipt missing")
+          receipt = json.loads(match.group(1))
+          expected = {
+              "issue": int(os.environ["R_ISSUE"]), "worker": os.environ["R_WORKER"],
+              "executor_source": os.environ["R_EXECUTOR_SOURCE"], "action": "parent-branch-identity-repair",
+              "branch": os.environ["R_ORIGINAL_BRANCH"], "head_sha": os.environ["R_SEALED_HEAD_SHA"],
+              "tested_target_sha": os.environ["R_SEALED_HEAD_SHA"], "claim_blob_sha": os.environ["R_PRIOR_CLAIM_BLOB_SHA"],
+              "guard_authority_sha": os.environ["R_GUARD_AUTHORITY_SHA"],
+              "observed_live_head_sha": os.environ["R_OBSERVED_LIVE_HEAD_SHA"],
+              "replacement_branch": os.environ["R_REPLACEMENT_BRANCH"], "result": "GREEN",
+          }
+          for key, value in expected.items():
+              if receipt.get(key) != value:
+                  raise SystemExit(f"repair authorization receipt mismatch: {key}")
+          PY
+          git fetch --no-tags origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          current_coord="$(git rev-parse refs/remotes/origin/coord/dispatch-claims)"
+          current_claim_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${R_CLAIM_PATH}")"
+          current_checkpoint_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${R_CHECKPOINT_PATH}")"
+          classify_readback() {
+            gh api "repos/${GITHUB_REPOSITORY}/commits/${current_coord}" > /tmp/current-coord-commit.json
+            CURRENT_COORD="$current_coord" CURRENT_CLAIM_BLOB="$current_claim_blob" CURRENT_CHECKPOINT_BLOB="$current_checkpoint_blob" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from tools.claim_activation_recovery import classify_claim_activation_readback
+          detail = json.loads(Path("/tmp/current-coord-commit.json").read_text(encoding="utf-8"))
+          decision = classify_claim_activation_readback(
+              coord_parent_sha=os.environ["R_COORD_PARENT_SHA"], current_coord_sha=os.environ["CURRENT_COORD"],
+              current_parent_shas=tuple(str(x.get("sha") or "") for x in detail.get("parents", [])),
+              current_changed_files=tuple(str(x.get("filename") or "") for x in detail.get("files", [])),
+              claim_path=os.environ["R_CLAIM_PATH"], checkpoint_path=os.environ["R_CHECKPOINT_PATH"],
+              current_claim_blob_sha=os.environ["CURRENT_CLAIM_BLOB"], current_checkpoint_blob_sha=os.environ["CURRENT_CHECKPOINT_BLOB"],
+              candidate_claim_blob_sha=os.environ["R_CANDIDATE_CLAIM_BLOB_SHA"], candidate_checkpoint_blob_sha=os.environ["R_CANDIDATE_CHECKPOINT_BLOB_SHA"],
+          )
+          print(decision.state.value)
+          PY
+          }
+          readback_state="$(classify_readback | head -n1)"
+          if [ "$readback_state" = "EFFECT_OBSERVED" ]; then
+            replacement_sha="$(git ls-remote origin "refs/heads/${R_REPLACEMENT_BRANCH}" | awk '{print $1}')"
+            test "$replacement_sha" = "$R_SEALED_HEAD_SHA"
+            echo "PARENT_BRANCH_IDENTITY_REPAIR_EFFECT_OBSERVED"
+            exit 0
+          fi
+          test "$readback_state" = "NOT_APPLIED"
+          test "$current_coord" = "$R_COORD_PARENT_SHA"
+          test "$current_claim_blob" = "$R_PRIOR_CLAIM_BLOB_SHA"
+          test "$current_checkpoint_blob" = "$R_PRIOR_CHECKPOINT_BLOB_SHA"
+          git show "refs/remotes/origin/coord/dispatch-claims:${R_CLAIM_PATH}" > /tmp/current-claim.json
+          git show "refs/remotes/origin/coord/dispatch-claims:${R_CHECKPOINT_PATH}" > /tmp/current-checkpoint.json
+          fetch_blob() {
+            gh api "repos/${GITHUB_REPOSITORY}/git/blobs/$1" > /tmp/blob.json
+            OUT="$2" python - <<'PY'
+          import base64, json, os
+          from pathlib import Path
+          payload=json.loads(Path("/tmp/blob.json").read_text(encoding="utf-8"))
+          Path(os.environ["OUT"]).write_bytes(base64.b64decode(str(payload["content"]).replace("\n","")))
+          PY
+          }
+          fetch_blob "$R_CANDIDATE_CLAIM_BLOB_SHA" /tmp/candidate-claim.json
+          fetch_blob "$R_CANDIDATE_CHECKPOINT_BLOB_SHA" /tmp/candidate-checkpoint.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from tools.parent_branch_identity_repair import validate_parent_branch_identity_repair_candidate
+          load=lambda p: json.loads(Path(p).read_text(encoding="utf-8"))
+          validate_parent_branch_identity_repair_candidate(
+              current_claim=load("/tmp/current-claim.json"), current_checkpoint=load("/tmp/current-checkpoint.json"),
+              candidate_claim=load("/tmp/candidate-claim.json"), candidate_checkpoint=load("/tmp/candidate-checkpoint.json"),
+              original_branch=os.environ["R_ORIGINAL_BRANCH"], replacement_branch=os.environ["R_REPLACEMENT_BRANCH"], sealed_head_sha=os.environ["R_SEALED_HEAD_SHA"],
+          )
+          PY
+          original_sha="$(git ls-remote origin "refs/heads/${R_ORIGINAL_BRANCH}" | awk '{print $1}')"
+          test "$original_sha" = "$R_OBSERVED_LIVE_HEAD_SHA"
+          gh api "repos/${GITHUB_REPOSITORY}/compare/${R_SEALED_HEAD_SHA}...${R_OBSERVED_LIVE_HEAD_SHA}" > /tmp/repair-compare.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          payload=json.loads(Path("/tmp/repair-compare.json").read_text(encoding="utf-8")); base=payload.get("merge_base_commit")
+          if payload.get("status") != "ahead" or int(payload.get("ahead_by") or 0) <= 0:
+              raise SystemExit("observed branch is not strictly ahead of sealed HEAD")
+          if not isinstance(base, dict) or base.get("sha") != os.environ["R_SEALED_HEAD_SHA"]:
+              raise SystemExit("sealed HEAD is not exact merge base of observed drift")
+          PY
+          replacement_sha="$(git ls-remote origin "refs/heads/${R_REPLACEMENT_BRANCH}" | awk '{print $1}')"
+          if [ -z "$replacement_sha" ]; then
+            python - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path("/tmp/create-ref.json").write_text(json.dumps({"ref": f"refs/heads/{os.environ['R_REPLACEMENT_BRANCH']}", "sha": os.environ["R_SEALED_HEAD_SHA"]})+"\n",encoding="utf-8")
+          PY
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" --input /tmp/create-ref.json > /tmp/create-ref-result.json
+          elif [ "$replacement_sha" != "$R_SEALED_HEAD_SHA" ]; then
+            echo "replacement branch exists at wrong SHA" >&2; exit 42
+          fi
+          replacement_sha="$(git ls-remote origin "refs/heads/${R_REPLACEMENT_BRANCH}" | awk '{print $1}')"
+          test "$replacement_sha" = "$R_SEALED_HEAD_SHA"
+          gh api "repos/${GITHUB_REPOSITORY}/git/commits/${R_COORD_PARENT_SHA}" > /tmp/coord-parent.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          parent=json.loads(Path("/tmp/coord-parent.json").read_text(encoding="utf-8"))
+          payload={"base_tree":parent["tree"]["sha"],"tree":[
+              {"path":os.environ["R_CLAIM_PATH"],"mode":"100644","type":"blob","sha":os.environ["R_CANDIDATE_CLAIM_BLOB_SHA"]},
+              {"path":os.environ["R_CHECKPOINT_PATH"],"mode":"100644","type":"blob","sha":os.environ["R_CANDIDATE_CHECKPOINT_BLOB_SHA"]}]}
+          Path("/tmp/tree-request.json").write_text(json.dumps(payload)+"\n",encoding="utf-8")
+          PY
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/git/trees" --input /tmp/tree-request.json > /tmp/tree-result.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          tree=json.loads(Path("/tmp/tree-result.json").read_text(encoding="utf-8"))
+          payload={"message":f"coord(#{os.environ['R_ISSUE']}): rebind sealed parent branch identity","tree":tree["sha"],"parents":[os.environ["R_COORD_PARENT_SHA"]]}
+          Path("/tmp/commit-request.json").write_text(json.dumps(payload)+"\n",encoding="utf-8")
+          PY
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/git/commits" --input /tmp/commit-request.json > /tmp/commit-result.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          commit=json.loads(Path("/tmp/commit-result.json").read_text(encoding="utf-8"))
+          Path("/tmp/ref-request.json").write_text(json.dumps({"sha":commit["sha"],"force":False})+"\n",encoding="utf-8")
+          PY
+          gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/coord/dispatch-claims" --input /tmp/ref-request.json > /tmp/ref-result.json
+          git fetch --no-tags origin +coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          current_coord="$(git rev-parse refs/remotes/origin/coord/dispatch-claims)"
+          current_claim_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${R_CLAIM_PATH}")"
+          current_checkpoint_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${R_CHECKPOINT_PATH}")"
+          readback_state="$(classify_readback | head -n1)"
+          test "$readback_state" = "EFFECT_OBSERVED"
+          echo "PARENT_BRANCH_IDENTITY_REPAIR_GREEN coord_commit=${current_coord}"
+
+      - name: "Publish repair result"
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+              body: ['WHD_REMOTE_PARENT_BRANCH_IDENTITY_REPAIR_RESULT_V1', 'run_id=${{ github.run_id }}', 'result=${{ job.status }}'].join('\n')
+            });

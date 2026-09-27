@@ -134,6 +134,16 @@ WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
 - replacement prompt 的 post-update readback 必須驗證 `READY_WORK_CENSUS_V1`、`NO_MATCHING_HANDOFF != NO_WORK`、`NO_EXECUTABLE_WORK` 仍存在，**不得刪除**來縮短 prompt。
 - 此 contract **不建立 execution authority**、不改 lane owner、不改 claim ownership，也不改 cadence / enabled / takeover semantics。
 
+### 4.0B SAME_LANE_NONTERMINAL_WORK_V1
+
+所有新建或修改的 A/B scheduler prompt 都必須保留 same-lane non-terminal anti-NO_WORK hard gate：
+
+- fresh reconstruction 若看到 `claim.worker == lane_owner`、owning checkpoint 為 non-terminal 且 `next_action` 非空，狀態必須是 `SAME_LANE_RESUME`；不得輸出 `NO_EXECUTABLE_WORK`。
+- **target/head/checkpoint** drift、claim/checkpoint next_action 不一致或 production target 前進時，輸出 `RECONCILIATION_REQUIRED` + `AUTHORITY_MISMATCH`，沿 canonical reconciliation 繼續；這是待辦工作，**不是 NO_WORK**。
+- protected/shared scope 被另一個 live owner 佔用時輸出 `SHARED_SCOPE_CONFLICT` + fresh durable evidence；保留 exact ticket/next_action 並於下一 wake 重驗，不得假裝 lane 沒任務。
+- replacement prompt 的 **post-update readback** 必須驗證 `SAME_LANE_NONTERMINAL_WORK_V1`、`SAME_LANE_RESUME`、`RECONCILIATION_REQUIRED`、`SHARED_SCOPE_CONFLICT` 與 `NO_EXECUTABLE_WORK` anti-collapse 語意全部存在。
+
+
 ### 4.1 SKILL_FIRST_HARD_GATE
 
 在任何 Guard、claim、branch、PR、workflow、Issue、repository mutation、takeover、reconciliation 前：

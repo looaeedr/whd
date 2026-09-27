@@ -75,3 +75,34 @@ def test_scheduler_authoring_requires_scheduler_simulation_every_wake() -> None:
     assert "每次 wake" in section
     assert "不論" in section
     assert "handoff" in section
+
+def test_same_lane_nonterminal_claim_is_never_collapsed_to_no_work() -> None:
+    text = _read(SCHED_SIM)
+    assert "SAME_LANE_NONTERMINAL_WORK_V1" in text
+    section = text.split("SAME_LANE_NONTERMINAL_WORK_V1", 1)[1]
+    assert "same-lane" in section
+    assert "non-terminal" in section
+    assert "next_action" in section
+    assert "SAME_LANE_RESUME" in section
+    assert "NO_EXECUTABLE_WORK" in section
+    assert "不得" in section
+
+
+def test_scheduler_routes_drift_to_reconciliation_not_no_work() -> None:
+    text = _read(SCHED_SIM)
+    section = text.split("SAME_LANE_NONTERMINAL_WORK_V1", 1)[1]
+    assert "RECONCILIATION_REQUIRED" in section
+    assert "AUTHORITY_MISMATCH" in section
+    assert "SHARED_SCOPE_CONFLICT" in section
+    assert "target/head/checkpoint" in section
+    assert "NO_WORK" in section
+
+
+def test_scheduler_authoring_propagates_same_lane_nonterminal_gate() -> None:
+    text = _read(WRITE_SCHED)
+    assert "SAME_LANE_NONTERMINAL_WORK_V1" in text
+    section = text.split("SAME_LANE_NONTERMINAL_WORK_V1", 1)[1]
+    assert "RECONCILIATION_REQUIRED" in section
+    assert "SHARED_SCOPE_CONFLICT" in section
+    assert "post-update readback" in section
+
