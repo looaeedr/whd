@@ -1,15 +1,12 @@
 {
-  "version": 1,
-  "issue": "787",
-  "branch": "governance/issue787-turn-exit-hard-gate-20260927",
-  "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
-  "state": "TERMINAL_SUCCESS",
-  "next_action": null,
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
+  "branch": "governance/issue787-turn-exit-hard-gate-20260927",
+  "chain_next_action": null,
+  "chain_reason": null,
+  "chain_state": "NONE",
+  "closure_next_action": "Run trusted WHD Remote Finalization for #787, close/read back Issue #787, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
   "evidence": [
     "User-authorized scope is only the #787 turn-exit hard-gate correction.",
     "Progress/status/CHECKPOINT observations are explicitly non-terminal and must preserve continuation.",
@@ -20,13 +17,19 @@
     "Focused acceptance 69 PASS; full process suite introduced failures=0 (842 PASS, same 3 baseline RED).",
     "PR #792 merged; production readback cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e.",
     "Post-integration focused acceptance: 69 PASS / 0 FAIL.",
-    "Terminal coordination write Guard GREEN run=36284997600."
+    "Terminal coordination write Guard GREEN run=36284997600.",
+    "Remote Finalization run 36285121828 correctly rejected FINALIZATION_PENDING; canonical adjacent closure advance required.",
+    "Closure transition authorized by Remote Guard run 36285182732."
   ],
+  "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
+  "issue": "787",
+  "job_id": null,
+  "log_cursor": null,
   "master_issue": null,
-  "chain_state": "NONE",
+  "next_action": null,
   "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Run trusted WHD Remote Finalization for #787, close/read back Issue #787, then atomically persist checkpoint CLOSED + claim RELEASED."
+  "operation": null,
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
 }
