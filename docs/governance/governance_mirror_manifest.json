@@ -10,6 +10,7 @@
     ".agents/skills/engineering/README.md",
     ".agents/skills/skill_registry.json",
     ".github/workflows/knowledge-governance-bootstrap.yml",
+    ".github/workflows/whd-control-plane-regression.yml",
     ".github/workflows/whd-governance-mirror-gate.yml",
     ".github/workflows/whd-phase6-preflight.yml",
     ".github/workflows/whd-remote-claim-activation.yml",
