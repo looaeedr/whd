@@ -11,13 +11,17 @@ def _text() -> str:
 
 
 def test_interactive_authority_parser_uses_real_python_newlines():
-    line = next(
+    parser_lines = [
         line.strip()
         for line in _text().splitlines()
         if "lines = body.replace" in line
+    ]
+    assert parser_lines
+    assert r'lines = body.replace("\\r\\n", "\\n").split("\\n")' not in parser_lines
+    assert all(
+        line == r'lines = body.replace("\r\n", "\n").split("\n")'
+        for line in parser_lines
     )
-    assert line == r'lines = body.replace("\r\n", "\n").split("\n")'
-
 
 def test_interactive_authority_json_handoff_is_single_valid_json_object(tmp_path):
     text = _text()
