@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "790",
+  "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
+  "head_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
+  "state": "RUNNING",
+  "next_action": "Run canonical branch-create Guard for governance/issue790-intervening-claim-blob-reconcile-20260927 from exact main@646968f0e0945707d4a87b6b57de769c5a474bb1; create/read back branch; then write RED reproducing #769 H0→H1 direct-child rejection after same-owner claim-blob refresh.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #769 live RED: Guarded direct-child H0->H1 exists, but intervening same-owner coord write changed current claim blob.",
+    "Helper #790 exact target: trusted main first, then cleanup parity before use on #769."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
