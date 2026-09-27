@@ -46,7 +46,10 @@
     "primary authority handback Guard 36328358537 GREEN",
     "fresh pre-terminal audit passed: #860 merged, #849 closed unmerged, no same-ticket open PR",
     "terminal checkpoint entered FINALIZATION_PENDING under write Guard 36328519594",
-    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36328630444"
+    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36328630444",
+    "Trusted Remote Finalization 36328988660 GREEN with FINALIZATION_PROOF_VALID; artifact 10934906932.",
+    "Issue #843 readback closed/completed; checkpoint remained exact through proof + close.",
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36329113040."
   ],
   "operation": null,
   "master_issue": null,
@@ -54,6 +57,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint trusted finalization proof for exact #843 checkpoint, close/readback Issue #843, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED with Master #842 successor #844."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve Master #842 NEXT_CHILD_EXECUTABLE handoff to #844."
 }

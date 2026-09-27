@@ -12,7 +12,7 @@
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T15:11:40Z",
+  "last_update": "2026-09-27T15:19:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,7 +25,7 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN_SYNCED"
   },
-  "next_action": "Mint trusted remote finalization proof against exact #843 ISSUE_CLOSE_PENDING checkpoint bytes; if GREEN, close/readback Issue #843 without mutating checkpoint; then advance RELEASE_HANDOFF_PENDING and atomically write RELEASED/CLOSED with Master #842 successor #844.",
+  "next_action": "Advance #843 RELEASE_HANDOFF_PENDING -> CLOSED/RELEASED under one final fresh Remote Guard; preserve Master #842 NEXT_CHILD_EXECUTABLE handoff to #844, which becomes unblocked only after #843 terminal release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -72,7 +72,10 @@
     "primary authority handback Guard run=36328358537 GREEN",
     "fresh terminal audit passed: #860 merged, #849 closed unmerged, same-ticket open PR count=0, focused QA 36327480836 still success",
     "terminal checkpoint transition Guard run=36328519594 GREEN",
-    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard run=36328630444"
+    "closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard run=36328630444",
+    "Trusted Remote Finalization run 36328988660 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; artifact 10934906932; exact checkpoint fingerprint 1d5ecd722cd3d2115fda31a33e77dc337ca92d3c58744edba01fb52be5efb269.",
+    "Issue #843 fresh readback closed/completed at 2026-09-27T15:17:53Z; checkpoint remained exact through proof + close.",
+    "Release-handoff transition Guard run=36329113040 GREEN"
   ],
   "delegated_branches": [
     "governance/issue843-control-plane-characterization-20260927"
@@ -80,12 +83,11 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36328630444,
-    "request_comment_id": 5857065286,
-    "result_comment_id": 5857066728,
+    "run_id": 36329113040,
+    "request_comment_id": 5857124682,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #843 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #843 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING after trusted proof and close readback"
   }
 }
