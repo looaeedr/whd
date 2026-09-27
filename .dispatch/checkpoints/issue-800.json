@@ -4,7 +4,7 @@
   "branch": "hotfix/issue800-github-blob-base64-20260927",
   "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
   "state": "RUNNING",
-  "next_action": "Fresh-read trusted main and compare against #800 GREEN head b507632dc3ae0f3cd0582d44af9c044cb4309872. If main has no conflicting drift and the effective delta is exactly the four #800 authorized artifacts, obtain one fresh pr-write Guard, open/update the exact PR to main, lock concrete checks to terminal, merge non-force under a second fresh pr-write Guard, fresh-read main capability, then propagate the accepted hotfix to cleanup/2d-3d-sync before terminal closure and #769 retry.",
+  "next_action": "Create exactly one cleanup parity helper for parent #800 using helper_key=issue800-main-x-parity and reservation_token=issue800-main-x-parity-20260927a; create the child claim/checkpoint against frozen cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71, then activate this exact reservation with the child Issue and child claim blob. Do not create a second helper.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -21,7 +21,10 @@
     "RED: wrapped valid content failed on baseline. GREEN: #790 file 13/13; adjacent suite 64/64.",
     "Malformed base64, non-ASCII whitespace, and Git blob SHA mismatch remain fail-closed.",
     "Legacy #675 exact failure reproduced unchanged on main baseline.",
-    "Phase6 Preflight GREEN; pair reconciliation Guard 36290480006 GREEN."
+    "Phase6 Preflight GREEN; pair reconciliation Guard 36290480006 GREEN.",
+    "Trusted-main deployment complete: PR #802 merged as 5684094f09317d7db52873aba9f82a1b378436b3.",
+    "Cleanup parity still missing at cleanup@44d1621f013d6181af7678e550254920cd6bcc71.",
+    "Unique helper reservation issue800-main-x-parity is RESERVING; pair-write Guard 36290836389 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
