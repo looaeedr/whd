@@ -11,11 +11,11 @@
   "base_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
   "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T02:22:00Z",
+  "last_update": "2026-09-27T02:23:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Advance #794 terminal closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh Guard; then run canonical finalization proof, close/read back Issue #794, advance RELEASE_HANDOFF_PENDING, and atomically persist CLOSED + RELEASED.",
+  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint, verify FINALIZATION_PROOF_VALID, close Issue #794, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-794.json",
   "evidence": [
@@ -46,16 +46,17 @@
     "Fresh production readback: cleanup/2d-3d-sync@44d1621f and accepted six-artifact #790 parity capability present.",
     "PR #797 exact head 65ac396d / base 24fa64f3; Knowledge Governance Bootstrap run 36288160955 success.",
     "Merge pr-write Guard run 36288193460 GREEN; exact PR merge consumed and read back.",
-    "Terminal-entry coordination Guard run 36288266846 GREEN."
+    "Terminal-entry coordination Guard run 36288266846 GREEN.",
+    "Closure advance Guard run 36288327564 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288266846,
-    "request_comment_id": 5851927557,
+    "run_id": 36288327564,
+    "request_comment_id": 5851934609,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #794 terminal finalization after cleanup parity integration"
+    "mutation": "advance #794 closure to ISSUE_CLOSE_PENDING"
   }
 }

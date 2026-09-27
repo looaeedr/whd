@@ -32,6 +32,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance to ISSUE_CLOSE_PENDING under fresh Guard; then run bound finalization proof, close/read back owning Issue, advance RELEASE_HANDOFF_PENDING, and atomically persist CLOSED + RELEASED"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run bound finalization proof on this exact frozen checkpoint, close/read back owning Issue, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED"
 }
