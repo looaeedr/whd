@@ -9,23 +9,43 @@
   "work_branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
   "claimed_at": "2026-09-27T08:37:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
-  "head_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T08:37:00Z",
+  "head_sha": "95fc690e484a85d90f6f93b4cea046c1502d2458",
+  "phase": "RED",
+  "last_update": "2026-09-27T08:42:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create guarded work branch from exact cleanup/2d-3d-sync@b059ffeade3e8ade105f44a370e20e071a0127a7, establish focused RED for same-lane nonterminal anti-NO_WORK invariant, then implement GREEN and bidirectional governance mirror.",
+  "remote_qa": {
+    "run_id": 36306976846,
+    "job_id": 108585432414,
+    "head_sha": "95fc690e484a85d90f6f93b4cea046c1502d2458",
+    "status": "completed",
+    "conclusion": "failure",
+    "pytest": "3 failed / 6 passed in 0.13s",
+    "marker": "ISSUE835_VALID_RED"
+  },
+  "next_action": "Implement SAME_LANE_NONTERMINAL_WORK_V1 in 排程模擬 and 寫排程 so same-lane nonterminal work routes to SAME_LANE_RESUME or RECONCILIATION_REQUIRED/SHARED_SCOPE_CONFLICT instead of NO_EXECUTABLE_WORK; rerun exact focused QA to GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36307015060,
+    "request_comment_id": 5854290475,
+    "result": "GREEN",
+    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "consumed": true,
+    "mutation": "reconcile RED head and QA evidence"
+  },
   "evidence": [
     "authorization_source=user explicit 補",
     "execution_intent=UPDATE_ONLY",
     "purpose=repair scheduler false NO_WORK for same-lane nonterminal claims with nonblank next_action",
     "authorized_scope=Issue #835 scheduler Skills/tests + required governance mirror + live A/B prompt sync",
     "prohibited_scope=no product/UI; no cadence/timing/lane owner changes; no #779/#827/#828 claim mutation",
-    "fresh cleanup base=b059ffeade3e8ade105f44a370e20e071a0127a7",
-    "fresh trusted main=9fdb592777828a5f843220e5cc8c82709974cda8"
+    "branch-create Guard run 36306861147 GREEN; branch readback exact.",
+    "RED commit 95fc690e484a85d90f6f93b4cea046c1502d2458 changes only focused contract test + one-shot QA workflow.",
+    "Exact RED run 36306976846 / job 108585432414: setup GREEN, focused contract 3 failed / 6 passed; missing SAME_LANE_NONTERMINAL_WORK_V1 is the expected defect.",
+    "Post-RED reconciliation Guard run 36307015060 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ]
 }
