@@ -143,6 +143,7 @@ def test_issue816_workflow_is_always_on_for_both_governance_branches() -> None:
         "tools/governance_parity_gate.py",
         "governance_mirror_manifest.json",
         "NON_GOVERNANCE_PATH_TO_MAIN",
+        "core.quotePath=false",
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"RED: governance mirror workflow missing contract tokens: {missing}"
