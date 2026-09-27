@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T05:16:45Z",
   "base_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
   "head_sha": "f79f3e2fa076090883862c54c9ff89ae24d74b40",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T06:07:36.022840Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T06:11:16.002633Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -21,7 +21,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "obtain fresh pr-write authority for PR #820 latest head, pair with #819 latest head, then merge and prove production governance parity",
+  "next_action": "Run trusted bound finalization proof for #818 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #818, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-818.json",
   "evidence": [
@@ -53,18 +53,20 @@
     "Paired PR #819 merged source governance to cleanup/2d-3d-sync as 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
     "Production push Governance Mirror Hard Gate: cleanup run 36298990616 GREEN; main run 36298994158 GREEN.",
     "Production governed snapshot: BIDIRECTIONAL_MIRROR, 48 artifacts, 0 mismatches.",
-    "Terminal acceptance pair-write Guard 36299175389 GREEN."
+    "Terminal acceptance pair-write Guard 36299175389 GREEN.",
+    "Issue #818 was reopened after premature default-branch autoclose because finalization proof had not yet been minted.",
+    "Remote Guard 36299347675 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36299175389,
-    "request_comment_id": 5853236930,
-    "result_comment_id": 5853237949,
+    "run_id": 36299347675,
+    "request_comment_id": 5853256912,
+    "result_comment_id": 5853257871,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #818 TERMINAL_SUCCESS / FINALIZATION_PENDING"
+    "mutation": "advance #818 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "delegated_work": []
 }

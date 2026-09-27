@@ -26,13 +26,15 @@
     "PR #820 merged to main production at aadf248f; paired cleanup source PR #819 merged at 98a11b89.",
     "Both production push governance hard gates GREEN: 36298990616 / 36298994158.",
     "Production governance parity readback: 48 governed artifacts, 0 mismatches.",
-    "Remote Guard 36299175389 GREEN authorizes #818 terminal acceptance pair transition."
+    "Remote Guard 36299175389 GREEN authorizes #818 terminal acceptance pair transition.",
+    "Premature PR autoclose was repaired by reopening Issue #818 before finalization proof.",
+    "Remote Guard 36299347675 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #818 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, read back already-closed Issue #818 as completed, then persist CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted bound finalization proof for #818 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #818, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED."
 }
