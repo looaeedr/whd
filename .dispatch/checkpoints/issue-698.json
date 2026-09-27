@@ -33,8 +33,9 @@
     "Accepted A3 head remains ancestor of production cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931.",
     "Trusted main retains accepted A3 deployment blob ad78c86da95e3d6349485412779bee0f505b1e6f; newer amendment changes make cleanup blob d7de36b59ac0d67e41694debbdc0753f54a0f6e8.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed in 0.53s.",
-    "Terminal transition authorized by Remote Guard 36298048071."
+    "Terminal transition authorized by Remote Guard 36298048071.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36298178857."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #698, then atomically persist CLOSED+RELEASED and return chain continuation to #702"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #698 and fresh-read closed/completed before any checkpoint mutation."
 }
