@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "837",
   "branch": "governance/issue837-scheduler-no-work-main-mirror-20260927",
-  "head_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
+  "head_sha": "2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489",
   "state": "RUNNING",
-  "next_action": "Guard-create fresh main mirror branch, apply exact accepted #835 排程模擬/寫排程 Skill blobs only, then create reciprocal governance mirror PR paired with #835 cleanup PR and require Governance Mirror Hard Gate GREEN.",
+  "next_action": "Create main PR from #837 mirror head and cleanup PR from #835 closing head, add reciprocal WHD-Governance-Mirror-Pair markers, require both Governance Mirror Hard Gate checks GREEN, then merge/readback both branches.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -12,7 +12,9 @@
   "blocked_last_notified_at": null,
   "evidence": [
     "Parent relation is owned by #835 delegated_work; nonterminal checkpoint carries no master-chain metadata.",
-    "Fresh main base=9fdb592777828a5f843220e5cc8c82709974cda8"
+    "Fresh main base=9fdb592777828a5f843220e5cc8c82709974cda8",
+    "Main mirror commit 2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489 exact two-Skill delta.",
+    "Post-commit pair reconciliation Guard 36308144762 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

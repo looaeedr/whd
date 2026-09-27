@@ -9,19 +9,31 @@
   "work_branch": "governance/issue837-scheduler-no-work-main-mirror-20260927",
   "claimed_at": "2026-09-27T08:55:30Z",
   "base_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
-  "head_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T08:55:30Z",
+  "head_sha": "2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T09:03:40Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Guard-create fresh main mirror branch, apply exact accepted #835 排程模擬/寫排程 Skill blobs only, then create reciprocal governance mirror PR paired with #835 cleanup PR and require Governance Mirror Hard Gate GREEN.",
+  "next_action": "Create main PR from #837 mirror head and cleanup PR from #835 closing head, add reciprocal WHD-Governance-Mirror-Pair markers, require both Governance Mirror Hard Gate checks GREEN, then merge/readback both branches.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-837.json",
   "evidence": [
     "Parent #835 durable delegated_work pointer ACTIVE with helper_key issue835-main-governance-mirror.",
     "Purpose is exact governance mirror only; no product paths or scheduler host mutation.",
-    "Fresh main base=9fdb592777828a5f843220e5cc8c82709974cda8"
-  ]
+    "Fresh main base=9fdb592777828a5f843220e5cc8c82709974cda8",
+    "Main mirror commit 2cb45d0d8ad2cc7c0b3d80c68882cf5d1c576489 changes exactly 排程模擬/SKILL.md and 寫排程/SKILL.md.",
+    "Post-commit pair reconciliation Guard 36308144762 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36308144762,
+    "request_comment_id": 5854467088,
+    "result": "GREEN",
+    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "consumed": true,
+    "mutation": "reconcile #837 main mirror commit"
+  }
 }
