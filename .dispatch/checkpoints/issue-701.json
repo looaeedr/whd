@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "701",
   "branch": "work/issue701-scheduler-state-reconciliation-20260927",
-  "head_sha": "cc473355f93dfc7b16040f87e483bde9064331da",
+  "head_sha": "8428fb76f64efcfadde621bc9d813640d5458c9b",
   "state": "RUNNING",
-  "next_action": "Repair only the temporary #701 QA harness so pytest is available, preserve the exact RED-STOP-24 characterization, then let the work-branch push trigger one exact RED run and lock that run_id+head_sha to terminal. Do not count run 36288418044 as RED evidence because it failed before pytest collection.",
+  "next_action": "Repair only the temporary #701 QA command to isolate tests/process from the repository-level GUI conftest using --confcutdir=tests/process; keep the RED-STOP-24 test unchanged. Then let the exact work-branch push produce one RED run and lock it to terminal. Runs 36288418044 and 36288589538 are harness failures, not RED evidence.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,7 +20,9 @@
     "RED characterization head=dc2380342be0fc2df007230288526f5442042c58.",
     "Post-commit pair reconciliation Guard 36288310555 GREEN and consumed.",
     "Run 36288418044 is invalid RED evidence: runner lacked pytest before test collection.",
-    "Post-workflow-trigger reconciliation Guard 36288437582 GREEN and consumed."
+    "Post-workflow-trigger reconciliation Guard 36288437582 GREEN and consumed.",
+    "Run 36288589538 is invalid RED evidence: repository GUI conftest required tkinter before collection.",
+    "Post-harness-fix reconciliation Guard 36288607014 GREEN and consumed."
   ],
   "master_issue": null,
   "chain_state": "NONE",
