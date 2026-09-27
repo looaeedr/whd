@@ -6,16 +6,16 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.issue836.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue836-main-mirror-20260927",
+  "work_branch": "governance/issue836-stop-helper-churn-20260927",
   "claimed_at": "2026-09-27T08:53:00Z",
-  "base_sha": "85aef9c41be3629410c4345ed3d8aa66aa21f214",
-  "head_sha": "7a0f381c93a3010b1e3ef9807abf60935370c92a",
+  "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+  "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:35:00Z",
-  "production_target": "main",
+  "last_update": "2026-09-27T09:40:00Z",
+  "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue836-stop-helper-churn-20260927"
+    "governance/issue836-main-mirror-20260927"
   ],
   "remote_qa": {
     "run_id": 36308394162,
@@ -26,7 +26,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Edit PR #841 to re-trigger Governance Mirror Hard Gate with reciprocal #840 already durable; then merge #841 to main, hand authority back to cleanup branch, and merge #840.",
+  "next_action": "Merge paired cleanup PR #840 under already-GREEN Governance Mirror Hard Gate, then fresh-read main/cleanup governed blobs and post-push parity before entering closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -54,6 +54,9 @@
     "Cleanup-side Governance Mirror Hard Gate run 36309725447 GREEN.",
     "Primary authority handoff back to main mirror authorized by Remote Guard 36309774397.",
     "Cleanup PR #840 reciprocal marker -> #841 durable; Governance Mirror Hard Gate run 36309725447 GREEN.",
-    "Primary authority hand to mirror branch authorized by Remote Guard 36309774397."
+    "Primary authority hand to mirror branch authorized by Remote Guard 36309774397.",
+    "Main-side Governance Mirror Hard Gate run 36309882670 GREEN for PR #841.",
+    "PR #841 merged to main as cb80310e2643d1ab9624e90085d4abda6e4d125e.",
+    "Primary handback to cleanup consumes pending write Guard 36309997981; no helper Issue opened."
   ]
 }
