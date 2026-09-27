@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "780",
   "branch": "integration/issue780-phase7-current-x-20260927",
-  "head_sha": "03ffd93042a246854365ac78b493e1bf733677a2",
+  "head_sha": "6ac40676bb4e2911d8b8227ec73875d6cc478e77",
   "state": "RUNNING",
-  "next_action": "Under a fresh commit Guard, delete only .github/workflows/qa-issue780-phase7-integration.yml from the integration branch. Then fresh compare MERGE_HEAD 2c0005a524bc2e2c824608aa94e80bf8f7353966 to the cleaned branch head; require the only post-merge file deltas to be pure leading-BOM removals in tests/process/test_issue681_poweroff_gate.py and tests/process/test_scheduler_no_work_census_contract.py. Fresh-read cleanup/2d-3d-sync and continue guarded non-force integration/PR without rewriting history.",
+  "next_action": "Obtain a fresh pr-write Guard for integration/issue780-phase7-current-x-20260927 -> cleanup/2d-3d-sync at integration head 6ac40676bb4e2911d8b8227ec73875d6cc478e77 and fresh production head 8e16aae98a5d838721f480284121f05f6591e51e, then create/read the PR only to obtain canonical GitHub mergeability. If mergeable, continue guarded non-force merge. If dirty/conflicting, do not rewrite #780 history: create a guarded fresh landing branch from exact production head, merge exact #780 closing head into it non-force, resolve only fresh landing conflicts while preserving current production governance, re-run focused production-drift acceptance, and merge the landing branch non-force.",
   "run_id": 36298544059,
   "job_id": 108561782584,
   "log_cursor": null,
@@ -45,7 +45,10 @@
     "Guard 36298560483 GREEN authorizes durable reconciliation to the exact active QA head/run.",
     "Exact fifth QA run 36298544059 / job 108561782584 completed SUCCESS at 03ffd93042a246854365ac78b493e1bf733677a2.",
     "Artifact 10924777693 contains integration acceptance evidence; all workflow acceptance steps succeeded.",
-    "Guard 36298648655 GREEN authorizes terminal QA writeback before cleanup."
+    "Guard 36298648655 GREEN authorizes terminal QA writeback before cleanup.",
+    "Closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77 has no temporary QA workflow and differs from integration merge head only by two byte-exact BOM removals.",
+    "Fresh target X 8e16aae98a5d838721f480284121f05f6591e51e already contains both original current-X ancestry and sealed Phase7 ancestry, plus both authority-map markers, but still has both BOMs.",
+    "Guard 36298838187 GREEN authorizes durable reconciliation to the exact cleanup closing head before PR/mergeability discovery."
   ],
   "master_issue": null,
   "chain_state": "NONE",
