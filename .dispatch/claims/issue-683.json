@@ -9,22 +9,22 @@
   "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "97967e4334118ba27577f512019f0f96f57d400e",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T08:49:01Z",
+  "head_sha": "49bcd13684b7a4695f976199d1c1a88043fc9e27",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-27T08:56:07Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36307331742,
-    "job_id": 108586422046,
-    "head_sha": "97967e4334118ba27577f512019f0f96f57d400e",
+    "run_id": 36307633635,
+    "job_id": 108587270064,
+    "head_sha": "49bcd13684b7a4695f976199d1c1a88043fc9e27",
     "status": "completed",
-    "conclusion": "success",
-    "summary": "R7/R8 behavioral acceptance GREEN: 7 passed in 0.41s."
+    "conclusion": "failure",
+    "summary": "Writeback QA failed during test collection before assertions: accidental literal \\\\n in tests/process/test_issue683_ha_transport_projection.py caused SyntaxError at line 9."
   },
-  "next_action": "Fresh-read Issue #683 acceptance/writeback requirements and current production drift. Under fresh Guards, update only the required canonical AI Library/transport ownership documentation for the accepted bridge, remove the one-shot QA workflow, run final focused acceptance/drift audit, then create/merge a non-force PR into current cleanup/2d-3d-sync.",
+  "next_action": "Under a fresh test-only commit Guard, replace the accidental literal backslash-n between BRIDGE and AUTHORITY_MAP in tests/process/test_issue683_ha_transport_projection.py with a real newline. Push non-force, lock the exact #683 QA run, and require all 8 behavioral/authority tests GREEN before cleanup.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -51,17 +51,22 @@
     "Bridge implementation head 97967e4334118ba27577f512019f0f96f57d400e changes only tools/whd_poweroff_ha_bridge.py above the RED head.",
     "Exact GREEN run 36307331742 / job 108586422046 completed SUCCESS: 7 passed in 0.41s.",
     "Accepted behavior: current-request-bound SAFE; stale request/revision fail closed; timeout=ERROR/TIMEOUT; NOT_SAFE and ERROR preserved; no shutdown actuator.",
-    "Post-implementation pair reconciliation Guard 36307380175 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5854339128, result 5854341023."
+    "Post-implementation pair reconciliation Guard 36307380175 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5854339128, result 5854341023.",
+    "Authority/writeback commit Guard 36307497112 GREEN; request 5854361020, result 5854372607.",
+    "Writeback head 49bcd13684b7a4695f976199d1c1a88043fc9e27 changes only Authority Map, #683 permanent test, and one-shot QA workflow.",
+    "Exact writeback QA run 36307633635 / job 108587270064 completed failure before test execution due SyntaxError from literal \\\\n inserted between BRIDGE and AUTHORITY_MAP.",
+    "The failure is test harness syntax only; prior implementation run 36307331742 remains GREEN 7/7 and the authority assertions did not execute.",
+    "Writeback failure pair reconciliation Guard 36307756424 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5854406403, result 5854407885."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307380175,
-    "request_comment_id": 5854339128,
-    "result_comment_id": 5854341023,
+    "run_id": 36307756424,
+    "request_comment_id": 5854406403,
+    "result_comment_id": 5854407885,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 durable pair to accepted implementation head and advance to writeback/cleanup"
+    "mutation": "reconcile #683 durable pair to writeback syntax-failure head and enter RECOVERING"
   }
 }
