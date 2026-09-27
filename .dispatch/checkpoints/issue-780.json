@@ -76,13 +76,16 @@
     "Fresh production readback 497c5e145ab2506b9c4272392a15940164057066: #780 BOM normalizations present; accepted authority-map markers preserved.",
     "Parent #626 and Master #627 fresh-read closed/completed and terminal/released; chain continuation is CHAIN_COMPLETE.",
     "Guard 36302858641 GREEN authorizes terminalization to TERMINAL_SUCCESS / FINALIZATION_PENDING.",
-    "Guard 36302978412 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Guard 36302978412 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization 36303339750 SUCCESS; bound proof artifact 10926263845.",
+    "Issue #780 fresh-read closed/completed at 2026-09-27T07:32:04Z with proof-bound checkpoint unchanged until close completed.",
+    "Guard 36303435576 GREEN authorizes adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": 627,
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Late integration-repair helper #780 is production-accepted; parent #626 and Master #627 are already closed/completed with released terminal durable state.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run trusted WHD Remote Finalization bound to this exact ISSUE_CLOSE_PENDING checkpoint; on GREEN close Issue #780 and fresh-read closed/completed without mutating the checkpoint in between"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "under one fresh write Guard, atomically persist checkpoint closure_state=CLOSED + claim phase=RELEASED with next_action=null; then fresh-read Issue/claim/checkpoint terminal state"
 }
