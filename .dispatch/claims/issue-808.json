@@ -9,13 +9,13 @@
   "work_branch": "governance/issue808-scheduler-remote-only-20260927",
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "head_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T03:55:00Z",
+  "head_sha": "ff79456251b2b2051bc528077771a63daab34003",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T04:00:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain branch-create Guard for governance/issue808-scheduler-remote-only-20260927 at cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6; create/read back branch; add RED contract proving scheduler simulation must not execute or fallback through LOCAL/local shell/Remote Desktop; then implement remote-only Skill contract and validate through GitHub/remote actions only.",
+  "next_action": "Run the new scheduler-simulation remote-only contract as RED using GitHub Actions only. After expected RED, add SCHEDULER_REMOTE_ONLY_EXECUTION_V1 to 排程模擬, remove local/Remote Guard wording, add explicit execution_location remote-only status, then run remote GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -24,6 +24,7 @@
     "purpose=make 排程模擬 remote-only and forbid LOCAL/local shell/Remote Desktop execution fallback",
     "authorized_scope=.agents/skills/engineering/排程模擬/SKILL.md + tests/process/test_scheduler_simulation_skill_contract.py + required scheduler pitfall writeback only",
     "prohibited_scope=no cadence/enabled/lane-owner/product/UI changes; no local workstation or Remote Desktop use",
-    "fresh production target cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6"
+    "fresh production target cleanup/2d-3d-sync@8147c4319aa02824bd08ca4fd51491df7342e1a6",
+    "RED contract commit ff79456251b2b2051bc528077771a63daab34003 changes only tests/process/test_scheduler_simulation_skill_contract.py under Remote Guard 36292938152."
   ]
 }
