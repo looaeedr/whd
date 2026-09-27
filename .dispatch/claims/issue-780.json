@@ -11,7 +11,7 @@
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "03ffd93042a246854365ac78b493e1bf733677a2",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T05:54:55Z",
+  "last_update": "2026-09-27T05:56:47Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -25,11 +25,13 @@
     "run_id": 36298544059,
     "job_id": 108561782584,
     "head_sha": "03ffd93042a246854365ac78b493e1bf733677a2",
-    "status": "in_progress",
-    "conclusion": null,
-    "summary": "Fifth exact-head QA is active. Stable recovery validation and repository-wide Python BOM census are installed; lineage and BOM recovery gate passed and structural suite is running."
+    "status": "completed",
+    "conclusion": "success",
+    "artifact_id": 10924777693,
+    "artifact_digest": "sha256:1cb89b12ce8b0c39b0c2436c10eed5642c3f4d81e0b483ef23dc62f42ff00baa",
+    "summary": "Full integration acceptance GREEN: recovery/BOM census, authority-map markers, structural targets, ownership invariants, manufacturing/collision/DXF, persistence, Xvfb GUI/Bridge/Settings/Door, and protected config/baseline checks all succeeded."
   },
-  "next_action": "Poll only exact QA run 36298544059 / job 108561782584 at head 03ffd93042a246854365ac78b493e1bf733677a2. If the BOM census reports remaining Python BOM files, fresh-read ownership and production presence for the full reported set, then normalize all eligible inherited BOMs in one guarded non-force commit. If QA is GREEN, remove only the temporary QA workflow, drift-audit recovery hygiene, and continue guarded integration into fresh cleanup/2d-3d-sync.",
+  "next_action": "Under a fresh commit Guard, delete only .github/workflows/qa-issue780-phase7-integration.yml from the integration branch. Then fresh compare MERGE_HEAD 2c0005a524bc2e2c824608aa94e80bf8f7353966 to the cleaned branch head; require the only post-merge file deltas to be pure leading-BOM removals in tests/process/test_issue681_poweroff_gate.py and tests/process/test_scheduler_no_work_census_contract.py. Fresh-read cleanup/2d-3d-sync and continue guarded non-force integration/PR without rewriting history.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -77,17 +79,21 @@
     "Second inherited BOM recovery commit Guard 36298476405 GREEN; commit 03ffd93042a246854365ac78b493e1bf733677a2 pushed non-force.",
     "Fresh readback: tests/process/test_scheduler_no_work_census_contract.py no longer begins with U+FEFF; temporary QA now validates only pure BOM-removal Python diffs relative to MERGE_HEAD and performs a repository-wide *.py BOM census.",
     "Exact fifth QA run 36298544059 / job 108561782584 exists at head 03ffd93042a246854365ac78b493e1bf733677a2 and is an active external producer.",
-    "Pair reconciliation Guard 36298560483 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853157601, result 5853159072."
+    "Pair reconciliation Guard 36298560483 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5853157601, result 5853159072.",
+    "Exact fifth QA run 36298544059 / job 108561782584 completed SUCCESS at head 03ffd93042a246854365ac78b493e1bf733677a2.",
+    "All acceptance steps GREEN: BOM-recovery lineage/census, dual authority-map markers, structural suite, seven-target ownership invariants, manufacturing/collision/DXF reopen, save/reload persistence, Xvfb GUI/Bridge/Settings/Door, protected config and baseline DXF.",
+    "Evidence artifact 10924777693 digest sha256:1cb89b12ce8b0c39b0c2436c10eed5642c3f4d81e0b483ef23dc62f42ff00baa.",
+    "QA terminal write Guard 36298648655 GREEN; request 5853169967, result 5853171037."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36298560483,
-    "request_comment_id": 5853157601,
-    "result_comment_id": 5853159072,
+    "run_id": 36298648655,
+    "request_comment_id": 5853169967,
+    "result_comment_id": 5853171037,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #780 durable pair to stable BOM-recovery head and fifth exact QA"
+    "mutation": "record full #780 integration acceptance GREEN and advance to temporary workflow cleanup"
   }
 }
