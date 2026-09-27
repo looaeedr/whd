@@ -204,3 +204,14 @@ Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#62
 - External mutation outcome 若為 unknown，尤其 non-idempotent mutation，reason 固定 `UNKNOWN_MUTATION_OUTCOME`，必須先 readback/reconcile 才能 replay。
 - Stale takeover 只屬 abnormal recovery；planned handoff、same-lane resume、known durable continuation 都不是 stale takeover trigger。
 - Prompt / Skill / AI Library 只描述 routing 與 invariant；不得複製 `evaluate_outage_recovery` 或 `LocalDurabilityState` 成第二套 machine state。
+
+<!-- WHD_AUTHORITY contract=ha-poweroff-end-to-end-acceptance role=CURRENT path=tools/whd_poweroff_end_to_end_acceptance.py -->
+### ha-poweroff-end-to-end-acceptance
+
+- CURRENT executable owner：`tools/whd_poweroff_end_to_end_acceptance.py::verify_end_to_end_acceptance`。
+- 此 owner 是 **evidence-only verifier**：把 current `WHD_HANDOFF_REQUEST_V1`、`WHD_POWER_OFF_GATE_V1`、`WHD_HA_POWER_OFF_PROJECTION_V1`、外部 `WHD_HA_ACTUATOR_DECISION_V1` 與 `WHD_SCHEDULER_RESUME_EVIDENCE_V1` 綁成同一 request/revision 的 R11 acceptance。
+- SAFE path 只有在 current request SAFE + HA/Node-RED evidence=`ALLOW`/`actuator_invoked=true` + 完整 scheduler resume evidence 時才是 `END_TO_END_ACCEPTANCE`。
+- NOT_SAFE / ERROR path 只接受 HA/Node-RED evidence=`BLOCK` 且 `actuator_invoked=false`；previous-request SAFE、request/revision mismatch、缺 resume identity 一律 fail closed。
+- `tools/workstation_poweroff_gate.py` 仍獨立擁有 safety truth；`tools/whd_poweroff_ha_bridge.py` 仍只擁有 transport projection；R11 owner不得複製兩者 machine policy。
+- Windows graceful shutdown command **不屬 WHD authority**。真正 actuator/action 由 HA/Node-RED（spec O-2）擁有；R11 owner只能驗證 actuator-decision evidence，不能發命令。
+- usage / evidence contract：`docs/governance/whd_ha_poweroff_integration_usage.md`。

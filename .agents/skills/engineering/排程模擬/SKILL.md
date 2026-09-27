@@ -529,3 +529,24 @@ trusted `WHD_REMOTE_TURN_EXIT_RESULT_V1` 必須把「本 invocation 可 return�
 - 為了不把已在途的舊 END handoff 卡死，完全不含上述三個新 lifecycle 欄位的 legacy trusted receipt 暫時可讀；一旦任一新欄位出現，就必須完整符合新 schema。
 - 這個相容層只用於消費既有 trusted receipt；所有新 trusted turn-exit receipt 一律必須輸出完整 lifecycle 欄位。
 
+<!-- WHD_POWEROFF_SCHEDULER_RESUME_BRIDGE_V1 -->
+## PC-off scheduler resume bridge
+
+當 current leaving-home / 「上班了」request 已取得 WHD request-bound SAFE evidence、HA/Node-RED actuator decision，且外部 actuator 使 local PC 離線後，A/B lane 的下一個 fresh runtime 必須沿既有 durable owner 恢復，不得要求使用者再輸入「繼續」。
+
+本 Skill 只負責 routing / resume，machine truth 固定由下列 owners 提供：
+- power-off safety truth：`tools/workstation_poweroff_gate.py`
+- HA/Node-RED transport projection：`tools/whd_poweroff_ha_bridge.py`
+- R11 combined evidence verification：`tools/whd_poweroff_end_to_end_acceptance.py`
+- checkpoint / exact `next_action` continuity：`tools/continuity_controller.py`
+- planned handoff exact identity：`tools/execution_claim_guard.py`
+
+安全的 post-PC-off resume evidence 必須保存同一 `poweroff_request_id`，並至少可 fresh-read：
+`pre_shutdown_local_head`、`remote_head`、checkpoint、`claim_owner_pre`、`claim_owner_post`、GREEN handoff receipt、`scheduler_invocation_identity`、exact `next_action`。
+
+固定限制：
+- exact active remote run 仍是 absolute lock；不得因 PC 離線 duplicate mutation。
+- previous-request SAFE / stale SAFE receipt 不得授權 current request。
+- `NOT_SAFE` / `ERROR` 不得被 scheduler 或本 Skill 升格成 actuator authority。
+- WHD / 本 Skill **不擁有 Windows shutdown command**；actuator 永遠由 HA/Node-RED/O-2 邊界負責。
+- 本節不得建立第二套 gate、projection、actuator 或 continuity state machine。
