@@ -25,8 +25,9 @@
   "master_issue": "702",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
-  "chain_next_action": "After #696 CLOSED+RELEASED, return to Master #702 and continue canonical amendment finalization.",
+  "chain_next_action": null,
   "chain_reason": "Issue #696 is the final remaining amendment child; all #696-#701 child closures must be complete before #702 finalizes.",
   "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #696, then atomically persist CLOSED+RELEASED and return to #702."
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #696, then atomically persist CLOSED+RELEASED and return to #702.",
+  "operation": null
 }
