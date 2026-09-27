@@ -5,14 +5,14 @@
   "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
   "entrypoint": "interactive:/排程A",
-  "invocation_identity": "chat.issue843.20260927b",
+  "invocation_identity": "chat.issue843.20260927c",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "governance/issue843-control-plane-characterization-20260927",
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "cf230b396ff31d700b06711b375af9d0dc1fc27a",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:46:20Z",
+  "last_update": "2026-09-27T11:05:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,8 +25,8 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN"
   },
-  "next_action": "Fresh-read #836 durable state and search for its replacement cleanup PR. If #836 replacement merges and cleanup/2d-3d-sync advances with the grandfathered governance delta, rerun/revalidate PR #849 exact-head Governance Mirror Hard Gate; otherwise remain blocked and do not mutate #843 implementation.",
-  "blocker": "EXTERNAL_DEPENDENCY: PR #849 Governance Mirror Hard Gate run 36312843112 failed after #843 change-scope evaluation GREEN because cleanup/2d-3d-sync still lacks the grandfathered #836 governance integration (UNKNOWN_DIVERGENCE tools/stale_claim_takeover.py). #836 canonical owner chatgpt.issue836.20260927a must open and merge its fresh replacement cleanup PR from governance/issue836-stop-helper-churn-sync-20260927@30ea9a19742c77d85c82036edc059b53ac30c3c3; superseded PR #840 must not be merged.",
+  "next_action": "Create one non-force two-parent sync commit with first parent cf230b396ff31d700b06711b375af9d0dc1fc27a and second parent cleanup/2d-3d-sync@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0, then reconcile #843 claim/checkpoint and rerun the focused control-plane matrix plus PR #849 gates on the synced head.",
+  "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
     "authorization_source=user exact command /排程A 843",
@@ -53,6 +53,9 @@
     "Within #843 current authority there is no same-ticket workaround: PR #840 is superseded/ambiguous per #836 durable state, #849 cannot pair with #841, and #843 cannot absorb #836 governed scope.",
     "external-dependency checkpoint write authorized by Remote Guard 36313001251 GREEN.",
     "fresh blocker proof 2026-09-27T10:46:20Z: #836 remains owned by chatgpt.issue836.20260927a at 30ea9a19 with zero open replacement cleanup PRs.",
-    "recovery candidate replaces malformed RUNNING+blocked-metadata checkpoint with canonical BLOCKED state while preserving #843 owner/head and current external dependency."
+    "recovery candidate replaces malformed RUNNING+blocked-metadata checkpoint with canonical BLOCKED state while preserving #843 owner/head and current external dependency.",
+    "#836 prerequisite is terminal: Issue closed/completed, claim RELEASED, checkpoint CLOSED; cleanup/2d-3d-sync advanced to 8a6323f50860b5aa678e2bf4b8b21a75a82d41a0.",
+    "PR #849 is open, exact head cf230b39, mergeable=true, mergeable_state=behind; prior blocker proof is stale and cannot authorize exit.",
+    "Resume path is sync current #843 head with latest cleanup, then rerun affected validation; no implementation replay."
   ]
 }
