@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T07:30:00Z",
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
   "head_sha": "6b5c5f368633e38bc66a3077228e25f81871c4fe",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T08:22:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T09:00:04Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Create cleanup-side governance mirror helper from fresh cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8 using the exact six #828 governed blobs from main candidate 6b5c5f368633e38bc66a3077228e25f81871c4fe; open reciprocal paired PRs, require both Governance Mirror Hard Gate checks GREEN, then merge/read back parity.",
+  "next_action": "Advance #828 canonical closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted Remote Finalization -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -33,7 +33,14 @@
     "QA cleanup commit 30c9512623aa6491a06179ae78ed0786fbb4854d removes only .github/workflows/qa-issue828-parent-branch-identity-repair.yml.",
     "Tested-head→closing-head drift audit ea0a8263...30c95126: exactly one removed temporary QA workflow; no production/governance implementation drift.",
     "Fresh main sync merge 6b5c5f368633e38bc66a3077228e25f81871c4fe has parents #828 closing head 30c9512623aa6491a06179ae78ed0786fbb4854d and current main 4bf93cf2073811bc86e1c0de33ef52eeca6249cd.",
-    "Fresh compare main...#828 synced candidate: ahead 4 / behind 0; exact diff is six #828 governed files only, preserving #827 merged governance."
+    "Fresh compare main...#828 synced candidate: ahead 4 / behind 0; exact diff is six #828 governed files only, preserving #827 merged governance.",
+    "PR #833 merged #828 governance to main at 9fdb592777828a5f843220e5cc8c82709974cda8.",
+    "PR #834 mirrored exact six governed files to cleanup at b059ffeade3e8ade105f44a370e20e071a0127a7.",
+    "Fresh main↔cleanup readback: all six #828 governed blobs are byte-identical.",
+    "Cleanup post-push Governance Mirror Hard Gate run 36306702749 succeeded.",
+    "Trusted repair transport was exercised successfully for #702 in run 36306868118, preserving sealed H4 and old drift branch.",
+    "Mirror helper #832 terminal proof: Issue closed/completed, claim 0d0a456eb4c81e14a751da6dd2e904371a18ad08 RELEASED, checkpoint 0fe833f2308f93ba1649ab56cf9a19fbe6227ac2 TERMINAL_SUCCESS/CLOSED.",
+    "Terminal transition authorized by Remote Guard 36307943739 GREEN."
   ],
   "remote_qa": {
     "run_id": 36304109574,
@@ -42,5 +49,29 @@
     "status": "completed",
     "conclusion": "success",
     "pytest": "12 passed / 0 failed in 0.04s"
+  },
+  "acceptance": {
+    "state": "ACCEPTED",
+    "main_merge_pr": 833,
+    "main_merge_sha": "9fdb592777828a5f843220e5cc8c82709974cda8",
+    "cleanup_merge_pr": 834,
+    "cleanup_merge_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+    "focused_run_id": 36304109574,
+    "focused_job_id": 108577217666,
+    "focused_result": "12 passed / 0 failed",
+    "cleanup_parity_run_id": 36306702749,
+    "exercised_repair_run_id": 36306868118,
+    "helper_832_claim_blob": "0d0a456eb4c81e14a751da6dd2e904371a18ad08",
+    "helper_832_checkpoint_blob": "0fe833f2308f93ba1649ab56cf9a19fbe6227ac2"
+  },
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36307943739,
+    "request_comment_id": 5854441997,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "enter #828 terminal finalization"
   }
 }

@@ -3,8 +3,8 @@
   "issue": "828",
   "branch": "governance/issue828-parent-branch-sealed-identity-repair-main-20260927",
   "head_sha": "6b5c5f368633e38bc66a3077228e25f81871c4fe",
-  "state": "RUNNING",
-  "next_action": "Create cleanup-side governance mirror helper from fresh cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8 using the exact six #828 governed blobs from main candidate 6b5c5f368633e38bc66a3077228e25f81871c4fe; open reciprocal paired PRs, require both Governance Mirror Hard Gate checks GREEN, then merge/read back parity.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36304109574,
   "job_id": 108577217666,
   "log_cursor": null,
@@ -18,13 +18,18 @@
     "VALID RED run 36303646583 / job 108575929296: 12 failed, exact missing repair capability; harness GREEN.",
     "Focused GREEN run 36304109574 / job 108577217666: 12 passed / 0 failed in 0.04s.",
     "Closing-head drift audit: ea0a8263...30c95126 changed only removal of temporary #828 QA workflow.",
-    "Main-sync head 6b5c5f368633e38bc66a3077228e25f81871c4fe is rooted at current main 4bf93cf2073811bc86e1c0de33ef52eeca6249cd and differs only by six #828 governed files."
+    "Main-sync head 6b5c5f368633e38bc66a3077228e25f81871c4fe is rooted at current main 4bf93cf2073811bc86e1c0de33ef52eeca6249cd and differs only by six #828 governed files.",
+    "PR #833 main and PR #834 cleanup merged; six governed blobs exact on both live branches.",
+    "Focused #828 acceptance: 12 passed / 0 failed; cleanup mirror hard gate succeeded.",
+    "Parent-branch identity repair exercised successfully for #702 in run 36306868118.",
+    "Mirror helper #832 is closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED.",
+    "Terminal transition authorized by Remote Guard 36307943739 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, obtain bound trusted finalization proof, close/read back Issue #828, then atomically persist CLOSED+RELEASED"
 }
