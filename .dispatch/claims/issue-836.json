@@ -10,20 +10,21 @@
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "65bdabbfacd47c8ee138057bd0192237efa21a1d",
-  "phase": "RED",
-  "last_update": "2026-09-27T09:09:00Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T09:10:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36307828944,
-    "head_sha": "d3f9479b143271dba482937d839918c73eae9182",
+    "run_id": 36308394162,
+    "job_id": 108589422963,
+    "head_sha": "65bdabbfacd47c8ee138057bd0192237efa21a1d",
     "status": "completed",
-    "conclusion": "failure",
-    "pytest": "8 failed / 7 passed in 0.31s",
-    "marker": "ISSUE836_VALID_RED"
+    "conclusion": "success",
+    "pytest": "17 passed / 0 failed in 0.28s",
+    "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Implement required helper purpose/scope split authority in canonical reservation gate; keep current-ticket repair and per-fix parity in the same owner.",
+  "next_action": "Remove one-time #836 QA workflow, prove tested-head to closing-head drift is workflow-deletion-only, then integrate #836 into cleanup/2d-3d-sync and mirror the same governance delta to main without opening a parity helper.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -35,6 +36,8 @@
     "Pair HEAD reconciliation coord commit 19f6e30b4e54141bf596c2bbd3c295a74193a6df under Remote Guard 36307880047.",
     "RED phase write authorized by Remote Guard 36307947176.",
     "No helper Issue was created for activation races, RED failure, or pair reconciliation.",
-    "Post-implementation HEAD reconciliation authorized by Remote Guard 36308413202 (RECONCILE_ONLY)."
+    "Post-implementation HEAD reconciliation authorized by Remote Guard 36308413202 (RECONCILE_ONLY).",
+    "Focused GREEN run 36308394162 / job 108589422963: 17 passed / 0 failed in 0.28s.",
+    "GREEN phase write authorized by Remote Guard 36308471164."
   ]
 }
