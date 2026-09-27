@@ -9,14 +9,14 @@
   "work_branch": "integration/issue801-issue701-scheduler-reconcile-20260927",
   "claimed_at": "2026-09-27T02:58:30Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
-  "head_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T02:58:30Z",
+  "head_sha": "7851c9b5d9a2b6dee1521d5cceb15b0b823589f0",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T03:06:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain exact branch-create Guard GREEN, create/read back integration branch from current cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71, merge accepted #701 closing head 35cea40092d6c689b36342aca33805791651e47f preserving both parents, resolve only conflicts, run focused #701 acceptance, then integrate non-force back to cleanup.",
+  "next_action": "Run focused integration acceptance on exact two-parent head 7851c9b5d9a2b6dee1521d5cceb15b0b823589f0: RED-STOP-24 scheduler reconciliation plus #696 startup/#697 operation/scheduler simulation-authoring compatibility; if GREEN, remove temporary QA transport if any, drift-audit current X, then guarded non-force PR merge to cleanup.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-801.json",
   "evidence": [
@@ -24,6 +24,21 @@
     "PR #799 fresh-read mergeable_state=dirty.",
     "Accepted #701 closing head=35cea40092d6c689b36342aca33805791651e47f.",
     "Current production integration base=cleanup/2d-3d-sync@44d1621f013d6181af7678e550254920cd6bcc71.",
-    "Scope is integration-resolution only; no new #701 behavior."
-  ]
+    "Scope is integration-resolution only; no new #701 behavior.",
+    "Integration merge commit 7851c9b5d9a2b6dee1521d5cceb15b0b823589f0 pushed non-force to helper branch.",
+    "Exact parents: current X 44d1621f013d6181af7678e550254920cd6bcc71 + accepted #701 35cea40092d6c689b36342aca33805791651e47f.",
+    "Merge mutation authorized by Remote Guard run 36290384535.",
+    "Conflict resolution preserved current-X 執行開發任務/派工 and merged accepted SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1 into 寫排程/排程模擬.",
+    "Canonical integration pattern uses Claim Activation reactivate to align durable pair to production-root two-parent merge head."
+  ],
+  "last_guard": {
+    "action": "commit",
+    "mode": "remote",
+    "run_id": 36290384535,
+    "request_comment_id": 5852167200,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "two-parent integration merge 44d1621f + 35cea400 -> 7851c9b5"
+  }
 }
