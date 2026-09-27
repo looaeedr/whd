@@ -1,0 +1,33 @@
+{
+  "issue": 702,
+  "issue_url": "https://github.com/looaeedr/whd/issues/702",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.schedulerA.702.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "work/issue702-crash-fault-combined-acceptance-20260927",
+  "claimed_at": "2026-09-27T04:06:00Z",
+  "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
+  "head_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T04:06:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back work/issue702-crash-fault-combined-acceptance-20260927 at current accepted production lineage cfbcaa1b4e50e117d8a3e1a738606814f48325d2, then run Phase6 Preflight and establish RED-STOP-22 plus the amendment-wide fault-injection/combined-acceptance matrix before implementation/writeback.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-702.json",
+  "evidence": [
+    "authorization_source=user explicit /排程A #702",
+    "execution_intent=SCHEDULER_LANE",
+    "purpose=complete Issue #702 amendment-wide crash fault-injection matrix, cross-entry Combined Acceptance, AI Library writeback, scheduler deployment/readback, child canonical closure and final amendment-chain closure",
+    "authorized_scope=looaeedr/whd Issue #702 + explicit closure/acceptance ownership for child Issues #696/#697/#698/#699/#700/#701 + required claim/branch/Guard/test/PR/QA/writeback/closure mutations",
+    "prohibited_scope=no unrelated Issue discovery or mutation outside #702 accepted amendment chain; no bypass of child evidence, Guard, Preflight, finalization, or scheduler identity invariants",
+    "resume_authority=NONE (fresh #702 claim)",
+    "Fresh dependency census: #696/#697/#698/#700/#701 are accepted pending #702 closure; #699 is implementation GREEN/integrated and BLOCKED only by its explicit scope boundary requiring #702.",
+    "Fresh lineage proof: accepted heads for #696/#697/#698/#699/#700/#701 are all ancestors of cleanup/2d-3d-sync.",
+    "Production target current observation=cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2; #702 Combined Acceptance starts from this current integrated lineage."
+  ]
+}

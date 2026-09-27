@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "702",
+  "branch": "work/issue702-crash-fault-combined-acceptance-20260927",
+  "head_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
+  "state": "RUNNING",
+  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back work/issue702-crash-fault-combined-acceptance-20260927 at current accepted production lineage cfbcaa1b4e50e117d8a3e1a738606814f48325d2, then run Phase6 Preflight and establish RED-STOP-22 plus the amendment-wide fault-injection/combined-acceptance matrix before implementation/writeback.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User explicitly invoked /排程A #702, establishing SCHEDULER_LANE authority for the accepted amendment closure owner.",
+    "Issue #702 is the explicit Combined Acceptance / Amendment Chain Closure / AI Library Writeback owner.",
+    "All six child accepted heads are ancestors of current cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
+    "#699 BLOCKED state is a scope-boundary handoff to #702, not a production/test failure."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
