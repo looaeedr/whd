@@ -1,0 +1,38 @@
+{
+  "issue": 818,
+  "issue_url": "https://github.com/looaeedr/whd/issues/818",
+  "worker": "chatgpt.sol260927.issue818.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue818.mainmirror.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue818-main-governance-mirror-20260927",
+  "claimed_at": "2026-09-27T05:16:45Z",
+  "base_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
+  "head_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T05:16:45Z",
+  "production_target": "main",
+  "delegated_branches": [],
+  "remote_qa": {
+    "run_id": null,
+    "job_id": null,
+    "head_sha": null,
+    "status": "RUN_NOT_CREATED",
+    "conclusion": null
+  },
+  "next_action": "obtain branch-create Guard, then mirror only #816 governance-manifest paths from X implementation head a637e531 to main-based branch",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-818.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1",
+    "parent=#816",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=main-side governance mirror only",
+    "authorized_scope=copy #816 governance manifest paths from a637e531; no cleanup/product lineage",
+    "prohibited_scope=non-governance/product/WHD/Phase/CAD paths to main",
+    "Phase6 planned-file preflight inherited from same #816 runtime; exact mirror diff will be machine-audited"
+  ],
+  "last_guard": null,
+  "delegated_work": []
+}
