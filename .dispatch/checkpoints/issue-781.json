@@ -13,13 +13,14 @@
   "evidence": [
     "PR #782 merged to main.",
     "Action-scope hard gate deployed and validated.",
-    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID.",
+    "Issue #781 fresh-read closed/completed."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Authorize finalization proof, close/readback #781, then atomically CLOSED+RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #781."
 }
