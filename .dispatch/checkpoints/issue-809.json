@@ -31,13 +31,16 @@
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36295225660.",
     "Remote Finalization run 36295325451 GREEN / FINALIZATION_PROOF_VALID.",
     "Issue #809 fresh-read closed/completed at 2026-09-27T04:48:02Z.",
-    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Remote Guard 36295370913."
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Remote Guard 36295370913.",
+    "Final coordination Guard 36295420358 GREEN.",
+    "Issue #809 is closed/completed; Remote Finalization proof is GREEN; cleanup integration/readback is satisfied.",
+    "Checkpoint closure transitioned RELEASE_HANDOFF_PENDING -> CLOSED canonically."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "obtain one final trusted write Guard, then atomically persist checkpoint CLOSED + claim RELEASED"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

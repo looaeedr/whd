@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T04:20:00Z",
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "9ba204c0303a67d8be6e2569f6ee52f8824e2ac5",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T04:48:31Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T04:49:34Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "worker.slot.1",
   "slot_binding": {
@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "obtain one final trusted write Guard, then atomically persist checkpoint CLOSED + claim RELEASED",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-809.json",
   "evidence": [
@@ -61,16 +61,18 @@
     "Closure-state write Guard primary run 36295225660 GREEN; equivalent duplicate request is shadow.",
     "Remote Finalization run 36295325451 GREEN / FINALIZATION_PROOF_VALID, bound to checkpoint d3eae07e04ba1bf7752cab42952301603c102c38 and fingerprint f112b6e70df80a9c324d633d23a61449312f65a605f264a70beb00d1fedd6071.",
     "Owning Issue #809 fresh-read closed/completed at 2026-09-27T04:48:02Z.",
-    "Remote Guard run 36295370913 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write."
+    "Remote Guard run 36295370913 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING coordination write.",
+    "Final coordination Guard run 36295420358 GREEN for exact RELEASE_HANDOFF_PENDING pair.",
+    "Final atomic closure persists checkpoint CLOSED + claim RELEASED only after Issue #809 closed/completed readback."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "run_id": 36295370913,
-    "request_comment_id": 5852727457,
+    "run_id": 36295420358,
+    "request_comment_id": 5852732860,
     "consumed": true,
-    "mutation": "advance #809 closure ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically persist #809 checkpoint CLOSED + claim RELEASED"
   }
 }
