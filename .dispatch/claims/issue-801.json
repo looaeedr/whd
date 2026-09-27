@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T02:58:30Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
   "head_sha": "8a436d69cb07890df336f33c5e6a969db0be4495",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T03:36:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T03:37:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "classification": "INTEGRATION_ACCEPTANCE_GREEN"
   },
-  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #801, then terminalize parent #701 helper reservation and return #701 to accepted-pending-#702 state.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-801.json",
   "evidence": [
@@ -55,17 +55,19 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36291342913.",
     "Remote Finalization run 36291809823: FINALIZATION_PROOF_VALID.",
     "Issue #801 fresh-read closed/completed.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36291874457."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36291874457.",
+    "Final atomic CLOSED+RELEASED transaction authorized by Remote Guard run 36291937327.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291874457,
-    "request_comment_id": 5852336514,
+    "run_id": 36291937327,
+    "request_comment_id": 5852343714,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #801 closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "final atomic #801 checkpoint CLOSED + claim RELEASED"
   },
   "acceptance": {
     "state": "ACCEPTED",

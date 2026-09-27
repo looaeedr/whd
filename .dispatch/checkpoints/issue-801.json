@@ -31,13 +31,15 @@
     "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36291342913.",
     "Remote Finalization run 36291809823: FINALIZATION_PROOF_VALID.",
     "Issue #801 fresh-read closed/completed.",
-    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36291874457."
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36291874457.",
+    "Final atomic CLOSED+RELEASED transaction authorized by Remote Guard run 36291937327.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #801, then terminalize parent #701 helper reservation."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
