@@ -3,8 +3,8 @@
   "issue": "805",
   "branch": "parity/issue805-takeover-parser-cleanup-20260927",
   "head_sha": "7e1ad5991d8b5ca41492ef4ecac921f1c32e920f",
-  "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync and compare live target against #805 GREEN head 7e1ad5991d8b5ca41492ef4ecac921f1c32e920f. If the effective delta remains exactly the two authorized artifacts and no overlapping target drift exists, obtain pr-write Guard, open/update the exact PR to cleanup, verify mergeability/checks, obtain a fresh merge Guard, merge non-force, read back parity, then enter terminal closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,13 +18,17 @@
     "Local pair write Guard GREEN; advance to planned-scope Preflight.",
     "H1 7e1ad5991d8b5ca41492ef4ecac921f1c32e920f is the exact two-file #805 parity implementation.",
     "Focused #722 regression 3/3; workflow YAML parse PASS; Phase6 post-write Preflight GREEN.",
-    "Pair reconciliation Guard 36292257166 GREEN."
+    "Pair reconciliation Guard 36292257166 GREEN.",
+    "PR #807 merged non-force to cleanup/2d-3d-sync at 8147c4319aa02824bd08ca4fd51491df7342e1a6.",
+    "Fresh cleanup readback: all takeover parser lines use real CRLF/LF normalization.",
+    "Cleanup #722 regression blob equals accepted main blob 68e1cc41693da99df79cb6346c979b983602dec8.",
+    "Focused #722 acceptance 3 passed / 0 failed; workflow YAML parse PASS; Phase6 Preflight GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
