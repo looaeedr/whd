@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "682",
-  "branch": "work/issue682-unexpected-local-outage-recovery-20260927",
-  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
+  "branch": "governance/issue682-main-mirror-20260927",
+  "head_sha": "17fd0e628e2c2c135c6465bc30969cbbca9ab196",
   "state": "RUNNING",
-  "next_action": "Fresh-read PR #858 and #859 checks after reciprocal pair completion. Require Governance Mirror Hard Gate GREEN on both and Knowledge Governance Bootstrap GREEN where applicable. If #859 still has only a stale pre-reciprocal failure, retrigger it under same-ticket pr-write by a metadata edit. Once both are GREEN, hand primary authority to #858, merge main first, hand back, recheck #859 against new main, then merge cleanup.",
+  "next_action": "Merge PR #858 to main under exact pr-write Guard with expected head 17fd0e628e2c2c135c6465bc30969cbbca9ab196. Fresh-read main merge SHA. Then hand primary authority back to cleanup using the new main SHA as guard authority, retrigger/recheck #859 Governance Mirror Hard Gate against opposite-production main, and merge #859.",
   "run_id": 36322127710,
   "job_id": 108627862832,
   "log_cursor": null,
@@ -41,7 +41,9 @@
     "Cleanup PR #859 open and points reciprocally to #858.",
     "Primary authority handed to mirror under Guard 36325497817.",
     "Reciprocal governance pair complete: #858 ↔ #859.",
-    "Primary authority returned to cleanup under Guard 36325662449."
+    "Primary authority returned to cleanup under Guard 36325662449.",
+    "Paired gates GREEN: #858=36325645178, #859=36325782560; Knowledge #859=36325486517.",
+    "Primary authority handed to main mirror under Guard 36325828671."
   ],
   "master_issue": null,
   "chain_state": "NONE",
