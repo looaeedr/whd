@@ -20,6 +20,7 @@
     "tests/process/test_issue692_governance_parity_gate.py",
     "tests/process/test_issue736_main_x_batch_first_parity.py",
     "tests/process/test_issue816_bidirectional_governance_mirror.py",
+    "tests/process/test_issue822_governance_required_check.py",
     "tools/claim_activation_recovery.py",
     "tools/continuity_controller.py",
     "tools/execution_claim_guard.py",
