@@ -9,22 +9,22 @@
   "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "49bcd13684b7a4695f976199d1c1a88043fc9e27",
+  "head_sha": "4f2c5cf10580ee27aa680d29f073bb1472c52e42",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T08:56:07Z",
+  "last_update": "2026-09-27T10:06:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36307633635,
-    "job_id": 108587270064,
-    "head_sha": "49bcd13684b7a4695f976199d1c1a88043fc9e27",
+    "run_id": 36311369667,
+    "job_id": 108597820777,
+    "head_sha": "4f2c5cf10580ee27aa680d29f073bb1472c52e42",
     "status": "completed",
     "conclusion": "failure",
-    "summary": "Writeback QA failed during test collection before assertions: accidental literal \\\\n in tests/process/test_issue683_ha_transport_projection.py caused SyntaxError at line 9."
+    "summary": "Collection failure at line 137: trailing literal backslash-n remains after the first syntax repair."
   },
-  "next_action": "Under a fresh test-only commit Guard, replace the accidental literal backslash-n between BRIDGE and AUTHORITY_MAP in tests/process/test_issue683_ha_transport_projection.py with a real newline. Push non-force, lock the exact #683 QA run, and require all 8 behavioral/authority tests GREEN before cleanup.",
+  "next_action": "Under a fresh test-only commit Guard, remove the single trailing literal backslash-n line at line 137 of tests/process/test_issue683_ha_transport_projection.py. Push non-force, lock the exact #683 QA run, and require all 8 tests GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -56,17 +56,20 @@
     "Writeback head 49bcd13684b7a4695f976199d1c1a88043fc9e27 changes only Authority Map, #683 permanent test, and one-shot QA workflow.",
     "Exact writeback QA run 36307633635 / job 108587270064 completed failure before test execution due SyntaxError from literal \\\\n inserted between BRIDGE and AUTHORITY_MAP.",
     "The failure is test harness syntax only; prior implementation run 36307331742 remains GREEN 7/7 and the authority assertions did not execute.",
-    "Writeback failure pair reconciliation Guard 36307756424 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5854406403, result 5854407885."
+    "Writeback failure pair reconciliation Guard 36307756424 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5854406403, result 5854407885.",
+    "Test-only repair commit 4f2c5cf10580ee27aa680d29f073bb1472c52e42 consumed Guard 36311315647.",
+    "Exact QA 36311369667 / job 108597820777 failed collection at line 137 on one remaining literal backslash-n.",
+    "Post-commit/failure reconciliation Guard 36311397490 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307756424,
-    "request_comment_id": 5854406403,
-    "result_comment_id": 5854407885,
+    "run_id": 36311397490,
+    "request_comment_id": 5854894694,
+    "result_comment_id": 5854895907,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 durable pair to writeback syntax-failure head and enter RECOVERING"
+    "mutation": "reconcile #683 to first newline-repair head and exact QA failure"
   }
 }
