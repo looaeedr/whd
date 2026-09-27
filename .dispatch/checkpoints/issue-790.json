@@ -3,10 +3,10 @@
   "issue": "790",
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
-  "state": "RUNNING",
-  "next_action": "Follow active helper #800 (issue790-github-blob-base64-hotfix) through branch-first RED/GREEN, trusted main deployment, cleanup compatible-equivalent parity, and terminal close/release. After #800 terminal proof, terminalize this reservation and retry #769 exact intervening-coord recovery.",
-  "run_id": null,
-  "job_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36286039323,
+  "job_id": 108526890282,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -39,13 +39,16 @@
     "Post-integration consumption on #769 exposed real GitHub blob base64 wrapping incompatibility.",
     "Canonical helper reservation RESERVED; Guard 36289568911 GREEN.",
     "Child #800 Claim Activation GREEN; exact child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
-    "Canonical helper reservation activation returned ACTIVE; parent Guard 36289838719 GREEN."
+    "Canonical helper reservation activation returned ACTIVE; parent Guard 36289838719 GREEN.",
+    "Helper #800 terminal proof fresh-read: Issue closed/completed; claim RELEASED; checkpoint TERMINAL_SUCCESS/CLOSED; branch head b507632d exact.",
+    "Canonical helper reservation issue790-github-blob-base64-hotfix is now eligible ACTIVE -> TERMINAL with exact helper_key/token/child identity.",
+    "Remote Guard 36296571272 GREEN authorizes #790 terminal acceptance pair transition."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance #790 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, close/read back Issue #790, then persist CLOSED + RELEASED."
 }
