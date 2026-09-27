@@ -1,0 +1,32 @@
+{
+  "issue": 803,
+  "issue_url": "https://github.com/looaeedr/whd/issues/803",
+  "worker": "chatgpt.sol260927.issue803.parity.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue803.parity.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue803-issue800-main-x-parity-20260927",
+  "claimed_at": "2026-09-27T03:17:00Z",
+  "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
+  "head_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T03:17:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Fresh-read owning branch 派工 Skill (fallback cleanup if branch does not yet exist), confirm parent #800 helper reservation issue800-main-x-parity is RESERVING and binds this child claim, then obtain branch-create Guard for frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71; create/read back the work branch before any parity mutation.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-803.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: #803 is the unique cleanup parity helper reserved by parent #800.",
+    "execution_intent=EXECUTE_TICKET",
+    "purpose=port accepted #800 wrapped-base64 transport hotfix from trusted main to cleanup as compatible-equivalent parity",
+    "authorized_scope=exact four #800 artifacts only; no product/UI/scheduler cadence/work-slot changes",
+    "parent_issue=800",
+    "helper_key=issue800-main-x-parity",
+    "reservation_token=issue800-main-x-parity-20260927a",
+    "frozen_cleanup_base=44d1621f013d6181af7678e550254920cd6bcc71",
+    "accepted_main_source=5684094f09317d7db52873aba9f82a1b378436b3"
+  ]
+}

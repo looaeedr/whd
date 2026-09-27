@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "803",
+  "branch": "governance/issue803-issue800-main-x-parity-20260927",
+  "head_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
+  "state": "RUNNING",
+  "next_action": "Fresh-read owning branch 派工 Skill (fallback cleanup if branch does not yet exist), confirm parent #800 helper reservation issue800-main-x-parity is RESERVING and binds this child claim, then obtain branch-create Guard for frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71; create/read back the work branch before any parity mutation.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #800 reserved unique helper issue800-main-x-parity.",
+    "Frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71.",
+    "Branch creation and all mutations remain Guard-gated."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
