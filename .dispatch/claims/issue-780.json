@@ -11,7 +11,7 @@
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "b683ee627286db7d578a1d83036b3cd26aa1114a",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T07:21:52Z",
+  "last_update": "2026-09-27T07:24:12Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8",
     "summary": "Landing acceptance GREEN: recovery ancestry and BOM-only checks GREEN; governance mirror/authority markers GREEN; repository-wide Python BOM census empty; focused regression 16 passed; protected config.ini and 基準檔 unchanged."
   },
-  "next_action": "advance closure to ISSUE_CLOSE_PENDING, run trusted bound finalization proof, close/read back Issue #780, then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED + claim RELEASED",
+  "next_action": "run trusted WHD Remote Finalization bound to this exact ISSUE_CLOSE_PENDING checkpoint; on GREEN close Issue #780 and fresh-read closed/completed without mutating the checkpoint in between",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -134,17 +134,19 @@
     "Fresh post-merge readback: all three inherited Python BOMs are absent; ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 are both present.",
     "Production commits after #826 affect only governance mirror files, not the #780 BOM-normalization acceptance surface.",
     "Parent #626 and Master #627 are already closed/completed with terminal released durable state; #780 therefore terminates as CHAIN_COMPLETE rather than reopening either parent.",
-    "Terminalization write Guard 36302858641 GREEN; request 5853755274, result 5853757339."
+    "Terminalization write Guard 36302858641 GREEN; request 5853755274, result 5853757339.",
+    "Closure progression write Guard 36302978412 completed SUCCESS; request 5853775857, result 5853777864.",
+    "Canonical adjacent closure transition authorized: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36302858641,
-    "request_comment_id": 5853755274,
-    "result_comment_id": 5853757339,
+    "run_id": 36302978412,
+    "request_comment_id": 5853775857,
+    "result_comment_id": 5853777864,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "terminalize #780 after merged production readback"
+    "mutation": "advance #780 closure to ISSUE_CLOSE_PENDING"
   }
 }

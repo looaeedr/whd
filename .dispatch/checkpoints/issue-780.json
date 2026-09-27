@@ -75,13 +75,14 @@
     "PR #826 merged as 33e6a60b5eef5f07fbc23a48e85de9aba413f020 and is retained in current production ancestry.",
     "Fresh production readback 497c5e145ab2506b9c4272392a15940164057066: #780 BOM normalizations present; accepted authority-map markers preserved.",
     "Parent #626 and Master #627 fresh-read closed/completed and terminal/released; chain continuation is CHAIN_COMPLETE.",
-    "Guard 36302858641 GREEN authorizes terminalization to TERMINAL_SUCCESS / FINALIZATION_PENDING."
+    "Guard 36302858641 GREEN authorizes terminalization to TERMINAL_SUCCESS / FINALIZATION_PENDING.",
+    "Guard 36302978412 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": 627,
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Late integration-repair helper #780 is production-accepted; parent #626 and Master #627 are already closed/completed with released terminal durable state.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance closure to ISSUE_CLOSE_PENDING, run trusted bound finalization proof, close/read back Issue #780, then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED + claim RELEASED"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run trusted WHD Remote Finalization bound to this exact ISSUE_CLOSE_PENDING checkpoint; on GREEN close Issue #780 and fresh-read closed/completed without mutating the checkpoint in between"
 }
