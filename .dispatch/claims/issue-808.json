@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
   "head_sha": "72a34c9d8ad8d72a537687efb514b56fc4753342",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T04:24:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T04:29:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "marker": "SCHEDULER_REMOTE_ONLY_EXECUTION_V1_GREEN"
   },
-  "next_action": "Obtain exact pr-write Guard for head 72a34c9d8ad8d72a537687efb514b56fc4753342 against current cleanup/2d-3d-sync, open the single #808 PR, verify live PR head/base/mergeability/checks, then merge non-force and fresh-read production parity before terminal closure.",
+  "next_action": "Advance #808 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint bound remote finalization proof, close/read back Issue #808, then atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -47,16 +47,18 @@
     "Post-delete claim/checkpoint reconciliation Guard run 36294010593 GREEN; this atomic pair consumes it.",
     "Drift audit: frozen base -> #808 closing head changes exactly 3 final artifacts: 排程模擬/SKILL.md, tests/process/test_scheduler_simulation_skill_contract.py, scheduler_prompt_authoring_pitfall.md.",
     "Drift audit: frozen base -> current cleanup/2d-3d-sync changes only #769 continuity/turn-exit artifacts; overlap with #808 final artifact set = 0.",
-    "Closing-head readback: SCHEDULER_REMOTE_ONLY_EXECUTION_V1, execution_location=GITHUB|SCHEDULER|REMOTE_ACTION, LOCAL provenance-only, no local/Remote Desktop/local shell, no LOCAL fallback, fail-closed remote capability all present; old local/Remote Guard phrase absent."
+    "Closing-head readback: SCHEDULER_REMOTE_ONLY_EXECUTION_V1, execution_location=GITHUB|SCHEDULER|REMOTE_ACTION, LOCAL provenance-only, no local/Remote Desktop/local shell, no LOCAL fallback, fail-closed remote capability all present; old local/Remote Guard phrase absent.",
+    "PR #810 merged non-force to cleanup/2d-3d-sync at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c under pr-write Guard 36294282155.",
+    "Fresh production readback at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c: all #808 remote-only Skill/test/pitfall invariants present; Issue remains open for canonical finalization."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36294170135,
-    "request_comment_id": 5852593942,
+    "run_id": 36294394859,
+    "request_comment_id": 5852619472,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist #808 closing drift audit and authorize PR phase"
+    "mutation": "enter #808 TERMINAL_SUCCESS / FINALIZATION_PENDING"
   }
 }

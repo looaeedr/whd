@@ -3,8 +3,8 @@
   "issue": "808",
   "branch": "governance/issue808-scheduler-remote-only-20260927",
   "head_sha": "72a34c9d8ad8d72a537687efb514b56fc4753342",
-  "state": "RUNNING",
-  "next_action": "Obtain exact pr-write Guard for head 72a34c9d8ad8d72a537687efb514b56fc4753342 against current cleanup/2d-3d-sync, open the single #808 PR, verify live PR head/base/mergeability/checks, then merge non-force and fresh-read production parity before terminal closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36293674764,
   "job_id": null,
   "log_cursor": null,
@@ -23,13 +23,15 @@
     "Temporary QA workflow removed at closing head 72a34c9d8ad8d72a537687efb514b56fc4753342.",
     "Guard 36294010593 authorizes exact atomic pair reconciliation to closing head.",
     "Final scoped delta = 3 authorized artifacts; current X drift overlap = 0.",
-    "Closing-head contract readback passed all remote-only markers."
+    "Closing-head contract readback passed all remote-only markers.",
+    "PR #810 merged to cleanup/2d-3d-sync at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c.",
+    "Fresh production readback verifies the three authorized #808 artifacts and all remote-only contract markers."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
