@@ -10,22 +10,22 @@
   "work_branch": "repair/issue843-sealed-premerge-20260927",
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "9d694dbe5fd33c48f5012e13bcdbb5fc194c0f2c",
+  "head_sha": "c748547109d05abbfe75a783dd227cad0f3cf81c",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T14:49:30Z",
+  "last_update": "2026-09-27T14:54:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
-    "run_id": 36312417825,
-    "job_id": 108600785305,
-    "head_sha": "2f1cdc1fe52224a478856a2939026edfbeed4a68",
+    "run_id": 36327480836,
+    "job_id": 108642913706,
+    "head_sha": "c748547109d05abbfe75a783dd227cad0f3cf81c",
     "status": "completed",
     "conclusion": "success",
-    "pytest": "6 passed / 0 failed in 0.14s",
+    "pytest": "6 passed / 0 failed in 0.18s",
     "classification": "FOCUSED_GREEN",
-    "marker": "ISSUE843_GREEN"
+    "marker": "ISSUE843_GREEN_SYNCED"
   },
-  "next_action": "Add a one-shot #843 focused QA workflow on synced head 9d694dbe5fd33c48f5012e13bcdbb5fc194c0f2c, run the behavior-matrix regression contract on that exact head, then remove the one-shot workflow, reconcile the cleaned head, and open a replacement cleanup PR because PR #849 remains bound to the superseded original branch.",
+  "next_action": "Delete the one-shot .github/workflows/qa-issue843-control-plane-characterization.yml from head c748547109d05abbfe75a783dd227cad0f3cf81c, reconcile the cleaned head, then open a replacement cleanup PR from repair/issue843-sealed-premerge-20260927 and close superseded PR #849.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -60,6 +60,8 @@
     "parent-branch identity repair run=36327086320 SUCCESS; owner rebound to repair/issue843-sealed-premerge-20260927@cf230b396ff31d700b06711b375af9d0dc1fc27a",
     "current-cleanup production-parent commit Guard run=36327174414 GREEN against cleanup@8a3058e5472aec4793cd26a398ae4920185d8002",
     "legal two-parent sync head=9d694dbe5fd33c48f5012e13bcdbb5fc194c0f2c parents=[cf230b396ff31d700b06711b375af9d0dc1fc27a,8a3058e5472aec4793cd26a398ae4920185d8002]",
-    "post-sync pair reconciliation Guard run=36327254552 GREEN"
+    "post-sync pair reconciliation Guard run=36327254552 GREEN",
+    "synced-head focused QA run=36327480836 job=108642913706 GREEN: 6 passed / 0 failed in 0.18s",
+    "post-QA pair reconciliation Guard run=36327548759 GREEN"
   ]
 }
