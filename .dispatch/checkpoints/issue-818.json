@@ -28,13 +28,16 @@
     "Production governance parity readback: 48 governed artifacts, 0 mismatches.",
     "Remote Guard 36299175389 GREEN authorizes #818 terminal acceptance pair transition.",
     "Premature PR autoclose was repaired by reopening Issue #818 before finalization proof.",
-    "Remote Guard 36299347675 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Remote Guard 36299347675 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization run 36299569110 completed SUCCESS; FINALIZATION_PROOF_VALID; artifact 10924898834.",
+    "Issue #818 fresh readback confirmed closed/completed at 2026-09-27T06:18:09Z.",
+    "Remote Guard 36299719379 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted bound finalization proof for #818 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #818, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Persist final #818 CLOSED + RELEASED under a fresh exact write Guard, then fresh-read Issue/claim/checkpoint/branch terminal identity."
 }
