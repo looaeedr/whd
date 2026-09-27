@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T12:20:00Z",
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T14:56:58Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T14:58:08Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
@@ -26,7 +26,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Atomically write #682 checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve finalization proof + closed/completed readback; then resume parent #684.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -90,17 +90,19 @@
     "Closure lifecycle FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING consumes write Guard 36327059057 / request 5856858378 / result 5856860084.",
     "Trusted Remote Finalization 36327655558 GREEN: FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID for checkpoint fingerprint e6518c4edd2834f0df9cf3180166ffa6143a46ddf88b7b3d049be21f4bdc8e15; artifact 10934581970.",
     "Issue #682 fresh readback closed/completed; checkpoint remained unchanged through proof and close.",
-    "Release-handoff transition consumes write Guard 36327735386 / request 5856958942 / result 5856960679."
+    "Release-handoff transition consumes write Guard 36327735386 / request 5856958942 / result 5856960679.",
+    "Final atomic terminal release consumes write Guard 36327802614 / request 5856967339 / result 5856969058.",
+    "Parent #684 is the authorized continuation after #682 release."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36327735386,
-    "request_comment_id": 5856958942,
-    "result_comment_id": 5856960679,
+    "run_id": 36327802614,
+    "request_comment_id": 5856967339,
+    "result_comment_id": 5856969058,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #682 to RELEASE_HANDOFF_PENDING"
+    "mutation": "atomically set #682 claim RELEASED + checkpoint CLOSED"
   }
 }

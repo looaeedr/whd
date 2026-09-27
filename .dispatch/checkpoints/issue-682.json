@@ -53,13 +53,14 @@
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36327059057.",
     "Remote Finalization 36327655558 GREEN; artifact 10934581970.",
     "Issue #682 readback closed/completed.",
-    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard 36327735386."
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard 36327735386.",
+    "Final atomic release under Guard 36327802614: claim RELEASED + checkpoint CLOSED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically write #682 checkpoint closure_state=CLOSED together with claim phase=RELEASED; preserve finalization proof + closed/completed readback; then resume parent #684."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
