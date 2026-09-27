@@ -1307,6 +1307,138 @@ def repair_malformed_terminal_checkpoint(
     return checkpoint
 
 
+def repair_malformed_terminal_chain_metadata_checkpoint(
+    payload: object,
+    *,
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+) -> Checkpoint:
+    """Narrowly repair stale chain metadata on one terminal checkpoint.
+
+    This recovery exists only for a TERMINAL_SUCCESS checkpoint whose exact owner
+    identity and valid closure lifecycle are preserved, and whose sole chain defect
+    is CHAIN_COMPLETE carrying a stale non-null chain_next_action. It never changes
+    issue/branch/head/state/closure semantics and never releases a claim.
+    """
+
+    if not isinstance(payload, dict):
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires a JSON object"
+        )
+
+    issue = _require_text("expected_issue", expected_issue)
+    branch = _require_text("expected_branch", expected_branch)
+    head_sha = _require_text("expected_head_sha", expected_head_sha)
+
+    if payload.get("version") != CHECKPOINT_VERSION:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires current checkpoint version"
+        )
+    if str(payload.get("issue") or "").strip() != issue:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair issue identity drift"
+        )
+    if str(payload.get("branch") or "").strip() != branch:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair branch identity drift"
+        )
+    if str(payload.get("head_sha") or "").strip() != head_sha:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair HEAD identity drift"
+        )
+    if payload.get("state") != ContinuityState.TERMINAL_SUCCESS.value:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires TERMINAL_SUCCESS"
+        )
+
+    raw_closure_state = payload.get("closure_state")
+    if raw_closure_state not in {state.value for state in ClosureState}:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires a valid closure lifecycle"
+        )
+
+    if payload.get("master_issue") is None:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires master_issue"
+        )
+    if payload.get("chain_state") != ChainContinuationState.CHAIN_COMPLETE.value:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires CHAIN_COMPLETE"
+        )
+    if payload.get("next_issue") is not None:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires next_issue=null"
+        )
+    chain_next_action = payload.get("chain_next_action")
+    if chain_next_action is None:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair requires stale chain_next_action"
+        )
+    _require_text("chain_next_action", chain_next_action)
+
+    allowed = {
+        "version",
+        "issue",
+        "branch",
+        "head_sha",
+        "state",
+        "next_action",
+        "run_id",
+        "job_id",
+        "log_cursor",
+        "blocked_count",
+        "blocked_last_notified_at",
+        "blocked_exit_proof",
+        "evidence",
+        "operation",
+        "master_issue",
+        "chain_state",
+        "next_issue",
+        "chain_next_action",
+        "chain_reason",
+        "closure_state",
+        "closure_next_action",
+    }
+    unknown = set(payload) - allowed
+    if unknown:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair refuses unknown fields: "
+            f"{sorted(unknown)}"
+        )
+
+    candidate = dict(payload)
+    candidate["chain_next_action"] = None
+    checkpoint = checkpoint_from_payload(candidate)
+
+    if (
+        checkpoint.issue != issue
+        or checkpoint.branch != branch
+        or checkpoint.head_sha != head_sha
+        or checkpoint.state is not ContinuityState.TERMINAL_SUCCESS
+    ):
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair changed owner identity"
+        )
+    if checkpoint.chain_state is not ChainContinuationState.CHAIN_COMPLETE:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair changed chain state"
+        )
+    if checkpoint.next_issue is not None or checkpoint.chain_next_action is not None:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair did not canonicalize CHAIN_COMPLETE"
+        )
+    if checkpoint.closure_state.value != raw_closure_state:
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair changed closure lifecycle"
+        )
+    if checkpoint.closure_next_action != payload.get("closure_next_action"):
+        raise CheckpointError(
+            "malformed terminal chain-metadata repair changed closure next action"
+        )
+    return checkpoint
+
+
 def load_checkpoint(path: Path) -> Checkpoint:
     path = Path(path)
     try:
