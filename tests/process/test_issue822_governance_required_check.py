@@ -108,6 +108,22 @@ def test_issue822_workflow_runs_candidate_parity_on_pull_request() -> None:
         "github.base_ref",
         "refs/remotes/origin/main",
         "refs/remotes/origin/cleanup/2d-3d-sync",
+        "WHD-Governance-Mirror-Pair",
+        "GOVERNANCE_MIRROR_PAIR_NOT_RECIPROCAL",
+        "pull/$PAIR/head",
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"RED: merge-time governance hard gate missing tokens: {missing}"
+
+
+def test_issue822_regression_is_in_governance_manifest() -> None:
+    import json
+
+    manifest = json.loads(
+        (ROOT / "docs" / "governance" / "governance_mirror_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert "tests/process/test_issue822_governance_required_check.py" in manifest[
+        "governance_paths"
+    ]
