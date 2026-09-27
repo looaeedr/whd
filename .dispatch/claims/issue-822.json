@@ -11,7 +11,7 @@
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
   "head_sha": "45aa46cd4bb2bdf608f680033adf76746b551859",
   "phase": "RED",
-  "last_update": "2026-09-27T06:40:30Z",
+  "last_update": "2026-09-27T06:39:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -20,10 +20,10 @@
     "run_id": 36300717366,
     "job_id": 108567721469,
     "head_sha": "45aa46cd4bb2bdf608f680033adf76746b551859",
-    "status": "COMPLETED",
+    "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "implement evaluate_pr_candidate_parity + pull_request merge-time workflow enforcement, then rerun focused QA GREEN",
+  "next_action": "implement merge-time candidate governance parity seam/workflow, extend regression for paired candidate if needed, then rerun focused GREEN",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -38,17 +38,19 @@
     "RED commit 62ced146 adds test_issue822_governance_required_check.py only.",
     "Temporary QA workflow commit 23d6068e added push-triggered focused runner.",
     "Run 36300618496 failed only because pytest was not installed; not accepted as requirement RED.",
-    "Valid RED run 36300717366 / job 108567721469: 3 failed; missing evaluate_pr_candidate_parity and PR workflow --verify-pr-candidate-parity."
+    "Valid RED run 36300717366 / job 108567721469: 3 failed; missing evaluate_pr_candidate_parity and PR workflow --verify-pr-candidate-parity.",
+    "QA dependency fix commit 45aa46cd installs pytest in the temporary focused runner.",
+    "Valid requirement RED run 36300717366 on 45aa46cd: 3 failed because evaluate_pr_candidate_parity is missing and pull_request workflow lacks merge-time candidate parity step."
   ],
   "last_guard": {
-    "action": "commit",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36300694615,
-    "request_comment_id": 5853456830,
+    "run_id": 36300754446,
+    "request_comment_id": 5853463667,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "QA dependency fix commit 45aa46cd"
+    "mutation": "reconcile QA dependency head 45aa46cd and valid RED run 36300717366"
   },
   "delegated_work": []
 }

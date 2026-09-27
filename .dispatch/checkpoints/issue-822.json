@@ -4,7 +4,7 @@
   "branch": "governance/issue822-governance-required-check-x-20260927",
   "head_sha": "45aa46cd4bb2bdf608f680033adf76746b551859",
   "state": "RUNNING",
-  "next_action": "implement evaluate_pr_candidate_parity + pull_request merge-time workflow enforcement, then rerun focused QA GREEN",
+  "next_action": "implement merge-time candidate governance parity seam/workflow, then rerun focused GREEN",
   "run_id": 36300717366,
   "job_id": 108567721469,
   "log_cursor": null,
@@ -16,7 +16,9 @@
     "Scope is governance-only merge-time parity plus repository required-status enforcement.",
     "RED head 62ced146 adds focused failing contract test.",
     "QA infra run 36300618496 invalid as RED: pytest unavailable.",
-    "Valid requirement RED at 45aa46cd: run 36300717366, 3 failed for missing candidate parity seam/workflow."
+    "Valid requirement RED at 45aa46cd: run 36300717366, 3 failed for missing candidate parity seam/workflow.",
+    "QA dependency fix head 45aa46cd.",
+    "Valid requirement RED run 36300717366: 3 expected contract failures (missing candidate parity seam/workflow)."
   ],
   "master_issue": null,
   "chain_state": "NONE",
