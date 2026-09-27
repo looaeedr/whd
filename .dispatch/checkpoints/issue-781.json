@@ -11,14 +11,15 @@
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "PR #782 merged to main",
-    "Action-scope hard gate deployed and validated"
+    "PR #782 merged to main.",
+    "Action-scope hard gate deployed and validated.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize proof, close/readback, then CLOSED+RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize finalization proof, close/readback #781, then atomically CLOSED+RELEASED."
 }
