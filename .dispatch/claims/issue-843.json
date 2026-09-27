@@ -10,9 +10,9 @@
   "work_branch": "repair/issue843-sealed-premerge-20260927",
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "c748547109d05abbfe75a783dd227cad0f3cf81c",
+  "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T14:54:00Z",
+  "last_update": "2026-09-27T14:57:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,7 +25,7 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN_SYNCED"
   },
-  "next_action": "Delete the one-shot .github/workflows/qa-issue843-control-plane-characterization.yml from head c748547109d05abbfe75a783dd227cad0f3cf81c, reconcile the cleaned head, then open a replacement cleanup PR from repair/issue843-sealed-premerge-20260927 and close superseded PR #849.",
+  "next_action": "Open a replacement cleanup PR from repair/issue843-sealed-premerge-20260927@ec2651809952d2cda018186b0a132c0801ac68b7 to the fresh cleanup/2d-3d-sync head; require PR checks GREEN and merge; then close superseded PR #849 unmerged and enter canonical finalization/closure for #843.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -62,6 +62,8 @@
     "legal two-parent sync head=9d694dbe5fd33c48f5012e13bcdbb5fc194c0f2c parents=[cf230b396ff31d700b06711b375af9d0dc1fc27a,8a3058e5472aec4793cd26a398ae4920185d8002]",
     "post-sync pair reconciliation Guard run=36327254552 GREEN",
     "synced-head focused QA run=36327480836 job=108642913706 GREEN: 6 passed / 0 failed in 0.18s",
-    "post-QA pair reconciliation Guard run=36327548759 GREEN"
+    "post-QA pair reconciliation Guard run=36327548759 GREEN",
+    "one-shot synced-head QA workflow deleted at cleaned head ec2651809952d2cda018186b0a132c0801ac68b7 under commit Guard 36327660483 GREEN",
+    "cleaned-head pair reconciliation Guard run=36327740406 GREEN"
   ]
 }
