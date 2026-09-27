@@ -1,0 +1,30 @@
+{
+  "issue": 787,
+  "issue_url": "https://github.com/looaeedr/whd/issues/787",
+  "worker": "chatgpt.issue787.20260927a",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue787.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue787-turn-exit-hard-gate-20260927",
+  "claimed_at": "2026-09-27T00:30:49Z",
+  "base_sha": "54fef8c6cbceda4ecd20b3708e517b8beb909ce3",
+  "head_sha": "54fef8c6cbceda4ecd20b3708e517b8beb909ce3",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T00:30:49Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back the work branch from cleanup/2d-3d-sync@54fef8c6cbceda4ecd20b3708e517b8beb909ce3, then run changed-file Phase6 Preflight and RED behavior tests before implementation.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-787.json",
+  "evidence": [
+    "TASK_START authority: user explicitly requested a hard gate so progress/status/checkpoint reports cannot become stop points.",
+    "TASK_START purpose: allow normal turn exit only after true terminal closure or a fresh-evidence unique external blocker with every legal alternative path exhausted.",
+    "Execution intent: EXECUTE_TICKET for GitHub Issue #787 only; no unrelated Issue discovery or scope expansion.",
+    "Production target: cleanup/2d-3d-sync.",
+    "Fresh production base readback: 54fef8c6cbceda4ecd20b3708e517b8beb909ce3.",
+    "Current RED: canonical assert_turn_exitable accepts arbitrary BLOCKED checkpoint and can mint a path-level turn-exit proof without structured blocker authority."
+  ]
+}
