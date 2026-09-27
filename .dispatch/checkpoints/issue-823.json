@@ -21,13 +21,14 @@
     "Remote Guard 36302752037 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization 36303101982 GREEN / FINALIZATION_PROOF_VALID; artifact 10926017611.",
     "Issue #823 closed/completed readback at 2026-09-27T07:27:23Z.",
-    "Remote Guard 36303184203 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Remote Guard 36303184203 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final Remote Guard 36303253143 GREEN authorizes #823 checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist final #823 CLOSED + RELEASED under a fresh exact write Guard, then fresh-read terminal identity and hand back parent #822 for closure."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
