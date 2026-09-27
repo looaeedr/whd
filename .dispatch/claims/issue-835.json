@@ -11,7 +11,7 @@
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T08:51:20Z",
+  "last_update": "2026-09-27T08:54:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Integrate exact #835 closing delta into cleanup/2d-3d-sync and main under the bidirectional Governance Mirror Hard Gate, then synchronize live A 00/20/40 and B15/B45 prompts with SAME_LANE_NONTERMINAL_WORK_V1 and verify schedule/timing/lane/enabled invariants unchanged.",
+  "next_action": "Helper #837 is ACTIVE for the main governance mirror. Fresh-claim #837, build exact main-side scheduler Skill candidate, pair its PR with #835 cleanup PR under Governance Mirror Hard Gate, merge/readback both, terminalize helper, then synchronize live A/B prompts.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307492191,
-    "request_comment_id": 5854359746,
+    "run_id": 36307628279,
+    "request_comment_id": 5854383491,
     "result": "GREEN",
-    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile closing head after QA workflow deletion"
+    "mutation": "register #837 canonical delegated_work pointer"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -47,6 +47,18 @@
     "Post-GREEN reconciliation Guard run 36307245968 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Temporary QA workflow deleted at closing head 95dd912c52a5c82f454a5088c7f1469fc78f7770 under commit Guard 36307309726 GREEN.",
     "Tested head aea43290... -> closing head 95dd912c... changes exactly one removed temporary workflow.",
-    "Closing-head pair reconciliation Guard 36307492191 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Closing-head pair reconciliation Guard 36307492191 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Helper #837 created with stable helper_key issue835-main-governance-mirror; parent pointer write authorized by Guard 36307628279 GREEN."
+  ],
+  "delegated_work": [
+    {
+      "relationship": "helper",
+      "helper_key": "issue835-main-governance-mirror",
+      "state": "ACTIVE",
+      "reserved_by": "chatgpt.issue835.20260927a",
+      "reservation_token": "issue835-main-governance-mirror-20260927a",
+      "reserved_at": "2026-09-27T08:54:43Z",
+      "child_issue": 837
+    }
   ]
 }
