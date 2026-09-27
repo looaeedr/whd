@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "30ea9a19742c77d85c82036edc059b53ac30c3c3",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T11:00:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T11:03:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
@@ -27,7 +27,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Atomically write checkpoint closure_state=CLOSED and claim phase=RELEASED for #836, then fresh-read terminal closure.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -76,7 +76,8 @@
     "cleanup/2d-3d-sync now includes the accepted #836 governance delta at 8a6323f50860b5aa678e2bf4b8b21a75a82d41a0.",
     "Terminal checkpoint entered FINALIZATION_PENDING at coord 208860cdff7536915d7b77f53d2683927a03ebcd.",
     "Trusted Remote Finalization run 36314279895 GREEN on exact ISSUE_CLOSE_PENDING checkpoint fingerprint 0b3467e029b5a51c0c02186c26546e04bafc90dbc2c4e00ecefe0a69ba0ea5ef.",
-    "Issue #836 fresh readback is closed/completed after finalization proof; checkpoint was not mutated between proof and Issue close."
+    "Issue #836 fresh readback is closed/completed after finalization proof; checkpoint was not mutated between proof and Issue close.",
+    "Final atomic closure transaction: Issue closed/completed; checkpoint will become CLOSED in the same coord commit."
   ],
   "stale_takeover": {
     "previous_worker": "chatgpt.issue836.20260927a",

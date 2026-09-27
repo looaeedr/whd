@@ -49,13 +49,14 @@
     "Superseded PR #840 is also marked merged to the same exact merge commit; no duplicate integration occurred.",
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; no finalization proof minted before this transition.",
     "Trusted finalization run 36314279895 GREEN on exact checkpoint fingerprint.",
-    "Issue #836 readback closed/completed; advancing to RELEASE_HANDOFF_PENDING without changing owner/head/state."
+    "Issue #836 readback closed/completed; advancing to RELEASE_HANDOFF_PENDING without changing owner/head/state.",
+    "Final atomic closure transaction: checkpoint CLOSED together with claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED and claim phase=RELEASED for #836, then fresh-read terminal closure."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
