@@ -1,17 +1,17 @@
 {
   "issue": 790,
   "issue_url": "https://github.com/looaeedr/whd/issues/790",
-  "worker": "chatgpt.sol260927.issue790.dep769.1",
-  "executor_source": "chat",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.issue790.dep769.20260927a",
+  "invocation_identity": "chat.schedulerB.790.20260927T0512",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
   "claimed_at": "2026-09-27T00:41:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T02:55:00Z",
+  "last_update": "2026-09-27T05:12:08.767572Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -71,17 +71,19 @@
     "Reservation pair-write Guard run 36289568911 GREEN.",
     "Helper #800 fresh-create Claim Activation GREEN at coord 29b462b3b9ea591fbdede3709eb52890c25a5ff6; child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
     "Canonical activate_helper_reservation() returned ACTIVE for helper_key issue790-github-blob-base64-hotfix -> child #800.",
-    "Activation parent pair Guard run 36289838719 GREEN."
+    "Activation parent pair Guard run 36289838719 GREEN.",
+    "Scheduler B takeover: Remote Guard 36296506082 GREEN; prior chat owner classified EXECUTOR_STUCK after 8227s. Exact remote QA run 36286039323 is terminal success and no active delegated child remains."
   ],
   "last_guard": {
-    "action": "write",
+    "action": "claim-takeover",
     "mode": "remote",
-    "run_id": 36289838719,
-    "request_comment_id": 5852104575,
+    "run_id": 36296506082,
+    "request_comment_id": 5852880627,
+    "result_comment_id": 5852881975,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "activate #790 delegated base64 hotfix helper #800"
+    "mutation": "B-lane stale owner takeover CAS for #790"
   },
   "delegated_work": [
     {
@@ -104,5 +106,27 @@
       "child_issue": 800,
       "child_claim_blob_sha": "46318b606001ba1f6b773ace4cbfd7d974c64457"
     }
-  ]
+  ],
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "previous_worker": "chatgpt.sol260927.issue790.dep769.1",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    "requesting_executor_source": "scheduler",
+    "stale_seconds": 8227,
+    "observed_live_head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
+    "claim_blob_sha": "07b6bc1d31042e1e03e1016e0795a5c9d62e041d",
+    "claim_head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
+    "claim_last_update": "2026-09-27T02:55:00Z",
+    "runtime_liveness_status": "NOT_APPLICABLE",
+    "user_authority_comment_id": null,
+    "taken_over_at": "2026-09-27T05:12:08.767572Z",
+    "guard_mode": "remote",
+    "guard_result": "GREEN",
+    "guard_run_id": 36296506082,
+    "guard_request_comment_id": 5852880627,
+    "guard_result_comment_id": 5852881975
+  }
 }
