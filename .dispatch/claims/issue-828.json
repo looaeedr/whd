@@ -9,13 +9,13 @@
   "work_branch": "governance/issue828-parent-branch-sealed-identity-repair-main-20260927",
   "claimed_at": "2026-09-27T07:30:00Z",
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
-  "head_sha": "ea0a8263a2371a2f3e4a846cef3795759933badb",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T07:47:00Z",
+  "head_sha": "30c9512623aa6491a06179ae78ed0786fbb4854d",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T07:49:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Remove the temporary #828 QA workflow under commit Guard, prove closing diff deletes only that workflow, then build exact reciprocal main/cleanup governance mirror candidates and require both Governance Mirror Hard Gate checks GREEN.",
+  "next_action": "Create reciprocal governance mirror candidates from fresh main@123fcd139762a7e36eaf110a8ce19a18cc177fb5 and cleanup/2d-3d-sync@497c5e145ab2506b9c4272392a15940164057066, preserving #828 exact governed blobs; require both Governance Mirror Hard Gate checks GREEN before merge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -29,7 +29,9 @@
     "#702 original work branch live c59d73e245d2b4732c738a01bd062eb32763a05a is 9 commits ahead of sealed H4 with merge-base exactly sealed H4.",
     "Repair design uses a fresh replacement branch at sealed H4 and exact coordination CAS to rebind branch identity while preserving sealed HEAD.",
     "VALID RED: run 36303646583 / job 108575929296 at e7a2b0cdb40537cf695351adc0fe4731d77a189e failed 12 tests only because repair action/transport/validator are absent; harness setup/checkout/pytest all succeeded.",
-    "Focused #828 QA run 36304109574 / job 108577217666 at ea0a8263a2371a2f3e4a846cef3795759933badb: 12 passed / 0 failed in 0.04s."
+    "Focused #828 QA run 36304109574 / job 108577217666 at ea0a8263a2371a2f3e4a846cef3795759933badb: 12 passed / 0 failed in 0.04s.",
+    "QA cleanup commit 30c9512623aa6491a06179ae78ed0786fbb4854d removes only .github/workflows/qa-issue828-parent-branch-identity-repair.yml.",
+    "Tested-head→closing-head drift audit ea0a8263...30c95126: exactly one removed temporary QA workflow; no production/governance implementation drift."
   ],
   "remote_qa": {
     "run_id": 36304109574,
