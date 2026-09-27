@@ -11,11 +11,11 @@
   "base_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
   "head_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T01:56:00Z",
+  "last_update": "2026-09-27T02:03:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "After parent #790 reservation issue790-main-x-parity is activated with this exact child claim blob, obtain one branch-create Guard for governance/issue794-issue790-main-x-parity-20260927 at cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e; create/read back the branch, then port #790 as the bounded compatible-equivalent six-artifact parity set.",
+  "next_action": "Run Phase6 planned-scope Preflight for Issue #794 exact six parity artifacts; port the accepted #790 same-owner intervening claim-blob reconciliation as a compatible-equivalent onto frozen cleanup base c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e without dropping newer X governance; run focused #790 + adjacent reconciliation regressions, workflow YAML/naming gates, then reconcile durable HEAD.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-794.json",
   "evidence": [
@@ -25,6 +25,20 @@
     "authorized_scope=Issue #794 exact six parity artifacts only; no product/UI/scheduler cadence/work-slot changes",
     "production_target=cleanup/2d-3d-sync@c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
     "parent_reservation=#790 helper_key issue790-main-x-parity token issue790-main-x-parity-20260927a",
-    "batch_audit=blind main merge prohibited; direct #790 implementation apply conflicts in four governance authority files; compatible-equivalent fallback authorized"
-  ]
+    "batch_audit=blind main merge prohibited; direct #790 implementation apply conflicts in four governance authority files; compatible-equivalent fallback authorized",
+    "Parent #790 delegated reservation ACTIVE and binds child claim blob 8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625.",
+    "Branch-create Guard run 36287265949 GREEN on frozen X base c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e.",
+    "Work branch created and fresh-read at exact frozen base c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e.",
+    "Pair transition Guard run 36287338005 GREEN; branch-create/readback may be durably consumed."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36287338005,
+    "request_comment_id": 5851821966,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "consume #794 branch-create/readback and advance to compatible-equivalent parity port"
+  }
 }
