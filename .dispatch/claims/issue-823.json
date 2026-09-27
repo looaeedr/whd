@@ -9,9 +9,9 @@
   "work_branch": "governance/issue823-main-governance-required-check-20260927",
   "claimed_at": "2026-09-27T06:52:30Z",
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
-  "head_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T06:52:30Z",
+  "head_sha": "685bcef079de54b3f27ba9958524b3c22eb40a00",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T06:56:30Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -21,7 +21,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "obtain branch-create Guard, create main-descendant mirror branch, copy exactly four governed #822 artifacts from e7782403, verify blob parity, then open paired PR",
+  "next_action": "obtain pr-write Guard and open main-side PR; pair with cleanup-side #822 PR using reciprocal WHD-Governance-Mirror-Pair markers; prove both Governance Mirror Hard Gate checks GREEN",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-823.json",
   "evidence": [
@@ -31,8 +31,20 @@
     "purpose=main-side governance mirror for #822 merge-time hard gate",
     "authorized_scope=four governed #822 artifacts only; main-descendant branch",
     "prohibited_scope=cleanup/product/WHD/Phase/CAD lineage; temporary QA workflow; unrelated governance",
-    "source_governance_head=e778240364dc20ec4398cf576d286d7525db7e53"
+    "source_governance_head=e778240364dc20ec4398cf576d286d7525db7e53",
+    "Branch-create Guard 36301429071 GREEN; main-descendant branch created at aadf248f.",
+    "Mirror commit 685bcef0 is direct child of main@aadf248f and changes exactly four governed artifacts.",
+    "All four main-side governed blob SHAs exactly match cleanup candidate e7782403."
   ],
-  "last_guard": null,
+  "last_guard": {
+    "action": "commit",
+    "mode": "remote",
+    "run_id": 36301466208,
+    "request_comment_id": 5853556889,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "main mirror commit 685bcef0"
+  },
   "delegated_work": []
 }
