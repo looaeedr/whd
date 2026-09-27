@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BRIDGE = ROOT / "tools" / "whd_poweroff_ha_bridge.py"
+BRIDGE = ROOT / "tools" / "whd_poweroff_ha_bridge.py"\nAUTHORITY_MAP = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "09_WHD_Canonical_Authority_Map.md"
 
 
 def _request(*, request_id: str = "REQ-CURRENT", revision: str = "REV-1", requested_at: int = 100, timeout: int = 30) -> dict:
@@ -118,3 +118,19 @@ def test_bridge_is_transport_only_and_has_no_shutdown_actuator() -> None:
     assert "workstation_poweroff_gate" in source
     forbidden = ("shutdown /", "shutdown.exe", "Stop-Computer", "os.system(", "subprocess.run(")
     assert all(token not in source for token in forbidden)
+
+
+def test_ha_projection_authority_writeback_is_current_and_transport_only() -> None:
+    text = AUTHORITY_MAP.read_text(encoding="utf-8")
+    assert (
+        "<!-- WHD_AUTHORITY contract=ha-poweroff-projection role=CURRENT "
+        "path=tools/whd_poweroff_ha_bridge.py -->"
+    ) in text
+    assert "### ha-poweroff-projection" in text
+    assert "NODE_RED_EXEC" in text
+    assert "WHD_HANDOFF_REQUEST_V1" in text
+    assert "WHD_HA_POWER_OFF_PROJECTION_V1" in text
+    assert "validate_safe_receipt" in text
+    assert "HA / Node-RED 不是 WHD authority" in text
+    assert "不連接真正 Windows shutdown actuator" in text
+\n

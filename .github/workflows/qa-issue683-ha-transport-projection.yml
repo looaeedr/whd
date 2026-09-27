@@ -8,6 +8,7 @@ on:
     paths:
       - tests/process/test_issue683_ha_transport_projection.py
       - tools/whd_poweroff_ha_bridge.py
+      - 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
       - .github/workflows/qa-issue683-ha-transport-projection.yml
 
 permissions:
