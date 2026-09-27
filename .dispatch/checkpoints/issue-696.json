@@ -20,14 +20,16 @@
     "A1 is ACCEPTED_PENDING_CHAIN_CLOSURE; final closure owner is #702; canonical successor #697 is executable.",
     "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #696 closing head.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
-    "Terminal transition authorized by Remote Guard 36301653665."
+    "Terminal transition authorized by Remote Guard 36301653665.",
+    "Trusted terminal-chain-metadata-repair Claim Activation 36305852970 GREEN; chain metadata canonical.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36305891308."
   ],
   "master_issue": "702",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Issue #696 is the final remaining amendment child; all #696-#701 child closures must be complete before #702 finalizes.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back Issue #696, then atomically persist CLOSED+RELEASED and return to #702.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Obtain bound trusted finalization proof, close/read back Issue #696, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED.",
   "operation": null
 }

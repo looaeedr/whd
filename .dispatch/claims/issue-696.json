@@ -11,7 +11,7 @@
   "base_sha": "3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
   "head_sha": "7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T06:58:12Z",
+  "last_update": "2026-09-27T08:20:42Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,18 +24,18 @@
     "failed": 0,
     "marker": "ISSUE696_A1_REMOTE_GREEN=PASS"
   },
-  "next_action": "Advance canonical #696 closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization proof -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED; then return to Master #702 finalization.",
+  "next_action": "Obtain trusted Remote Finalization proof bound to exact #696 ISSUE_CLOSE_PENDING checkpoint; if GREEN, close/read back Issue #696, advance RELEASE_HANDOFF_PENDING, then atomically persist CLOSED+RELEASED and return to #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-696.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36301653665,
-    "request_comment_id": 5853588770,
+    "run_id": 36305891308,
+    "request_comment_id": 5854157883,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #696 terminal finalization under #702 chain closure"
+    "mutation": "advance #696 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "green_commit": {
     "implementation_head_sha": "43b5ff0c063e1dc5d2238e0d4623dca433bf83ca",
@@ -70,7 +70,9 @@
     "Scheduler A stale takeover run 36301564508 GREEN: EXECUTOR_STUCK, stale_seconds=85340, exact live head 7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785; prior remote run terminal success and no active exact run.",
     "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf is a descendant of #696 closing head 7ba0a951391a5d62b9ab3e851fe1ae2ecccf2785.",
     "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
-    "Terminal transition authorized by Remote Guard run 36301653665."
+    "Terminal transition authorized by Remote Guard run 36301653665.",
+    "Trusted terminal-chain-metadata-repair Claim Activation 36305852970 GREEN; checkpoint canonicalized without changing claim identity/head/state/closure lifecycle.",
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36305891308."
   ],
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
