@@ -11,11 +11,11 @@
   "base_sha": "d54f0410dee3c70489c8a2bdebb4b3b7c3564690",
   "head_sha": "b507632dc3ae0f3cd0582d44af9c044cb4309872",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T03:20:00Z",
+  "last_update": "2026-09-27T03:46:10Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Follow delegated helper #803 (helper_key=issue800-main-x-parity, reservation_token=issue800-main-x-parity-20260927a) from its durable checkpoint until full terminal closure. Do not create another cleanup parity helper. After #803 proves cleanup parity and is closed/completed + RELEASED + checkpoint CLOSED, terminalize this reservation and continue #800 acceptance by retrying the live #769 recovery path.",
+  "next_action": "Retry #769 exact intervening-coord postcommit reconciliation now that trusted main and cleanup both contain the wrapped-base64 fix; use the existing #769 owner-authored recovery evidence for ac1b45a0 -> 4ad9246a, reconcile durable HEAD, record remote QA success, remove temporary QA workflow under a fresh Guard, then continue #769 drift audit/merge/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-800.json",
   "evidence": [
@@ -45,23 +45,26 @@
     "Parent reservation pair-write Guard run 36290836389 GREEN.",
     "Child #803 fresh-create Claim Activation run 36290985091 GREEN; child claim blob ea5320648da1fa252003e4799ccb40735d172bea.",
     "Canonical activate_helper_reservation returned ACTIVE for #803 + exact child claim blob.",
-    "Parent reservation activation Guard run 36291051476 GREEN."
+    "Parent reservation activation Guard run 36291051476 GREEN.",
+    "Helper #803 terminal proof fresh-read: Issue closed/completed; claim RELEASED / next_action=null; checkpoint TERMINAL_SUCCESS/CLOSED; head b0eb1df9 has no active workflow run.",
+    "Canonical terminalize_helper_reservation() returned TERMINAL for helper_key issue800-main-x-parity with exact owner/token.",
+    "Parent pair-write Guard run 36292345018 GREEN; #803 reservation terminalization and #769 recovery handoff authorized."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291051476,
-    "request_comment_id": 5852244261,
+    "run_id": 36292345018,
+    "request_comment_id": 5852388318,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "activate #800 cleanup parity reservation for child #803"
+    "mutation": "terminalize #800 delegated cleanup parity helper #803 and hand off to #769 recovery"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue800-main-x-parity",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.sol260927.issue800.base64.1",
       "reservation_token": "issue800-main-x-parity-20260927a",
       "reserved_at": "2026-09-27T03:14:12Z",
