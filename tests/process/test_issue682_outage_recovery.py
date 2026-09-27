@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 from tools.local_durability_gate import LocalDurabilityState
 import tools.stale_claim_takeover as takeover
@@ -133,3 +134,37 @@ def test_R9_approved_requirement_tokens_are_owned_by_recovery_policy():
     source = inspect.getsource(takeover)
     assert "LOCAL_UNPERSISTED_STATE_UNKNOWN" in source
     assert "UNKNOWN_MUTATION_OUTCOME" in source
+
+
+def test_R9_ai_library_and_runbook_writeback_is_durable():
+    root = Path(__file__).resolve().parents[2]
+    authority = (
+        root / "個人AI檔案庫" / "第二層_專案與SOP"
+        / "09_WHD_Canonical_Authority_Map.md"
+    ).read_text(encoding="utf-8")
+    resume = (
+        root / "個人AI檔案庫" / "第二層_專案與SOP"
+        / "11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md"
+    ).read_text(encoding="utf-8")
+    pitfalls = (
+        root / "個人AI檔案庫" / "第二層_專案與SOP"
+        / "06_踩坑記錄與防錯經驗庫.md"
+    ).read_text(encoding="utf-8")
+    runbook = (
+        root / "docs" / "governance" / "whd_scheduler_takeover_usage.md"
+    ).read_text(encoding="utf-8")
+
+    assert "<!-- WHD_OUTAGE_RECOVERY_REPLAY_SAFETY_V1 -->" in authority
+    assert "evaluate_outage_recovery" in authority
+    assert "LOCAL_UNPERSISTED_STATE_UNKNOWN" in authority
+    assert "UNKNOWN_MUTATION_OUTCOME" in authority
+
+    assert "<!-- WHD_UNEXPECTED_OUTAGE_RECOVERY_V1 -->" in resume
+    assert "reconcile-before-replay" in resume
+
+    assert "<!-- OUTAGE_RECOVERY_REPLAY_PITFALL_V1 -->" in pitfalls
+    assert "planned handoff" in pitfalls
+    assert "UNKNOWN_MUTATION_OUTCOME" in pitfalls
+
+    assert "<!-- WHD_UNEXPECTED_OUTAGE_REPLAY_SAFE_USAGE_V1 -->" in runbook
+    assert "durable-only recovery" in runbook

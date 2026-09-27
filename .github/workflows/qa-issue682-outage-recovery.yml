@@ -8,6 +8,10 @@ on:
       - tests/process/test_issue682_outage_recovery.py
       - tools/stale_claim_takeover.py
       - tools/local_durability_gate.py
+      - 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+      - 個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md
+      - 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+      - docs/governance/whd_scheduler_takeover_usage.md
       - .github/workflows/qa-issue682-outage-recovery.yml
 
 permissions:

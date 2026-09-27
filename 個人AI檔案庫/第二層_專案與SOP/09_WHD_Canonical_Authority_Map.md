@@ -192,3 +192,15 @@ Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#62
 - Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+<!-- WHD_OUTAGE_RECOVERY_REPLAY_SAFETY_V1 -->
+### outage-recovery-replay-safety
+
+- Executable CURRENT owner：`tools/stale_claim_takeover.py::evaluate_outage_recovery`。
+- Local-state vocabulary 必須直接重用 WI-1 `tools/local_durability_gate.py::LocalDurabilityState`；不得建立第二套 outage local-state enum。
+- Verified planned handoff 是正常 ownership transfer；fresh evidence 命中 planned handoff 時不得降級成 stale takeover，也不得等待 stale TTL。
+- Exact active remote run 是 absolute lock；outage/stale recovery 不得在同一 exact run 尚 active 時 takeover、replay 或啟動競爭 mutation。
+- Unexpected local outage 只能從 durable GitHub checkpoint / exact `next_action` 恢復。local machine unavailable、unpushed、dirty/conflict 或 mutation-in-progress 的 local-only truth 一律保留為未知，reason 固定 `LOCAL_UNPERSISTED_STATE_UNKNOWN`；不得宣稱已從 remote clean state「復原本機真相」。
+- External mutation outcome 若為 unknown，尤其 non-idempotent mutation，reason 固定 `UNKNOWN_MUTATION_OUTCOME`，必須先 readback/reconcile 才能 replay。
+- Stale takeover 只屬 abnormal recovery；planned handoff、same-lane resume、known durable continuation 都不是 stale takeover trigger。
+- Prompt / Skill / AI Library 只描述 routing 與 invariant；不得複製 `evaluate_outage_recovery` 或 `LocalDurabilityState` 成第二套 machine state。
