@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T04:58:20Z",
+  "last_update": "2026-09-27T05:35:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Helper #815 is ACTIVE. Do not mutate sealed #702 lineage, reconcile c59d73e245d2b4732c738a01bd062eb32763a05a, or merge PR #811. Follow #815 through fresh-X integration, GREEN acceptance, non-force production merge, terminal close/release; then terminalize this reservation and resume #702 child canonical closure/finalization.",
+  "next_action": "Helper #815 is terminal: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED, PR #817 merged to cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931, and current-X #702 Combined Acceptance is GREEN (100 passed / 0 failed). Now close child Issues #696-#701 canonically under #702 ownership, verify closed/completed readback for each, then repair #702 parent branch/finalization identity without accepting unauthorized c59d73e245d2b4732c738a01bd062eb32763a05a as authority.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-702.json",
   "evidence": [
@@ -48,7 +48,11 @@
     "Post-H3 reconciliation Guard run 36294624210 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Cleanup commit f8a3397551c5975dafd842e8dcd28c1d4edcca32 deleted only .github/workflows/qa-issue702-crash-fault-matrix.yml under commit Guard run 36294704575 GREEN.",
     "Closing diff H3 e00f9d943576d267dcf277d025a20c5e4fdab40c -> H4 f8a3397551c5975dafd842e8dcd28c1d4edcca32 is exactly one removed file: .github/workflows/qa-issue702-crash-fault-matrix.yml (41 deletions).",
-    "Post-cleanup reconciliation Guard run 36294760023 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-cleanup reconciliation Guard run 36294760023 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Integration helper #815 terminal proof: Issue closed/completed, claim RELEASED, checkpoint TERMINAL_SUCCESS/CLOSED.",
+    "Helper #815 PR #817 merged non-force; production readback cleanup/2d-3d-sync@22204c8fab12f3cddd6bd30fd112c8b7b0641931 contains exact #702 11-file accepted delta.",
+    "Fresh-X Combined Acceptance run 36296278571 / job 108555610910: 100 passed / 0 failed in 0.53s.",
+    "Parent work branch live c59d73e245d2b4732c738a01bd062eb32763a05a remains non-authoritative; sealed parent H4=f8a3397551c5975dafd842e8dcd28c1d4edcca32 is unchanged."
   ],
   "red_evidence": {
     "head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
@@ -195,7 +199,7 @@
     {
       "relationship": "helper",
       "helper_key": "issue702-integration-resolution",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue702-integration-resolution-20260927a",
       "reserved_at": "2026-09-27T04:50:00Z",
