@@ -5,8 +5,8 @@
   "chain_next_action": null,
   "chain_reason": null,
   "chain_state": "NONE",
-  "closure_next_action": "Run trusted WHD Remote Finalization for #787, close/read back Issue #787, then atomically persist checkpoint CLOSED + claim RELEASED.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #787, then fresh-read Issue/claim/checkpoint/production/PR terminal state.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
   "evidence": [
     "User-authorized scope is only the #787 turn-exit hard-gate correction.",
     "Progress/status/CHECKPOINT observations are explicitly non-terminal and must preserve continuation.",
@@ -19,7 +19,10 @@
     "Post-integration focused acceptance: 69 PASS / 0 FAIL.",
     "Terminal coordination write Guard GREEN run=36284997600.",
     "Remote Finalization run 36285121828 correctly rejected FINALIZATION_PENDING; canonical adjacent closure advance required.",
-    "Closure transition authorized by Remote Guard run 36285182732."
+    "Closure transition authorized by Remote Guard run 36285182732.",
+    "Trusted Remote Finalization run 36285274351 GREEN with FINALIZATION_PROOF_VALID.",
+    "Issue #787 close mutation authorized by bound finalization proof; remote readback state=closed state_reason=completed at 2026-09-27T01:24:42Z.",
+    "Closure advance authorized by Remote Guard run 36285419257."
   ],
   "head_sha": "144b52525c2321a218094cd9dfc026a732893e53",
   "issue": "787",
