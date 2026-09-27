@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "816",
   "branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
-  "head_sha": "a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d",
+  "head_sha": "82b52afd481467debc1abce3b19dbc828c40d3bb",
   "state": "RUNNING",
-  "next_action": "create guarded main-side governance mirror branch from current main, copy only manifest-governed blobs, run paired parity and PR/QA",
+  "next_action": "complete #818 main governance mirror with self-manifest fix, prove exact governance parity, then paired PR integration",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,9 @@
     "RED head bc0dcc196865c6647cc835f080e652eff63cab67: focused #816 test has 6 expected failures.",
     "Remote Guard 36296364116 GREEN authorizes atomic claim/checkpoint reconciliation to RED head.",
     "GREEN head a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d: 15 passed, YAML parse PASS.",
-    "Remote Guard 36296648660 GREEN authorizes atomic durable-pair reconciliation to implementation head."
+    "Remote Guard 36296648660 GREEN authorizes atomic durable-pair reconciliation to implementation head.",
+    "X canonical head advanced to 82b52afd; 15 passed and manifest self-scope fixed.",
+    "Remote Guard 36296994514 GREEN authorizes pair reconciliation."
   ],
   "master_issue": null,
   "chain_state": "NONE",

@@ -9,9 +9,9 @@
   "work_branch": "governance/issue816-bidirectional-governance-mirror-x-20260927",
   "claimed_at": "2026-09-27T05:03:00Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
-  "head_sha": "a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d",
+  "head_sha": "82b52afd481467debc1abce3b19dbc828c40d3bb",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:15:10Z",
+  "last_update": "2026-09-27T05:22:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "create guarded main-side governance mirror branch from current main, copy only manifest-governed blobs, run paired parity and PR/QA",
+  "next_action": "complete #818 main governance mirror with self-manifest fix, prove exact governance parity, then paired PR integration",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-816.json",
   "evidence": [
@@ -38,17 +38,19 @@
     "RED Guard 36296297683 GREEN; RED commit bc0dcc196865c6647cc835f080e652eff63cab67 changes only test_issue816_bidirectional_governance_mirror.py.",
     "RED focused pytest: 6 failed as expected (missing bidirectional evaluator, mirror manifest, and always-on workflow).",
     "Implementation Guard 36296461331 GREEN; commit a637e531632f1e5b8ce44fed1e3bf2d4ea16f58d changes only five authorized governance files.",
-    "Focused regression on a637e531: 15 passed / 0 failed across #816 + #692 + #736; governance workflow YAML parse PASS."
+    "Focused regression on a637e531: 15 passed / 0 failed across #816 + #692 + #736; governance workflow YAML parse PASS.",
+    "Manifest self-scope fix Guard 36296925233 GREEN; X head 82b52afd adds governance_mirror_manifest.json to its own mirror scope.",
+    "Post-fix focused regression: 15 passed / 0 failed; YAML parse PASS."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36296648660,
-    "request_comment_id": 5852898301,
+    "run_id": 36296994514,
+    "request_comment_id": 5852947949,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile durable pair to GREEN implementation head a637e531"
+    "mutation": "reconcile #816 to manifest-self-scope fix"
   },
   "delegated_work": []
 }
