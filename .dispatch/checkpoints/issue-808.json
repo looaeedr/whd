@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "808",
   "branch": "governance/issue808-scheduler-remote-only-20260927",
-  "head_sha": "5d33d2ed5139ac9ab7f16eca4916f5fd1f0102cd",
+  "head_sha": "72a34c9d8ad8d72a537687efb514b56fc4753342",
   "state": "RUNNING",
-  "next_action": "Remove the temporary qa-issue808-scheduler-remote-only.yml under exact Remote Guard, then verify tested-head-to-closing-head drift contains only QA deletion; integrate the exact #808 scoped delta to cleanup/2d-3d-sync non-force and terminalize #808.",
+  "next_action": "Fresh-read current cleanup/2d-3d-sync; compare frozen #808 base 8147c4319aa02824bd08ca4fd51491df7342e1a6 to current X and to closing head 72a34c9d8ad8d72a537687efb514b56fc4753342. Verify #808 effective final delta is exactly 排程模擬/SKILL.md + scheduler simulation contract test + scheduler_prompt_authoring_pitfall.md, with temporary QA workflow absent; if current X has no overlapping incompatible drift, obtain exact pr-write Guard and integrate non-force.",
   "run_id": 36293674764,
   "job_id": null,
   "log_cursor": null,
@@ -19,7 +19,9 @@
     "Implementation head 69554f8738d3ff2d69273125f971303c666dda8f adds the remote-only scheduler execution contract.",
     "GitHub Actions run 36293405983 failed only on exact provenance token formatting; follow-up Skill-only fix required.",
     "GitHub Actions run 36293530173 GREEN on exact head 9c4fc6cb; remote-only scheduler simulation contract passed.",
-    "Remote-only contract remained GREEN on GitHub Actions run 36293674764 after durable pitfall writeback."
+    "Remote-only contract remained GREEN on GitHub Actions run 36293674764 after durable pitfall writeback.",
+    "Temporary QA workflow removed at closing head 72a34c9d8ad8d72a537687efb514b56fc4753342.",
+    "Guard 36294010593 authorizes exact atomic pair reconciliation to closing head."
   ],
   "master_issue": null,
   "chain_state": "NONE",

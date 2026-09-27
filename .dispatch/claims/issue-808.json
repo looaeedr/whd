@@ -9,9 +9,9 @@
   "work_branch": "governance/issue808-scheduler-remote-only-20260927",
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "head_sha": "5d33d2ed5139ac9ab7f16eca4916f5fd1f0102cd",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T04:15:00Z",
+  "head_sha": "72a34c9d8ad8d72a537687efb514b56fc4753342",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T04:21:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "marker": "SCHEDULER_REMOTE_ONLY_EXECUTION_V1_GREEN"
   },
-  "next_action": "Remove the temporary qa-issue808-scheduler-remote-only.yml under exact Remote Guard, then verify tested-head-to-closing-head drift contains only QA deletion; integrate the exact #808 scoped delta to cleanup/2d-3d-sync non-force and terminalize #808.",
+  "next_action": "Fresh-read current cleanup/2d-3d-sync; compare frozen #808 base 8147c4319aa02824bd08ca4fd51491df7342e1a6 to current X and to closing head 72a34c9d8ad8d72a537687efb514b56fc4753342. Verify #808 effective final delta is exactly 排程模擬/SKILL.md + scheduler simulation contract test + scheduler_prompt_authoring_pitfall.md, with temporary QA workflow absent; if current X has no overlapping incompatible drift, obtain exact pr-write Guard and integrate non-force.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -42,16 +42,18 @@
     "Post-commit pair reconciliation Guard run 36293573911 GREEN for 69554f87 -> 9c4fc6cb.",
     "Scheduler remote-only pitfall durable writeback is present on live work head.",
     "GitHub Actions run 36293674764 completed success after pitfall writeback.",
-    "Live head includes an empty same-content follow-up commit; reactivation is used only to rebind the same owner/pair to exact live HEAD without replaying mutation."
+    "Live head includes an empty same-content follow-up commit; reactivation is used only to rebind the same owner/pair to exact live HEAD without replaying mutation.",
+    "Temporary QA workflow removed by commit 72a34c9d8ad8d72a537687efb514b56fc4753342 under exact GREEN Guard run 36293975300.",
+    "Post-delete claim/checkpoint reconciliation Guard run 36294010593 GREEN; this atomic pair consumes it."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36293573911,
-    "request_comment_id": 5852526553,
+    "run_id": 36294010593,
+    "request_comment_id": 5852575799,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #808 GREEN head and remote QA"
+    "mutation": "reconcile #808 temporary-QA deletion head 72a34c9d"
   }
 }
