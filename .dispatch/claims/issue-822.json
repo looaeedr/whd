@@ -9,21 +9,21 @@
   "work_branch": "governance/issue822-governance-required-check-x-20260927",
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "head_sha": "45aa46cd4bb2bdf608f680033adf76746b551859",
-  "phase": "RED",
-  "last_update": "2026-09-27T06:39:55Z",
+  "head_sha": "3f20e36d995f6c81fa21b117b52f08f60c207919",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T06:45:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
   ],
   "remote_qa": {
-    "run_id": 36300717366,
-    "job_id": 108567721469,
-    "head_sha": "45aa46cd4bb2bdf608f680033adf76746b551859",
+    "run_id": 36300968040,
+    "job_id": 108568405688,
+    "head_sha": "3f20e36d995f6c81fa21b117b52f08f60c207919",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "implement merge-time candidate governance parity seam/workflow, extend regression for paired candidate if needed, then rerun focused GREEN",
+  "next_action": "add pull_request edited trigger for reciprocal pair body updates, rerun focused GREEN, then create paired cleanup/main governance PRs",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -40,17 +40,19 @@
     "Run 36300618496 failed only because pytest was not installed; not accepted as requirement RED.",
     "Valid RED run 36300717366 / job 108567721469: 3 failed; missing evaluate_pr_candidate_parity and PR workflow --verify-pr-candidate-parity.",
     "QA dependency fix commit 45aa46cd installs pytest in the temporary focused runner.",
-    "Valid requirement RED run 36300717366 on 45aa46cd: 3 failed because evaluate_pr_candidate_parity is missing and pull_request workflow lacks merge-time candidate parity step."
+    "Valid requirement RED run 36300717366 on 45aa46cd: 3 failed because evaluate_pr_candidate_parity is missing and pull_request workflow lacks merge-time candidate parity step.",
+    "Implementation commit 3f20e36d adds merge-time candidate parity + reciprocal paired-PR fallback.",
+    "Focused GREEN run 36300968040 / job 108568405688 SUCCESS."
   ],
   "last_guard": {
-    "action": "write",
+    "action": "commit",
     "mode": "remote",
-    "run_id": 36300754446,
-    "request_comment_id": 5853463667,
+    "run_id": 36300880799,
+    "request_comment_id": 5853477712,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile QA dependency head 45aa46cd and valid RED run 36300717366"
+    "mutation": "merge-time candidate parity implementation 3f20e36d"
   },
   "delegated_work": []
 }
