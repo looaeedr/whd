@@ -9,13 +9,13 @@
   "work_branch": "governance/issue828-parent-branch-sealed-identity-repair-main-20260927",
   "claimed_at": "2026-09-27T07:30:00Z",
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
-  "head_sha": "e7a2b0cdb40537cf695351adc0fe4731d77a189e",
-  "phase": "RED",
-  "last_update": "2026-09-27T07:38:00Z",
+  "head_sha": "ea0a8263a2371a2f3e4a846cef3795759933badb",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T07:47:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Implement the narrow parent-branch identity repair: Remote Guard authorization + canonical candidate validator + trusted non-force replacement-branch/CAS transport; rerun exact #828 focused QA to GREEN.",
+  "next_action": "Remove the temporary #828 QA workflow under commit Guard, prove closing diff deletes only that workflow, then build exact reciprocal main/cleanup governance mirror candidates and require both Governance Mirror Hard Gate checks GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -28,14 +28,15 @@
     "#702 durable claim/checkpoint both remain sealed at f8a3397551c5975dafd842e8dcd28c1d4edcca32.",
     "#702 original work branch live c59d73e245d2b4732c738a01bd062eb32763a05a is 9 commits ahead of sealed H4 with merge-base exactly sealed H4.",
     "Repair design uses a fresh replacement branch at sealed H4 and exact coordination CAS to rebind branch identity while preserving sealed HEAD.",
-    "VALID RED: run 36303646583 / job 108575929296 at e7a2b0cdb40537cf695351adc0fe4731d77a189e failed 12 tests only because repair action/transport/validator are absent; harness setup/checkout/pytest all succeeded."
+    "VALID RED: run 36303646583 / job 108575929296 at e7a2b0cdb40537cf695351adc0fe4731d77a189e failed 12 tests only because repair action/transport/validator are absent; harness setup/checkout/pytest all succeeded.",
+    "Focused #828 QA run 36304109574 / job 108577217666 at ea0a8263a2371a2f3e4a846cef3795759933badb: 12 passed / 0 failed in 0.04s."
   ],
   "remote_qa": {
-    "run_id": 36303646583,
-    "job_id": 108575929296,
-    "head_sha": "e7a2b0cdb40537cf695351adc0fe4731d77a189e",
+    "run_id": 36304109574,
+    "job_id": 108577217666,
+    "head_sha": "ea0a8263a2371a2f3e4a846cef3795759933badb",
     "status": "completed",
-    "conclusion": "failure",
-    "pytest": "12 failed / 0 harness failure"
+    "conclusion": "success",
+    "pytest": "12 passed / 0 failed in 0.04s"
   }
 }
