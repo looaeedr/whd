@@ -14,13 +14,14 @@
     "PR #785 merged to trusted main.",
     "52 focused tests passed.",
     "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID.",
-    "Issue #783 fresh-read closed/completed."
+    "Issue #783 closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #783."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

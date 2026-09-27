@@ -10,20 +10,21 @@
   "claimed_at": "2026-09-27T00:00:30Z",
   "base_sha": "ae75066c74339f728a676b1c923fd5366331ae76",
   "head_sha": "178644c5212f8ee672cebe84ae04238000e55a33",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T00:21:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T00:27:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "issue774",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Advance canonical closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> close/readback -> CLOSED+RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-783.json",
   "evidence": [
-    "PR #785 merged to trusted main at 646968f0e0945707d4a87b6b57de769c5a474bb1",
-    "main helper commit=178644c5212f8ee672cebe84ae04238000e55a33",
-    "52 focused tests passed / 0 failed",
-    "generic consumed-history filter verified live on trusted main"
+    "PR #785 merged to trusted main.",
+    "52 focused tests passed.",
+    "FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID.",
+    "Issue #783 closed/completed.",
+    "Final atomic coordination transaction: checkpoint CLOSED + claim RELEASED."
   ]
 }
