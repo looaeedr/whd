@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "b683ee627286db7d578a1d83036b3cd26aa1114a",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-27T06:57:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T07:21:52Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8",
     "summary": "Landing acceptance GREEN: recovery ancestry and BOM-only checks GREEN; governance mirror/authority markers GREEN; repository-wide Python BOM census empty; focused regression 16 passed; protected config.ini and 基準檔 unchanged."
   },
-  "next_action": "Run a fresh pr-write Guard for landing/issue780-current-production-20260927 at closing head b683ee627286db7d578a1d83036b3cd26aa1114a targeting cleanup/2d-3d-sync. After GREEN, create the exact landing PR, fresh-read mergeability and checks, then merge non-force only if GitHub reports clean/mergeable and production has not drifted.",
+  "next_action": "advance closure to ISSUE_CLOSE_PENDING, run trusted bound finalization proof, close/read back Issue #780, then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED + claim RELEASED",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -128,17 +128,23 @@
     "Closing audit 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80..b683ee627286db7d578a1d83036b3cd26aa1114a contains exactly the temporary workflow deletion.",
     "Fresh production cleanup/2d-3d-sync remains 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
     "Production-to-closing diff contains exactly three Python files: #681, scheduler no-work census, and #774; fresh byte readback proves every delta is exactly one leading U+FEFF removal with all subsequent content identical.",
-    "Closing-head reconcile Guard 36301617163 GREEN; request 5853583108, result 5853585118."
+    "Closing-head reconcile Guard 36301617163 GREEN; request 5853583108, result 5853585118.",
+    "PR #826 merged non-force at 2026-09-27T07:02:38Z as 33e6a60b5eef5f07fbc23a48e85de9aba413f020.",
+    "Fresh production readback cleanup/2d-3d-sync=497c5e145ab2506b9c4272392a15940164057066; merge commit 33e6a60b5eef5f07fbc23a48e85de9aba413f020 remains an ancestor.",
+    "Fresh post-merge readback: all three inherited Python BOMs are absent; ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 are both present.",
+    "Production commits after #826 affect only governance mirror files, not the #780 BOM-normalization acceptance surface.",
+    "Parent #626 and Master #627 are already closed/completed with terminal released durable state; #780 therefore terminates as CHAIN_COMPLETE rather than reopening either parent.",
+    "Terminalization write Guard 36302858641 GREEN; request 5853755274, result 5853757339."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36301617163,
-    "request_comment_id": 5853583108,
-    "result_comment_id": 5853585118,
+    "run_id": 36302858641,
+    "request_comment_id": 5853755274,
+    "result_comment_id": 5853757339,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile durable pair to closing head and advance to landing PR"
+    "mutation": "terminalize #780 after merged production readback"
   }
 }

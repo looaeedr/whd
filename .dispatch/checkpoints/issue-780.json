@@ -3,8 +3,8 @@
   "issue": "780",
   "branch": "landing/issue780-current-production-20260927",
   "head_sha": "b683ee627286db7d578a1d83036b3cd26aa1114a",
-  "state": "RUNNING",
-  "next_action": "Run a fresh pr-write Guard for landing/issue780-current-production-20260927 at closing head b683ee627286db7d578a1d83036b3cd26aa1114a targeting cleanup/2d-3d-sync. After GREEN, create the exact landing PR, fresh-read mergeability and checks, then merge non-force only if GitHub reports clean/mergeable and production has not drifted.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36300220692,
   "job_id": 108566375743,
   "log_cursor": null,
@@ -71,13 +71,17 @@
     "Guard 36300324067 GREEN authorizes terminal QA durable writeback.",
     "Closing head b683ee627286db7d578a1d83036b3cd26aa1114a differs from tested head only by temporary QA workflow deletion.",
     "Fresh production remains 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf; production-to-closing delta is exactly three pure UTF-8 BOM removals.",
-    "Guard 36301617163 GREEN authorizes closing-head durable reconciliation."
+    "Guard 36301617163 GREEN authorizes closing-head durable reconciliation.",
+    "PR #826 merged as 33e6a60b5eef5f07fbc23a48e85de9aba413f020 and is retained in current production ancestry.",
+    "Fresh production readback 497c5e145ab2506b9c4272392a15940164057066: #780 BOM normalizations present; accepted authority-map markers preserved.",
+    "Parent #626 and Master #627 fresh-read closed/completed and terminal/released; chain continuation is CHAIN_COMPLETE.",
+    "Guard 36302858641 GREEN authorizes terminalization to TERMINAL_SUCCESS / FINALIZATION_PENDING."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
+  "master_issue": 627,
+  "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "chain_reason": "Late integration-repair helper #780 is production-accepted; parent #626 and Master #627 are already closed/completed with released terminal durable state.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance closure to ISSUE_CLOSE_PENDING, run trusted bound finalization proof, close/read back Issue #780, then atomically persist RELEASE_HANDOFF_PENDING -> CLOSED + claim RELEASED"
 }
