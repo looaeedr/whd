@@ -11,7 +11,7 @@
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
   "head_sha": "ec6680a0ebded06b6f481ad1b2cd7406e47923ed",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T04:02:10Z",
+  "last_update": "2026-09-27T04:09:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 77,
     "failed": 0
   },
-  "next_action": "Advance closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING under a fresh Guard; then run bound Remote Finalization proof on the exact frozen checkpoint, close/read back Issue #769, advance RELEASE_HANDOFF_PENDING, and atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint; verify FINALIZATION_PROOF_VALID and artifact identity, close Issue #769, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -78,16 +78,17 @@
     "PR #788 merged non-force to cleanup/2d-3d-sync as cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
     "Fresh cleanup readback exact at cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
     "Merge pr-write Guard run 36292926948 GREEN and consumed by exact PR #788 merge event.",
-    "Closure-entry Guard run 36293060557 GREEN."
+    "Closure-entry Guard run 36293060557 GREEN.",
+    "Closure advance Guard run 36293430885 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36293060557,
-    "request_comment_id": 5852468831,
+    "run_id": 36293430885,
+    "request_comment_id": 5852510586,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #769 terminal finalization after production merge"
+    "mutation": "advance #769 closure to ISSUE_CLOSE_PENDING"
   }
 }
