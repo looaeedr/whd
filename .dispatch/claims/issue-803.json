@@ -9,13 +9,13 @@
   "work_branch": "governance/issue803-issue800-main-x-parity-20260927",
   "claimed_at": "2026-09-27T03:17:00Z",
   "base_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
-  "head_sha": "44d1621f013d6181af7678e550254920cd6bcc71",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T03:22:00Z",
+  "head_sha": "608f3e0aab6e7a8a705638bb71eed4231923f414",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T03:28:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run Phase6 planned-scope Preflight for Issue #803 exact four parity artifacts; port accepted #800 implementation b507632dc3ae0f3cd0582d44af9c044cb4309872 as a compatible-equivalent change onto frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71, preserving newer cleanup-only governance; run focused #790 + adjacent reconciliation regressions, then reconcile durable HEAD before integration.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and compare against #803 GREEN head 608f3e0aab6e7a8a705638bb71eed4231923f414. Audit production drift/overlap against the exact four authorized parity artifacts; if cleanup advanced from frozen 44d1621f, perform one guarded non-force merge-sync preserving the four-file parity, rerun focused acceptance, then reconcile durable HEAD and integrate by exact PR.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-803.json",
   "evidence": [
@@ -31,16 +31,22 @@
     "Parent #800 helper reservation issue800-main-x-parity is ACTIVE and binds this child claim blob ea5320648da1fa252003e4799ccb40735d172bea.",
     "Branch-create Guard run 36291137452 GREEN on frozen cleanup base 44d1621f013d6181af7678e550254920cd6bcc71.",
     "Work branch created and fresh-read at exact frozen cleanup base.",
-    "Pair transition Guard run 36291180224 GREEN; branch-create/readback consumed."
+    "Pair transition Guard run 36291180224 GREEN; branch-create/readback consumed.",
+    "Phase6 planned/post-write Preflight GREEN for 7 required Skills and 5 required references.",
+    "Compatible-equivalent #800 parity H1 608f3e0aab6e7a8a705638bb71eed4231923f414 changes exactly the four #803 authorized artifacts.",
+    "Focused #790 + adjacent reconciliation regressions on H1: 64 passed / 0 failed.",
+    "git diff --check PASS; tools/execution_claim_guard.py py_compile PASS.",
+    "Implementation Guard run 36291380738 GREEN.",
+    "Post-commit pair reconciliation Guard run 36291465138 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36291180224,
-    "request_comment_id": 5852258374,
+    "run_id": 36291465138,
+    "request_comment_id": 5852290763,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "consume #803 branch creation and advance to parity port"
+    "mutation": "reconcile #803 parity H0->H1"
   }
 }
