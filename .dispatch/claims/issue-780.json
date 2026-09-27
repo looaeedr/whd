@@ -6,12 +6,12 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.b780.20260927T0732+08",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "integration/issue780-phase7-current-x-20260927",
+  "work_branch": "landing/issue780-current-production-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "6ac40676bb4e2911d8b8227ec73875d6cc478e77",
+  "head_sha": "8e16aae98a5d838721f480284121f05f6591e51e",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T06:00:53Z",
+  "last_update": "2026-09-27T06:03:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:1cb89b12ce8b0c39b0c2436c10eed5642c3f4d81e0b483ef23dc62f42ff00baa",
     "summary": "Full integration acceptance GREEN: recovery/BOM census, authority-map markers, structural targets, ownership invariants, manufacturing/collision/DXF, persistence, Xvfb GUI/Bridge/Settings/Door, and protected config/baseline checks all succeeded."
   },
-  "next_action": "Obtain a fresh pr-write Guard for integration/issue780-phase7-current-x-20260927 -> cleanup/2d-3d-sync at integration head 6ac40676bb4e2911d8b8227ec73875d6cc478e77 and fresh production head 8e16aae98a5d838721f480284121f05f6591e51e, then create/read the PR only to obtain canonical GitHub mergeability. If mergeable, continue guarded non-force merge. If dirty/conflicting, do not rewrite #780 history: create a guarded fresh landing branch from exact production head, merge exact #780 closing head into it non-force, resolve only fresh landing conflicts while preserving current production governance, re-run focused production-drift acceptance, and merge the landing branch non-force.",
+  "next_action": "Run branch-create Guard for landing/issue780-current-production-20260927 at exact production head 8e16aae98a5d838721f480284121f05f6591e51e. After GREEN, create the branch at that exact SHA. Then under a commit Guard create one two-parent landing merge commit with first parent=current production and second parent=exact #780 closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77; use the current production tree with only the two proven leading-BOM removals applied. Verify parents/tree/diff, then run focused landing acceptance before PR/merge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -91,17 +91,20 @@
     "Fresh production cleanup/2d-3d-sync head is 8e16aae98a5d838721f480284121f05f6591e51e.",
     "Fresh ancestry: original current-X 5a29aacdc39805e6950362a8880f1513318389f0 is an ancestor of production; sealed Phase7 ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 is also an ancestor of production via merged PR #777 (merge commit de2cd252a5494ff812c590c04380e69176ea7d56).",
     "Fresh production authority map contains both ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 and WHD_PHASE7_OWNERSHIP_WRITEBACK_V1.",
-    "Fresh production still contains the two inherited BOMs, so #780 closing hygiene is not yet in target X."
+    "Fresh production still contains the two inherited BOMs, so #780 closing hygiene is not yet in target X.",
+    "pr-write Guard 36298961621 GREEN; request 5853212563, result 5853213730.",
+    "PR #821 created from sealed #780 integration head to current cleanup solely for canonical mergeability discovery; GitHub returned mergeable=false, changed_files=56 at production base 8e16aae98a5d838721f480284121f05f6591e51e.",
+    "Dirty PR confirms direct merge is unsafe against moving production; durable authority moves to a fresh landing branch rooted at exact current production without rewriting the accepted #780 integration branch."
   ],
   "last_guard": {
-    "action": "write",
+    "action": "pr-write",
     "mode": "remote",
-    "run_id": 36298838187,
-    "request_comment_id": 5853199319,
-    "result_comment_id": 5853200460,
+    "run_id": 36298961621,
+    "request_comment_id": 5853212563,
+    "result_comment_id": 5853213730,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #780 to cleanup closing head and record fresh production drift"
+    "mutation": "create PR #821 for canonical mergeability readback; dirty result selects fresh landing branch"
   }
 }

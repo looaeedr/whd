@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "780",
-  "branch": "integration/issue780-phase7-current-x-20260927",
-  "head_sha": "6ac40676bb4e2911d8b8227ec73875d6cc478e77",
+  "branch": "landing/issue780-current-production-20260927",
+  "head_sha": "8e16aae98a5d838721f480284121f05f6591e51e",
   "state": "RUNNING",
-  "next_action": "Obtain a fresh pr-write Guard for integration/issue780-phase7-current-x-20260927 -> cleanup/2d-3d-sync at integration head 6ac40676bb4e2911d8b8227ec73875d6cc478e77 and fresh production head 8e16aae98a5d838721f480284121f05f6591e51e, then create/read the PR only to obtain canonical GitHub mergeability. If mergeable, continue guarded non-force merge. If dirty/conflicting, do not rewrite #780 history: create a guarded fresh landing branch from exact production head, merge exact #780 closing head into it non-force, resolve only fresh landing conflicts while preserving current production governance, re-run focused production-drift acceptance, and merge the landing branch non-force.",
+  "next_action": "Run branch-create Guard for landing/issue780-current-production-20260927 at exact production head 8e16aae98a5d838721f480284121f05f6591e51e. After GREEN, create the branch at that exact SHA. Then under a commit Guard create one two-parent landing merge commit with first parent=current production and second parent=exact #780 closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77; use the current production tree with only the two proven leading-BOM removals applied. Verify parents/tree/diff, then run focused landing acceptance before PR/merge.",
   "run_id": 36298544059,
   "job_id": 108561782584,
   "log_cursor": null,
@@ -48,7 +48,9 @@
     "Guard 36298648655 GREEN authorizes terminal QA writeback before cleanup.",
     "Closing head 6ac40676bb4e2911d8b8227ec73875d6cc478e77 has no temporary QA workflow and differs from integration merge head only by two byte-exact BOM removals.",
     "Fresh target X 8e16aae98a5d838721f480284121f05f6591e51e already contains both original current-X ancestry and sealed Phase7 ancestry, plus both authority-map markers, but still has both BOMs.",
-    "Guard 36298838187 GREEN authorizes durable reconciliation to the exact cleanup closing head before PR/mergeability discovery."
+    "Guard 36298838187 GREEN authorizes durable reconciliation to the exact cleanup closing head before PR/mergeability discovery.",
+    "PR #821 canonical mergeability readback is dirty/mergeable=false at production base 8e16aae98a5d838721f480284121f05f6591e51e.",
+    "Landing strategy selected: move active durable authority to fresh production-rooted landing branch, then preserve #780 ancestry with a two-parent merge commit while keeping production tree authoritative except two accepted BOM removals."
   ],
   "master_issue": null,
   "chain_state": "NONE",
