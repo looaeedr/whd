@@ -15,13 +15,14 @@
     "52 focused tests PASS.",
     "Main/X #774 classifier contract parity verified.",
     "#776/#781/#783 helpers CLOSED+RELEASED.",
-    "#772 and #768 CLOSED+RELEASED."
+    "#772 and #768 CLOSED+RELEASED.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, authorize proof, close/readback #774, then atomically CLOSED+RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Authorize finalization proof, close/readback #774, then atomically CLOSED+RELEASED."
 }
