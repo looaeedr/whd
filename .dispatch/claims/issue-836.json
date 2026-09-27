@@ -10,20 +10,30 @@
   "claimed_at": "2026-09-27T08:53:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "d3f9479b143271dba482937d839918c73eae9182",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T08:59:00Z",
+  "phase": "RED",
+  "last_update": "2026-09-27T09:00:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Lock focused RED for helper-scope churn: same-ticket repair/retry and per-fix governance mirror must not create new helper Issues.",
+  "remote_qa": {
+    "run_id": 36307828944,
+    "head_sha": "d3f9479b143271dba482937d839918c73eae9182",
+    "status": "completed",
+    "conclusion": "failure",
+    "pytest": "8 failed / 7 passed in 0.31s",
+    "marker": "ISSUE836_VALID_RED"
+  },
+  "next_action": "Implement required helper purpose/scope split authority in canonical reservation gate; keep current-ticket repair and per-fix parity in the same owner.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
     "authorization_source=user explicit 補",
     "execution_intent=UPDATE_ONLY",
-    "purpose=stop helper/parity ticket churn by enforcing repair-in-place and same-owner/batch governance mirror",
-    "branch-first readback: governance/issue836-stop-helper-churn-20260927 exact at cleanup/2d-3d-sync base b059ffeade3e8ade105f44a370e20e071a0127a7",
-    "post-commit pair reconciliation after RED commit d3f9479b143271dba482937d839918c73eae9182; Remote Guard 36307880047 RECONCILE_ONLY"
+    "Claim Activation run 36307733777 GREEN; coord commit 24e58e2aa6ff20cf1a8b7c71d635853d8d28c792.",
+    "RED commit Guard run 36307772812 GREEN.",
+    "VALID RED head d3f9479b143271dba482937d839918c73eae9182; run 36307828944: 8 failed / 7 passed.",
+    "Pair HEAD reconciliation coord commit 19f6e30b4e54141bf596c2bbd3c295a74193a6df under Remote Guard 36307880047.",
+    "RED phase write authorized by Remote Guard 36307947176.",
+    "No helper Issue was created for activation races, RED failure, or pair reconciliation."
   ]
 }
