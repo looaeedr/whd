@@ -9,14 +9,14 @@
   "work_branch": "governance/issue793-takeover-parser-regression-20260927",
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "head_sha": "e6edebe8920e87e8d63e045ed8ddddad8bbbc089",
+  "head_sha": "ab55cbb532d8882e0393cd916bced172943a2831",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T01:43:00Z",
+  "last_update": "2026-09-27T01:49:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run focused #722 interactive takeover transport regression and workflow syntax/readback on H1; if GREEN, obtain pr-write Guard, open PR to main, merge non-force, then live-smoke #790 takeover.",
+  "next_action": "Strengthen the durable #722 regression so any literal-backslash newline takeover parser fails, then rerun exact #793 QA on the new head; after GREEN delete temporary QA workflow and proceed to current-main integration.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -28,16 +28,19 @@
     "Exact authority comment 5851658714 independently matches the selector identity.",
     "Regression first appears at #776 commit 201f66b3c9b692a7f26846f2eaa8ed489ff61f16.",
     "1-line parser fix commit e6edebe8920e87e8d63e045ed8ddddad8bbbc089 created under commit Guard run 36286301274.",
-    "Post-commit pair reconciliation Guard run 36286356043 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-commit pair reconciliation Guard run 36286356043 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Temporary QA workflow commit ab55cbb532d8882e0393cd916bced172943a2831 created under Guard run 36286520981.",
+    "QA run 36286624163 on ab55cbb5: #722 parser regression passed; aggregate run 8 passed / 1 failed because unrelated issue540 exact-string assertion drifted.",
+    "Pair reconciliation Guard run 36286636790 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36286356043,
-    "request_comment_id": 5851704088,
+    "run_id": 36286636790,
+    "request_comment_id": 5851738548,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #793 H0->H1"
+    "mutation": "reconcile #793 H1->H2 QA transport"
   }
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "793",
   "branch": "governance/issue793-takeover-parser-regression-20260927",
-  "head_sha": "e6edebe8920e87e8d63e045ed8ddddad8bbbc089",
+  "head_sha": "ab55cbb532d8882e0393cd916bced172943a2831",
   "state": "RUNNING",
-  "next_action": "Run focused #722 interactive takeover transport regression and workflow syntax/readback on H1; if GREEN, obtain pr-write Guard, open PR to main, merge non-force, then live-smoke #790 takeover.",
+  "next_action": "Strengthen the durable #722 regression so any literal-backslash newline takeover parser fails, then rerun exact #793 QA on the new head; after GREEN delete temporary QA workflow and proceed to current-main integration.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,10 @@
     "Current main parser uses literal escaped newline separators; #722 accepted parser used real newline separators.",
     "No product/UI/scheduler cadence changes.",
     "H1 e6edebe8920e87e8d63e045ed8ddddad8bbbc089 restores #722 real-newline parsing in trusted Remote Guard selector.",
-    "Pair reconciliation Guard 36286356043 GREEN."
+    "Pair reconciliation Guard 36286356043 GREEN.",
+    "Temporary QA transport H2=ab55cbb532d8882e0393cd916bced172943a2831.",
+    "QA run 36286624163: 8 passed / 1 unrelated issue540 string-contract failure; #722 parser tests passed.",
+    "Pair reconciliation Guard 36286636790 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
