@@ -202,3 +202,24 @@ Regression：`tests/process/test_issue739_write_auto_consume.py`。
 7. 與 legacy expired receipt、local Guard proof、claim-handoff recovery互不替代。
 
 Canonical owner：`tools/execution_claim_guard.py`；trusted transport：`.github/workflows/whd-remote-execution-guard.yml`；regression：`tests/process/test_issue790_intervening_claim_blob_reconciliation.py`。
+
+
+## GITHUB_GIT_BLOB_WRAPPED_BASE64_FALSE_CORRUPTION_PITFALL_V1
+
+### 事故
+
+#790 能力已部署到 main 與 cleanup 後，#769 真實 recovery run `36289438955` 仍在 historical claim blob 讀取時失敗：
+`intervening coord reconciliation historical claim blob is not valid base64`。
+
+實際 GitHub `git/blob` API 的 `content` 是合法 base64 bytes，但 transport 可含換行／ASCII whitespace；舊 decoder 直接把原始字串送進 `base64.b64decode(..., validate=True)`，因此把合法 line wrapping 誤判成 corruption。
+
+### 永久防線
+
+1. transport normalization 僅移除 ASCII whitespace：SP / HT / CR / LF / VT / FF。
+2. normalization 後仍用 `validate=True`；禁止切回 permissive base64 decode。
+3. non-ASCII whitespace 與任何非 base64 字元仍拒絕。
+4. decode raw bytes 後仍計算 Git blob object SHA，requested SHA 不一致即拒絕。
+5. 此修正只屬 transport layer，不得放寬 same-owner claim authority、prior receipt、direct-child topology、changed-file scope 或 owner-authored recovery evidence。
+6. regression 必須同時鎖 valid wrapped content、malformed content、non-ASCII whitespace 與 SHA mismatch。
+
+Canonical owner：`tools/execution_claim_guard.py::_historical_claim_payload_from_blob`。
