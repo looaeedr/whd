@@ -9,14 +9,14 @@
   "work_branch": "work/issue701-scheduler-state-reconciliation-20260927",
   "claimed_at": "2026-09-27T02:01:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "dc2380342be0fc2df007230288526f5442042c58",
+  "head_sha": "cc473355f93dfc7b16040f87e483bde9064331da",
   "phase": "RED",
-  "last_update": "2026-09-27T02:23:00Z",
+  "last_update": "2026-09-27T02:27:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Dispatch the temporary qa-issue701-scheduler-state-reconciliation workflow on exact head dc2380342be0fc2df007230288526f5442042c58, lock the resulting run_id+head_sha to terminal, record expected RED-STOP-24 evidence, then implement the narrow canonical scheduler-state reconciliation adapter without changing cadence or lane-owner invariants.",
+  "next_action": "Repair only the temporary #701 QA harness so pytest is available, preserve the exact RED-STOP-24 characterization, then let the work-branch push trigger one exact RED run and lock that run_id+head_sha to terminal. Do not count run 36288418044 as RED evidence because it failed before pytest collection.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -31,16 +31,18 @@
     "Dependency merge mutation was authorized by Remote Guard run 36287583611 with exact nine-file A1 delta.",
     "Canonical Claim Activation reactivate is used to reconcile the non-production dependency merge; ordinary production merge-sync reconciliation is intentionally not used.",
     "RED characterization commit dc2380342be0fc2df007230288526f5442042c58 adds only test_issue701_scheduler_state_reconciliation.py and temporary QA workflow.",
-    "Post-commit pair reconciliation Guard 36288310555 GREEN and consumed."
+    "Post-commit pair reconciliation Guard 36288310555 GREEN and consumed.",
+    "QA run 36288418044 @ cc473355f93dfc7b16040f87e483bde9064331da is HARNESS_FAIL: /usr/bin/python: No module named pytest; it is not RED-STOP-24 evidence.",
+    "Post-workflow-trigger commit reconciliation Guard 36288437582 GREEN and consumed."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288310555,
-    "request_comment_id": 5851932722,
+    "run_id": 36288437582,
+    "request_comment_id": 5851947117,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #701 RED characterization head"
+    "mutation": "reconcile #701 QA-trigger head"
   }
 }

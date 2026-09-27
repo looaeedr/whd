@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "701",
   "branch": "work/issue701-scheduler-state-reconciliation-20260927",
-  "head_sha": "dc2380342be0fc2df007230288526f5442042c58",
+  "head_sha": "cc473355f93dfc7b16040f87e483bde9064331da",
   "state": "RUNNING",
-  "next_action": "Dispatch the temporary qa-issue701-scheduler-state-reconciliation workflow on exact head dc2380342be0fc2df007230288526f5442042c58, lock the resulting run_id+head_sha to terminal, record expected RED-STOP-24 evidence, then implement the narrow canonical scheduler-state reconciliation adapter without changing cadence or lane-owner invariants.",
+  "next_action": "Repair only the temporary #701 QA harness so pytest is available, preserve the exact RED-STOP-24 characterization, then let the work-branch push trigger one exact RED run and lock that run_id+head_sha to terminal. Do not count run 36288418044 as RED evidence because it failed before pytest collection.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,9 @@
     "Combined dependency head 4fa408e93c3f78bbb92d2c0cb882d9ea298cfdcf preserves both accepted A1 and A2 ancestry.",
     "Dependency merge Guard 36287583611 GREEN; reactivation reconciles the durable pair before RED-STOP-24.",
     "RED characterization head=dc2380342be0fc2df007230288526f5442042c58.",
-    "Post-commit pair reconciliation Guard 36288310555 GREEN and consumed."
+    "Post-commit pair reconciliation Guard 36288310555 GREEN and consumed.",
+    "Run 36288418044 is invalid RED evidence: runner lacked pytest before test collection.",
+    "Post-workflow-trigger reconciliation Guard 36288437582 GREEN and consumed."
   ],
   "master_issue": null,
   "chain_state": "NONE",
