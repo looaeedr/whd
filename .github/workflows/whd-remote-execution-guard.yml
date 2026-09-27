@@ -65,6 +65,8 @@ jobs:
               "handoff_generation",
               "checkpoint_fingerprint",
               "next_action",
+              "observed_live_head_sha",
+              "replacement_branch",
           }
           allowed_multi = {"changed_file"}
           singles = {}
@@ -163,6 +165,7 @@ jobs:
               "qa-dispatch",
               "workflow-dispatch",
               "pr-write",
+              "parent-branch-identity-repair",
           }:
               raise SystemExit("unsupported action")
 
@@ -176,6 +179,35 @@ jobs:
               or "@{" in branch
           ):
               raise SystemExit("invalid branch")
+
+          repair_keys = {"observed_live_head_sha", "replacement_branch"}
+          if singles["action"] == "parent-branch-identity-repair":
+              missing_repair = sorted(repair_keys - set(singles))
+              if missing_repair:
+                  raise SystemExit(
+                      f"parent-branch-identity-repair missing keys: {missing_repair}"
+                  )
+              if not re.fullmatch(r"[0-9a-f]{40}", singles["observed_live_head_sha"]):
+                  raise SystemExit("invalid observed_live_head_sha")
+              replacement = singles["replacement_branch"]
+              if (
+                  not re.fullmatch(r"[A-Za-z0-9._/-]{1,200}", replacement)
+                  or replacement.startswith("/")
+                  or replacement.endswith("/")
+                  or ".." in replacement
+                  or "//" in replacement
+                  or "@{" in replacement
+              ):
+                  raise SystemExit("invalid replacement_branch")
+              if replacement == branch:
+                  raise SystemExit("replacement_branch must differ from original branch")
+          else:
+              unexpected_repair = sorted(repair_keys & set(singles))
+              if unexpected_repair:
+                  raise SystemExit(
+                      "repair identity keys are only valid for parent-branch-identity-repair: "
+                      f"{unexpected_repair}"
+                  )
 
           sha_keys = {
               "base_sha",
@@ -202,7 +234,7 @@ jobs:
                   normalized.append(value)
           if singles["action"] in {"write", "commit"} and not normalized:
               raise SystemExit("write/commit requires at least one changed_file")
-          if singles["action"] in {"claim-takeover", "claim-handoff"} and normalized:
+          if singles["action"] in {"claim-takeover", "claim-handoff", "parent-branch-identity-repair"} and normalized:
               raise SystemExit(f"{singles['action']} must not carry changed_file")
 
           legacy_recovery_id = singles.get("legacy_reconcile_recovery_comment_id")
@@ -337,7 +369,43 @@ jobs:
           PY
             fi
 
-            if [ "$effective_live_head" = "$claim_head_sha" ]; then
+            if [ "$RG_ACTION" = "parent-branch-identity-repair" ]; then
+              test -n "$current_branch_sha"
+              test "$claim_head_sha" = "$RG_HEAD_SHA"
+              test "$current_branch_sha" = "$RG_OBSERVED_LIVE_HEAD_SHA"
+              mapfile -t requested_changed_files < /tmp/remote-guard-changed-files.txt
+              test "${#requested_changed_files[@]}" -eq 0
+              git check-ref-format --branch "$RG_REPLACEMENT_BRANCH" >/dev/null
+              replacement_sha="$(git ls-remote origin "refs/heads/${RG_REPLACEMENT_BRANCH}" | awk '{print $1}')"
+              if [ -n "$replacement_sha" ] && [ "$replacement_sha" != "$RG_HEAD_SHA" ]; then
+                echo "REMOTE_GUARD_REJECTED: PARENT_BRANCH_IDENTITY_REPAIR_REPLACEMENT_DRIFT" >&2
+                exit 42
+              fi
+              gh api "repos/${GITHUB_REPOSITORY}/compare/${RG_HEAD_SHA}...${RG_OBSERVED_LIVE_HEAD_SHA}" > /tmp/parent-branch-repair-compare.json
+              python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(
+              Path("/tmp/parent-branch-repair-compare.json").read_text(encoding="utf-8")
+          )
+          merge_base = payload.get("merge_base_commit")
+          if payload.get("status") != "ahead":
+              raise SystemExit(
+                  "PARENT_BRANCH_IDENTITY_REPAIR: observed branch drift must be a descendant"
+              )
+          if not isinstance(merge_base, dict) or merge_base.get("sha") != os.environ["RG_HEAD_SHA"]:
+              raise SystemExit(
+                  "PARENT_BRANCH_IDENTITY_REPAIR: sealed HEAD must be the exact merge base"
+              )
+          if int(payload.get("ahead_by") or 0) <= 0:
+              raise SystemExit(
+                  "PARENT_BRANCH_IDENTITY_REPAIR: observed branch must be strictly ahead"
+              )
+          PY
+              echo "PARENT_BRANCH_IDENTITY_REPAIR: sealed authority preserved; non-force replacement repair authorized"
+            elif [ "$effective_live_head" = "$claim_head_sha" ]; then
               gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/issues/${RG_ISSUE}/comments?per_page=100" > /tmp/remote-guard-comments.json
               gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/pulls?state=all&head=${GITHUB_REPOSITORY_OWNER}:${RG_BRANCH}&per_page=100" > /tmp/remote-guard-pulls.json
               RG_EFFECTIVE_LIVE_HEAD="$effective_live_head" python - <<'PY'
@@ -634,6 +702,10 @@ jobs:
 
             if [ "$RG_ACTION" = "branch-create" ]; then
               test -z "$current_branch_sha"
+            elif [ "$RG_ACTION" = "parent-branch-identity-repair" ]; then
+              test -n "$current_branch_sha"
+              test "$claim_head_sha" = "$RG_HEAD_SHA"
+              test "$current_branch_sha" = "$RG_OBSERVED_LIVE_HEAD_SHA"
             elif [ "$RG_ACTION" = "claim-takeover" ]; then
               test -n "$current_branch_sha"
               test "$current_branch_sha" = "$RG_TESTED_TARGET_SHA"
@@ -876,6 +948,8 @@ jobs:
               "handoff_generation": request.get("handoff_generation"),
               "checkpoint_fingerprint": request.get("checkpoint_fingerprint"),
               "next_action": request.get("next_action"),
+              "observed_live_head_sha": request.get("observed_live_head_sha"),
+              "replacement_branch": request.get("replacement_branch"),
               "executor_source": request["executor_source"],
               "action": request["action"],
               "branch": request["branch"],
