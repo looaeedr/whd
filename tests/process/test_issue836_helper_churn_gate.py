@@ -29,12 +29,13 @@ def _claim():
     }
 
 
-def _split(kind):
+def _split(kind, *, scope_key="issue836.distinct-boundary"):
     return {
         "schema": "WHD_HELPER_SPLIT_EXCEPTION_V1",
         "kind": kind,
         "current_ticket_can_own": False,
         "evidence_ref": "issue:#836:authority-boundary-proof",
+        "scope_key": scope_key,
     }
 
 
@@ -123,3 +124,58 @@ def test_split_proof_kind_must_match_declared_purpose():
             purpose_class="DISTINCT_EXTERNAL_BLOCKER",
             split_exception=_split("DISTINCT_AUTHORITY_BOUNDARY"),
         )
+
+
+def test_different_helper_keys_same_scope_are_machine_deduped():
+    first = stale.reserve_helper_creation(
+        deepcopy(_claim()),
+        parent_claim_blob_sha=BLOB,
+        expected_parent_claim_blob_sha=BLOB,
+        helper_key="distinct-owner-a",
+        reserved_by=WORKER,
+        reservation_token="token-distinct-owner-a",
+        now=NOW,
+        purpose_class="DISTINCT_AUTHORITY_BOUNDARY",
+        split_exception=_split(
+            "DISTINCT_AUTHORITY_BOUNDARY",
+            scope_key="issue836.shared-authority-boundary",
+        ),
+    )
+    second = stale.reserve_helper_creation(
+        deepcopy(first.parent_claim),
+        parent_claim_blob_sha="b" * 40,
+        expected_parent_claim_blob_sha="b" * 40,
+        helper_key="distinct-owner-b",
+        reserved_by=WORKER,
+        reservation_token="token-distinct-owner-b",
+        now=NOW,
+        purpose_class="DISTINCT_AUTHORITY_BOUNDARY",
+        split_exception=_split(
+            "DISTINCT_AUTHORITY_BOUNDARY",
+            scope_key="issue836.shared-authority-boundary",
+        ),
+    )
+    assert second.outcome == "ACTIVE_HELPER_SCOPE_DUPLICATE"
+    assert second.reservation["helper_key"] == "distinct-owner-a"
+
+
+def test_durable_skill_and_pitfall_lock_repair_in_place_contract():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    dispatch = (root / ".agents/skills/engineering/派工/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    pitfalls = (
+        root / "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+    ).read_text(encoding="utf-8")
+
+    assert "ISSUE836_CURRENT_TICKET_REPAIR_FIRST_HARD_GATE_V1" in dispatch
+    assert "CURRENT_TICKET_REPAIR_REQUIRED" in dispatch
+    assert "PARITY_SAME_OWNER_OR_BATCH_REQUIRED" in dispatch
+    assert "WHD_HELPER_SPLIT_EXCEPTION_V1" in dispatch
+    assert "scope_key" in dispatch
+
+    assert "ISSUE836_HELPER_TICKET_CHURN_PITFALL" in pitfalls
+    assert "換 helper_key" in pitfalls
+    assert "原票 repair/retry" in pitfalls
