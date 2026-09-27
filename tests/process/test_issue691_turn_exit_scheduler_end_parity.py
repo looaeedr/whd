@@ -10,6 +10,10 @@ import tools.continuity_controller as continuity
 BRANCH = "work/issue691-turn-exit-scheduler-end-20260926"
 HEAD = "6" * 40
 FINGERPRINT = "f" * 64
+CENSUS_FINGERPRINT = "c" * 64
+CLAIM_BLOB = "a" * 40
+CHECKPOINT_BLOB = "b" * 40
+REQUEST_ID = 101
 
 
 def _checkpoint() -> continuity.Checkpoint:
@@ -25,6 +29,9 @@ def _checkpoint() -> continuity.Checkpoint:
 
 def _claim() -> dict[str, object]:
     return {
+        "worker": "scheduler.example",
+        "executor_source": "scheduler",
+        "invocation_identity": "invocation-abc",
         "phase": "RELEASED",
         "authority_progress": {
             "state": "SUBSTANTIVE_ACTION_COMPLETED",
@@ -57,6 +64,7 @@ def _turn_exit_receipt() -> dict[str, object]:
         "required_end_marker": "WHD_SCHEDULER_RUNTIME_END_V1",
         "issued_at": "2026-09-26T14:00:00Z",
         "run_id": 303,
+        "ready_work_census_fingerprint": CENSUS_FINGERPRINT,
     }
 
 
@@ -70,6 +78,24 @@ def _scheduler_end() -> dict[str, object]:
         "result_comment_id": 202,
         "checkpoint_fingerprint": FINGERPRINT,
         "turn_exit_run_id": 303,
+        "ready_work_census_fingerprint": CENSUS_FINGERPRINT,
+    }
+
+
+def _ready_work_census_proof() -> dict[str, object]:
+    checkpoint = _checkpoint()
+    return {
+        "schema": "READY_WORK_CENSUS_V1",
+        "scheduler_lane": "scheduler.example",
+        "invocation_identity": "invocation-abc",
+        "claim_blob_sha": CLAIM_BLOB,
+        "checkpoint_blob_sha": CHECKPOINT_BLOB,
+        "checkpoint_fingerprint": continuity.checkpoint_fingerprint(checkpoint),
+        "turn_exit_request_comment_id": REQUEST_ID,
+        "exhaustive": True,
+        "executable_leaf_count": 0,
+        "continuation_action": None,
+        "candidates": [],
     }
 
 
@@ -94,6 +120,10 @@ def test_red_stop_08_local_gate_uses_same_live_durable_invariants_as_remote() ->
         expected_issue="691",
         expected_branch=BRANCH,
         expected_head_sha=HEAD,
+        ready_work_census_proof=_ready_work_census_proof(),
+        current_claim_blob_sha=CLAIM_BLOB,
+        current_checkpoint_blob_sha=CHECKPOINT_BLOB,
+        turn_exit_request_comment_id=REQUEST_ID,
     )
     local = local_gate(_checkpoint(), **kwargs)
     remote = continuity.evaluate_remote_turn_exit_from_durable_state(
@@ -155,5 +185,7 @@ def test_trusted_workflow_validates_scheduler_end_comment() -> None:
         "checkpoint_fingerprint",
         "turn_exit_run_id",
         "WHD_SCHEDULER_RUNTIME_END_RESULT_V1",
+        "ready_work_census_json",
+        "ready_work_census_fingerprint",
     ):
         assert token in text

@@ -226,3 +226,18 @@ Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 
 - retained invariant: Checkpoint/next_action continuity stays machine-owned; terminal closure requires verified finalization and atomic CLOSED+RELEASED.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+## TERMINAL_SCHEDULER_NO_CENSUS_FALSE_EXIT_PITFALL_V1
+
+### 事故
+scheduler child 已 `TERMINAL_SUCCESS / CLOSED / RELEASED` 時，舊 canonical turn-exit 只驗 child closure、claim release、active run/delegated work；因此即使 lane 還有 scheduler-authorized ready leaf，也可能先產生 `TURN_EXIT_PERMITTED`，再由 scheduler END 合法收工。若 `READY_WORK_CENSUS_V1` 只存在 prompt/Skill，仍只是 documentation，不是 executable stop gate。
+
+### 永久防線
+- scheduler lane normal exit 另需 machine-readable `READY_WORK_CENSUS_V1` proof。
+- proof exact 綁 lane、invocation、claim/checkpoint blobs、checkpoint fingerprint 與本次 turn-exit request identity；舊 proof / replay / durable observation drift 一律 fail closed。
+- `MUST_CLAIM` 或 `executable_leaf_count > 0` 固定 `EXECUTABLE_LEAF_EXISTS` 並暴露 exact continuation；不能先 END 再等下一 wake。
+- zero-leaf 只有在 `exhaustive=true` 且每個 candidate 都有 fresh durable exclusion evidence + canonical exclusion classification 時可通過。
+- turn-exit receipt 必須帶 census fingerprint，scheduler END 必須 exact 綁同一 fingerprint，避免 pre-census permit 被重播。
+- #764 保持 producer/prompt SSoT；#769 consumer gate 不建立第二套 discovery authority。
+
+Primary owner：`tools/continuity_controller.py`；trusted transport：`.github/workflows/whd-turn-exit-gate.yml`；regression：`tests/process/test_issue769_terminal_scheduler_census_exit_gate.py`。
