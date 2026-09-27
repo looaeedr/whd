@@ -25,13 +25,14 @@
     "Final scoped delta = 3 authorized artifacts; current X drift overlap = 0.",
     "Closing-head contract readback passed all remote-only markers.",
     "PR #810 merged to cleanup/2d-3d-sync at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c.",
-    "Fresh production readback verifies the three authorized #808 artifacts and all remote-only contract markers."
+    "Fresh production readback verifies the three authorized #808 artifacts and all remote-only contract markers.",
+    "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under checkpoint-only Guard 36294462695; checkpoint is frozen until bound proof + Issue close/readback."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "mint bound remote finalization proof, close/read back owning Issue #808, then advance to RELEASE_HANDOFF_PENDING without mutating this checkpoint before close"
 }
