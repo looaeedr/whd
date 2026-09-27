@@ -7,6 +7,7 @@ on:
       - integration/issue780-phase7-current-x-20260927
     paths:
       - '.github/workflows/qa-issue780-phase7-integration.yml'
+      - '**/*.py'
 
 permissions:
   contents: read
@@ -23,9 +24,6 @@ jobs:
     env:
       TESTED_SHA: ${{ github.sha }}
       MERGE_HEAD: 2c0005a524bc2e2c824608aa94e80bf8f7353966
-      RECOVERY_QA1_HEAD: d8406a9946d5e079eeaf2c55ddae1b6692130426
-      RECOVERY_BOM_HEAD: 150a9ab87b517668d1e0bc8a8ffdecfebbf9453f
-      RECOVERY_YAML_HEAD: 0e80d68cfc38f70c7183f7a171f8e4709fa3b085
       CURRENT_X_PARENT: 5a29aacdc39805e6950362a8880f1513318389f0
       SEALED_PHASE7_PARENT: ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6
     steps:
@@ -54,15 +52,55 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${TESTED_SHA}"
-          test "$(git rev-parse HEAD^)" = "${RECOVERY_YAML_HEAD}"
-          test "$(git rev-parse "${RECOVERY_YAML_HEAD}^")" = "${RECOVERY_BOM_HEAD}"
-          test "$(git rev-parse "${RECOVERY_BOM_HEAD}^")" = "${RECOVERY_QA1_HEAD}"
-          test "$(git rev-parse "${RECOVERY_QA1_HEAD}^")" = "${MERGE_HEAD}"
+          git merge-base --is-ancestor "${MERGE_HEAD}" HEAD
+          test -z "$(git rev-list --merges "${MERGE_HEAD}..HEAD")"
           test "$(git show -s --format=%P "${MERGE_HEAD}")" = "${CURRENT_X_PARENT} ${SEALED_PHASE7_PARENT}"
-          actual_recovery_paths="$(git diff --name-only "${MERGE_HEAD}..HEAD" | LC_ALL=C sort)"
-          expected_recovery_paths="$(printf '%s\n' '.github/workflows/qa-issue780-phase7-integration.yml' 'tests/process/test_issue681_poweroff_gate.py' | LC_ALL=C sort)"
-          test "${actual_recovery_paths}" = "${expected_recovery_paths}"
-          python -c 'from pathlib import Path; p=Path("tests/process/test_issue681_poweroff_gate.py").read_bytes(); raise SystemExit(1 if p.startswith(bytes.fromhex("efbbbf")) else 0)'
+          python - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          merge_head = os.environ["MERGE_HEAD"]
+          workflow = ".github/workflows/qa-issue780-phase7-integration.yml"
+          required = {
+              workflow,
+              "tests/process/test_issue681_poweroff_gate.py",
+              "tests/process/test_scheduler_no_work_census_contract.py",
+          }
+          changed = set(
+              subprocess.check_output(
+                  ["git", "diff", "--name-only", f"{merge_head}..HEAD"],
+                  text=True,
+              ).splitlines()
+          )
+          missing = sorted(required - changed)
+          if missing:
+              raise SystemExit(f"missing required recovery paths: {missing}")
+
+          bom = bytes.fromhex("efbbbf")
+          for path in sorted(changed):
+              if path == workflow:
+                  continue
+              if not path.endswith(".py"):
+                  raise SystemExit(f"non-BOM recovery path is not allowed: {path}")
+              base = subprocess.check_output(["git", "show", f"{merge_head}:{path}"])
+              live = Path(path).read_bytes()
+              if not base.startswith(bom):
+                  raise SystemExit(f"recovery source did not have BOM at MERGE_HEAD: {path}")
+              if live != base[len(bom):]:
+                  raise SystemExit(f"recovery path is not pure BOM removal: {path}")
+          print("ISSUE780_BOM_RECOVERY_DIFF_GREEN=1")
+
+          remaining = sorted(
+              str(path)
+              for path in Path(".").rglob("*.py")
+              if path.is_file() and path.read_bytes().startswith(bom)
+          )
+          print("ISSUE780_REMAINING_BOM_FILES=" + ",".join(remaining))
+          if remaining:
+              raise SystemExit("UTF-8 BOM census is not clean")
+          print("ISSUE780_PYTHON_BOM_CENSUS_GREEN=1")
+          PY
           sha256sum config.ini > /tmp/i780-config-before.sha256
           find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/i780-dxf-before.sha256
           test -s /tmp/i780-dxf-before.sha256
