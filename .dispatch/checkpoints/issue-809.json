@@ -3,8 +3,8 @@
   "issue": "809",
   "branch": "parity/issue809-remote-guard-contract-cleanup-20260927",
   "head_sha": "9ba204c0303a67d8be6e2569f6ee52f8824e2ac5",
-  "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync and compare live target against #809 GREEN head 9ba204c0303a67d8be6e2569f6ee52f8824e2ac5. If effective delta remains exactly tests/process/test_issue540_main_remote_guard_contract.py and no target overlap exists, obtain pr-write Guard, open/update the exact PR to cleanup, verify mergeability/checks, obtain a fresh merge Guard, merge non-force, read back focused GREEN, then enter terminal closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -23,13 +23,17 @@
     "Workflow blobs main/cleanup are identical; #809 remains a one-test-file contract repair.",
     "H2 9ba204c0303a67d8be6e2569f6ee52f8824e2ac5 is the final one-file #809 contract-test repair.",
     "Focused #540 test 6/6; post-write Preflight GREEN; production workflow unchanged.",
-    "Local canonical pair-write Guard GREEN."
+    "Local canonical pair-write Guard GREEN.",
+    "PR #812 merged non-force to cleanup/2d-3d-sync at 864264579c6acaa5e6f8474f94e43e24e1908453.",
+    "Fresh cleanup target 864264579c6acaa5e6f8474f94e43e24e1908453 contains accepted #540 test blob 1a4870aefddc07d7dc3d0da9358febd668870116.",
+    "Terminal acceptance satisfied: focused 6/6, exact one-file delta, production workflow unchanged, integration/readback complete.",
+    "Terminal coordination write Guard 36295163072 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
