@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "issue": "843",
+  "branch": "governance/issue843-control-plane-characterization-20260927",
+  "head_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
+  "state": "RUNNING",
+  "next_action": "Create work branch at frozen cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then complete Phase6 Knowledge Preflight for #843 planned governance/test artifacts before the first work-branch write.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "authorization_source=user exact command /排程A 843",
+    "execution_intent=SCHEDULER_LANE",
+    "Parent relation=#842 is provenance only while non-terminal; canonical master chain metadata is deferred until terminal child handoff.",
+    "frozen X=cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c",
+    "actual_invocation_source=chatgpt_interactive; lane_owner=scheduler.6ab13fa557fc8191935c671214b865e2; invocation_identity=chat.issue843.20260927a"
+  ],
+  "operation": null,
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}

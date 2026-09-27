@@ -1,0 +1,33 @@
+{
+  "issue": 843,
+  "issue_url": "https://github.com/looaeedr/whd/issues/843",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "entrypoint": "interactive:/排程A",
+  "invocation_identity": "chat.issue843.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue843-control-plane-characterization-20260927",
+  "claimed_at": "2026-09-27T10:02:00Z",
+  "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
+  "head_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T10:02:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "remote_qa": null,
+  "next_action": "Create work branch at frozen cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then complete Phase6 Knowledge Preflight for #843 planned governance/test artifacts before the first work-branch write.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-843.json",
+  "evidence": [
+    "authorization_source=user exact command /排程A 843",
+    "execution_intent=SCHEDULER_LANE",
+    "purpose=characterize current WHD control-plane behavior and lock executable regression contracts without production behavior change",
+    "authorized_scope=Issue #843 under Master #842 on frozen cleanup/2d-3d-sync baseline",
+    "prohibited_scope=no Execution Record; no Guard semantic rewrite; no scheduler discovery redesign; no unrelated Issue discovery",
+    "resume_authority=NONE",
+    "actual_invocation_source=chatgpt_interactive; conversation_identity=UNAVAILABLE; invocation_identity=chat.issue843.20260927a",
+    "baseline cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c",
+    "default main@cb80310e2643d1ab9624e90085d4abda6e4d125e"
+  ]
+}
