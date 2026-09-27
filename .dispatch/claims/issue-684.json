@@ -9,9 +9,9 @@
   "work_branch": "work/issue684-real-ha-integration-combined-20260927",
   "claimed_at": "2026-09-27T14:59:30Z",
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
-  "head_sha": "22e42713db60ae8587d4600c1f3c4964a23959bc",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T15:25:00Z",
+  "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T15:29:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "slot_id": "UNBOUND",
@@ -24,7 +24,7 @@
     "conclusion": "success",
     "pytest": "68 passed in 3.10s"
   },
-  "next_action": "Fresh-audit production drift from frozen 8a3058e5472aec4793cd26a398ae4920185d8002 to live cleanup; create/sync a two-parent closing head preserving target drift; because #684 changes governed Scheduler Skill + Authority Map 09 + Scheduled Resume 11, create reciprocal cleanup/main governance-mirror PRs, require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN, merge in legal order, then finalization/close/release.",
+  "next_action": "Create reciprocal cleanup/main governance-mirror PRs for #684 closing head a4fcfaf6af265b747f4bc838ff72df8a37025688; require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN; merge in legal order; then production readback and finalization/close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-684.json",
   "evidence": [
@@ -51,17 +51,19 @@
     "Exact Combined Acceptance run 36329242279 / job 108647885044 GREEN: 68 passed in 3.10s across #680/#681/#682/#683/#684 regressions plus #684 writeback marker checks.",
     "Post-commit reconciliation Guard 36329299014 / request 5857149059 / result 5857150753 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "One-shot Combined Acceptance workflow deletion commit 22e42713db60ae8587d4600c1f3c4964a23959bc consumed commit Guard 36329377430 / request 5857158866 / result 5857160898.",
-    "Fresh tested-to-closing compare 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> 22e42713db60ae8587d4600c1f3c4964a23959bc is exactly removal of .github/workflows/qa-issue684-real-ha-combined.yml."
+    "Fresh tested-to-closing compare 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> 22e42713db60ae8587d4600c1f3c4964a23959bc is exactly removal of .github/workflows/qa-issue684-real-ha-combined.yml.",
+    "Fresh production drift audit: frozen 8a3058e5472aec4793cd26a398ae4920185d8002 -> live cleanup e7d88f69e22a974a846660f52f58d6fd621834e8 changes only #843 matrix/test files, disjoint from #684 seven-file closing delta.",
+    "Two-parent closing head a4fcfaf6af265b747f4bc838ff72df8a37025688 consumed commit Guard 36329571556; parents are cleanup-safe closing 22e42713db60ae8587d4600c1f3c4964a23959bc + live cleanup e7d88f69e22a974a846660f52f58d6fd621834e8; target-to-closing diff is exactly #684 seven files."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36329439849,
-    "request_comment_id": 5857166759,
-    "result_comment_id": 5857168430,
+    "run_id": 36329672421,
+    "request_comment_id": 5857205942,
+    "result_comment_id": 5857209243,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #684 to exact closing head after one-shot workflow cleanup"
+    "mutation": "reconcile #684 to two-parent closing head"
   }
 }

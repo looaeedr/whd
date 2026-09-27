@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "684",
   "branch": "work/issue684-real-ha-integration-combined-20260927",
-  "head_sha": "22e42713db60ae8587d4600c1f3c4964a23959bc",
+  "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "state": "RUNNING",
-  "next_action": "Fresh-audit production drift from frozen 8a3058e5472aec4793cd26a398ae4920185d8002 to live cleanup; create/sync a two-parent closing head preserving target drift; because #684 changes governed Scheduler Skill + Authority Map 09 + Scheduled Resume 11, create reciprocal cleanup/main governance-mirror PRs, require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN, merge in legal order, then finalization/close/release.",
+  "next_action": "Create reciprocal cleanup/main governance-mirror PRs for #684 closing head a4fcfaf6af265b747f4bc838ff72df8a37025688; require fresh Governance Mirror Hard Gate + Knowledge Governance GREEN; merge in legal order; then production readback and finalization/close/release.",
   "run_id": 36329242279,
   "job_id": 108647885044,
   "log_cursor": null,
@@ -27,7 +27,9 @@
     "Run 36329242279 / job 108647885044: 68 passed in 3.10s.",
     "Pair reconciled under Guard 36329299014.",
     "One-shot Combined Acceptance workflow removed at closing head 22e42713db60ae8587d4600c1f3c4964a23959bc under commit Guard 36329377430.",
-    "Tested 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> closing 22e42713db60ae8587d4600c1f3c4964a23959bc drift is exactly the one-shot workflow deletion."
+    "Tested 2a65b8ebbd85c96083874a49aceb687cb56d2848 -> closing 22e42713db60ae8587d4600c1f3c4964a23959bc drift is exactly the one-shot workflow deletion.",
+    "Live cleanup drift e7d88f69e22a974a846660f52f58d6fd621834e8 is disjoint from #684 delta.",
+    "Two-parent closing head a4fcfaf6af265b747f4bc838ff72df8a37025688 parents 22e42713db60ae8587d4600c1f3c4964a23959bc + e7d88f69e22a974a846660f52f58d6fd621834e8; target-to-closing diff is exactly #684 seven files."
   ],
   "master_issue": null,
   "chain_state": "NONE",
