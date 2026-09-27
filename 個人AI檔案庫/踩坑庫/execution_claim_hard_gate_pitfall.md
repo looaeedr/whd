@@ -231,3 +231,19 @@ Canonical owner：`tools/execution_claim_guard.py`；trusted transport：`.githu
 6. regression 必須同時鎖 valid wrapped content、malformed content、non-ASCII whitespace 與 SHA mismatch。
 
 Canonical owner：`tools/execution_claim_guard.py::_historical_claim_payload_from_blob`。
+
+
+## 2026-09-27 — governance parity 有 evaluator 但沒有雙向 mirror hard gate
+
+### 事故
+#692 已有 `tools/governance_parity_gate.py`，#736 也有 main→X batch-first contract，但它們仍可能留下三個洞：parity direction 被寫死成 main→X、main 可收到非治理主體、以及 evaluator 沒有常駐 workflow 對 branch tip fresh-read。
+
+### 永久防線：BIDIRECTIONAL_GOVERNANCE_MIRROR_HARD_GATE_V1
+- `main` 與 `cleanup/2d-3d-sync` 只在 governance manifest scope 形成雙向 mirror；產品 authority 固定 cleanup。
+- mirror evaluator 必須接受兩個方向，且 `UNKNOWN_DIVERGENCE` fail closed。
+- target=`main` 時，manifest 外任何 changed path 固定 `NON_GOVERNANCE_PATH_TO_MAIN`；禁止 full cleanup merge/cherry-pick 把產品碼帶入 main。
+- PR gate 先驗 changed-file scope；push sentinel 再 fresh-fetch 兩 branch 的 governed blobs。單邊先落盤可以短暫 RED，但工單不得 terminal/closure，直到另一邊 mirror 後 live parity GREEN。
+- ruleset 若未把 status check 設為 required，workflow RED 仍是 durable blocker，但不應被描述成 GitHub branch-protection 已硬擋 merge；required-check wiring 必須另有實際 ruleset evidence。
+- active X chains 保持 frozen base，不追 governance mirror tip。
+
+Canonical evaluator：`tools/governance_parity_gate.py`；scope：`docs/governance/governance_mirror_manifest.json`；transport：`.github/workflows/whd-governance-mirror-gate.yml`；regression：`tests/process/test_issue816_bidirectional_governance_mirror.py`。
