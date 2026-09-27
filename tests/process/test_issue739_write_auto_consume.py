@@ -208,3 +208,70 @@ def test_issue739_trusted_workflow_wires_coord_write_readback():
     )
     missing = [token for token in required if token not in workflow]
     assert not missing, f"RED: trusted Guard missing exact coordination write readback wiring: {missing}"
+
+
+def test_issue768_duplicate_observation_of_same_coord_commit_is_not_ambiguous():
+    receipt = _receipt(changed_files=(CLAIM_PATH, CHECKPOINT_PATH))
+    commit = _commit(changed_files=(CLAIM_PATH, CHECKPOINT_PATH))
+    readbacks = _builder()(
+        [receipt],
+        live_coord_commits=[commit, dict(commit)],
+    )
+    assert len(readbacks) == 1
+    assert readbacks[0]["coord_commit_sha"] == COMMIT_SHA
+
+
+def test_issue768_historical_receipt_is_sealed_by_next_green_write_transaction():
+    first = _receipt(changed_files=(CLAIM_PATH, CHECKPOINT_PATH))
+    second = _receipt(changed_files=(CHECKPOINT_PATH,))
+    second["run_id"] = first["run_id"] + 1
+    second["request_comment_id"] = first["request_comment_id"] + 1
+    second["issued_at"] = "2026-09-26T16:50:00Z"
+    second["expires_at"] = "2026-09-26T17:30:00Z"
+
+    first_commit = _commit(
+        changed_files=(CLAIM_PATH, CHECKPOINT_PATH),
+        committed_at="2026-09-26T16:44:00Z",
+    )
+    later_same_shape = _commit(
+        changed_files=(CLAIM_PATH, CHECKPOINT_PATH),
+        committed_at="2026-09-26T16:55:00Z",
+    )
+    later_same_shape["sha"] = "7" * 40
+
+    readbacks = _builder()(
+        [first, second],
+        live_coord_commits=[first_commit, later_same_shape],
+    )
+    first_readbacks = [
+        item for item in readbacks if item["guard_run_id"] == first["run_id"]
+    ]
+    assert len(first_readbacks) == 1
+    assert first_readbacks[0]["coord_commit_sha"] == COMMIT_SHA
+
+
+def test_issue768_true_duplicate_before_next_transaction_still_fails_closed():
+    first = _receipt(changed_files=(CLAIM_PATH, CHECKPOINT_PATH))
+    second = _receipt(changed_files=(CHECKPOINT_PATH,))
+    second["run_id"] = first["run_id"] + 1
+    second["request_comment_id"] = first["request_comment_id"] + 1
+    second["issued_at"] = "2026-09-26T16:50:00Z"
+    second["expires_at"] = "2026-09-26T17:30:00Z"
+
+    duplicate = _commit(
+        changed_files=(CLAIM_PATH, CHECKPOINT_PATH),
+        committed_at="2026-09-26T16:45:00Z",
+    )
+    duplicate["sha"] = "8" * 40
+
+    with pytest.raises(guard.ExecutionClaimError, match="ambiguous|multiple|coord"):
+        _builder()(
+            [first, second],
+            live_coord_commits=[
+                _commit(
+                    changed_files=(CLAIM_PATH, CHECKPOINT_PATH),
+                    committed_at="2026-09-26T16:44:00Z",
+                ),
+                duplicate,
+            ],
+        )

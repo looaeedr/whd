@@ -227,6 +227,12 @@ Candidate claim 必須完全不變；candidate checkpoint 只允許保留同一 
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
+## 2026-09-26 — local Guard stdout GREEN 不等於 durable post-commit authority
+
+症狀：runtime 本機執行 `tools/execution_claim_guard.py` 得到 `EXECUTION_CLAIM_GUARD_GREEN` 後完成 commit，但 shared claim 仍停在 H0；既有 reconciler 只會消耗 Remote Guard request/receipt，因此 H1 雖合法卻無 durable receipt 可被 machine 反讀。
+
+永久修正：local Guard mutation 若會讓 branch H0→H1，必須把結果持久化成 owning Issue 上唯一的 owner-authored `WHD_LOCAL_GUARD_RECONCILE_V1`，exact 綁 issue/worker/source/branch/base/current claim blob/H0/H1/actual changed files；reconciler 透過 `--local-guard-proof` fresh-read 驗證。local proof 僅允許單一 direct-child H1，duplicate/malformed/foreign/mismatched proof 一律 fail closed。若無法 durable 化 local GREEN，該 mutation 改走 Remote Guard，禁止再留下只有 stdout 的 Guard authority。
+
 ## TERMINAL_SCHEDULER_NO_CENSUS_FALSE_EXIT_PITFALL_V1
 
 ### 事故
