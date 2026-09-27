@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "844",
   "branch": "governance/issue844-unified-execution-record-20260928",
-  "head_sha": "254cb61e198c106a25051c6d718448e852531d3e",
+  "head_sha": "c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd",
   "state": "RUNNING",
-  "next_action": "Run focused RED for tests/process/test_issue844_unified_execution_record.py at head 254cb61e198c106a25051c6d718448e852531d3e, capture the expected missing Unified Execution Record implementation failure, then implement the minimal canonical loader/model.",
+  "next_action": "Obtain exact pr-write Guard and open the #844 branch PR to cleanup/2d-3d-sync so qa-issue844-unified-execution-record.yml executes the focused RED test; lock that run to terminal.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,7 +16,8 @@
     "Frozen Master #842 X baseline=500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
     "Remote Phase6 preflight 36357867452 GREEN; changed-file preflight 36357926950 GREEN.",
     "Focused RED test commit 254cb61e198c106a25051c6d718448e852531d3e is the current work head.",
-    "Pair reconciliation Guard 36358042352 GREEN; obsolete REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE blocker cleared."
+    "Pair reconciliation Guard 36358042352 GREEN; obsolete REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE blocker cleared.",
+    "Focused RED runner is present at c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd; pair reconciliation Guard 36358198545 GREEN."
   ],
   "operation": null,
   "master_issue": null,

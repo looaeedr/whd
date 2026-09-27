@@ -10,9 +10,9 @@
   "work_branch": "governance/issue844-unified-execution-record-20260928",
   "claimed_at": "2026-09-27T22:38:53.789625Z",
   "base_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
-  "head_sha": "254cb61e198c106a25051c6d718448e852531d3e",
+  "head_sha": "c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T23:15:04Z",
+  "last_update": "2026-09-27T23:17:41Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "master_issue": 842,
@@ -21,7 +21,7 @@
   "production_sha": "638994a24a02b8a2cf0714033cf21139ac162312",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Run focused RED for tests/process/test_issue844_unified_execution_record.py at head 254cb61e198c106a25051c6d718448e852531d3e, capture the expected missing Unified Execution Record implementation failure, then implement the minimal canonical loader/model.",
+  "next_action": "Obtain exact pr-write Guard and open the #844 branch PR to cleanup/2d-3d-sync so qa-issue844-unified-execution-record.yml executes the focused RED test; lock that run to terminal.",
   "checkpoint": ".dispatch/checkpoints/issue-844.json",
   "evidence": [
     "authorization_source=durable Master #842 successor handoff from terminal #843 under SCHEDULER_LANE authority",
@@ -34,18 +34,19 @@
     "Remote Phase6 preflight request 5860713419 / run 36357867452 GREEN at ec2651809952d2cda018186b0a132c0801ac68b7.",
     "Changed-file Phase6 preflight request 5860720681 / run 36357926950 GREEN for tests/process/test_issue844_unified_execution_record.py.",
     "Focused RED test commit 254cb61e198c106a25051c6d718448e852531d3e created from ec2651809952d2cda018186b0a132c0801ac68b7.",
-    "Post-commit pair reconciliation Guard request 5860734495 / run 36358042352 GREEN; blocker REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE is resolved by production whd-phase6-preflight.yml."
+    "Post-commit pair reconciliation Guard request 5860734495 / run 36358042352 GREEN; blocker REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE is resolved by production whd-phase6-preflight.yml.",
+    "Focused RED runner commit c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd; pair reconciliation Guard 36358198545 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36358042352,
-    "request_comment_id": 5860734495,
-    "result_comment_id": 5860735785,
+    "run_id": 36358198545,
+    "request_comment_id": 5860752503,
+    "result_comment_id": 5860753724,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "638994a24a02b8a2cf0714033cf21139ac162312",
     "consumed": true,
-    "mutation": "reconcile #844 claim/checkpoint to focused RED test head and clear obsolete preflight capability blocker"
+    "mutation": "reconcile #844 claim/checkpoint to focused RED runner head"
   }
 }
