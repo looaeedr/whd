@@ -11,11 +11,11 @@
   "base_sha": "c04f028ff08ff71dc6cca3bf71e7fbefcc4eb22e",
   "head_sha": "65ac396dbef609e25334b5e0c9b9ca43734015fe",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T02:23:10Z",
+  "last_update": "2026-09-27T02:26:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run trusted Remote Finalization on the exact ISSUE_CLOSE_PENDING checkpoint, verify FINALIZATION_PROOF_VALID, close Issue #794, fresh-read closed/completed, then advance RELEASE_HANDOFF_PENDING.",
+  "next_action": "Obtain one final pair-write Guard and atomically persist checkpoint closure_state=CLOSED + claim phase=RELEASED for #794; then fresh-read terminal pair and hand terminal reservation evidence back to parent #790.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-794.json",
   "evidence": [
@@ -47,16 +47,19 @@
     "PR #797 exact head 65ac396d / base 24fa64f3; Knowledge Governance Bootstrap run 36288160955 success.",
     "Merge pr-write Guard run 36288193460 GREEN; exact PR merge consumed and read back.",
     "Terminal-entry coordination Guard run 36288266846 GREEN.",
-    "Closure advance Guard run 36288327564 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36288327564 GREEN for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36288406986 GREEN / FINALIZATION_PROOF_VALID; artifact 10920853535.",
+    "Issue #794 closed/completed and fresh-read closed at 2026-09-27T02:24:56Z.",
+    "Release-handoff advance Guard run 36288456969 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36288327564,
-    "request_comment_id": 5851934609,
+    "run_id": 36288456969,
+    "request_comment_id": 5851949183,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #794 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #794 closure to RELEASE_HANDOFF_PENDING"
   }
 }

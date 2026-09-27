@@ -32,6 +32,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof on this exact frozen checkpoint, close/read back owning Issue, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then parent #790 may consume terminal helper evidence"
 }
