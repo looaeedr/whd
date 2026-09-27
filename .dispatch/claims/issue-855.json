@@ -10,14 +10,14 @@
   "claimed_at": "2026-09-27T12:05:00Z",
   "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "head_sha": "1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T12:05:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T12:09:43Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one fresh exact pr-write Guard for PR #848 at work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e; close PR #848 without merge; fresh-read state=closed and merged_at=null; then terminalize, finalize, close/readback, and atomically RELEASE claim + CLOSED checkpoint for Issue #855. No repository file mutation is authorized.",
+  "next_action": "Advance the exact #855 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #855, then atomically write CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-855.json",
   "evidence": [
@@ -29,6 +29,19 @@
     "resume_authority=#683 RELEASE_HANDOFF_PENDING durable handoff to #855 plus Issue #855 TERMINAL_CHECKPOINT_PR_WRITE_BOUNDARY contract",
     "Machine evidence: #683 pr-write Guard run 36317352737 failed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT: terminal checkpoint permits only an exact canonical closure coordination write.",
     "PR #848 fresh identity: open, head work/issue683-ha-transport-projection-20260927@1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e, target cleanup/2d-3d-sync, merged_at=null.",
-    "Accepted replacement PR #853 is already merged to cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1."
-  ]
+    "Accepted replacement PR #853 is already merged to cleanup/2d-3d-sync@d41c257787c1fa298bb4e8a1fb7927432c9cbde1.",
+    "PR #848 close consumed exact pr-write Guard 36318001892 / request 5855683646 / result 5855684959; fresh readback state=closed, merged_at=null, head=1ae5caf76de51f12b8d86f2599b3ac87c9d2f03e.",
+    "Terminal checkpoint transition consumes exact write Guard 36318053957 / request 5855689864 / result 5855691364."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36318053957,
+    "request_comment_id": 5855689864,
+    "result_comment_id": 5855691364,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "enter #855 terminal checkpoint FINALIZATION_PENDING after PR #848 closed/unmerged"
+  }
 }
