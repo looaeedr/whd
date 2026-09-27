@@ -10,13 +10,13 @@
   "work_branch": "governance/issue851-recurring-lifecycle-turn-exit-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "ecc745d3cd7d3bc8b4d9f6cb906ec980baff2e60",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T11:03:01Z",
+  "head_sha": "c325351dd76eee00110553bb43b1129ff0d331f7",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T11:09:17Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Implement explicit recurring lifecycle fields in the trusted turn-exit receipt and verifier, update 排程模擬 to bind that machine contract, then rerun focused #851 validation on the new head.",
+  "next_action": "Delete the one-shot .github/workflows/qa-issue851-recurring-lifecycle-turn-exit.yml on the same work branch without changing tested implementation, then open a guarded PR to cleanup/2d-3d-sync and mirror the accepted governance to main.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -30,7 +30,10 @@
     "default main@cb80310e2643d1ab9624e90085d4abda6e4d125e",
     "branch-create Guard run=36314058052 GREEN",
     "RED commit=ecc745d3cd7d3bc8b4d9f6cb906ec980baff2e60",
-    "RED run=36314274409 job=108605906198 terminal failure expected: 5 failed / 2 passed",
-    "post-RED canonical pair reconciliation Guard run=36314465691 GREEN"
+    "RED run=36314274409 job=108605906198 expected failure: 5 failed / 2 passed",
+    "implementation Guard run=36314697706 GREEN",
+    "implementation commit=c325351dd76eee00110553bb43b1129ff0d331f7",
+    "GREEN run=36314752928 job=108607233422: 32 passed / 0 failed",
+    "post-GREEN canonical pair reconciliation Guard run=36314803883 GREEN"
   ]
 }
