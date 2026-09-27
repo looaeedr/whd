@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "700",
   "branch": "work/issue700-claim-activation-crash-reentry-20260927",
-  "head_sha": "7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0",
+  "head_sha": "0f43271a2194bf48ecff0ba0a350eefbffe1ec1b",
   "state": "RUNNING",
-  "next_action": "Run focused RED-STOP-23 regression on exact head 7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0, capture expected failure, then implement only the Claim Activation post-CAS durable-readback recovery seam.",
+  "next_action": "Implement the minimal Claim Activation post-CAS readback classifier and wire trusted whd-remote-claim-activation.yml to reuse an exact already-applied candidate pair; then run focused GREEN and legacy activation regressions.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,7 +15,10 @@
     "Predecessor #697 accepted closing head=03da7a28d0aa04fae85fd9a92f13c0a8129af83e.",
     "RED-STOP-23 is not yet proven; branch creation and RED are next.",
     "RED characterization commit=7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0.",
-    "Post-commit pair reconciliation Guard run 36284631573 GREEN."
+    "Post-commit pair reconciliation Guard run 36284631573 GREEN.",
+    "RED-STOP-23 run 36284779726: expected RED, 8 failed, no harness failure.",
+    "RED artifact 10920416094.",
+    "H2 pair reconciliation Guard run 36284815752 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

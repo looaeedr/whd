@@ -9,14 +9,14 @@
   "work_branch": "work/issue700-claim-activation-crash-reentry-20260927",
   "claimed_at": "2026-09-27T01:00:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0",
-  "phase": "RED",
-  "last_update": "2026-09-27T01:09:00Z",
+  "head_sha": "0f43271a2194bf48ecff0ba0a350eefbffe1ec1b",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T01:12:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run focused RED-STOP-23 regression on exact head 7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0, capture expected failure, then implement only the Claim Activation post-CAS durable-readback recovery seam.",
+  "next_action": "Implement the minimal Claim Activation post-CAS readback classifier and wire trusted whd-remote-claim-activation.yml to reuse an exact already-applied candidate pair; then run focused GREEN and legacy activation regressions.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-700.json",
   "evidence": [
@@ -28,6 +28,9 @@
     "accepted predecessor/base head=03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
     "production target=cleanup/2d-3d-sync; current production is observation/integration target only",
     "RED characterization commit=7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0; changed exactly tests/process/test_issue700_claim_activation_crash_reentry.py.",
-    "Post-commit pair reconciliation Guard run 36284631573 GREEN."
+    "Post-commit pair reconciliation Guard run 36284631573 GREEN.",
+    "RED-STOP-23 remote evidence run 36284779726 @ 0f43271a2194bf48ecff0ba0a350eefbffe1ec1b: expected RED observed, 8 failed, harness success.",
+    "RED artifact=10920416094.",
+    "H2 pair reconciliation Guard run 36284815752 GREEN."
   ]
 }
