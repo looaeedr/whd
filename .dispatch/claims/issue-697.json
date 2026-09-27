@@ -11,7 +11,7 @@
   "base_sha": "0c551eb1370ae6795d04ea693dd3a71dfad57b28",
   "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T06:46:30Z",
+  "last_update": "2026-09-27T06:52:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,18 +24,18 @@
     "failed": 0,
     "marker": "ISSUE697_A2_REGRESSION_GREEN=PASS"
   },
-  "next_action": "Run trusted finalization proof for exact #697 ISSUE_CLOSE_PENDING checkpoint; if GREEN, close/read back Issue #697, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED+RELEASED before continuing #696.",
+  "next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #697, then continue #696 under #702 amendment-chain closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-697.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36301010891,
-    "request_comment_id": 5853493259,
+    "run_id": 36301356141,
+    "request_comment_id": 5853536797,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #697 closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advance #697 closure to RELEASE_HANDOFF_PENDING"
   },
   "red_evidence": {
     "run_id": 36226621311,
@@ -112,6 +112,9 @@
     "Scheduler A stale takeover run 36300875657 GREEN: EXECUTOR_STUCK, stale_seconds=78262, exact live head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e; prior remote run terminal success and no active exact run.",
     "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf is a descendant of #697 closing head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e.",
     "Amendment current-X Combined Acceptance run 36296278571 / job 108555610910 completed/success with 100 passed / 0 failed.",
-    "Terminal transition authorized by Remote Guard run 36300954531."
+    "Terminal transition authorized by Remote Guard run 36300954531.",
+    "Remote Finalization run 36301283850 / job 108569265959: FINALIZATION_PROOF_VALID for exact ISSUE_CLOSE_PENDING checkpoint.",
+    "Issue #697 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36301356141."
   ]
 }

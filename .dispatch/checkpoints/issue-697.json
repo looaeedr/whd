@@ -24,13 +24,16 @@
     "Fresh production cleanup/2d-3d-sync@98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf remains descendant of #697 closing head.",
     "Amendment current-X Combined Acceptance 36296278571 / 108555610910: 100 passed / 0 failed.",
     "Terminal transition authorized by Remote Guard run 36300954531.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36301010891."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard 36301010891.",
+    "Remote Finalization run 36301283850 / job 108569265959: FINALIZATION_PROOF_VALID.",
+    "Issue #697 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard 36301356141."
   ],
   "master_issue": "702",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "696",
   "chain_next_action": "After #697 CLOSED+RELEASED, fresh-read #696 and continue canonical amendment-chain closure under #702.",
   "chain_reason": "Issue #702 is amendment chain closure owner; #696 remains required child after #697.",
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof on this exact checkpoint; if valid, close/read back Issue #697, advance RELEASE_HANDOFF_PENDING, then atomically persist CLOSED+RELEASED and continue #696."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #697, then continue #696 under #702 amendment-chain closure."
 }
