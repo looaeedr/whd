@@ -198,3 +198,4 @@ jobs:
             i780-xvfb.xml
           if-no-files-found: warn
           retention-days: 14
+# ISSUE780_RECOVERY_V1: inherited issue681 UTF-8 BOM normalized; trigger exact-head integration rerun.
