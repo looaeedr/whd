@@ -3,8 +3,8 @@
   "issue": "702",
   "branch": "repair/issue702-sealed-finalization-20260927",
   "head_sha": "f8a3397551c5975dafd842e8dcd28c1d4edcca32",
-  "state": "RUNNING",
-  "next_action": "Perform /排程A exit-time scheduler enable/readback without changing schedule/timing/lane/prompt identity; verify all amendment children #696-#701 and helpers #815/#827 are closed/completed + RELEASED + terminal CLOSED; verify current cleanup contains the accepted #702 delta and fresh-X Combined Acceptance remains GREEN; then enter #702 TERMINAL_SUCCESS / FINALIZATION_PENDING and run canonical finalization.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36294590644,
   "job_id": 108550971085,
   "log_cursor": null,
@@ -37,13 +37,15 @@
     "Post-cleanup reconciliation Guard run 36294760023 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Parent-branch sealed identity repaired non-force to repair/issue702-sealed-finalization-20260927@f8a3397551c5975dafd842e8dcd28c1d4edcca32; old c59 drift branch preserved.",
     "Helper #827 closed/released terminal; parent reservation terminalized.",
-    "Remote Guard 36306940551 GREEN for #702 reservation/finalization routing write."
+    "Remote Guard 36306940551 GREEN for #702 reservation/finalization routing write.",
+    "Trusted #702 parent-branch identity repair run 36306868118 SUCCESS; durable branch identity rebound non-force to repair/issue702-sealed-finalization-20260927 at sealed H4.",
+    "Fresh child census #696-#701: every child is closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "run bound finalization proof, close/read back the owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }
