@@ -6,7 +6,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-BRIDGE = ROOT / "tools" / "whd_poweroff_ha_bridge.py"\nAUTHORITY_MAP = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "09_WHD_Canonical_Authority_Map.md"
+BRIDGE = ROOT / "tools" / "whd_poweroff_ha_bridge.py"
+AUTHORITY_MAP = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "09_WHD_Canonical_Authority_Map.md"
 
 
 def _request(*, request_id: str = "REQ-CURRENT", revision: str = "REV-1", requested_at: int = 100, timeout: int = 30) -> dict:
