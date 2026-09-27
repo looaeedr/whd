@@ -31,3 +31,6 @@ jobs:
         run: >-
           python -m pytest -q
           tests/process/test_issue851_recurring_lifecycle_turn_exit.py
+          tests/process/test_issue691_turn_exit_scheduler_end_parity.py
+          tests/process/test_issue787_turn_exit_blocker_authority.py
+          tests/process/test_scheduler_simulation_skill_contract.py
