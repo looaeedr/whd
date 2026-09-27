@@ -9,9 +9,9 @@
   "work_branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
   "claimed_at": "2026-09-26T22:33:00Z",
   "base_sha": "90a4939328c4b863e88f9272f4dfa3d9a25743a6",
-  "head_sha": "4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T03:49:00Z",
+  "head_sha": "a8d54517a51cfe819f2ab639dae6f02aee02d9c1",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T03:52:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 77,
     "failed": 0
   },
-  "next_action": "Remove only .github/workflows/qa-issue769-terminal-scheduler-census.yml under one fresh commit Guard; rerun the focused #769 acceptance on the closing head, reconcile the durable pair, then fresh-audit current cleanup/2d-3d-sync before PR #788 merge.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and PR #788 against closing head a8d54517a51cfe819f2ab639dae6f02aee02d9c1; perform current production drift/overlap audit. If cleanup advanced, do one guarded non-force merge-sync preserving the six authorized #769 files, rerun focused acceptance, reconcile durable HEAD, then obtain a fresh merge pr-write Guard and complete PR #788 integration/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-769.json",
   "evidence": [
@@ -64,16 +64,20 @@
     "QA terminal durable writeback Guard run 36282664379 GREEN.",
     "Intervening-coord recovery Guard run 36292452727 GREEN after #800/#803 wrapped-base64 hotfix deployment to trusted main and cleanup.",
     "Recovered direct-child H1 4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab changes only the temporary #769 QA workflow relative to ac1b45a0.",
-    "One-shot remote QA run 36282840275 / job 108517868728 on exact H1 completed success: 77 passed / 0 failed."
+    "One-shot remote QA run 36282840275 / job 108517868728 on exact H1 completed success: 77 passed / 0 failed.",
+    "Temporary QA workflow cleanup Guard run 36292533883 GREEN.",
+    "Closing head a8d54517a51cfe819f2ab639dae6f02aee02d9c1 deletes only .github/workflows/qa-issue769-terminal-scheduler-census.yml from tested head 4ad9246a.",
+    "Post-cleanup focused/adjacent acceptance: 77 passed / 0 failed.",
+    "Post-cleanup pair reconciliation Guard run 36292613180 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36292452727,
-    "request_comment_id": 5852400141,
+    "run_id": 36292613180,
+    "request_comment_id": 5852418381,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "recover #769 intervening same-owner claim-blob refresh and reconcile H0->H1"
+    "mutation": "reconcile #769 closing head after temporary QA deletion"
   }
 }

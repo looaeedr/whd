@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "769",
   "branch": "governance/issue769-terminal-scheduler-census-hard-gate-20260927",
-  "head_sha": "4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab",
+  "head_sha": "a8d54517a51cfe819f2ab639dae6f02aee02d9c1",
   "state": "RUNNING",
-  "next_action": "Remove only .github/workflows/qa-issue769-terminal-scheduler-census.yml under one fresh commit Guard; rerun the focused #769 acceptance on the closing head, reconcile the durable pair, then fresh-audit current cleanup/2d-3d-sync before PR #788 merge.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync and PR #788 against closing head a8d54517a51cfe819f2ab639dae6f02aee02d9c1; perform current production drift/overlap audit. If cleanup advanced, do one guarded non-force merge-sync preserving the six authorized #769 files, rerun focused acceptance, reconcile durable HEAD, then obtain a fresh merge pr-write Guard and complete PR #788 integration/closure.",
   "run_id": 36282840275,
   "job_id": 108517868728,
   "log_cursor": null,
@@ -38,7 +38,10 @@
     "QA terminal durable writeback Guard 36282664379 GREEN.",
     "Intervening-coord recovery Guard 36292452727 GREEN; historical wrapped-base64 claim blob decoded and exact authority/direct-child checks passed.",
     "H1 4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab is now durable.",
-    "Remote QA run 36282840275 / job 108517868728 terminal success on H1: 77 passed / 0 failed."
+    "Remote QA run 36282840275 / job 108517868728 terminal success on H1: 77 passed / 0 failed.",
+    "Closing head a8d54517a51cfe819f2ab639dae6f02aee02d9c1 removes only the temporary #769 QA workflow.",
+    "Closing-head focused/adjacent acceptance: 77 passed / 0 failed.",
+    "Pair reconciliation Guard 36292613180 GREEN; durable pair reconciled to closing head."
   ],
   "master_issue": null,
   "chain_state": "NONE",
