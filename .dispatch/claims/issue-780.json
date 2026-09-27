@@ -9,9 +9,9 @@
   "work_branch": "landing/issue780-current-production-20260927",
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
-  "head_sha": "75017779ae0ecdca2a7d2bb82a69706bdfcf4c80",
+  "head_sha": "b683ee627286db7d578a1d83036b3cd26aa1114a",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-27T06:31:13Z",
+  "last_update": "2026-09-27T06:57:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8",
     "summary": "Landing acceptance GREEN: recovery ancestry and BOM-only checks GREEN; governance mirror/authority markers GREEN; repository-wide Python BOM census empty; focused regression 16 passed; protected config.ini and 基準檔 unchanged."
   },
-  "next_action": "Under a fresh commit Guard, delete only .github/workflows/qa-issue780-landing.yml from exact landing head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80. Fresh-read the cleanup commit and verify tested-head→closing-head differs only by workflow deletion. Then fresh-read cleanup/2d-3d-sync production head and perform drift/mergeability audit before any PR or merge.",
+  "next_action": "Run a fresh pr-write Guard for landing/issue780-current-production-20260927 at closing head b683ee627286db7d578a1d83036b3cd26aa1114a targeting cleanup/2d-3d-sync. After GREEN, create the exact landing PR, fresh-read mergeability and checks, then merge non-force only if GitHub reports clean/mergeable and production has not drifted.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -122,17 +122,23 @@
     "Focused landing regression: 16 passed in 3.07s.",
     "Protected inputs GREEN: config.ini unchanged, 基準檔 unchanged, git diff --check clean.",
     "Artifact 10925291751 digest sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8.",
-    "Terminal-QA write Guard 36300324067 GREEN; request 5853404029, result 5853405315."
+    "Terminal-QA write Guard 36300324067 GREEN; request 5853404029, result 5853405315.",
+    "Temporary landing QA cleanup Guard 36301556102 GREEN; request 5853572093, result 5853574083.",
+    "Cleanup commit b683ee627286db7d578a1d83036b3cd26aa1114a removes only .github/workflows/qa-issue780-landing.yml from tested head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80.",
+    "Closing audit 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80..b683ee627286db7d578a1d83036b3cd26aa1114a contains exactly the temporary workflow deletion.",
+    "Fresh production cleanup/2d-3d-sync remains 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
+    "Production-to-closing diff contains exactly three Python files: #681, scheduler no-work census, and #774; fresh byte readback proves every delta is exactly one leading U+FEFF removal with all subsequent content identical.",
+    "Closing-head reconcile Guard 36301617163 GREEN; request 5853583108, result 5853585118."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36300324067,
-    "request_comment_id": 5853404029,
-    "result_comment_id": 5853405315,
+    "run_id": 36301617163,
+    "request_comment_id": 5853583108,
+    "result_comment_id": 5853585118,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "record exact landing QA SUCCESS and advance to one-shot workflow cleanup"
+    "mutation": "reconcile durable pair to closing head and advance to landing PR"
   }
 }
