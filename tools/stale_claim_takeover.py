@@ -58,6 +58,29 @@ _ALLOWED_DELEGATED_RELATIONSHIPS = frozenset(
 _HELPER_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
 _RESERVATION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
 _HELPER_RESERVATION_STATES = frozenset({"RESERVING", "ACTIVE", "TERMINAL"})
+_HELPER_REPAIR_IN_PLACE_PURPOSES = frozenset(
+    {
+        "CURRENT_TICKET_DEFECT",
+        "QA_RETRY",
+        "TRANSPORT_RETRY",
+        "SAME_SCOPE_REPAIR",
+    }
+)
+_HELPER_PER_FIX_PARITY_PURPOSE = "PER_FIX_GOVERNANCE_MIRROR"
+_HELPER_SPLIT_PURPOSES = frozenset(
+    {
+        "DISTINCT_AUTHORITY_BOUNDARY",
+        "DISTINCT_EXTERNAL_BLOCKER",
+        "NON_SHAREABLE_ACCEPTANCE_BOUNDARY",
+    }
+)
+_HELPER_PURPOSE_CLASSES = (
+    _HELPER_REPAIR_IN_PLACE_PURPOSES
+    | _HELPER_SPLIT_PURPOSES
+    | frozenset({_HELPER_PER_FIX_PARITY_PURPOSE})
+)
+_HELPER_SPLIT_EXCEPTION_SCHEMA = "WHD_HELPER_SPLIT_EXCEPTION_V1"
+_HELPER_SCOPE_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
 
 
 class StaleTakeoverError(RuntimeError):
@@ -266,6 +289,65 @@ def _require_reservation_token(value: object) -> str:
     return text
 
 
+def _require_helper_purpose_class(value: object) -> str:
+    purpose = str(value or "").strip().upper()
+    if purpose not in _HELPER_PURPOSE_CLASSES:
+        raise StaleTakeoverError(
+            "HELPER_PURPOSE_CLASS_REQUIRED "
+            f"allowed={sorted(_HELPER_PURPOSE_CLASSES)}"
+        )
+    return purpose
+
+
+def _normalize_helper_split_exception(
+    purpose_class: object,
+    split_exception: Mapping[str, object] | None,
+) -> tuple[str, dict[str, object]]:
+    purpose = _require_helper_purpose_class(purpose_class)
+    if purpose in _HELPER_REPAIR_IN_PLACE_PURPOSES:
+        raise StaleTakeoverError(
+            f"CURRENT_TICKET_REPAIR_REQUIRED purpose_class={purpose}"
+        )
+    if purpose == _HELPER_PER_FIX_PARITY_PURPOSE:
+        raise StaleTakeoverError(
+            "PARITY_SAME_OWNER_OR_BATCH_REQUIRED "
+            f"purpose_class={purpose}"
+        )
+    if not isinstance(split_exception, Mapping):
+        raise StaleTakeoverError(
+            f"HELPER_SPLIT_EXCEPTION_REQUIRED purpose_class={purpose}"
+        )
+    if str(split_exception.get("schema") or "").strip() != _HELPER_SPLIT_EXCEPTION_SCHEMA:
+        raise StaleTakeoverError("HELPER_SPLIT_EXCEPTION_SCHEMA_MISMATCH")
+    kind = str(split_exception.get("kind") or "").strip().upper()
+    if kind != purpose:
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_MISMATCH "
+            f"purpose_class={purpose} kind={kind or 'MISSING'}"
+        )
+    if split_exception.get("current_ticket_can_own") is not False:
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_REQUIRED current_ticket_can_own=false"
+        )
+    evidence_ref = str(split_exception.get("evidence_ref") or "").strip()
+    if not evidence_ref or len(evidence_ref) > 500:
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_REQUIRED evidence_ref"
+        )
+    scope_key = str(split_exception.get("scope_key") or "").strip()
+    if not _HELPER_SCOPE_KEY_RE.fullmatch(scope_key):
+        raise StaleTakeoverError(
+            "HELPER_SPLIT_EXCEPTION_REQUIRED scope_key"
+        )
+    return purpose, {
+        "schema": _HELPER_SPLIT_EXCEPTION_SCHEMA,
+        "kind": purpose,
+        "current_ticket_can_own": False,
+        "evidence_ref": evidence_ref,
+        "scope_key": scope_key,
+    }
+
+
 def _helper_reservations(
     parent_claim: Mapping[str, object],
     *,
@@ -364,6 +446,30 @@ def _find_live_helper_reservation(
     return entries[0] if entries else None
 
 
+def _find_live_helper_scope_reservation(
+    parent_claim: Mapping[str, object],
+    scope_key: str,
+) -> dict[str, object] | None:
+    wanted = str(scope_key or "").strip()
+    if not _HELPER_SCOPE_KEY_RE.fullmatch(wanted):
+        raise StaleTakeoverError("helper scope_key is missing or malformed")
+    matches: list[dict[str, object]] = []
+    for item in _helper_reservations(parent_claim):
+        if item["state"] not in {"RESERVING", "ACTIVE"}:
+            continue
+        proof = item.get("split_exception")
+        if not isinstance(proof, Mapping):
+            continue
+        observed = str(proof.get("scope_key") or "").strip()
+        if observed == wanted:
+            matches.append(item)
+    if len(matches) > 1:
+        raise StaleTakeoverError(
+            f"AMBIGUOUS_HELPER_SCOPE_RESERVATION scope_key={wanted}"
+        )
+    return matches[0] if matches else None
+
+
 def _legacy_same_key_helper_exists(
     parent_claim: Mapping[str, object],
     helper_key: str,
@@ -392,6 +498,8 @@ def reserve_helper_creation(
     reserved_by: str,
     reservation_token: str,
     now: datetime,
+    purpose_class: str,
+    split_exception: Mapping[str, object] | None,
 ) -> HelperReservationDecision:
     """Build one RESERVING parent-claim CAS candidate."""
 
@@ -436,6 +544,22 @@ def reserve_helper_creation(
             expected_parent_claim_blob_sha=current_blob,
         )
 
+    purpose, split_proof = _normalize_helper_split_exception(
+        purpose_class,
+        split_exception,
+    )
+    same_scope = _find_live_helper_scope_reservation(
+        parent_claim,
+        str(split_proof["scope_key"]),
+    )
+    if same_scope is not None:
+        return HelperReservationDecision(
+            outcome="ACTIVE_HELPER_SCOPE_DUPLICATE",
+            parent_claim=deepcopy(dict(parent_claim)),
+            reservation=deepcopy(same_scope),
+            expected_parent_claim_blob_sha=current_blob,
+        )
+
     candidate = deepcopy(dict(parent_claim))
     delegated = candidate.get("delegated_work")
     if delegated is None:
@@ -451,6 +575,8 @@ def reserve_helper_creation(
         "reserved_by": owner,
         "reservation_token": token,
         "reserved_at": _iso_utc(reserved_at),
+        "purpose_class": purpose,
+        "split_exception": split_proof,
         "child_issue": None,
         "child_claim_blob_sha": None,
     }
@@ -504,6 +630,12 @@ def activate_helper_reservation(
         existing,
         reserved_by=reserved_by,
         reservation_token=reservation_token,
+    )
+    _normalize_helper_split_exception(
+        existing.get("purpose_class"),
+        existing.get("split_exception")
+        if isinstance(existing.get("split_exception"), Mapping)
+        else None,
     )
     child = _positive_int("helper child_issue", child_issue)
     child_blob = _require_sha("helper child_claim_blob_sha", child_claim_blob_sha)
@@ -900,6 +1032,12 @@ def assert_helper_creation_allowed(
                 "ACTIVE_HELPER_DUPLICATE "
                 f"helper_key={candidate_key} child_issue={reservation['child_issue']}"
             )
+        _normalize_helper_split_exception(
+            reservation.get("purpose_class"),
+            reservation.get("split_exception")
+            if isinstance(reservation.get("split_exception"), Mapping)
+            else None,
+        )
 
     observations = _normalize_delegated_work(
         parent_claim, delegated_work, now=now_utc
@@ -1510,6 +1648,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "--delegated-work-json", action="append", type=Path, default=[]
     )
     parser.add_argument("--candidate-helper-key")
+    parser.add_argument("--helper-reservation-owner")
+    parser.add_argument("--helper-reservation-token")
     parser.add_argument("--claim-blob-sha")
     parser.add_argument(
         "--orphan-grace-seconds",
@@ -1568,6 +1708,8 @@ def main(argv: list[str] | None = None) -> int:
                 delegated_work=delegated_work,
                 now=now,
                 stale_after_seconds=args.stale_after_seconds,
+                reservation_owner=args.helper_reservation_owner,
+                reservation_token=args.helper_reservation_token,
             )
             print(
                 "HELPER_CREATION_GUARD_GREEN "
