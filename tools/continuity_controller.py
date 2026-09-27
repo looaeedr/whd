@@ -2370,6 +2370,19 @@ def assert_scheduler_end_receipt(
     ):
         raise TurnExitBlocked("scheduler END invocation identity mismatch")
 
+    identity_pairs = (
+        ("claim_blob_sha", "claim_blob_sha"),
+        ("branch", "branch"),
+        ("head_sha", "head_sha"),
+    )
+    for end_key, receipt_key in identity_pairs:
+        if end_key in end_payload and str(end_payload.get(end_key) or "") != str(
+            turn_exit_receipt.get(receipt_key) or ""
+        ):
+            raise TurnExitBlocked(f"scheduler END {end_key} mismatch")
+    if "executor_source" in end_payload and end_payload.get("executor_source") != "scheduler":
+        raise TurnExitBlocked("scheduler END executor_source must be scheduler")
+
     end_fingerprint = str(end_payload.get("checkpoint_fingerprint") or "")
     receipt_fingerprint = str(turn_exit_receipt.get("checkpoint_fingerprint") or "")
     if (
