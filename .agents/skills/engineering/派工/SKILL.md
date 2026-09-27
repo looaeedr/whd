@@ -10,6 +10,62 @@ whd_schema: WHD_DOC_META_V1
 
 # 派工
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
+### EXECUTION_INTENT_ROUTING_V1_BRIDGE
+
+派工不自行推導 execution intent；先服從 `執行開發任務::EXECUTION_INTENT_ROUTING_V1`。
+
+- `UPDATE_ONLY`：只處理被點名的 update transaction；不得因其他 Issue open/unblocked、claim pool 有空位或 child dependency 解鎖而自動開工。
+- `EXECUTE_TICKET`：不得把 arbitrary open/unblocked Issue 當 successor；但當前 ticket 的 canonical durable chain state 若明確為 `NEXT_CHILD_EXECUTABLE`，或明確指定 exact closure/successor owner，必須在完成本票 closure handoff 後自動 claim/start exact `next_issue`，不得停在 ticket 邊界。
+- `EXECUTE_CHAIN` / `SCHEDULER_LANE`：可依 broader accepted chain/lane authority主動 continuation；但它們不是 canonical `NEXT_CHILD_EXECUTABLE` handoff 唯一允許的 mode。
+
+
+### GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1_BRIDGE
+
+本入口強制服從 `executable-continuity-controller::GITHUB_DURABLE_STATE_RECONSTRUCTION_HARD_GATE_V1`。
+
+- fresh runtime、scheduled/work-slot re-entry、stream/connection interruption、`Resume stream unavailable`，或使用者明確要求 **`GitHub durable state重新接`** 時，任何 mutation / waiting / blocker / completion 判定前先 fresh reconstruction。
+- 至少 fresh-read owning Issue、claim blob+payload、checkpoint blob+payload、work branch HEAD、production target HEAD，以及 durable state 指向的 exact PR/run/Guard/closure/chain evidence。
+- reconstruction 完成前**不得靠聊天記憶**補 owner、HEAD、run_id、closure state 或 next_action；不得宣告無工作、等待、卡住或完成。
+- reconstruction 得到 executable non-terminal state 後，同一 invocation 立即沿 canonical **exact next_action** 繼續；「已重新接回」只是 checkpoint observation，不是停止點。
+- 本入口只 bridge canonical gate，不自行建立第二套 durable parser 或較寬的 stop condition。
+
+### TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
+
+派工不建立第二套 startup declaration authority；固定 bridge `執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1`。
+
+- Skill invocation announcement 後、Phase6 Preflight / claim / branch / Guard / repository mutation 前，先完成 canonical user-visible declaration。
+- 新 claim / checkpoint 的第一個 durable writeback 必須保存同義六欄 evidence；派工只保存／核對，不改寫其語意。
+- `UPDATE_ONLY` 專屬治理 claim 只授權該 update transaction；不得因 claim pool、open Issue、工作槽或 successor 存在而擴張 scope。
+- declaration 缺失或與 owning Issue / execution intent 衝突時，先回 canonical owner 修正；不得由派工自行發明較寬 authority。
+
+#### NORMAL_PATH_FIRST
+
+單張正常 implementation 工單的 canonical 主幹固定為：
+
+`claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`
+
+Guard/finalization safety gate 仍保留，但不得預防性執行 takeover / reactivate / reconciliation / legacy repair。只有 fresh machine evidence 證明異常條件時，才暫時分支到 recovery。
+
+#### RECOVERY_IS_EXCEPTION_NOT_PHASE
+
+takeover、reactivate、claim/head reconciliation、legacy-checkpoint repair、expired receipt repair 都是 evidence-triggered recovery。正常票不先跑 recovery 再開始施工；fresh machine evidence 顯示 clean/一致時立即沿 normal path。
+
+#### WORK_SLOT_EXECUTION_AUTHORITY_BOUNDARY_V1
+
+工作槽只表示可並行容量／occupancy／routing identity。空工作槽、open / unblocked Issue、沒有 claim 的 ready leaf 都不構成 execution authority。只有本輪已是 `EXECUTE_TICKET`、`EXECUTE_CHAIN` 或 `SCHEDULER_LANE` 時，工作槽才能用來選擇/隔離已授權工作。
+
+本節只禁止沒有 durable chain authority 的任意跨票 discovery；不得覆蓋後文 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`。若 current ticket 已 durable 進入 `NEXT_CHILD_EXECUTABLE` 或 exact closure/successor handoff，`EXECUTE_TICKET` 也必須同輪續接 exact `next_issue`；這是完成原授權鏈，不是擴張 scope。
+
+
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
@@ -224,11 +280,19 @@ python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --
 
 prior receipt 不能直接重用成 claim write；一般 production/test/Skill `write` 也不能使用此 exception。驗證任一不符即 fail closed，分類 `REMOTE_GUARD_STALE_IDENTITY_AFTER_AUTHORIZED_COMMIT` 或更窄 root cause，禁止旁路。
 
-##### LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_V1
+#### LOCAL_GUARD_POSTCOMMIT_RECONCILIATION_V1
 
-若 historical mutation 的 prior GREEN identity 全部仍 exact，但 commit timestamp 已落在 receipt window 外，普通 reconciliation 仍必須 RED；唯一 recovery 是 repository owner 在 owning Issue 發出 `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`，再由 trusted Remote Guard fixed-schema `legacy_reconcile_recovery_comment_id` 傳入 canonical guard。
+本機可直接執行 canonical `tools/execution_claim_guard.py` 時仍可優先使用 local Guard，但 **stdout GREEN 本身不是 durable reconciliation authority**。若 local Guard 授權的 `write|commit` 讓 work branch 從 H0 前進到 H1，必須先在 owning Issue 持久化唯一一張 repository-owner authored `WHD_LOCAL_GUARD_RECONCILE_V1`，再做 claim/checkpoint reconciliation。
 
-此 recovery 只允許放寬 historical receipt-time-window；`issue / worker / executor_source / branch / current claim blob / H0→H1 direct child / prior run_id / prior request_comment_id / changed-file set` 仍須 exact。wrong live head、wrong run/request、foreign owner、wrong files、non-direct child 全部 fail closed。它不是 stale takeover、不是 stale-head bypass，也不得 replay 原 implementation。
+durable proof 必須 exact 綁：
+- `issue / worker / executor_source / action / branch / base_sha`；
+- current `claim_blob_sha`、`claim_head_sha=H0`、`live_head_sha=H1`；
+- `local_guard_result=EXECUTION_CLAIM_GUARD_GREEN`；
+- H1 的完整 actual `changed_file` set。
+
+canonical machine gate 以 `--local-guard-proof <fresh-fetched-comment-json>` 消耗該證據，並 fresh-read owning Issue comments 驗證該 proof 真正 durable 存在且 matching proof **唯一**。local proof path 只接受 H1 為 H0 的單一 direct child；foreign owner、錯 blob/branch/head/file、merge/multi-hop、malformed proof、proof 不在 Issue、或 duplicate/equivalent proof 一律 fail closed。
+
+local proof GREEN 只授權緊接的 exact claim/checkpoint reconciliation；不得當 session token，也不得取代下一次 mutation 的新 Guard。若 runtime 無法把 local Guard 結果 durable 化，該 mutation 改走 Remote Guard，不得留下只有 stdout 的 prewrite GREEN。
 
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
@@ -262,7 +326,7 @@ stale owner 接管的 canonical machine authority 是 `tools/stale_claim_takeove
 - **一般 foreign owner（非 scheduler）**仍維持 600 秒規則：最近 durable progress 未滿 600 秒為 `WAIT_ON_FOREIGN_RUNTIME`；到 600 秒且沒有 active exact run 才可 `EXECUTOR_STUCK/actionable=true`。
 - **foreign scheduler owner** 不得再用 claim freshness 冒充 runtime liveness：fresh-read exact claim blob 後，必須讀 owner-authored `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` heartbeat/lease；有效 lease 固定 backoff。
 - foreign scheduler 在「無 active exact run + heartbeat missing/expired + exact claim/blob/branch/head identity 一致 + durable progress age >= 90 秒」時，可由 evaluator 分類 `ORPHANED_SCHEDULER_OWNER/actionable=true`，不必等滿一般 600 秒。
-- same-lane cross-cycle **ownership** resume 不做 takeover；但為避免 `:00 / :20 / :40` 等 sibling wake 同時進場，`claim.worker == current scheduler lane` 時仍必須先套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 same-lane invocation mutex。只有 matching END、或最後 heartbeat 已 stale > 420 秒，才可由新 invocation 進場 mutation；fresh heartbeat ≤ 420 秒時只讀退讓。
+- same-lane cross-cycle **ownership** resume 不做 takeover；但為避免 `:00 / :20 / :40` 等 sibling wake 同時進場，`claim.worker == current scheduler lane` 時仍必須先套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 same-lane invocation mutex。只有 matching END、或最後 heartbeat 已 stale > 300 秒，才可由新 invocation 進場 mutation；fresh heartbeat ≤ 300 秒時只讀退讓。
 - live branch 已前進時，以 **observed live HEAD** 作 resume/takeover identity；recent commit 會重置 stale age，舊 commit 超過 threshold 才可接。
 - evaluator malformed/missing evidence 必須 fail closed。
 - 真正 ownership 轉移使用 Remote Guard 單次 action `claim-takeover`，取得 fresh GREEN receipt 後才能 CAS 更新 shared claim；不得拿一般 `commit` receipt 或舊 receipt 代替。
@@ -472,6 +536,19 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 
 未完成前不得只回「還在跑」後結束；TIMEOUT 也不是停工理由，而是進入 log 判讀、process-group cleanup、縮批與 resume 的觸發條件。
 
+### TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1
+
+**中途回報不等於停止點**。任何 progress/CHECKPOINT/status/Guard receipt/局部 QA 結果之後，只要仍有合法 autonomous action，就必須同一 turn 繼續執行。
+
+合法 return 只有兩類：
+
+- **真正終態**：目前已授權 execution scope 已完成 acceptance + applicable closure/readback/release/handoff。
+- **fresh unique blocker**：canonical continuity controller fresh-read owning checkpoint，驗證 durable `blocked_exit_proof` 為 `exhaustive=true`、`executable_leaf_count=0`、`blocker_count=1`、合法 canonical `blocker_id`，且 `observed_at` 在 300 秒 freshness window 內（future skew 最多 30 秒）。同時不可有 active remote run / delegated executable work。
+
+`BLOCKED` 只是 non-terminal state label，不是 exit authority。proof 缺失/stale、多 blocker、仍有 executable leaf、或 blocker identity 只是 `progress-report / checkpoint-report / status-update` 等觀測事件，一律 fail closed 並繼續下一個合法 action。genuine BLOCKED 時 Issue 仍 open、claim 仍 active；不得用 BLOCKED 順便 close/release。
+
+Machine authority 唯一委派 `tools/continuity_controller.py`；本 Skill 不複製第二套 evaluator。
+
 ## 9. 掃描深模組來源檢查
 若工作由 `掃描深模組` 候選轉入實作，任何 Implementer production write 前再確認：
 
@@ -493,6 +570,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] `X_SECOND_MAIN_INDEPENDENT_CHAIN_CONTRACT`：每個 Master 凍結自己的 X base；active chain 不追 X；A/B/C/D 彼此隔離；child 只接 previous accepted HEAD；完整 Master Task Acceptance 後才進 Integration Acceptance；`DO_NOT_MERGE_X` 時停在 `READY_FOR_X_INTEGRATION`。
 - [ ] X task-chain dispatch / checkpoint / QA identity 帶 `MASTER_ID / TASK_ID / TARGET_X / FROZEN_X_BASE_SHA / EXPECTED_PARENT_SHA / WORK_ORDER_BRANCH / CHAIN_HEAD`，current X 只作 observation；RUN 不存在時標示 `RUN_NOT_CREATED` 並立即修 prerequisite，不等待不存在的 run。
 - [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可當 observation；沒有合法 stop condition 時立即執行下一個可執行 action。
+- [ ] `TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1`：正常 return 只有真正 terminal closure，或 owning checkpoint 內 fresh（≤300 秒）+ unique（count=1）+ exhaustive + zero-executable-leaf blocker proof；中途回報永遠不是 stop authority。
 - [ ] 「不假報完成」與「持續施工」兩個義務都存在，前者不能被拿來當停工理由。
 - [ ] PM → Implementer → QA 角色標記完整。
 - [ ] Requirement RED-first + 使用者核准 + breakdown 第二次核准完整。
@@ -505,7 +583,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] `CLAIM_PROGRESS_STATE` 同步 phase/state、last_update、branch/HEAD、remote QA、next_action、blocker，重大 transition 即時更新。
 - [ ] 未完成工單可分成 `我持有` / `其他 AI 已鎖定` / `尚未認領`，且 claimed ticket 可看見進度與下一步。
 - [ ] `STALE_CLAIM_RECOVERY` 不直接搶鎖；先查 branch/QA/checkpoint/last_update，再用 compare-and-swap + recovery evidence 接管。
-- [ ] `SCHEDULER_RUNTIME_LIVENESS_V1`：same-lane 判活使用 parser-compatible V1 heartbeat（`emitted_at`）+ matching `WHD_SCHEDULER_RUNTIME_END_V1`；heartbeat ≤420 秒退讓，>420 秒 same-lane resume；600 秒 claim stale threshold 不得冒充 invocation liveness；V1 TTL 仍 ≤300 秒以保持 foreign takeover machine contract。
+- [ ] `SCHEDULER_RUNTIME_LIVENESS_V1`：same-lane 判活使用 parser-compatible V1 heartbeat（`emitted_at`）+ matching `WHD_SCHEDULER_RUNTIME_END_V1`；heartbeat ≤300 秒退讓，>300 秒 same-lane resume；600 秒 claim stale threshold 不得冒充 invocation liveness；V1 TTL 仍 ≤300 秒以保持 foreign takeover machine contract。
 - [ ] Issue terminal + cleanup + drift audit 前不提早 release claim。
 - [ ] 漏建 Issue 用 Retroactive provenance，不能偽造時序。
 - [ ] checkpoint / journal 能讓下一回合不靠聊天記憶續工。
@@ -547,7 +625,7 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 
 對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。
 
-`BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。
+`BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait，且通過 `TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1` 的 durable fresh unique blocker proof，才能合法 turn-exit；`BLOCKED` label 本身沒有 exit authority，也不得冒充 workflow COMPLETE。
 
 ### TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1_BRIDGE
 
@@ -563,10 +641,10 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeover_usage.md` 為 durable 使用手冊；本 Skill 保留 canonical execution contract。scheduler 必須遵守：
 
 1. **wake-up trigger != execution owner**：每輪從 `coord/dispatch-claims`、Issue、checkpoint、branch、exact run fresh reconstruct，不得硬編 issue/branch/SHA/run_id。
-2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 420 秒時退讓；heartbeat age > 420 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
+2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 300 秒時退讓；heartbeat age > 300 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
 3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
 4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
-5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。若 pending action 是 `branch-create`，先 fresh-read remote branch；branch 已存在且 HEAD exact match 時，由 trusted Guard 的 canonical branch-create durable-readback auto-consume 路徑判成 `CONSUMED`，不得靠 reactivate/換 claim blob 來清掉 transaction。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。 若 pending action 是 `branch-create`，先 fresh-read remote branch；branch 已存在且 HEAD exact match 時，由 trusted Guard 的 canonical branch-create durable-readback auto-consume 路徑判成 `CONSUMED`，不得靠 reactivate/換 claim blob 來清掉 transaction。
 6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
 7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
 8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
@@ -591,8 +669,8 @@ Recurring lane 的 `:00 / :20 / :40` 只是 wake-up entrypoints，不是不同 o
 3. V1 的 `expires_at - emitted_at` 仍必須 **≤ 300 秒**，以保持 `stale_claim_takeover.py::MAX_RUNTIME_LIVENESS_SECONDS` 相容。這個 `expires_at` 是 foreign-scheduler machine lease ceiling，**不是** 20 分鐘 wake cadence 的主要 same-lane 判活依據。
 4. 正常 return 前必須留 owner-authored top-level `WHD_SCHEDULER_RUNTIME_END_V1`，至少帶 `issue / scheduler_lane / invocation_identity / ended_at / final_phase / final_next_action`。若 latest END 與 latest heartbeat 的 `invocation_identity` exact match，前一 invocation 已正常結束；下一 wake 可立即 same-lane 續工。
 5. 若 latest heartbeat 沒有 matching END，計算 `heartbeat_age = now - emitted_at`：
-   - `heartbeat_age <= 420 秒` → `SAME_LANE_PREVIOUS_INVOCATION_ACTIVE`：前一 runtime 視為仍活著，本輪只能 fresh-read／觀測後退讓，禁止 mutation、Guard、dispatch。
-   - `heartbeat_age > 420 秒` → `SAME_LANE_PREVIOUS_INVOCATION_STUCK_OR_GONE`：不論舊 `expires_at`、claim `last_update` 或 600 秒 stale threshold，新的 invocation 都可 **same-lane resume**；先以 live GitHub reconcile，再繼續 durable `next_action`。這不是 foreign takeover，不改 claim owner。
+   - `heartbeat_age <= 300 秒` → `SAME_LANE_PREVIOUS_INVOCATION_ACTIVE`：前一 runtime 視為仍活著，本輪只能 fresh-read／觀測後退讓，禁止 mutation、Guard、dispatch。
+   - `heartbeat_age > 300 秒` → `SAME_LANE_PREVIOUS_INVOCATION_STUCK_OR_GONE`：不論舊 `expires_at`、claim `last_update` 或 600 秒 stale threshold，新的 invocation 都可 **same-lane resume**；先以 live GitHub reconcile，再繼續 durable `next_action`。這不是 foreign takeover，不改 claim owner。
 6. exact GitHub Actions run 仍在 queued/in_progress/waiting/pending/requested，**只證明外部 run 還活著，不證明舊 ChatGPT invocation 還活著**。same-lane 接手者鎖同一 `run_id + head_sha` 繼續 poll，禁止 duplicate dispatch。
 7. PR／Issue／branch／claim／checkpoint 在舊 runtime 消失後已前進時，live GitHub wins：新 invocation 先 reconcile durable state，再續做；禁止重播已成功 mutation。
 8. claim blob、branch、HEAD 任一 identity drift 時，舊 heartbeat 不可作 mutation authority；先 fresh reconstruct。heartbeat 只證明 invocation liveness，不取代 claim/checkpoint/Remote Guard。
@@ -606,7 +684,7 @@ foreign scheduler ownership 仍由 `tools/scheduler_runtime_liveness.py` + `tool
 - V1 heartbeat TTL 最長 300 秒；canonical orphan grace 仍為 90 秒。
 - foreign scheduler 有有效 machine heartbeat → backoff；heartbeat missing/expired 且符合 exact claim/blob/branch/head、無 active run及 orphan/stale條件時，才可依 `ORPHANED_SCHEDULER_OWNER` / `EXECUTOR_STUCK` 走 guarded takeover。
 - same-lane stuck/gone resume 與 foreign scheduler claim-takeover 是兩條不同路徑；不得因 same-lane heartbeat stale 就 self-takeover。
-- platform hard boundary 若來不及寫 END，heartbeat 會停止刷新；下一 sibling wake 在 freshness > 420 秒後即可 same-lane 接續，不必等 600 秒 claim stale。
+- platform hard boundary 若來不及寫 END，heartbeat 會停止刷新；下一 sibling wake 在 freshness > 300 秒後即可 same-lane 接續，不必等 600 秒 claim stale。
 - durable comment parser/selector authority：`tools/scheduler_runtime_liveness.py`；foreign takeover decision authority：`tools/stale_claim_takeover.py`。
 
 
@@ -651,23 +729,50 @@ EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保
 
 此 transition 是 migration repair，不是 takeover、不是 stale-head bypass，也不改 ownership。
 
-## LEGACY_EXPIRED_POSTCOMMIT_RECONCILE_RECOVERY_V1
+## LEGACY_POSTCOMMIT_RECONCILIATION_REPAIR_V1
 
-當 ordinary post-commit reconciliation 已證明 historical request + GREEN receipt、current claim blob、H0→H1 direct child、changed files 等 identity 全部一致，**唯一不符只是歷史 commit timestamp 超出 receipt window**，不得直接延長 TTL、重播舊 GREEN 或手改 claim。
+歷史遺留 `MUTATION_DONE_RECONCILE_ONLY` 若 ordinary `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1` 唯一失敗原因是：原 mutation 的 exact GREEN receipt 在 commit 真正落盤前已過期，禁止 replay mutation、self-takeover 或直接改 claim HEAD。
 
-唯一合法 migration path：
-1. repository owner 在 owning Issue 留 fixed `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1` comment；
-2. comment exact 綁 `issue / worker / executor_source / branch / claim_head_sha / live_head_sha / prior_guard_run_id / prior_request_comment_id / changed_file...`；
-3. trusted Remote Guard 的 `action=write` 只可帶 `legacy_reconcile_recovery_comment_id`，fresh fetch exact comment 並驗 owner + Issue + marker；
-4. canonical `execution_claim_guard.py` 重新驗所有 ordinary reconciliation identity；只有 receipt-time-window check 可由該 exact owner recovery authority取代；
-5. wrong owner/source/branch/blob/head/run/request/files、non-direct child、malformed authority 一律 fail closed；
-6. GREEN 只授權 coordination claim/checkpoint reconciliation，不重播原 implementation mutation。
+唯一允許的 narrow recovery 必須同時成立：
 
-若修正同時變更 trusted workflow，必須先完成 focused regression + Skill/AI Library writeback，再把 accepted workflow 部署到 default branch `main` 並 fresh-read；**main 尚未部署前不得用 branch-only recovery 去處理被阻塞的 production Issue**。
+1. current claim/checkpoint pair 存在且 exact 綁同一 H0；live work branch H1 是 H0 的單一直接子 commit，不支援 merge/multi-hop recovery。
+2. GitHub durable readback 證明 H1 實際 changed-file set，與一張 historical GREEN `write|commit` request/receipt 的 issue/worker/executor_source/branch/base/H0/current claim blob/request identity 完全匹配。
+3. historical receipt 必須是 `issued_at <= expires_at < commit_time`；只有 receipt-window 失效，其他 identity 全部有效。普通 window 內 reconciliation 仍走原 contract。
+4. repository owner 必須另寫 `WHD_LEGACY_POSTCOMMIT_RECONCILE_V1`，exact 綁 issue、worker、executor_source、branch、current claim blob、H0、H1、prior guard run/request id、actual changed files，並使用 `recovery_reason=LEGACY_RECEIPT_WINDOW_EXPIRED_AFTER_MUTATION`。
+5. trusted Remote Guard request 只能是 `action=write` + exact claim/checkpoint pair，並帶 `legacy_reconcile_recovery_comment_id=<owner comment id>`；machine gate fresh-fetch comment 後驗證。
+6. matching expired receipt 必須唯一；錯 owner、錯 blob、錯 H0/H1、錯 run/request、extra/missing changed file、merge/multi-hop 或 multiple candidates 一律 FAIL_CLOSED。
+7. GREEN 只授權 reconciliation metadata：原子把 claim/checkpoint HEAD 從 H0 推到既有 H1；不得重播 production mutation、不得改 ownership，也不得把此 recovery 當一般 receipt-window bypass。
 
-Primary regression：`tests/process/test_issue675_legacy_expired_postcommit_recovery.py`；governance repair：#675。
+這是 legacy migration escape hatch，不是 normal path；新 mutation 仍必須在 Guard receipt window 內完成。
 
 
+## WHD_WORK_EXECUTOR_HANDOFF_V1
+
+Planned executor handoff 是《派工》shared execution claim authority 的受控 ownership transition，**不是 stale takeover**。sender 必須 fresh-read exact Issue / claim blob / checkpoint / branch HEAD，使用 canonical checkpoint fingerprint，建立 exact-bound handoff identity：
+
+```text
+issue=<exact>
+from_worker=<current exact claim worker>
+to_worker=<exact scheduler lane worker>
+target_lane=A|B
+handoff_generation=<positive monotonically increasing integer>
+claim_blob=<exact current shared claim blob>
+branch=<exact work branch>
+head_sha=<exact branch/claim HEAD>
+checkpoint_fingerprint=<canonical continuity checkpoint fingerprint>
+next_action=<exact current non-null next_action>
+```
+
+固定規則：
+
+1. planned transition 一律使用 Guard action=`claim-handoff`；**不得**改走 `claim-takeover`、不得等 stale TTL、不得要求 stale/orphan classification。
+2. `to_worker` 必須與 `target_lane` exact 對應；A/B exact lane identity 由《排程模擬》CURRENT authority 提供，不得由聊天室名稱猜測。
+3. Guard GREEN 是 single-use，只授權將同一 shared claim 的 worker CAS 從 `from_worker` 改成 `to_worker`；branch/base/head/checkpoint/slot_id/next_action 保持原 identity，executor provenance 依 live schema保留。
+4. CAS 前再次 fresh-read claim blob / branch HEAD / checkpoint fingerprint / next_action / generation；任一 drift → `WORK_EXECUTOR_HANDOFF_IDENTITY_MISMATCH`，receipt 失效且不得 mutation。
+5. CAS 後立即 fresh-read，必須證明 worker 已是 exact `to_worker` 且 branch/head/checkpoint/next_action仍與 handoff identity一致；才可標記 receiver-ready。
+6. receiver-ready 後 target scheduler 在下一個合法 invocation **直接 resume exact checkpoint / next_action**；不得把已完成 planned handoff 重新分類成 stale takeover。
+7. handoff generation 防 replay；舊 generation、錯 claim blob、錯 checkpoint fingerprint、錯 next_action 一律 fail closed。
+8. 本 contract 不建立第二套 continuity/checkpoint state machine；fingerprint 與 next_action 語意仍由 canonical executable-continuity-controller 擁有。
 ## MAIN_TO_X_BATCH_FIRST_PARITY_V1
 
 當 default/trusted `main` 上已有一批已驗收治理修補，且依 parity 要求必須同步到 `X = cleanup/2d-3d-sync` 時，固定採 **BATCH_FEASIBILITY_AUDIT → batch integration 優先 → selective fallback**，不得預設逐顆同步。
@@ -707,20 +812,6 @@ batch main→X 只更新 X；**不得把 main→X 的 batch integration 倒灌�
 
 這個規則不等於 blind full-main merge。完整 main 只在「此次授權 scope 就是完整 eligible set，且 audit 證明安全」時可作 batch；否則仍需 bounded set。
 
-## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
-
-`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
-
-- prior receipt 為 exact GREEN `action=pr-write`；
-- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
-- PR `base.ref == claim.production_target`；
-- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
-- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
-
-只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
-
-Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
-
 ## MALFORMED_TERMINAL_CHECKPOINT_REPAIR_V1
 
 若 active claim 對應的 checkpoint 已是 terminal，但 checkpoint JSON 因 closure lifecycle 欄位非法而無法被 canonical loader 解析，禁止用 ordinary Remote Guard、一般 `reactivate`、手寫 coord commit 或先 release claim 繞過。
@@ -735,6 +826,21 @@ Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance
 6. exact coord parent CAS drift 立即 FAIL；repair GREEN 後必須 fresh-read candidate pair，再回 canonical finalization progression。
 
 此 transition 是 process-state migration repair，不是 takeover、不是 generic checkpoint editor。Primary regression：`tests/process/test_issue744_terminal_checkpoint_repair_transport.py`；governance repair：#744。
+
+## PR_WRITE_EXACT_EVENT_AUTO_CONSUME_V1
+
+`pr-write` 不得只因 PR 已存在就視為 consumed。trusted Remote Guard 必須 fresh-read exact head branch 的 live PR，並同時驗證：
+
+- prior receipt 為 exact GREEN `action=pr-write`；
+- PR `head.ref == receipt.branch`、`head.sha == receipt.head_sha == tested_target_sha`；
+- PR `base.ref == claim.production_target`；
+- `created_at`、`merged_at` 或 `closed_at` 至少一個 durable mutation event 落在該 receipt 的 `issued_at..expires_at`；
+- 同一 receipt 若有多個 exact matching PR mutation event，固定 fail closed。
+
+只有上述成立才投影 `mutation_applied=true / reconciled=true / pr_readback=true`。Guard 前就存在、且 receipt window 內沒有 create/merge/close event 的 PR **不得 auto-consume**；metadata-only update 目前仍走既有 explicit durable reconciliation，不以 `updated_at` 作證，避免 checks/comments 等非目標更新誤消耗 receipt。
+
+Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance owner：#739。
+
 ## COORD_WRITE_EXACT_COMMIT_AUTO_CONSUME_V1
 
 對 shared coordination 的 `action=write`，GREEN receipt 不得只靠「目前檔案看起來已更新」判定 consumed。trusted Remote Guard 必須從 `coord/dispatch-claims` fresh-read receipt window 內的 exact commit，且只接受該 Issue 的 claim/checkpoint 路徑。
@@ -748,7 +854,15 @@ Regression：`tests/process/test_issue739_pr_write_auto_consume.py`。Governance
 
 Canonical implementation：`tools.execution_claim_guard.durable_coord_write_readbacks_from_live_commits`。trusted workflow 必須把它與 branch-create / pr-write readbacks 一起餵給 transaction classifier。這條規則不放寬一般 repository write/commit。
 
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
 
+- domain: `skill_dispatch`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Retain shared claim ownership, guarded takeover/handoff, and durable checkpoint routing.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
 ## INTERVENING_SAME_OWNER_COORD_POSTCOMMIT_RECONCILIATION_V1_BRIDGE
 

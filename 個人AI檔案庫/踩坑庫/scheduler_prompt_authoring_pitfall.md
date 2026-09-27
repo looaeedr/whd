@@ -70,3 +70,64 @@ Scheduler prompt 固定：Guard recovery → drift reconciliation → delegated/
 必須明寫 active delegated child = parent liveness、same helper key reuse、equivalent duplicate GREEN dedupe、expired unconsumed GREEN不可 replay、cadence/IDs/lane owner/recurring enabled policy不得因 writeback改動。
 
 Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；interactive counterpart後續必須保存 conversation/chat identity + invocation identity並補 heartbeat。
+
+
+<!-- ISSUE667_END_LIVENESS_V1 -->
+## #667 Scheduler END / unified liveness / interactive takeover
+
+- heartbeat 與 invocation 終態使用 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` + exact matching `WHD_SCHEDULER_RUNTIME_END_V1`。
+- selector 綁 exact `issue + scheduler_lane + invocation_identity + claim_blob_sha + branch + head_sha`；identity drift fail closed。
+- matching END 後 machine status 是 `ENDED`；active exact remote run 仍是 absolute lock。
+- runtime heartbeat maximum TTL 與 same-lane mutex 統一為 **<=300 秒**；不得另造 420 秒 prompt-only 判斷。
+- user-directed interactive takeover 的 trusted Remote Guard 必須 fresh-read owner-authored `WHD_USER_DIRECTED_TAKEOVER_V1` 並傳給 canonical stale evaluator。
+- `/排程A` / `/排程B` activation 只 enable exact selected lane matching recurring entrypoints；post-update fresh readback，不改 cadence/prompt/title/owner，不碰另一 lane。
+
+## EXECUTION_INTENT_ROUTING_PITFALL_V1
+
+### 事故
+
+2026-09-26 重新檢查 WHD scheduler / Skill 更新流程時，發現「更新控制面」與「執行工單」容易被同一套 continuity/dispatch wording 混在一起：
+
+- 使用者只是要求修改排程 prompt、Skill、Issue body 或治理規則；
+- runtime 卻因看到 open/unblocked Issue、空工作槽、next_action 或可用 Guard，順手取得 claim、建立 implementation branch，甚至自動接 successor；
+- scheduler prompt 又把 drift/reconciliation/takeover capability 寫得像每輪固定前置 phase，造成正常工單也繞進 recovery。
+
+### 永久規則
+
+1. Scheduler authoring / automation update 預設是 `UPDATE_ONLY`；完成條件是 requested update + minimum validation/readback。
+2. `UPDATE_ONLY` 不授權 implementation claim、implementation branch、successor chain 或 scheduler lane execution。
+3. `/排程A` / `/排程B` 與真正 scheduled invocation 才是 `SCHEDULER_LANE` execution entrypoint。
+4. `open / unblocked Issue`、空 work slot、Guard 可用、next_action 存在都不是 execution authority。
+5. `NORMAL_PATH_FIRST`：正常 implementation 只走 `claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`。
+6. `RECOVERY_IS_EXCEPTION_NOT_PHASE`：takeover / reactivate / reconciliation / legacy repair 僅由 fresh machine evidence 觸發；condition 修復後立即回 normal path。
+7. 修改 live recurring automation prompt 時只改本次 scope；cadence、enabled、lane owner 若未被使用者點名就保持原值，並 post-update fresh readback。
+
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `scheduler_prompt`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: NO_MATCHING_HANDOFF is not NO_WORK; scheduler no-work requires exhaustive READY_WORK_CENSUS evidence.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+<!-- ISSUE808_SCHEDULER_REMOTE_ONLY_EXECUTION_V1 -->
+## 排程模擬不得退回本機執行
+
+- `排程模擬` 的 substantive execution 必須保持 remote-only；合法 execution location 固定為 `GITHUB | SCHEDULER | REMOTE_ACTION`。
+- `handoff_source=LOCAL` 只代表歷史來源/provenance，**不是** execution authority，也不得被解讀成可切換到本機。
+- GitHub / scheduler / remote action capability 暫時不可用時必須 fail closed 並保存 exact durable blocker；禁止改走本機 worktree、Remote Desktop、local shell 或其他 workstation fallback。
+- 需要 Guard 時走 trusted Remote Guard；需要測試/驗證時走 GitHub Actions / remote QA；需要 repository mutation 時走 GitHub durable mutation capability。
+- 此規則同時適用真實 recurring scheduled invocation 與 exact `/排程A` / `/排程B` interactive same-lane resume。
+<!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
+## Mutating toolcall crash-recovery canonical invariant
+
+- Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
+- Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
+- `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
+- `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
+- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
+- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
+

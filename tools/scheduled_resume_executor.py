@@ -7,6 +7,7 @@ only for wake dispositions that require autonomous engineering work.
 from __future__ import annotations
 
 from tools.continuity_controller import CheckpointError
+from tools.execution_entry_contract import prepend_startup_declaration
 from tools.scheduled_resume_runtime import (
     ScheduledWakeDisposition,
     ScheduledWakeEvaluation,
@@ -47,7 +48,7 @@ def build_headless_agent_prompt(evaluation: ScheduledWakeEvaluation) -> str:
         if not action:
             raise CheckpointError("headless agent action must be nonblank")
 
-    return f"""WHD Scheduled Resume Bridge autonomous execution.
+    body = f"""WHD Scheduled Resume Bridge autonomous execution.
 
 Exact durable owner:
 - issue={checkpoint.issue}
@@ -70,3 +71,5 @@ Execution contract:
 8. For remote QA, retain the exact run_id + head_sha lock; do not create a replacement run merely because this runtime restarted.
 9. When the task is terminal, invoke issue-closure-gate and complete cleanup before removing scheduled-resume eligibility.
 """
+    purpose = f"Scheduled Resume for Issue #{checkpoint.issue}: {action}"
+    return prepend_startup_declaration(body=body, purpose=purpose)

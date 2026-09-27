@@ -153,3 +153,24 @@ Executable owner：`tools/continuity_controller.py`；regression：`tests/proces
 
 Repair 只是恢復 closure transaction 的可執行狀態；它不代表 Issue 已關、不代表 claim 已 RELEASED，也不能取代 fresh finalization proof。之後仍照 `FINALIZATION_PENDING → ISSUE_CLOSE_PENDING → proof → close/readback → RELEASE_HANDOFF_PENDING → CLOSED + RELEASED` 完整收尾。
 
+<!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
+## #693 Combined Acceptance durable readback
+
+- domain: `issue_closure`
+- accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
+- integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
+- retained invariant: Issue Closure owner must verify finalization, closed/completed readback, then atomically persist checkpoint CLOSED and claim RELEASED.
+- this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
+- deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+<!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
+## Mutating toolcall crash-recovery canonical invariant
+
+- Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
+- Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
+- `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
+- `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
+- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
+- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
+
