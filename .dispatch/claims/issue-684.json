@@ -9,23 +9,22 @@
   "work_branch": "work/issue684-real-ha-integration-combined-20260927",
   "claimed_at": "2026-09-27T14:59:30Z",
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
-  "head_sha": "cc97ece600a520548ffb16bbc4ca3ce6bf80e5cd",
-  "phase": "RED",
-  "last_update": "2026-09-27T15:11:17Z",
+  "head_sha": "42676cfc77e57f3f68ce51caceae3ddee97f7642",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T15:15:18Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36328570159,
-    "job_id": 108645981759,
-    "head_sha": "cc97ece600a520548ffb16bbc4ca3ce6bf80e5cd",
+    "run_id": 36328806461,
+    "job_id": 108646648874,
+    "head_sha": "42676cfc77e57f3f68ce51caceae3ddee97f7642",
     "status": "completed",
-    "conclusion": "failure",
-    "pytest": "9 failed / 0 harness errors",
-    "marker": "R11_REAL_SHUTDOWN_ACCEPTANCE missing canonical owner"
+    "conclusion": "success",
+    "pytest": "9 passed in 1.02s"
   },
-  "next_action": "Implement canonical R11 owner tools/whd_poweroff_end_to_end_acceptance.py as a pure evidence verifier. It must preserve current request/revision identity across gate receipt, HA projection, HA/Node-RED actuator-decision evidence, and scheduler resume evidence; SAFE requires ALLOW+invoked and complete resume evidence, NOT_SAFE/ERROR require BLOCK+not-invoked, stale SAFE replay fails closed, and WHD must contain no Windows shutdown actuator.",
+  "next_action": "Expand #684 into Combined Acceptance: run R11 together with predecessor regressions #680 planned handoff, #681 poweroff gate, #682 outage recovery, #683 HA projection; add required authority map/Scheduled Resume/HA integration SOP or usage writeback and machine-check those markers; then clean one-shot workflow, drift-audit against current cleanup, integrate, and finalize.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-684.json",
   "evidence": [
@@ -44,17 +43,20 @@
     "Duplicate same-scope write request 5857010347 failed closed as PENDING_GUARD_TRANSACTION / run 36328167316; no duplicate mutation authority was created.",
     "R11 RED commit cc97ece600a520548ffb16bbc4ca3ce6bf80e5cd consumed commit Guard 36328476149 / request 5857046969 / result 5857048805.",
     "Exact RED run 36328570159 / job 108645981759: 9 failed; all failures are the intended missing canonical owner tools/whd_poweroff_end_to_end_acceptance.py.",
-    "Post-commit reconciliation Guard 36328618629 / request 5857063866 / result 5857065199 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-commit reconciliation Guard 36328618629 / request 5857063866 / result 5857065199 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "R11 verifier commit 42676cfc77e57f3f68ce51caceae3ddee97f7642 consumed commit Guard 36328695077 / request 5857072827 / result 5857074615.",
+    "Exact R11 GREEN run 36328806461 / job 108646648874: 9 passed in 1.02s.",
+    "Post-commit reconciliation Guard 36328863599 / request 5857093282 / result 5857094988 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36328618629,
-    "request_comment_id": 5857063866,
-    "result_comment_id": 5857065199,
+    "run_id": 36328863599,
+    "request_comment_id": 5857093282,
+    "result_comment_id": 5857094988,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #684 claim/checkpoint to exact R11 RED head"
+    "mutation": "reconcile #684 to exact R11 GREEN head"
   }
 }
