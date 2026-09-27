@@ -11,8 +11,8 @@
   "claimed_at": "2026-09-27T10:02:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
   "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T15:07:35Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T15:10:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": {
@@ -25,7 +25,7 @@
     "classification": "FOCUSED_GREEN",
     "marker": "ISSUE843_GREEN_SYNCED"
   },
-  "next_action": "Run fresh terminal audit for #843: verify #860 merged to cleanup, #849 closed unmerged, no same-ticket open PRs, focused QA 36327480836 remains accepted; then enter canonical FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization -> Issue close/readback -> RELEASE_HANDOFF_PENDING -> RELEASED/CLOSED.",
+  "next_action": "Advance the exact #843 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #843, then atomically RELEASE claim + CLOSED checkpoint with Master #842 successor handoff to #844.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-843.json",
   "evidence": [
@@ -69,7 +69,9 @@
     "temporary #849 cleanup authority handoff Guard run=36328202238 GREEN",
     "superseded PR #849 fresh readback closed/unmerged at 2026-09-27T15:06:40Z",
     "post-close PR body update consumed duplicate pr-write receipt run=36328360747",
-    "primary authority handback Guard run=36328358537 GREEN"
+    "primary authority handback Guard run=36328358537 GREEN",
+    "fresh terminal audit passed: #860 merged, #849 closed unmerged, same-ticket open PR count=0, focused QA 36327480836 still success",
+    "terminal checkpoint transition Guard run=36328519594 GREEN"
   ],
   "delegated_branches": [
     "governance/issue843-control-plane-characterization-20260927"
@@ -77,12 +79,12 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36328358537,
-    "request_comment_id": 5857033070,
-    "result_comment_id": 5857034594,
+    "run_id": 36328519594,
+    "request_comment_id": 5857052341,
+    "result_comment_id": 5857054232,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "hand #843 primary authority back to repair branch after superseded PR cleanup"
+    "mutation": "enter #843 terminal checkpoint FINALIZATION_PENDING"
   }
 }

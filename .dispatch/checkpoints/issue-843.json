@@ -3,8 +3,8 @@
   "issue": "843",
   "branch": "repair/issue843-sealed-premerge-20260927",
   "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
-  "state": "RUNNING",
-  "next_action": "Run fresh terminal audit for #843: verify #860 merged to cleanup, #849 closed unmerged, no same-ticket open PRs, focused QA 36327480836 remains accepted; then enter canonical FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted finalization -> Issue close/readback -> RELEASE_HANDOFF_PENDING -> RELEASED/CLOSED.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36327480836,
   "job_id": 108642913706,
   "log_cursor": null,
@@ -43,7 +43,9 @@
     "temporary #849 cleanup authority handoff Guard 36328202238 GREEN",
     "#849 fresh readback closed/unmerged",
     "duplicate post-close pr-write receipt 36328360747 consumed by closed PR body update",
-    "primary authority handback Guard 36328358537 GREEN"
+    "primary authority handback Guard 36328358537 GREEN",
+    "fresh pre-terminal audit passed: #860 merged, #849 closed unmerged, no same-ticket open PR",
+    "terminal checkpoint entered FINALIZATION_PENDING under write Guard 36328519594"
   ],
   "operation": null,
   "master_issue": null,
@@ -51,6 +53,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance the exact #843 terminal checkpoint to ISSUE_CLOSE_PENDING, mint trusted finalization proof, close/readback Issue #843, then atomically RELEASE claim + CLOSED checkpoint with Master #842 successor handoff to #844."
 }
