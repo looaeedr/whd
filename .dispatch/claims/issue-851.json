@@ -10,13 +10,13 @@
   "work_branch": "repair/issue851-sealed-premerge-v2-20260927",
   "claimed_at": "2026-09-27T10:52:00Z",
   "base_sha": "500e6f806de40a74ee8cd5bb4a6372245c5df53c",
-  "head_sha": "44101a7f0d8e02df83d7b45f953fde4f554a8178",
+  "head_sha": "14902f707009d26c242f81ba386be3293ad2a708",
   "phase": "GREEN",
-  "last_update": "2026-09-27T11:42:36Z",
+  "last_update": "2026-09-27T11:49:23Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "remote_qa": null,
-  "next_action": "Run focused #851 acceptance on reconciled merge head 44101a7f0d8e02df83d7b45f953fde4f554a8178, then open the replacement cleanup/2d-3d-sync PR and mirror accepted governance to main.",
+  "next_action": "Open replacement cleanup/2d-3d-sync PR from head 14902f707009d26c242f81ba386be3293ad2a708, create same-owner governed main mirror candidate, pair both PRs, require Governance Mirror Hard Gate GREEN, then merge/read back both branches.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-851.json",
   "evidence": [
@@ -33,6 +33,10 @@
     "parent-branch repair v2 run=36316496985 SUCCESS",
     "production-parent commit Guard run=36316542571 GREEN against cleanup@8a6323f50860b5aa678e2bf4b8b21a75a82d41a0",
     "legal two-parent merge head=44101a7f0d8e02df83d7b45f953fde4f554a8178",
-    "post-merge pair reconciliation Guard run=36316599647 GREEN"
+    "post-merge pair reconciliation Guard run=36316599647 GREEN",
+    "cleanup advanced to d41c257787c1fa298bb4e8a1fb7927432c9cbde1 via #683 with disjoint 3-file delta",
+    "latest target-sync Guard run=36316890028 GREEN",
+    "latest two-parent merge head=14902f707009d26c242f81ba386be3293ad2a708",
+    "latest pair reconciliation Guard run=36316955484 GREEN"
   ]
 }
