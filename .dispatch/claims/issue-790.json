@@ -11,7 +11,7 @@
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T02:44:00Z",
+  "last_update": "2026-09-27T02:49:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Resume parent #769 exact recovery: fresh-read #769 claim/checkpoint/work branch and historical Guard request/receipt for H0 ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76 -> H1 4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab; create owner-authored WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1 binding current/historical claim blobs, prior Guard run 36282767458/request 5851288038, and exact QA-workflow changed file; invoke trusted pair reconciliation with intervening_coord_recovery_comment_id, persist remote QA run 36282840275, then remove the temporary #769 QA workflow under a fresh Guard and continue #769 drift audit/merge/closure.",
+  "next_action": "Create exactly one delegated post-integration hotfix Issue for helper_key issue790-github-blob-base64-hotfix from current trusted main d54f0410dee3c70489c8a2bdebb4b3b7c3564690. Reproduce real GitHub blob base64 line-wrap rejection, patch strict decoder to normalize only ASCII whitespace before validate=True, add regression using wrapped base64, deploy to main, propagate compatible parity to cleanup, terminalize helper, then retry #769 intervening-coord recovery.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -63,17 +63,22 @@
     "Canonical activate_helper_reservation returned ACTIVE for helper_key issue790-main-x-parity → child #794.",
     "Helper #794 terminal proof fresh-read: Issue closed/completed; claim ec595869a5965428fdc5b9a144d0ed44ba80a795 phase=RELEASED / next_action=null; checkpoint 671ddbeba70c382f0ca9d114e03fcada87d0fd7d state=TERMINAL_SUCCESS / closure=CLOSED; exact head has no active workflow run.",
     "Canonical terminalize_helper_reservation() returned TERMINAL for helper_key issue790-main-x-parity with exact owner/token.",
-    "Parent pair-write Guard run 36289318019 GREEN; helper reservation terminalization and #769 recovery handoff authorized."
+    "Parent pair-write Guard run 36289318019 GREEN; helper reservation terminalization and #769 recovery handoff authorized.",
+    "Live #769 recovery run 36289438955 failed only at real GitHub blob decode: intervening coord reconciliation historical claim blob is not valid base64.",
+    "Root cause: GitHub git/blob API base64 transport may contain line wrapping; #790 decoder currently calls b64decode(..., validate=True) without normalizing transport whitespace.",
+    "No existing open hotfix owner found for this exact defect.",
+    "Canonical reserve_helper_creation() returned RESERVED for helper_key issue790-github-blob-base64-hotfix token issue790-github-blob-base64-hotfix-20260927a.",
+    "Reservation pair-write Guard run 36289568911 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36289318019,
-    "request_comment_id": 5852044689,
+    "run_id": 36289568911,
+    "request_comment_id": 5852073807,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "terminalize #794 helper reservation and resume #790 -> #769 recovery"
+    "mutation": "reserve unique #790 post-integration base64 hotfix helper"
   },
   "delegated_work": [
     {
@@ -85,6 +90,16 @@
       "reserved_at": "2026-09-27T01:53:49Z",
       "child_issue": 794,
       "child_claim_blob_sha": "8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625"
+    },
+    {
+      "relationship": "helper",
+      "helper_key": "issue790-github-blob-base64-hotfix",
+      "state": "RESERVING",
+      "reserved_by": "chatgpt.sol260927.issue790.dep769.1",
+      "reservation_token": "issue790-github-blob-base64-hotfix-20260927a",
+      "reserved_at": "2026-09-27T02:47:45Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
     }
   ]
 }

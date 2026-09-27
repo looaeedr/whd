@@ -4,7 +4,7 @@
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "state": "RUNNING",
-  "next_action": "Resume parent #769 exact recovery: fresh-read #769 claim/checkpoint/work branch and historical Guard request/receipt for H0 ac1b45a090b5bf21bdfc66d4be3ce2a6de4f0a76 -> H1 4ad9246a9d4c4ac3781edbb2fb7fb574cdce23ab; create owner-authored WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1 binding current/historical claim blobs, prior Guard run 36282767458/request 5851288038, and exact QA-workflow changed file; invoke trusted pair reconciliation with intervening_coord_recovery_comment_id, persist remote QA run 36282840275, then remove the temporary #769 QA workflow under a fresh Guard and continue #769 drift audit/merge/closure.",
+  "next_action": "Create exactly one delegated post-integration hotfix Issue for helper_key issue790-github-blob-base64-hotfix from current trusted main d54f0410dee3c70489c8a2bdebb4b3b7c3564690. Reproduce real GitHub blob base64 line-wrap rejection, patch strict decoder to normalize only ASCII whitespace before validate=True, add regression using wrapped base64, deploy to main, propagate compatible parity to cleanup, terminalize helper, then retry #769 intervening-coord recovery.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -35,7 +35,9 @@
     "Parent delegated helper pointer ACTIVE: #794 / claim blob 8fd93bbfc43a9c5a1d76edbb9da619a3aa64f625. Parent must follow active child; do not create duplicate parity helper.",
     "Delegated helper #794 is fully terminal: closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED.",
     "Canonical helper reservation transition validated ACTIVE -> TERMINAL.",
-    "Guard 36289318019 GREEN; parent resumes exact #769 intervening-coord recovery."
+    "Guard 36289318019 GREEN; parent resumes exact #769 intervening-coord recovery.",
+    "Post-integration consumption on #769 exposed real GitHub blob base64 wrapping incompatibility.",
+    "Canonical helper reservation RESERVED; Guard 36289568911 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
