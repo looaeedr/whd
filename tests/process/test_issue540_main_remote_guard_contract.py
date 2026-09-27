@@ -7,10 +7,13 @@ def _text() -> str:
     return WORKFLOW.read_text(encoding="utf-8")
 
 
-def test_claim_takeover_action_is_explicit_and_scheduler_only():
+def test_claim_takeover_action_accepts_scheduler_or_owner_authorized_chat():
     text = _text()
     assert '"claim-takeover"' in text
-    assert 'claim-takeover requires executor_source=scheduler' in text
+    assert 'claim-takeover requires scheduler or chat executor_source' in text
+    assert 'scheduler takeover_worker must start with scheduler.' in text
+    assert 'interactive takeover_worker must start with chatgpt.' in text
+    assert 'claim-takeover requires executor_source=scheduler' not in text
     assert 'claim-takeover must not carry changed_file' in text
 
 
