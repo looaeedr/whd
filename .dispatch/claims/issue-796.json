@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-27T02:17:00Z",
   "base_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
   "head_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T02:17:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-27T02:23:23Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard, create bootstrap branch from exact main@366b68101b30aa496fa4bc78d465b6c72a116807, apply only the accepted real-newline takeover parser fix, run focused regression, then PR non-force to main.",
+  "next_action": "Apply only the accepted real-newline takeover parser fix to .github/workflows/whd-remote-execution-guard.yml under an exact commit Guard, run the focused #722/#793 takeover parser regression, then open a non-force PR to main.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-796.json",
   "slot_id": "worker.slot.1",
@@ -27,5 +27,19 @@
     "binding_scope": "issue-796-bootstrap-for-793"
   },
   "parent_issue": 793,
-  "helper_key": "bootstrap-trusted-takeover-parser"
+  "helper_key": "bootstrap-trusted-takeover-parser",
+  "evidence": [
+    "Branch-create Guard run 36288291696 GREEN from request 5851930220.",
+    "Bootstrap branch bootstrap/issue796-trusted-takeover-parser-20260927 created and read back at exact trusted main base 366b68101b30aa496fa4bc78d465b6c72a116807."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36288361942,
+    "request_comment_id": 5851938407,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "persist #796 branch-create consumption and advance to parser implementation"
+  }
 }

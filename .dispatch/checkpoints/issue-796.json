@@ -4,7 +4,7 @@
   "branch": "bootstrap/issue796-trusted-takeover-parser-20260927",
   "head_sha": "366b68101b30aa496fa4bc78d465b6c72a116807",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard, create bootstrap branch from exact main@366b68101b30aa496fa4bc78d465b6c72a116807, apply only the accepted real-newline takeover parser fix, run focused regression, then PR non-force to main.",
+  "next_action": "Apply only the accepted real-newline takeover parser fix to .github/workflows/whd-remote-execution-guard.yml under an exact commit Guard, run the focused #722/#793 takeover parser regression, then open a non-force PR to main.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,9 @@
   "evidence": [
     "Parent #793 bootstrap reservation helper_key=bootstrap-trusted-takeover-parser.",
     "User directed Work1 to take over #793 and approved proceeding; #796 is the narrow bootstrap leaf needed to restore trusted takeover transport.",
-    "Trusted main@366b68101b30aa496fa4bc78d465b6c72a116807 still contains the literal-backslash newline selector; #793 exact QA already validated the real-newline parser behavior."
+    "Trusted main@366b68101b30aa496fa4bc78d465b6c72a116807 still contains the literal-backslash newline selector; #793 exact QA already validated the real-newline parser behavior.",
+    "Branch-create Guard 36288291696 GREEN; branch exists/readback exact at trusted main base 366b68101b30aa496fa4bc78d465b6c72a116807.",
+    "Coordination write Guard 36288361942 GREEN authorizes atomic claim/checkpoint advancement to implementation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
