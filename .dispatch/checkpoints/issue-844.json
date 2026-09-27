@@ -4,7 +4,7 @@
   "branch": "governance/issue844-unified-execution-record-20260928",
   "head_sha": "c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd",
   "state": "RUNNING",
-  "next_action": "Obtain exact pr-write Guard and open the #844 branch PR to cleanup/2d-3d-sync so qa-issue844-unified-execution-record.yml executes the focused RED test; lock that run to terminal.",
+  "next_action": "Implement the minimal canonical tools/execution_record.py model/legacy adapter required by the focused #844 RED, then rerun exact focused QA.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,7 +17,8 @@
     "Remote Phase6 preflight 36357867452 GREEN; changed-file preflight 36357926950 GREEN.",
     "Focused RED test commit 254cb61e198c106a25051c6d718448e852531d3e is the current work head.",
     "Pair reconciliation Guard 36358042352 GREEN; obsolete REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE blocker cleared.",
-    "Focused RED runner is present at c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd; pair reconciliation Guard 36358198545 GREEN."
+    "Focused RED runner is present at c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd; pair reconciliation Guard 36358198545 GREEN.",
+    "Focused RED run 36358270773 terminal failure is expected: tools.execution_record does not exist."
   ],
   "operation": null,
   "master_issue": null,
