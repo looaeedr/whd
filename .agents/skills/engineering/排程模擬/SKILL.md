@@ -497,3 +497,15 @@ target_lane=B -> to_worker=scheduler.e58ea936e7d0b12bd0d475314709d6f1
 7. 使用者明確要求 pause / disable / delete / reschedule 才是唯一可改 recurring lifecycle 的 authority。普通 Issue terminal、Master terminal、NO_WORK、Guard failure、platform safety blocker 都不是此 authority。
 8. 本 gate 對 success / failure / blocker / exception / early-return / safety-rejection 所有出口一體適用；不得只在正常 EXIT HARD GATE 路徑才做 enabled readback。
 
+### TRUSTED_TURN_EXIT_RECURRING_LIFECYCLE_V1
+
+trusted `WHD_REMOTE_TURN_EXIT_RESULT_V1` 必須把「本 invocation 可 return」與「recurring automation lifecycle」拆成不同 machine 欄位：
+
+- `invocation_end_allowed=true`：只代表本次 invocation 已通過 turn-exit gate，可以結束這一輪。
+- `scheduler_end_allowed=true`：僅保留為 legacy compatibility alias，語意同樣只限 invocation end；**不得**解讀為 recurring scheduler terminal。
+- `recurring_automation_action=KEEP_ENABLED`：本輪 return 後 recurring entrypoint 必須繼續保持 enabled。
+- `recurring_automation_terminal=false`：明確禁止把 END marker、fully-blocked、capability blocker 或 failure-path return 升格成 recurring automation terminal。
+- 新 lifecycle 欄位若只出現一部分、值衝突、action 不是 `KEEP_ENABLED`、或 terminal 不是 `false`，canonical `assert_scheduler_end_receipt` 必須 fail closed。
+- 為了不把已在途的舊 END handoff 卡死，完全不含上述三個新 lifecycle 欄位的 legacy trusted receipt 暫時可讀；一旦任一新欄位出現，就必須完整符合新 schema。
+- 這個相容層只用於消費既有 trusted receipt；所有新 trusted turn-exit receipt 一律必須輸出完整 lifecycle 欄位。
+
