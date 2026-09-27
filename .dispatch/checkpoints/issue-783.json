@@ -2,16 +2,17 @@
   "version": 1,
   "issue": "783",
   "branch": "trusted/issue783-consumed-history-filter-main-20260927",
-  "head_sha": "ae75066c74339f728a676b1c923fd5366331ae76",
+  "head_sha": "178644c5212f8ee672cebe84ae04238000e55a33",
   "state": "RUNNING",
-  "next_action": "Create guarded helper branch and apply exact consumed-history filter delta.",
+  "next_action": "Create guarded PR to trusted main, merge, verify parity, then retry #774/#776.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent #774 bootstrap helper for generic consumed-history filter."
+    "52 focused tests passed",
+    "helper commit=178644c5212f8ee672cebe84ae04238000e55a33"
   ],
   "master_issue": null,
   "chain_state": "NONE",

@@ -9,25 +9,20 @@
   "work_branch": "trusted/issue783-consumed-history-filter-main-20260927",
   "claimed_at": "2026-09-27T00:00:30Z",
   "base_sha": "ae75066c74339f728a676b1c923fd5366331ae76",
-  "head_sha": "ae75066c74339f728a676b1c923fd5366331ae76",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T00:00:30Z",
+  "head_sha": "178644c5212f8ee672cebe84ae04238000e55a33",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T00:07:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "handoff_source": "issue774",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create guarded main-based helper branch; apply exact consumed-history filter delta; validate; PR/merge main; retry #774 H1 reconciliation and closure chain.",
+  "next_action": "Create guarded PR to trusted main, merge, verify generic consumed-history filter parity, then retry #774 H1 reconciliation and #776 final release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-783.json",
   "evidence": [
-    "authorization_source=#774 parent authority",
-    "execution_intent=EXECUTE_TICKET",
-    "purpose=bootstrap consumed historical Guard identity filter to trusted main",
-    "authorized_scope=Issue #783 exact two-file trusted deploy only",
-    "prohibited_scope=no unrelated main changes",
-    "resume_authority=NONE",
-    "fresh main=ae75066c74339f728a676b1c923fd5366331ae76",
-    "fresh coord=23aa7ecb82c4574f5ee66889d706bb390104d3d7"
+    "52 focused tests passed / 0 failed",
+    "commit Guard run 36281465920 GREEN",
+    "helper commit=178644c5212f8ee672cebe84ae04238000e55a33"
   ]
 }
