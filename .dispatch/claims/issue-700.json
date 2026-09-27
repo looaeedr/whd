@@ -9,14 +9,14 @@
   "work_branch": "work/issue700-claim-activation-crash-reentry-20260927",
   "claimed_at": "2026-09-27T01:00:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T01:00:00Z",
+  "head_sha": "7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0",
+  "phase": "RED",
+  "last_update": "2026-09-27T01:09:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain exact branch-create Guard, create/read back work/issue700-claim-activation-crash-reentry-20260927 from accepted predecessor #697 head 03da7a28d0aa04fae85fd9a92f13c0a8129af83e, then establish RED-STOP-23 before implementation.",
+  "next_action": "Run focused RED-STOP-23 regression on exact head 7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0, capture expected failure, then implement only the Claim Activation post-CAS durable-readback recovery seam.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-700.json",
   "evidence": [
@@ -26,6 +26,8 @@
     "authorized_scope=Issue #700 only plus required claim/branch/Guard/test/PR/QA/closure mutations; no automatic #701/#702 execution",
     "predecessor #697 acceptance state=ACCEPTED_PENDING_CHAIN_CLOSURE and explicitly lists #700 as unblocked successor",
     "accepted predecessor/base head=03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-    "production target=cleanup/2d-3d-sync; current production is observation/integration target only"
+    "production target=cleanup/2d-3d-sync; current production is observation/integration target only",
+    "RED characterization commit=7111b7b0ab6af2f9b1dfd32f82f840f8a69c8bb0; changed exactly tests/process/test_issue700_claim_activation_crash_reentry.py.",
+    "Post-commit pair reconciliation Guard run 36284631573 GREEN."
   ]
 }
