@@ -7,13 +7,14 @@ import pytest
 import tools.continuity_controller as continuity
 
 
-def _blocked() -> continuity.Checkpoint:
+def _blocked(*, proof=None) -> continuity.Checkpoint:
     return continuity.Checkpoint(
         issue="687",
         branch="work/issue687-continuous-legal-stop-20260926",
         head_sha="a" * 40,
         state=continuity.ContinuityState.BLOCKED,
         next_action="wait for external authority",
+        blocked_exit_proof=proof,
     )
 
 
@@ -42,8 +43,7 @@ class _PositiveLeafProof:
 def test_red_stop_03_executable_alternative_blocks_turn_exit() -> None:
     try:
         continuity.assert_turn_exitable(
-            _blocked(),
-            blocked_exit_proof=_PositiveLeafProof(),
+            _blocked(proof=_PositiveLeafProof()),
         )
     except TypeError as exc:
         pytest.fail(f"turn-exit API cannot consume leaf census proof: {exc}")
@@ -67,6 +67,9 @@ def test_red_stop_05_stop_reason_schema_excludes_progress_observations() -> None
     values = {member.value for member in stop_reason}
     assert {
         "BLOCKER_NOT_EXHAUSTIVELY_PROVEN",
+        "BLOCKER_NOT_UNIQUE",
+        "BLOCKER_ID_NOT_EXTERNAL",
+        "STALE_BLOCKER_EVIDENCE",
         "EXECUTABLE_LEAF_EXISTS",
         "NO_EXECUTABLE_PATH",
         "EXTERNAL_AUTHORITY_REQUIRED",

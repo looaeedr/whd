@@ -323,7 +323,7 @@ Turn-exit state contract：
 - `RUNNING`：**拒絕 turn exit**；立即執行 `next_action`。
 - `WAITING_REMOTE`：**拒絕 turn exit**；維持 exact run/head lock 並 poll。
 - `RECOVERING`：**拒絕 turn exit**；沿 evidence → root cause → fix → retry。
-- `BLOCKED`：允許結束目前 turn，因為它代表真正需要外部 authority/capability；但它仍是 non-terminal，state-only `assert_finalizable` 與 owned finalization guard 都必須失敗。
+- `BLOCKED`：**state 本身不授權 turn exit**。只有 owning checkpoint 內含 canonical、fresh、唯一 blocker 的 machine proof，且 exhaustive path census 證明沒有任何可自主執行 leaf，才可結束目前 turn；它仍是 non-terminal，Issue 保持 open、claim 保持 active，且 `assert_finalizable` / owned finalization guard 必須失敗。
 - `TERMINAL_SUCCESS / TERMINAL_FAILURE`：允許 turn exit；workflow/issue 是否可真正 closure 仍要求 owned finalization guard + current proof + owning closure gate。
 
 `assert_turn_exitable` 與 finalization authorization 不得互相取代。前者回答「目前 assistant response 能不能停」，後者回答「workflow/issue 能不能被宣告 terminal／執行 closure」。
@@ -380,6 +380,26 @@ checkpoint 在 guard 後只要被改寫，先前 proof 立即失效。`BLOCKED` 
 - valid owning checkpoint 但沒有 guard invocation proof 仍 fail closed；
 - successful guard invocation 產生 bound proof；
 - checkpoint 改寫後 proof stale 並 fail closed。
+
+## TURN_EXIT_TERMINAL_OR_FRESH_UNIQUE_BLOCKER_HARD_GATE_V1
+
+**中途回報不等於停止點**：progress、status、CHECKPOINT、Guard result、局部 PASS/FAIL 都只可觀測目前 durable state；它們本身永遠不能 mint turn-exit authority。正常 assistant turn 只能從下列兩條 machine path 離開：
+
+1. **真正終態**：沿既有 terminal closure contract 完成 required acceptance、finalization、Issue close/readback、claim release 與 chain handoff；不得把 code integrated、QA GREEN 或 child terminal 假裝成完整終態。
+2. **fresh unique BLOCKED**：owning `Checkpoint.blocked_exit_proof` 必須由 `tools/continuity_controller.py` 驗證全部條件：
+   - `exhaustive=true`；
+   - `executable_leaf_count=0`，所有合法替代路徑已 fresh census；
+   - `blocker_count=1` 且 `blocker_id` 非空；
+   - `blocker_id` 類別必須與 `stop_reason` 一致：`external-authority:` / `capability:` / `no-executable-path:`；
+   - `observed_at` 必須是 timezone-aware fresh UTC evidence；canonical max age 為 **300 秒**、只容許 **30 秒** future clock skew；
+   - 不得存在 active remote run / delegated executable work；
+   - BLOCKED 是 non-terminal：owning Issue 必須仍 open，claim 必須仍是 active phase，不得先 RELEASE 或關 Issue。
+
+以下全部 fail closed：proof 缺失、timestamp stale、blocker 多於一個、blocker identity 缺失／類別不合、仍有 executable leaf、拿 `progress-report / checkpoint-report / status-update` 等觀測事件冒充 blocker、或 durable proof 與 supplied proof identity drift。
+
+BLOCKED proof 必須**持久化在 owning checkpoint**；外加參數只作同一 canonical proof 的 compatibility/readback boundary，不能建立第二個 proof source。proof freshness 過期後必須重新 fresh-read external durable state 並更新 checkpoint，禁止 replay 舊 blocker evidence。
+
+若 hard gate RED，且仍存在可自主執行 path，executor 必須在**同一 turn 立即繼續 next legal action**；不能先做 user-visible progress report 然後 return。Primary behavior authority：`tools/continuity_controller.py` + `tests/process/test_issue787_turn_exit_blocker_authority.py` + `tests/process/test_issue644_trusted_turn_exit_gate.py`。
 
 ## MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
 
