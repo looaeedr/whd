@@ -11,11 +11,11 @@
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
   "head_sha": "6b5c5f368633e38bc66a3077228e25f81871c4fe",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T09:01:26Z",
+  "last_update": "2026-09-27T09:04:19Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Obtain trusted Remote Finalization proof bound to the exact #828 ISSUE_CLOSE_PENDING checkpoint; if GREEN, close/read back Issue #828, advance RELEASE_HANDOFF_PENDING, then atomically persist CLOSED+RELEASED.",
+  "next_action": "Obtain one fresh final coordination write Guard, then atomically persist #828 checkpoint CLOSED + claim RELEASED; fresh-read terminal state.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -41,7 +41,10 @@
     "Trusted repair transport was exercised successfully for #702 in run 36306868118, preserving sealed H4 and old drift branch.",
     "Mirror helper #832 terminal proof: Issue closed/completed, claim 0d0a456eb4c81e14a751da6dd2e904371a18ad08 RELEASED, checkpoint 0fe833f2308f93ba1649ab56cf9a19fbe6227ac2 TERMINAL_SUCCESS/CLOSED.",
     "Terminal transition authorized by Remote Guard 36307943739 GREEN.",
-    "Closure lifecycle write Guard 36308030198 GREEN for exact #828 terminal pair."
+    "Closure lifecycle write Guard 36308030198 GREEN for exact #828 terminal pair.",
+    "Trusted Remote Finalization run 36308117269 GREEN / FINALIZATION_PROOF_VALID; artifact 10927368409.",
+    "Issue #828 fresh-read closed/completed at 2026-09-27T09:03:42Z.",
+    "Post-close coordination Guard 36308185056 GREEN."
   ],
   "remote_qa": {
     "run_id": 36304109574,
@@ -68,11 +71,11 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36308030198,
-    "request_comment_id": 5854452646,
+    "run_id": 36308185056,
+    "request_comment_id": 5854473355,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #828 FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
+    "mutation": "advance #828 ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING"
   }
 }
