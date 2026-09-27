@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T08:37:00Z",
   "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:09:30Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T09:23:25Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -24,18 +24,18 @@
     "pytest": "9 passed / 0 failed in 0.18s",
     "marker": "ISSUE835_FOCUSED_GREEN"
   },
-  "next_action": "Perform prompt-only host mutation on exact A 00/20/40 + B15/B45 automation ids to add SAME_LANE_NONTERMINAL_WORK_V1; then fresh-read all five and reconcile EFFECT_OBSERVED only if schedule/timing/lane/enabled invariants remain unchanged.",
+  "next_action": "Advance #835 terminal closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof, close/read back Issue #835, then atomically RELEASED+CLOSED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-835.json",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36308456564,
-    "request_comment_id": 5854513907,
+    "run_id": 36309191971,
+    "request_comment_id": 5854612203,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "persist live scheduler prompt-only PREPARED identity"
+    "mutation": "consume helper #837 + live prompt readback and enter #835 terminal finalization"
   },
   "evidence": [
     "authorization_source=user explicit 補",
@@ -51,17 +51,21 @@
     "Helper #837 created with stable helper_key issue835-main-governance-mirror; parent pointer write authorized by Guard 36307628279 GREEN.",
     "PR #838 merged to cleanup as 500e6f806de40a74ee8cd5bb4a6372245c5df53c; PR #839 merged to main as 85aef9c41be3629410c4345ed3d8aa66aa21f214.",
     "Production readback: 排程模擬 blob 9ee972d6ab0b55f0154b3288b32f7730a7eb9db3 and 寫排程 blob d4e82b82b1d7f7b0efdfe8c264074b8ce05a6e6a are identical on main and cleanup.",
-    "Scheduler host pre-intent pair write authorized by Guard 36308456564 GREEN."
+    "Scheduler host pre-intent pair write authorized by Guard 36308456564 GREEN.",
+    "Live scheduler prompt operation readback comment 5854541313 classified EFFECT_OBSERVED; all five entrypoints marker PASS and cadence/timing/lane/enabled invariants preserved.",
+    "Helper #837 closed/completed + final claim RELEASED blob 7648a92feff14b97833f69155f29608e53f95bdf; parent reservation marked TERMINAL.",
+    "Closure-entry Guard run 36309191971 GREEN; all #835 acceptance requirements complete."
   ],
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue835-main-governance-mirror",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.issue835.20260927a",
       "reservation_token": "issue835-main-governance-mirror-20260927a",
       "reserved_at": "2026-09-27T08:54:43Z",
-      "child_issue": 837
+      "child_issue": 837,
+      "child_claim_blob_sha": "7648a92feff14b97833f69155f29608e53f95bdf"
     }
   ],
   "scheduler_live_deployment": {
@@ -139,6 +143,8 @@
       "entrypoint unchanged",
       "enabled state unchanged"
     ],
-    "effect_state": "NOT_APPLIED"
+    "effect_state": "EFFECT_OBSERVED",
+    "readback_comment_id": 5854541313,
+    "observed_at": "2026-09-27T09:13:04Z"
   }
 }

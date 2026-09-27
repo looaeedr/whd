@@ -3,8 +3,8 @@
   "issue": "835",
   "branch": "governance/issue835-scheduler-same-lane-no-work-20260927",
   "head_sha": "95dd912c52a5c82f454a5088c7f1469fc78f7770",
-  "state": "RUNNING",
-  "next_action": "Perform prompt-only host mutation on exact A 00/20/40 + B15/B45 automation ids to add SAME_LANE_NONTERMINAL_WORK_V1; then fresh-read all five and reconcile EFFECT_OBSERVED only if schedule/timing/lane/enabled invariants remain unchanged.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36307215802,
   "job_id": 108586096868,
   "log_cursor": null,
@@ -19,13 +19,17 @@
     "Tested→closing drift is workflow-deletion-only.",
     "Closing-head pair reconciliation Guard 36307492191 GREEN.",
     "Bidirectional governance mirror merged/read back: cleanup #838=500e6f80..., main #839=85aef9c4....",
-    "Host scheduler prompt-only PREPARED identity authorized by Guard 36308456564 GREEN."
+    "Host scheduler prompt-only PREPARED identity authorized by Guard 36308456564 GREEN.",
+    "Live scheduler prompt readback comment 5854541313: EFFECT_OBSERVED; 00/20/40/B15/B45 marker PASS; schedule/timing/lane/enabled unchanged.",
+    "Helper #837 closed/completed + RELEASED/CLOSED; final child claim blob 7648a92feff14b97833f69155f29608e53f95bdf.",
+    "Closure-entry Guard run 36309191971 GREEN; #835 acceptance terminal reached."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain and verify bound Remote Finalization proof, then close/read back Issue #835.",
+  "operation": null
 }
