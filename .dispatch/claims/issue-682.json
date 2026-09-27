@@ -6,17 +6,17 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.schedulerB.682.20260927.wi5",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue682-main-mirror-20260927",
+  "work_branch": "work/issue682-unexpected-local-outage-recovery-20260927",
   "claimed_at": "2026-09-27T12:20:00Z",
-  "base_sha": "b427ae38f5a8921c273cc56e8da1b293154534a2",
-  "head_sha": "17fd0e628e2c2c135c6465bc30969cbbca9ab196",
+  "base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
+  "head_sha": "aaec26d75f320f624fd9b42fcc1b2506132e60db",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T14:25:10Z",
-  "production_target": "main",
+  "last_update": "2026-09-27T14:27:10Z",
+  "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d41c257787c1fa298bb4e8a1fb7927432c9cbde1",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "work/issue682-unexpected-local-outage-recovery-20260927"
+    "governance/issue682-main-mirror-20260927"
   ],
   "remote_qa": {
     "run_id": 36322127710,
@@ -26,7 +26,7 @@
     "conclusion": "success",
     "pytest": "45 passed in 0.64s"
   },
-  "next_action": "Merge PR #858 to main under exact pr-write Guard with expected head 17fd0e628e2c2c135c6465bc30969cbbca9ab196. Fresh-read main merge SHA. Then hand primary authority back to cleanup using the new main SHA as guard authority, retrigger/recheck #859 Governance Mirror Hard Gate against opposite-production main, and merge #859.",
+  "next_action": "Retrigger PR #859 Governance Mirror Hard Gate after main merged at f65ee095790ff6ec2e52ad7d158cecdc43886715; require fresh GREEN against live opposite-production main. Then obtain a fresh pr-write Guard and merge #859 with expected head aaec26d75f320f624fd9b42fcc1b2506132e60db; fresh-read cleanup merge SHA; then perform terminal audit and trusted finalization/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-682.json",
   "evidence": [
@@ -78,17 +78,19 @@
     "PR #858 Governance Mirror Hard Gate 36325645178 GREEN.",
     "PR #859 Governance Mirror Hard Gate 36325782560 GREEN after reciprocal metadata retrigger.",
     "PR #859 Knowledge Governance Bootstrap 36325486517 GREEN.",
-    "Primary authority handoff-to-main Guard 36325828671 / request 5856693100 / result 5856694596 GREEN."
+    "Primary authority handoff-to-main Guard 36325828671 / request 5856693100 / result 5856694596 GREEN.",
+    "PR #858 merged to main at f65ee095790ff6ec2e52ad7d158cecdc43886715 under pr-write Guard 36325900921.",
+    "Post-main primary handback Guard 36325949559 / request 5856706970 / result 5856708841 GREEN using new main authority f65ee095790ff6ec2e52ad7d158cecdc43886715."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36325828671,
-    "request_comment_id": 5856693100,
-    "result_comment_id": 5856694596,
+    "run_id": 36325949559,
+    "request_comment_id": 5856706970,
+    "result_comment_id": 5856708841,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "handoff #682 primary authority to main mirror for merge"
+    "mutation": "handoff #682 primary authority back to cleanup after #858 merge"
   }
 }
