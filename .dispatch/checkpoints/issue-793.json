@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "793",
   "branch": "governance/issue793-takeover-parser-regression-20260927",
-  "head_sha": "403fee62c6124746e13efcce4434c7205cdc1719",
+  "head_sha": "4c9be50f31a7ea4e91ed232f78050ec51deed17f",
   "state": "RUNNING",
-  "next_action": "Delete temporary QA workflow under an exact commit Guard, reconcile closing head, then fresh-compare against current main; if net parser+regression delta is clean, obtain pr-write Guard and merge non-force to main.",
+  "next_action": "Fresh-compare closing head 4c9be50f31a7ea4e91ed232f78050ec51deed17f against current trusted main. If #796 already deployed the exact parser + regression capability and merging #793 would reintroduce stale unrelated workflow state, record superseded production integration evidence and enter terminal closure without merging the obsolete branch; otherwise obtain a fresh pr-write Guard for the exact clean delta.",
   "run_id": 36286933222,
   "job_id": 108529335000,
   "log_cursor": null,
@@ -23,7 +23,9 @@
     "QA run 36286784431: strengthened #722 contract passed; only unrelated issue540 string assertion failed.",
     "Pair reconciliation Guard 36286797481 GREEN.",
     "Exact QA run 36286933222 on H4: 3 passed / 0 failed; marker ISSUE793_TAKEOVER_PARSER_GREEN=PASS.",
-    "Pair reconciliation Guard 36286951620 GREEN."
+    "Pair reconciliation Guard 36286951620 GREEN.",
+    "Closing head 4c9be50f31a7ea4e91ed232f78050ec51deed17f removes only temporary #793 QA workflow.",
+    "Pair reconciliation Guard 36289935791 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

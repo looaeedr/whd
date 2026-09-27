@@ -9,9 +9,9 @@
   "work_branch": "governance/issue793-takeover-parser-regression-20260927",
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "head_sha": "403fee62c6124746e13efcce4434c7205cdc1719",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T02:52:17Z",
+  "head_sha": "4c9be50f31a7ea4e91ed232f78050ec51deed17f",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-27T02:56:09Z",
   "production_target": "main",
   "slot_id": "worker.slot.1",
   "delegated_branches": [],
@@ -25,7 +25,7 @@
     "failed": 0,
     "marker": "ISSUE793_TAKEOVER_PARSER_GREEN=PASS"
   },
-  "next_action": "Delete temporary QA workflow under an exact commit Guard, reconcile closing head, then fresh-compare against current main; if net parser+regression delta is clean, obtain pr-write Guard and merge non-force to main.",
+  "next_action": "Fresh-compare closing head 4c9be50f31a7ea4e91ed232f78050ec51deed17f against current trusted main. If #796 already deployed the exact parser + regression capability and merging #793 would reintroduce stale unrelated workflow state, record superseded production integration evidence and enter terminal closure without merging the obsolete branch; otherwise obtain a fresh pr-write Guard for the exact clean delta.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -49,17 +49,20 @@
     "Bootstrap helper #796 terminal proof complete; parent reservation bootstrap-trusted-takeover-parser terminalized before takeover.",
     "User-directed takeover authority comment 5851777570 matched issue/requesting_worker/previous_worker/executor_source exactly.",
     "Remote Guard run 36289755648 GREEN; stale evaluator classified prior owner EXECUTOR_STUCK/actionable=true at stale_seconds=3436.",
-    "Takeover resumes existing #793 checkpoint/head/next_action without replaying implementation or remote QA."
+    "Takeover resumes existing #793 checkpoint/head/next_action without replaying implementation or remote QA.",
+    "Temporary QA cleanup commit Guard run 36289870150 GREEN.",
+    "Closing commit 4c9be50f31a7ea4e91ed232f78050ec51deed17f removes only .github/workflows/qa-issue793-takeover-parser-regression.yml (37 deletions).",
+    "Post-cleanup pair reconciliation Guard run 36289935791 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
-    "action": "claim-takeover",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36289755648,
-    "request_comment_id": 5852094969,
+    "run_id": 36289935791,
+    "request_comment_id": 5852115673,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "CAS #793 owner chatgpt.issue793.20260927a -> chatgpt.work1.260927.1"
+    "mutation": "reconcile #793 H4 -> closing head 4c9be50f"
   },
   "delegated_work": [
     {
