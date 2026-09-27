@@ -11,7 +11,7 @@
   "base_sha": "5684094f09317d7db52873aba9f82a1b378436b3",
   "head_sha": "f79f3e2fa076090883862c54c9ff89ae24d74b40",
   "phase": "GREEN",
-  "last_update": "2026-09-27T05:54:45Z",
+  "last_update": "2026-09-27T06:07:36.022840Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -48,17 +48,23 @@
     "Post-commit pair reconciliation Guard 36298131703 GREEN.",
     "Latest cleanup governance delta .agents/skills/engineering/排程模擬/SKILL.md mirrored exactly in f79f3e2f.",
     "PR #820 Governance Mirror Hard Gate run 36298511979 GREEN on f79f3e2f.",
-    "Post-commit pair reconciliation Guard 36298545435 GREEN."
+    "Post-commit pair reconciliation Guard 36298545435 GREEN.",
+    "PR #820 merged governance-only mirror to main as aadf248f9b96e1e0a465817f870966db9cf97114.",
+    "Paired PR #819 merged source governance to cleanup/2d-3d-sync as 98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf.",
+    "Production push Governance Mirror Hard Gate: cleanup run 36298990616 GREEN; main run 36298994158 GREEN.",
+    "Production governed snapshot: BIDIRECTIONAL_MIRROR, 48 artifacts, 0 mismatches.",
+    "Terminal acceptance pair-write Guard 36299175389 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36298545435,
-    "request_comment_id": 5853155296,
+    "run_id": 36299175389,
+    "request_comment_id": 5853236930,
+    "result_comment_id": 5853237949,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #818 to latest scheduler-skill mirror f79f3e2f"
+    "mutation": "enter #818 TERMINAL_SUCCESS / FINALIZATION_PENDING"
   },
   "delegated_work": []
 }

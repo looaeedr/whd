@@ -3,8 +3,8 @@
   "issue": "818",
   "branch": "governance/issue818-main-governance-mirror-20260927",
   "head_sha": "f79f3e2fa076090883862c54c9ff89ae24d74b40",
-  "state": "RUNNING",
-  "next_action": "obtain fresh pr-write authority for PR #820 latest head, pair with #819 latest head, then merge and prove production governance parity",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,13 +22,17 @@
     "Main mirror head b6fe1385: 15 passed; PR #820 hard gate GREEN.",
     "Remote Guard 36298131703 GREEN authorizes atomic pair reconciliation.",
     "Latest governance mirror head f79f3e2f; PR #820 hard gate GREEN.",
-    "Remote Guard 36298545435 GREEN authorizes atomic pair reconciliation."
+    "Remote Guard 36298545435 GREEN authorizes atomic pair reconciliation.",
+    "PR #820 merged to main production at aadf248f; paired cleanup source PR #819 merged at 98a11b89.",
+    "Both production push governance hard gates GREEN: 36298990616 / 36298994158.",
+    "Production governance parity readback: 48 governed artifacts, 0 mismatches.",
+    "Remote Guard 36299175389 GREEN authorizes #818 terminal acceptance pair transition."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance #818 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh Guard, run trusted bound finalization proof on the exact owning checkpoint, read back already-closed Issue #818 as completed, then persist CLOSED + RELEASED."
 }
