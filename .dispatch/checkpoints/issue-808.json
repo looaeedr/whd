@@ -29,13 +29,14 @@
     "Closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under checkpoint-only Guard 36294462695; checkpoint is frozen until bound proof + Issue close/readback.",
     "Remote Finalization run 36294577629 SUCCESS: fixed identity, authorize-finalization, verify-finalization-proof, machine receipt, and proof artifact all passed for fingerprint 16cc8ba8ef824b6ff59be2cbab956cd5faf1269241c876ca5a8c8faf08ee2cdf.",
     "Issue #808 fresh-read closed/completed at 2026-09-27T04:33:03Z.",
-    "Closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard 36294661568."
+    "Closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under Guard 36294661568.",
+    "Final atomic checkpoint CLOSED + claim RELEASED authorized by Guard 36294720731."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff for standalone #808 UPDATE_ONLY"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
   "head_sha": "72a34c9d8ad8d72a537687efb514b56fc4753342",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T04:29:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T04:35:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "marker": "SCHEDULER_REMOTE_ONLY_EXECUTION_V1_GREEN"
   },
-  "next_action": "Advance #808 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint bound remote finalization proof, close/read back Issue #808, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -49,16 +49,19 @@
     "Drift audit: frozen base -> current cleanup/2d-3d-sync changes only #769 continuity/turn-exit artifacts; overlap with #808 final artifact set = 0.",
     "Closing-head readback: SCHEDULER_REMOTE_ONLY_EXECUTION_V1, execution_location=GITHUB|SCHEDULER|REMOTE_ACTION, LOCAL provenance-only, no local/Remote Desktop/local shell, no LOCAL fallback, fail-closed remote capability all present; old local/Remote Guard phrase absent.",
     "PR #810 merged non-force to cleanup/2d-3d-sync at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c under pr-write Guard 36294282155.",
-    "Fresh production readback at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c: all #808 remote-only Skill/test/pitfall invariants present; Issue remains open for canonical finalization."
+    "Fresh production readback at bcf18f5126ac9984a3f8ee85c523bfee5aaef97c: all #808 remote-only Skill/test/pitfall invariants present; Issue remains open for canonical finalization.",
+    "Remote Finalization run 36294577629 SUCCESS with bound checkpoint fingerprint 16cc8ba8ef824b6ff59be2cbab956cd5faf1269241c876ca5a8c8faf08ee2cdf.",
+    "Issue #808 read back closed/completed.",
+    "Final atomic CLOSED+RELEASED pair authorized by Remote Guard 36294720731."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36294394859,
-    "request_comment_id": 5852619472,
+    "run_id": 36294720731,
+    "request_comment_id": 5852655820,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #808 TERMINAL_SUCCESS / FINALIZATION_PENDING"
+    "mutation": "atomic #808 checkpoint CLOSED + claim RELEASED"
   }
 }
