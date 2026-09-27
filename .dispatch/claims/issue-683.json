@@ -9,9 +9,9 @@
   "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "cb4be343f59161ba8434f626947f3a8ba2d109a3",
+  "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T10:13:00Z",
+  "last_update": "2026-09-27T10:16:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
@@ -25,7 +25,7 @@
     "pytest": "8 passed / 0 failed in 0.38s",
     "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Fresh-read cleanup/2d-3d-sync HEAD and compare it with closing head cb4be343f59161ba8434f626947f3a8ba2d109a3. If target advanced, perform guarded non-force two-parent sync preserving #683 delta; then reconcile and open/merge the exact integration PR.",
+  "next_action": "Open the exact non-draft integration PR from work/issue683-ha-transport-projection-20260927@6156cf8c222e1a87d2fe477288dc12282711ddb6 to cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then merge non-force with expected head locked and read back production integration.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -67,17 +67,21 @@
     "One-shot QA workflow deletion commit cb4be343f59161ba8434f626947f3a8ba2d109a3 consumed cleanup Guard 36311644606.",
     "Duplicate cleanup Guard request 5854924689 was rejected by run 36311659794 because 36311644606 was pending; no duplicate GREEN.",
     "Tested f391641a... -> closing cb4be343... drift is exactly removal of .github/workflows/qa-issue683-ha-transport-projection.yml.",
-    "Closing-head reconciliation Guard 36311774490 GREEN."
+    "Closing-head reconciliation Guard 36311774490 GREEN.",
+    "Two-parent sync Guard 36311868602 GREEN against target authority cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
+    "Sync commit 6156cf8c222e1a87d2fe477288dc12282711ddb6 parents=[cb4be343f59161ba8434f626947f3a8ba2d109a3,500e6f806de40a74ee8cd5bb4a6372245c5df53c].",
+    "Relative to target, sync head retains only #683 files: tools/whd_poweroff_ha_bridge.py; tests/process/test_issue683_ha_transport_projection.py; canonical Authority Map.",
+    "Sync-head reconciliation Guard 36311948057 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36311774490,
-    "request_comment_id": 5854940247,
-    "result_comment_id": 5854941613,
+    "run_id": 36311948057,
+    "request_comment_id": 5854959619,
+    "result_comment_id": 5854961030,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 closing head after one-shot workflow deletion"
+    "mutation": "reconcile #683 durable pair to two-parent sync head before integration PR"
   }
 }

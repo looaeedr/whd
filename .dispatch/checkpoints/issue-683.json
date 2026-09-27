@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "683",
   "branch": "work/issue683-ha-transport-projection-20260927",
-  "head_sha": "cb4be343f59161ba8434f626947f3a8ba2d109a3",
+  "head_sha": "6156cf8c222e1a87d2fe477288dc12282711ddb6",
   "state": "RUNNING",
-  "next_action": "Fresh-read cleanup/2d-3d-sync HEAD and compare it with closing head cb4be343f59161ba8434f626947f3a8ba2d109a3. If target advanced, perform guarded non-force two-parent sync preserving #683 delta; then reconcile and open/merge the exact integration PR.",
+  "next_action": "Open the exact non-draft integration PR from work/issue683-ha-transport-projection-20260927@6156cf8c222e1a87d2fe477288dc12282711ddb6 to cleanup/2d-3d-sync@500e6f806de40a74ee8cd5bb4a6372245c5df53c, then merge non-force with expected head locked and read back production integration.",
   "run_id": 36311528696,
   "job_id": 108598281168,
   "log_cursor": null,
@@ -34,7 +34,10 @@
     "Exact QA 36311528696 / job 108598281168 GREEN: 8 passed / 0 failed in 0.38s.",
     "GREEN reconciliation Guard 36311571037.",
     "Closing head cb4be343f59161ba8434f626947f3a8ba2d109a3 removes only the one-shot QA workflow from tested f391641a....",
-    "Closing-head reconciliation Guard 36311774490 GREEN."
+    "Closing-head reconciliation Guard 36311774490 GREEN.",
+    "Two-parent sync head 6156cf8c222e1a87d2fe477288dc12282711ddb6 under Guard 36311868602; parents closing cb4be343... + target 500e6f80....",
+    "Relative-to-target diff is exactly the three retained #683 artifacts.",
+    "Sync-head reconciliation Guard 36311948057 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
