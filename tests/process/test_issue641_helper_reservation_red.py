@@ -6,16 +6,6 @@ import tools.stale_claim_takeover as stale
 UTC = timezone.utc
 
 
-def _split():
-    return {
-        "schema": "WHD_HELPER_SPLIT_EXCEPTION_V1",
-        "kind": "DISTINCT_AUTHORITY_BOUNDARY",
-        "current_ticket_can_own": False,
-        "evidence_ref": "issue:#640:finalization-proof-authority",
-        "scope_key": "issue640.finalization-proof-authority",
-    }
-
-
 def _parent_claim():
     return {
         "issue": 640,
@@ -54,8 +44,6 @@ def test_red_helper_02_same_snapshot_cannot_create_two_helpers_after_reservation
         reserved_by="scheduler.example.a",
         reservation_token="winner-token",
         now=now,
-        purpose_class="DISTINCT_AUTHORITY_BOUNDARY",
-        split_exception=_split(),
     )
     assert winner.outcome == "RESERVED"
 
@@ -67,8 +55,6 @@ def test_red_helper_02_same_snapshot_cannot_create_two_helpers_after_reservation
         reserved_by="scheduler.example.b",
         reservation_token="loser-token",
         now=now,
-        purpose_class="DISTINCT_AUTHORITY_BOUNDARY",
-        split_exception=_split(),
     )
     assert loser.outcome == "ACTIVE_HELPER_ALREADY_RESERVED"
     assert loser.reservation["reservation_token"] == "winner-token"

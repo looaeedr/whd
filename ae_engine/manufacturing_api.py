@@ -20,11 +20,6 @@ import threading
 from typing import Literal, Mapping
 
 from . import ae
-from .dxf_serialization import save_scene_dxf
-from . import manufacturing_verification as _manufacturing_verification
-from . import manufacturing_export as _manufacturing_export
-from . import manufacturing_requests as _manufacturing_requests
-from . import manufacturing_render as _manufacturing_render
 from .contracts import (
     FinalMaterialCollisionPart,
     BasePlatePartSpec,
@@ -771,7 +766,32 @@ def _legacy_endcap_holes(spec: EndCapPartSpec):
     return holes
 
 
-ResolvedEndCapRequest = _manufacturing_requests.ResolvedEndCapRequest
+@dataclass(frozen=True)
+class ResolvedEndCapRequest:
+    """AE-owned normalized EndCap manufacturing request."""
+
+    width: float
+    depth: float
+    thickness: float
+    frame_width: float
+    height: float | None
+    model_name: str | None
+    is_tail: bool
+    fold_left: float
+    fold_right: float
+    nominal_fold_left: float
+    nominal_fold_right: float
+    box_body_formed_fw_left: float | None
+    box_body_formed_fw_right: float | None
+    fold_top: float
+    fold_bottom: float
+    x_topology: Literal["folded", "flat"]
+    fold_profile_x: tuple[FoldProfileSegment, ...]
+    fold_profile_y: tuple[FoldProfileSegment, ...]
+    corner_policy: FourCornerTypePolicy | None
+    assembly: EndCapAssemblySemantics | None
+    depth_comp_t: float
+    holes: tuple[FeatureLike, ...]
 
 
 def _endcap_scalar(value: float | None, fallback: float) -> float:
@@ -779,15 +799,91 @@ def _endcap_scalar(value: float | None, fallback: float) -> float:
 
 
 def resolve_endcap_request(spec: EndCapPartSpec) -> ResolvedEndCapRequest:
-    """Resolve EndCap request precedence through the bounded request owner."""
-    return _manufacturing_requests.resolve_endcap_request(
-        spec,
-        endcap_scalar=_endcap_scalar,
-        default_fold_left=ae.yl1_def,
-        default_fold_right=ae.yr1_def,
-        default_fold_top=ae.ytop1_def,
-        default_fold_bottom=ae.ybottom1_def,
-        resolve_assembly_semantics=resolve_endcap_policy_assembly_semantics,
+    """Resolve Fold Profile precedence at the AE boundary exactly once."""
+    scalar_left = _endcap_scalar(spec.fold_left, ae.yl1_def)
+    scalar_right = _endcap_scalar(spec.fold_right, ae.yr1_def)
+    left = scalar_left
+    right = scalar_right
+    top = _endcap_scalar(spec.fold_top, ae.ytop1_def)
+    bottom = _endcap_scalar(spec.fold_bottom, ae.ybottom1_def)
+
+    x_rows = tuple(spec.fold_profile_x or ())
+    flat_x = any(row.phase6_key == "endcap_w_flat" for row in x_rows)
+    core_index = next(
+        (index for index, row in enumerate(x_rows) if row.core == "W-2T"),
+        None,
+    )
+    if flat_x:
+        left = 0.0
+        right = 0.0
+    elif core_index is not None:
+        left = sum(float(row.length) for row in x_rows[:core_index])
+        right = sum(float(row.length) for row in x_rows[core_index + 1:])
+
+    y_rows = tuple(spec.fold_profile_y or ())
+    canonical_fw = next((float(row.length) for row in y_rows if row.phase6_key == "fw"), None)
+    if y_rows:
+        top = sum(
+            float(row.length)
+            for row in y_rows
+            if row.phase6_key not in {"fw", "endcap_d_core", "ybottom1"}
+        )
+        bottom_rows = [row for row in y_rows if row.phase6_key == "ybottom1"]
+        if bottom_rows:
+            bottom = sum(float(row.length) for row in bottom_rows)
+
+    assembly = None
+    corner_policy = spec.corner_policy
+    if corner_policy is not None and canonical_fw is not None:
+        # Fold Profile rows are already in manufacturing/material dimension space.
+        # GUI payloads may still carry operator/formed FW (e.g. Receiving 29),
+        # but CornerType CUTTING must use the same material FW as the canonical
+        # EndCap profile, otherwise raw relief and Certified Registry disagree.
+        corner_policy = replace(corner_policy, fw=float(canonical_fw))
+    if corner_policy is not None:
+        assembly = resolve_endcap_policy_assembly_semantics(corner_policy)
+        if assembly.x_topology == "flat":
+            left = 0.0
+            right = 0.0
+            # CornerType is the mechanical source of truth for OVERLAY: stale
+            # folded X editor rows must not re-introduce fictitious side bends.
+            x_rows = ()
+        elif flat_x:
+            # Conversely, a stale OVERLAY flat profile must not remove the side
+            # folds required by INSERT / INSERT_OVERLAY assembly semantics.
+            left = scalar_left
+            right = scalar_right
+            x_rows = ()
+
+    x_topology: Literal["folded", "flat"] = (
+        assembly.x_topology
+        if assembly is not None
+        else ("flat" if flat_x else "folded")
+    )
+
+    return ResolvedEndCapRequest(
+        width=float(spec.width),
+        depth=float(spec.depth),
+        thickness=float(spec.thickness),
+        frame_width=float(spec.frame_width if canonical_fw is None else canonical_fw),
+        height=None if spec.height is None else float(spec.height),
+        model_name=spec.model_name,
+        is_tail=bool(spec.is_tail),
+        fold_left=left,
+        fold_right=right,
+        nominal_fold_left=scalar_left,
+        nominal_fold_right=scalar_right,
+        box_body_formed_fw_left=(None if spec.box_body_formed_fw_left is None else float(spec.box_body_formed_fw_left)),
+        box_body_formed_fw_right=(None if spec.box_body_formed_fw_right is None else float(spec.box_body_formed_fw_right)),
+        fold_top=top,
+        fold_bottom=bottom,
+        x_topology=x_topology,
+        fold_profile_x=x_rows,
+        fold_profile_y=y_rows,
+        corner_policy=corner_policy,
+        assembly=assembly,
+        depth_comp_t=float(spec.depth_comp_t),
+        holes=tuple(spec.holes or ()),
     )
 
 
@@ -1949,25 +2045,97 @@ def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> Unfold
 def build_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None
 ) -> PartRenderData:
-    """Return final manufacturing material + scene through the bounded render owner."""
-    return _manufacturing_render.build_part_render_data(
-        spec,
-        context,
-        render_data_type=PartRenderData,
-        build_box_body_result_from_fold_profile=build_box_body_result_from_fold_profile,
-        build_part_scene=build_part_scene,
-        box_body_face_contexts_from_strip=box_body_face_contexts_from_strip,
-        material_polygon_from_final_scene=material_polygon_from_final_scene,
-        fold_guides_from_final_scene=fold_guides_from_final_scene,
-        unfolded_topology_for_spec=_unfolded_topology_for_spec,
-        endcap_scalar=_endcap_scalar,
-        default_fold_left=ae.yl1_def,
-        default_fold_right=ae.yr1_def,
-        replace_receiving_bottom_relief_from_registry=_replace_receiving_bottom_relief_from_registry,
-        resolve_endcap_request=resolve_endcap_request,
-        scene_with_authoritative_fold_profiles=_scene_with_authoritative_fold_profiles,
-        recursive_build_part_render_data=build_part_render_data,
+    """Return final manufacturing material + scene for pure renderers."""
+    box_body_result = None
+    box_body_contexts = None
+    if isinstance(spec, BoxBodyPartSpec):
+        if not tuple(spec.fold_profile or ()):
+            raise ValueError("canonical Box Body Fold Profile is required for manufacturing")
+        box_body_result = build_box_body_result_from_fold_profile(
+            spec.fold_profile,
+            h=float(spec.height),
+            t=float(spec.thickness),
+            head_corner_policy=spec.head_corner_policy,
+            tail_corner_policy=spec.tail_corner_policy,
+        )
+        scene = build_part_scene(
+            spec, context, _box_body_structural_result=box_body_result
+        )
+        box_body_contexts = box_body_face_contexts_from_strip(
+            box_body_result.topology,
+            w=float(spec.width), h=float(spec.height),
+            d=float(spec.depth), t=float(spec.thickness),
+            head_corner_policy=spec.head_corner_policy,
+            tail_corner_policy=spec.tail_corner_policy,
+        )
+    else:
+        scene = build_part_scene(spec, context)
+
+    metadata = {}
+    if isinstance(spec, EndCapPartSpec):
+        metadata = {
+            "nominal_fold_left": _endcap_scalar(spec.fold_left, ae.yl1_def),
+            "nominal_fold_right": _endcap_scalar(spec.fold_right, ae.yr1_def),
+        }
+    render_data = PartRenderData(
+        scene=scene,
+        material=material_polygon_from_final_scene(scene),
+        fold_guides=fold_guides_from_final_scene(scene),
+        metadata=metadata,
+        unfolded_topology=_unfolded_topology_for_spec(spec),
+        box_body_face_contexts=box_body_contexts,
     )
+    if isinstance(spec, EndCapPartSpec):
+        render_data = _replace_receiving_bottom_relief_from_registry(render_data, spec)
+    if isinstance(spec, EndCapPartSpec) and tuple(getattr(spec, "resolved_assembly_relief_cuts", ()) or ()):
+        from shapely.geometry import Polygon
+        from .assembly_collision import (
+            _scene_with_replaced_primary_cutting,
+            apply_verified_endcap_relief_material,
+        )
+
+        cut_polygons = []
+        for coords in tuple(spec.resolved_assembly_relief_cuts or ()):
+            if len(coords) < 3:
+                continue
+            polygon = Polygon([(float(x), float(y)) for x, y in coords])
+            if not polygon.is_valid:
+                polygon = polygon.buffer(0)
+            if not polygon.is_empty and float(polygon.area) > 1e-9:
+                cut_polygons.append(polygon)
+        if cut_polygons:
+            solved_material = apply_verified_endcap_relief_material(
+                render_data.material, cut_polygons
+            )
+            if solved_material.is_empty:
+                raise ValueError("verified EndCap assembly relief removed all material")
+            solved_scene = _scene_with_replaced_primary_cutting(render_data.scene, solved_material)
+            resolved = resolve_endcap_request(spec)
+            solved_scene = _scene_with_authoritative_fold_profiles(
+                solved_scene, resolved.fold_profile_x, resolved.fold_profile_y
+            )
+            render_data = PartRenderData(
+                scene=solved_scene,
+                material=material_polygon_from_final_scene(solved_scene),
+                fold_guides=fold_guides_from_final_scene(solved_scene),
+                metadata=dict(getattr(render_data, "metadata", {}) or {}),
+                unfolded_topology=getattr(render_data, "unfolded_topology", None),
+            )
+    request = getattr(spec, "assembly_relief", None)
+    if request is not None and getattr(request, "enabled", True):
+        from .assembly_collision import solve_boxbody_endcap_relief
+
+        if isinstance(spec, EndCapPartSpec):
+            box_render = build_part_render_data(request.box_body, context)
+            solution = solve_boxbody_endcap_relief(
+                box_body_render_data=box_render,
+                endcap_render_data=render_data,
+                clearance=float(request.clearance),
+            )
+            if not solution.verified:
+                raise ValueError("EndCap assembly collision relief failed verification")
+            render_data = solution.solved_render_data
+    return render_data
 
 
 def save_part_render_data_dxf(
@@ -1976,13 +2144,31 @@ def save_part_render_data_dxf(
     *,
     overwrite: bool = False,
 ) -> str:
-    """Serialize an already-built authoritative FinalScene to DXF."""
-    return _manufacturing_export.save_part_render_data_dxf(
-        render_data.scene,
-        output_path,
-        serializer=save_scene_dxf,
-        overwrite=overwrite,
+    """Serialize an already-built authoritative FinalScene to DXF.
+
+    This function deliberately does *not* rebuild PartSpec geometry.  It is the
+    shared sink for 2D/3D/export consumers that already hold PartRenderData.
+    """
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists() and not overwrite:
+        raise FileExistsError(str(destination))
+
+    safe_stem = re.sub(r'[<>:"/\\|?*]', '_', destination.stem)
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{safe_stem}.tmp-",
+        suffix=destination.suffix or ".dxf",
+        dir=str(destination.parent),
     )
+    os.close(fd)
+    temp_path = Path(temp_name)
+    try:
+        ae._save_scene_dxf(str(temp_path), render_data.scene)
+        os.replace(temp_path, destination)
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        raise
+    return str(destination)
 
 def _door_export(spec: DoorPartSpec, filepath: str, context: ManufacturingContext):
     _validate_door_part_indicator_fit(spec, context)
@@ -2098,7 +2284,7 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
     )
     if has_resolved_geometry:
         render_data = build_part_render_data(spec, context)
-        save_scene_dxf(filepath, render_data.scene)
+        ae._save_scene_dxf(filepath, render_data.scene)
         return "final_scene_end_cap_export", baseline, expected
     if baseline is not None:
         _call(
@@ -2130,7 +2316,7 @@ def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: Manufact
     # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
         render_data = build_part_render_data(spec, context)
-        save_scene_dxf(filepath, render_data.scene)
+        ae._save_scene_dxf(filepath, render_data.scene)
         return "final_scene_base_plate_structure_export", None, None
     exporter = ae.export_unknown_base_plate_dxf if spec.corner_policy is not None else ae.export_base_plate_dxf
     kwargs = {"corner_policy": spec.corner_policy} if spec.corner_policy is not None else {}
@@ -2245,23 +2431,56 @@ _BOX_BODY_PHYSICAL_PIECE_ROLES = frozenset({
 
 
 def _safe_dxf_part_stem(part_id: str) -> str:
-    return _manufacturing_export.safe_dxf_part_stem(part_id)
+    """Map one stable part id to a Windows-safe default DXF filename stem."""
+    value = str(part_id or "").strip()
+    if not value:
+        raise ValueError("physical part id is empty")
+    return re.sub(r'[<>:"/\\\\|?*]', "_", value)
 
 
 def _resolved_physical_dxf_stem(part_id: str) -> str:
-    return _manufacturing_export.resolved_physical_dxf_stem(
-        part_id, box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES
-    )
+    """Keep Box Body physical-piece filenames distinct from dynamic part IDs."""
+    value = str(part_id or "").strip()
+    root, sep, role = value.partition(":")
+    if (
+        sep
+        and root == "box_body"
+        and ":" not in role
+        and role in _BOX_BODY_PHYSICAL_PIECE_ROLES
+    ):
+        return f"box_body__{_safe_dxf_part_stem(role)}"
+    return _safe_dxf_part_stem(value)
 
 
 def _resolved_physical_render_parts(resolved_geometry):
-    return _manufacturing_export.resolved_physical_render_parts(resolved_geometry)
+    """Return ordered (stable_part_id, render_data) rows from canonical resolved state."""
+    rows = []
+    for part in tuple(getattr(resolved_geometry, "parts", ()) or ()):
+        key = str(getattr(part, "part_key", "") or "").strip()
+        if not key:
+            raise ValueError("resolved manufacturing part missing part_key")
+        render_data = getattr(part, "render_data", None)
+        if render_data is None:
+            raise ValueError(f"resolved manufacturing part missing render_data: {key}")
+        pieces = tuple(getattr(render_data, "pieces", ()) or ())
+        if pieces:
+            for index, piece in enumerate(pieces, start=1):
+                piece_render = getattr(piece, "render_data", None)
+                if piece_render is None:
+                    raise ValueError(f"resolved piece missing render_data: {key}#{index}")
+                piece_key = str(
+                    getattr(piece, "key", "")
+                    or getattr(piece, "piece_key", "")
+                    or f"piece{index}"
+                ).strip()
+                rows.append((f"{key}:{piece_key}", piece_render))
+        else:
+            rows.append((key, render_data))
+    return tuple(rows)
 
 
 def _resolved_physical_dxf_filename(part_id: str) -> str:
-    return _manufacturing_export.resolved_physical_dxf_filename(
-        part_id, box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES
-    )
+    return f"{_resolved_physical_dxf_stem(part_id)}.dxf"
 
 
 def save_resolved_manufacturing_geometry_dxf(
@@ -2270,18 +2489,34 @@ def save_resolved_manufacturing_geometry_dxf(
     *,
     overwrite: bool = False,
 ) -> dict[str, str]:
-    """Export exact canonical physical parts to stable per-part DXF files."""
-    return _manufacturing_export.save_resolved_manufacturing_geometry_dxf(
-        resolved_geometry,
-        output_dir,
-        save_part_render_data_dxf=save_part_render_data_dxf,
-        box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
-        overwrite=overwrite,
-    )
+    """Export exact canonical physical parts to stable per-part DXF files.
+
+    Stable part IDs remain domain IDs (including ':' separators).  Only the
+    filesystem filename is sanitized for Windows compatibility.
+    """
+    root = Path(output_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    outputs: dict[str, str] = {}
+    for part_id, render_data in _resolved_physical_render_parts(resolved_geometry):
+        path = root / _resolved_physical_dxf_filename(part_id)
+        outputs[part_id] = save_part_render_data_dxf(
+            render_data, path, overwrite=overwrite
+        )
+    return outputs
 
 
 def resolved_manufacturing_nc_capability() -> dict[str, object]:
-    return _manufacturing_export.resolved_manufacturing_nc_capability()
+    """Report the current repository's production NC sink capability explicitly.
+
+    PHASE6 currently has no production NC writer at the canonical FinalScene
+    boundary.  Returning an explicit capability record prevents callers from
+    inventing a second geometry path merely to claim NC support.
+    """
+    return {
+        "available": False,
+        "reason": "production NC sink is not implemented at the ResolvedManufacturingGeometry boundary",
+        "canonical_input": "ResolvedManufacturingGeometry",
+    }
 
 
 def verify_saved_part_render_data_dxf(
@@ -2292,7 +2527,8 @@ def verify_saved_part_render_data_dxf(
     area_tolerance: float = 1e-6,
 ):
     """Public manufacturing boundary for independent saved-DXF acceptance."""
-    return _manufacturing_verification.verify_saved_part_render_data_dxf(
+    from .dxf_acceptance import verify_saved_part_render_data_dxf as _verify
+    return _verify(
         render_data,
         output_path,
         coordinate_tolerance=coordinate_tolerance,
@@ -2308,12 +2544,63 @@ def verify_saved_resolved_manufacturing_geometry_dxf(
     area_tolerance: float = 1e-6,
 ):
     """Reopen and verify every canonical physical-part DXF as one acceptance set."""
-    return _manufacturing_verification.verify_saved_resolved_manufacturing_geometry_dxf(
-        resolved_geometry,
-        output_dir,
-        resolved_physical_render_parts=_resolved_physical_render_parts,
-        resolved_physical_dxf_filename=_resolved_physical_dxf_filename,
-        verify_part_dxf=verify_saved_part_render_data_dxf,
-        coordinate_tolerance=coordinate_tolerance,
-        area_tolerance=area_tolerance,
+    from .dxf_acceptance import (
+        ResolvedDxfAcceptanceIssue,
+        ResolvedDxfAcceptanceResult,
+    )
+
+    root = Path(output_dir)
+    expected_rows = _resolved_physical_render_parts(resolved_geometry)
+    expected_files = {
+        _resolved_physical_dxf_filename(part_id): part_id
+        for part_id, _render_data in expected_rows
+    }
+    actual_files = {path.name for path in root.glob("*.dxf") if path.is_file()}
+    issues = []
+    part_results = {}
+
+    missing = sorted(set(expected_files) - actual_files)
+    extra = sorted(actual_files - set(expected_files))
+    for filename in missing:
+        issues.append(ResolvedDxfAcceptanceIssue(
+            expected_files[filename],
+            "MISSING_PART",
+            f"expected physical-part DXF is missing: {filename}",
+            filename,
+            None,
+        ))
+    for filename in extra:
+        issues.append(ResolvedDxfAcceptanceIssue(
+            filename[:-4] if filename.lower().endswith(".dxf") else filename,
+            "EXTRA_PART",
+            f"stale/extra DXF not present in current resolved physical-part state: {filename}",
+            None,
+            filename,
+        ))
+
+    for part_id, render_data in expected_rows:
+        filename = _resolved_physical_dxf_filename(part_id)
+        path = root / filename
+        if not path.is_file():
+            continue
+        result = verify_saved_part_render_data_dxf(
+            render_data,
+            path,
+            coordinate_tolerance=coordinate_tolerance,
+            area_tolerance=area_tolerance,
+        )
+        part_results[part_id] = result
+        for issue in result.issues:
+            issues.append(ResolvedDxfAcceptanceIssue(
+                part_id,
+                issue.category,
+                issue.detail,
+                issue.expected,
+                issue.actual,
+            ))
+
+    return ResolvedDxfAcceptanceResult(
+        ok=not issues,
+        issues=tuple(issues),
+        part_results=part_results,
     )

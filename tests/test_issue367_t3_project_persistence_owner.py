@@ -88,15 +88,8 @@ def test_issue367_bridge_has_no_project_serialization_or_direct_io_ownership():
         "_phase6_export_workspace_state_if_dirty",
         "_phase6_save_diagnostic_file",
     }
-    # Phase 7 A7 deletion-test acceptance proved these legacy Bridge helpers
-    # have no callers and may be absent; their controller command surfaces
-    # remain authoritative and are verified by the delegate test below.
-    removed_no_caller = {
-        "_phase6_commit_output_draw_stock",
-        "_phase6_export_selected_dxf_from_3d",
-    }
     missing = sorted(T3_BRIDGE_FUNCTIONS - set(funcs))
-    assert set(missing) <= moved_to_controller | removed_no_caller
+    assert set(missing) <= moved_to_controller
 
     violations = []
     for name in sorted(T3_BRIDGE_FUNCTIONS & set(funcs)):

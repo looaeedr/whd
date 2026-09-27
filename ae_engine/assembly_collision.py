@@ -11,9 +11,6 @@ from dataclasses import dataclass, replace
 from enum import Enum
 
 from shapely.geometry.base import BaseGeometry
-from . import collision_backprojection as _collision_backprojection
-from . import divider_relief_solver as _divider_relief_solver
-from . import endcap_world_relief_solver as _endcap_world_relief_solver
 
 
 class AssemblyRole(str, Enum):
@@ -188,10 +185,11 @@ def default_boxbody_endcap_ownership() -> AssemblyOwnershipPolicy:
 
 
 def detect_planar_collision(*, box_body_material, endcap_material) -> CollisionRegion | None:
-    return _collision_backprojection.detect_planar_collision(
-        box_body_material=box_body_material,
-        endcap_material=endcap_material,
-        collision_region_factory=CollisionRegion,
+    overlap = box_body_material.intersection(endcap_material)
+    if overlap.is_empty or float(overlap.area) <= 1e-9:
+        return None
+    return CollisionRegion(
+        region=overlap,
         source_role=AssemblyRole.BOX_BODY,
         target_role=AssemblyRole.ENDCAP,
     )
@@ -204,14 +202,27 @@ def project_collision_to_endcap_relief(
     clearance: float = 0.0,
     min_area: float = 1e-6,
 ) -> ReliefCandidate | None:
-    return _collision_backprojection.project_collision_to_endcap_relief(
-        collision,
-        policy,
-        endcap_role=AssemblyRole.ENDCAP,
-        cut_action=OwnershipAction.CUT,
-        relief_candidate_factory=ReliefCandidate,
-        clearance=clearance,
-        min_area=min_area,
+    if collision is None:
+        return None
+    if collision.target_role is not AssemblyRole.ENDCAP:
+        return None
+    if policy.endcap is not OwnershipAction.CUT:
+        return None
+
+    source_area = float(collision.region.area)
+    if source_area <= min_area:
+        return None
+
+    cut_polygon: BaseGeometry = collision.region
+    if clearance > 0.0:
+        cut_polygon = cut_polygon.buffer(float(clearance))
+    if cut_polygon.is_empty:
+        return None
+
+    return ReliefCandidate(
+        cut_polygon_2d=cut_polygon,
+        clearance=float(clearance),
+        source_collision_area=source_area,
     )
 
 
@@ -658,36 +669,535 @@ def classify_source_fold_true_thickness_interference(
 
 
 
-DividerFrontFoldReliefCandidate = _divider_relief_solver.DividerFrontFoldReliefCandidate
+@dataclass(frozen=True)
+class DividerFrontFoldReliefCandidate:
+    """Collision-derived Divider relief constrained to the pre-core Fold domain."""
+
+    cut_polygon_2d: object
+    core_start: float
+    pre_pair_count: int
+    eligible_segment_count: int
+    cut_depths: tuple[tuple[str, float], ...]
+    physical_footprints_by_source: object | None = None
+    evidence: object | None = None
 
 
 def _divider_front_fold_segments(projection, *, core_start: float, tolerance: float = 1e-6):
-    return _divider_relief_solver.divider_front_fold_segments(
-        projection, core_start=core_start, tolerance=tolerance
+    rows = []
+    for segment in tuple(getattr(projection, "segments_2d", ()) or ()):
+        xs = (float(segment[0][0]), float(segment[1][0]))
+        if min(xs) < float(core_start) - float(tolerance):
+            rows.append(segment)
+    return tuple(rows)
+
+
+def _divider_physical_target_solid_cut(
+    *,
+    source_key,
+    classified,
+    material,
+    sheet_thickness,
+    tolerance=1e-6,
+):
+    """Build Divider CUTTING from real FW contact + true-thickness source collision.
+
+    Coordinate domains are deliberately separated:
+
+    * legal FW face contact on the resolved Divider supplies the primary relief
+      depth in FINAL_CUTTING space;
+    * through-thickness source Fold footprints supply only their own physical
+      U span and stage length;
+    * a secondary stage attaches to the resolved primary CUTTING boundary.
+
+    Material-space FW coordinates and target-UV absolute endpoints are evidence
+    only.  They are never reused as final notch anchors.  Validation constants,
+    EndCap dimensions and expected values do not participate.
+    """
+    from shapely.affinity import translate
+    from shapely.geometry import box as shapely_box
+    from shapely.ops import unary_union
+
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    half_t = max(0.0, float(sheet_thickness)) / 2.0
+    tol = float(tolerance)
+
+    def snap_u_to_material_edge(value):
+        value = float(value)
+        if abs(value - minx) <= tol:
+            return float(minx)
+        if abs(value - maxx) <= tol:
+            return float(maxx)
+        return value
+
+    rows = dict(classified.get("bands") or {})
+
+    # The physical FW mating band is the legal, single-skin contact whose
+    # semantic identity comes from the authoritative source Fold profile.
+    fw_contacts = []
+    for band_name, raw in rows.items():
+        row = dict(raw or {})
+        if "fw" not in str(band_name).lower():
+            continue
+        if bool(row.get("through_thickness")):
+            continue
+        bounds = row.get("divider_uv_bounds")
+        if bounds is None:
+            continue
+        x0, x1, y0, y1 = map(float, bounds)
+        if x1 - x0 <= float(tolerance):
+            continue
+        low_depth = max(0.0, y1 - miny)
+        high_depth = max(0.0, maxy - y0)
+        edge = "MIN_Y" if low_depth <= high_depth else "MAX_Y"
+        depth = low_depth if edge == "MIN_Y" else high_depth
+        if depth > float(tolerance):
+            fw_contacts.append((str(band_name), edge, float(depth), (x0, y0, x1, y1)))
+
+    if len(fw_contacts) != 1:
+        return None, None, {
+            "_invalid": {
+                "reason": "Divider physical relief requires exactly one resolved FW contact",
+                "fw_contacts": tuple(fw_contacts),
+            }
+        }
+
+    fw_band_name, edge, primary_depth, fw_bounds = fw_contacts[0]
+
+    penetrating = []
+    required_solid = []
+    stages = {}
+    for band_name in tuple(classified.get("penetrating_bands") or ()):
+        row = dict(rows.get(band_name) or {})
+        physical = row.get("physical_footprint_2d")
+        if physical is None or getattr(physical, "is_empty", True):
+            continue
+        physical = physical.intersection(material)
+        if getattr(physical, "is_empty", True) or float(physical.area) <= float(tolerance) ** 2:
+            continue
+
+        raw_x0, y0, raw_x1, y1 = map(float, physical.bounds)
+        # Backprojection may land a nominal exterior endpoint a few ulps inside
+        # Final Material.  If an endpoint is already within the solver geometry
+        # tolerance of the authoritative material U edge, canonicalize it to
+        # that edge so polygon boolean operations cannot retain a near-zero-width
+        # exterior sliver.  This is topology normalization, not clearance or a
+        # validation-derived manufacturing compensation.
+        x0 = snap_u_to_material_edge(raw_x0)
+        x1 = snap_u_to_material_edge(raw_x1)
+        u_span = max(0.0, x1 - x0)
+        v_span = max(0.0, y1 - y0)
+        if u_span <= float(tolerance) or v_span <= float(tolerance):
+            continue
+
+        # Preserve the actual backprojected source-solid collision footprint as
+        # replay evidence. Target sheet thickness is normal to the Divider
+        # surface; it must not be converted into an in-plane UV translation.
+        required_solid.append(physical)
+
+        penetrating.append({
+            "band_name": str(band_name),
+            "x0": x0, "x1": x1,
+            "u_span": u_span,
+            "v_span": v_span,
+            "physical": physical,
+            "row": row,
+        })
+
+    if not penetrating:
+        return None, None, stages
+
+    # The primary collision is the penetrating stage with the greatest physical
+    # U occupation.  This is geometry-derived and naturally selects zl2/zr2 in
+    # the current Receiving fold chain without naming those fields here.
+    primary = max(
+        penetrating,
+        key=lambda item: (
+            float(item["u_span"]),
+            -abs(float(item["x0"]) - minx),
+        ),
     )
 
+    if edge == "MIN_Y":
+        primary_cut = shapely_box(
+            float(primary["x0"]), miny,
+            float(primary["x1"]), miny + primary_depth,
+        )
+        primary_boundary = miny + primary_depth
+    else:
+        primary_cut = shapely_box(
+            float(primary["x0"]), maxy - primary_depth,
+            float(primary["x1"]), maxy,
+        )
+        primary_boundary = maxy - primary_depth
 
-def _divider_physical_target_solid_cut(**kwargs):
-    return _divider_relief_solver._divider_physical_target_solid_cut(**kwargs)
+    cuts = [primary_cut.intersection(material)]
+    stages[str(primary["band_name"])] = {
+        "role": "PHYSICAL_FW_CONTACT_PRIMARY_RELIEF",
+        "edge": edge,
+        "source_skin_sides": tuple(primary["row"].get("skin_sides") or ()),
+        "source_solid_footprint_bounds": tuple(map(float, primary["physical"].bounds)),
+        "fw_contact_band": fw_band_name,
+        "fw_contact_bounds": tuple(map(float, fw_bounds)),
+        "primary_cutting_depth": float(primary_depth),
+        "stage_u_span": float(primary["u_span"]),
+        "stage_v_span": float(primary["v_span"]),
+        "cut_bounds": tuple(map(float, cuts[-1].bounds)),
+        "dimension_source": "PHYSICAL_FW_CONTACT_PLUS_SOURCE_TRUE_THICKNESS",
+    }
+
+    # Secondary stages keep their own 3D-collision dimensions, but their
+    # material-coordinate anchor is the SAME resolved physical FW inside-face
+    # boundary as the primary stage. Using the raw independently-backprojected
+    # floating endpoint can leave a nanometre-scale gap between two cuts that are
+    # physically the same 27-mm datum; that turns the secondary notch into an
+    # artificial interior hole when the CUTTING exterior is rebuilt.
+    for item in penetrating:
+        if item is primary:
+            continue
+        if edge == "MIN_Y":
+            cut = shapely_box(
+                float(item["x0"]), float(primary_boundary),
+                float(item["x1"]), float(primary_boundary) + float(item["v_span"]),
+            )
+        else:
+            cut = shapely_box(
+                float(item["x0"]), float(primary_boundary) - float(item["v_span"]),
+                float(item["x1"]), float(primary_boundary),
+            )
+        cut = cut.intersection(material)
+        if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
+            continue
+        cuts.append(cut)
+        stages[str(item["band_name"])] = {
+            "role": "PHYSICAL_SECONDARY_COLLISION_RELIEF",
+            "edge": edge,
+            "source_skin_sides": tuple(item["row"].get("skin_sides") or ()),
+            "source_solid_footprint_bounds": tuple(map(float, item["physical"].bounds)),
+            "primary_inside_face_boundary": float(primary_boundary),
+            "stage_u_span": float(item["u_span"]),
+            "stage_v_span": float(item["v_span"]),
+            "cut_bounds": tuple(map(float, cut.bounds)),
+            "dimension_source": "PHYSICAL_FW_INSIDE_FACE_PLUS_SOURCE_COLLISION_SPAN",
+        }
+
+    cut = unary_union(tuple(cuts)).intersection(material)
+    required = (
+        None
+        if not required_solid
+        else unary_union(tuple(required_solid)).intersection(material)
+    )
+    return cut, required, stages
 
 
-def build_divider_front_fold_relief_candidate(*args, **kwargs):
-    return _divider_relief_solver.build_divider_front_fold_relief_candidate(
-        *args,
-        **kwargs,
-        _joint_relief_ownership=joint_relief_ownership,
-        _project_joint_interference_to_relief_owner=project_joint_interference_to_relief_owner,
-        _classify_source_fold_true_thickness_interference=classify_source_fold_true_thickness_interference,
+def build_divider_front_fold_relief_candidate(
+    joint,
+    *,
+    world_triangles_by_part,
+    mapped_skin_triangles_by_part,
+    flat_material_by_part,
+    core_start: float,
+    source_geometry_keys,
+    source_fold_bands_by_key,
+    clearance: float = 0.0,
+    sheet_thickness: float = 0.0,
+    tolerance: float = 1e-6,
+):
+    """Derive Divider relief directly from physical source/target sheet collision.
+
+    Source both-skin crossings prove full-thickness source penetration.
+    Manufacturing placement comes from physical FW contact plus the actual
+    source-solid collision backprojection on the Divider. Target thickness is
+    out-of-plane and is never converted into an in-plane UV offset. Validation
+    and EndCap dimensions remain read-only.
+    """
+    from shapely.ops import unary_union
+
+    ownership = joint_relief_ownership(joint)
+    relief_key = str(ownership.relief_part)
+    material = (flat_material_by_part or {}).get(relief_key)
+    if material is None or getattr(material, "is_empty", True):
+        raise ValueError(f"Divider relief material unavailable: {relief_key}")
+
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    core_start = float(core_start)
+    if not (minx < core_start < maxx):
+        raise ValueError(
+            f"Divider relief core_start must lie inside material bounds: {core_start} not in {(minx, maxx)}"
+        )
+    bands_by_key = dict(source_fold_bands_by_key or {})
+    missing = [
+        str(key) for key in tuple(source_geometry_keys or ())
+        if not tuple(bands_by_key.get(str(key), ()) or ())
+    ]
+    if missing:
+        raise ValueError(
+            "Divider true-thickness classification requires authoritative source Fold bands: "
+            + ", ".join(missing)
+        )
+
+    # Numerical boolean fringe only. It never changes nominal manufacturing
+    # dimensions and is never reported as a CUTTING formula input.
+    boolean_margin = max(5.0e-4, float(tolerance) * 500.0)
+    half_t = max(0.0, float(sheet_thickness)) / 2.0
+    cut_polygons = []
+    cut_depths = []
+    pair_count = 0
+    eligible_count = 0
+    projection_evidence = {}
+    physical_footprints_by_source = {}
+
+    for source_key in tuple(source_geometry_keys or ()):
+        source_key = str(source_key)
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world_triangles_by_part,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            flat_material_by_part=flat_material_by_part,
+            tolerance=float(tolerance),
+            source_geometry_key=source_key,
+        )
+        pair_count += int(projected.projection.pair_count)
+        classified = classify_source_fold_true_thickness_interference(
+            source_geometry_key=source_key,
+            relief_geometry_key=relief_key,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            source_fold_bands=tuple(bands_by_key[source_key]),
+            tolerance=float(tolerance),
+        )
+        eligible_count += int(classified["penetrating_segment_count"])
+
+        source_physical_footprints = []
+        band_validation_evidence = {}
+        for band_name in tuple(classified["penetrating_bands"]):
+            row = dict(classified["bands"][band_name])
+            physical = row.get("physical_footprint_2d")
+            if physical is None or getattr(physical, "is_empty", True):
+                continue
+            physical = physical.intersection(material)
+            if getattr(physical, "is_empty", True) or float(physical.area) <= float(tolerance) ** 2:
+                continue
+            source_physical_footprints.append(physical)
+            band_validation_evidence[str(band_name)] = {
+                "physical_footprint_bounds_validation_only": tuple(map(float, physical.bounds)),
+                "physical_footprint_area_validation_only": float(physical.area),
+                "source_skin_sides": tuple(row.get("skin_sides") or ()),
+            }
+
+        physical_cut, required_target_solid, stage_evidence = _divider_physical_target_solid_cut(
+            source_key=source_key,
+            classified=classified,
+            material=material,
+            sheet_thickness=float(sheet_thickness),
+            tolerance=float(tolerance),
+        )
+
+        if physical_cut is not None:
+            if required_target_solid is None or getattr(required_target_solid, "is_empty", True):
+                raise ValueError(
+                    f"Divider physical target-solid relief has no required footprint: {source_key}"
+                )
+            physical_footprints_by_source[source_key] = required_target_solid
+
+            # Explicit clearance may alter manufacturing geometry. Numerical
+            # boolean margin may not.
+            allowance = max(0.0, float(clearance))
+            cut = physical_cut
+            if allowance > 0.0:
+                cut = cut.buffer(allowance, join_style=2)
+            cut = cut.intersection(material)
+            if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
+                raise ValueError(f"Divider physical collision cut is empty: {source_key}")
+            cut_polygons.append(cut)
+            depths = []
+            for row in dict(stage_evidence or {}).values():
+                bounds = row.get("cut_bounds")
+                if bounds is None:
+                    continue
+                _cx0, cy0, _cx1, cy1 = map(float, bounds)
+                if str(row.get("edge") or "") == "MAX_Y":
+                    depths.append(max(0.0, maxy - cy0))
+                else:
+                    depths.append(max(0.0, cy1 - miny))
+            cut_depths.append((source_key, max(depths) if depths else 0.0))
+
+        retained_names = tuple(
+            name for name, row in dict(classified["bands"]).items()
+            if tuple(row.get("segments_2d") or ()) and not bool(row.get("through_thickness"))
+        )
+        projection_evidence[source_key] = {
+            "pair_count": int(projected.projection.pair_count),
+            "eligible_segments": int(classified["penetrating_segment_count"]),
+            "penetrating_bands": tuple(classified["penetrating_bands"]),
+            "retained_contact_bands": retained_names,
+            "solid_half_thickness": float(half_t),
+            "manufacturing_topology": "STANDARD_PLUS_SOURCE_FOLD_BAND_ORTHOGONAL",
+            "manufacturing_dimensions_source": "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION",
+            "physical_stages": dict(stage_evidence or {}),
+            "physical_validation": band_validation_evidence,
+            "coverage_rule": "POST_REFOLD_WORLD_TRUE_THICKNESS_IS_ACCEPTANCE_AUTHORITY",
+        }
+
+    if not cut_polygons:
+        return None
+    cut = unary_union(cut_polygons).intersection(material)
+    if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
+        return None
+    return DividerFrontFoldReliefCandidate(
+        cut_polygon_2d=cut,
+        core_start=core_start,
+        pre_pair_count=pair_count,
+        eligible_segment_count=eligible_count,
+        cut_depths=tuple(cut_depths),
+        physical_footprints_by_source=dict(physical_footprints_by_source),
+        evidence={
+            "core_start": core_start,
+            "projection_by_source": projection_evidence,
+            "ownership": {
+                "preserve_part": str(ownership.preserve_part),
+                "relief_part": relief_key,
+            },
+            "classification": "SOURCE_FOLD_BAND_TRUE_THICKNESS",
+            "manufacturing_dimensions_source": "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION",
+            "boolean_margin": float(boolean_margin),
+            "sheet_thickness": max(0.0, float(sheet_thickness)),
+        },
     )
 
-def verify_divider_front_fold_relief(*args, **kwargs):
-    return _divider_relief_solver.verify_divider_front_fold_relief(
-        *args,
-        **kwargs,
-        _joint_relief_ownership=joint_relief_ownership,
-        _project_joint_interference_to_relief_owner=project_joint_interference_to_relief_owner,
-        _classify_source_fold_true_thickness_interference=classify_source_fold_true_thickness_interference,
-    )
+def verify_divider_front_fold_relief(
+    joint,
+    *,
+    world_triangles_by_part,
+    mapped_skin_triangles_by_part,
+    flat_material_by_part,
+    core_start: float,
+    source_geometry_keys,
+    source_fold_bands_by_key,
+    physical_footprints_by_source=None,
+    tolerance: float = 1e-6,
+):
+    """Verify solved Divider by post-refold positive-area true-thickness overlap.
+
+    Both source skins may still intersect the CUTTING boundary after a precise
+    relief. Boundary lines are legal. A band is illegal only when its CURRENT
+    post-refold both-skin footprint still overlaps retained Divider material with
+    positive area. Pre-solve UV footprints remain diagnostic-only evidence.
+    """
+    ownership = joint_relief_ownership(joint)
+    relief_key = str(ownership.relief_part)
+    material = (flat_material_by_part or {}).get(relief_key)
+    if material is None or getattr(material, "is_empty", True):
+        raise ValueError(f"Divider verification material unavailable: {relief_key}")
+
+    bands_by_key = dict(source_fold_bands_by_key or {})
+    pre_footprints = dict(physical_footprints_by_source or {})
+    missing = [
+        str(key) for key in tuple(source_geometry_keys or ())
+        if not tuple(bands_by_key.get(str(key), ()) or ())
+    ]
+    if missing:
+        raise ValueError(
+            "Divider verification requires authoritative source Fold bands: "
+            + ", ".join(missing)
+        )
+
+    pair_count = 0
+    contact_segments = 0
+    illegal_band_count = 0
+    illegal_segment_count = 0
+    illegal_area = 0.0
+    precut_validation_overlap = 0.0
+    by_source = {}
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    verification_span = max(maxx - minx, maxy - miny, 1.0)
+    # Verification-only numerical area tolerance: one linear solver tolerance
+    # swept across the current material span. It never changes CUTTING geometry.
+    area_tol = max(float(tolerance) ** 2, float(tolerance) * verification_span)
+
+    for source_key in tuple(source_geometry_keys or ()):
+        source_key = str(source_key)
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world_triangles_by_part,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            flat_material_by_part=flat_material_by_part,
+            tolerance=float(tolerance),
+            source_geometry_key=source_key,
+        )
+        pair_count += int(projected.projection.pair_count)
+
+        classified = classify_source_fold_true_thickness_interference(
+            source_geometry_key=source_key,
+            relief_geometry_key=relief_key,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            source_fold_bands=tuple(bands_by_key[source_key]),
+            tolerance=float(tolerance),
+        )
+
+        positive_bands = []
+        boundary_only_bands = []
+        source_illegal_area = 0.0
+        source_illegal_segments = 0
+
+        for band_name in tuple(classified.get("penetrating_bands") or ()):
+            row = dict(classified["bands"][band_name])
+            footprint = row.get("physical_footprint_2d")
+            overlap_area = 0.0
+            if footprint is not None and not getattr(footprint, "is_empty", True):
+                overlap = material.intersection(footprint)
+                overlap_area = (
+                    0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
+                )
+            if overlap_area > area_tol:
+                positive_bands.append(str(band_name))
+                source_illegal_area += overlap_area
+                source_illegal_segments += len(tuple(row.get("segments_2d") or ()))
+            else:
+                boundary_only_bands.append(str(band_name))
+
+        illegal_band_count += len(positive_bands)
+        illegal_segment_count += source_illegal_segments
+        illegal_area += source_illegal_area
+
+        source_contact = int(classified.get("retained_contact_segment_count") or 0)
+        source_contact += sum(
+            len(tuple(classified["bands"][name].get("segments_2d") or ()))
+            for name in boundary_only_bands
+        )
+        contact_segments += source_contact
+
+        diagnostic_overlap = 0.0
+        old = pre_footprints.get(source_key)
+        if old is not None and not getattr(old, "is_empty", True):
+            overlap = material.intersection(old)
+            diagnostic_overlap = (
+                0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
+            )
+        precut_validation_overlap += diagnostic_overlap
+
+        by_source[source_key] = {
+            "pair_count": int(projected.projection.pair_count),
+            "front_illegal_segments": int(source_illegal_segments),
+            "true_thickness_penetrating_bands": tuple(positive_bands),
+            "boundary_only_bands": tuple(boundary_only_bands),
+            "positive_overlap_area": float(source_illegal_area),
+            "retained_contact_segments": int(source_contact),
+            "precut_uv_overlap_area_validation_only": float(diagnostic_overlap),
+        }
+
+    verified = illegal_area <= area_tol and illegal_band_count == 0
+    return {
+        "pair_count": int(pair_count),
+        "front_illegal_segments": int(illegal_segment_count),
+        "true_thickness_penetration_segments": int(illegal_segment_count),
+        "true_thickness_penetrating_band_count": int(illegal_band_count),
+        "positive_overlap_area": float(illegal_area),
+        "precut_uv_overlap_area_validation_only": float(precut_validation_overlap),
+        "retained_contact_segments": int(contact_segments),
+        "verified": bool(verified),
+        "classification": "POST_REFOLD_POSITIVE_AREA_TRUE_THICKNESS",
+        "core_start_evidence_only": float(core_start),
+        "by_source": by_source,
+    }
 
 
 @dataclass(frozen=True)
@@ -1866,30 +2376,515 @@ def _expand_orthogonal_corner_cut_with_clearance(
     return physical.intersection(box(minx, miny, maxx, maxy))
 
 
-def solve_world_backprojected_endcap_relief(**kwargs):
-    return _endcap_world_relief_solver.solve_world_backprojected_endcap_relief(
-        **kwargs,
-        _deps={
-            "AssemblyBackprojectedReliefSolution": AssemblyBackprojectedReliefSolution,
-            "BackprojectedCornerRelief": BackprojectedCornerRelief,
-            "FlatInterferenceProjection": FlatInterferenceProjection,
-            "_build_box_body_world_solid": _build_box_body_world_solid,
-            "_canonical_corner_geometry": _canonical_corner_geometry,
-            "_corner_name_for_component": _corner_name_for_component,
-            "_expand_orthogonal_corner_cut_with_clearance": _expand_orthogonal_corner_cut_with_clearance,
-            "_folded_profile_is_mirror_symmetric": _folded_profile_is_mirror_symmetric,
-            "_measure_canonical_corner_cut": _measure_canonical_corner_cut,
-            "_normalize_corner_cut_to_component_topology": _normalize_corner_cut_to_component_topology,
-            "_physical_corner_geometry": _physical_corner_geometry,
-            "_polygon_parts": _polygon_parts,
-            "_project_probe_material": _project_probe_material,
-            "_project_probe_mid_surface": _project_probe_mid_surface,
-            "_projection_within_material_boundary_band": _projection_within_material_boundary_band,
-            "_render_data_rebuilt_from_material": _render_data_rebuilt_from_material,
-            "_snap_single_stage_cut_to_structural_contact": _snap_single_stage_cut_to_structural_contact,
-            "apply_verified_endcap_relief_material": apply_verified_endcap_relief_material,
-            "derive_corner_relief_from_flat_interference": derive_corner_relief_from_flat_interference,
-            "joint_relief_ownership": joint_relief_ownership,
-            "projection_has_material_penetration": projection_has_material_penetration,
-        },
+def solve_world_backprojected_endcap_relief(
+    *,
+    box_body_render_data,
+    endcap_render_data,
+    box_body_x_profile,
+    endcap_x_profile,
+    endcap_y_profile,
+    finished_dimensions,
+    endcap_placement="top",
+    sheet_thickness=0.0,
+    clearance=0.0,
+    max_iterations=8,
+    assembly_intent=None,
+    cabinet_family="ANY",
+    allow_3d_fallback=True,
+    assembly_joint=None,
+    assembly_graph=None,
+    endcap_part=None,
+    certified_result_override=None,
+) -> AssemblyBackprojectedReliefSolution:
+    """Replace fixed relief with a converged, world-verified 3D-derived cut."""
+    from shapely.geometry import box
+    from shapely.ops import unary_union
+    from .assembly_geometry import (
+        folded_mesh_with_flat_uv_from_polygon,
+        restore_unrelieved_endcap_material,
+        restored_endcap_relief_delta,
+    )
+
+    t = max(0.0, float(sheet_thickness or 0.0))
+    # The receiving cabinet's asymmetric EndCap fold profile uses the core
+    # datum as the authoritative assembly-depth origin. Existing vault/generic
+    # solver contracts retain historical envelope centering until migrated and
+    # certified independently, so this opt-in must stay family-scoped.
+    family_key = str(cabinet_family or "").strip().upper()
+    preserve_endcap_core_origin = family_key in {"受電箱", "RECEIVING"}
+    restored = restore_unrelieved_endcap_material(endcap_render_data.material)
+    delta = restored_endcap_relief_delta(endcap_render_data.material)
+    if restored is None or getattr(restored, "is_empty", True):
+        return AssemblyBackprojectedReliefSolution(None, (), (), endcap_render_data, False, None)
+
+    body_world_surface, body_world_solid = _build_box_body_world_solid(
+        box_body_render_data, box_body_x_profile, finished_dimensions, t
+    )
+    full_mapped = folded_mesh_with_flat_uv_from_polygon(
+        restored, endcap_x_profile, endcap_y_profile,
+        fold_guides=tuple(getattr(endcap_render_data, "fold_guides", ()) or ()),
+    )
+    full_reference_local = tuple(mapped.local for mapped in full_mapped)
+    blank_bounds = tuple(map(float, restored.bounds))
+    minx, miny, maxx, maxy = blank_bounds
+    components = []
+    for component in _polygon_parts(delta):
+        name = _corner_name_for_component(component, blank_bounds)
+        if name is not None:
+            components.append((name, component))
+
+    # Certified formulas have priority over 3D discovery.  Once a resolved
+    # AssemblyJoint graph exists it is the assembly source of truth; the legacy
+    # high-level assembly_intent mirror is ignored for rule selection.
+    if assembly_graph is not None or assembly_intent is not None or certified_result_override is not None:
+        from .certified_relief_registry import (
+            CertifiedReliefStatus,
+            lookup_certified_endcap_relief,
+            lookup_certified_endcap_relief_from_graph,
+        )
+        certified = certified_result_override
+        if certified is None and assembly_graph is not None:
+            part_key = str(endcap_part or ("tail" if str(endcap_placement).lower() == "bottom" else "head"))
+            certified = lookup_certified_endcap_relief_from_graph(
+                graph=assembly_graph,
+                endcap_part=part_key,
+                endcap_render_data=endcap_render_data,
+                box_body_x_profile=box_body_x_profile,
+                endcap_x_profile=endcap_x_profile,
+                endcap_y_profile=endcap_y_profile,
+                sheet_thickness=t,
+                cabinet_family=cabinet_family,
+            )
+        elif certified is None and assembly_intent is not None:
+            signature_relations = None
+            if assembly_joint is not None:
+                # Legacy compatibility only: one explicit Joint augments the
+                # high-level mirror when no resolved graph is available.
+                signature_relations = (
+                    str(getattr(assembly_intent, "value", assembly_intent)),
+                    str(getattr(getattr(assembly_joint, "relation", None), "value", getattr(assembly_joint, "relation", ""))),
+                )
+            certified = lookup_certified_endcap_relief(
+                assembly_intent=assembly_intent,
+                endcap_render_data=endcap_render_data,
+                box_body_x_profile=box_body_x_profile,
+                endcap_x_profile=endcap_x_profile,
+                endcap_y_profile=endcap_y_profile,
+                sheet_thickness=t,
+                cabinet_family=cabinet_family,
+                joint_signature_relations=signature_relations,
+            )
+        if certified is not None:
+            certified_corner_names = {
+                str(getattr(relief, "corner_name", "") or "")
+                for relief in tuple(getattr(certified, "corner_reliefs", ()) or ())
+            }
+            certified_components = tuple(
+                (name, component) for name, component in components
+                if not certified_corner_names or str(name) in certified_corner_names
+            )
+            certified_projections = []
+            for _corner_name, component in certified_components:
+                probe = restored.intersection(component)
+                certified_projections.append(_project_probe_material(
+                    probe_material=probe,
+                    box_body_world_surface=body_world_surface,
+                    box_body_world_solid=body_world_solid,
+                    endcap_reference_local=full_reference_local,
+                    endcap_x_profile=endcap_x_profile,
+                    endcap_y_profile=endcap_y_profile,
+                    endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
+                    endcap_placement=endcap_placement,
+                    sheet_thickness=t,
+                    preserve_core_origin=preserve_endcap_core_origin,
+                ))
+
+            final_cuts = tuple(certified.cut_polygons or ())
+            cut_polygon = unary_union(final_cuts) if final_cuts else None
+            solved_material = apply_verified_endcap_relief_material(
+                endcap_render_data.material, final_cuts
+            )
+            if solved_material.is_empty:
+                return AssemblyBackprojectedReliefSolution(
+                    cut_polygon, tuple(certified.corner_reliefs), tuple(certified_projections),
+                    endcap_render_data, False, FlatInterferenceProjection((), (), 0),
+                    trust_level=CertifiedReliefStatus.ENGINE_CONFLICT.value,
+                    rule_id=certified.rule_id,
+                    rule_revision=certified.rule_revision,
+                    joint_signature=tuple(dict(item) for item in tuple(certified.rule.joint_signature or ())),
+                    shadow_validation={
+                        "reason": "certified rule removed all material",
+                        "geometry_inputs": list(getattr(certified.rule, "geometry_inputs", ()) or ()),
+                        "geometry_evidence": dict(getattr(certified, "geometry_evidence", {}) or {}),
+                    },
+                )
+            solved_render = _render_data_rebuilt_from_material(endcap_render_data, solved_material)
+
+            verify_segments = []
+            verify_points = []
+            verify_pairs = 0
+            has_material_penetration = False
+            verification_tolerance = 1e-5
+            for _corner_name, component in certified_components:
+                probe = solved_render.material.intersection(component)
+                projection = _project_probe_material(
+                    probe_material=probe,
+                    box_body_world_surface=body_world_surface,
+                    box_body_world_solid=body_world_solid,
+                    endcap_reference_local=full_reference_local,
+                    endcap_x_profile=endcap_x_profile,
+                    endcap_y_profile=endcap_y_profile,
+                    endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
+                    endcap_placement=endcap_placement,
+                    sheet_thickness=t,
+                    preserve_core_origin=preserve_endcap_core_origin,
+                )
+                penetrates = projection_has_material_penetration(
+                    projection, probe, tolerance=verification_tolerance
+                )
+                if penetrates:
+                    mid_projection = _project_probe_mid_surface(
+                        probe_material=probe,
+                        box_body_world_surface=body_world_surface,
+                        box_body_world_solid=body_world_solid,
+                        endcap_reference_local=full_reference_local,
+                        endcap_x_profile=endcap_x_profile,
+                        endcap_y_profile=endcap_y_profile,
+                        endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
+                        endcap_placement=endcap_placement,
+                        sheet_thickness=t,
+                    )
+                    mid_clear = not projection_has_material_penetration(
+                        mid_projection, probe, tolerance=verification_tolerance
+                    )
+                    if mid_clear:
+                        # Certified structural-contact rules intentionally end
+                        # exactly at a mating line.  Physical +/-T/2 skins can
+                        # still intersect as surface contact, but the certified
+                        # answer remains authoritative when the semantic
+                        # mid-surface is clear.
+                        penetrates = False
+                    elif _projection_within_material_boundary_band(
+                        projection, probe, tolerance=max(0.02, t * 0.01 if t > 0.0 else 0.02)
+                    ):
+                        penetrates = False
+                verify_segments.extend(projection.segments_2d)
+                verify_points.extend(projection.points_2d)
+                verify_pairs += projection.pair_count
+                if penetrates:
+                    has_material_penetration = True
+            final_residual = FlatInterferenceProjection(
+                tuple(verify_segments), tuple(verify_points), verify_pairs
+            )
+            verified = not has_material_penetration
+            trust = (
+                certified.trust_level.value if verified
+                else CertifiedReliefStatus.ENGINE_CONFLICT.value
+            )
+            return AssemblyBackprojectedReliefSolution(
+                cut_polygon_2d=cut_polygon,
+                corner_reliefs=tuple(certified.corner_reliefs),
+                projections=tuple(certified_projections),
+                solved_render_data=solved_render,
+                verified=verified,
+                residual_projection=final_residual,
+                trust_level=trust,
+                rule_id=certified.rule_id,
+                rule_revision=certified.rule_revision,
+                joint_signature=tuple(dict(item) for item in tuple(certified.rule.joint_signature or ())),
+                shadow_validation={
+                    "policy": certified.rule.solver_shadow_policy,
+                    "verified": bool(verified),
+                    "residual_pair_count": int(final_residual.pair_count),
+                    "geometry_inputs": list(getattr(certified.rule, "geometry_inputs", ()) or ()),
+                    "geometry_evidence": dict(getattr(certified, "geometry_evidence", {}) or {}),
+                },
+            )
+
+    if assembly_joint is not None:
+        from .assembly_joint import AssemblyJointRelation
+        relation = getattr(assembly_joint, "relation", None)
+        try:
+            relation = relation if isinstance(relation, AssemblyJointRelation) else AssemblyJointRelation(str(relation))
+        except Exception:
+            relation = None
+        if relation is AssemblyJointRelation.WRAP:
+            ownership = joint_relief_ownership(assembly_joint)
+            # Current EndCap fallback can only remove EndCap material.  For WRAP
+            # the outer subject must be preserved and the wrapped target owns
+            # relief. Refuse an unsafe subject cut until the generalized target
+            # flat-mapper path handles this Joint.
+            return AssemblyBackprojectedReliefSolution(
+                cut_polygon_2d=None, corner_reliefs=(), projections=(),
+                solved_render_data=endcap_render_data, verified=False,
+                residual_projection=FlatInterferenceProjection((), (), 0),
+                trust_level="FAILED", rule_id=None, rule_revision=None,
+                shadow_validation={
+                    "reason": "WRAP_RELIEF_OWNER_IS_TARGET",
+                    "preserve_part": ownership.preserve_part,
+                    "relief_part": ownership.relief_part,
+                    "joint_id": str(assembly_joint.joint_id),
+                },
+            )
+
+    if not bool(allow_3d_fallback):
+        return AssemblyBackprojectedReliefSolution(
+            cut_polygon_2d=None,
+            corner_reliefs=(),
+            projections=(),
+            solved_render_data=endcap_render_data,
+            verified=False,
+            residual_projection=FlatInterferenceProjection((), (), 0),
+            trust_level="FAILED",
+            rule_id=None,
+            rule_revision=None,
+            shadow_validation={"reason": "NO_CERTIFIED_RULE_AND_3D_FALLBACK_DISABLED"},
+        )
+
+    raw_cuts = {}
+    all_projections = []
+    current_material = restored
+    residual_projection = FlatInterferenceProjection((), (), 0)
+
+    for _iteration in range(max(1, int(max_iterations))):
+        changed = False
+        residual_segments = []
+        residual_points = []
+        residual_pairs = 0
+        for corner_name, component in components:
+            probe = current_material.intersection(component)
+            projection = _project_probe_material(
+                probe_material=probe,
+                box_body_world_surface=body_world_surface,
+                box_body_world_solid=body_world_solid,
+                endcap_reference_local=full_reference_local,
+                endcap_x_profile=endcap_x_profile,
+                endcap_y_profile=endcap_y_profile,
+                endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
+                endcap_placement=endcap_placement,
+                sheet_thickness=t,
+            )
+            all_projections.append(projection)
+            # Solve with a stricter interior tolerance than final refold
+            # verification.  Otherwise a few-micron crossing can be accepted too
+            # early, then topology/replay leaves a visible retained boundary
+            # crossing (自訂(10) Tail).
+            if not projection_has_material_penetration(
+                projection, probe, tolerance=1e-6
+            ):
+                continue
+            residual_segments.extend(projection.segments_2d)
+            residual_points.extend(projection.points_2d)
+            residual_pairs += projection.pair_count
+            result = derive_corner_relief_from_flat_interference(
+                relief_component=component,
+                segments_2d=projection.segments_2d,
+                blank_bounds=blank_bounds,
+                corner_name=corner_name,
+                clearance=0.0,
+            )
+            if result is None:
+                continue
+            previous = raw_cuts.get(corner_name)
+            combined = result.cut_polygon_2d if previous is None else unary_union([previous, result.cut_polygon_2d])
+            if previous is None or float(combined.area) > float(previous.area) + 1e-7:
+                raw_cuts[corner_name] = combined
+                changed = True
+        residual_projection = FlatInterferenceProjection(
+            tuple(residual_segments), tuple(residual_points), residual_pairs
+        )
+        if not residual_projection.has_interference:
+            break
+        if not changed:
+            break
+        raw_union = unary_union(list(raw_cuts.values())) if raw_cuts else None
+        current_material = restored if raw_union is None else restored.difference(raw_union)
+        if not current_material.is_valid:
+            current_material = current_material.buffer(0)
+
+    # Numerical triangle intersections can leave mirror-equivalent corner cuts
+    # a few microns apart.  When the canonical cut shapes are already within a
+    # tight manufacturing tolerance, harmonize them by taking the shared union.
+    # This removes triangulation noise without forcing genuinely asymmetric
+    # geometry to become symmetric.
+    mirror_pairs = (("bottom_left", "bottom_right"), ("top_left", "top_right"))
+    mirror_tolerance = max(0.01, min(0.05, t * 0.01 if t > 0.0 else 0.01))
+    x_geometry_is_symmetric = (
+        _folded_profile_is_mirror_symmetric(box_body_x_profile, tolerance=1e-6)
+        and _folded_profile_is_mirror_symmetric(endcap_x_profile, tolerance=1e-6)
+    )
+    component_lookup = {name: component for name, component in components}
+    for left_name, right_name in mirror_pairs:
+        left_cut = raw_cuts.get(left_name)
+        right_cut = raw_cuts.get(right_name)
+        if left_cut is None or right_cut is None:
+            continue
+        left_canonical = _canonical_corner_geometry(left_cut, blank_bounds, left_name)
+        right_canonical = _canonical_corner_geometry(right_cut, blank_bounds, right_name)
+
+        force_structural_mirror = False
+        if x_geometry_is_symmetric:
+            left_component = component_lookup.get(left_name)
+            right_component = component_lookup.get(right_name)
+            if left_component is not None and right_component is not None:
+                left_component_canonical = _canonical_corner_geometry(
+                    left_component, blank_bounds, left_name
+                )
+                right_component_canonical = _canonical_corner_geometry(
+                    right_component, blank_bounds, right_name
+                )
+                force_structural_mirror = (
+                    float(left_component_canonical.hausdorff_distance(
+                        right_component_canonical
+                    )) <= 1e-6
+                )
+
+        if (
+            not force_structural_mirror
+            and float(left_canonical.hausdorff_distance(right_canonical)) > mirror_tolerance
+        ):
+            continue
+        # Symmetric physical geometry must have symmetric collision evidence.
+        # Union is conservative: if triangulation misses one mirrored crossing,
+        # retain the evidence seen on the opposite, physically identical side.
+        common = unary_union([left_canonical, right_canonical])
+        raw_cuts[left_name] = _physical_corner_geometry(common, blank_bounds, left_name)
+        raw_cuts[right_name] = _physical_corner_geometry(common, blank_bounds, right_name)
+
+    # Apply clearance A once, after the physical collision envelope has converged.
+    a = max(0.0, float(clearance or 0.0))
+    blank = box(minx, miny, maxx, maxy)
+    corner_reliefs = []
+    final_cuts = []
+    structural_contact_snaps = set()
+    topology_normalized_corners = set()
+    component_by_name = {name: component for name, component in components}
+    topology_snap_tolerance = max(0.01, t * 0.005 if t > 0.0 else 0.01)
+    # Dynamic 3D solving owns the size, but the existing corner component owns
+    # the legal manufacturing topology (single-stage vs two-stage).  This rule
+    # also applies to flat-X OVERLAY parts: skipping normalization there lets
+    # triangle-skin intersection noise invent a tiny second stage.
+    for corner_name, raw_cut in raw_cuts.items():
+        component = component_by_name.get(corner_name)
+        if component is not None:
+            raw_cut = _normalize_corner_cut_to_component_topology(
+                raw_cut, component, corner_name, blank_bounds,
+                snap_tolerance=topology_snap_tolerance,
+            )
+            topology_normalized_corners.add(corner_name)
+            raw_cut, contact_snapped = _snap_single_stage_cut_to_structural_contact(
+                raw_cut,
+                corner_name,
+                blank_bounds,
+                box_body_x_profile=box_body_x_profile,
+                endcap_x_profile=endcap_x_profile,
+                sheet_thickness=t,
+            )
+            if contact_snapped:
+                structural_contact_snaps.add(corner_name)
+        final_cut = _expand_orthogonal_corner_cut_with_clearance(
+            raw_cut, corner_name, blank_bounds, a
+        ) if a > 0.0 else raw_cut
+        if not final_cut.is_valid:
+            final_cut = final_cut.buffer(0)
+        measurement = _measure_canonical_corner_cut(
+            final_cut, corner_name, blank_bounds, a
+        )
+        corner_reliefs.append(BackprojectedCornerRelief(
+            corner_name=corner_name, cut_polygon_2d=final_cut, measurement=measurement
+        ))
+        final_cuts.append(final_cut)
+
+    cut_polygon = unary_union(final_cuts) if final_cuts else None
+
+    # Production replay uses the exact same corner-scoped helper as
+    # Manufacturing API.  The probe may restore the whole blank, but only
+    # corners with verified replacement cuts are restored into final material.
+    solved_material = apply_verified_endcap_relief_material(
+        endcap_render_data.material, final_cuts
+    )
+    if solved_material.is_empty:
+        return AssemblyBackprojectedReliefSolution(
+            cut_polygon, tuple(corner_reliefs), tuple(all_projections),
+            endcap_render_data, False, residual_projection
+        )
+    solved_render = _render_data_rebuilt_from_material(endcap_render_data, solved_material)
+
+    # Fresh verification after clearance: every remaining piece in each legacy
+    # corner domain must be free of non-coplanar physical crossings.
+    verify_segments = []
+    verify_points = []
+    verify_pairs = 0
+    has_material_penetration = False
+    # Final refold verification works on independently triangulated physical
+    # skins. Coincident cut/mating edges can therefore land a few nanometres
+    # inside retained material. Treat only this numerical boundary band as
+    # contact; the iterative solver itself still uses the stricter default.
+    verification_tolerance = 1e-5
+    for _corner_name, component in components:
+        probe = solved_render.material.intersection(component)
+        projection = _project_probe_material(
+            probe_material=probe,
+            box_body_world_surface=body_world_surface,
+            box_body_world_solid=body_world_solid,
+            endcap_reference_local=full_reference_local,
+            endcap_x_profile=endcap_x_profile,
+            endcap_y_profile=endcap_y_profile,
+            endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
+            endcap_placement=endcap_placement,
+            sheet_thickness=t,
+        )
+        penetrates = projection_has_material_penetration(
+            projection, probe, tolerance=verification_tolerance
+        )
+        if penetrates and (
+            _corner_name in structural_contact_snaps
+            or _corner_name in topology_normalized_corners
+        ):
+            mid_projection = _project_probe_mid_surface(
+                probe_material=probe,
+                box_body_world_surface=body_world_surface,
+                box_body_world_solid=body_world_solid,
+                endcap_reference_local=full_reference_local,
+                endcap_x_profile=endcap_x_profile,
+                endcap_y_profile=endcap_y_profile,
+                endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
+                endcap_placement=endcap_placement,
+                sheet_thickness=t,
+            )
+            mid_clear = not projection_has_material_penetration(
+                mid_projection, probe, tolerance=verification_tolerance
+            )
+            if _corner_name in structural_contact_snaps and mid_clear:
+                # Exact structural contact is legal.  Keep physical skins as the
+                # primary evidence, but reject their T/2 contact-band crossing when
+                # the semantic mid-surface confirms no retained-material penetration.
+                penetrates = False
+            elif (
+                _corner_name in topology_normalized_corners
+                and mid_clear
+                and _projection_within_material_boundary_band(
+                    projection, probe, tolerance=topology_snap_tolerance
+                )
+            ):
+                # Topology normalization may replace a micron-scale triangle-skin
+                # stair step with the approved single/two-stage manufacturing edge.
+                # Forgive only a boundary-band crossing when the semantic mid-surface
+                # is also clear; deeper retained-material penetration still fails.
+                penetrates = False
+        verify_segments.extend(projection.segments_2d)
+        verify_points.extend(projection.points_2d)
+        verify_pairs += projection.pair_count
+        if penetrates:
+            has_material_penetration = True
+    final_residual = FlatInterferenceProjection(
+        tuple(verify_segments), tuple(verify_points), verify_pairs
+    )
+    return AssemblyBackprojectedReliefSolution(
+        cut_polygon_2d=cut_polygon,
+        corner_reliefs=tuple(sorted(corner_reliefs, key=lambda item: item.corner_name)),
+        projections=tuple(all_projections),
+        solved_render_data=solved_render,
+        verified=not has_material_penetration,
+        residual_projection=final_residual,
     )

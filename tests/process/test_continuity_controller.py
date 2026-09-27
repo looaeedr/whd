@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -245,38 +244,16 @@ def test_turn_exit_is_blocked_for_autonomous_nonterminal_states():
             guard(checkpoint)
 
 
-def test_blocked_checkpoint_requires_exhaustive_proof_and_remains_nonfinalizable():
-    guard, blocked_error = _turn_exit_api()
+def test_blocked_checkpoint_can_exit_turn_but_remains_nonfinalizable():
+    guard, _blocked_error = _turn_exit_api()
     checkpoint = _running(
         state=ContinuityState.BLOCKED,
         next_action="wait for missing external authority",
     )
 
-    with pytest.raises(blocked_error, match="BLOCKER_NOT_EXHAUSTIVELY_PROVEN"):
-        guard(checkpoint)
-
-    proof = continuity.BlockedExitProof(
-        exhaustive=True,
-        executable_leaf_count=0,
-        evidence=("fresh blocker census: no other executable leaf",),
-        stop_reason=continuity.StopReason.EXTERNAL_AUTHORITY_REQUIRED,
-        blocker_id="external-authority:test:missing-user-authority",
-        blocker_count=1,
-        observed_at=(
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        ),
-    )
-    durable_checkpoint = _running(
-        state=ContinuityState.BLOCKED,
-        next_action="wait for missing external authority",
-        blocked_exit_proof=proof,
-    )
-    guard(durable_checkpoint)
+    guard(checkpoint)
     with pytest.raises(FinalizationBlocked, match="non-terminal"):
-        assert_finalizable(durable_checkpoint)
+        assert_finalizable(checkpoint)
 
 
 def test_terminal_checkpoints_can_exit_turn():

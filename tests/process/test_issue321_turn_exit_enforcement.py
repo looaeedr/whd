@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
 import sys
@@ -27,11 +26,6 @@ def _save_checkpoint(path: Path, state: continuity.ContinuityState) -> None:
                 if state in continuity.TERMINAL_STATES
                 else "execute exact next action"
             ),
-            blocked_exit_proof=(
-                _blocked_exit_proof()
-                if state is continuity.ContinuityState.BLOCKED
-                else None
-            ),
         ),
     )
 
@@ -43,23 +37,6 @@ def _guard_kwargs(receipt_path: Path) -> dict[str, object]:
         "expected_head_sha": EXPECTED_HEAD_SHA,
         "receipt_path": receipt_path,
     }
-
-
-def _blocked_exit_proof() -> continuity.BlockedExitProof:
-    return continuity.BlockedExitProof(
-        exhaustive=True,
-        executable_leaf_count=0,
-        evidence=("fresh durable blocker census: no executable alternative",),
-        stop_reason=continuity.StopReason.EXTERNAL_AUTHORITY_REQUIRED,
-        blocker_id="external-authority:test:missing-user-authority",
-        blocker_count=1,
-        observed_at=(
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        ),
-    )
 
 
 def test_path_boundary_exists_and_missing_checkpoint_fails_closed(tmp_path: Path):
@@ -163,10 +140,7 @@ def test_guard_invocation_mints_bound_proof_and_allows_genuine_blocked_checkpoin
     receipt = tmp_path / "receipt.json"
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
 
-    checkpoint = guard(
-        path,
-        **_guard_kwargs(receipt),
-    )
+    checkpoint = guard(path, **_guard_kwargs(receipt))
     assert checkpoint.state is continuity.ContinuityState.BLOCKED
     assert receipt.exists(), "successful guard invocation must mint proof"
 
@@ -189,12 +163,8 @@ def test_guard_invocation_proof_becomes_stale_if_checkpoint_changes(tmp_path: Pa
     path = tmp_path / "continuity.json"
     receipt = tmp_path / "receipt.json"
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
-    guard(
-        path,
-        **_guard_kwargs(receipt),
-    )
+    guard(path, **_guard_kwargs(receipt))
 
-    prior = continuity.load_checkpoint(path)
     continuity.save_checkpoint(
         path,
         continuity.Checkpoint(
@@ -203,7 +173,6 @@ def test_guard_invocation_proof_becomes_stale_if_checkpoint_changes(tmp_path: Pa
             head_sha=EXPECTED_HEAD_SHA,
             state=continuity.ContinuityState.BLOCKED,
             next_action="different external blocker",
-            blocked_exit_proof=prior.blocked_exit_proof,
             evidence=("checkpoint changed after guard",),
         ),
     )
@@ -255,10 +224,7 @@ def test_outer_process_hook_accepts_only_after_actual_guard_invocation(tmp_path:
     path = tmp_path / "continuity.json"
     receipt = tmp_path / "receipt.json"
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
-    continuity.assert_turn_exitable_path(
-        path,
-        **_guard_kwargs(receipt),
-    )
+    continuity.assert_turn_exitable_path(path, **_guard_kwargs(receipt))
 
     result = subprocess.run(
         [
