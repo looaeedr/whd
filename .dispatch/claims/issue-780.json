@@ -11,7 +11,7 @@
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "75017779ae0ecdca2a7d2bb82a69706bdfcf4c80",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-27T06:29:40Z",
+  "last_update": "2026-09-27T06:31:13Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -25,11 +25,13 @@
     "run_id": 36300220692,
     "job_id": 108566375743,
     "head_sha": "75017779ae0ecdca2a7d2bb82a69706bdfcf4c80",
-    "status": "in_progress",
-    "conclusion": null,
-    "summary": "Exact post-#774-recovery landing QA is active; #774 leading BOM has been removed and the recovery workflow validates workflow+#774 as the only post-landing delta."
+    "status": "completed",
+    "conclusion": "success",
+    "artifact_id": 10925291751,
+    "artifact_digest": "sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8",
+    "summary": "Landing acceptance GREEN: recovery ancestry and BOM-only checks GREEN; governance mirror/authority markers GREEN; repository-wide Python BOM census empty; focused regression 16 passed; protected config.ini and 基準檔 unchanged."
   },
-  "next_action": "Poll exact landing QA run 36300220692 / job 108566375743 at head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80. Require ancestry/recovery validation GREEN, governance mirror/authority markers GREEN, repository-wide Python BOM census GREEN, focused landing regression GREEN, and protected production inputs unchanged. On full GREEN, record terminal QA evidence, remove only the one-shot landing QA workflow under a fresh Guard, then re-read current cleanup/2d-3d-sync for drift before PR/merge.",
+  "next_action": "Under a fresh commit Guard, delete only .github/workflows/qa-issue780-landing.yml from exact landing head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80. Fresh-read the cleanup commit and verify tested-head→closing-head differs only by workflow deletion. Then fresh-read cleanup/2d-3d-sync production head and perform drift/mergeability audit before any PR or merge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -114,17 +116,23 @@
     "Commit 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80 pushed non-force; changed exactly .github/workflows/qa-issue780-landing.yml and tests/process/test_issue774_guard_scope_grouping.py.",
     "Fresh readback at 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80: #774 test first codepoint is no longer U+FEFF.",
     "Exact landing QA run 36300220692 / job 108566375743 is active at the same head.",
-    "Pair reconciliation Guard 36300243436 GREEN; request 5853393196, result 5853394555."
+    "Pair reconciliation Guard 36300243436 GREEN; request 5853393196, result 5853394555.",
+    "Exact landing QA run 36300220692 / job 108566375743 completed SUCCESS at head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80.",
+    "Repository-wide Python BOM census GREEN with empty remaining set.",
+    "Focused landing regression: 16 passed in 3.07s.",
+    "Protected inputs GREEN: config.ini unchanged, 基準檔 unchanged, git diff --check clean.",
+    "Artifact 10925291751 digest sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8.",
+    "Terminal-QA write Guard 36300324067 GREEN; request 5853404029, result 5853405315."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36300243436,
-    "request_comment_id": 5853393196,
-    "result_comment_id": 5853394555,
+    "run_id": 36300324067,
+    "request_comment_id": 5853404029,
+    "result_comment_id": 5853405315,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #780 durable pair to #774 BOM recovery head and exact active landing QA"
+    "mutation": "record exact landing QA SUCCESS and advance to one-shot workflow cleanup"
   }
 }

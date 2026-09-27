@@ -4,7 +4,7 @@
   "branch": "landing/issue780-current-production-20260927",
   "head_sha": "75017779ae0ecdca2a7d2bb82a69706bdfcf4c80",
   "state": "RUNNING",
-  "next_action": "Poll exact landing QA run 36300220692 / job 108566375743 at head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80. Require ancestry/recovery validation GREEN, governance mirror/authority markers GREEN, repository-wide Python BOM census GREEN, focused landing regression GREEN, and protected production inputs unchanged. On full GREEN, record terminal QA evidence, remove only the one-shot landing QA workflow under a fresh Guard, then re-read current cleanup/2d-3d-sync for drift before PR/merge.",
+  "next_action": "Under a fresh commit Guard, delete only .github/workflows/qa-issue780-landing.yml from exact landing head 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80. Fresh-read the cleanup commit and verify tested-head→closing-head differs only by workflow deletion. Then fresh-read cleanup/2d-3d-sync production head and perform drift/mergeability audit before any PR or merge.",
   "run_id": 36300220692,
   "job_id": 108566375743,
   "log_cursor": null,
@@ -64,7 +64,11 @@
     "Guard 36299972361 GREEN authorizes durable census writeback.",
     "Guarded #774 BOM recovery commit 75017779ae0ecdca2a7d2bb82a69706bdfcf4c80 is live.",
     "Exact landing QA run 36300220692 / job 108566375743 is active at the live head.",
-    "Guard 36300243436 GREEN authorizes durable reconciliation to the exact head/run."
+    "Guard 36300243436 GREEN authorizes durable reconciliation to the exact head/run.",
+    "Exact landing QA run 36300220692 / job 108566375743 completed SUCCESS.",
+    "BOM census empty; focused regression 16 passed; protected inputs unchanged.",
+    "Artifact 10925291751 digest sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8.",
+    "Guard 36300324067 GREEN authorizes terminal QA durable writeback."
   ],
   "master_issue": null,
   "chain_state": "NONE",
