@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "issue": "844",
+  "branch": "governance/issue844-unified-execution-record-20260928",
+  "head_sha": "ec2651809952d2cda018186b0a132c0801ac68b7",
+  "state": "RUNNING",
+  "next_action": "Run fresh branch-create Guard for governance/issue844-unified-execution-record-20260928 at exact accepted predecessor HEAD ec2651809952d2cda018186b0a132c0801ac68b7; create/read back the branch, then complete Phase6 preflight and establish #844 RED.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent relation=#842 is provenance while #844 is non-terminal; terminal chain metadata will be populated at closure handoff.",
+    "#843 is terminal/released and handed off exact successor #844 from accepted HEAD ec2651809952d2cda018186b0a132c0801ac68b7.",
+    "Frozen Master #842 X baseline is 500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
+    "Current cleanup 6160c62847bd212c7503eaf632f20382b36fdcdd is observation-only under X independent-chain rules.",
+    "P0 behavior matrix is present and is the required regression compatibility baseline."
+  ],
+  "operation": null,
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
