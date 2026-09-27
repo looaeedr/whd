@@ -28,13 +28,16 @@
     "PR #804 merged non-force to cleanup/2d-3d-sync@5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f.",
     "Production readback confirms accepted #701 integration lineage is live.",
     "Terminal transition authorized by Remote Guard 36291204157.",
-    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36291342913."
+    "Closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36291342913.",
+    "Remote Finalization run 36291809823: FINALIZATION_PROOF_VALID.",
+    "Issue #801 fresh-read closed/completed.",
+    "Closure advance ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36291874457."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization on this exact checkpoint fingerprint; if GREEN, close Issue #801 and fresh-read closed/completed before any checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED for #801, then terminalize parent #701 helper reservation."
 }
