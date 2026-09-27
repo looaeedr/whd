@@ -107,7 +107,7 @@ def test_red_stop_23_unknown_or_drifted_coordination_state_fails_closed(
 
 def test_red_stop_23_trusted_workflow_performs_readback_before_duplicate_cas():
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert "tools/claim_activation_recovery.py" in text, (
+    assert "from tools.claim_activation_recovery import" in text, (
         "RED-STOP-23: trusted Claim Activation does not invoke the canonical "
         "post-CAS durable-readback recovery classifier"
     )
