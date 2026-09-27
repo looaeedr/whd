@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "790",
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
-  "head_sha": "551ae5e20934971bda1a37ec19d0e5b900f52883",
+  "head_sha": "a5633875e9390b8bd50011efc106aa53ba31f971",
   "state": "RUNNING",
-  "next_action": "Fresh-read main and compare against GREEN head 551ae5e20934971bda1a37ec19d0e5b900f52883; if drift exists, perform one guarded merge-sync and rerun focused acceptance; otherwise obtain pr-write Guard, open/update PR to main, lock remote acceptance to terminal, merge to trusted main, then propagate parity to cleanup/2d-3d-sync before consuming the repair on #769.",
+  "next_action": "Obtain one fresh commit Guard for deleting only .github/workflows/qa-issue790-intervening-claim-blob.yml from head a5633875e9390b8bd50011efc106aa53ba31f971; commit/push the deletion, reconcile the exact claim+checkpoint pair to the closing head, prove tested-head→closing-head delta is only that workflow deletion, then refresh PR #791 and continue trusted-main merge + cleanup parity.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,7 +20,10 @@
     "H2 551ae5e20934971bda1a37ec19d0e5b900f52883 implements same-authority intervening claim-blob postcommit reconciliation + trusted transport.",
     "Focused/adjacent: 60 passed / 0 failed. Full tests/process: 640 passed / 7 baseline failures; all 7 reproduced on exact main base.",
     "Actions visible naming guard GREEN; Phase6 post-write preflight GREEN.",
-    "Pair reconciliation Guard 36284634540 GREEN."
+    "Pair reconciliation Guard 36284634540 GREEN.",
+    "H3 a5633875e9390b8bd50011efc106aa53ba31f971 is the exact one-shot remote acceptance head.",
+    "Run 36286039323 / job 108526890282 terminal success on H3: 60 passed / 0 failed.",
+    "Pair reconciliation Guard 36286068847 GREEN; durable pair reconciled to H3 and remote acceptance persisted."
   ],
   "master_issue": null,
   "chain_state": "NONE",
