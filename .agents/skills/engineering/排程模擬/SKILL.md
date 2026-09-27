@@ -470,3 +470,20 @@ target_lane=B -> to_worker=scheduler.e58ea936e7d0b12bd0d475314709d6f1
 - retained invariant: Retain same-lane interactive resume, planned handoff receive, and READY_WORK_CENSUS behavior.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
+
+
+## FAILURE_PATH_RECURRING_SURVIVAL_HARD_GATE_V1
+
+任何 recurring scheduler invocation 的 failure / blocker 都只屬於「本 invocation 的執行結果」，**永遠不代表 recurring automation terminal**。
+
+固定規則：
+
+1. `SCHEDULER_EXECUTION_FAILURE`、platform safety/capability blocker、GitHub/Guard/Issue-comment mutation 被拒、`fully-blocked`、`NO_EXECUTABLE_WORK`、`WAITING`、`BLOCKED`、`ERROR` 都**不得**推導 pause / disable / delete / complete / reschedule recurring entrypoint。
+2. A lane 的 `00 / 20 / 40` 與 B lane 的 `B15 / B45` 都適用；單一 entrypoint failure 不得改任何同 lane sibling 的 enabled state。
+3. capability fail-closed 只禁止**未授權或無法證明的 substantive mutation**；不得把「disable scheduler」當成 fail-closed、cleanup、stop condition 或 blocker handling。
+4. 每次 return 前，fresh-read 本 lane matching recurring entrypoints。若任一被發現 `is_enabled=false`，且使用者沒有明確要求停用/刪除/改排程，必須只做 scheduler recovery：保持 exact schedule / timing_mode / prompt / title / lane identity 不變，將 disabled entrypoint 恢復 `enabled=true`。
+5. recovery 後再次 fresh-read；只有 matching set 全部 enabled 才可回報 `SCHEDULER_ENABLE_ESTABLISHED` 並 return。
+6. 若 host automation-control capability 本身不可用，回 `SCHEDULER_ENABLE_UNAVAILABLE`，保留 GitHub durable exact next_action / blocker evidence，等待下一個合法 invocation；**不得**以停用 recurring entrypoint 來表示「已安全停止」。
+7. 使用者明確要求 pause / disable / delete / reschedule 才是唯一可改 recurring lifecycle 的 authority。普通 Issue terminal、Master terminal、NO_WORK、Guard failure、platform safety blocker 都不是此 authority。
+8. 本 gate 對 success / failure / blocker / exception / early-return / safety-rejection 所有出口一體適用；不得只在正常 EXIT HARD GATE 路徑才做 enabled readback。
+
