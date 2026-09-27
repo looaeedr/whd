@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "683",
+  "branch": "work/issue683-ha-transport-projection-20260927",
+  "head_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
+  "state": "RUNNING",
+  "next_action": "Under a fresh branch-create Guard, create work/issue683-ha-transport-projection-20260927 at cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8; fresh-read the required Phase6 knowledge/preflight and existing HA/Node-RED/whd-monitor transport seams; then establish repository-owned R7/R8 RED evidence before any production implementation.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Issue #683 is an approved implementation leaf with RED R7/R8.",
+    "Dependencies #679/#680/#681 terminal and integrated in current X.",
+    "Execution owner is scheduler B lane; physical invocation is chatgpt_interactive.",
+    "No production mutation before branch-create Guard."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
