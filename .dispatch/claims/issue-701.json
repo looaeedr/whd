@@ -10,13 +10,13 @@
   "claimed_at": "2026-09-27T02:01:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
   "head_sha": "35cea40092d6c689b36342aca33805791651e47f",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-27T03:01:16Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T03:40:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Helper #801 is ACTIVE. Do not mutate sealed #701 lineage or merge PR #799 directly. Follow #801 to terminal integration proof, terminalize helper reservation, then return #701 to ACCEPTED_PENDING_CHAIN_CLOSURE under #702.",
+  "next_action": "A6 accepted and integrated into cleanup/2d-3d-sync through terminal helper #801; Issue #702 owns amendment-wide Combined Acceptance, AI Library writeback, scheduler deployment/readback, and canonical close/readback for #701. Do not independently close #701.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -52,28 +52,50 @@
     "Reserved helper_key=issue701-integration-resolution before child Issue creation.",
     "Helper #801 Claim Activation GREEN commit=e394cf711cac388b6bb5de1ef9968978288e1dae; child claim blob=c985043c8efa2526829ececb32956deb12c8469a.",
     "Helper reservation activation authorized by Remote Guard run 36290181553.",
-    "Parent reservation issue701-integration-resolution bound ACTIVE to child #801."
+    "Parent reservation issue701-integration-resolution bound ACTIVE to child #801.",
+    "Helper #801 terminal proof: Issue closed/completed + claim RELEASED + next_action null + no active run + checkpoint TERMINAL_SUCCESS/CLOSED.",
+    "Helper reservation issue701-integration-resolution terminalized ACTIVE -> TERMINAL.",
+    "Helper #801 integration QA run 36290902531: 33 passed / 0 failed.",
+    "PR #804 merged non-force to cleanup/2d-3d-sync as 5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f.",
+    "Current cleanup/2d-3d-sync remains a descendant of #801 merge commit; #701 accepted production integration has not been overwritten.",
+    "Parent reservation terminalization and #701 accepted-pending-chain-closure writeback authorized by Remote Guard run 36292058916."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36290181553,
-    "request_comment_id": 5852143373,
+    "run_id": 36292058916,
+    "request_comment_id": 5852357590,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "activate #701 integration helper reservation -> #801"
+    "mutation": "terminalize #701 integration helper reservation and restore ACCEPTED_PENDING_CHAIN_CLOSURE"
   },
   "delegated_work": [
     {
       "relationship": "helper",
       "helper_key": "issue701-integration-resolution",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.issue701.20260927a",
       "reservation_token": "issue701-integration-resolution-20260927a",
       "reserved_at": "2026-09-27T02:57:08Z",
       "child_issue": 801,
       "child_claim_blob_sha": "c985043c8efa2526829ececb32956deb12c8469a"
     }
-  ]
+  ],
+  "acceptance": {
+    "state": "ACCEPTED_PENDING_CHAIN_CLOSURE",
+    "red_ids": [
+      "RED-STOP-24"
+    ],
+    "closing_head_sha": "35cea40092d6c689b36342aca33805791651e47f",
+    "targeted_green_run_id": 36289003643,
+    "targeted_green": "8 passed / 0 failed",
+    "compatibility_run_id": 36289196739,
+    "compatibility_green": "28 passed / 0 failed",
+    "integration_helper_issue": 801,
+    "integration_qa_run_id": 36290902531,
+    "integration_qa_summary": "33 passed / 0 failed",
+    "production_merge_commit_sha": "5042f9a9b12e5fa3eb6e9d6713a4ca66cb9d130f",
+    "closure_owner_issue": 702
+  }
 }
