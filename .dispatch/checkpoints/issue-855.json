@@ -20,13 +20,15 @@
     "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under write Guard 36318131630.",
     "Trusted Remote Finalization 36318242320 GREEN; artifact 10931595960.",
     "Issue #855 readback closed/completed; checkpoint remained exact through proof + close.",
-    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36318314056."
+    "Closure lifecycle advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING under write Guard 36318314056.",
+    "Final atomic release under write Guard 36318394971: claim RELEASED + checkpoint CLOSED.",
+    "PR #848 remains closed with merged_at=null."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically write checkpoint closure_state=CLOSED together with claim phase=RELEASED for Issue #855; preserve PR #848 closed/unmerged evidence."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
