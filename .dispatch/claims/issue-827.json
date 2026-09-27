@@ -11,7 +11,7 @@
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
   "head_sha": "002ce570f74694c6671c440e69d43bc78fa187fa",
   "phase": "GREEN",
-  "last_update": "2026-09-27T07:27:32Z",
+  "last_update": "2026-09-27T07:29:17Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
@@ -23,7 +23,7 @@
     "conclusion": "success",
     "pytest": "11 passed / 0 failed in 0.08s"
   },
-  "next_action": "Reserve and create exactly one cleanup-side governance mirror helper for #827. The helper must branch from current cleanup/2d-3d-sync, copy exact governed blobs from #827 main candidate for .github/workflows/whd-remote-claim-activation.yml, tools/continuity_controller.py, tests/process/test_issue827_terminal_chain_metadata_repair.py, and docs/governance/governance_mirror_manifest.json, then open reciprocal paired PRs and require Governance Mirror Hard Gate GREEN on both before merge.",
+  "next_action": "Create exactly one cleanup-side governance mirror helper for #827 from current cleanup/2d-3d-sync. Copy exact governed blobs for terminal chain-metadata repair + permanent regression + manifest, open reciprocal paired PRs with the #827 main candidate, require Governance Mirror Hard Gate GREEN on both, merge both, then return parity proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-827.json",
   "evidence": [
@@ -42,16 +42,29 @@
     "Closing diff H2 765584fc104b0d328b566ca803fa91be9087ac21 -> 90fbf11cc7766975ba09d8b66e787eb61c4df85e deletes only .github/workflows/qa-issue827-terminal-chain-metadata-repair.yml.",
     "Post-cleanup reconciliation Guard 36302942332 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Governance manifest commit 002ce570f74694c6671c440e69d43bc78fa187fa preserves current main manifest and adds tests/process/test_issue827_terminal_chain_metadata_repair.py as a governed mirror path under commit Guard 36303082943 GREEN.",
-    "Post-manifest reconciliation Guard 36303150050 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Post-manifest reconciliation Guard 36303150050 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Cleanup mirror helper reservation authorized by Remote Guard 36303233362 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303150050,
-    "request_comment_id": 5853798861,
+    "run_id": 36303233362,
+    "request_comment_id": 5853809280,
     "result": "GREEN",
-    "reason": "REMOTE_GUARD_RECONCILE_ONLY",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #827 governed manifest head"
-  }
+    "mutation": "reserve #827 cleanup governance mirror helper"
+  },
+  "delegated_work": [
+    {
+      "relationship": "helper",
+      "helper_key": "issue827-cleanup-governance-mirror",
+      "state": "RESERVING",
+      "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
+      "reservation_token": "issue827-cleanup-governance-mirror-20260927a",
+      "reserved_at": "2026-09-27T07:29:17Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
+    }
+  ]
 }
