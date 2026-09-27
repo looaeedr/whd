@@ -9,14 +9,14 @@
   "work_branch": "work/issue701-scheduler-state-reconciliation-20260927",
   "claimed_at": "2026-09-27T02:01:00Z",
   "base_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
-  "head_sha": "4de75a45548908cceeeb81519cd6fbaa9910efe7",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T02:38:00Z",
+  "head_sha": "092070e69aa201793f564f0630fdf73896028d86",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-27T02:42:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run a focused scheduler/Skill compatibility regression on exact head 4de75a45548908cceeeb81519cd6fbaa9910efe7, including RED-STOP-24 and existing scheduler authoring/simulation contracts. If GREEN, remove the temporary #701 QA workflow under Guard, reconcile the closing head, audit effective diff against current cleanup/2d-3d-sync, then integrate non-force. Issue closure remains owned by #702.",
+  "next_action": "Remove the temporary .github/workflows/qa-issue701-scheduler-state-reconciliation.yml under one exact commit Guard, reconcile the resulting closing head, verify the effective #701 diff contains no temporary QA transport, then audit against current cleanup/2d-3d-sync and integrate non-force. Issue closure remains owned by #702.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-701.json",
   "evidence": [
@@ -41,16 +41,18 @@
     "Post-isolated-harness reconciliation Guard 36288706748 GREEN and consumed.",
     "Implementation commit 4de75a45548908cceeeb81519cd6fbaa9910efe7 adds the canonical scheduler-state reconciliation classifier and exact bridges in 排程模擬/寫排程.",
     "Targeted GREEN run 36289003643 @ 4de75a45548908cceeeb81519cd6fbaa9910efe7: 8 passed / 0 failed.",
-    "Post-implementation reconciliation Guard 36289023710 GREEN and consumed."
+    "Post-implementation reconciliation Guard 36289023710 GREEN and consumed.",
+    "Scheduler compatibility run 36289196739 @ 092070e69aa201793f564f0630fdf73896028d86: 28 passed / 0 failed across RED-STOP-24, scheduler simulation/authoring, #696 startup and #697 operation contracts.",
+    "Post-compatibility-workflow reconciliation Guard 36289216418 GREEN and consumed."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36289023710,
-    "request_comment_id": 5852011780,
+    "run_id": 36289216418,
+    "request_comment_id": 5852033117,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #701 implementation head and record targeted GREEN"
+    "mutation": "reconcile #701 compatibility QA head"
   }
 }
