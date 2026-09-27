@@ -9,6 +9,15 @@ whd_schema: WHD_DOC_META_V1
 
 # 排程模擬
 
+### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
+
+所有新的 task/runtime/invocation 在任何 substantive analysis、Guard、claim、repository mutation 或 workflow dispatch 前，
+必須先由 tools/execution_entry_contract.py 產生並 user-visible 顯示 canonical
+WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
+本入口只 bridge 到該 canonical owner，不複製固定 Authorization/Purpose/Scope 文案。
+每次 crash/re-entry 都是新 runtime，必須重新產生 declaration；此聲明只是 provenance/intent，
+不得取代 claim、Guard、Preflight 或擴張 authority。
+
 ## EXECUTION_INTENT_ROUTING_V1_BRIDGE
 
 本 Skill 是 A/B durable scheduler lane 的 shared runtime entry contract。合法進入 `SCHEDULER_LANE` 有兩種 physical invocation：真實 recurring scheduled entrypoint，或使用者輸入 exact `/排程A` / `/排程B` 進行同 lane 的互動式 resume。普通文字更新排程、Skill、Issue 或 prompt 不得自動進入此模式；互動式 resume 也不得宣稱自己是平台 scheduled trigger。
@@ -348,6 +357,30 @@ Equivalent duplicate GREEN 的 canonical/shadow 規則完全服從 live authorit
 - 若 fresh-read 發現 **foreign** live owner，prefix 必須把 `handler` 與 `owner` 顯示為 exact foreign `claim_worker`；selected lane 只能留在後續 `lane=` 欄位，**不得冒充處理者**。
 - `claim_issue` / `claim_worker` / `lane_owner` 必須來自本輪 fresh durable readback；聊天室 title、`NEW排程A/B` 或記憶不得作來源。
 - prefix 只提供 provenance，**不建立 execution authority**、不改 claim ownership、不取代 liveness / Guard / checkpoint gate。
+
+## 7A. Scheduler state mutation crash/re-entry
+
+### SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1
+
+任何 `/排程A` / `/排程B` 流程若真的要修改 host recurring automation 的 live state，canonical readback owner 固定為 `tools/scheduler_state_reconciliation.py`；本 Skill 不得另建第二套 scheduler mutation state machine。
+
+在 host mutation **之前**先 durable 保存 exact intent identity：
+
+- `lane_owner`
+- `entrypoint`
+- `automation_id`
+- `schedule`
+- `timing_mode`
+- `enabled_before`
+- `enabled_after`
+
+mutation 後、runtime crash/re-entry 後或任何「不確定剛才有沒有成功」的情況，都先 fresh-read exact live automation，再把 durable intent + live observation 交給 canonical classifier：
+
+- `NOT_APPLIED`：exact pre-state 仍成立；只允許執行 durable intent 描述的那**一次** mutation。
+- `EFFECT_OBSERVED`：exact requested post-state 已成立；禁止 replay，只做 durable reconciliation/readback。
+- `AMBIGUOUS`：automation/lane/entrypoint identity 缺失或不符、schedule/timing_mode 漂移、state 未知；固定 fail closed，不猜測、不重播。
+
+除非使用者明確要求改排程，`lane_owner / entrypoint / automation_id / schedule / timing_mode` 都是不可漂移 identity。這個 contract 只分類「已做／未做／不明」，不自行 enable/disable automation，也不取代 exit-time gate、派工、Guard 或 continuity authority。
 
 ## 8. Turn output
 
