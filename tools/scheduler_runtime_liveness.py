@@ -18,6 +18,7 @@ _ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _REQUIRED = {"issue","scheduler_lane","invocation_identity","claim_blob_sha","branch","head_sha","executor_source","emitted_at","expires_at"}
 _OPTIONAL = {"active_run_id","active_run_head_sha"}
 _END_LEGACY_REQUIRED = {"issue","scheduler_lane","invocation_identity","claim_blob_sha","branch","head_sha","executor_source","ended_at","turn_exit_run_id"}
+_END_INTERMEDIATE_REQUIRED = {"issue","scheduler_lane","invocation_identity","request_comment_id","result_comment_id","checkpoint_fingerprint","turn_exit_run_id","ready_work_census_fingerprint"}
 _END_RECEIPT_REQUIRED = {"issue","scheduler_lane","invocation_identity","claim_blob_sha","branch","head_sha","executor_source","ended_at","request_comment_id","result_comment_id","checkpoint_fingerprint","turn_exit_run_id","ready_work_census_fingerprint"}
 
 
@@ -182,6 +183,31 @@ def parse_runtime_end_comment(comment: Mapping[str, object]) -> dict[str, object
             "source_comment_id": comment_id,
             "source_comment_created_at": created_at.isoformat().replace("+00:00","Z"),
             "_ended_dt": _utc("runtime END ended_at", singles["ended_at"]),
+            "_created_dt": created_at,
+        }
+
+    if keys == _END_INTERMEDIATE_REQUIRED:
+        issue = _positive_int("runtime END issue", singles["issue"])
+        lane = singles["scheduler_lane"]
+        invocation = singles["invocation_identity"]
+        if not _ID_RE.fullmatch(lane) or not lane.startswith("scheduler."):
+            raise RuntimeLivenessCommentError("runtime END scheduler_lane is invalid")
+        if not _ID_RE.fullmatch(invocation):
+            raise RuntimeLivenessCommentError("runtime END invocation_identity is invalid")
+        for key in ("checkpoint_fingerprint", "ready_work_census_fingerprint"):
+            if not re.fullmatch(r"[0-9a-f]{64}", singles[key]):
+                raise RuntimeLivenessCommentError(f"runtime END {key} is invalid")
+        return {
+            "schema": END_MARKER, "mode": "INTERMEDIATE_PENDING_VALIDATION",
+            "issue": issue, "scheduler_lane": lane,
+            "invocation_identity": invocation,
+            "request_comment_id": _positive_int("runtime END request_comment_id", singles["request_comment_id"]),
+            "result_comment_id": _positive_int("runtime END result_comment_id", singles["result_comment_id"]),
+            "checkpoint_fingerprint": singles["checkpoint_fingerprint"],
+            "turn_exit_run_id": _positive_int("runtime END turn_exit_run_id", singles["turn_exit_run_id"]),
+            "ready_work_census_fingerprint": singles["ready_work_census_fingerprint"],
+            "source_comment_id": comment_id,
+            "source_comment_created_at": created_at.isoformat().replace("+00:00","Z"),
             "_created_dt": created_at,
         }
 
