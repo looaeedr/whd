@@ -61,7 +61,7 @@
     {
       "relationship": "helper",
       "helper_key": "bootstrap-trusted-takeover-parser",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.work1.260927.bootstrap793.1",
       "reservation_token": "bootstrap793-260927a",
       "reserved_at": "2026-09-27T02:16:07Z",
