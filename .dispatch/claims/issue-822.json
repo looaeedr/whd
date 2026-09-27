@@ -9,9 +9,9 @@
   "work_branch": "governance/issue822-governance-required-check-x-20260927",
   "claimed_at": "2026-09-27T06:27:33Z",
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "head_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T06:27:33Z",
+  "head_sha": "62ced146cc9d9e01015dd33c5f3c96813c6d54cc",
+  "phase": "RED",
+  "last_update": "2026-09-27T06:34:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "obtain branch-create Guard for cleanup governance branch, add RED/GREEN merge-time candidate parity enforcement, mirror governed artifacts to main, then establish required status checks on both branch rulesets",
+  "next_action": "run focused RED QA for test_issue822_governance_required_check.py, then implement candidate parity seam/workflow and rerun GREEN",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -33,8 +33,19 @@
     "purpose=make bidirectional governance mirror a merge-time required hard gate",
     "authorized_scope=#822 governance-only workflow/tool/test + repository ruleset enforcement for main and cleanup/2d-3d-sync",
     "prohibited_scope=WHD/product/Phase/CAD propagation to main; unrelated Issues; product implementation",
-    "resume_authority=NONE"
+    "resume_authority=NONE",
+    "Branch-create Guard 36300222234 GREEN; exact branch readback at cleanup base 98a11b89.",
+    "RED commit 62ced146 adds test_issue822_governance_required_check.py only."
   ],
-  "last_guard": null,
+  "last_guard": {
+    "action": "commit",
+    "mode": "remote",
+    "run_id": 36300407938,
+    "request_comment_id": 5853418359,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "RED commit 62ced146"
+  },
   "delegated_work": []
 }

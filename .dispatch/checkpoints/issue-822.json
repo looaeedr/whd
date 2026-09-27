@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "822",
   "branch": "governance/issue822-governance-required-check-x-20260927",
-  "head_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
+  "head_sha": "62ced146cc9d9e01015dd33c5f3c96813c6d54cc",
   "state": "RUNNING",
-  "next_action": "obtain branch-create Guard for cleanup governance branch, then add RED proving PR scope-only logic does not prove opposite-branch candidate parity",
+  "next_action": "run focused RED QA for test_issue822_governance_required_check.py, then implement candidate parity seam/workflow",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,8 @@
   "evidence": [
     "User-authorized UPDATE_ONLY governance transaction #822.",
     "Both #816 and #818 are terminal CLOSED + RELEASED before #822 starts.",
-    "Scope is governance-only merge-time parity plus repository required-status enforcement."
+    "Scope is governance-only merge-time parity plus repository required-status enforcement.",
+    "RED head 62ced146 adds focused failing contract test."
   ],
   "master_issue": null,
   "chain_state": "NONE",
