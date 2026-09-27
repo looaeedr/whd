@@ -10,12 +10,12 @@
   "claimed_at": "2026-09-27T00:41:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-27T00:41:00Z",
+  "phase": "RED",
+  "last_update": "2026-09-27T00:42:20Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run canonical branch-create Guard for governance/issue790-intervening-claim-blob-reconcile-20260927 from exact main@646968f0e0945707d4a87b6b57de769c5a474bb1; create/read back branch; then write RED reproducing #769 H0→H1 direct-child rejection after same-owner claim-blob refresh.",
+  "next_action": "Create isolated worktree at exact #790 branch head; write RED regression reproducing #769 direct-child commit with historical Guard blob != current same-authority claim blob; prove ordinary reconciliation rejects before implementation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -24,6 +24,18 @@
     "purpose=allow fail-closed post-commit reconciliation when a legal same-owner coord write refreshes claim blob after an exact guarded direct-child commit",
     "authorized_scope=#790 Issue body only; no product/UI/scheduler cadence/work-slot changes",
     "production_target=main@646968f0e0945707d4a87b6b57de769c5a474bb1",
-    "immediate_recovery_target=#769 ac1b45a0 -> 4ad9246a after trusted deployment + cleanup parity"
-  ]
+    "immediate_recovery_target=#769 ac1b45a0 -> 4ad9246a after trusted deployment + cleanup parity",
+    "branch-create Guard run 36283237479 GREEN; branch exists at exact main base 646968f0...",
+    "coord transition Guard run 36283281614 GREEN; branch-create receipt durably consumed by branch readback."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "remote",
+    "run_id": 36283281614,
+    "request_comment_id": 5851350280,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "advance #790 durable next_action to RED"
+  }
 }
