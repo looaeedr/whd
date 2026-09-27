@@ -79,13 +79,15 @@
     "Guard 36302978412 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization 36303339750 SUCCESS; bound proof artifact 10926263845.",
     "Issue #780 fresh-read closed/completed at 2026-09-27T07:32:04Z with proof-bound checkpoint unchanged until close completed.",
-    "Guard 36303435576 GREEN authorizes adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Guard 36303435576 GREEN authorizes adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard 36303514345 GREEN authorizes the final atomic coordination transaction.",
+    "Final transaction persists checkpoint CLOSED together with shared claim RELEASED; chain remains CHAIN_COMPLETE."
   ],
   "master_issue": 627,
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Late integration-repair helper #780 is production-accepted; parent #626 and Master #627 are already closed/completed with released terminal durable state.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "under one fresh write Guard, atomically persist checkpoint closure_state=CLOSED + claim phase=RELEASED with next_action=null; then fresh-read Issue/claim/checkpoint terminal state"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

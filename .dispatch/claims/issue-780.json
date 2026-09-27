@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:32:30Z",
   "base_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
   "head_sha": "b683ee627286db7d578a1d83036b3cd26aa1114a",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T07:33:01Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T07:34:32Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "5a29aacdc39805e6950362a8880f1513318389f0",
@@ -31,7 +31,7 @@
     "artifact_digest": "sha256:8e47418929cac32c43113e9acaea8450c3950ed6d8baac3c1136089b9a3f34a8",
     "summary": "Landing acceptance GREEN: recovery ancestry and BOM-only checks GREEN; governance mirror/authority markers GREEN; repository-wide Python BOM census empty; focused regression 16 passed; protected config.ini and 基準檔 unchanged."
   },
-  "next_action": "under one fresh write Guard, atomically persist checkpoint closure_state=CLOSED + claim phase=RELEASED with next_action=null; then fresh-read Issue/claim/checkpoint terminal state",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-780.json",
   "evidence": [
@@ -140,18 +140,20 @@
     "Trusted Remote Finalization run 36303339750 completed SUCCESS; receipt FINALIZATION_PROOF_VALID bound checkpoint d70b169f7b60a459715f507313b86e37aef00c7e / fingerprint 6fe9cb646801d2ca1bf7f13036b3201254a53b3658b9c6086440425f6036cef0.",
     "Finalization proof artifact 10926263845 digest sha256:9091bfa5587196b156379a58edd05b05491ae2b92bb45316f0ef184a8618371c.",
     "Issue #780 closed/completed at 2026-09-27T07:32:04Z and fresh readback confirmed before checkpoint mutation.",
-    "Release-handoff transition Guard 36303435576 GREEN; request 5853836826, result 5853838357."
+    "Release-handoff transition Guard 36303435576 GREEN; request 5853836826, result 5853838357.",
+    "Final release Guard 36303514345 GREEN; request 5853846904, result 5853848371.",
+    "Final atomic coordination transaction releases #780 only together with checkpoint closure CLOSED."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303435576,
-    "request_comment_id": 5853836826,
-    "result_comment_id": 5853838357,
+    "run_id": 36303514345,
+    "request_comment_id": 5853846904,
+    "result_comment_id": 5853848371,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #780 closure to RELEASE_HANDOFF_PENDING after proof + issue close readback"
+    "mutation": "atomic #780 claim RELEASED + checkpoint CLOSED"
   },
   "release_handoff": {
     "master_issue": 627,
@@ -159,6 +161,17 @@
     "finalization_run_id": 36303339750,
     "finalization_artifact_id": 10926263845,
     "issue_closed_at": "2026-09-27T07:32:04Z",
-    "production_merge_commit": "33e6a60b5eef5f07fbc23a48e85de9aba413f020"
+    "production_merge_commit": "33e6a60b5eef5f07fbc23a48e85de9aba413f020",
+    "final_release_guard_run_id": 36303514345,
+    "released_at": "2026-09-27T07:34:32Z"
+  },
+  "closure": {
+    "state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "closed_at": "2026-09-27T07:32:04Z",
+    "finalization_run_id": 36303339750,
+    "finalization_artifact_id": 10926263845,
+    "released_at": "2026-09-27T07:34:32Z"
   }
 }
