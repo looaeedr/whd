@@ -11,7 +11,7 @@
   "base_sha": "98a11b89f2a1aa75ea157ca75a9e2a63a0c17abf",
   "head_sha": "2a9a1d71b36b8b412abe77cf7488e8c03a669898",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T07:33:57.058385Z",
+  "last_update": "2026-09-27T07:35:52.267391Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue822-governance-required-check-main-20260927"
@@ -23,7 +23,7 @@
     "status": "COMPLETED",
     "conclusion": "success"
   },
-  "next_action": "Advance #822 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING with fresh Guard; mint trusted finalization proof; close/read back Issue #822; then RELEASE_HANDOFF_PENDING -> CLOSED + RELEASED.",
+  "next_action": "Run trusted bound finalization proof for #822 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #822, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-822.json",
   "evidence": [
@@ -56,18 +56,19 @@
     "Production four-artifact governance blob parity exact across main@123fcd13 and cleanup@497c5e14.",
     "Post-integration live parity GREEN: main push run 36302477154; cleanup rerun 36302430095 job 108572697706.",
     "Child #823 terminal readback: Issue closed/completed; claim=RELEASED blob 104bff05; checkpoint=TERMINAL_SUCCESS/CLOSED blob cecf35ef.",
-    "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition."
+    "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition.",
+    "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36303484248,
-    "request_comment_id": 5853842397,
-    "result_comment_id": 5853844107,
+    "run_id": 36303583559,
+    "request_comment_id": 5853856118,
+    "result_comment_id": 5853857820,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #822 TERMINAL_SUCCESS + FINALIZATION_PENDING"
+    "mutation": "advance #822 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "delegated_work": []
 }

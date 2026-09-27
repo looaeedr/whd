@@ -25,13 +25,14 @@
     "Canonical merge-sync head 2a9a1d71 reconciled after Guard 36302261117.",
     "PR #824/#825 merged to cleanup/main; required rulesets strict; production governance parity exact.",
     "Child #823 terminal CLOSED + RELEASED readback complete.",
-    "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition."
+    "Remote Guard 36303484248 GREEN authorizes #822 terminal acceptance transition.",
+    "Remote Guard 36303583559 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING with fresh Guard; mint trusted bound finalization proof for #822; close/read back Issue; then persist RELEASE_HANDOFF_PENDING -> CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted bound finalization proof for #822 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #822, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED."
 }
