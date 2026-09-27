@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
@@ -34,17 +34,33 @@ def classify(receipts, expected, *, expected_action="write"):
         expected_action=expected_action,
     )
 
-def test_issue774_different_historical_scope_does_not_contaminate_current_pair():
+def test_issue774_different_consumed_historical_scope_does_not_contaminate_current_pair():
     old_checkpoint=receipt(1,(CP,))
     current_pair=receipt(2,(CLAIM,CP))
-    decision=classify([old_checkpoint,current_pair],(CLAIM,CP))
+    decision=guard.classify_guard_transaction(
+        receipts=[old_checkpoint,current_pair],
+        current_issue=ISSUE,current_worker=WORKER,current_executor_source="chat",
+        current_branch=BRANCH,current_claim_head_sha=H,live_branch_head_sha=H,
+        current_claim_blob_sha=BLOB,
+        now=datetime.fromisoformat("2026-09-26T23:10:00+00:00"),
+        durable_readbacks=[_readback(old_checkpoint)],
+        expected_changed_files=(CLAIM,CP),expected_action="write",
+    )
     assert decision.state is guard.GuardTransactionState.PENDING
     assert decision.guard_run_ids == (2,)
 
-def test_issue774_checkpoint_scope_can_select_checkpoint_transaction():
+def test_issue774_consumed_pair_scope_does_not_block_current_checkpoint_transaction():
     checkpoint=receipt(3,(CP,))
     pair=receipt(4,(CLAIM,CP))
-    decision=classify([checkpoint,pair],(CP,))
+    decision=guard.classify_guard_transaction(
+        receipts=[checkpoint,pair],
+        current_issue=ISSUE,current_worker=WORKER,current_executor_source="chat",
+        current_branch=BRANCH,current_claim_head_sha=H,live_branch_head_sha=H,
+        current_claim_blob_sha=BLOB,
+        now=datetime.fromisoformat("2026-09-26T23:10:00+00:00"),
+        durable_readbacks=[_readback(pair)],
+        expected_changed_files=(CP,),expected_action="write",
+    )
     assert decision.state is guard.GuardTransactionState.PENDING
     assert decision.guard_run_ids == (3,)
 
@@ -80,3 +96,48 @@ def test_issue774_same_action_scope_mismatch_still_fails_closed():
 def test_issue774_trusted_workflow_passes_current_action():
     text=(Path(__file__).resolve().parents[2]/".github/workflows/whd-remote-execution-guard.yml").read_text(encoding="utf-8")
     assert 'expected_action=os.environ["RG_ACTION"]' in text
+
+def _readback(receipt, *, reconciled=True):
+    return {
+        "guard_run_id": receipt["run_id"],
+        "request_comment_id": receipt["request_comment_id"],
+        "action": receipt["action"],
+        "branch": receipt["branch"],
+        "head_sha": receipt["head_sha"],
+        "tested_target_sha": receipt["tested_target_sha"],
+        "changed_files": receipt["changed_files"],
+        "coord_commit_sha": str(receipt["run_id"]).zfill(40)[-40:],
+        "committed_at": "2026-09-26T23:00:00Z",
+        "mutation_applied": True,
+        "target_changed": True,
+        "reconciled": reconciled,
+    }
+
+def test_issue774_consumed_same_action_different_scope_does_not_block_new_scope():
+    old_a=receipt(11,(CP,),action="write")
+    old_b=receipt(12,(CP,),action="write")
+    decision=guard.classify_guard_transaction(
+        receipts=[old_a,old_b],
+        current_issue=ISSUE,current_worker=WORKER,current_executor_source="chat",
+        current_branch=BRANCH,current_claim_head_sha=H,live_branch_head_sha=H,
+        current_claim_blob_sha=BLOB,
+        now=datetime.fromisoformat("2026-09-26T23:56:00+00:00"),
+        durable_readbacks=[_readback(old_a),_readback(old_b)],
+        expected_changed_files=(CLAIM,CP),
+        expected_action="write",
+    )
+    assert decision.state is guard.GuardTransactionState.NONE
+
+def test_issue774_unconsumed_same_action_different_scope_still_fails_closed():
+    old=receipt(13,(CP,),action="write")
+    decision=guard.classify_guard_transaction(
+        receipts=[old],
+        current_issue=ISSUE,current_worker=WORKER,current_executor_source="chat",
+        current_branch=BRANCH,current_claim_head_sha=H,live_branch_head_sha=H,
+        current_claim_blob_sha=BLOB,
+        now=datetime.fromisoformat("2026-09-26T23:56:00+00:00"),
+        durable_readbacks=[],
+        expected_changed_files=(CLAIM,CP),
+        expected_action="write",
+    )
+    assert decision.state is guard.GuardTransactionState.AMBIGUOUS

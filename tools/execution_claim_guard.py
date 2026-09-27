@@ -608,18 +608,65 @@ def classify_guard_transaction(
     ]
     if not action_green:
         return GuardTransactionDecision(GuardTransactionState.NONE)
-    green = [
-        item
-        for item in action_green
-        if expected_scope is None or _guard_tx_files(item) == expected_scope
-    ]
-    if not green:
-        run_ids = tuple(sorted(_guard_tx_run_id(item) for item in action_green))
+
+    readbacks = tuple(durable_readbacks)
+    current_green: list[Mapping[str, object]] = []
+    historical_green: list[Mapping[str, object]] = []
+    for receipt in action_green:
+        if _guard_tx_identity_matches(
+            receipt,
+            current_issue=current_issue,
+            current_worker=current_worker,
+            current_executor_source=current_executor_source,
+            current_branch=current_branch,
+            current_claim_head_sha=current_claim_head_sha,
+            current_claim_blob_sha=current_claim_blob_sha,
+            expected_changed_files=expected_changed_files,
+        ):
+            current_green.append(receipt)
+        else:
+            historical_green.append(receipt)
+
+    unresolved_historical_runs: list[int] = []
+    try:
+        for receipt in historical_green:
+            run_id = _guard_tx_run_id(receipt)
+            readback = _guard_tx_readback_for(receipt, readbacks)
+            consumed = (
+                readback is not None
+                and _guard_tx_readback_proves_mutation(
+                    receipt,
+                    readback,
+                    live_branch_head_sha=live_branch_head_sha,
+                )
+                and readback.get("reconciled") is True
+            )
+            if not consumed:
+                unresolved_historical_runs.append(run_id)
+    except ExecutionClaimError:
+        unresolved_historical_runs = [
+            _guard_tx_run_id(item) for item in historical_green
+        ]
+
+    if unresolved_historical_runs:
         return GuardTransactionDecision(
             GuardTransactionState.AMBIGUOUS,
-            guard_run_ids=run_ids,
+            guard_run_ids=tuple(sorted(set(unresolved_historical_runs))),
             required_next_action="FAIL_CLOSED",
-            reason="GREEN Guard receipts for current action exist but none match expected changed-file scope",
+            reason=(
+                "historical GREEN Guard transaction differs from the current exact "
+                "mutation identity and is not durably consumed"
+            ),
+        )
+
+    green = current_green
+    if not green:
+        return GuardTransactionDecision(
+            GuardTransactionState.NONE,
+            reason=(
+                "no current exact GREEN Guard transaction; all historical same-action "
+                "transactions are durably consumed"
+            ),
         )
 
     members: list[
@@ -693,7 +740,6 @@ def classify_guard_transaction(
             reason="Guard receipt/current ownership identity cannot be paired exactly",
         )
 
-    readbacks = tuple(durable_readbacks)
     proven: list[
         tuple[Mapping[str, object], Mapping[str, object], datetime, int]
     ] = []
