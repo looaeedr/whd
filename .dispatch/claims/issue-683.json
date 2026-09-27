@@ -9,22 +9,23 @@
   "work_branch": "work/issue683-ha-transport-projection-20260927",
   "claimed_at": "2026-09-27T08:32:00Z",
   "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
-  "head_sha": "4f2c5cf10580ee27aa680d29f073bb1472c52e42",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-27T10:06:00Z",
+  "head_sha": "f391641a7ca58b25b44eabbaef202b25942b77b9",
+  "phase": "GREEN",
+  "last_update": "2026-09-27T10:09:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36311369667,
-    "job_id": 108597820777,
-    "head_sha": "4f2c5cf10580ee27aa680d29f073bb1472c52e42",
+    "run_id": 36311528696,
+    "job_id": 108598281168,
+    "head_sha": "f391641a7ca58b25b44eabbaef202b25942b77b9",
     "status": "completed",
-    "conclusion": "failure",
-    "summary": "Collection failure at line 137: trailing literal backslash-n remains after the first syntax repair."
+    "conclusion": "success",
+    "pytest": "8 passed / 0 failed in 0.38s",
+    "marker": "ISSUE683_WRITEBACK_GREEN"
   },
-  "next_action": "Under a fresh test-only commit Guard, remove the single trailing literal backslash-n line at line 137 of tests/process/test_issue683_ha_transport_projection.py. Push non-force, lock the exact #683 QA run, and require all 8 tests GREEN.",
+  "next_action": "Delete the one-shot .github/workflows/qa-issue683-ha-transport-projection.yml under a fresh commit Guard, then prove tested-head→closing-head drift is workflow-deletion only, reconcile closing HEAD, and prepare non-force integration to cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-683.json",
   "evidence": [
@@ -59,17 +60,20 @@
     "Writeback failure pair reconciliation Guard 36307756424 GREEN / REMOTE_GUARD_RECONCILE_ONLY; request 5854406403, result 5854407885.",
     "Test-only repair commit 4f2c5cf10580ee27aa680d29f073bb1472c52e42 consumed Guard 36311315647.",
     "Exact QA 36311369667 / job 108597820777 failed collection at line 137 on one remaining literal backslash-n.",
-    "Post-commit/failure reconciliation Guard 36311397490 GREEN."
+    "Post-commit/failure reconciliation Guard 36311397490 GREEN.",
+    "Second test-only syntax repair commit f391641a7ca58b25b44eabbaef202b25942b77b9 consumed Guard 36311481138.",
+    "Exact QA 36311528696 / job 108598281168 GREEN: 8 passed / 0 failed in 0.38s.",
+    "GREEN reconciliation Guard 36311571037."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36311397490,
-    "request_comment_id": 5854894694,
-    "result_comment_id": 5854895907,
+    "run_id": 36311571037,
+    "request_comment_id": 5854914467,
+    "result_comment_id": 5854915845,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #683 to first newline-repair head and exact QA failure"
+    "mutation": "reconcile #683 to accepted writeback head and exact 8/8 GREEN QA"
   }
 }
