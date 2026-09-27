@@ -298,3 +298,22 @@ Canonical order:
 6. only abnormal outage with no planned handoff and no active exact run may proceed to stale/orphan takeover evaluation.
 
 The pure policy owner is `tools/stale_claim_takeover.py::evaluate_outage_recovery`. It reuses `tools/local_durability_gate.py::LocalDurabilityState`; do not create a second outage-state taxonomy in prompts, Skills, or runbooks.
+
+
+<!-- ISSUE865_VALIDATED_END_AND_REMOTE_PREFLIGHT_V1 -->
+## 18. Validated scheduler END + GitHub-only Phase6 Preflight
+
+Scheduler runtime END 採 two-step machine binding：
+
+1. owner-authored `WHD_SCHEDULER_RUNTIME_END_V1` 必須 exact 綁 turn-exit request/result、claim blob、branch/HEAD、checkpoint fingerprint、turn-exit run 與 READY_WORK_CENSUS fingerprint；
+2. trusted `whd-turn-exit-gate.yml` 驗證後發布 `WHD_SCHEDULER_RUNTIME_END_RESULT_V1`；
+3. 只有 bot-authored validation result `GREEN / EXACT_TURN_EXIT_RECEIPT_BOUND` 才能讓 `scheduler_runtime_liveness.py` 將 invocation 標成 `ENDED`；
+4. raw END、validator RED、或 validation receipt 缺失都不能縮短 300 秒 mutex，也不能被解讀成 recurring terminal。
+
+GitHub-only runtime 若無 host shell，不得因此把 mandatory Phase6 Knowledge Preflight 變成 capability blocker。固定 transport 為 `.github/workflows/whd-phase6-preflight.yml`：
+
+- owner-authored `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`；
+- exact issue/worker/executor_source/branch/HEAD/full task text/changed-file identity；
+- workflow只有 `contents: read` + `issues: write`，不接受 arbitrary command；
+- trusted runner checkout exact HEAD，執行 canonical `tools/phase6_skill_preflight.py`，驗證 required Skill/reference 均存在並讀取，發布 machine result；
+- caller 取得 GREEN receipt 後仍須 fresh-read receipt列出的每個 Skill/reference，並依 AGENTS.md 留下自己的 READ evidence，才能開始 substantive analysis/write。
