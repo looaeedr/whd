@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "827",
+  "branch": "governance/issue827-terminal-chain-metadata-repair-main-20260927",
+  "head_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
+  "state": "RUNNING",
+  "next_action": "Obtain branch-create Guard and create governance/issue827-terminal-chain-metadata-repair-main-20260927 at exact main base aadf248f9b96e1e0a465817f870966db9cf97114. Then RED-test the missing narrow terminal chain-metadata repair, implement canonical continuity + trusted Claim Activation transport, run focused regression, and prepare exact governance mirror counterpart for cleanup/2d-3d-sync after #822/#823 merge-time gate is current.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Helper #827 exists only to repair #696 malformed terminal chain metadata through a canonical trusted transport.",
+    "Trusted base main@aadf248f9b96e1e0a465817f870966db9cf97114.",
+    "No repository mutation before branch-create Guard."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
