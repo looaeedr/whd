@@ -156,3 +156,17 @@ Any identity drift, unverifiable readiness, or failed post-CAS owner readback is
 - Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+<!-- WHD_UNEXPECTED_OUTAGE_RECOVERY_V1 -->
+## Unexpected local outage / replay-safe recovery
+
+Unexpected PC loss / local runtime disappearance 與 planned handoff 必須永久分流：
+
+1. fresh-read exact claim/checkpoint/branch/remote run；只有 GitHub durable evidence可作 resume authority。
+2. 若存在 verified planned handoff，直接沿 handoff owner + exact checkpoint/`next_action` resume；不得 fallback 到 stale takeover。
+3. 若 exact remote run 仍 active，視為 absolute lock：只 poll/reconcile 該 run，不 takeover、不 duplicate mutation。
+4. 若 local truth 不可取得，或最後已知 local state 是 `LOCAL_UNPUSHED` / dirty / conflict / mutation-in-progress，必須回 `LOCAL_UNPERSISTED_STATE_UNKNOWN`；remote clean 不代表 local-only state 已 recovered。
+5. 外部 mutation outcome 無法證明時，先分類 `UNKNOWN_MUTATION_OUTCOME`。non-idempotent mutation 固定走 **reconcile-before-replay**；在 fresh readback/reconciliation 證明 outcome 前一律禁止 replay。
+6. 只有 abnormal outage 且不存在 planned-handoff / active-run lock，才可再進 canonical stale/orphan takeover evaluator。
+
+Machine owner：`tools/stale_claim_takeover.py::evaluate_outage_recovery`。Local vocabulary owner仍是 `tools/local_durability_gate.py::LocalDurabilityState`；本文件不得建立平行 classifier。
