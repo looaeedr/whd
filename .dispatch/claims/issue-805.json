@@ -1,0 +1,40 @@
+{
+  "issue": 805,
+  "issue_url": "https://github.com/looaeedr/whd/issues/805",
+  "worker": "chatgpt.work1.260927.805.1",
+  "executor_source": "chat",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.work1.issue805.20260927a",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "parity/issue805-takeover-parser-cleanup-20260927",
+  "claimed_at": "2026-09-27T03:35:00Z",
+  "base_sha": "1ca0026408fe0246d14c73479b147882a1f4d2ed",
+  "head_sha": "1ca0026408fe0246d14c73479b147882a1f4d2ed",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T03:35:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "worker.slot.1",
+  "slot_binding": {
+    "schema": "WHD_WORK_SLOT_BINDING_V1",
+    "slot_id": "worker.slot.1",
+    "command": "execute non-overlapping parity batch #805",
+    "execution_authority": "EXECUTE_TICKET",
+    "bound_at": "2026-09-27T03:35:00Z",
+    "binding_scope": "issue-805-only"
+  },
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain one exact branch-create Guard for parity/issue805-takeover-parser-cleanup-20260927 at cleanup/2d-3d-sync@1ca0026408fe0246d14c73479b147882a1f4d2ed, create/read back the branch, run Phase6 planned-scope Preflight, then port only the #793/#722 takeover parser capability and regression test as compatible-equivalent parity.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-805.json",
+  "evidence": [
+    "TASK_START_AUTHORITY_DECLARATION_V1: user explicitly directed execution of another non-overlapping main→cleanup parity batch while #803 is active.",
+    "execution_intent=EXECUTE_TICKET",
+    "purpose=port accepted #793/#722 trusted interactive takeover transport parity to cleanup/2d-3d-sync",
+    "authorized_scope=.github/workflows/whd-remote-execution-guard.yml + tests/process/test_issue722_trusted_interactive_takeover_transport.py only",
+    "must_not_overlap=#803 exact four artifacts",
+    "frozen_cleanup_base=1ca0026408fe0246d14c73479b147882a1f4d2ed",
+    "trusted_main_source=5684094f09317d7db52873aba9f82a1b378436b3",
+    "work_slot=worker.slot.1; previous #793 binding is closed/released"
+  ]
+}
