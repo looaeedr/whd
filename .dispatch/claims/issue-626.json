@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T21:57:30Z",
   "base_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
   "head_sha": "ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6",
-  "phase": "GREEN",
-  "last_update": "2026-09-26T23:09:45Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T00:11:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "216269197d6956c2bd125bede5a6d76cc1fe395b",
@@ -36,7 +36,7 @@
     "conclusion": "success",
     "artifact_id": 10916659077
   },
-  "next_action": "Fresh-read cleanup/2d-3d-sync, obtain exact pr-write Guard for closing head ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6, perform non-force integration, production readback of accepted Phase 7 owner/code/AI-Library state, then enter A9 terminal closure.",
+  "next_action": "Run trusted finalization bound to exact #626 terminal checkpoint, close/read back #626, atomically persist #626 CLOSED + RELEASED with CHAIN_COMPLETE, then close/read back Master #627.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-626.json",
   "evidence": [
@@ -73,6 +73,9 @@
     "Reconciliation Guard 36278425013 GREEN / REMOTE_GUARD_RECONCILE_ONLY for exact live head 02562d24639032bb38c4837fc412d3aa45098024.",
     "Disposable #626 QA workflows removed in closing commit ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 under Guard 36278486958 GREEN.",
     "Tested→closing compare 77429fa487166e0598c2f00e4d5ff1fa2d837219..ad1373cebbbb34fd1859c12b60af8f3a9ed39cb6 contains exactly four accepted CURRENT authority writebacks plus removal of three #626 one-shot QA workflows; no production/test-code drift.",
-    "Closing-head reconciliation Guard 36278548074 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Closing-head reconciliation Guard 36278548074 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "PR #777 merged non-force into cleanup/2d-3d-sync as de2cd252a5494ff812c590c04380e69176ea7d56.",
+    "WHD_PHASE7_PRODUCTION_READBACK_V1 comment 5851138037 result=ACCEPTED; combined regression SUCCESS; core owner blob readback PASS_7_OF_7_EXACT; authority_drift=0.",
+    "Terminalization write Guard 36281710706 GREEN on trusted main 646968f0e0945707d4a87b6b57de769c5a474bb1."
   ]
 }
