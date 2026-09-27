@@ -1,0 +1,50 @@
+name: WHD｜#769｜終止硬閘門遠端驗收
+run-name: "WHD｜#769｜READY_WORK_CENSUS 遠端驗收｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - governance/issue769-terminal-scheduler-census-hard-gate-20260927
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "#769｜READY_WORK_CENSUS focused 驗收"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "簽出 #769 驗收版本"
+        uses: actions/checkout@v4
+
+      - name: "設定 Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: "安裝 focused 驗收依賴"
+        run: python -m pip install pytest pyyaml
+
+      - name: "執行 continuity 與 turn-exit focused 驗收"
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue769_terminal_scheduler_census_exit_gate.py
+          tests/process/test_issue691_turn_exit_scheduler_end_parity.py
+          tests/process/test_continuity_controller.py
+          tests/process/test_issue321_turn_exit_enforcement.py
+          tests/process/test_issue699_turn_exit_poweroff_issue_close_recovery.py
+          tests/process/test_issue762_successor_continuation_regression.py
+          tests/process/test_scheduler_no_work_census_contract.py
+
+      - name: "寫入遠端驗收摘要"
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## #769 READY_WORK_CENSUS 遠端驗收"
+            echo ""
+            echo "- head: `${GITHUB_SHA}`"
+            echo "- branch: `${GITHUB_REF_NAME}`"
+            echo "- run: `${GITHUB_RUN_ID}`"
+          } >> "$GITHUB_STEP_SUMMARY"
