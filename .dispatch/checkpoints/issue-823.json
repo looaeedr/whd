@@ -3,8 +3,8 @@
   "issue": "823",
   "branch": "governance/issue823-main-governance-required-check-20260927",
   "head_sha": "685bcef079de54b3f27ba9958524b3c22eb40a00",
-  "state": "RUNNING",
-  "next_action": "obtain pr-write Guard and open main-side PR; pair with cleanup-side #822 PR using reciprocal WHD-Governance-Mirror-Pair markers; prove both Governance Mirror Hard Gate checks GREEN",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,13 +15,15 @@
     "Main frozen base aadf248f9b96e1e0a465817f870966db9cf97114.",
     "Source governance closing head e778240364dc20ec4398cf576d286d7525db7e53.",
     "No cleanup lineage may enter main.",
-    "Main mirror head 685bcef0: exact four governed blobs; direct child of main@aadf248f."
+    "Main mirror head 685bcef0: exact four governed blobs; direct child of main@aadf248f.",
+    "PR #825 merged main@123fcd13; paired #824 merged cleanup@497c5e14.",
+    "Required rulesets active and final live parity GREEN on both production refs."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING with fresh Guard; then mint trusted bound finalization proof for #823, close/read back Issue, advance RELEASE_HANDOFF_PENDING, persist CLOSED + RELEASED."
 }
