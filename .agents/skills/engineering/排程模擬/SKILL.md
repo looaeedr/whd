@@ -482,6 +482,26 @@ target_lane=B -> to_worker=scheduler.e58ea936e7d0b12bd0d475314709d6f1
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
 
+## SUBSTANTIVE_DURABLE_PROGRESS_HARD_GATE_V1
+
+任何 recurring scheduler invocation fresh-reconstruct 後，只要存在 same-lane executable state，就必須把「本輪真的有 durable 施工」當成 turn-exit 必要條件，而不是把讀到 next_action / 回報狀態視為完成。
+
+same-lane executable state 至少包含：
+- `claim.worker == lane_owner` 且 checkpoint non-terminal、`next_action` 非空；
+- `closure_state` / `closure_next_action` 顯示 closure/finalization 尚未完成；
+- current exact Guard/finalization transaction 尚待 terminal/consume/reconcile；
+- canonical Master/chain successor 已可接；
+- 其他 live authority 明確給出的 executable continuation。
+
+固定規則：
+1. 若存在上述 executable state，本 invocation return 前必須 fresh-read 到至少一個**本 invocation 新產生且可反讀的 substantive durable GitHub effect**。合法例子：Guard terminal 後已 consume 的 claim/checkpoint CAS、branch/commit/PR mutation、QA dispatch + terminal consume、closure/finalization state advance、successor claim 並完成 first executable action。
+2. 單純 fresh-read、分析、user-visible progress/CHECKPOINT、重述 next_action、建立尚未 terminal 的 Guard request、或只看到既有舊 evidence，**都不算 substantive durable progress**。
+3. 若 canonical action 已發 request 且 transaction in-flight，依 `GUARD_REQUEST_IN_FLIGHT_CONTINUITY_V1` / finalization continuity 鎖 exact transaction 到 terminal，不能用「本輪已有 comment」提前 return。
+4. 若 canonical execution 被 GitHub capability / authority / platform safety blocker 阻擋，必須先 durable 保存 exact blocker evidence、exact attempted action、exact next_action；然後輸出 `SCHEDULER_EXECUTION_FAILURE`。這只結束本 invocation，不得 disable/pause/delete/complete/reschedule recurring entrypoint。
+5. 若 executable state 仍存在、但本 invocation 沒有 substantive durable effect，且也沒有 fresh durable blocker evidence，turn-exit 固定 fail closed：**不得正常 return，必須繼續 exact next_action**。
+6. `NO_EXECUTABLE_WORK` 只可在完整 census 證明不存在 same-lane continuation、in-flight transaction、closure/finalization pending、canonical successor或 MUST_CLAIM candidate 時成立。
+7. 本 gate 與 `FAILURE_PATH_RECURRING_SURVIVAL_HARD_GATE_V1` 疊加：即使 invocation failure 合法 return，recurring lifecycle 仍固定 KEEP_ENABLED。
+
 ## FAILURE_PATH_RECURRING_SURVIVAL_HARD_GATE_V1
 
 任何 recurring scheduler invocation 的 failure / blocker 都只屬於「本 invocation 的執行結果」，**永遠不代表 recurring automation terminal**。
