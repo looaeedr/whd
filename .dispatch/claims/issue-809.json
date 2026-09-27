@@ -11,7 +11,7 @@
   "base_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "head_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "phase": "CLAIMED",
-  "last_update": "2026-09-27T04:20:00Z",
+  "last_update": "2026-09-27T04:22:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "slot_id": "worker.slot.1",
   "slot_binding": {
@@ -24,7 +24,7 @@
   },
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain one exact branch-create Guard for parity/issue809-remote-guard-contract-cleanup-20260927 at cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2, create/read back the branch, run Phase6 planned-scope Preflight, then replace only tests/process/test_issue540_main_remote_guard_contract.py with the accepted main contract blob.",
+  "next_action": "Run Phase6 planned-scope Preflight for the single authorized #809 test artifact, then obtain one exact commit Guard and replace tests/process/test_issue540_main_remote_guard_contract.py with accepted main blob c9e15498b085cf2017da121078fc793da32a58b2. Run focused GREEN and verify effective delta is exactly one file.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-809.json",
   "evidence": [
@@ -36,6 +36,16 @@
     "trusted_main_source=5684094f09317d7db52873aba9f82a1b378436b3",
     "accepted_main_test_blob=c9e15498b085cf2017da121078fc793da32a58b2",
     "fresh cleanup RED=1 failed / 5 passed because scheduler-only contract contradicts deployed workflow",
-    "work_slot=worker.slot.1; previous #805 binding is RELEASED + TERMINAL_SUCCESS/CLOSED"
-  ]
+    "work_slot=worker.slot.1; previous #805 binding is RELEASED + TERMINAL_SUCCESS/CLOSED",
+    "Branch-create Guard run 36294050459 GREEN; branch readback exact at frozen cleanup base cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
+    "Trusted-main local execution_claim_guard GREEN authorizes branch-create consumption pair write."
+  ],
+  "last_guard": {
+    "action": "write",
+    "mode": "local",
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "consume #809 branch-create readback and advance to planned-scope Preflight"
+  }
 }

@@ -4,7 +4,7 @@
   "branch": "parity/issue809-remote-guard-contract-cleanup-20260927",
   "head_sha": "cfbcaa1b4e50e117d8a3e1a738606814f48325d2",
   "state": "RUNNING",
-  "next_action": "Obtain one exact branch-create Guard for parity/issue809-remote-guard-contract-cleanup-20260927 at cleanup/2d-3d-sync@cfbcaa1b4e50e117d8a3e1a738606814f48325d2, create/read back the branch, run Phase6 planned-scope Preflight, then replace only tests/process/test_issue540_main_remote_guard_contract.py with the accepted main contract blob.",
+  "next_action": "Run Phase6 planned-scope Preflight for the single authorized #809 test artifact, then obtain one exact commit Guard and replace tests/process/test_issue540_main_remote_guard_contract.py with accepted main blob c9e15498b085cf2017da121078fc793da32a58b2. Run focused GREEN and verify effective delta is exactly one file.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,9 @@
   "evidence": [
     "User-authorized independent parity batch; exact scope is one test file.",
     "Frozen cleanup base cfbcaa1b4e50e117d8a3e1a738606814f48325d2.",
-    "Branch creation and all mutations remain Guard-gated."
+    "Branch creation and all mutations remain Guard-gated.",
+    "Branch-create Guard 36294050459 GREEN; branch exists/readback exact at frozen cleanup base.",
+    "Local pair write Guard GREEN; advance to planned-scope Preflight."
   ],
   "master_issue": null,
   "chain_state": "NONE",
