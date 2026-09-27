@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "701",
+  "branch": "work/issue701-scheduler-state-reconciliation-20260927",
+  "head_sha": "03da7a28d0aa04fae85fd9a92f13c0a8129af83e",
+  "state": "RUNNING",
+  "next_action": "Obtain one exact Remote Execution Guard GREEN for branch-create, create/read back work/issue701-scheduler-state-reconciliation-20260927 at accepted A2 lineage base 03da7a28d0aa04fae85fd9a92f13c0a8129af83e, then run changed-file Phase6 Preflight and establish RED-STOP-24 before implementation.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User-authorized continuation selected #701 after fresh ready-work census.",
+    "#696 and #697 are accepted pending #702 chain closure; #701 dependency gate is therefore executable.",
+    "Exact accepted A2 lineage base is 03da7a28d0aa04fae85fd9a92f13c0a8129af83e.",
+    "Current X is observation/integration target only and does not replace accepted task lineage."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
