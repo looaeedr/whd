@@ -17,13 +17,14 @@
     "No cleanup lineage may enter main.",
     "Main mirror head 685bcef0: exact four governed blobs; direct child of main@aadf248f.",
     "PR #825 merged main@123fcd13; paired #824 merged cleanup@497c5e14.",
-    "Required rulesets active and final live parity GREEN on both production refs."
+    "Required rulesets active and final live parity GREEN on both production refs.",
+    "Remote Guard 36302752037 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING with fresh Guard; then mint trusted bound finalization proof for #823, close/read back Issue, advance RELEASE_HANDOFF_PENDING, persist CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted bound finalization proof for #823 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #823, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED."
 }

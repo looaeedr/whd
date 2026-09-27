@@ -11,7 +11,7 @@
   "base_sha": "aadf248f9b96e1e0a465817f870966db9cf97114",
   "head_sha": "685bcef079de54b3f27ba9958524b3c22eb40a00",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T07:16:30Z",
+  "last_update": "2026-09-27T07:19:49.699634Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -21,7 +21,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "Advance #823 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, run trusted bound finalization proof on the exact checkpoint, close/read back Issue #823, then persist RELEASE_HANDOFF_PENDING -> CLOSED + RELEASED.",
+  "next_action": "Run trusted bound finalization proof for #823 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #823, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-823.json",
   "evidence": [
@@ -40,17 +40,19 @@
     "Final paired PR candidate gates GREEN: #824 run 36302245484; #825 run 36302364028.",
     "Both active branch rulesets require Governance Mirror Hard Gate from GitHub Actions integration 15368, strict policy, no bypass.",
     "Production four-artifact blob parity exact across main@123fcd13 and cleanup@497c5e14.",
-    "Post-integration live parity GREEN: main push run 36302477154; cleanup rerun 36302430095 job 108572697706."
+    "Post-integration live parity GREEN: main push run 36302477154; cleanup rerun 36302430095 job 108572697706.",
+    "Remote Guard 36302752037 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
-    "action": "commit",
+    "action": "write",
     "mode": "remote",
-    "run_id": 36301466208,
-    "request_comment_id": 5853556889,
+    "run_id": 36302752037,
+    "request_comment_id": 5853735952,
+    "result_comment_id": 5853738228,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "main mirror commit 685bcef0"
+    "mutation": "advance #823 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "delegated_work": []
 }
