@@ -52,13 +52,15 @@
     "Closure advance Guard run 36293430885 GREEN; closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36293598997 / artifact 10923431017: FINALIZATION_PROOF_VALID.",
     "Issue #769 close/readback: closed/completed.",
-    "Release-handoff Guard run 36293660992 GREEN; closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Release-handoff Guard run 36293660992 GREEN; closure advanced ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final atomic pair Guard run 36293758932 GREEN.",
+    "Final coordination mutation atomically persisted checkpoint CLOSED with claim RELEASED; chain_state=NONE."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
