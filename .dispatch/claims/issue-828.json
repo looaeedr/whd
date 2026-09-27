@@ -11,11 +11,11 @@
   "base_sha": "123fcd139762a7e36eaf110a8ce19a18cc177fb5",
   "head_sha": "6b5c5f368633e38bc66a3077228e25f81871c4fe",
   "phase": "CLOSING",
-  "last_update": "2026-09-27T09:00:04Z",
+  "last_update": "2026-09-27T09:01:26Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
-  "next_action": "Advance #828 canonical closure: FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING -> trusted Remote Finalization -> close/readback -> RELEASE_HANDOFF_PENDING -> atomic CLOSED+RELEASED.",
+  "next_action": "Obtain trusted Remote Finalization proof bound to the exact #828 ISSUE_CLOSE_PENDING checkpoint; if GREEN, close/read back Issue #828, advance RELEASE_HANDOFF_PENDING, then atomically persist CLOSED+RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-828.json",
   "evidence": [
@@ -40,7 +40,8 @@
     "Cleanup post-push Governance Mirror Hard Gate run 36306702749 succeeded.",
     "Trusted repair transport was exercised successfully for #702 in run 36306868118, preserving sealed H4 and old drift branch.",
     "Mirror helper #832 terminal proof: Issue closed/completed, claim 0d0a456eb4c81e14a751da6dd2e904371a18ad08 RELEASED, checkpoint 0fe833f2308f93ba1649ab56cf9a19fbe6227ac2 TERMINAL_SUCCESS/CLOSED.",
-    "Terminal transition authorized by Remote Guard 36307943739 GREEN."
+    "Terminal transition authorized by Remote Guard 36307943739 GREEN.",
+    "Closure lifecycle write Guard 36308030198 GREEN for exact #828 terminal pair."
   ],
   "remote_qa": {
     "run_id": 36304109574,
@@ -67,11 +68,11 @@
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36307943739,
-    "request_comment_id": 5854441997,
+    "run_id": 36308030198,
+    "request_comment_id": 5854452646,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #828 terminal finalization"
+    "mutation": "advance #828 FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   }
 }

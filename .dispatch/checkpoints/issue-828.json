@@ -23,13 +23,14 @@
     "Focused #828 acceptance: 12 passed / 0 failed; cleanup mirror hard gate succeeded.",
     "Parent-branch identity repair exercised successfully for #702 in run 36306868118.",
     "Mirror helper #832 is closed/completed + RELEASED + TERMINAL_SUCCESS/CLOSED.",
-    "Terminal transition authorized by Remote Guard 36307943739 GREEN."
+    "Terminal transition authorized by Remote Guard 36307943739 GREEN.",
+    "Closure lifecycle advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under Remote Guard 36308030198."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, obtain bound trusted finalization proof, close/read back Issue #828, then atomically persist CLOSED+RELEASED"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "obtain bound trusted finalization proof, close/read back Issue #828, then advance RELEASE_HANDOFF_PENDING and atomically persist CLOSED + RELEASED"
 }
