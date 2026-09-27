@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "793",
   "branch": "governance/issue793-takeover-parser-regression-20260927",
-  "head_sha": "ab55cbb532d8882e0393cd916bced172943a2831",
+  "head_sha": "e4d4d5a06779db0517648684dcfcbabf0f6a4b0f",
   "state": "RUNNING",
-  "next_action": "Strengthen the durable #722 regression so any literal-backslash newline takeover parser fails, then rerun exact #793 QA on the new head; after GREEN delete temporary QA workflow and proceed to current-main integration.",
+  "next_action": "Narrow the temporary #793 QA transport to the exact #722 parser contract + literal-backslash rejection, rerun on H3, then delete the temporary QA workflow after GREEN and integrate the net parser+regression fix to current main.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,10 @@
     "Pair reconciliation Guard 36286356043 GREEN.",
     "Temporary QA transport H2=ab55cbb532d8882e0393cd916bced172943a2831.",
     "QA run 36286624163: 8 passed / 1 unrelated issue540 string-contract failure; #722 parser tests passed.",
-    "Pair reconciliation Guard 36286636790 GREEN."
+    "Pair reconciliation Guard 36286636790 GREEN.",
+    "H3=e4d4d5a06779db0517648684dcfcbabf0f6a4b0f adds durable literal-backslash parser rejection to #722 regression.",
+    "QA run 36286784431: strengthened #722 contract passed; only unrelated issue540 string assertion failed.",
+    "Pair reconciliation Guard 36286797481 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

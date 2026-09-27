@@ -9,14 +9,14 @@
   "work_branch": "governance/issue793-takeover-parser-regression-20260927",
   "claimed_at": "2026-09-27T01:39:00Z",
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
-  "head_sha": "ab55cbb532d8882e0393cd916bced172943a2831",
+  "head_sha": "e4d4d5a06779db0517648684dcfcbabf0f6a4b0f",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-27T01:49:00Z",
+  "last_update": "2026-09-27T01:52:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Strengthen the durable #722 regression so any literal-backslash newline takeover parser fails, then rerun exact #793 QA on the new head; after GREEN delete temporary QA workflow and proceed to current-main integration.",
+  "next_action": "Narrow the temporary #793 QA transport to the exact #722 parser contract + literal-backslash rejection, rerun on H3, then delete the temporary QA workflow after GREEN and integrate the net parser+regression fix to current main.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-793.json",
   "evidence": [
@@ -31,16 +31,19 @@
     "Post-commit pair reconciliation Guard run 36286356043 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
     "Temporary QA workflow commit ab55cbb532d8882e0393cd916bced172943a2831 created under Guard run 36286520981.",
     "QA run 36286624163 on ab55cbb5: #722 parser regression passed; aggregate run 8 passed / 1 failed because unrelated issue540 exact-string assertion drifted.",
-    "Pair reconciliation Guard run 36286636790 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
+    "Pair reconciliation Guard run 36286636790 GREEN / REMOTE_GUARD_RECONCILE_ONLY.",
+    "Durable regression test commit e4d4d5a06779db0517648684dcfcbabf0f6a4b0f strengthens #722 to reject any literal-backslash newline parser.",
+    "QA run 36286784431 on H3: 8 passed / 1 unrelated issue540 exact-string assertion failure; strengthened #722 regression passed.",
+    "H2->H3 pair reconciliation Guard run 36286797481 GREEN / REMOTE_GUARD_RECONCILE_ONLY."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36286636790,
-    "request_comment_id": 5851738548,
+    "run_id": 36286797481,
+    "request_comment_id": 5851758387,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconcile #793 H1->H2 QA transport"
+    "mutation": "reconcile #793 H2->H3 durable regression"
   }
 }
