@@ -1,0 +1,31 @@
+{
+  "issue": 832,
+  "issue_url": "https://github.com/looaeedr/whd/issues/832",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.schedulerA.832.20260927.cleanup-mirror",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue832-parent-branch-identity-repair-cleanup-20260927",
+  "claimed_at": "2026-09-27T08:25:20Z",
+  "base_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
+  "head_sha": "50c2b157770a90224459e665537dc50c522ff2b8",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-27T08:25:20Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "slot_id": "UNBOUND",
+  "delegated_branches": [],
+  "next_action": "Obtain branch-create Guard for governance/issue832-parent-branch-identity-repair-cleanup-20260927 at cleanup/2d-3d-sync@50c2b157770a90224459e665537dc50c522ff2b8; then copy the six exact #828 governed blobs and open the cleanup-side paired PR.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-832.json",
+  "evidence": [
+    "authorization_source=parent #828 exact helper scope",
+    "execution_intent=UPDATE_ONLY",
+    "purpose=mirror #828 governance-only sealed parent-branch identity repair to cleanup/2d-3d-sync",
+    "authorized_scope=Issue #832 exact six governed blobs + paired PR + parity readback",
+    "prohibited_scope=no product/CAD/Phase changes; no #702 durable repair; no unrelated Issue work",
+    "resume_authority=parent #828 helper issue",
+    "Fresh cleanup base=50c2b157770a90224459e665537dc50c522ff2b8.",
+    "Source #828 candidate=6b5c5f368633e38bc66a3077228e25f81871c4fe; focused acceptance run 36304109574 = 12 passed / 0 failed."
+  ]
+}
