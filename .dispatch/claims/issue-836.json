@@ -6,16 +6,16 @@
   "actual_invocation_source": "chatgpt_interactive",
   "invocation_identity": "chat.issue836.20260927a",
   "conversation_identity": "UNAVAILABLE",
-  "work_branch": "governance/issue836-main-mirror-20260927",
+  "work_branch": "governance/issue836-stop-helper-churn-20260927",
   "claimed_at": "2026-09-27T08:53:00Z",
-  "base_sha": "85aef9c41be3629410c4345ed3d8aa66aa21f214",
-  "head_sha": "7a0f381c93a3010b1e3ef9807abf60935370c92a",
+  "base_sha": "b059ffeade3e8ade105f44a370e20e071a0127a7",
+  "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T09:28:00Z",
-  "production_target": "main",
+  "last_update": "2026-09-27T09:30:15Z",
+  "production_target": "cleanup/2d-3d-sync",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue836-stop-helper-churn-20260927"
+    "governance/issue836-main-mirror-20260927"
   ],
   "remote_qa": {
     "run_id": 36308394162,
@@ -26,7 +26,7 @@
     "pytest": "17 passed / 0 failed in 0.28s",
     "marker": "ISSUE836_FOCUSED_GREEN"
   },
-  "next_action": "Open #836 paired main governance PR from the same owner, with WHD-Governance-Mirror-Pair: #840; then hand authority back to cleanup branch to add the reciprocal marker.",
+  "next_action": "Update PR #840 with reciprocal WHD-Governance-Mirror-Pair: #841, verify cleanup Hard Gate GREEN, then hand authority to mirror branch to re-trigger/verify main Hard Gate.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-836.json",
   "evidence": [
@@ -47,6 +47,8 @@
     "CLEANUP transition authorized by Remote Guard 36308740634.",
     "Same-owner main mirror branch delegated under #836; no parity helper Issue created. Guard 36309200479 GREEN.",
     "Same-owner mirror bridge commit 7a0f381c93a3010b1e3ef9807abf60935370c92a: first parent e1e648d2..., second parent main 85aef9c4..., diff to main only 派工/SKILL.md + tools/stale_claim_takeover.py.",
-    "Primary authority handed from cleanup branch to same-owner mirror branch under Remote Guard 36309402833; cleanup branch retained as delegated."
+    "Primary authority handed from cleanup branch to same-owner mirror branch under Remote Guard 36309402833; cleanup branch retained as delegated.",
+    "Main paired PR #841 created from same #836 owner, governance-only changed_files=2, marker points to #840.",
+    "Primary authority handed back to cleanup branch under Remote Guard 36309549427."
   ]
 }

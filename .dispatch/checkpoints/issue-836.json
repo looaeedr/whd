@@ -1,10 +1,10 @@
 {
   "version": 1,
   "issue": "836",
-  "branch": "governance/issue836-main-mirror-20260927",
-  "head_sha": "7a0f381c93a3010b1e3ef9807abf60935370c92a",
+  "branch": "governance/issue836-stop-helper-churn-20260927",
+  "head_sha": "e1e648d267f749e07893c4ffc5846e12670c6b21",
   "state": "RUNNING",
-  "next_action": "Open #836 paired main governance PR from the same owner, with WHD-Governance-Mirror-Pair: #840; then hand authority back to cleanup branch to add the reciprocal marker.",
+  "next_action": "Update PR #840 with reciprocal WHD-Governance-Mirror-Pair: #841, verify cleanup Hard Gate GREEN, then hand authority to mirror branch to re-trigger/verify main Hard Gate.",
   "run_id": 36308394162,
   "job_id": 108589422963,
   "log_cursor": null,
@@ -25,7 +25,9 @@
     "CLEANUP transition Guard 36308740634 GREEN.",
     "Same-owner delegated main mirror branch authorized under #836; Guard 36309200479 GREEN.",
     "Same-owner mirror bridge 7a0f381c93a3010b1e3ef9807abf60935370c92a has main as second parent and governance-only diff.",
-    "Primary branch handoff Guard 36309402833 GREEN."
+    "Primary branch handoff Guard 36309402833 GREEN.",
+    "Main paired PR #841 created; reciprocal marker still pending on #840.",
+    "Primary handback Guard 36309549427 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
