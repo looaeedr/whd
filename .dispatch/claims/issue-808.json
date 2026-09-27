@@ -9,9 +9,9 @@
   "work_branch": "governance/issue808-scheduler-remote-only-20260927",
   "claimed_at": "2026-09-27T03:55:00Z",
   "base_sha": "8147c4319aa02824bd08ca4fd51491df7342e1a6",
-  "head_sha": "9c4fc6cbe2950ec1c50e5ff234ba391b1e752e34",
+  "head_sha": "5d33d2ed5139ac9ab7f16eca4916f5fd1f0102cd",
   "phase": "GREEN",
-  "last_update": "2026-09-27T04:12:00Z",
+  "last_update": "2026-09-27T04:15:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,7 +22,7 @@
     "conclusion": "success",
     "marker": "SCHEDULER_REMOTE_ONLY_EXECUTION_V1_GREEN"
   },
-  "next_action": "Persist required scheduler-pitfall durable correction for remote-only execution, then remove temporary qa-issue808-scheduler-remote-only.yml under exact Guard; drift-audit tested head to closing head, integrate exact scoped delta to cleanup non-force, fresh-read production, then terminal close/release #808.",
+  "next_action": "Remove the temporary qa-issue808-scheduler-remote-only.yml under exact Remote Guard, then verify tested-head-to-closing-head drift contains only QA deletion; integrate the exact #808 scoped delta to cleanup/2d-3d-sync non-force and terminalize #808.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-808.json",
   "evidence": [
@@ -39,7 +39,10 @@
     "GitHub Actions run 36293405983 failed only on exact provenance token formatting; follow-up Skill-only fix required.",
     "Exact provenance normalization commit 9c4fc6cbe2950ec1c50e5ff234ba391b1e752e34.",
     "GitHub Actions run 36293530173 completed success for tests/process/test_scheduler_simulation_skill_contract.py.",
-    "Post-commit pair reconciliation Guard run 36293573911 GREEN for 69554f87 -> 9c4fc6cb."
+    "Post-commit pair reconciliation Guard run 36293573911 GREEN for 69554f87 -> 9c4fc6cb.",
+    "Scheduler remote-only pitfall durable writeback is present on live work head.",
+    "GitHub Actions run 36293674764 completed success after pitfall writeback.",
+    "Live head includes an empty same-content follow-up commit; reactivation is used only to rebind the same owner/pair to exact live HEAD without replaying mutation."
   ],
   "last_guard": {
     "action": "write",
