@@ -4,7 +4,7 @@
   "branch": "governance/issue790-intervening-claim-blob-reconcile-20260927",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "state": "RUNNING",
-  "next_action": "Create exactly one delegated post-integration hotfix Issue for helper_key issue790-github-blob-base64-hotfix from current trusted main d54f0410dee3c70489c8a2bdebb4b3b7c3564690. Reproduce real GitHub blob base64 line-wrap rejection, patch strict decoder to normalize only ASCII whitespace before validate=True, add regression using wrapped base64, deploy to main, propagate compatible parity to cleanup, terminalize helper, then retry #769 intervening-coord recovery.",
+  "next_action": "Follow active helper #800 (issue790-github-blob-base64-hotfix) through branch-first RED/GREEN, trusted main deployment, cleanup compatible-equivalent parity, and terminal close/release. After #800 terminal proof, terminalize this reservation and retry #769 exact intervening-coord recovery.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -37,7 +37,9 @@
     "Canonical helper reservation transition validated ACTIVE -> TERMINAL.",
     "Guard 36289318019 GREEN; parent resumes exact #769 intervening-coord recovery.",
     "Post-integration consumption on #769 exposed real GitHub blob base64 wrapping incompatibility.",
-    "Canonical helper reservation RESERVED; Guard 36289568911 GREEN."
+    "Canonical helper reservation RESERVED; Guard 36289568911 GREEN.",
+    "Child #800 Claim Activation GREEN; exact child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
+    "Canonical helper reservation activation returned ACTIVE; parent Guard 36289838719 GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",

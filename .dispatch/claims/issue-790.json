@@ -11,7 +11,7 @@
   "base_sha": "646968f0e0945707d4a87b6b57de769c5a474bb1",
   "head_sha": "51a04df8d483f4af64fa9bf6218cd718a251f80d",
   "phase": "RECOVERING",
-  "last_update": "2026-09-27T02:49:00Z",
+  "last_update": "2026-09-27T02:55:00Z",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -23,7 +23,7 @@
     "passed": 60,
     "failed": 0
   },
-  "next_action": "Create exactly one delegated post-integration hotfix Issue for helper_key issue790-github-blob-base64-hotfix from current trusted main d54f0410dee3c70489c8a2bdebb4b3b7c3564690. Reproduce real GitHub blob base64 line-wrap rejection, patch strict decoder to normalize only ASCII whitespace before validate=True, add regression using wrapped base64, deploy to main, propagate compatible parity to cleanup, terminalize helper, then retry #769 intervening-coord recovery.",
+  "next_action": "Follow active helper #800 (issue790-github-blob-base64-hotfix) through branch-first RED/GREEN, trusted main deployment, cleanup compatible-equivalent parity, and terminal close/release. After #800 terminal proof, terminalize this reservation and retry #769 exact intervening-coord recovery.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-790.json",
   "evidence": [
@@ -68,17 +68,20 @@
     "Root cause: GitHub git/blob API base64 transport may contain line wrapping; #790 decoder currently calls b64decode(..., validate=True) without normalizing transport whitespace.",
     "No existing open hotfix owner found for this exact defect.",
     "Canonical reserve_helper_creation() returned RESERVED for helper_key issue790-github-blob-base64-hotfix token issue790-github-blob-base64-hotfix-20260927a.",
-    "Reservation pair-write Guard run 36289568911 GREEN."
+    "Reservation pair-write Guard run 36289568911 GREEN.",
+    "Helper #800 fresh-create Claim Activation GREEN at coord 29b462b3b9ea591fbdede3709eb52890c25a5ff6; child claim blob 46318b606001ba1f6b773ace4cbfd7d974c64457.",
+    "Canonical activate_helper_reservation() returned ACTIVE for helper_key issue790-github-blob-base64-hotfix -> child #800.",
+    "Activation parent pair Guard run 36289838719 GREEN."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36289568911,
-    "request_comment_id": 5852073807,
+    "run_id": 36289838719,
+    "request_comment_id": 5852104575,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reserve unique #790 post-integration base64 hotfix helper"
+    "mutation": "activate #790 delegated base64 hotfix helper #800"
   },
   "delegated_work": [
     {
@@ -94,12 +97,12 @@
     {
       "relationship": "helper",
       "helper_key": "issue790-github-blob-base64-hotfix",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.sol260927.issue790.dep769.1",
       "reservation_token": "issue790-github-blob-base64-hotfix-20260927a",
       "reserved_at": "2026-09-27T02:47:45Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 800,
+      "child_claim_blob_sha": "46318b606001ba1f6b773ace4cbfd7d974c64457"
     }
   ]
 }
