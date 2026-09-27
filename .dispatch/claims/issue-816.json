@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-27T05:03:00Z",
   "base_sha": "82ae127615157528b3de12cd4bc3c01127d3fafd",
   "head_sha": "9625fd08693a2c535e70dee2e3850a76cb8ecfd0",
-  "phase": "GREEN",
-  "last_update": "2026-09-27T06:07:33.333648Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-27T06:11:14.244268Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
     "governance/issue816-bidirectional-governance-mirror-main-20260927"
@@ -23,7 +23,7 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "mirror latest cleanup 排程模擬 governance blob to #818, verify paired PR checks/parity, then merge with fresh pr-write authority",
+  "next_action": "Run trusted bound finalization proof for #816 on this exact ISSUE_CLOSE_PENDING checkpoint; only after proof GREEN close/read back Issue #816, then advance RELEASE_HANDOFF_PENDING and persist CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-816.json",
   "evidence": [
@@ -56,18 +56,19 @@
     "Paired PR #820 merged governance-only mirror to main as aadf248f9b96e1e0a465817f870966db9cf97114.",
     "Production push Governance Mirror Hard Gate: cleanup run 36298990616 GREEN; main run 36298994158 GREEN.",
     "Production governed snapshot: BIDIRECTIONAL_MIRROR, 48 artifacts, 0 mismatches.",
-    "Terminal acceptance pair-write Guard 36299173209 GREEN."
+    "Terminal acceptance pair-write Guard 36299173209 GREEN.",
+    "Remote Guard 36299345531 GREEN authorizes closure advance FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36299173209,
-    "request_comment_id": 5853236659,
-    "result_comment_id": 5853237680,
+    "run_id": 36299345531,
+    "request_comment_id": 5853256627,
+    "result_comment_id": 5853257742,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "enter #816 TERMINAL_SUCCESS / FINALIZATION_PENDING"
+    "mutation": "advance #816 closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   },
   "delegated_work": []
 }
