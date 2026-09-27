@@ -11,12 +11,12 @@
   "base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
   "phase": "CLEANUP",
-  "last_update": "2026-09-27T15:32:00Z",
+  "last_update": "2026-09-27T15:38:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
   "slot_id": "UNBOUND",
   "delegated_branches": [
-    "governance/issue684-main-mirror-20260927"
+    "governance/issue684-main-mirror-repair-20260927"
   ],
   "remote_qa": {
     "run_id": 36329242279,
@@ -26,7 +26,7 @@
     "conclusion": "success",
     "pytest": "68 passed in 3.10s"
   },
-  "next_action": "Create delegated main governance mirror branch governance/issue684-main-mirror-20260927 from main@f65ee095790ff6ec2e52ad7d158cecdc43886715; mirror only .agents/skills/engineering/排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11 from accepted #684 closing head a4fcfaf6af265b747f4bc838ff72df8a37025688; open paired cleanup/main PRs with reciprocal WHD-Governance-Mirror-Pair markers; require Governance Mirror Hard Gate + Knowledge Governance GREEN; merge legal order; finalize #684.",
+  "next_action": "Create replacement delegated mirror branch governance/issue684-main-mirror-repair-20260927 at exact accepted claim head a4fcfaf6af265b747f4bc838ff72df8a37025688; then create a two-parent governed-only mirror commit with current main as first parent and accepted #684 head as second parent, changing only 排程模擬/SKILL.md + Authority Map 09 + Scheduled Resume 11; open reciprocal main/cleanup PRs, require Governance Mirror Hard Gate + Knowledge Governance GREEN, merge legal order, then finalization/close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-684.json",
   "evidence": [
@@ -57,17 +57,19 @@
     "Fresh production drift audit: frozen 8a3058e5472aec4793cd26a398ae4920185d8002 -> live cleanup e7d88f69e22a974a846660f52f58d6fd621834e8 changes only #843 matrix/test files, disjoint from #684 seven-file closing delta.",
     "Two-parent closing head a4fcfaf6af265b747f4bc838ff72df8a37025688 consumed commit Guard 36329571556; parents are cleanup-safe closing 22e42713db60ae8587d4600c1f3c4964a23959bc + live cleanup e7d88f69e22a974a846660f52f58d6fd621834e8; target-to-closing diff is exactly #684 seven files.",
     "Initial main-mirror branch-create Guard 36329762732 failed closed because delegated_branches was empty; no branch was created.",
-    "Delegated main mirror reservation write authorized by Guard 36329852752 / request 5857245588 / result 5857248247."
+    "Delegated main mirror reservation write authorized by Guard 36329852752 / request 5857245588 / result 5857248247.",
+    "Initial delegated mirror branch governance/issue684-main-mirror-20260927 was mistakenly created at main f65ee095790ff6ec2e52ad7d158cecdc43886715; subsequent commit Guard 36330109287 failed closed with LIVE_CLAIM_HEAD_DRIFT_NOT_RECONCILIATION. Branch preserved as evidence; no force-reset/delete.",
+    "Replacement delegated-branch reservation authorized by write Guard 36330218548 / request 5857292977 / result 5857294603."
   ],
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36329852752,
-    "request_comment_id": 5857245588,
-    "result_comment_id": 5857248247,
+    "run_id": 36330218548,
+    "request_comment_id": 5857292977,
+    "result_comment_id": 5857294603,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "delegate same-ticket #684 main governance mirror branch"
+    "mutation": "replace incorrect mirror delegation with exact-head replacement branch"
   }
 }
