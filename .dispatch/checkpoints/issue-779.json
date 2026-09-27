@@ -23,13 +23,15 @@
     "Guard 36306132790 GREEN authorizes adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization 36306227959 SUCCESS; artifact 10927122110; proof bound exact ISSUE_CLOSE_PENDING checkpoint.",
     "Issue #779 closed/not_planned fresh readback at 2026-09-27T08:27:51Z.",
-    "Guard 36306346361 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Guard 36306346361 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final release Guard 36306420614 GREEN; checkpoint CLOSED and claim RELEASED are persisted atomically.",
+    "Issue #779 remains closed/not_planned; superseded by canonical completed helper #780."
   ],
   "master_issue": "627",
   "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Issue #779 integration scope was superseded and fully satisfied by canonical helper #780; parent #626 and Master #627 are already terminal/closed.",
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "mint final fresh write Guard and atomically persist checkpoint CLOSED + claim RELEASED for superseded #779; preserve CHAIN_COMPLETE and #780 supersession evidence"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

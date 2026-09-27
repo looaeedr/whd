@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-26T23:10:30Z",
   "base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "head_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
-  "phase": "CLOSING",
-  "last_update": "2026-09-27T08:29:34Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-27T08:30:46Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
   "expected_parent_sha": "a7f4d6f586cc338878531d36ed0a8baa12125e54",
@@ -21,7 +21,7 @@
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "mint final fresh write Guard and atomically persist checkpoint CLOSED + claim RELEASED for superseded #779; preserve CHAIN_COMPLETE and #780 supersession evidence",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-779.json",
   "evidence": [
@@ -43,20 +43,22 @@
     "Trusted Remote Finalization run 36306227959 completed SUCCESS with FINALIZATION_PROOF_VALID.",
     "Finalization artifact 10927122110 digest sha256:5801ea74f094db58396a42ea733f235a9d624a2ad006759b7e0caf95fb400000.",
     "Issue #779 fresh-read closed/not_planned at 2026-09-27T08:27:51Z; checkpoint remained exact ISSUE_CLOSE_PENDING until this readback.",
-    "Release-handoff transition Guard 36306346361 GREEN; request 5854211071, result 5854212715."
+    "Release-handoff transition Guard 36306346361 GREEN; request 5854211071, result 5854212715.",
+    "Final release Guard 36306420614 completed SUCCESS; request 5854218594, result 5854219774.",
+    "Final coordination mutation atomically persists checkpoint CLOSED and claim RELEASED for superseded #779."
   ],
   "superseded_by_issue": 780,
   "closure_intent": "NOT_PLANNED_SUPERSEDED",
   "last_guard": {
     "action": "write",
     "mode": "remote",
-    "run_id": 36306346361,
-    "request_comment_id": 5854211071,
-    "result_comment_id": 5854212715,
+    "run_id": 36306420614,
+    "request_comment_id": 5854218594,
+    "result_comment_id": 5854219774,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advance #779 to RELEASE_HANDOFF_PENDING after closed/not_planned readback"
+    "mutation": "atomically close #779 durable checkpoint and release claim"
   },
   "release_handoff": {
     "master_issue": 627,
@@ -65,14 +67,18 @@
     "finalization_run_id": 36306227959,
     "finalization_artifact_id": 10927122110,
     "issue_closed_at": "2026-09-27T08:27:51Z",
-    "issue_state_reason": "not_planned"
+    "issue_state_reason": "not_planned",
+    "final_release_guard_run_id": 36306420614,
+    "released_at": "2026-09-27T08:30:46Z"
   },
   "closure": {
-    "state": "RELEASE_HANDOFF_PENDING",
+    "state": "CLOSED",
     "issue_state": "closed",
     "issue_state_reason": "not_planned",
     "closed_at": "2026-09-27T08:27:51Z",
     "finalization_run_id": 36306227959,
-    "finalization_artifact_id": 10927122110
+    "finalization_artifact_id": 10927122110,
+    "released_at": "2026-09-27T08:30:46Z",
+    "superseded_by_issue": 780
   }
 }
