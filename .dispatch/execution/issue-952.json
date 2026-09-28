@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
+    "id": 36459429312,
+    "purpose": "ISSUE952_INTEGRATION_REVALIDATION",
+    "status": "success"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 15,
+  "generation": 16,
   "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -24,10 +29,10 @@
   "next_action": {
     "args": {
       "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "run_id": 36459429312
     },
-    "display": "Run exact-head integration revalidation for Issue #952",
-    "kind": "START_QA"
+    "display": "Poll Issue #952 integration revalidation",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -44,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "INTEGRATION_REVALIDATION_REQUIRED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "INTEGRATING",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
   "transaction": {
-    "expected_fingerprint": "62e74ff337b456c0b8ea0d11d944b8d7261c1cdf099570367ac7043be4b94722",
-    "id": "gha:36459493201:952:APPLY_COMMIT:14",
+    "expected_fingerprint": "943116ad5da14e802455bc00351899852beb77d215fc7081e76521167ba8d95c",
+    "id": "gha:36459597202:952:START_QA:15",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:37:28Z",
+  "updated_at": "2026-09-28T17:39:03Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
