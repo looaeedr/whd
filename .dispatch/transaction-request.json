@@ -1,19 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-928-apply-1a995b19",
+  "request_id": "work0-928-apply-qa-head-5bdfba32",
   "issue": 928,
   "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-  "expected_coord_head": "dc1a0a2de178a6ace971f7b94a497fd96f67fc55",
-  "expected_generation": 3,
+  "expected_coord_head": "329340f707e50c87d1ff1707094ba66ff50bf674",
+  "expected_generation": 4,
   "effect": {
-    "head_sha": "1a995b19588050b8e13d3a40088bc97c640b03e8",
+    "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
     "semantic_state": "IMPLEMENTING",
     "next_action": {
       "kind": "START_QA",
-      "args": {},
-      "display": "Run Issue #928 Windows/FinalScene regression QA"
+      "args": {
+        "workflow": ".github/workflows/qa-issue928-windows-finalscene.yml"
+      },
+      "display": "Bind exact Issue #928 FinalScene QA run"
     }
   }
 }
