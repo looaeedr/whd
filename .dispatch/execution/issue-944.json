@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
-  "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "generation": 4,
+  "head_sha": "9bfa1c03222941e0b9713880a9a1216c63a7fc14",
   "issue": 944,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,9 +23,9 @@
   },
   "next_action": {
     "args": {
-      "reason": "AUTHOR_EXACT_RED_TEST_COMMIT"
+      "reason": "AUTHOR_MINIMAL_COMPATIBILITY_PORT_FIX"
     },
-    "display": "Author exact RED regression commit for Issue #944",
+    "display": "Restore the proven-live _phase6_toggle_parameter_panel compatibility port",
     "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "transaction": {
-    "expected_fingerprint": "1edcc2678c1c07e9c1050b32850656b240b67ac5c4e7ea4b511233eeeb7bb9a4",
-    "id": "gha:36441974226:944:START_BRANCH:2",
+    "expected_fingerprint": "67cff11814110623c02780566e6169474478b8720ddd3011db75722a70c89a25",
+    "id": "gha:36442643637:944:RECONCILE:3",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-    "kind": "START_BRANCH",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:14:06Z",
+  "updated_at": "2026-09-28T15:19:26Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }
