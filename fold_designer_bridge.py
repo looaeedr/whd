@@ -1665,10 +1665,7 @@ def _phase6_on_baseline_model_changed(self, *_args):
         "_phase6_non_receiving_structure_state",
         None,
     )
-    previous_display_mode = str(
-        getattr(self, "_phase6_3d_display_mode", "single") or "single"
-    )
-    result = _phase6_settings_coordinator(self).apply_baseline_transition(
+    return _phase6_settings_coordinator(self).apply_baseline_transition(
         new_model=new_model,
         old_model=old_model,
         new_editable=editable,
@@ -1679,16 +1676,6 @@ def _phase6_on_baseline_model_changed(self, *_args):
         ),
         previous_non_receiving_structure=previous_non_receiving_structure,
     )
-    # Family/model changes mutate manufacturing topology, not the operator's
-    # chosen content surface.  In particular Vault Assembly -> Receiving must
-    # stay in Assembly instead of falling through an incidental part activation
-    # to the single-part 箱身 view.
-    if (
-        previous_display_mode == "assembly"
-        and str(getattr(self, "_phase6_3d_display_mode", "") or "") != "assembly"
-    ):
-        _phase6_show_assembly(self)
-    return result
 
 def _phase6_collect_workspace_state(self):
     active = self.designer_workspace.active_part
@@ -4982,6 +4969,7 @@ def _phase6_refresh_structure_tree(self):
             else f"part:{active}" if active else ""
         )
         if selected_iid and tree.exists(selected_iid):
+            self._phase6_structure_tree_programmatic_iid = selected_iid
             tree.selection_set(selected_iid)
             tree.focus(selected_iid)
             tree.see(selected_iid)
@@ -5008,6 +4996,13 @@ def _phase6_on_structure_tree_select(self, _event=None):
     if not selected:
         return
     iid = str(selected[0])
+    projected_iid = str(
+        getattr(self, "_phase6_structure_tree_programmatic_iid", "") or ""
+    )
+    if projected_iid:
+        self._phase6_structure_tree_programmatic_iid = ""
+        if iid == projected_iid:
+            return
     if iid == "mode:assembly":
         _phase6_show_assembly(self)
     elif iid == "mode:corner_data":
@@ -5100,6 +5095,7 @@ def _phase6_refresh_box_body_piece_selector(self):
             None,
         )
         if target_tab is not None and str(notebook.select()) != str(target_tab):
+            self._phase6_box_body_piece_programmatic_key = desired
             self._phase6_box_body_piece_tab_guard = True
             try:
                 notebook.select(target_tab)
@@ -5124,6 +5120,13 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
     )
     if not key:
         return
+    projected_key = str(
+        getattr(self, "_phase6_box_body_piece_programmatic_key", "") or ""
+    )
+    if projected_key:
+        self._phase6_box_body_piece_programmatic_key = ""
+        if str(key) == projected_key:
+            return
     workspace = _designer_workspace(self)
     if str(getattr(workspace, "active_part", "") or "") == key:
         # Keep ephemeral navigation memory synchronized without re-activating an

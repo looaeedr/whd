@@ -84,16 +84,6 @@ def test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_muta
 
         bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
-        print("ISSUE943_LOCK_DEBUG", {
-            "active_part": designer.designer_workspace.active_part,
-            "active_part_key": designer.active_part_key,
-            "settings_context": designer.settings_context,
-            "display_mode": designer._phase6_3d_display_mode,
-            "unlocked": designer._phase6_parameters_unlocked,
-            "corner_projection": bridge._phase6_settings_corner_projection(designer, "head"),
-            "detail_keys": tuple(designer.corner_detail_frames),
-            "detail_managers": {k: v.winfo_manager() for k, v in designer.corner_detail_frames.items()},
-        })
         assert bridge._phase6_corner_parameters_unlocked(designer, "head") is True
         assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())
         assert designer._phase6_corner_state == before
