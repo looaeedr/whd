@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Mapping
 
+from tools.work_root_gate import validate_work_root_gate_evidence
+
 
 DEFAULT_REPOSITORY = "looaeedr/whd"
 SCHEMA = "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1"
@@ -28,6 +30,7 @@ def build_startup_declaration(*, purpose: str, repository: str = DEFAULT_REPOSIT
             f"目的：{purpose}",
             "範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，"
             "不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。",
+            "工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
         )
     )
 
@@ -58,6 +61,8 @@ def build_startup_evidence(
     *,
     purpose: str,
     invocation_identity: str,
+    work_root_gate_evidence: Mapping[str, object] | object,
+    execution_mode: str = "INTERACTIVE",
     repository: str = DEFAULT_REPOSITORY,
     issued_at: datetime | None = None,
 ) -> dict[str, object]:
@@ -70,6 +75,11 @@ def build_startup_evidence(
     invocation_identity = str(invocation_identity).strip()
     if not invocation_identity:
         raise ValueError("invocation_identity must be nonblank")
+    execution_mode = str(execution_mode).strip() or "INTERACTIVE"
+    root_gate = validate_work_root_gate_evidence(
+        work_root_gate_evidence,
+        execution_mode=execution_mode,
+    )
     now = issued_at or datetime.now(timezone.utc)
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("issued_at must be timezone-aware")
@@ -81,6 +91,8 @@ def build_startup_evidence(
         "schema": EVIDENCE_SCHEMA,
         "repository": repository,
         "invocation_identity": invocation_identity,
+        "execution_mode": execution_mode,
+        "work_root_gate": root_gate,
         "purpose": purpose,
         "issued_at": _iso(now),
         "expires_at": _iso(now + timedelta(seconds=EVIDENCE_MAX_AGE_SECONDS)),
@@ -92,6 +104,7 @@ def validate_startup_evidence(
     evidence: Mapping[str, object] | object,
     *,
     invocation_identity: str,
+    execution_mode: str | None = None,
     repository: str = DEFAULT_REPOSITORY,
     now: datetime | None = None,
 ) -> dict[str, object]:
@@ -102,6 +115,8 @@ def validate_startup_evidence(
         "schema",
         "repository",
         "invocation_identity",
+        "execution_mode",
+        "work_root_gate",
         "purpose",
         "issued_at",
         "expires_at",
@@ -122,6 +137,18 @@ def validate_startup_evidence(
     expected_invocation = str(invocation_identity).strip()
     if not expected_invocation or observed_invocation != expected_invocation:
         raise ValueError("startup evidence invocation mismatch")
+
+    observed_execution_mode = str(evidence.get("execution_mode") or "").strip()
+    if not observed_execution_mode:
+        raise ValueError("startup evidence execution_mode must be nonblank")
+    if execution_mode is not None:
+        expected_execution_mode = str(execution_mode).strip()
+        if not expected_execution_mode or observed_execution_mode != expected_execution_mode:
+            raise ValueError("startup evidence execution_mode mismatch")
+    validate_work_root_gate_evidence(
+        evidence.get("work_root_gate"),
+        execution_mode=observed_execution_mode,
+    )
 
     purpose = str(evidence.get("purpose") or "").strip()
     if not purpose:

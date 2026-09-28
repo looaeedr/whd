@@ -7,6 +7,7 @@
   "product_authority": "cleanup/2d-3d-sync",
   "governance_mode": "BIDIRECTIONAL_MIRROR",
   "governance_paths": [
+    ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
     ".agents/skills/engineering/README.md",
     ".agents/skills/skill_registry.json",
     ".github/workflows/knowledge-governance-bootstrap.yml",
@@ -49,6 +50,7 @@
     "tests/process/test_issue899_push_transaction_ingress.py",
     "tests/process/test_issue927_flow_v2_runtime_observation.py",
     "tests/process/test_issue945_scheduler_host_watchdog.py",
+    "tests/process/test_issue961_work_root_hard_gate.py",
     "tests/process/test_scheduler_no_work_census_contract.py",
     "tools/claim_activation_recovery.py",
     "tools/continuity_controller.py",
@@ -84,6 +86,7 @@
     "tools/scheduler_state_reconciliation.py",
     "tools/stale_claim_takeover.py",
     "tools/ticket_breakdown_guard.py",
+    "tools/work_root_gate.py",
     "tools/workstation_poweroff_gate.py",
     "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
     "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
