@@ -1,53 +1,48 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-reacquire-20260928T173308Z",
+  "request_id": "issue952-accept-current-head-qa-20260928T173314Z",
   "issue": 952,
-  "kind": "ACQUIRE",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
+  "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "execution_mode": "GITHUB_ONLY",
+    "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
+    "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
       "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
       "gate_status": "CURRENT",
-      "read_mode": "GITHUB_MIRROR",
-      "execution_mode": "GITHUB_ONLY",
-      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
+      "read_mode": "GOOGLE_DRIVE_CANONICAL",
+      "execution_mode": "INTERACTIVE",
+      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
       "provider": "google_drive",
       "library_path": "/Google Drive/WHD",
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。",
-    "issued_at": "2026-09-28T17:33:08Z",
-    "expires_at": "2026-09-28T17:38:08Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "依新流程執行 Issue #952，完成 main / cleanup 治理 mirror ancestry reconciliation；保留 cleanup-only product code，禁止 force-push/history rewrite，完成 exact-head QA、paired merge、ancestry reconciliation 與 Flow v2 結案。",
+    "issued_at": "2026-09-28T17:33:14Z",
+    "expires_at": "2026-09-28T17:38:14Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：依新流程執行 Issue #952，完成 main / cleanup 治理 mirror ancestry reconciliation；保留 cleanup-only product code，禁止 force-push/history rewrite，完成 exact-head QA、paired merge、ancestry reconciliation 與 Flow v2 結案。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "d4bc57840982109153ca527ac7787d8c5bbb600a",
+  "expected_coord_head": "3c1b16967f77cb596d02b9410304c65c63385c36",
   "expected_generation": 12,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.0",
-    "observed_at": "2026-09-28T17:33:08Z",
-    "lease": {
-      "token": "lease:952:continue:20260928T173308Z",
-      "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-      "expires_at": "2026-09-28T17:48:08Z"
-    },
-    "semantic_state": "REMOTE_QA",
+    "run_id": 36455674006,
+    "run_head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "ACCEPT_QA",
+      "kind": "RECONCILE",
       "args": {
-        "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
-        "run_id": 36455674006
+        "reason": "PAIRED_GOVERNANCE_MIRROR_AND_ANCESTRY_REQUIRED",
+        "cleanup_pr": 969,
+        "main_pr": 970
       },
-      "display": "Accept exact current-head GREEN QA for Issue #952"
+      "display": "Merge paired main governance PR first, then cleanup PR and ancestry reconciliation"
     }
   }
 }
