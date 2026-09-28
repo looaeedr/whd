@@ -25,11 +25,11 @@ whd_schema: WHD_DOC_META_V1
 
 ## DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
 
-使用者明確要求執行 ticket，但沒有寫 `/工作0/1/2/3`、也沒有指定排程 A/B 時，視為「從 `/工作0` 開始選槽」。這只是 routing default：真正 authority 仍必須來自 Flow v2 explicit READY ingress / ACQUIRE / HANDOFF。
+使用者明確要求執行 ticket，但沒有寫 `/工作0/1/2/3`、也沒有指定排程 A/B 時，**預設就是 `/工作0` → `worker.slot.0`**。這個既有 default 不變；只有建立新工作時 fresh-read 發現 slot0 已 BOUND，才啟動下方 overflow。真正 authority 仍必須來自 Flow v2 explicit READY ingress / ACQUIRE / HANDOFF。
 
 ## WORK_SLOT_AUTO_INCREMENT_FROM_ZERO_V1
 
-對**新工作**使用 `/工作0`（或未指定工作槽而落到預設工作0）時，必須先 fresh-read canonical `coord/execution-v2`，用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 從 `worker.slot.0` 起找第一個 EMPTY：`0 → 1 → 2 → 3`。
+對**新工作**，先套既有預設 `/工作0` / `worker.slot.0`。建立 READY record 前 fresh-read canonical `coord/execution-v2`：slot0 EMPTY 就照原預設使用 0；只有 slot0 BOUND 才用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往上找第一個 EMPTY：`1 → 2 → 3`。
 
 - slot0 EMPTY → 使用 `worker.slot.0`。
 - slot0 BOUND → 自動檢查 slot1；依序遞增到第一個 EMPTY。
