@@ -1,0 +1,51 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 946,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.2",
+  "source_branch": "main",
+  "source_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
+  "work_branch": "governance/issue946-fail-qa-repair",
+  "head_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
+  "target_branch": "main",
+  "target_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #946"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": 943,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "PARENT_HANDOFF",
+      "authority_ref": "issue:943:failed-qa-capability-helper",
+      "authority_fingerprint": "8c4d47081f006942414c6e9f90d658a7816fe9370c2d29260fdc672d495cd79d"
+    }
+  ],
+  "updated_at": null
+}
