@@ -1,13 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "bootstrap-seed-b-v1",
-  "issue": 0,
-  "kind": "SEED",
-  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "invocation_identity": "bootstrap-seed",
-  "expected_coord_head": "",
-  "expected_generation": 0,
+  "request_id": "work0-910-start-qa-36421638205",
+  "issue": 910,
+  "kind": "START_QA",
+  "lane_id": "chatgpt.flowv2.work0",
+  "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
+  "expected_coord_head": "eaaee628b5ad9d9aee8f418bfa12e0061f0c040f",
+  "expected_generation": 5,
   "effect": {
-    "bootstrap": true
+    "run_id": 36421638205,
+    "run_head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
+    "purpose": "ISSUE910_FOCUSED_XVFB_DIRECT_3D_RUNTIME_LOG",
+    "run_status": "completed",
+    "next_action": {
+      "kind": "POLL_QA",
+      "args": {
+        "run_id": 36421638205,
+        "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330"
+      },
+      "display": "Poll exact Issue #910 focused QA run 36421638205"
+    }
   }
 }
