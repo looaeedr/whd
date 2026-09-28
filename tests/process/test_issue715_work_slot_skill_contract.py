@@ -74,3 +74,22 @@ def test_engineering_readme_exposes_work0_as_default_entrypoint():
     assert "[工作槽](./工作槽/SKILL.md)" in text
     assert "/工作0" in text
     assert "預設互動入口" in text
+
+
+def test_work_slot_liveness_reuses_issue679_and_exposes_distinct_runtime_events():
+    text = _skill()
+    canonical = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    assert "tools/interactive_runtime_liveness.py" in text
+    assert "CAPABILITY EXISTS" in text
+    for event in ("WAKE", "HEARTBEAT", "PROGRESS", "EXIT"):
+        assert event in text
+        assert event in canonical
+    for field in (
+        "slot_id", "issue", "claim_worker", "invocation_identity",
+        "conversation_identity", "branch", "head_sha", "last_wake_at",
+        "last_heartbeat_at", "heartbeat_expires_at", "last_progress_at",
+        "exit_at", "exit_state", "liveness_state",
+    ):
+        assert field in text
+    assert "last_progress_at" in canonical
+    assert "不是 liveness" in canonical
