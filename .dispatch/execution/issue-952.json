@@ -1,51 +1,61 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 952,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "work_branch": "governance/issue952-mirror-ancestry-reconciliation",
-  "head_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #952"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "issue": 952,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-28T16:58:15Z",
+    "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
+    "token": "lease:952:36453031387:1"
+  },
+  "next_action": {
+    "args": {},
+    "display": "Start canonical work branch for Issue #952",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "facf2e27dd922e7f12ae2880908aceefc6774bf5fe5d98bc5ec32b81ae8aad23",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-29:issue952-new-flow",
-      "authority_fingerprint": "facf2e27dd922e7f12ae2880908aceefc6774bf5fe5d98bc5ec32b81ae8aad23"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-09-28T16:38:03Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "transaction": {
+    "expected_fingerprint": "049191175a0b9ae0ca9e1e854d7129679ada2fc224ffdafda847928a065abda4",
+    "id": "gha:36453031387:952:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-28T16:43:15Z",
+  "version": 2,
+  "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
