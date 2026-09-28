@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
-  "head_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "generation": 4,
+  "head_sha": "384136992da0a4aebd039a4405770c930c6d7d2b",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "reason": "TDD_RED_COMMIT_PENDING"
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Create and reconcile the Issue #952 RED regression commit",
-    "kind": "RECONCILE"
+    "display": "Run Issue #952 RED control-plane regression",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "RED_REGRESSION",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "target_sha": "ca0adb97a819161211a99b1b0bd46949b3431088",
   "transaction": {
-    "expected_fingerprint": "65cc71c559498707df33928e3a528b206ac4dcc562b84f4a0ed8bd6e67d8689b",
-    "id": "gha:36453308818:952:START_BRANCH:2",
+    "expected_fingerprint": "b5285b8f8d595d5cea52f4c8d9a3e9040ca610acad595b93a23aee0276c81447",
+    "id": "gha:36453861367:952:RECONCILE:3",
     "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
-    "kind": "START_BRANCH",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T16:45:32Z",
+  "updated_at": "2026-09-28T16:50:15Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
