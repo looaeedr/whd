@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
+  "generation": 15,
   "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
   "issue": 910,
   "lane_id": null,
@@ -22,14 +22,9 @@
     "token": "lease:910:interactive:work0:g2"
   },
   "next_action": {
-    "args": {
-      "head_sha": "92f01cd651a20d072107479ce23353024899ecb2",
-      "pr_number": 926,
-      "target_branch": "cleanup/2d-3d-sync",
-      "tested_head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98"
-    },
-    "display": "Merge exact Issue #910 integration PR #926",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize Issue #910 after merged target readback",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
@@ -52,21 +47,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "f2aa42bb83aa5f9f1502f3c13f753191c11df54c",
+  "target_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
   "transaction": {
-    "expected_fingerprint": "245dcbf05fa9c47810999d3d11b49fe2839ec09da787ebd3ae43e9b12063ad0d",
-    "id": "gha:36425414335:910:RECONCILE:13",
+    "expected_fingerprint": "a17903ba23123397a5f8ee6ca06c096f27629867f7997f5a236ec226d3e6b4fd",
+    "id": "gha:36425556346:910:MERGE:14",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "RECONCILE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:59:27Z",
+  "updated_at": "2026-09-28T13:00:42Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
