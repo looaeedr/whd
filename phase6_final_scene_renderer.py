@@ -325,7 +325,10 @@ class Phase6FinalSceneRenderer:
                 self.renderer.ax3d.plot(
                     [p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts],
                     color=("#f59e0b" if layer == "MARKING" else "#ef4444"),
-                    linewidth=1.0, linestyle=("-" if layer == "MARKING" else "--"), alpha=0.9,
+                    linewidth=(2.2 if layer == "MARKING" else 1.0),
+                    linestyle=("-" if layer == "MARKING" else "--"),
+                    alpha=(1.0 if layer == "MARKING" else 0.9),
+                    zorder=(20 if layer == "MARKING" else 8),
                 )
 
     def _draw_assembly_scene_markings(
@@ -389,9 +392,10 @@ class Phase6FinalSceneRenderer:
                 [a[1], b[1]],
                 [a[2], b[2]],
                 color="#f59e0b",
-                linewidth=1.0,
+                linewidth=2.2,
                 linestyle="-",
-                alpha=0.9,
+                alpha=1.0,
+                zorder=20,
             )
 
     def _resolved_finished_dimensions(self, request, triangles):
