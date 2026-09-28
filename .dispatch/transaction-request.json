@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue945-b-reacquire-v7",
+  "request_id": "issue945-b-reconcile-ancestry-v8",
   "issue": 945,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
   "startup_evidence": {
@@ -22,31 +22,24 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Resume Issue #945 on Scheduler B by atomically renewing the expired same-lane lease, preserving the exact RECONCILE next_action and all accepted QA/merge identity. Reacquire is only a prerequisite; this invocation must continue into ancestry reconciliation.",
-    "issued_at": "2026-09-28T22:50:00Z",
-    "expires_at": "2026-09-28T22:55:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Resume Issue #945 on Scheduler B by atomically renewing the expired same-lane lease, preserving the exact RECONCILE next_action and all accepted QA/merge identity. Reacquire is only a prerequisite; this invocation must continue into ancestry reconciliation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Record successful #945 paired-governance ancestry reconciliation against live cleanup f4b6ec9e5efffbe250c312cd292d7dcc0668fe40, then preserve the ticket as awaiting the first real GitHub event=schedule watchdog run because natural schedule acceptance is still unsatisfied.",
+    "issued_at": "2026-09-28T22:53:00Z",
+    "expires_at": "2026-09-28T22:58:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Record successful #945 paired-governance ancestry reconciliation against live cleanup f4b6ec9e5efffbe250c312cd292d7dcc0668fe40, then preserve the ticket as awaiting the first real GitHub event=schedule watchdog run because natural schedule acceptance is still unsatisfied.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "a11d6ca62ec18d173bcc1cf83234b3d409891ef2",
-  "expected_generation": 6,
+  "expected_coord_head": "2780e9df78b51ee67595db07e8c98066da5d627f",
+  "expected_generation": 7,
   "effect": {
-    "lease": {
-      "token": "lease:945:b-reacquire:20260929T065000+0800",
-      "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
-      "expires_at": "2026-09-28T23:05:00Z"
-    },
-    "observed_at": "2026-09-28T22:50:00Z",
-    "owner_kind": "SCHEDULER",
-    "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-    "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-    "slot_id": null,
-    "semantic_state": "MERGED",
+    "observed_work_branch": "governance/issue945-watchdog-registration-repair-20260929",
+    "observed_head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
+    "observed_target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
+    "semantic_state": "AWAITING_NATURAL_SCHEDULE",
     "next_action": {
+      "kind": "WAIT_EXTERNAL",
       "args": {
-        "reason": "PAIR_GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
+        "blocker_kind": "EXTERNAL_DEPENDENCY"
       },
-      "display": "Reconcile #945 main/cleanup governance ancestry",
-      "kind": "RECONCILE"
+      "display": "Wait for first real GitHub event=schedule watchdog run for #945 acceptance"
     }
   }
 }
