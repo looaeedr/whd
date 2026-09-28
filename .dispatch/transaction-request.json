@@ -1,13 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "bootstrap-seed-work2-v1",
-  "issue": 0,
-  "kind": "SEED",
+  "request_id": "issue946-acquire-work2-v1",
+  "issue": 946,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "bootstrap-seed",
-  "expected_coord_head": "",
-  "expected_generation": 0,
+  "invocation_identity": "interactive:work2:issue946:session1",
+  "expected_coord_head": "fa8b7f137ef8937f4acc1ff7357a9c6dcf9992b6",
+  "expected_generation": 1,
+  "startup_evidence": {
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "interactive:work2:issue946:session1",
+    "purpose": "補足 WHD Flow v2 failed exact QA 的單一 consume/repair transaction，解除 #943 的 VERIFYING 卡死，不改產品語意。",
+    "issued_at": "2026-09-28T15:21:30Z",
+    "expires_at": "2026-09-28T15:26:30Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：補足 WHD Flow v2 failed exact QA 的單一 consume/repair transaction，解除 #943 的 VERIFYING 卡死，不改產品語意。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
+  },
   "effect": {
-    "bootstrap": true
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Reconcile Issue #946 helper branch"
+    }
   }
 }
