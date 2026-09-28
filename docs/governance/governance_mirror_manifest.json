@@ -40,6 +40,7 @@
     "tests/process/test_issue851_recurring_lifecycle_turn_exit.py",
     "tests/process/test_issue865_scheduler_stop_hardening.py",
     "tests/process/test_issue886_flow_v2_entrypoint_cutover.py",
+    "tests/process/test_issue892_flow_v2_production_transaction.py",
     "tests/process/test_scheduler_no_work_census_contract.py",
     "tools/claim_activation_recovery.py",
     "tools/continuity_controller.py",
@@ -97,4 +98,4 @@
     ".agents/skills/engineering/排程模擬",
     ".agents/skills/engineering/派工"
   ]
-}\n
+}
