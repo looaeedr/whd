@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue948-implementation-retry-160313",
+  "request_id": "issue948-implementation-retry2-160415",
   "issue": 948,
   "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work3",
@@ -10,11 +10,11 @@
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
     "purpose": "Repair Issue #948 scheduler startup bootstrap ordering deadlock.",
-    "issued_at": "2026-09-28T16:03:13Z",
-    "expires_at": "2026-09-28T16:08:13Z",
+    "issued_at": "2026-09-28T16:04:15Z",
+    "expires_at": "2026-09-28T16:09:15Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Repair Issue #948 scheduler startup bootstrap ordering deadlock.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "expected_coord_head": "8d4807e312e93902258d659a074bdc6b20561f65",
+  "expected_coord_head": "43a47fe9e87fc93b0f1a52d437f6cf5f610a4cdf",
   "expected_generation": 8,
   "effect": {
     "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
