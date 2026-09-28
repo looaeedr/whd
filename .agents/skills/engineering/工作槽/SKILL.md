@@ -1,6 +1,6 @@
 ---
 name: 工作槽
-description: 固定 /工作0、/工作1、/工作2、/工作3 routing/projection 入口；/工作0 是預設互動入口。slot 不擁有獨立狀態，全部由 Flow v2 ExecutionRecord.slot_id 投影。
+description: 固定 /工作0、/工作1、/工作2、/工作3 routing/projection 入口；/工作0 是預設互動入口，新工作遇到已佔用槽時由 0 起自動遞增到第一個空槽。slot 不擁有獨立狀態，全部由 Flow v2 ExecutionRecord.slot_id 投影。
 whd_doc_role: MIRROR
 whd_contract: work-slot-routing
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
@@ -21,11 +21,23 @@ whd_schema: WHD_DOC_META_V1
 - `/工作2` → `worker.slot.2`
 - `/工作3` → `worker.slot.3`
 
-不得動態重新編號；explicit slot 永遠優先於 default gate。
+不得動態重新編號；`worker.slot.N` 的 identity 永遠固定。`/工作0` 的自動 +1 只是一個「新工作 routing」選槽規則，不會改寫任何既有 record 的 slot_id；explicit `/工作1/2/3` 永遠優先於 default gate。
 
 ## DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
 
-使用者明確要求執行 ticket，但沒有寫 `/工作0/1/2/3`、也沒有指定排程 A/B 時，視為 `/工作0`。這只是 routing default：真正 authority 仍必須來自 Flow v2 explicit READY ingress / ACQUIRE / HANDOFF。
+使用者明確要求執行 ticket，但沒有寫 `/工作0/1/2/3`、也沒有指定排程 A/B 時，視為「從 `/工作0` 開始選槽」。這只是 routing default：真正 authority 仍必須來自 Flow v2 explicit READY ingress / ACQUIRE / HANDOFF。
+
+## WORK_SLOT_AUTO_INCREMENT_FROM_ZERO_V1
+
+對**新工作**使用 `/工作0`（或未指定工作槽而落到預設工作0）時，必須先 fresh-read canonical `coord/execution-v2`，用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 從 `worker.slot.0` 起找第一個 EMPTY：`0 → 1 → 2 → 3`。
+
+- slot0 EMPTY → 使用 `worker.slot.0`。
+- slot0 BOUND → 自動檢查 slot1；依序遞增到第一個 EMPTY。
+- 0–3 全部 BOUND → fail closed，回 `NO_AVAILABLE_WORK_SLOT`；不得覆蓋、搶占、偷換 owner，也不得建立 duplicate slot occupancy。
+- 選槽只發生在**建立新 READY record 前**；若該工單已有 nonterminal ExecutionRecord，必須 resume 原 record / 原 slot，不得因「有人」而跳槽。
+- 裸 `/工作0` 狀態查詢仍然查 slot0，不自動跳到別槽。
+- 明確 `/工作1`、`/工作2`、`/工作3` 是固定指定，不套用自動 +1。
+- selection/readback 發生 drift 或 transaction conflict 時，必須 fresh-read 後重新選槽，不得沿用 stale 空槽判斷。
 
 以下不套用預設工作0：
 - 純狀態查詢、監控、列空槽；
