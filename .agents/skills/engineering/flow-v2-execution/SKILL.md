@@ -52,7 +52,7 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 
 ## Structured next_action
 
-machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / MERGE / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
+machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / FAIL_QA / MERGE / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
 
 ## Atomic transaction
 
@@ -135,7 +135,7 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 
 ## Remote QA
 
-START_QA 綁 exact head；同 record/head只允許一個 active run。active只 POLL_QA；success→ACCEPT_QA；failure→structured repair/reconcile action。
+START_QA 綁 exact head；同 record/head只允許一個 active run。active只 POLL_QA；success→ACCEPT_QA；terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
 
 ## Blocker
 
@@ -184,7 +184,7 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 - trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
-每次需要 ACQUIRE/ACCEPT_QA/MERGE/FINALIZE/YIELD 等 transaction：
+每次需要 ACQUIRE/ACCEPT_QA/FAIL_QA/MERGE/FINALIZE/YIELD 等 transaction：
 1. fresh-read `coord/execution-v2` exact HEAD 與 native record generation。
 2. 本 lane request branch 必須已存在 `.dispatch/transaction-request.json` bootstrap seed；fresh-read 其 blob SHA，scheduler 只允許 CAS update，禁止在 runtime 走首次 `create_file`。若 seed 缺失，fail closed 並交由治理/bootstrap 修復。
 3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
@@ -202,6 +202,6 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 
 `coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
-POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
+POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request；terminal non-success 後先 fresh-read exact run/head/conclusion，再送 FAIL_QA request 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
 
 手動 `whd-control-transaction-v2.yml` 只保留管理/診斷用途；scheduler不得依賴 connector 未提供的 workflow_dispatch。

@@ -337,3 +337,156 @@ def test_canonical_startup_evidence_ttl_and_declaration_are_machine_validated():
             repository="looaeedr/whd",
             now=now,
         )
+
+
+def _qa_record_for_fail_transaction():
+    from tools.execution_record import execution_record_from_payload
+    return execution_record_from_payload({
+        "schema": "WHD_EXECUTION_RECORD_V2",
+        "version": 2,
+        "generation": 7,
+        "issue": 943,
+        "execution_intent": "EXECUTE_TICKET",
+        "owner_kind": "SCHEDULER",
+        "owner_id": "chatgpt.flowv2.work1",
+        "lane_id": "chatgpt.flowv2.work1",
+        "slot_id": "worker.slot.1",
+        "source_branch": "cleanup/2d-3d-sync",
+        "source_sha": "a" * 40,
+        "work_branch": "work/receiving-ui-regression-20260928",
+        "head_sha": "b" * 40,
+        "target_branch": "cleanup/2d-3d-sync",
+        "target_sha": "c" * 40,
+        "state": "VERIFYING",
+        "semantic_state": "REMOTE_QA",
+        "next_action": {
+            "kind": "POLL_QA",
+            "args": {"run_id": 36440753727, "head_sha": "b" * 40},
+            "display": "poll exact QA",
+        },
+        "lease": {
+            "token": "lease-943",
+            "invocation_identity": "interactive:work1:issue943",
+            "expires_at": "2026-09-28T16:00:00Z",
+        },
+        "active_run": {
+            "id": 36440753727,
+            "head_sha": "b" * 40,
+            "purpose": "ISSUE943_FOCUSED_RED",
+            "status": "in_progress",
+        },
+        "transaction": None,
+        "qa": {"last_accepted_run": None, "accepted_head_sha": None},
+        "blocker": None,
+        "closure": {"merged_sha": None, "issue_closed": False, "released_at": None},
+        "chain": {"parent_issue": None, "next_issue": None, "next_action": None},
+        "recovery_history": [],
+        "updated_at": "2026-09-28T15:00:00Z",
+    })
+
+
+def test_fail_qa_consumes_exact_terminal_failure_and_returns_to_repair():
+    from tools.control_transaction import execute_transaction, prepare_transaction
+
+    record = _qa_record_for_fail_transaction()
+    plan = prepare_transaction(
+        record,
+        kind="FAIL_QA",
+        transaction_id="tx-fail-qa-943",
+        invocation_identity="interactive:work1:issue943",
+    )
+    repaired = execute_transaction(
+        record,
+        plan,
+        effect={
+            "updated_at": "2026-09-28T15:10:00Z",
+            "run_id": 36440753727,
+            "run_head_sha": "b" * 40,
+            "conclusion": "failure",
+            "next_action": {
+                "kind": "RECONCILE",
+                "args": {"reason": "AUTHOR_REPAIR_AFTER_FAILED_QA"},
+                "display": "author repair commit",
+            },
+        },
+    )
+    assert repaired.state == "ACTIVE"
+    assert repaired.semantic_state == "QA_FAILED_REPAIR"
+    assert repaired.active_run is None
+    assert repaired.work_branch == record.work_branch
+    assert repaired.head_sha == record.head_sha
+    assert repaired.target_sha == record.target_sha
+    assert repaired.owner_id == record.owner_id
+    assert repaired.lane_id == record.lane_id
+    assert repaired.slot_id == record.slot_id
+    assert repaired.qa == record.qa
+    assert repaired.next_action.kind == "RECONCILE"
+    assert repaired.transaction.kind == "FAIL_QA"
+
+
+def test_fail_qa_rejects_wrong_run_head_and_success_conclusion():
+    import pytest
+    from tools.control_transaction import (
+        ControlTransactionError,
+        execute_transaction,
+        prepare_transaction,
+    )
+
+    record = _qa_record_for_fail_transaction()
+    base = {
+        "updated_at": "2026-09-28T15:10:00Z",
+        "run_id": 36440753727,
+        "run_head_sha": "b" * 40,
+        "conclusion": "failure",
+        "next_action": {
+            "kind": "RECONCILE",
+            "args": {"reason": "AUTHOR_REPAIR_AFTER_FAILED_QA"},
+            "display": "repair",
+        },
+    }
+
+    with pytest.raises(ControlTransactionError, match="run_id"):
+        execute_transaction(
+            record,
+            prepare_transaction(record, kind="FAIL_QA", transaction_id="tx-wrong-run"),
+            effect={**base, "run_id": 999},
+        )
+    with pytest.raises(ControlTransactionError, match="run_head_sha"):
+        execute_transaction(
+            record,
+            prepare_transaction(record, kind="FAIL_QA", transaction_id="tx-wrong-head"),
+            effect={**base, "run_head_sha": "d" * 40},
+        )
+    with pytest.raises(ControlTransactionError, match="terminal non-success"):
+        execute_transaction(
+            record,
+            prepare_transaction(record, kind="FAIL_QA", transaction_id="tx-success"),
+            effect={**base, "conclusion": "success"},
+        )
+
+
+def test_push_ingress_accepts_fail_qa_kind(tmp_path):
+    import json
+    import tools.control_transaction_request_ingress as ingress
+    from tools.execution_entry_contract import build_startup_evidence
+
+    invocation = "interactive:work1:issue943:test"
+    request = {
+        "schema": ingress.REQUEST_SCHEMA,
+        "request_id": "fail-qa-test",
+        "issue": 943,
+        "kind": "FAIL_QA",
+        "lane_id": "chatgpt.flowv2.work1",
+        "invocation_identity": invocation,
+        "expected_coord_head": "a" * 40,
+        "expected_generation": 7,
+        "effect": {},
+        "startup_evidence": build_startup_evidence(
+            purpose="consume exact failed QA",
+            invocation_identity=invocation,
+        ),
+    }
+    path = tmp_path / "request.json"
+    path.write_text(json.dumps(request), encoding="utf-8")
+    loaded = ingress._load_request(path)
+    assert loaded["kind"] == "FAIL_QA"
