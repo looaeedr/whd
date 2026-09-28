@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue889-finalize-after-merge-receipt-v2",
-  "issue": 889,
-  "kind": "FINALIZE",
+  "request_id": "issue964-scheduler-a-acquire-v2",
+  "issue": 964,
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a:repair:issue889:finalize:20260929T024908+0800",
+  "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "scheduler-a:repair:issue889:finalize:20260929T024908+0800",
+    "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
     "execution_mode": "SCHEDULER_LANE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
@@ -22,12 +22,30 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Finalize Issue #889 from its reconciled merge anchor after proving that the accepted merge remains an ancestor of the current cleanup target.",
-    "issued_at": "2026-09-28T18:49:08Z",
-    "expires_at": "2026-09-28T18:54:08Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Finalize Issue #889 from its reconciled merge anchor after proving that the accepted merge remains an ancestor of the current cleanup target.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "以排程A SCHEDULER_LANE 接手並持續執行 Issue #964，依 current Flow v2 durable state 完成 exact next_action、QA、整合與合法終態。",
+    "issued_at": "2026-09-28T21:20:58Z",
+    "expires_at": "2026-09-28T21:25:58Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：以排程A SCHEDULER_LANE 接手並持續執行 Issue #964，依 current Flow v2 durable state 完成 exact next_action、QA、整合與合法終態。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "8a50335592637c17b2fb1c24dd3c9c86f5ae28f7",
-  "expected_generation": 12,
-  "effect": {}
+  "expected_coord_head": "231b9821642fcb50730b3e32789969879f484729",
+  "expected_generation": 1,
+  "effect": {
+    "updated_at": "2026-09-28T21:20:58Z",
+    "observed_at": "2026-09-28T21:20:58Z",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "slot_id": null,
+    "lease": {
+      "token": "lease-964-a-212058",
+      "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
+      "expires_at": "2026-09-28T21:25:58Z"
+    },
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Reconstruct merged #964 work branch identity"
+    }
+  }
 }
