@@ -50,6 +50,13 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.comment.body, 'WHD_REMOTE_FINALIZATION_REQUEST_V1')
     runs-on: ubuntu-latest
     steps:
+      # FLOW_V2_LEGACY_TRANSPORT_RETIRED_V1
+      - name: Reject retired legacy control-plane transport
+        shell: bash
+        run: |
+          echo "FLOW_V2_CUTOVER_ACTIVE: legacy control-plane transport is audit-only; use coord/execution-v2" >&2
+          exit 1
+
       - name: Normalize fixed request
         id: request
         shell: bash
