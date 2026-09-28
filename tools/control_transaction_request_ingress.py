@@ -133,6 +133,17 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
             f"generation drift: expected {expected_generation}, observed {record.generation}"
         )
 
+    if str(request["kind"]) == STEP_SEQUENCE_KIND:
+        return execute_step_sequence(
+            repo=repo,
+            token=token,
+            coord_branch=coord_branch,
+            issue=issue,
+            lane_id=str(request["lane_id"]),
+            invocation_identity=str(request["invocation_identity"]),
+            steps=list(request["steps"]),
+        )
+
     return execute_one(
         repo=repo,
         token=token,
