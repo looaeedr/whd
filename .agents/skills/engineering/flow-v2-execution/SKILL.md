@@ -9,6 +9,33 @@ whd_schema: WHD_DOC_META_V1
 
 # Flow v2 Execution
 
+
+## PROJECT_STARTUP_HARD_GATE_V1
+
+<!-- EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1 -->
+
+Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocation（recurring scheduler、/排程A、/排程B、/工作0..3、互動執行、takeover、resume、recovery）在任何 substantive analysis、claim、Guard、repository mutation 或一般 workflow dispatch 前，固定依序：
+
+1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
+2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
+3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。此時仍未取得 execution mutation authority。
+4. recurring scheduler / `/排程A` / `/排程B` 若尚不知道 exact owning Issue，才可使用下面的 `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`；其他入口不得借此擴張 startup scope。
+5. 對 exact owning Issue + branch + HEAD 執行 Phase6 Knowledge Preflight；GitHub-only runtime 只可送 trusted `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`。
+6. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
+7. scheduler 若曾使用 bootstrap projection，必須丟棄該 projection 並再次 fresh-read canonical scheduler projection；只有到此時，才可進入 Flow v2 ExecutionRecord / transaction / lease / next_action 與正常 WAKE。
+
+### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
+
+`READ_ONLY_BOOTSTRAP_ONLY` 是為解除「remote Preflight 需要 owning Issue，但 scheduler 必須先 discovery 才知道 owning Issue」循環依賴的窄例外；它不是 execution phase，也不是 authority。
+
+- 前置條件固定為：AI Library gate 已完成、fresh per-invocation startup declaration 已 user-visible 產生、且已 fresh-read `AGENTS.md` 與本 Skill。
+- 唯一可讀範圍：`coord/execution-v2` 的 canonical ExecutionRecords、DERIVED_CACHE_ONLY `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only scheduler projection，以及解析 exact owning Issue / work branch / target branch / HEAD 所需的 GitHub metadata。
+- 唯一目的：取得 trusted remote Phase6 Preflight 所需的 exact owning Issue + branch + HEAD，然後送出該 Issue 上的 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`。不得建立永久 bootstrap Issue；若 projection 確認沒有可執行工作，仍須完成本 invocation 的 project startup requirements後才能依正常 scheduler exit contract 判讀。
+- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：Preflight GREEN 且全部 REQUIRED SKILLS / REQUIRED REFERENCES fresh-read 完成以前，禁止 WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease mutation、ExecutionRecord mutation或任何其他 execution side effect。除了 owner-authored trusted Phase6 Preflight request 本身，不得 dispatch 其他 workflow / mutation transport。
+- bootstrap projection 只用來綁 Preflight identity；Preflight 完成後必須丟棄並 fresh-read `coord/execution-v2` / scheduler view，禁止把 bootstrap 時看到的 state 直接拿去 ACQUIRE 或 mutation。
+
+startup declaration 只提供 provenance/intent，不取代 claim、Guard、Preflight、ExecutionRecord 或 transaction fencing；bootstrap read-only discovery 也不提供任何 mutation authority。缺任一步固定 `FAIL_CLOSED`。前一聊天、前一 runtime 或前一 scheduler wake 的宣告不得沿用。
+
 <!-- FLOW_V2_EXECUTION_CANONICAL_V1 -->
 
 本 Skill 是 WHD execution/control-plane 的唯一 CURRENT operational contract。其他 workflow Skills 只可做入口 bridge，不得建立第二套 ownership、resume、closure、scheduler 或 recovery state machine。
@@ -37,7 +64,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## Structured next_action
 
-machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / MERGE / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
+machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / FAIL_QA / MERGE / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
 
 ## Atomic transaction
 
@@ -67,6 +94,31 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 <!-- FLOW_V2_HOST_LIFECYCLE_IMMUTABILITY_V1 -->
 
 Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. A scheduled runtime MUST NOT call automation-management APIs or mutate its own or sibling A/B automation lifecycle, title, schedule, timing mode, prompt, or enabled state. Invocation completion is only a cycle return; it never means the recurring task object is terminal. Host lifecycle changes are allowed only from an explicit interactive user request or a dedicated host-reconciliation action outside the scheduled runtime. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object unchanged.
+
+### HOST_LIFECYCLE_WATCHDOG_V1
+
+Host lifecycle observation is NON_AUTHORITY and must remain separate from Flow v2 execution state.
+
+- independent durable watchdog workflow: `.github/workflows/whd-scheduler-host-watchdog.yml`
+- evaluator: `tools/scheduler_host_watchdog.py`
+- watchdog output: `coord/monitor-v2:.dispatch/monitor/host/watchdog.json`
+- optional ChatGPT host snapshot: `coord/monitor-v2:.dispatch/monitor/host/chatgpt-automations.json`
+- exact entrypoint mirrors:
+  - A00 → `.dispatch/monitor/host/entrypoints/a00.json`
+  - A20 → `.dispatch/monitor/host/entrypoints/a20.json`
+  - A40 → `.dispatch/monitor/host/entrypoints/a40.json`
+  - B15 → `.dispatch/monitor/host/entrypoints/b15.json`
+  - B45 → `.dispatch/monitor/host/entrypoints/b45.json`
+
+Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
+- expected occurrence without matching durable WAKE + fresh host snapshot enabled=true → `HOST_ENTRY_FAILURE`.
+- expected occurrence without matching durable WAKE + fresh host snapshot enabled=false → `HOST_AUTO_PAUSE`.
+- expected occurrence without matching durable WAKE and missing/stale host snapshot → `HOST_STATE_UNKNOWN`;不得猜成 auto-pause。
+- matching WAKE but heartbeat expires before EXIT → `RUNTIME_LIVENESS_FAILURE`.
+
+Scheduled runtimes may perform **read-only** host lifecycle inspection for observability and mirror `enabled / last_run_time` for all five A/B automations into the host snapshot. This explicit read-only exception does not permit any automation lifecycle mutation. Scheduled runtime仍不得 create/update/disable/delete/reschedule/complete任何 automation。
+
+每個 scheduler runtime 在寫 canonical lane observation 時，還必須 mirror 同一 invocation 的 `WAKE / HEARTBEAT / PROGRESS / EXIT` 到自己的 exact entrypoint file，保留 `invocation_identity / last_wake_at / last_heartbeat_at / heartbeat_expires_at / last_progress_at / exit_at / exit_state`。host snapshot、entrypoint mirror與watchdog result都不得授權 ACQUIRE、mutation、merge、closure、takeover 或 owner 變更。
 
 ## Work slot / handoff
 
@@ -120,7 +172,7 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 
 ## Remote QA
 
-START_QA 綁 exact head；同 record/head只允許一個 active run。active只 POLL_QA；success→ACCEPT_QA；failure→structured repair/reconcile action。
+START_QA 綁 exact head；同 record/head只允許一個 active run。active只 POLL_QA；success→ACCEPT_QA；terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
 
 ## Blocker
 
@@ -169,22 +221,24 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 - trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
-每次需要 ACQUIRE/ACCEPT_QA/MERGE/FINALIZE/YIELD 等 transaction：
+每次需要 ACQUIRE/ACCEPT_QA/FAIL_QA/MERGE/FINALIZE/YIELD 等 transaction：
 1. fresh-read `coord/execution-v2` exact HEAD 與 native record generation。
 2. 本 lane request branch 必須已存在 `.dispatch/transaction-request.json` bootstrap seed；fresh-read 其 blob SHA，scheduler 只允許 CAS update，禁止在 runtime 走首次 `create_file`。若 seed 缺失，fail closed 並交由治理/bootstrap 修復。
 3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
    - request_id：本 invocation/action 唯一值
    - issue / kind / lane_id / invocation_identity
+   - startup_evidence：由 canonical `tools/execution_entry_contract.py::build_startup_evidence(...)` 產生，exact 綁定本 invocation_identity / repository / purpose / issued_at / expires_at / canonical declaration；非 SEED request 必填。
    - expected_coord_head：步驟1 fresh HEAD
    - expected_generation：步驟1 record.generation
    - effect：fresh external readback payload
 4. 記住 request commit SHA；push 會自動觸發 request workflow。
 5. 只接受 event=push、workflow=`whd-control-transaction-v2-request.yml`、head_sha=request commit SHA 的 exact run。
 6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
-7. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。
+7. trusted ingress 在任何 ExecutionRecord state read/mutation 前，先用 `validate_startup_evidence(...)` 驗 startup_evidence；缺失、過期（TTL>300 秒或已到期）、repository 不符、declaration 被改、或 invocation_identity 不符，一律 FAILED/fail closed。
+8. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。fresh runtime 必須重建 startup evidence；前一 invocation evidence 不得重放。
 
 `coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
-POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
+POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request；terminal non-success 後先 fresh-read exact run/head/conclusion，再送 FAIL_QA request 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
 
 手動 `whd-control-transaction-v2.yml` 只保留管理/診斷用途；scheduler不得依賴 connector 未提供的 workflow_dispatch。

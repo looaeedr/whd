@@ -124,3 +124,48 @@ def test_explicit_slot_and_scheduler_lane_are_not_overridden():
         authority_kind="USER_EXPLICIT",
     )
     assert scheduler.slot_id is None
+
+
+def test_flow_v2_bridges_preserve_project_startup_hard_gate():
+    canonical = text(CANONICAL)
+    assert "PROJECT_STARTUP_HARD_GATE_V1" in canonical
+    assert "EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1" in canonical
+    assert "tools/execution_entry_contract.py" in canonical
+    assert "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1" in canonical
+    assert "AI_LIBRARY_SEARCHED" in canonical
+    assert "RELEVANT_HISTORY_READ" in canonical
+    assert "LIVE_VS_HISTORY_RECONCILED" in canonical
+    for path in BRIDGES:
+        body = text(path)
+        assert "EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1" in body, path
+        assert "tools/execution_entry_contract.py" in body, path
+
+def test_scheduler_startup_bootstrap_read_only_discovery_breaks_issue_binding_cycle():
+    agents = text(ROOT / "AGENTS.md")
+    canonical = text(CANONICAL)
+    scheduler = text(ROOT / ".agents/skills/engineering/排程模擬/SKILL.md")
+    marker = "SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1"
+
+    for source in (agents, canonical, scheduler):
+        assert marker in source
+
+    startup = canonical.split("## PROJECT_STARTUP_HARD_GATE_V1", 1)[1].split(
+        "<!-- FLOW_V2_EXECUTION_CANONICAL_V1 -->", 1
+    )[0]
+    assert "coord/execution-v2" in startup
+    assert "ready-index" in startup
+    assert "execution_scheduler_view.py" in startup
+    assert "owning Issue" in startup
+    assert "READ_ONLY_BOOTSTRAP_ONLY" in startup
+    assert "PRE_PREFLIGHT_MUTATION_FORBIDDEN" in startup
+    assert "WAKE" in startup
+    assert "HEARTBEAT" in startup
+    assert "ACQUIRE" in startup
+    assert "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1" in startup
+    assert startup.index(marker) < startup.index("WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1")
+
+    wake = scheduler.split("## Wake", 1)[0]
+    assert marker in wake
+    assert "bootstrap projection" in scheduler
+    assert "fresh-read" in scheduler
+

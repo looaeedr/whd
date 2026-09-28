@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.control_transaction import ControlTransactionConflict
+from tools.execution_entry_contract import validate_startup_evidence
 from tools.control_transaction_production_executor import (
     ProductionExecutorError,
     _load_state,
@@ -21,7 +22,7 @@ from tools.control_transaction_production_executor import (
 
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 ALLOWED_KINDS = {
-    "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA",
+    "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","FAIL_QA",
     "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
 }
 
@@ -55,10 +56,13 @@ def _load_request(path: Path) -> dict[str, object]:
     for key in ("request_id","issue","kind","lane_id","invocation_identity","expected_coord_head","expected_generation","effect"):
         if key not in payload:
             raise ProductionExecutorError(f"request missing {key}")
-    if str(payload["kind"]) not in ALLOWED_KINDS:
+    kind = str(payload["kind"])
+    if kind not in ALLOWED_KINDS:
         raise ProductionExecutorError("unsupported transaction kind")
     if not isinstance(payload["effect"], dict):
         raise ProductionExecutorError("effect must be an object")
+    if kind != "SEED" and "startup_evidence" not in payload:
+        raise ProductionExecutorError("request missing startup_evidence")
     return payload
 
 
@@ -75,6 +79,15 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
             "generation_after": int(request["expected_generation"]),
             "transaction": {"status": "RECONCILED", "kind": "SEED"},
         }
+
+    try:
+        validate_startup_evidence(
+            request.get("startup_evidence"),
+            invocation_identity=str(request["invocation_identity"]),
+            repository=repo,
+        )
+    except ValueError as exc:
+        raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
 
     parent_sha, _, records = _load_state(repo, token, coord_branch)
     expected_parent = str(request["expected_coord_head"])

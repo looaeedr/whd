@@ -16,10 +16,14 @@ on:
       - '.github/workflows/whd-turn-exit-gate.yml'
       - '.github/workflows/whd-phase6-preflight.yml'
       - '.github/workflows/whd-control-plane-regression.yml'
+
+
+      - '.github/workflows/whd-scheduler-host-watchdog.yml'
       - '.github/workflows/whd-control-transaction-v2-request.yml'
       - 'AGENTS.md'
       - 'tools/continuity_controller.py'
       - 'tools/scheduler_runtime_liveness.py'
+      - 'tools/scheduler_host_watchdog.py'
       - 'tools/scheduled_resume_executor.py'
       - 'tools/scheduled_resume_runtime.py'
       - 'tools/control_transaction.py'
@@ -27,6 +31,7 @@ on:
       - 'tools/execution_invocation_exit.py'
       - 'tools/execution_scheduler_view.py'
       - 'tools/control_transaction_request_ingress.py'
+      - 'tools/execution_entry_contract.py'
       - 'tests/process/test_flow_v2_execution_invocation_exit.py'
       - 'tests/process/test_flow_v2_execution_scheduler_view.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
@@ -36,6 +41,10 @@ on:
       - 'tests/process/test_scheduler_no_work_census_contract.py'
       - 'tests/process/test_issue892_flow_v2_production_transaction.py'
       - 'tests/process/test_issue899_push_transaction_ingress.py'
+      - 'tests/process/test_issue945_scheduler_host_watchdog.py'
+      - 'tests/process/test_issue696_startup_authorization_purpose.py'
+      - 'tests/process/test_issue721_task_start_authority_declaration.py'
+      - 'tests/process/test_issue886_flow_v2_entrypoint_cutover.py'
 
 permissions:
   contents: read
@@ -58,13 +67,15 @@ jobs:
           python -m py_compile \
             tools/continuity_controller.py \
             tools/scheduler_runtime_liveness.py \
+            tools/scheduler_host_watchdog.py \
             tools/scheduled_resume_executor.py \
             tools/scheduled_resume_runtime.py \
             tools/control_transaction.py \
             tools/control_transaction_production_executor.py \
             tools/control_transaction_request_ingress.py \
             tools/execution_invocation_exit.py \
-            tools/execution_scheduler_view.py
+            tools/execution_scheduler_view.py \
+            tools/execution_entry_contract.py
       - name: Run stop/closure focused regressions
         run: |
           python -m pytest -q \
@@ -76,4 +87,8 @@ jobs:
             tests/process/test_issue787_turn_exit_blocker_authority.py \
             tests/process/test_scheduler_no_work_census_contract.py \
             tests/process/test_issue892_flow_v2_production_transaction.py \
-            tests/process/test_issue899_push_transaction_ingress.py
+            tests/process/test_issue899_push_transaction_ingress.py \
+            tests/process/test_issue945_scheduler_host_watchdog.py \
+            tests/process/test_issue696_startup_authorization_purpose.py \
+            tests/process/test_issue721_task_start_authority_declaration.py \
+            tests/process/test_issue886_flow_v2_entrypoint_cutover.py
