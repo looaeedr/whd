@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
+    "id": 36469321344,
+    "purpose": "ISSUE943_EXACT_REVALIDATION_AFTER_TARGET_RECONCILE",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 19,
+  "generation": 20,
   "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
@@ -23,12 +28,11 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
-      "purpose": "ISSUE943_EXACT_REVALIDATION_AFTER_TARGET_RECONCILE",
-      "target_sha": "6ec65e7a9aab6e2c97605282e31619159d1b48e0"
+      "run_head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
+      "run_id": 36469321344
     },
-    "display": "Start exact #943 Receiving re-QA on reconciled head",
-    "kind": "START_QA"
+    "display": "Poll exact #943 Receiving UI regression run 36469321344",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -45,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REVALIDATION_REQUIRED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "INTEGRATING",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "6ec65e7a9aab6e2c97605282e31619159d1b48e0",
   "transaction": {
-    "expected_fingerprint": "c6a0c8106c014c7455f06ade84234c4edd3bbc5a8f418547ad698e33dc16266c",
-    "id": "gha:36469497658:943:ACQUIRE:18",
+    "expected_fingerprint": "daf32dd0a95022ffcbb0d2f1ccfbe7e45f6e064f15cb6318098077c4ca4bdf23",
+    "id": "gha:36469594857:943:START_QA:19",
     "invocation_identity": "interactive:work1:issue943:qa-bind:20260929T030245+0800",
-    "kind": "ACQUIRE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T19:03:13Z",
+  "updated_at": "2026-09-28T19:04:06Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
