@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
-  "head_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
+  "generation": 4,
+  "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
   "issue": 933,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -22,9 +22,11 @@
     "token": "lease:933:36430356851:1"
   },
   "next_action": {
-    "args": {},
-    "display": "Repair FINALIZE monitor EXIT projection",
-    "kind": "APPLY_COMMIT"
+    "args": {
+      "workflow": ".github/workflows/qa-issue933-finalize-monitor-exit.yml"
+    },
+    "display": "Bind exact Issue #933 FINALIZE monitor EXIT QA",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -49,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
   "transaction": {
-    "expected_fingerprint": "4cf6af66ea8f45dbc545112e5670d5e8d857129298c6501af861cd290dd06f75",
-    "id": "gha:36430486661:933:START_BRANCH:2",
+    "expected_fingerprint": "1069a2bca07c994ca3bf21957ef3272b53bdeb0c192b3b64ea7b41133d35aeac",
+    "id": "gha:36430864422:933:APPLY_COMMIT:3",
     "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:42:23Z",
+  "updated_at": "2026-09-28T13:45:30Z",
   "version": 2,
   "work_branch": "work/issue933-finalize-monitor-exit-20260928"
 }
