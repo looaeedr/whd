@@ -102,6 +102,7 @@ def evaluate_manifest(payload: Mapping[str, Any]) -> Dict[str, Any]:
 MIRROR_SCHEMA = "WHD_GOVERNANCE_MIRROR_V1"
 MIRROR_MANIFEST_SCHEMA = "WHD_GOVERNANCE_MIRROR_MANIFEST_V1"
 MIRROR_BRANCHES = frozenset({"main", "cleanup/2d-3d-sync"})
+ANCESTRY_SCHEMA = "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_V1"
 
 
 def validate_mirror_manifest(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -248,6 +249,24 @@ def _git(*args: str) -> str:
     return proc.stdout.strip()
 
 
+def _git_is_ancestor(ancestor_ref: str, descendant_ref: str) -> bool:
+    proc = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor_ref, descendant_ref],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if proc.returncode == 0:
+        return True
+    if proc.returncode == 1:
+        return False
+    raise RuntimeError(
+        proc.stderr.strip()
+        or f"git merge-base --is-ancestor failed: {ancestor_ref!r} {descendant_ref!r}"
+    )
+
+
 def _governed_tree_paths(ref: str, mirror_manifest: Mapping[str, Any]) -> set[str]:
     output = _git("ls-tree", "-r", "--name-only", ref)
     return {
@@ -389,6 +408,66 @@ def evaluate_pr_candidate_parity(
     }
 
 
+def evaluate_ancestry_reconciliation_state(
+    *,
+    main_sha: str,
+    cleanup_sha: str,
+    governance_parity_result: Mapping[str, Any],
+    main_is_ancestor: bool,
+) -> Dict[str, Any]:
+    """Fail closed until governed content is aligned and main history reaches cleanup."""
+    if not _valid_sha(main_sha) or not _valid_sha(cleanup_sha):
+        return _fail("INVALID_ANCESTRY_IDENTITY")
+    if (
+        not isinstance(governance_parity_result, Mapping)
+        or governance_parity_result.get("result") != "GREEN"
+    ):
+        return _fail(
+            "GOVERNANCE_PARITY_REQUIRED_BEFORE_ANCESTRY_RECONCILE",
+            governance_parity_reason=(
+                governance_parity_result.get("reason")
+                if isinstance(governance_parity_result, Mapping)
+                else "INVALID_GOVERNANCE_PARITY_RESULT"
+            ),
+        )
+    if main_is_ancestor is not True:
+        return _fail(
+            "MAIN_NOT_ANCESTOR_OF_CLEANUP",
+            schema=ANCESTRY_SCHEMA,
+            main_sha=main_sha,
+            cleanup_sha=cleanup_sha,
+        )
+    return {
+        "result": "GREEN",
+        "reason": "MAIN_ANCESTRY_RECONCILED",
+        "schema": ANCESTRY_SCHEMA,
+        "main_sha": main_sha,
+        "cleanup_sha": cleanup_sha,
+    }
+
+
+def verify_live_ancestry(
+    *,
+    main_ref: str,
+    cleanup_ref: str,
+    mirror_manifest: Mapping[str, Any],
+) -> Dict[str, Any]:
+    main_sha = _git("rev-parse", main_ref)
+    cleanup_sha = _git("rev-parse", cleanup_ref)
+    parity_payload = build_live_mirror_payload(
+        main_ref,
+        cleanup_ref,
+        mirror_manifest,
+    )
+    parity_result = evaluate_mirror_transaction(parity_payload, mirror_manifest)
+    return evaluate_ancestry_reconciliation_state(
+        main_sha=main_sha,
+        cleanup_sha=cleanup_sha,
+        governance_parity_result=parity_result,
+        main_is_ancestor=_git_is_ancestor(main_ref, cleanup_ref),
+    )
+
+
 def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="WHD governance parity / mirror hard gate")
     parser.add_argument("--manifest", type=Path)
@@ -400,6 +479,7 @@ def _main(argv: list[str] | None = None) -> int:
     parser.add_argument("--scope-only", action="store_true")
     parser.add_argument("--verify-live-parity", action="store_true")
     parser.add_argument("--verify-pr-candidate-parity", action="store_true")
+    parser.add_argument("--verify-live-ancestry", action="store_true")
     args = parser.parse_args(argv)
 
     if args.manifest is None:
@@ -425,10 +505,18 @@ def _main(argv: list[str] | None = None) -> int:
             opposite_ref=args.opposite_ref,
             mirror_manifest=manifest,
         )
+    elif args.verify_live_ancestry:
+        if not args.source_ref or not args.target_ref:
+            parser.error("--source-ref and --target-ref are required for live ancestry")
+        result = verify_live_ancestry(
+            main_ref=args.source_ref,
+            cleanup_ref=args.target_ref,
+            mirror_manifest=manifest,
+        )
     else:
         parser.error(
-            "choose --scope-only, --verify-live-parity, or "
-            "--verify-pr-candidate-parity"
+            "choose --scope-only, --verify-live-parity, "
+            "--verify-pr-candidate-parity, or --verify-live-ancestry"
         )
 
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
