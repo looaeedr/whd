@@ -20,11 +20,13 @@ on:
       - 'tools/scheduler_runtime_liveness.py'
       - 'tools/scheduled_resume_executor.py'
       - 'tools/scheduled_resume_runtime.py'
+      - 'tools/control_transaction_production_executor.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
       - 'tests/process/test_issue851_recurring_lifecycle_turn_exit.py'
       - 'tests/process/test_issue769_terminal_scheduler_census_exit_gate.py'
       - 'tests/process/test_issue787_turn_exit_blocker_authority.py'
       - 'tests/process/test_scheduler_no_work_census_contract.py'
+      - 'tests/process/test_issue892_flow_v2_production_transaction.py'
 
 permissions:
   contents: read
@@ -48,7 +50,8 @@ jobs:
             tools/continuity_controller.py \
             tools/scheduler_runtime_liveness.py \
             tools/scheduled_resume_executor.py \
-            tools/scheduled_resume_runtime.py
+            tools/scheduled_resume_runtime.py \
+            tools/control_transaction_production_executor.py
       - name: Run stop/closure focused regressions
         run: |
           python -m pytest -q \
