@@ -137,6 +137,8 @@ whd_schema: WHD_DOC_META_V1
 - work-slot: `tools/execution_work_slot_view.py`
 - explicit READY ingress: `tools/execution_dispatch_ingress.py`
 - mutation policy: `tools/execution_authority_policy.py`
+- runtime observability (NON_AUTHORITY): `coord/monitor-v2:.dispatch/monitor/runtime/*.json`，schema=`WHD_RUNTIME_OBSERVATION_V1`；只供 whd-monitor/HA 顯示 WAKE/PROGRESS/EXIT，不得授權 execution mutation。
+- default interactive slot gate: 未指定 slot 的 USER_EXPLICIT + EXECUTE_TICKET 正規化為 `worker.slot.0`；explicit `/工作1/2/3` 與 scheduler lane 不受覆蓋。
 
 ready-index只作 DERIVED_CACHE_ONLY。所有舊 workflow Skills只作 pointer/bridge。2026-09-28前的舊 ownership/prewrite/heartbeat/finalization語意為HISTORICAL；保留 transports已 fail-closed。
 
