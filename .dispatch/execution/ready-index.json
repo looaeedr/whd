@@ -1,18 +1,6 @@
 {
   "authority": "DERIVED_CACHE_ONLY",
-  "entries": [
-    {
-      "execution_intent": "EXECUTE_TICKET",
-      "generation": 1,
-      "issue": 946,
-      "next_action_display": "Acquire Issue #946",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "695e99617fc61d0458b652a4a82eedf67d50b5873bc1681d9d4e1916437eb9ea",
-      "target_branch": "main",
-      "target_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
-      "updated_at": null
-    }
-  ],
+  "entries": [],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "af74e2e98ac59c104a77f046a2ecdf16d38ec4d060f5da5f067836fdfadc2931"
+  "source_digest": "487b53e12bab7f71e7cd99589279ac37c17b1a841b10077bc7c546879824e83c"
 }
