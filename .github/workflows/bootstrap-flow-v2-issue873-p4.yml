@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fL --retry 3 --retry-delay 1 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-0f20-8209-9924-df48042d0752/raw?se=2026-09-28T04%3A39%3A58Z&sp=r&sv=2026-02-06&sr=b&scid=03b7a37f-baec-506a-8ac2-5ef139f90648&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-28T00%3A29%3A55Z&ske=2026-09-29T00%3A29%3A55Z&sks=b&skv=2026-02-06&sig=KUVItwT3G9hdfchTroY0O0ck1jRIdd28quVoaGH%2B32Q%3D' -o /tmp/issue873-p4.zip
+          curl -fL --retry 3 --retry-delay 1 'https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-0708-8206-b1b7-9d9bbea4da61/raw?se=2026-09-28T04%3A59%3A32Z&sp=r&sv=2026-02-06&sr=b&scid=b451ac8b-3bd7-5509-a179-8d1a1f944a6b&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-28T01%3A18%3A46Z&ske=2026-09-29T01%3A18%3A46Z&sks=b&skv=2026-02-06&sig=u3EBXRGV4879wZKl1rSuqhf0yKo/IoouIEfRScnbCVo%3D' -o /tmp/issue873-p4.zip
           echo 'cdf53677e0c816921129a2eea1cf6de336045056828051362fff53d63c8762be  /tmp/issue873-p4.zip' | sha256sum -c -
           unzip -o /tmp/issue873-p4.zip
 
