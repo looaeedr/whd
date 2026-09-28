@@ -1,0 +1,51 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 940,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "governance/issue940-entry-hard-gate-x",
+  "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
+  "work_branch": "governance/issue940-entry-hard-gate-x",
+  "head_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #940"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-28:restore-entry-hard-gates",
+      "authority_fingerprint": "ebe8a792fe64635f82adaa0bac21ba5d701e8f9318632b4cfe4c09749ec4f344"
+    }
+  ],
+  "updated_at": null
+}
