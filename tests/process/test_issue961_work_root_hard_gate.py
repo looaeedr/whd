@@ -164,3 +164,25 @@ def test_authority_map_declares_machine_owner_for_work_root_gate():
     ).read_text(encoding="utf-8")
     assert "contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py" in text
     assert "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json" in text
+
+
+def test_root_gate_rejects_duplicated_mutable_current_source_state():
+    from tools.work_root_gate import READ_MODE_GOOGLE_DRIVE, validate_gate_payload
+
+    payload = _canonical_payload()
+    payload["current_synced_source"] = {
+        "repository": "looaeedr/whd",
+        "branch": "cleanup/2d-3d-sync",
+        "sha": "a" * 40,
+        "tree_sha": "b" * 40,
+    }
+    with pytest.raises(ValueError, match="must not duplicate mutable current source state"):
+        validate_gate_payload(payload, read_mode=READ_MODE_GOOGLE_DRIVE)
+
+
+def test_repository_mirror_tracks_stable_drive_gate_payload_hash():
+    payload = _mirror_payload()
+    assert (
+        payload["canonical_source"]["canonical_payload_sha256"]
+        == "6c5fb106798b593df723b8d4ff4ed99e1ab14f7ca4dc20c20ce6f8580a46ea4e"
+    )
