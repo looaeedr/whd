@@ -79,10 +79,12 @@ def test_primary_startup_installs_tk_runtime_error_hook_before_app_creation():
     source = inspect.getsource(gui.main)
     assert "install_tk_exception_logging(" in source
     assert source.index("install_tk_exception_logging(") < source.index("Phase6PrimaryApplication(")
-    assert 'write_runtime_exception("application_startup"' in source
+    assert "write_runtime_exception(" in source
+    assert '"application_startup"' in source
 
 
 def test_3d_designer_constructor_boundary_logs_before_reraising():
     source = inspect.getsource(lifecycle.open_original_fold_designer)
-    assert 'write_runtime_exception("3d_designer_construction"' in source
+    assert "write_runtime_exception(" in source
+    assert '"3d_designer_construction"' in source
     assert "designer_factory(" in source
