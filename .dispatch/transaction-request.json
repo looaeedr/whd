@@ -1,20 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-933-start-branch-g2",
+  "request_id": "work0-933-apply-a9281e93",
   "issue": 933,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-  "expected_coord_head": "332550ea48ef293d4d3ada4c721cca87ed3bac26",
-  "expected_generation": 2,
+  "expected_coord_head": "07ca2f9061c7243249e2fdc4564aebf8bcdb3a26",
+  "expected_generation": 3,
   "effect": {
-    "work_branch": "work/issue933-finalize-monitor-exit-20260928",
-    "head_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
+    "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
     "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {},
-      "display": "Repair FINALIZE monitor EXIT projection"
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/qa-issue933-finalize-monitor-exit.yml"
+      },
+      "display": "Bind exact Issue #933 FINALIZE monitor EXIT QA"
     }
   }
 }
