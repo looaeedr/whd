@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "ae5b4d931db610aca948497a05707cf1786a1b4a",
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
   "issue": 889,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -22,13 +22,9 @@
     "token": "lease:889:36460280366:1"
   },
   "next_action": {
-    "args": {
-      "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
-      "pr_number": 891,
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge exact PR #891 after revalidated QA",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize Issue #889 after reconciled merge receipt",
+    "kind": "FINALIZE"
   },
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
@@ -59,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
+  "target_sha": "ae5b4d931db610aca948497a05707cf1786a1b4a",
   "transaction": {
-    "expected_fingerprint": "4d80cdfe3fc9cdd7120efdcc93fbd5dccfdec7e0e6cbd89efbaa1085d4cf7ebb",
-    "id": "gha:36461645255:889:ACCEPT_QA:10",
-    "invocation_identity": "scheduler-a:40:20260928T174200Z:889:g7",
-    "kind": "ACCEPT_QA",
+    "expected_fingerprint": "e38ddf8455d4ec67be4612eaa8488eb1d98acb9254080c65e1a301809d177b22",
+    "id": "gha:36467778138:889:MERGE:11",
+    "invocation_identity": "scheduler-a:repair:issue889:20260929T024748+0800",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:56:00Z",
+  "updated_at": "2026-09-28T18:48:37Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
