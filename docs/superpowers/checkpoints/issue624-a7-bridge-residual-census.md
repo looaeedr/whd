@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: issue624-a7-bridge-residual-census
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Issue #624 / Phase 7 A7 — fresh residual Bridge deletion-test census
 
 Schema: WHD_PHASE7_A7_BRIDGE_RESIDUAL_CENSUS_V1
