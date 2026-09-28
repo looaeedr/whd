@@ -15,6 +15,36 @@ whd_schema: WHD_DOC_META_V1
 
 ## AI 開發交接總覽
 
+## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V1：先解析 Google Drive WHD 根目錄
+
+<!-- WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 -->
+
+對 WHD 的任何新 task/runtime/invocation，**預設工作根目錄不需要使用者重複指定**。固定 canonical root 是：
+
+`/Google Drive/WHD`
+
+canonical gate 是：
+
+`/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json`
+
+在任何一般 workspace/file discovery、專案檔案讀取、分析或 mutation 前，只允許完成下列 bootstrap read：
+
+1. 列出 Library root，確認 `/Google Drive` 的 mount identity 為 `external-gdrive:root`。
+2. 列出 `/Google Drive`，解析 exact `/Google Drive/WHD` 並驗 folder id=`1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_`。
+3. fresh-read canonical `WHD_WORK_ROOT_HARD_GATE_V1.json`。
+4. fresh-read `/Google Drive/WHD/source/manifests/WHD Current Source Manifest`，完成 `CURRENT_SOURCE_MANIFEST_READ`。
+5. 產生 `WHD_WORK_ROOT_GATE_EVIDENCE_V1`；沒有這張 evidence，不得建立 Flow v2 startup_evidence，也不得進入 mutation ingress。
+
+互動式/chat runtime 固定使用 `read_mode=GOOGLE_DRIVE_CANONICAL`。若使用者只說「根目錄／工作根目錄／專案根目錄／root」，不得再解讀為 `/`、`/mnt/data`、Library `/WHD` 或 GitHub checkout。
+
+GitHub-only / `SCHEDULER_LANE` / trusted remote action 若 execution environment 沒有 Google Drive connector，必須在**任何一般 GitHub discovery 前** fresh-read pointer-only mirror：
+
+`.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json`
+
+並使用 `read_mode=GITHUB_MIRROR`。此 mirror 只證明 canonical root identity，**不得**把 GitHub checkout 改綁成預設工作根目錄。scheduler 的 code/PR/CI/control-plane transport 仍走 GitHub；workspace root 語意仍屬 Google Drive。
+
+machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest 任一缺失或 identity mismatch 都 fail closed；不得用聊天記憶、`/mnt/data` 暫存路徑或前一 invocation evidence 代替。
+
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
 ### 0.0.0 Skill 使用前 user-visible 公告硬閘門
@@ -60,6 +90,16 @@ GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力
 
 `.github/workflows/whd-phase6-preflight.yml`
 
+#### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
+
+GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在 AI Library gate、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。
+
+- 只准讀 `coord/execution-v2`、derived `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only projection，以及取得 exact owning Issue / branch / HEAD 必需的 GitHub metadata。
+- bootstrap 唯一輸出用途是綁定 owning Issue 後送 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`；不得另造永久 bootstrap Issue。
+- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：receipt GREEN 且 REQUIRED SKILLS / REQUIRED REFERENCES 全部 fresh-read 前，禁止 WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease / ExecutionRecord mutation，亦不得 dispatch 除 trusted Phase6 Preflight request 外的其他 workflow / mutation transport。
+- Preflight 完成後必須丟棄 bootstrap projection，重新 fresh-read canonical ExecutionRecord / scheduler view，才可進正常 Flow v2 WAKE / ownership / next_action。
+- 這是 read-only issue-binding bootstrap，不是 Preflight bypass、execution authority 或第二套 scheduler state machine。
+
 owner-authored owning-Issue request 第一行固定 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`，並 exact 綁定 `issue + worker + executor_source + branch + head_sha + task`；預計修改檔已知時逐一加入 `changed_file=`。trusted runner 只允許 checkout/read exact HEAD、執行 canonical `tools/phase6_skill_preflight.py`、讀取 required Skill/reference 並發布 `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`；不接受 arbitrary command，也沒有 repository contents write 權限。
 
 remote result `GREEN` 只證明 exact task/HEAD 的 canonical Preflight 已執行且 requirements 可解析；**呼叫端仍必須 fresh-read result列出的每一個 required Skill / required reference，並留下自己的 `READ_SKILL` / `READ_REFERENCE` evidence，才可開始 substantive analysis 或 mutation。** generic Remote Guard 內部的 preflight 若未綁本次完整 task，不得替代這個 startup Preflight。
@@ -93,21 +133,28 @@ WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1 startup declaration。
 
 ### 0.0.0A Skill mutation Preflight pre-write 硬閘門
 
-<!-- SKILL_MUTATION_PREFLIGHT_PREWRITE_V1 -->
+<!-- FLOW_V2_SKILL_MUTATION_PREFLIGHT_PREWRITE_V2 -->
 
-任何 repo mutation 只要 target path 符合 `.agents/skills/**/SKILL.md`，不得只靠「我已經讀過 Skill」或一般 execution claim 放行。**在該次 write/commit 前**必須同時滿足：
+任何 repo mutation 只要 target path 符合 `.agents/skills/**/SKILL.md`，不得只靠「我已經讀過 Skill」、聊天記憶或一般 execution authority 放行。
 
-1. 已用本任務完整描述 + planned changed files 跑 canonical `tools/phase6_skill_preflight.py`，且 evidence 證明 `寫技能` 與所有 required references 已完成。
-2. 緊接著的 `tools/execution_claim_guard.py` 必須帶實際 target `--changed-file "<path>"`；`write/commit` 缺 changed-file 一律 fail closed。
-3. Skill target 另必須帶至少一個 `--preflight-evidence "<evidence-path>"`；guard 會用 canonical Phase6 Preflight required/completed 邏輯重新驗證，缺 `寫技能`、缺 required Skill 或缺 required reference 都不得 GREEN。
-4. scope / planned changed files 擴大時先重跑 Preflight；舊 evidence 只有在仍覆蓋目前 target requirements 時才可重用。
-5. 此 gate 由 executable guard 擁有 machine enforcement；本節只定義啟動 authority，不建立第二套 evidence parser。
+Flow v2 CURRENT hard gate 固定為：
 
-標準形式：
+1. 本 invocation 已先完成 `EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1`，並 user-visible 輸出 canonical `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`。
+2. 已對 **exact branch + exact pre-write HEAD + 完整 task + 全部 planned changed files** 執行 canonical Phase6 Knowledge Preflight。GitHub-only runtime 固定使用 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1` / `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`。
+3. remote receipt 必須 `result=GREEN`，且 exact 綁定 issue、worker、branch、head_sha、task hash 與 changed_files；呼叫端再 fresh-read receipt 列出的全部 REQUIRED SKILLS / REQUIRED REFERENCES。
+4. 寫入只能發生在 receipt 綁定的 branch。GitHub contents mutation 必須逐 target 使用 fresh blob SHA 做 CAS。若 branch HEAD 自 receipt HEAD 往後的新增 commits **全部由同一 invocation、且全部只修改 receipt.changed_files 內路徑**，可作為同一 authorized mutation chain 連續施工；任一 foreign/intervening commit、target blob 非預期 drift、branch rewrite 或 owner/invocation 不可證明時立即 fail closed，重新跑 Preflight。
+5. mutation scope 不得超出 receipt 的 `changed_files`。途中新增 target 必須回到第 2 步重跑；不得用同一 receipt 擴張 scope。
+6. Skill/governance mutation 必須經 paired governance PR（main / cleanup）及 `WHD Control Plane Regression` + `Governance Mirror Hard Gate`；Control Plane Regression 必須包含 startup hard-gate contract tests。
+7. `.github/workflows/whd-remote-execution-guard.yml` 已由 Flow v2 cutover 明確標記 `FLOW_V2_LEGACY_TRANSPORT_RETIRED_V1`，**不得把已退役 legacy Remote Guard 當 CURRENT Skill write gate**。不得為了滿足舊文字而重新啟用 legacy claim/Guard authority。
 
-```text
-python tools/execution_claim_guard.py ... --action write --changed-file ".agents/skills/<...>/SKILL.md" --preflight-evidence "<phase6-evidence>"
-```
+CURRENT machine owners：
+- startup provenance/intent：`tools/execution_entry_contract.py`
+- project knowledge preflight：`tools/phase6_skill_preflight.py` + trusted `whd-phase6-preflight.yml`
+- repo write concurrency：GitHub blob-SHA CAS
+- execution authority：Flow v2 ExecutionRecord / transaction
+- governance acceptance：Control Plane Regression + Governance Mirror Hard Gate
+
+這不是降低防線，而是把 cutover 後不可達的 legacy Guard 要求改綁到 CURRENT 可執行且可 machine-readback 的 owners。缺任一 gate 即 `FAIL_CLOSED`。
 
 ### 0.0.1 派工 Skill 實際執行硬閘門
 

@@ -66,6 +66,7 @@ from phase6_assembly_panel import Phase6AssemblyPanel
 from phase6_manufacturing_adapter import operator_finished_dimensions_for_app
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+from gui_modules.runtime_error_log import write_runtime_exception
 from gui_modules.application.fold_designer_settings_coordinator import (
     Phase6FoldDesignerSettingsCoordinator,
     Phase6SettingsApplicationPorts,
@@ -1413,9 +1414,31 @@ class Phase6FoldDesignerComposition:
                 raw_renderer = getattr(app, "renderer", None)
                 if raw_renderer is None:
                     return None
+                def report_render_error(exc):
+                    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+                    return write_runtime_exception(
+                        "3d_final_scene_render",
+                        exc,
+                        metadata={
+                            "display_mode": str(
+                                getattr(app, "_phase6_3d_display_mode", "single") or "single"
+                            ),
+                            "active_part": str(
+                                getattr(
+                                    getattr(app, "designer_workspace", None),
+                                    "active_part",
+                                    "",
+                                )
+                                or ""
+                            ),
+                            "model": str(snapshot.get("model") or ""),
+                        },
+                    )
+
                 self._final_scene_renderer = Phase6FinalSceneRenderer(
                     raw_renderer,
                     number_text=number_text,
+                    error_reporter=report_render_error,
                 )
                 app.final_scene_view = self._final_scene_renderer
         return self._final_scene_renderer
@@ -1604,16 +1627,20 @@ class Phase6FoldDesignerComposition:
             cabinet_family=lambda: required("_phase6_current_cabinet_family")(app),
             assembly_blank_text=assembly_blank_text,
             active_mesh_profiles=lambda material: required(
-                "_phase6_active_mesh_profiles"
-            )(app, material),
+                "_phase6_mesh_profiles_for_part"
+            )(app, app.designer_workspace.active_part, material),
             assembly_render_data_cls=AssemblySceneRenderData,
             assembly_part_cls=AssemblyScenePart,
             final_render_provider=lambda: required(
                 "_phase6_query_final_render_data"
             )(app),
-            assembly_render_provider=lambda: required(
-                "_phase6_query_assembly_render_data"
-            )(app),
+            assembly_render_provider=lambda: (
+                self._final_scene_adapter.query_assembly_render_data()
+                if self._final_scene_adapter is not None
+                else (_ for _ in ()).throw(
+                    RuntimeError("FinalScene adapter is not initialized")
+                )
+            ),
             request_provider=lambda: required("_phase6_final_scene_view_request")(app),
             after_render=lambda: (
                 update_unfolded_size_label(),

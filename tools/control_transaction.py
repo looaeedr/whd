@@ -15,6 +15,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Mapping
 
+from tools.execution_invocation_exit import classify_invocation_exit
 from tools.execution_record import (
     ActionSpec,
     BlockerState,
@@ -36,6 +37,7 @@ TRANSACTION_KINDS = frozenset(
         "APPLY_COMMIT",
         "START_QA",
         "ACCEPT_QA",
+        "FAIL_QA",
         "BLOCK",
         "MERGE",
         "HANDOFF",
@@ -331,8 +333,10 @@ def _execute_start_qa(
     plan: ControlTransactionPlan,
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
-    if record.state not in {"ACTIVE", "VERIFYING"}:
-        raise ControlTransactionError("START_QA requires ACTIVE/VERIFYING state")
+    if record.state not in {"ACTIVE", "VERIFYING", "INTEGRATING"}:
+        raise ControlTransactionError(
+            "START_QA requires ACTIVE/VERIFYING/INTEGRATING state"
+        )
     if record.active_run is not None:
         raise ControlTransactionError("START_QA rejected: active_run already exists")
     run_id = effect.get("run_id")
@@ -388,6 +392,47 @@ def _execute_accept_qa(
         semantic_state=str(effect.get("semantic_state") or "GREEN"),
         active_run=None,
         qa=qa,
+        next_action=next_action,
+        blocker=None,
+    )
+
+
+_QA_FAILURE_CONCLUSIONS = frozenset({
+    "failure",
+    "cancelled",
+    "timed_out",
+    "action_required",
+    "startup_failure",
+})
+
+
+def _execute_fail_qa(
+    record: ExecutionRecord,
+    plan: ControlTransactionPlan,
+    effect: Mapping[str, object],
+) -> ExecutionRecord:
+    """Consume one exact terminal failed QA run and return to repair work."""
+    if record.state != "VERIFYING" or record.active_run is None:
+        raise ControlTransactionError("FAIL_QA requires one active_run in VERIFYING state")
+    run_id = effect.get("run_id")
+    if run_id != record.active_run.id:
+        raise ControlTransactionError("FAIL_QA run_id does not match active_run")
+    run_head = _text(effect.get("run_head_sha"), "run_head_sha")
+    if run_head != record.active_run.head_sha or run_head != record.head_sha:
+        raise ControlTransactionError("FAIL_QA run_head_sha must match active_run/current head")
+    conclusion = str(effect.get("conclusion") or "").strip().lower()
+    if conclusion not in _QA_FAILURE_CONCLUSIONS:
+        raise ControlTransactionError(
+            "FAIL_QA requires a terminal non-success conclusion"
+        )
+    next_action = _action(effect.get("next_action"))
+    return _base_update(
+        record,
+        plan,
+        effect,
+        state="ACTIVE",
+        semantic_state=str(effect.get("semantic_state") or "QA_FAILED_REPAIR"),
+        active_run=None,
         next_action=next_action,
         blocker=None,
     )
@@ -473,8 +518,16 @@ def _execute_finalize(
 ) -> ExecutionRecord:
     if record.state != "INTEGRATING":
         raise ControlTransactionError("FINALIZE requires INTEGRATING state")
+    if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+        raise ControlTransactionError("FINALIZE requires accepted QA for current head")
+    if not record.closure.merged_sha or record.target_sha != record.closure.merged_sha:
+        raise ControlTransactionError("FINALIZE requires fresh merged target readback")
     if effect.get("issue_closed") is not True:
         raise ControlTransactionError("FINALIZE requires issue_closed=true readback")
+    if str(effect.get("issue_state") or "").strip().lower() != "closed":
+        raise ControlTransactionError("FINALIZE requires issue_state=closed readback")
+    if str(effect.get("issue_state_reason") or "").strip().lower() != "completed":
+        raise ControlTransactionError("FINALIZE requires issue_state_reason=completed readback")
     released_at = _text(effect.get("released_at"), "released_at")
     closure = ClosureState(
         merged_sha=record.closure.merged_sha,
@@ -619,6 +672,18 @@ def _execute_yield(
         requested_semantic = _text(effect.get("semantic_state"), "semantic_state")
         if requested_semantic != record.semantic_state:
             raise ControlTransactionError("YIELD cannot rewrite semantic_state")
+
+    exit_decision = classify_invocation_exit(
+        record,
+        invocation_identity=plan.invocation_identity,
+        now=_text(effect.get("updated_at"), "effect.updated_at"),
+        host_boundary=True,
+    )
+    if not exit_decision.requires_yield:
+        raise ControlTransactionError(
+            "YIELD rejected by invocation-exit gate: "
+            f"{exit_decision.decision}"
+        )
     return _base_update(
         record,
         plan,
@@ -635,6 +700,7 @@ _EXECUTORS = {
     "APPLY_COMMIT": _execute_apply_commit,
     "START_QA": _execute_start_qa,
     "ACCEPT_QA": _execute_accept_qa,
+    "FAIL_QA": _execute_fail_qa,
     "BLOCK": _execute_block,
     "MERGE": _execute_merge,
     "HANDOFF": _execute_handoff,

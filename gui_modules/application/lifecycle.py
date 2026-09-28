@@ -14,6 +14,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, apply_ttk_dark_theme
+from gui_modules.runtime_error_log import write_runtime_exception
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -986,33 +987,52 @@ def open_original_fold_designer(self, *, target_window=None):
     designer_factory = getattr(self, "_fold_designer_factory", None)
     if designer_factory is None:
         raise RuntimeError("Fold Designer factory is not connected")
-    designer = designer_factory(
-        window, designer_snapshot,
-        on_settings_change=None,
-        on_save_defaults=self._save_fold_designer_defaults,
-        on_corner_change=None,
-        on_live_sync=lambda payload: self._apply_fold_designer_live_snapshot(deepcopy(payload)),
-        on_baseline_data_query=self._query_fold_designer_baseline_data,
-        on_scene_query=self._query_fold_designer_render_data,
-        on_part_spec_query=self._fold_designer_part_spec_from_payload,
-        on_ui_text_size_change=lambda value: self._apply_ui_text_size_preference(
-            value, persist=True, notify_designer=False
-        ),
-        on_project_load=load_project_from_designer,
-        on_project_path_change=project_path_changed,
-        on_project_save=save_project_from_designer,
-        output_draw_stock_var=self.draw_stock_var,
-        output_export_vars={
-            "box_body": self.export_z_var,
-            "head": self.export_head_var,
-            "tail": self.export_tail_var,
-            "door": self.export_door_var,
-            "base_plate": self.export_base_plate_var,
-            "indicator_box": self.export_ib_var,
-            "indicator_door": self.export_ib_door_var,
-        },
-        on_export_selected_dxf=lambda: self.export_selected_dxf(),
-    )
+    try:
+        designer = designer_factory(
+            window, designer_snapshot,
+            on_settings_change=None,
+            on_save_defaults=self._save_fold_designer_defaults,
+            on_corner_change=None,
+            on_live_sync=lambda payload: self._apply_fold_designer_live_snapshot(deepcopy(payload)),
+            on_baseline_data_query=self._query_fold_designer_baseline_data,
+            on_scene_query=self._query_fold_designer_render_data,
+            on_part_spec_query=self._fold_designer_part_spec_from_payload,
+            on_ui_text_size_change=lambda value: self._apply_ui_text_size_preference(
+                value, persist=True, notify_designer=False
+            ),
+            on_project_load=load_project_from_designer,
+            on_project_path_change=project_path_changed,
+            on_project_save=save_project_from_designer,
+            output_draw_stock_var=self.draw_stock_var,
+            output_export_vars={
+                "box_body": self.export_z_var,
+                "head": self.export_head_var,
+                "tail": self.export_tail_var,
+                "door": self.export_door_var,
+                "base_plate": self.export_base_plate_var,
+                "indicator_box": self.export_ib_var,
+                "indicator_door": self.export_ib_door_var,
+            },
+            on_export_selected_dxf=lambda: self.export_selected_dxf(),
+        )
+    except Exception as exc:
+        write_runtime_exception(
+            "3d_designer_construction",
+            exc,
+            metadata={
+                "build_id": PHASE6_BUILD_ID,
+                "model": str(designer_snapshot.get("model") or ""),
+                "project_path": str(
+                    designer_snapshot.get("_runtime_project_path") or ""
+                ),
+            },
+        )
+        if target_window is None:
+            try:
+                window.destroy()
+            except tk.TclError:
+                pass
+        raise
     designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
     self.fold_designer_window = window
     self.fold_designer_app = designer

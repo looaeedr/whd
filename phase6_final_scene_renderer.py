@@ -55,9 +55,16 @@ class Phase6FinalSceneRenderer:
         "indicator_door": ("#ec4899", "#9d174d"),
     }
 
-    def __init__(self, renderer, *, number_text: Callable[[object], str] | None = None):
+    def __init__(
+        self,
+        renderer,
+        *,
+        number_text: Callable[[object], str] | None = None,
+        error_reporter: Callable[[BaseException], object] | None = None,
+    ):
         self.renderer = renderer
         self._number_text = number_text or _default_number_text
+        self._error_reporter = error_reporter
         self.last_cutting_mesh = []
         self.last_cutting_material = None
         self.cutting_mesh_error = None
@@ -917,6 +924,13 @@ class Phase6FinalSceneRenderer:
                 self.last_cutting_mesh = []
                 self.last_cutting_material = None
                 self.cutting_mesh_error = str(exc)
+                reporter = self._error_reporter
+                if callable(reporter):
+                    try:
+                        reporter(exc)
+                    except Exception:
+                        # Runtime diagnostics must never replace the render failure.
+                        pass
                 try:
                     ax.text2D(
                         0.5, 0.5, f"3D Final Part Geometry 載入失敗\n{exc}",

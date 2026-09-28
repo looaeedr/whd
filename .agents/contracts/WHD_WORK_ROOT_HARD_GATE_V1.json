@@ -1,0 +1,48 @@
+{
+  "schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+  "version": 1,
+  "status": "CURRENT",
+  "role": "MIRROR",
+  "mirror_policy": "POINTER_ONLY",
+  "canonical_source": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "drive_file_id": "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH",
+    "canonical_payload_sha256": "6c5fb106798b593df723b8d4ff4ed99e1ab14f7ca4dc20c20ce6f8580a46ea4e"
+  },
+  "default_work_root": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "mount_identity": "external-gdrive:root"
+  },
+  "identity_checks": {
+    "required_provider": "google_drive",
+    "required_library_path": "/Google Drive/WHD",
+    "required_drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  },
+  "forbidden_default_roots": [
+    "/",
+    "/mnt/data",
+    "/WHD",
+    "GitHub repository checkout"
+  ],
+  "github_role": "GitHub looaeedr/whd is code/PR/CI/scheduler/control-plane authority only. This mirror never rebinds the default interactive workspace root away from Google Drive.",
+  "override_policy": {
+    "allowed_only_when": [
+      "user explicitly names another source/root",
+      "execution_mode is SCHEDULER_LANE with GitHub canonical control-plane transport",
+      "execution_mode is GITHUB_ONLY or REMOTE_ACTION",
+      "task explicitly requires a non-workspace connector source"
+    ],
+    "must_not_rebind_unqualified_root_terms": true
+  },
+  "source_layout": {
+    "manifest": "/Google Drive/WHD/source/manifests/WHD Current Source Manifest",
+    "snapshots": "/Google Drive/WHD/source/snapshots",
+    "state": "/Google Drive/WHD/state",
+    "work": "/Google Drive/WHD/work",
+    "artifacts": "/Google Drive/WHD/artifacts"
+  }
+}

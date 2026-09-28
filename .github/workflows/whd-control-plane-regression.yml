@@ -9,22 +9,50 @@ on:
       - '.agents/skills/engineering/排程模擬/SKILL.md'
       - '.agents/skills/engineering/寫排程/SKILL.md'
       - '.agents/skills/engineering/派工/SKILL.md'
+      - '.agents/skills/engineering/flow-v2-execution/SKILL.md'
+      - '.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json'
       - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
       - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
       - '.agents/skills/engineering/remote-execution-guard/SKILL.md'
       - '.github/workflows/whd-turn-exit-gate.yml'
       - '.github/workflows/whd-phase6-preflight.yml'
       - '.github/workflows/whd-control-plane-regression.yml'
+      - '.github/workflows/whd-governance-mirror-gate.yml'
+      - '.github/workflows/whd-governance-ancestry-reconcile.yml'
+      - 'docs/governance/governance_mirror_manifest.json'
+      - 'tools/governance_parity_gate.py'
+      - 'tests/process/test_issue952_governance_ancestry_reconcile.py'
+
+
+      - '.github/workflows/whd-scheduler-host-watchdog.yml'
+      - '.github/workflows/whd-control-transaction-v2-request.yml'
       - 'AGENTS.md'
       - 'tools/continuity_controller.py'
       - 'tools/scheduler_runtime_liveness.py'
+      - 'tools/scheduler_host_watchdog.py'
       - 'tools/scheduled_resume_executor.py'
       - 'tools/scheduled_resume_runtime.py'
+      - 'tools/control_transaction.py'
+      - 'tools/control_transaction_production_executor.py'
+      - 'tools/execution_invocation_exit.py'
+      - 'tools/execution_scheduler_view.py'
+      - 'tools/control_transaction_request_ingress.py'
+      - 'tools/execution_entry_contract.py'
+      - 'tools/work_root_gate.py'
+      - 'tests/process/test_flow_v2_execution_invocation_exit.py'
+      - 'tests/process/test_flow_v2_execution_scheduler_view.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
       - 'tests/process/test_issue851_recurring_lifecycle_turn_exit.py'
       - 'tests/process/test_issue769_terminal_scheduler_census_exit_gate.py'
       - 'tests/process/test_issue787_turn_exit_blocker_authority.py'
       - 'tests/process/test_scheduler_no_work_census_contract.py'
+      - 'tests/process/test_issue892_flow_v2_production_transaction.py'
+      - 'tests/process/test_issue899_push_transaction_ingress.py'
+      - 'tests/process/test_issue961_work_root_hard_gate.py'
+      - 'tests/process/test_issue945_scheduler_host_watchdog.py'
+      - 'tests/process/test_issue696_startup_authorization_purpose.py'
+      - 'tests/process/test_issue721_task_start_authority_declaration.py'
+      - 'tests/process/test_issue886_flow_v2_entrypoint_cutover.py'
 
 permissions:
   contents: read
@@ -47,13 +75,32 @@ jobs:
           python -m py_compile \
             tools/continuity_controller.py \
             tools/scheduler_runtime_liveness.py \
+            tools/scheduler_host_watchdog.py \
             tools/scheduled_resume_executor.py \
-            tools/scheduled_resume_runtime.py
+            tools/scheduled_resume_runtime.py \
+            tools/control_transaction.py \
+            tools/control_transaction_production_executor.py \
+            tools/control_transaction_request_ingress.py \
+            tools/execution_invocation_exit.py \
+            tools/execution_scheduler_view.py \
+            tools/execution_entry_contract.py \
+            tools/work_root_gate.py \
+            tools/governance_parity_gate.py
       - name: Run stop/closure focused regressions
         run: |
           python -m pytest -q \
+            tests/process/test_flow_v2_execution_invocation_exit.py \
+            tests/process/test_flow_v2_execution_scheduler_view.py \
             tests/process/test_issue865_scheduler_stop_hardening.py \
             tests/process/test_issue851_recurring_lifecycle_turn_exit.py \
             tests/process/test_issue769_terminal_scheduler_census_exit_gate.py \
             tests/process/test_issue787_turn_exit_blocker_authority.py \
-            tests/process/test_scheduler_no_work_census_contract.py
+            tests/process/test_scheduler_no_work_census_contract.py \
+            tests/process/test_issue892_flow_v2_production_transaction.py \
+            tests/process/test_issue899_push_transaction_ingress.py \
+            tests/process/test_issue961_work_root_hard_gate.py \
+            tests/process/test_issue945_scheduler_host_watchdog.py \
+            tests/process/test_issue696_startup_authorization_purpose.py \
+            tests/process/test_issue721_task_start_authority_declaration.py \
+            tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
+            tests/process/test_issue952_governance_ancestry_reconcile.py

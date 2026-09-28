@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
+ADAPTER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
 ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
 
 P7_R_A_PROVEN_NO_CALLER = {
@@ -14,7 +16,6 @@ P7_R_A_PROVEN_NO_CALLER = {
     "_phase6_final_scene_set_preview_enabled",
     "_phase6_commit_output_draw_stock",
     "_phase6_export_selected_dxf_from_3d",
-    "_phase6_toggle_parameter_panel",
 }
 
 
@@ -116,12 +117,70 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
         "_phase6_install_keyboard_shortcuts",
         "_phase6_final_scene_view_request",
         "_phase6_save_settings_context_as_defaults",
+        "_phase6_toggle_parameter_panel",
     ):
         assert name in funcs
-    adapter = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
-        encoding="utf-8"
-    )
+    adapter = ADAPTER.read_text(encoding="utf-8")
     assert "_phase6_refresh_sticky_structure_tree" in adapter
     assert "_phase6_install_keyboard_shortcuts" in adapter
     assert "_phase6_final_scene_view_request" in adapter
     assert "_phase6_save_settings_context_as_defaults" in adapter
+    assert "_phase6_toggle_parameter_panel" in adapter
+
+
+def test_p7_r_a_parameter_panel_compat_port_toggles_workspace_visibility(monkeypatch):
+    import fold_designer_bridge as bridge
+
+    class FakeWidget:
+        def __init__(self, manager=""):
+            self.manager = manager
+            self.text = ""
+
+        def winfo_manager(self):
+            return self.manager
+
+        def pack_forget(self):
+            self.manager = ""
+
+        def pack(self, *args, **kwargs):
+            self.manager = "pack"
+
+        def configure(self, **kwargs):
+            if "text" in kwargs:
+                self.text = kwargs["text"]
+
+    button = FakeWidget("pack")
+    center = FakeWidget("pack")
+    diagnostics = FakeWidget("")
+    app = SimpleNamespace(
+        _phase6_parameters_unlocked=False,
+        parameter_lock_button=button,
+        settings_center=center,
+        active_part_key="box_body",
+        _phase6_3d_display_mode="assembly",
+        assembly_diagnostics_frame=diagnostics,
+    )
+    status_updates = []
+    monkeypatch.setattr(
+        bridge,
+        "_phase6_pack_right_panel_above_canvas",
+        lambda _app, widget: widget.pack(),
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_phase6_update_assembly_diagnostic_status",
+        lambda _app: status_updates.append("updated"),
+    )
+
+    assert bridge._phase6_toggle_parameter_panel(app) is True
+    assert app._phase6_parameters_unlocked is True
+    assert button.text == "參數解鎖"
+    assert center.winfo_manager() == ""
+    assert diagnostics.winfo_manager() == "pack"
+    assert status_updates == ["updated"]
+
+    assert bridge._phase6_toggle_parameter_panel(app) is False
+    assert app._phase6_parameters_unlocked is False
+    assert button.text == "參數鎖定"
+    assert center.winfo_manager() == ""
+    assert diagnostics.winfo_manager() == ""
