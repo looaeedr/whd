@@ -1,0 +1,95 @@
+name: WHD Scheduler Host Watchdog
+
+on:
+  schedule:
+    # Evaluate two minutes after each five-minute boundary. This lands exactly
+    # at :02/:17/:22/:42/:47 for the A/B entrypoints' 120s grace window.
+    - cron: '2-57/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whd-scheduler-host-watchdog
+  cancel-in-progress: false
+
+jobs:
+  evaluate-host-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout control plane
+        uses: actions/checkout@v4
+        with:
+          path: control
+          fetch-depth: 1
+
+      - name: Checkout monitor branch
+        uses: actions/checkout@v4
+        with:
+          ref: coord/monitor-v2
+          path: monitor
+          fetch-depth: 20
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Evaluate expected scheduler occurrences
+        run: |
+          python control/tools/scheduler_host_watchdog.py \
+            --monitor-dir monitor \
+            --output monitor/.dispatch/monitor/host/watchdog.json
+
+      - name: Persist NON_AUTHORITY watchdog result
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd monitor
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .dispatch/monitor/host/watchdog.json
+          if git diff --cached --quiet; then
+            echo "watchdog result unchanged"
+            exit 0
+          fi
+          git commit -m "monitor: scheduler host lifecycle watchdog"
+          for attempt in 1 2 3; do
+            git pull --rebase origin coord/monitor-v2
+            if git push origin HEAD:coord/monitor-v2; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "failed to persist watchdog result after retries" >&2
+          exit 1
+
+      - name: Publish watchdog summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          path = Path("monitor/.dispatch/monitor/host/watchdog.json")
+          if not path.exists():
+              print("## Scheduler host watchdog\n\nNo result file was produced.")
+              raise SystemExit(0)
+
+          data = json.loads(path.read_text(encoding="utf-8"))
+          print("## Scheduler host watchdog")
+          print()
+          print(f"Overall: **{data.get('overall_state')}**")
+          print()
+          print("| Entrypoint | Status | Expected | Last WAKE | Host enabled | Reason |")
+          print("|---|---|---|---|---|---|")
+          for row in data.get("entries", []):
+              print(
+                  f"| {row.get('entrypoint')} | {row.get('status')} | "
+                  f"{row.get('expected_at')} | {row.get('last_wake_at')} | "
+                  f"{row.get('host_enabled')} | {row.get('reason')} |"
+              )
+          PY
