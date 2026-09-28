@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-block-postqa-head-drift-20260928T170911Z",
+  "request_id": "issue952-repair-postqa-head-drift-20260928T171014Z",
   "issue": 952,
-  "kind": "BLOCK",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
   "startup_evidence": {
@@ -27,18 +27,21 @@
     "expires_at": "2026-09-28T17:14:11Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：依新流程執行 Issue #952，修正 main / cleanup 治理 mirror 的 ancestry reconciliation，保留 cleanup-only product code，禁止 force-push/history rewrite，並完成 Flow v2 驗收與結案。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "07a95f7be596723cf6cecc10f10630f8a2fb93f7",
-  "expected_generation": 9,
+  "expected_coord_head": "9f3b1caa44457800d01e4d365e0429ccf5329696",
+  "expected_generation": 10,
   "effect": {
-    "blocker_kind": "PLATFORM_FAILURE",
-    "blocker_evidence": "POST_QA_HEAD_DRIFT_REQUIRES_REVALIDATION: accepted_head=aa8552fdf82895c195801199afe080a3f8a75b82; live_pr_head=88260a3e8e0ed586e60876f12abca917a3673493; paired governance synchronization advanced governed base after QA acceptance. Exact current head must be revalidated before merge.",
-    "semantic_state": "POST_QA_HEAD_DRIFT",
+    "observed_work_branch": "governance/issue952-mirror-ancestry-reconciliation",
+    "observed_head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
+    "observed_target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
+    "state": "ACTIVE",
+    "clear_blocker": true,
+    "semantic_state": "POST_QA_DRIFT_REPAIR",
     "next_action": {
-      "kind": "WAIT_EXTERNAL",
+      "kind": "START_QA",
       "args": {
-        "blocker_kind": "PLATFORM_FAILURE"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Repair post-QA head drift and revalidate exact current head"
+      "display": "Bind exact current-head QA after paired-governance synchronization"
     }
   }
 }
