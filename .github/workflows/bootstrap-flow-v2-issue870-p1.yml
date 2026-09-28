@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q \
+          python -m pytest -q --confcutdir=tests/process \
             tests/process/test_issue870_execution_record_v2.py \
             tests/process/test_issue870_execution_record_store.py
       - name: Commit exact validated P1 tree
