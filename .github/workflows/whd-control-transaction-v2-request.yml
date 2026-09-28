@@ -6,6 +6,10 @@ on:
     branches:
       - coord/transaction-requests-a
       - coord/transaction-requests-b
+      - coord/transaction-requests-work0
+      - coord/transaction-requests-work1
+      - coord/transaction-requests-work2
+      - coord/transaction-requests-work3
     paths:
       - .dispatch/transaction-request.json
 
@@ -19,7 +23,7 @@ concurrency:
 
 jobs:
   apply:
-    name: 套用 scheduler push transaction request
+    name: 套用 Flow v2 push transaction request
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

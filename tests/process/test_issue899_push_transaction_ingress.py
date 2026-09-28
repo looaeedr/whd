@@ -7,6 +7,10 @@ def test_push_request_workflow_is_scheduler_compatible():
     text = (ROOT / ".github/workflows/whd-control-transaction-v2-request.yml").read_text(encoding="utf-8")
     assert "coord/transaction-requests-a" in text
     assert "coord/transaction-requests-b" in text
+    assert "coord/transaction-requests-work0" in text
+    assert "coord/transaction-requests-work1" in text
+    assert "coord/transaction-requests-work2" in text
+    assert "coord/transaction-requests-work3" in text
     assert ".dispatch/transaction-request.json" in text
     assert "contents: write" in text
     assert "issues: write" in text
@@ -74,3 +78,41 @@ def test_canonical_skill_forbids_scheduler_host_lifecycle_mutation():
     assert "MUST NOT call automation-management APIs" in text
     assert "Invocation completion is only a cycle return" in text
     assert "recurring task object unchanged" in text
+
+
+def test_request_branch_isolation_accepts_exact_lane():
+    import tools.control_transaction_request_ingress as ingress
+
+    request = {"lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2"}
+    ingress._validate_request_branch(
+        request=request,
+        request_branch="coord/transaction-requests-a",
+    )
+
+    request = {"lane_id": "chatgpt.flowv2.work0"}
+    ingress._validate_request_branch(
+        request=request,
+        request_branch="coord/transaction-requests-work0",
+    )
+
+
+def test_request_branch_isolation_rejects_cross_lane():
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    with pytest.raises(Exception, match="request lane mismatch"):
+        ingress._validate_request_branch(
+            request={"lane_id": "chatgpt.flowv2.work0"},
+            request_branch="coord/transaction-requests-b",
+        )
+
+
+def test_request_branch_isolation_rejects_unknown_branch():
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    with pytest.raises(Exception, match="unsupported request branch"):
+        ingress._validate_request_branch(
+            request={"lane_id": "chatgpt.flowv2.work0"},
+            request_branch="coord/transaction-requests-unknown",
+        )
