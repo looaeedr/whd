@@ -1,0 +1,53 @@
+name: Bootstrap Flow v2 Issue 871 P2
+
+on:
+  push:
+    branches:
+      - flow-v2/issue871-atomic-transactions-r1
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: flow-v2/issue871-atomic-transactions-r1
+          fetch-depth: 0
+      - name: Materialize validated P2 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d .flow-v2/issue871-p2.b64 > /tmp/issue871-p2.zip
+          unzip -o /tmp/issue871-p2.zip
+          rm -rf .flow-v2
+          rm -f .github/workflows/bootstrap-flow-v2-issue871-p2.yml
+      - name: Install focused test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+      - name: Validate focused P2
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q --confcutdir=tests/process \
+            tests/process/test_flow_v2_atomic_control_transaction.py \
+            tests/process/test_flow_v2_control_transaction_transport.py \
+            tests/process/test_flow_v2_control_transaction_terminal_executor.py \
+            tests/process/test_flow_v2_execution_action_contract.py \
+            tests/process/test_flow_v2_protocol_coherence.py \
+            tests/process/test_flow_v2_control_transaction_shadow_workflow.py \
+            tests/process/test_flow_v2_terminal_shadow_workflow_contract.py
+      - name: Commit exact validated P2 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(#871): land atomic transactions and terminal-only transport"
+          git push origin HEAD:flow-v2/issue871-atomic-transactions-r1
