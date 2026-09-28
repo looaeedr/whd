@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue945-b-merge-v6",
+  "request_id": "issue945-b-reacquire-v7",
   "issue": 945,
-  "kind": "MERGE",
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
+  "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
+    "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
     "execution_mode": "SCHEDULER_LANE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
@@ -22,23 +22,31 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Reconcile exact cleanup PR #986 merge receipt for Issue #945, preserving accepted QA and advancing to paired-governance ancestry reconciliation before any natural-schedule acceptance.",
-    "issued_at": "2026-09-28T21:36:10Z",
-    "expires_at": "2026-09-28T21:41:10Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reconcile exact cleanup PR #986 merge receipt for Issue #945, preserving accepted QA and advancing to paired-governance ancestry reconciliation before any natural-schedule acceptance.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Resume Issue #945 on Scheduler B by atomically renewing the expired same-lane lease, preserving the exact RECONCILE next_action and all accepted QA/merge identity. Reacquire is only a prerequisite; this invocation must continue into ancestry reconciliation.",
+    "issued_at": "2026-09-28T22:50:00Z",
+    "expires_at": "2026-09-28T22:55:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Resume Issue #945 on Scheduler B by atomically renewing the expired same-lane lease, preserving the exact RECONCILE next_action and all accepted QA/merge identity. Reacquire is only a prerequisite; this invocation must continue into ancestry reconciliation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "1478ec77ab3632bf955ad0e01f399517d303808e",
-  "expected_generation": 5,
+  "expected_coord_head": "a11d6ca62ec18d173bcc1cf83234b3d409891ef2",
+  "expected_generation": 6,
   "effect": {
-    "merged_sha": "e29f0aba8a5f842be617c14540a2d1be58091243",
-    "target_sha": "e29f0aba8a5f842be617c14540a2d1be58091243",
+    "lease": {
+      "token": "lease:945:b-reacquire:20260929T065000+0800",
+      "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
+      "expires_at": "2026-09-28T23:05:00Z"
+    },
+    "observed_at": "2026-09-28T22:50:00Z",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    "slot_id": null,
     "semantic_state": "MERGED",
     "next_action": {
-      "kind": "RECONCILE",
       "args": {
         "reason": "PAIR_GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
       },
-      "display": "Reconcile #945 main/cleanup governance ancestry"
+      "display": "Reconcile #945 main/cleanup governance ancestry",
+      "kind": "RECONCILE"
     }
   }
 }
