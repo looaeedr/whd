@@ -367,3 +367,87 @@ def test_issue975_flow_skill_makes_anchor_descendant_and_builder_rules_global():
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"missing Flow v2 systemic closure contract tokens: {missing}"
+
+
+def test_issue975_trusted_finalize_derives_released_at_from_issue_closed_at(monkeypatch):
+    import tools.control_transaction_production_executor as executor
+
+    record = _integrating_record()
+    closed_at = "2026-09-28T15:34:53Z"
+
+    monkeypatch.setattr(
+        executor,
+        "_finalize_target_readback",
+        lambda repo, token, record: {
+            "observed_target_sha": record.target_sha,
+        },
+    )
+
+    def fake_api(repo, method, path, token, payload=None):
+        assert path == "/issues/952"
+        assert method == "GET"
+        return {
+            "state": "closed",
+            "state_reason": "completed",
+            "closed_at": closed_at,
+        }
+
+    monkeypatch.setattr(executor, "_api", fake_api)
+    effect = executor._ensure_issue_closed_for_finalize(
+        "looaeedr/whd",
+        "token",
+        issue=952,
+        record=record,
+    )
+
+    assert effect["issue_closed"] is True
+    assert effect["issue_state"] == "closed"
+    assert effect["issue_state_reason"] == "completed"
+    assert effect["issue_closed_at"] == closed_at
+    assert effect["released_at"] == closed_at
+
+
+def test_issue975_trusted_finalize_released_at_overrides_caller_omission(monkeypatch):
+    import tools.control_transaction_production_executor as executor
+    from tools.control_transaction import execute_transaction, prepare_transaction
+
+    record = _integrating_record()
+
+    monkeypatch.setattr(
+        executor,
+        "_finalize_target_readback",
+        lambda repo, token, record: {
+            "observed_target_sha": record.target_sha,
+        },
+    )
+
+    def fake_api(repo, method, path, token, payload=None):
+        if path == "/issues/952" and method == "GET":
+            return {
+                "state": "closed",
+                "state_reason": "completed",
+                "closed_at": "2026-09-28T15:34:53Z",
+            }
+        raise AssertionError((method, path, payload))
+
+    monkeypatch.setattr(executor, "_api", fake_api)
+
+    caller_effect = {}
+    trusted_effect = dict(caller_effect)
+    trusted_effect.update(
+        executor._ensure_issue_closed_for_finalize(
+            "looaeedr/whd",
+            "token",
+            issue=952,
+            record=record,
+        )
+    )
+    plan = prepare_transaction(
+        record,
+        kind="FINALIZE",
+        transaction_id="tx-finalize-trusted-release",
+    )
+    done = execute_transaction(record, plan, effect=trusted_effect)
+
+    assert done.state == "DONE"
+    assert done.closure.released_at == "2026-09-28T15:34:53Z"
