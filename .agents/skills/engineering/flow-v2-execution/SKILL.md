@@ -220,7 +220,7 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 1. Issue 若仍 open，立即以 state=`closed`、state_reason=`completed` 關閉；不得把「PR 已 merge」當作 Issue 已 close。
 2. close 後必須再次 fresh-read GitHub Issue；只有 `state=closed + state_reason=completed` 才能產生 closure evidence。
-3. caller 傳入的 `issue_closed=true` 與 `released_at` 都不具 authority；trusted writer 必須以 GitHub fresh readback 覆寫。`released_at` 固定優先使用 fresh Issue `closed_at`，只有 GitHub 未提供 `closed_at` 時才可用 trusted writer current UTC time fallback；caller 不得因漏填 `released_at` 讓合法 FINALIZE 失敗。
+3. caller 傳入的 `issue_closed=true` 不具 authority，trusted writer 必須以 GitHub fresh readback 覆寫。caller 傳入的 `released_at` 同樣不具 authority；`released_at` 固定優先使用 fresh Issue `closed_at`，只有 GitHub 未提供 `closed_at` 時才可用 trusted writer current UTC time fallback；caller 不得因漏填 `released_at` 讓合法 FINALIZE 失敗。
 4. close/readback 失敗、Issue 仍 open、state_reason 非 completed、QA/merge identity 不符時，FINALIZE 必須 fail closed；ExecutionRecord 保持 nonterminal，不得寫 DONE。
 5. Issue 已 closed/completed 時仍必須 fresh-read確認，不得因為舊 comment、PR body 的 `Closes #N`、或 default/non-default branch 自動關單假設而跳過。
 6. 只有 hard gate 成功後，才把 record寫成 DONE、清 lease/owner、next_action=null並保存 closure evidence。
