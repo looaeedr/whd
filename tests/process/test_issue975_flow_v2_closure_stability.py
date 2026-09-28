@@ -442,6 +442,7 @@ def test_issue975_trusted_finalize_released_at_overrides_caller_omission(monkeyp
             record=record,
         )
     )
+    trusted_effect["updated_at"] = "2026-09-28T15:34:53Z"
     plan = prepare_transaction(
         record,
         kind="FINALIZE",
