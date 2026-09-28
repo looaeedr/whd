@@ -117,8 +117,6 @@ from ae_engine.sheetmetal_features import (
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
     derive_door_layout_cells,
-    validate_door_layout_dimensions,
-    complete_partition,
     door_layout_export_filename,
     door_layout_feature_map_to_part_features,
     door_part_features_to_layout_feature_map,
@@ -202,6 +200,14 @@ from gui_modules.drawing import (
     render_drawing_scene,
 )
 
+from gui_modules.application.door_layout_controller import (
+    DoorLayoutColumnState as _DoorLayoutColumnState,
+    door_layout_cells as _door_layout_cells_impl,
+    recompute_door_layout as _recompute_door_layout_impl,
+    remap_owned_data as _remap_door_layout_owned_data_impl,
+    validate_height_commit as _validate_door_layout_height_commit_impl,
+    validate_width_commit as _validate_door_layout_width_commit_impl,
+)
 from gui_modules.application.render_snapshots import (
     indicator_box_render_snapshot as _indicator_box_render_snapshot_impl,
     indicator_door_render_snapshot as _indicator_door_render_snapshot_impl,
@@ -1360,21 +1366,22 @@ class Phase6ApplicationHost:
     def _parse_layout_value(var, label):
         return _parse_layout_value_impl(var, label)
 
-    def _recompute_column_height_remainder(self, column, column_index, total_height):
-        fixed = []
-        for row_index, (var, is_auto) in enumerate(zip(column["height_vars"], column["height_auto"]), start=1):
-            if not is_auto:
-                fixed.append(self._parse_layout_value(var, f"欄 {column_index+1} 第 {row_index} 層高度"))
-        completion = complete_partition(fixed, total_height, tolerance=0.01)
-        column["height_vars"] = [tk.StringVar(value=self._door_layout_number_text(v)) for v in completion.values]
-        column["height_committed"] = [float(v) for v in completion.values]
-        column["height_auto"] = [False] * len(completion.values)
-        if completion.auto_index is not None:
-            column["height_auto"][completion.auto_index] = True
-        column["height_completion"] = completion
+    def _door_layout_controller_columns(self):
+        columns = []
+        for index, column in enumerate(self.door_layout_columns, start=1):
+            columns.append(_DoorLayoutColumnState(
+                width=self._parse_layout_value(column["width_var"], f"欄 {index} 寬度"),
+                width_auto=bool(column.get("width_auto", False)),
+                heights=tuple(
+                    self._parse_layout_value(var, f"欄 {index} 第 {row} 層高度")
+                    for row, var in enumerate(column["height_vars"], start=1)
+                ),
+                height_auto=tuple(bool(value) for value in column["height_auto"]),
+            ))
+        return tuple(columns)
 
     def _recompute_door_layout_remainders(self, *, rebuild=True):
-        """Regenerate the one automatic width/height remainder from user-owned cells."""
+        """Apply the bounded application Door Layout transition to Tk presentation state."""
         if not self.door_layout_columns:
             return
         try:
@@ -1382,47 +1389,25 @@ class Phase6ApplicationHost:
             total_height = float(self.h_var.get())
         except ValueError as exc:
             raise ValueError("W / H 必須先填入有效數字") from exc
-        if total_width <= 0 or total_height <= 0:
-            raise ValueError("W / H 必須大於 0")
-
-        fixed_columns = [column for column in self.door_layout_columns if not column.get("width_auto", False)]
-        fixed_widths = [
-            self._parse_layout_value(column["width_var"], f"欄 {index+1} 寬度")
-            for index, column in enumerate(fixed_columns)
-        ]
-        width_completion = complete_partition(fixed_widths, total_width, tolerance=0.01)
-
-        for index, column in enumerate(fixed_columns):
-            self._recompute_column_height_remainder(column, index, total_height)
-
-        model = fixed_columns
-        if width_completion.auto_index is not None:
-            auto_width = width_completion.values[width_completion.auto_index]
-            auto_column = self._new_door_layout_column(
-                auto_width, [total_height], width_auto=True, height_auto=[True]
+        result = _recompute_door_layout_impl(
+            self._door_layout_controller_columns(),
+            total_width=total_width,
+            total_height=total_height,
+            selected_key=self.door_layout_selected_var.get(),
+        )
+        model = []
+        for column in result.columns:
+            item = self._new_door_layout_column(
+                column.width,
+                column.heights,
+                width_auto=column.width_auto,
+                height_auto=column.height_auto,
             )
-            auto_column["height_completion"] = complete_partition([], total_height, tolerance=0.01)
-            model.append(auto_column)
-
+            item["height_completion"] = column.height_completion
+            model.append(item)
         self.door_layout_columns = model
-        for column in self.door_layout_columns:
-            try:
-                column["width_committed"] = self._parse_layout_value(column["width_var"], "欄寬")
-            except ValueError:
-                pass
-        self._door_layout_width_completion = width_completion
-
-        # Keep selection on a real cell after automatic cells are inserted/removed.
-        if self.door_layout_columns:
-            try:
-                c_text, r_text = self.door_layout_selected_var.get().split(":", 1)
-                c_idx, r_idx = int(c_text), int(r_text)
-            except Exception:
-                c_idx = r_idx = 0
-            c_idx = min(max(c_idx, 0), len(self.door_layout_columns) - 1)
-            r_idx = min(max(r_idx, 0), len(self.door_layout_columns[c_idx]["height_vars"]) - 1)
-            self.door_layout_selected_var.set(f"{c_idx}:{r_idx}")
-
+        self._door_layout_width_completion = result.width_completion
+        self.door_layout_selected_var.set(result.selected_key)
         if rebuild and hasattr(self, "door_layout_columns_frame"):
             self.rebuild_door_layout_ui()
 
@@ -1450,8 +1435,8 @@ class Phase6ApplicationHost:
             total_height = float(self.h_var.get())
         except ValueError as exc:
             raise ValueError("W / H 必須先填入有效數字") from exc
-        return validate_door_layout_dimensions(
-            columns, total_width=total_width, total_height=total_height, tolerance=0.01
+        return _door_layout_cells_impl(
+            columns, total_width=total_width, total_height=total_height
         )
 
     @staticmethod
@@ -1525,33 +1510,23 @@ class Phase6ApplicationHost:
 
     def commit_door_layout_width(self, column_index):
         column = self.door_layout_columns[column_index]
-        if "width_committed" in column:
-            previous = float(column["width_committed"])
-        else:
-            previous = self._parse_layout_value(column["width_var"], "欄寬")
+        previous = float(column.get("width_committed", self._parse_layout_value(column["width_var"], "欄寬")))
         try:
             current = self._parse_layout_value(column["width_var"], f"欄 {column_index+1} 寬度")
             total_width = self._parse_layout_value(self.w_var, "W")
-            other_fixed = sum(
-                self._parse_layout_value(c["width_var"], "欄寬")
-                for i, c in enumerate(self.door_layout_columns)
-                if i != column_index and not c.get("width_auto", False)
+            validation = _validate_door_layout_width_commit_impl(
+                self._door_layout_controller_columns(), column_index, total_width, current
             )
-            maximum = total_width - other_fixed
-            if current > maximum + 0.01:
-                return self._reject_door_layout_dimension(
-                    column["width_var"], previous,
-                    f"欄 {column_index+1} 寬度不可超過盤體 W。\n"
-                    f"W = {total_width:g} mm，其餘固定欄合計 {other_fixed:g} mm，"
-                    f"此欄最大只能輸入 {max(0.0, maximum):g} mm。"
-                )
         except ValueError as exc:
             return self._reject_door_layout_dimension(column["width_var"], previous, str(exc))
-
-        if column.get("width_auto", False):
-            expected = total_width - other_fixed
-            if abs(current - expected) > 0.01:
-                column["width_auto"] = False
+        if not validation.valid:
+            return self._reject_door_layout_dimension(
+                column["width_var"], previous,
+                f"欄 {column_index+1} 寬度不可超過盤體 W。\n"
+                f"W = {total_width:g} mm，其餘固定欄合計 {validation.other_fixed:g} mm，"
+                f"此欄最大只能輸入 {max(0.0, validation.maximum):g} mm。"
+            )
+        column["width_auto"] = validation.keep_auto
         column["width_committed"] = current
         self._recompute_door_layout_remainders(rebuild=True)
         self._on_door_layout_value_changed(recompute=False)
@@ -1568,26 +1543,19 @@ class Phase6ApplicationHost:
                 column["height_vars"][row_index], f"欄 {column_index+1} 第 {row_index+1} 層高度"
             )
             total_height = self._parse_layout_value(self.h_var, "H")
-            other_fixed = sum(
-                self._parse_layout_value(var, "高度")
-                for i, (var, is_auto) in enumerate(zip(column["height_vars"], column["height_auto"]))
-                if i != row_index and not is_auto
+            validation = _validate_door_layout_height_commit_impl(
+                self._door_layout_controller_columns(), column_index, row_index, total_height, current
             )
-            maximum = total_height - other_fixed
-            if current > maximum + 0.01:
-                return self._reject_door_layout_dimension(
-                    column["height_vars"][row_index], previous,
-                    f"欄 {column_index+1} 第 {row_index+1} 層高度不可超過盤體 H。\n"
-                    f"H = {total_height:g} mm，同欄其他固定高度合計 {other_fixed:g} mm，"
-                    f"此層最大只能輸入 {max(0.0, maximum):g} mm。"
-                )
         except ValueError as exc:
             return self._reject_door_layout_dimension(column["height_vars"][row_index], previous, str(exc))
-
-        if column["height_auto"][row_index]:
-            expected = total_height - other_fixed
-            if abs(current - expected) > 0.01:
-                column["height_auto"][row_index] = False
+        if not validation.valid:
+            return self._reject_door_layout_dimension(
+                column["height_vars"][row_index], previous,
+                f"欄 {column_index+1} 第 {row_index+1} 層高度不可超過盤體 H。\n"
+                f"H = {total_height:g} mm，同欄其他固定高度合計 {validation.other_fixed:g} mm，"
+                f"此層最大只能輸入 {max(0.0, validation.maximum):g} mm。"
+            )
+        column["height_auto"][row_index] = validation.keep_auto
         if row_index >= len(committed):
             column["height_committed"] = [
                 self._parse_layout_value(var, "高度") for var in column["height_vars"]
@@ -1610,19 +1578,11 @@ class Phase6ApplicationHost:
             "door_layout_features", "door_layout_indicator_states",
             "door_layout_indicator_box_features", "door_layout_indicator_door_features",
         ):
-            source = getattr(self, attr, {})
-            remapped = {}
-            for key, value in source.items():
-                try:
-                    c_text, r_text = key.split(":", 1)
-                    mapped = mapper(int(c_text), int(r_text))
-                except Exception:
-                    mapped = None
-                if mapped is None:
-                    continue
-                c_new, r_new = mapped
-                remapped[f"{c_new}:{r_new}"] = value
-            setattr(self, attr, remapped)
+            setattr(
+                self,
+                attr,
+                _remap_door_layout_owned_data_impl(getattr(self, attr, {}), mapper),
+            )
 
     def remove_door_layout_column(self, column_index):
         if not self.door_layout_columns:

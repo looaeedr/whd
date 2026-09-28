@@ -326,3 +326,39 @@ The following decisions are CURRENT ownership-routing evidence after Phase 6 v1.
 - **B6 / #531 Facade compatibility audit**：all 69 baseline facade entries were accounted; accepted final facade count is **45** (24 removed), reverse-import Bridge count is 0, second composition root count is 0, and facade non-growth remains enforced.
 
 The facade counts above are **architecture ratchet/provenance evidence only**. They are not mechanical, manufacturing, persistence, Registry, or geometry truth. Later changes must continue to obey the permanent C1 machine guard rather than copy these numbers into a second policy source.
+
+<!-- WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 -->
+## Phase 7 — accepted Fold Designer ownership
+
+Phase 7 對 Fold Designer / application-host / Settings presentation 做了最後一輪 large-module owner consolidation；以下 CURRENT 邊界取代「以大檔案本身當 owner」的舊判讀。
+
+### Bridge residual boundary — P7-A
+
+- `fold_designer_bridge.py` 只保留 bounded bootstrap、lifecycle、legacy-host 與明確 compatibility delegates；不得重新吸回 workspace、FinalScene、Settings、manufacturing 或 scheduler deep ownership。
+- update scheduling owner：`gui_modules.application.command_router`。
+- 唯一 composition root：`gui_modules/application/fold_designer_adapter.py::Phase6FoldDesignerComposition`；second composition root = 0。
+- workspace/navigation owners：`phase6_workspace_navigation_controller.py` / `phase6_designer_workspace.py`。
+- FinalScene presentation owner：`phase6_final_scene_view.py` + composition adapter。
+- reverse-import `fold_designer_bridge.py` from extracted/root-owner modules = 0。
+
+### Application host boundary — P7-B
+
+- `gui.py::Phase6ApplicationHost` 是 thin host/composition surface，不是 Door Layout transaction 或 render domain owner。
+- Door Layout state/transaction owner：`Phase6DoorLayoutController`。
+- Door panel presentation owner：`gui_modules/parts/panels/door.py`。
+- render acquisition/presentation owners：`gui_modules/application/render_snapshots.py`、`gui_modules/rendering/door_view.py`。
+
+### Settings presentation boundary — P7-G
+
+**Decision：KEEP_CURRENT_BOUNDARY。**
+
+- `phase6_settings_panel.py::Phase6SettingsPanel` 繼續是唯一 Settings Tk/UI presentation owner。
+- `Phase6FoldDesignerComposition` 繼續是唯一 Settings construction/wiring root。
+- `fold_designer_bridge.py` 只保留 narrow compatibility projection/dataflow delegates，不升格成 Settings transaction/state owner。
+- canonical Settings mutation/state authority 留在既有 Settings transaction/service/application owners；pure Settings→Profile plan 由 `phase6_settings_profile_projection.py` 擁有。
+- 不建立新的 Settings presentation/domain owner，也不因為 compatibility mirror 存在就拆出第二個 composition/service-bag root。
+
+這個 KEEP 是經 deletion-test 後的 CURRENT architecture decision，不是「因為太難所以先不改」。若未來有新的合法 deep destination，必須重新證明不污染 presentation purity、pure projection ownership 與 composition responsibility，才能搬移。
+
+Accepted provenance：Phase 7 #617/#624/#625 與 Combined Acceptance #626；combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
+

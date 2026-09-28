@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - governance/issue731-branch-create-auto-consume-20260926
+      - governance/issue733-branch-create-auto-consume-cleanup-parity-20260926
 
 permissions:
   contents: read

@@ -64,3 +64,60 @@ def test_registry_routes_commands_to_scheduler_simulation_skill() -> None:
     assert "遠端執行守門" in route["required_skills"]
     assert "monitoring-remote-qa" in route["required_skills"]
     assert "executable-continuity-controller" in route["required_skills"]
+
+
+def test_work_slot_planned_handoff_receiver_precedes_dynamic_discovery() -> None:
+    text = _text()
+    assert "WORK_SLOT_HANDOFF_RECEIVER_V1" in text
+    assert "planned handoff receiver 優先於 ordinary dynamic discovery" in text
+    assert "有 matching pending planned handoff 時不得先 claim/discover 另一張 Issue" in text
+
+
+def test_work_slot_handoff_preserves_slot_identity_across_scheduler_owner_change() -> None:
+    text = _text()
+    assert "slot_id 必須原值保留" in text
+    assert "scheduler owner/location change != work-slot identity change" in text
+    assert "不得把 worker.slot.1 改成 worker.slot.2" in text
+    assert "不得清除既有 slot_id" in text
+
+
+def test_work_slot_handoff_receiver_exact_match_is_fail_closed() -> None:
+    text = _text()
+    for token in (
+        "slot_id",
+        "issue",
+        "branch",
+        "head_sha",
+        "checkpoint",
+        "next_action",
+        "target_lane",
+    ):
+        assert token in text
+    assert "WORK_SLOT_HANDOFF_IDENTITY_MISMATCH" in text
+    assert "任一 identity 不一致都 fail closed" in text
+    assert "不得只靠 Issue、lane、聊天室標題猜 receiver" in text
+
+
+def test_scheduler_status_projects_slot_and_handoff_source() -> None:
+    text = _text()
+    assert "slot_id=worker.slot.1|worker.slot.2|worker.slot.3|UNBOUND" in text
+    assert "handoff_source=LOCAL|SCHEDULER|NONE" in text
+    assert "UNBOUND 不得猜 slot" in text
+
+
+def test_scheduler_chain_successor_may_rebind_only_the_same_slot() -> None:
+    text = _text()
+    assert "WORK_SLOT_SUCCESSOR_REBIND_V1" in text
+    assert "只有 SCHEDULER_LANE / chain authority" in text
+    assert "terminal successor 可沿同一 slot_id rebind" in text
+    assert "不得把 successor 靜默搬到另一個工作槽" in text
+
+def test_scheduler_simulation_forbids_local_execution_and_fallback() -> None:
+    text = _text()
+    assert "SCHEDULER_REMOTE_ONLY_EXECUTION_V1" in text
+    assert "execution_location=GITHUB|SCHEDULER|REMOTE_ACTION" in text
+    assert "LOCAL 只允許作為 handoff_source / provenance metadata" in text
+    assert "不得使用本機、Remote Desktop、local shell" in text
+    assert "禁止 fallback 到 LOCAL" in text
+    assert "remote capability 不可用時 fail closed" in text
+    assert "local/Remote Guard" not in text

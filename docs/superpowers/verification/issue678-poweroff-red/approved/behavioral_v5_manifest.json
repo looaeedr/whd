@@ -1,0 +1,596 @@
+{
+  "schema": "WHD_REQUIREMENT_RED_PROBE_EVIDENCE_V3",
+  "status": "PROBE_EXECUTED_DURABLE_ANCHOR_PENDING",
+  "target_ref": "cleanup/2d-3d-sync",
+  "target_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "spec_version": "v1.4",
+  "behavioral_case_count": 28,
+  "probe_path": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py",
+  "probe_sha256": "eb43deeef3f7c3911e15502ec514a6eb3341918c729d5cdee19eab95e7152393",
+  "runner_path": "C:\\Users\\Public\\run_whd_poweroff_red_matrix_v5.py",
+  "runner_sha256": "fed4bbd442b3aba772c5f4284a58d35380ca2e48e4efede10f452a0b60dd34ee",
+  "fake_always_safe_path": "C:\\Users\\Public\\fake_token_only_poweroff_gate.py",
+  "fake_always_safe_sha256": "268e9887ceca7586d1e1204e3f00ebf4714cd5fafd4cd259a96a4a8007805e4e",
+  "fake_always_not_safe_path": "C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py",
+  "fake_always_not_safe_sha256": "5b2f7a693088fda487b9194791693e221d851bcad9222870de75403ef3db7bf5",
+  "current_raw_path": "C:\\Users\\Public\\whd_poweroff_requirement_red_v5_raw.txt",
+  "current_raw_sha256": "5e7899c63dea1eadfb7cb877ea5e76f117c6f246403cc44d8a8014aafa51c07d",
+  "adversarial_raw_path": "C:\\Users\\Public\\whd_poweroff_requirement_red_v5_adversarial_raw.txt",
+  "adversarial_raw_sha256": "f6041ec3725fd99e02a0141dff9251cbb212fe72ff51abc2e3a9fe002ef39dbb",
+  "all_current_behavioral_cases_red": true,
+  "all_current_expected_failures_observed": true,
+  "all_adversarial_cases_red": true,
+  "all_adversarial_expected_failures_observed": true,
+  "current_records": [
+    {
+      "case_id": "R3-PENDING",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "18059131e73f87e16bbf3ff933ea84e03c8cf08452fb18e938e683c2dc4aea1f"
+    },
+    {
+      "case_id": "R3-RECONCILE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "aeda9e63560fe09e829f82cc065118ea141606bfae68642ae0ef0035d0b0e5b4"
+    },
+    {
+      "case_id": "R3-AMBIGUOUS",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "732547ff3a24715e1fdc5211443be55085b16760fbe88a037772de9b6b83207e"
+    },
+    {
+      "case_id": "R3-CONSUMED",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "00eb875960bc18f87722477e61f7f15d2edb0331ccf23197e6b2f054e10208ba"
+    },
+    {
+      "case_id": "R3-NONE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "37d663e461f84376614d0f4648e0cac9e2af843d19f572c291ee8b57092c18f5"
+    },
+    {
+      "case_id": "R4-READY",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "3b462ec161170a365b8cf8e8a95b9aea73a2153202eefd10e23c40c764a6eed1"
+    },
+    {
+      "case_id": "R4-OWNER",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "81eda1cdc7ec8b47d8838257a2aebe6b3982bd6f34363cab89a447c24aa1b040"
+    },
+    {
+      "case_id": "R4-UNVERIFIED",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "745baac653cdf5f2f882d095440354a959269c987dd9ae727cfcf7a818d83f8c"
+    },
+    {
+      "case_id": "R4-DISABLED",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "ecf0e12e79ebc5d6296e060bbaf2d7cb6c9a0f55ecd2934a336d3c7a091d0d4d"
+    },
+    {
+      "case_id": "R4-NEXT-ACTION",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "8fc82fb1464a4a7472ec2d2b4a2d69dada5ee20cacee440b0a229a8cd216527a"
+    },
+    {
+      "case_id": "R4-HEAD",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "9a1250fba68eb5c0a34df8fbf4b556e2d9f4ca5b4dc7734e8dcb3980abc30680"
+    },
+    {
+      "case_id": "R5-SAFE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "1caf29ba568ec66cd65d6dfc677ae3539b84bbe97c484fc157a278309eb9512a"
+    },
+    {
+      "case_id": "R5-NOT-SAFE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "166dc1637b706a250283ab89171a9efb94d93980390ecf2115dff6076586a8b9"
+    },
+    {
+      "case_id": "R5-ERROR",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "75ac56a2b589e2329aeddc08b3ae32995318471345fa9bef5c50bbfa20a19b4b"
+    },
+    {
+      "case_id": "R6-REQUEST",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "0fa63e6f79b7a466c9aa374e671bf59973752797fb3af9edadea88f8d9e91d8d"
+    },
+    {
+      "case_id": "R6-REVISION",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "2cba25423d3bb123b0d2c626a23b00b3a2e4bd556763275a1916cba530389e63"
+    },
+    {
+      "case_id": "R6-RECEIPT",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "d6aa954149394cfab83d4d0cea5571f2e57b1609301392a39bfccfc0d98c334a"
+    },
+    {
+      "case_id": "R6-DIRTY",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "98158a7e71542a75b4fbe7d5e1caed585a81b2450c383d5195ff7c3447267ac6"
+    },
+    {
+      "case_id": "R6-GUARD",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "5cc3a31b41a4b7269f8a07daa50cc755c06be1dcc52ff0bbda0cf6d3a5fa7205"
+    },
+    {
+      "case_id": "R6-OWNER",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "d1654e0ea8ab40f625a477a7c406fb2638f35d9f8153df820593ce2d5670abb3"
+    },
+    {
+      "case_id": "R6-SCHEDULER",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "66c352574306a94cca5be99959ccdc40f03d14cc5236d018765374c5e5fafdb2"
+    },
+    {
+      "case_id": "R6-HEAD",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "29d469f2c0912a86d1c60194f144e99fa1d73c592a9fb41ed46a245dd65e18ab"
+    },
+    {
+      "case_id": "R10-ZERO",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "d09846461a66d5456c44ce77300578c1419d3c86c9a9ef91a097f6a48ab0aeed"
+    },
+    {
+      "case_id": "R10-ONE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "22c09f5953342925b48a0aed5f5d5a63a95aec4fe3efa7ca95da1dcbcc09c965"
+    },
+    {
+      "case_id": "R10-TWO",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "fdce2b29ffaf2b5ba4454e0c9c53bc3af39a0ab7caf4bff2e06398208cb1567d"
+    },
+    {
+      "case_id": "R10-NOT-SAFE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "4ef33b57845da85bb86649846fa741e308981fcf14f0c295d326a78cba099183"
+    },
+    {
+      "case_id": "R10-ERROR",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "c26f812ae7fd99f264c3d7a8d436fc340d39ddf411230af09612958107f6987c"
+    },
+    {
+      "case_id": "R10-NON-LOCAL",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown",
+      "override": null,
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown",
+      "expected_failure_substring": "missing production owner tools/workstation_poweroff_gate.py",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "adf0ff8bdf1c1ab6d4d6fef14ba3c564ca4f5dbc0cc9b465f964b74c8774c489"
+    }
+  ],
+  "adversarial_records": [
+    {
+      "case_id": "R3-PENDING",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "6a34fdb82f9a351b6acab65bf3b89b95d688fb7363fb672594059c8f443affb4"
+    },
+    {
+      "case_id": "R3-RECONCILE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "d0433a4d6c8ea867e5d9af9e179f06537cc8710c62223c86777b3b7285ba9d7d"
+    },
+    {
+      "case_id": "R3-AMBIGUOUS",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "504f92a0144a463abfe510be37c37e8dfac0c482bac34e4ff362f52d3f3e1b81"
+    },
+    {
+      "case_id": "R3-CONSUMED",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "fa33886b13c32ccafb7864845796a1f49c807382147be2d42b74d62e587ecc04"
+    },
+    {
+      "case_id": "R3-NONE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "7f06ea404c90cb8b36302afa0c01c0480dc34f9c576eb990a398e51d7ae18d4a"
+    },
+    {
+      "case_id": "R4-READY",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "eefa6c28169428ee644920f0fcb0f3993c81cdc3c4b55d4f2124ea245bdee61b"
+    },
+    {
+      "case_id": "R4-OWNER",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "451c8159fa27dbf3e587f45b01cdd5ff46744a43d75a59fbd57a6ec74c292416"
+    },
+    {
+      "case_id": "R4-UNVERIFIED",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "9246b639f72c31645c7159e1c84e50ad499a33fd7b23d387e4ca9182cf76d64a"
+    },
+    {
+      "case_id": "R4-DISABLED",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "5f8ad78e1573c0116b9019a66273ac6ba9930c4231a4e14ec2534fe3825a1ebf"
+    },
+    {
+      "case_id": "R4-NEXT-ACTION",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "08aa328282ec18ca5ee75a4e3219080056dd3353f5feb8d460fefbe78eaf7ce2"
+    },
+    {
+      "case_id": "R4-HEAD",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "bdf6ff079b3e07fe205bfeb9e2856d87042ef1cf297d1d16ee774e380ac502e6"
+    },
+    {
+      "case_id": "R5-SAFE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "e1378ed6ec65c296eb45f0b3a5c0750fc862a1f31046ea72cfeae688edbac88b"
+    },
+    {
+      "case_id": "R5-NOT-SAFE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "c9a8240dc95b515550622db79f71addd12b9203084837a66b5f3794a5ba68760"
+    },
+    {
+      "case_id": "R5-ERROR",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error",
+      "expected_failure_substring": "expected result=ERROR",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "6b29b081eac9017828ed4b150c9b89d446cae6f07f3af3f4ab5944dd6291465f"
+    },
+    {
+      "case_id": "R6-REQUEST",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt",
+      "expected_failure_substring": "assert True is False",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "ee90309300439e785bb9645dff3642fe5bdd1d1cd48c5372fde21886d92c749e"
+    },
+    {
+      "case_id": "R6-REVISION",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt",
+      "expected_failure_substring": "assert True is False",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "5587ff313d54f3bfe6764545b35f846daf32214cf57ad88e8eba8924198938a7"
+    },
+    {
+      "case_id": "R6-RECEIPT",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid",
+      "expected_failure_substring": "assert True is False",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "44b05f3d145ee87ba93b2cd652bd9fea3fcc8fe374d4edaf8fc8f67668d91f41"
+    },
+    {
+      "case_id": "R6-DIRTY",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "5b06c2fc403b83d43153e6d59b671a48efd8c7a3a4662ddff6306a165c5d7cbc"
+    },
+    {
+      "case_id": "R6-GUARD",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "4d44c2fa01a06472f6126ad2ab1b188adadc3b2f3de3fff3d2401c77287bd1f4"
+    },
+    {
+      "case_id": "R6-OWNER",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "dd3c0ccad81d3ed38db9f45a559b4de753719d4e45a2ee6ed95539480d1a6319"
+    },
+    {
+      "case_id": "R6-SCHEDULER",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "c147b3297d832a791284172ad577a63c69615ba47b8db6476f5c8031e24cbc44"
+    },
+    {
+      "case_id": "R6-HEAD",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state",
+      "expected_failure_substring": "expected result=NOT_SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "f54ba7af3e2d44141ceeb51a4248171ee0ed0709b8d7a0850a2363da6ecf85c0"
+    },
+    {
+      "case_id": "R10-ZERO",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "f33b249a575ee5ce7418682922b3e4dee673561937a77f9ee495378b06a3007e"
+    },
+    {
+      "case_id": "R10-ONE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "0b67189ab543a5194d4630dfd68014c11586388eb592133fe886f07d3e54dc57"
+    },
+    {
+      "case_id": "R10-TWO",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "404383bfbcd952f5487a3eecf4a0f57cd14f9be052c350a912607d1c2d732ea6"
+    },
+    {
+      "case_id": "R10-NOT-SAFE",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe",
+      "expected_failure_substring": "one NOT_SAFE slot must prevent aggregate SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "e05a2ee96577bf1d1f6fb074a78aa6a8e31604fd35083c0d136dcbf19e29c499"
+    },
+    {
+      "case_id": "R10-ERROR",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error",
+      "override": "SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_token_only_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error",
+      "expected_failure_substring": "expected result=ERROR",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "6994a281bd39814e0af1f2fb44585972fcf5aa4d8550b976d64fa6f04c45f3ec"
+    },
+    {
+      "case_id": "R10-NON-LOCAL",
+      "nodeid": "C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown",
+      "override": "NOT_SAFE",
+      "command": "$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\\Users\\Public\\fake_always_not_safe_poweroff_gate.py'; Set-Location C:\\Users\\Public; python -m pytest -q --tb=short C:\\Users\\Public\\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown",
+      "expected_failure_substring": "expected result=SAFE",
+      "exit_code": 1,
+      "expected_failure_observed": true,
+      "raw_output_sha256": "1f5015288dd89eff23127f894a0751af3309caa40c2fcb4311e04c0c9b5a79ed"
+    }
+  ],
+  "coverage": {
+    "T3": 5,
+    "T4": 6,
+    "T5": 3,
+    "T6": 8,
+    "T10": 6
+  },
+  "durable_anchor": "PENDING_USER_RED_APPROVAL_THEN_REPOSITORY_OWNED_EVIDENCE"
+}
