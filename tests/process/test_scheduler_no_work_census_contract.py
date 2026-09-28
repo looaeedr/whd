@@ -1,108 +1,57 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCHED_SIM = ROOT / ".agents" / "skills" / "engineering" / "排程模擬" / "SKILL.md"
-WRITE_SCHED = ROOT / ".agents" / "skills" / "engineering" / "寫排程" / "SKILL.md"
-
-MARKER = "READY_WORK_CENSUS_V1"
+SCHED_SIM = ROOT / ".agents/skills/engineering/排程模擬/SKILL.md"
+WRITE_SCHED = ROOT / ".agents/skills/engineering/寫排程/SKILL.md"
+CANONICAL = ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_scheduler_simulation_requires_exhaustive_no_work_census() -> None:
+def test_scheduler_entrypoints_bridge_flow_v2_native_state() -> None:
     text = _read(SCHED_SIM)
-    assert MARKER in text
-    assert "NO_MATCHING_HANDOFF != NO_WORK" in text
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in text
+    assert "coord/execution-v2" in text
+    assert "same-lane nonterminal record" in text
+    assert "ready-index" in text
     assert "NO_EXECUTABLE_WORK" in text
-    assert "candidate executable leaves" in text
-    assert "fresh durable exclusion evidence" in text
-    for token in (
-        "FOREIGN_LIVE_OWNER",
-        "DEPENDENCY_BLOCKED",
-        "ACTIVE_EXACT_RUN",
-        "AUTHORITY_MISMATCH",
-        "SHARED_SCOPE_CONFLICT",
-    ):
+    assert "YIELD" in text
+
+
+def test_scheduler_lane_identity_and_recurring_lifecycle_are_preserved() -> None:
+    text = _read(SCHED_SIM)
+    assert "scheduler.6ab13fa557fc8191935c671214b865e2" in text
+    assert "scheduler.e58ea936e7d0b12bd0d475314709d6f1" in text
+    assert "00/20/40" in text
+    assert "B15/B45" in text
+    assert "不得自行 disable/delete/complete/reschedule" in text
+
+
+def test_scheduler_authoring_points_to_flow_v2_not_parallel_state_machine() -> None:
+    text = _read(WRITE_SCHED)
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in text
+    assert "coord/execution-v2" in text
+    assert "lease" in text
+    assert "structured next_action" in text
+    assert "atomic transaction" in text
+    assert "YIELD" in text
+    assert "不得內嵌第二套 execution state machine" in text
+
+
+def test_scheduler_view_has_same_lane_first_and_derived_ready_index_decisions() -> None:
+    text = (ROOT / "tools/execution_scheduler_view.py").read_text(encoding="utf-8")
+    for token in ("RESUME_CURRENT", "LANE_BUSY", "READY_CANDIDATES", "NO_EXECUTABLE_WORK"):
         assert token in text
+    ready = (ROOT / "tools/execution_ready_index.py").read_text(encoding="utf-8")
+    assert "DERIVED_CACHE_ONLY" in ready
 
 
-def test_scheduler_must_claim_scheduler_authorized_unclaimed_leaf() -> None:
-    text = _read(SCHED_SIM)
-    section = text.split(MARKER, 1)[1]
-    assert "unclaimed + dependency-unblocked + scheduler-authorized" in section
-    assert "MUST_CLAIM" in section
-    assert "canonical claim path" in section
-    assert "沒有 matching handoff" in section
-    assert "不得" in section
-
-
-def test_scheduler_authoring_propagates_no_work_census_to_live_prompts() -> None:
-    text = _read(WRITE_SCHED)
-    assert MARKER in text
-    assert "NO_MATCHING_HANDOFF != NO_WORK" in text
-    assert "NO_EXECUTABLE_WORK" in text
-    assert "fresh durable exclusion evidence" in text
-    assert "post-update readback" in text
-    assert "不得刪除" in text
-
-
-def test_no_work_census_is_provenance_not_new_execution_authority() -> None:
-    for path in (SCHED_SIM, WRITE_SCHED):
-        section = _read(path).split(MARKER, 1)[1]
-        assert "不建立 execution authority" in section
-        assert "lane owner" in section
-        assert "claim ownership" in section
-
-
-def test_scheduler_simulation_covers_real_recurring_and_interactive_entrypoints() -> None:
-    text = _read(SCHED_SIM)
-    assert "REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1" in text
-    section = text.split("REAL_RECURRING_SCHEDULER_ENTRYPOINT_V1", 1)[1]
-    assert "00 / 20 / 40" in section
-    assert "B15 / B45" in section
-    assert "actual_invocation_source=scheduler" in section
-    assert "actual_invocation_source=chatgpt_interactive" in section
-    assert "SCHEDULER_LANE" in section
-
-
-def test_scheduler_authoring_requires_scheduler_simulation_every_wake() -> None:
-    text = _read(WRITE_SCHED)
-    assert "SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1" in text
-    section = text.split("SCHEDULER_SIMULATION_EVERY_WAKE_GATE_V1", 1)[1]
-    assert ".agents/skills/engineering/排程模擬/SKILL.md" in section
-    assert "每次 wake" in section
-    assert "不論" in section
-    assert "handoff" in section
-
-def test_same_lane_nonterminal_claim_is_never_collapsed_to_no_work() -> None:
-    text = _read(SCHED_SIM)
-    assert "SAME_LANE_NONTERMINAL_WORK_V1" in text
-    section = text.split("SAME_LANE_NONTERMINAL_WORK_V1", 1)[1]
-    assert "same-lane" in section
-    assert "non-terminal" in section
-    assert "next_action" in section
-    assert "SAME_LANE_RESUME" in section
-    assert "NO_EXECUTABLE_WORK" in section
-    assert "不得" in section
-
-
-def test_scheduler_routes_drift_to_reconciliation_not_no_work() -> None:
-    text = _read(SCHED_SIM)
-    section = text.split("SAME_LANE_NONTERMINAL_WORK_V1", 1)[1]
-    assert "RECONCILIATION_REQUIRED" in section
-    assert "AUTHORITY_MISMATCH" in section
-    assert "SHARED_SCOPE_CONFLICT" in section
-    assert "target/head/checkpoint" in section
-    assert "NO_WORK" in section
-
-
-def test_scheduler_authoring_propagates_same_lane_nonterminal_gate() -> None:
-    text = _read(WRITE_SCHED)
-    assert "SAME_LANE_NONTERMINAL_WORK_V1" in text
-    section = text.split("SAME_LANE_NONTERMINAL_WORK_V1", 1)[1]
-    assert "RECONCILIATION_REQUIRED" in section
-    assert "SHARED_SCOPE_CONFLICT" in section
-    assert "post-update readback" in section
-
+def test_canonical_flow_v2_owns_progress_exit_and_generation_fencing() -> None:
+    text = _read(CANONICAL)
+    assert "Progress" in text
+    assert "YIELD" in text
+    assert "Generation fencing + salvage" in text
+    assert "ORPHAN_WRITE" in text
+    assert "回報後只要 current invocation 還能合法施工，就立即繼續" in text
