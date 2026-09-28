@@ -62,7 +62,7 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 
 互動式 / chat runtime 的 **實際工作面**固定是 canonical Google Drive workspace，不只是做 root identity check：
 
-- default root=`/Google Drive/WHD`；可在 workspace 完成的 source materialization、分析、編輯、測試、artifact 產生一律優先在 `/Google Drive/WHD/work/...` 執行。
+- default root=`/Google Drive/WHD`；可在 workspace 完成的 source materialization、分析、編輯、測試、artifact 產生一律優先在 `/Google Drive/WHD/work/active/...` 執行。
 - canonical work path 由 `tools/work_root_gate.py::build_interactive_work_path(...)` 建立，並由 `validate_interactive_workspace_path(...)` fail closed；`/mnt/data`、Library `/WHD`、Windows 任意目錄與 GitHub checkout 都不得成為互動式預設施工根。
 - GitHub 仍是 source/code/PR/CI/scheduler/control-plane authority。只有 PR/CI、trusted remote QA、scheduler/GITHUB_ONLY/REMOTE_ACTION 或該動作本質上只能由 GitHub 完成時，才在 GitHub execution surface 執行；這不會重新綁定 interactive workspace root。
 - `WHD Current Source Manifest` 是 workspace materialization identity。開始 workspace mutation / local test 前，必須 fresh-read manifest 並與本工單選定的 source branch/HEAD 對齊；若 manifest stale，先 refresh source snapshot/work copy，再施工，不得在舊 snapshot 上改完後才補同步。
