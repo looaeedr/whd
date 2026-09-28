@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
+    "id": 36455674006,
+    "purpose": "Issue #952 exact-head Control Plane Regression after paired-governance synchronization",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
+      "run_id": 36455674006
     },
-    "display": "Bind exact current-head QA after paired-governance synchronization",
-    "kind": "START_QA"
+    "display": "Accept exact current-head GREEN QA for Issue #952",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_QA_DRIFT_REPAIR",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
   "transaction": {
-    "expected_fingerprint": "c6964d21f52e59ec54264283066ff560ef8b22773cd7adf60f3eeddc751954a2",
-    "id": "gha:36456281470:952:RECONCILE:10",
+    "expected_fingerprint": "0eda6c36defd80604a83966f8920c8c4fc21842f00e23b0c27312905b4b23eed",
+    "id": "gha:36456375293:952:START_QA:11",
     "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
-    "kind": "RECONCILE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:10:54Z",
+  "updated_at": "2026-09-28T17:11:46Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
