@@ -151,6 +151,48 @@ def _normalize_effect(
     return effect
 
 
+def _ensure_issue_closed_for_finalize(
+    repo: str,
+    token: str,
+    *,
+    issue: int,
+    record: ExecutionRecord,
+) -> dict[str, object]:
+    """Close/read back the GitHub Issue before a FINALIZE -> DONE transition."""
+    if record.state != "INTEGRATING":
+        raise ProductionExecutorError("FINALIZE requires INTEGRATING state before issue close")
+    if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+        raise ProductionExecutorError("FINALIZE requires accepted QA for current head before issue close")
+    if not record.closure.merged_sha or record.target_sha != record.closure.merged_sha:
+        raise ProductionExecutorError("FINALIZE requires merged target readback before issue close")
+
+    observed = _api(repo, "GET", f"/issues/{issue}", token)
+    if (
+        str(observed.get("state") or "").lower() != "closed"
+        or str(observed.get("state_reason") or "").lower() != "completed"
+    ):
+        _api(
+            repo,
+            "PATCH",
+            f"/issues/{issue}",
+            token,
+            {"state": "closed", "state_reason": "completed"},
+        )
+
+    fresh = _api(repo, "GET", f"/issues/{issue}", token)
+    if str(fresh.get("state") or "").lower() != "closed":
+        raise ProductionExecutorError("FINALIZE issue close readback is not closed")
+    if str(fresh.get("state_reason") or "").lower() != "completed":
+        raise ProductionExecutorError("FINALIZE issue close readback is not completed")
+
+    return {
+        "issue_closed": True,
+        "issue_state": "closed",
+        "issue_state_reason": "completed",
+        "issue_closed_at": fresh.get("closed_at"),
+    }
+
+
 def _write_state(
     repo: str,
     token: str,
@@ -234,6 +276,18 @@ def execute_one(
         invocation_identity=invocation_identity,
         supplied=supplied_effect,
     )
+    if kind == "FINALIZE":
+        # FINALIZE does not trust caller-supplied closure booleans.  The trusted
+        # writer owns the GitHub side effect and fresh readback, so an accepted
+        # merge cannot become DONE while the Issue remains open.
+        effect.update(
+            _ensure_issue_closed_for_finalize(
+                repo,
+                token,
+                issue=issue,
+                record=record,
+            )
+        )
     post = execute_transaction(record, plan, effect=effect)
     records[issue] = post
     commit_sha, record_blob_sha = _write_state(
