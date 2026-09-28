@@ -1,21 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-910-apply-final-exact-f8d37aa8",
-  "issue": 910,
-  "kind": "APPLY_COMMIT",
-  "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-  "expected_coord_head": "5fb2fa024ffb118546749095f8c0ef829ce24909",
-  "expected_generation": 10,
+  "request_id": "bootstrap-seed-b-v2-reset-20260928",
+  "issue": 0,
+  "kind": "SEED",
+  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "invocation_identity": "bootstrap-seed",
+  "expected_coord_head": "",
+  "expected_generation": 0,
   "effect": {
-    "head_sha": "f8d37aa81a9ea3cc682d1ce9e429055b54ee697e",
-    "semantic_state": "REVERIFY_REQUIRED",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/qa-issue910-final-exact.yml"
-      },
-      "display": "Run exact final-candidate 3D startup and runtime LOG QA"
-    }
+    "bootstrap": true,
+    "reset_reason": "FOREIGN_WORK0_PAYLOAD_REMOVED"
   }
 }
