@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "generation": 5,
+  "head_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "issue": 948,
   "lane_id": "chatgpt.flowv2.work3",
   "lease": {
@@ -49,15 +49,15 @@
   "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "transaction": {
-    "expected_fingerprint": "4c33050f5a34151c1af2f7b1108227e21f80c3328168a6e821c732b5b0eb9053",
-    "id": "gha:36446725113:948:ACQUIRE:3",
+    "expected_fingerprint": "c66784b283ef7111654733af884d2b865000bc89356cf128525fd842427fd622",
+    "id": "gha:36446898192:948:RECONCILE:4",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:51:29Z",
+  "updated_at": "2026-09-28T15:52:55Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
