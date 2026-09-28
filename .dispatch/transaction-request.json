@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue964-scheduler-a-acquire-v2",
+  "request_id": "issue964-scheduler-a-start-branch-v1",
   "issue": 964,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
   "startup_evidence": {
@@ -23,29 +23,24 @@
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
     "purpose": "以排程A SCHEDULER_LANE 接手並持續執行 Issue #964，依 current Flow v2 durable state 完成 exact next_action、QA、整合與合法終態。",
-    "issued_at": "2026-09-28T21:20:58Z",
-    "expires_at": "2026-09-28T21:25:58Z",
+    "issued_at": "2026-09-28T21:22:20Z",
+    "expires_at": "2026-09-28T21:27:20Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：以排程A SCHEDULER_LANE 接手並持續執行 Issue #964，依 current Flow v2 durable state 完成 exact next_action、QA、整合與合法終態。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "231b9821642fcb50730b3e32789969879f484729",
-  "expected_generation": 1,
+  "expected_coord_head": "fc95ba328e4151ac3eb0e8fc9b1f4287b71b5157",
+  "expected_generation": 2,
   "effect": {
-    "updated_at": "2026-09-28T21:20:58Z",
-    "observed_at": "2026-09-28T21:20:58Z",
-    "owner_kind": "SCHEDULER",
-    "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-    "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-    "slot_id": null,
-    "lease": {
-      "token": "lease-964-a-212058",
-      "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
-      "expires_at": "2026-09-28T21:25:58Z"
-    },
-    "semantic_state": "CLAIMED",
+    "updated_at": "2026-09-28T21:22:20Z",
+    "work_branch": "governance/issue964-reqa-integrating-20260929",
+    "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Reconstruct merged #964 work branch identity"
+      "kind": "START_QA",
+      "args": {
+        "run_id": 36453762011,
+        "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15"
+      },
+      "display": "Bind exact successful #964 Control Plane Regression run"
     }
   }
 }
