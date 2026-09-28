@@ -88,11 +88,7 @@ from phase6_workspace_shell import (
 )
 from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
-    commit_output_draw_stock as _composition_commit_output_draw_stock,
-    export_selected_dxf_from_3d as _composition_export_selected_dxf_from_3d,
-    final_scene_set_preview_enabled as _composition_final_scene_set_preview_enabled,
     install_fold_designer_bridge_facade,
-    toggle_parameter_panel as _composition_toggle_parameter_panel,
 )
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
@@ -4259,38 +4255,19 @@ def _phase6_refresh_persistent_structure_controls(self):
 
 
 def _phase6_final_scene_set_preview_enabled(self, enabled):
-    return _composition_final_scene_set_preview_enabled(self, enabled)
+    return _phase6_composition(self).final_scene_set_preview_enabled(enabled)
 
 
 def _phase6_commit_output_draw_stock(self):
-    return _composition_commit_output_draw_stock(
-        self,
-        stage_setting_update=lambda key, value: _phase6_stage_setting_update(
-            self, key, value
-        ),
-    )
+    return _phase6_composition(self).commit_output_draw_stock(globals())
 
 
 def _phase6_export_selected_dxf_from_3d(self):
-    return _composition_export_selected_dxf_from_3d(self)
+    return _phase6_composition(self).export_selected_dxf_from_3d()
 
 
 def _phase6_toggle_parameter_panel(self):
-    return _composition_toggle_parameter_panel(
-        self,
-        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(
-            self, widget
-        ),
-        update_assembly_diagnostic_status=lambda: _phase6_update_assembly_diagnostic_status(
-            self
-        ),
-        invalidate_settings_page=lambda key: _phase6_invalidate_settings_page(
-            self, key
-        ),
-        render_settings_context=lambda key: _phase6_render_settings_context(
-            self, key
-        ),
-    )
+    return _phase6_composition(self).toggle_parameter_panel(globals())
 
 def _phase6_pack_right_panel_above_canvas(self, widget):
     """Pack a right-side settings/diagnostic panel before the expanding 3D canvas.

@@ -78,84 +78,6 @@ from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
 from gui_modules.parts.panels.multipart import collect_multipart_input
 
 
-def final_scene_set_preview_enabled(app, enabled):
-    """Composition-owned FinalScene preview effect port."""
-    enabled = bool(enabled)
-    app.preview_3d_enabled = enabled
-    var = getattr(app, "preview_3d_var", None)
-    if var is not None and bool(var.get()) != enabled:
-        var.set(enabled)
-    widget = app.renderer.canvas.get_tk_widget()
-    if enabled:
-        if not widget.winfo_manager():
-            widget.pack(fill="both", expand=True)
-        app.submit_update_intent("display", commit=True)
-    elif widget.winfo_manager() == "pack":
-        widget.pack_forget()
-    return enabled
-
-
-def commit_output_draw_stock(app, *, stage_setting_update):
-    """Route STOCK through the existing project command owner."""
-    return Phase6ProjectController.commit_output_stock(
-        bool(app.output_draw_stock_var.get()),
-        stage_setting_update,
-    )
-
-
-def export_selected_dxf_from_3d(app):
-    """Route 3D DXF export through the existing project command owner."""
-    return Phase6ProjectController.route_selected_dxf_export(
-        getattr(app, "_phase6_export_selected_dxf_callback", None),
-        app.flush_pending_settings,
-    )
-
-
-def toggle_parameter_panel(
-    app,
-    *,
-    pack_right_panel,
-    update_assembly_diagnostic_status,
-    invalidate_settings_page,
-    render_settings_context,
-):
-    """Toggle the existing settings surface without creating state ownership."""
-    app._phase6_parameters_unlocked = not bool(
-        getattr(app, "_phase6_parameters_unlocked", False)
-    )
-    unlocked = app._phase6_parameters_unlocked
-    button = getattr(app, "parameter_lock_button", None)
-    if button is not None:
-        button.configure(text=("參數解鎖" if unlocked else "參數鎖定"))
-
-    center = getattr(app, "settings_center", None)
-    active = str(getattr(app, "active_part_key", None) or "box_body")
-    assembly_selected = (
-        str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    )
-    diagnostics = getattr(app, "assembly_diagnostics_frame", None)
-    if unlocked and assembly_selected:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and not diagnostics.winfo_manager():
-            pack_right_panel(diagnostics)
-        update_assembly_diagnostic_status()
-    elif unlocked:
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-        invalidate_settings_page(active)
-        render_settings_context(active)
-        if center is not None and not center.winfo_manager():
-            pack_right_panel(center)
-    else:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    return unlocked
-
-
 def _fold_designer_secondary_scene_rows(scene):
     """Return numeric baseline hole rows, excluding the structural outline/BEND."""
     rows = []
@@ -1032,6 +954,81 @@ class Phase6FoldDesignerComposition:
         self._final_scene_renderer = None
         self._final_scene_adapter = None
 
+    def final_scene_set_preview_enabled(self, enabled):
+        """Apply the FinalScene preview effect through the composition owner."""
+        app = self.app
+        enabled = bool(enabled)
+        app.preview_3d_enabled = enabled
+        var = getattr(app, "preview_3d_var", None)
+        if var is not None and bool(var.get()) != enabled:
+            var.set(enabled)
+        widget = app.renderer.canvas.get_tk_widget()
+        if enabled:
+            if not widget.winfo_manager():
+                widget.pack(fill="both", expand=True)
+            app.submit_update_intent("display", commit=True)
+        elif widget.winfo_manager() == "pack":
+            widget.pack_forget()
+        return enabled
+
+    def commit_output_draw_stock(self, namespace):
+        """Route STOCK through the existing project command owner."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        return Phase6ProjectController.commit_output_stock(
+            bool(app.output_draw_stock_var.get()),
+            lambda key, value: required("_phase6_stage_setting_update")(
+                app, key, value
+            ),
+        )
+
+    def export_selected_dxf_from_3d(self):
+        """Route 3D DXF export through the existing project command owner."""
+        app = self.app
+        return Phase6ProjectController.route_selected_dxf_export(
+            getattr(app, "_phase6_export_selected_dxf_callback", None),
+            app.flush_pending_settings,
+        )
+
+    def toggle_parameter_panel(self, namespace):
+        """Toggle the existing settings surface without creating state ownership."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        app._phase6_parameters_unlocked = not bool(
+            getattr(app, "_phase6_parameters_unlocked", False)
+        )
+        unlocked = app._phase6_parameters_unlocked
+        button = getattr(app, "parameter_lock_button", None)
+        if button is not None:
+            button.configure(text=("參數解鎖" if unlocked else "參數鎖定"))
+
+        center = getattr(app, "settings_center", None)
+        active = str(getattr(app, "active_part_key", None) or "box_body")
+        assembly_selected = (
+            str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
+            == "assembly"
+        )
+        diagnostics = getattr(app, "assembly_diagnostics_frame", None)
+        if unlocked and assembly_selected:
+            if center is not None and center.winfo_manager():
+                center.pack_forget()
+            if diagnostics is not None and not diagnostics.winfo_manager():
+                required("_phase6_pack_right_panel_above_canvas")(app, diagnostics)
+            required("_phase6_update_assembly_diagnostic_status")(app)
+        elif unlocked:
+            if diagnostics is not None and diagnostics.winfo_manager():
+                diagnostics.pack_forget()
+            required("_phase6_invalidate_settings_page")(app, active)
+            required("_phase6_render_settings_context")(app, active)
+            if center is not None and not center.winfo_manager():
+                required("_phase6_pack_right_panel_above_canvas")(app, center)
+        else:
+            if center is not None and center.winfo_manager():
+                center.pack_forget()
+            if diagnostics is not None and diagnostics.winfo_manager():
+                diagnostics.pack_forget()
+        return unlocked
+
     @staticmethod
     def _required(namespace, name):
         try:
@@ -1258,21 +1255,7 @@ class Phase6FoldDesignerComposition:
             set_ui_text_size_combo=lambda combo: setattr(
                 app.settings_panel, "ui_text_size_combo", combo
             ),
-            toggle_parameter_panel=lambda: toggle_parameter_panel(
-                app,
-                pack_right_panel=lambda widget: required(
-                    "_phase6_pack_right_panel_above_canvas"
-                )(app, widget),
-                update_assembly_diagnostic_status=lambda: required(
-                    "_phase6_update_assembly_diagnostic_status"
-                )(app),
-                invalidate_settings_page=lambda key: required(
-                    "_phase6_invalidate_settings_page"
-                )(app, key),
-                render_settings_context=lambda key: required(
-                    "_phase6_render_settings_context"
-                )(app, key),
-            ),
+            toggle_parameter_panel=lambda: self.toggle_parameter_panel(namespace),
             select_structure_type=lambda var: required(
                 "_phase6_select_box_structure_type"
             )(app, var),
@@ -1282,13 +1265,8 @@ class Phase6FoldDesignerComposition:
             refresh_persistent_structure_controls=lambda: required(
                 "_phase6_refresh_persistent_structure_controls"
             )(app),
-            commit_output_draw_stock=lambda: commit_output_draw_stock(
-                app,
-                stage_setting_update=lambda key, value: required(
-                    "_phase6_stage_setting_update"
-                )(app, key, value),
-            ),
-            export_selected_dxf=lambda: export_selected_dxf_from_3d(app),
+            commit_output_draw_stock=lambda: self.commit_output_draw_stock(namespace),
+            export_selected_dxf=lambda: self.export_selected_dxf_from_3d(),
             queue_update=app.queue_update,
             pack_right_panel=lambda widget: required(
                 "_phase6_pack_right_panel_above_canvas"
@@ -1674,7 +1652,7 @@ class Phase6FoldDesignerComposition:
 
         def refresh_preview():
             if not getattr(app, "preview_3d_enabled", True):
-                return final_scene_set_preview_enabled(app, True)
+                return self.final_scene_set_preview_enabled(True)
             app._phase6_force_sync_preview = True
             try:
                 return app.submit_update_intent("display", commit=True)
@@ -1771,9 +1749,7 @@ class Phase6FoldDesignerComposition:
                 )()
             ),
             render_committed=render_committed,
-            set_preview_enabled=lambda enabled: final_scene_set_preview_enabled(
-                app, enabled
-            ),
+            set_preview_enabled=self.final_scene_set_preview_enabled,
             refresh_preview=refresh_preview,
         )
 
