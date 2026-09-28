@@ -114,3 +114,6 @@ jobs:
             tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
             tests/process/test_issue952_governance_ancestry_reconcile.py \
             tests/process/test_issue975_flow_v2_closure_stability.py
+
+      - name: Run issue990 latency regressions
+        run: python -m pytest -q tests/process/test_issue990_control_step_executor.py tests/process/test_issue990_scheduler_startup_bundle.py
