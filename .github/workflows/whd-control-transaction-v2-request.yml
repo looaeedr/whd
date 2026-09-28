@@ -1,0 +1,57 @@
+name: WHD｜Flow v2｜Push Transaction Request
+run-name: WHD｜Flow v2 Push Request｜${{ github.ref_name }}｜${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - coord/transaction-requests-a
+      - coord/transaction-requests-b
+    paths:
+      - .dispatch/transaction-request.json
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: whd-flow-v2-push-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: 套用 scheduler push transaction request
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 讀取 exact request commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: request
+          fetch-depth: 1
+
+      - name: 讀取 production Flow v2 implementation
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: prod
+          fetch-depth: 1
+
+      - name: 驗 request identity 並原子回寫 ExecutionRecord
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=prod python prod/tools/control_transaction_request_ingress.py \
+            --request-file request/.dispatch/transaction-request.json \
+            --output /tmp/flow-v2-production-result.json
+
+      - name: 保存 terminal result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flow-v2-push-transaction-${{ github.run_id }}
+          path: /tmp/flow-v2-production-result.json
+          if-no-files-found: warn
+          retention-days: 7
