@@ -1,7 +1,7 @@
 {
   "schema": "WHD_EXECUTION_RECORD_V2",
   "version": 2,
-  "generation": 2,
+  "generation": 3,
   "issue": 910,
   "execution_intent": "EXECUTE_TICKET",
   "owner_kind": "INTERACTIVE",
@@ -11,15 +11,17 @@
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928",
-  "head_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
+  "head_sha": "7cb9b654f09bd2bd38684a233e98d21ab27df9f0",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
   "state": "ACTIVE",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "next_action": {
-    "kind": "START_BRANCH",
-    "args": {},
-    "display": "Create work branch for Issue #910"
+    "kind": "START_QA",
+    "args": {
+      "workflow": ".github/workflows/qa-issue910-3d-runtime-log.yml"
+    },
+    "display": "Start Issue #910 focused Xvfb QA"
   },
   "lease": {
     "token": "lease:910:interactive:work0:g1",
@@ -28,10 +30,10 @@
   },
   "active_run": null,
   "transaction": {
-    "id": "chatgpt:work0:910:ACQUIRE:1",
-    "kind": "ACQUIRE",
+    "id": "chatgpt:work0:910:START_BRANCH:2",
+    "kind": "START_BRANCH",
     "status": "RECONCILED",
-    "expected_fingerprint": "8a155f92f48a41336dbf3b16a61b6af53e0fdab828fb7998564d5a68b209940c",
+    "expected_fingerprint": "3fe7b0ddf4f99efdd63b5b07a4ec3853a65568a6f57ea6ba124efc03a4a661a5",
     "invocation_identity": "interactive:work0:20260928T120703Z:910:g1"
   },
   "qa": {
@@ -57,5 +59,5 @@
       "authority_fingerprint": "6ef6765f7c844e5ae023514a307e7172a1660734fe62568fd0e91e30e50fb1d6"
     }
   ],
-  "updated_at": "2026-09-28T12:07:03Z"
+  "updated_at": "2026-09-28T12:21:20Z"
 }
