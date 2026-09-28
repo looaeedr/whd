@@ -1,51 +1,61 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 928,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
-  "work_branch": "work/issue928-windows-3d-blank-no-log-20260928",
-  "head_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #928"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": 910
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": 910,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
+  "issue": 928,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-28T13:32:31Z",
+    "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
+    "token": "lease:928:36427544831:1"
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create work branch for Issue #928",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "b42b6ee4eb67dd314e57e948c3029b4002eb2f179f54d4a3992d45f8c40fe738",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-28:windows-3d-blank-no-log",
-      "authority_fingerprint": "b42b6ee4eb67dd314e57e948c3029b4002eb2f179f54d4a3992d45f8c40fe738"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-09-28T13:12:57Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
+  "transaction": {
+    "expected_fingerprint": "c53a64d214edd45f7f9b07abfa390f12cdfda280bcd0286f8b9461adc62c1e5c",
+    "id": "gha:36427544831:928:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-28T13:17:31Z",
+  "version": 2,
+  "work_branch": "work/issue928-windows-3d-blank-no-log-20260928"
 }
