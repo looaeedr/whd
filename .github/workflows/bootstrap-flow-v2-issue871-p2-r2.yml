@@ -26,7 +26,6 @@ jobs:
           curl -fL --retry 3 --retry-delay 1 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-1404-8209-bee7-1af1cedcf8fd/raw?se=2026-09-28T04%3A26%3A58Z&sp=r&sv=2026-02-06&sr=b&scid=41bd0ef8-8c27-5816-9456-d2316ed76916&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-28T00%3A39%3A58Z&ske=2026-09-29T00%3A39%3A58Z&sks=b&skv=2026-02-06&sig=o%2BZOD2pKhf35ht5z5Pc0DrBH%2BBdiKqM2pHnzJsv2iAo%3D' -o /tmp/issue871-p2.zip
           echo '25a919fb14b92fbc00bccd64dccdc90d19a9f5ff8378f72609f9dd71df271f88  /tmp/issue871-p2.zip' | sha256sum -c -
           unzip -o /tmp/issue871-p2.zip
-          rm -f .github/workflows/bootstrap-flow-v2-issue871-p2-r2.yml
 
       - name: Run P2 focused acceptance
         shell: bash
@@ -41,6 +40,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tools tests .github/workflows .flow-v2/execution-fence.json
+          git add tools tests .flow-v2/execution-fence.json
           git commit -m 'feat(#871): atomic transactions and terminal-only transport'
           git push origin HEAD:flow-v2/issue871-atomic-transactions-r2
