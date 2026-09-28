@@ -1,0 +1,33 @@
+name: Issue952 Dispatch Ancestry Once
+
+on:
+  push:
+    branches:
+      - governance/issue952-mirror-ancestry-reconciliation
+    paths:
+      - .github/workflows/issue952-dispatch-ancestry-once.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch canonical ancestry reconciliation workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EXPECTED_MAIN_SHA: 4cc50f132b76ef0fb850cd2557c27f6ade86e393
+          EXPECTED_CLEANUP_SHA: 8a6fd747ce83e6756bd244cdd436ed07de17302d
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$GH_REPO/actions/workflows/whd-governance-ancestry-reconcile.yml/dispatches" \
+            -f ref='cleanup/2d-3d-sync' \
+            -f "inputs[expected_main_sha]=$EXPECTED_MAIN_SHA" \
+            -f "inputs[expected_cleanup_sha]=$EXPECTED_CLEANUP_SHA"
+          echo "DISPATCHED_CANONICAL_ANCESTRY_WORKFLOW"
