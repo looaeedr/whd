@@ -78,7 +78,7 @@ jobs:
             tools/control_transaction_request_ingress.py \
             tools/execution_invocation_exit.py \
             tools/execution_scheduler_view.py \
-            tools/execution_entry_contract.py
+            tools/execution_entry_contract.py \
             tools/work_root_gate.py
       - name: Run stop/closure focused regressions
         run: |
