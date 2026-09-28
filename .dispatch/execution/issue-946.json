@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
   "issue": 946,
   "lane_id": "chatgpt.flowv2.work2",
@@ -22,9 +22,11 @@
     "token": "lease:946:36443102759:1"
   },
   "next_action": {
-    "args": {},
-    "display": "Reconcile Issue #946 helper branch",
-    "kind": "START_BRANCH"
+    "args": {
+      "reason": "AUTHOR_FAIL_QA_TRANSACTION"
+    },
+    "display": "Implement FAIL_QA consume transaction",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -41,7 +43,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.2",
   "source_branch": "main",
   "source_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
@@ -49,13 +51,13 @@
   "target_branch": "main",
   "target_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
   "transaction": {
-    "expected_fingerprint": "695e99617fc61d0458b652a4a82eedf67d50b5873bc1681d9d4e1916437eb9ea",
-    "id": "gha:36443102759:946:ACQUIRE:1",
+    "expected_fingerprint": "1df6d1a7b2f96e7a089da2bf6821207d5cf403fbb359c8e1e036f4d993ffe52b",
+    "id": "gha:36443273555:946:START_BRANCH:2",
     "invocation_identity": "interactive:work2:issue946:session1",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:23:04Z",
+  "updated_at": "2026-09-28T15:24:19Z",
   "version": 2,
   "work_branch": "governance/issue946-fail-qa-repair"
 }
