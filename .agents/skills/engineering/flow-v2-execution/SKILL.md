@@ -48,6 +48,7 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - per-Issue state：`.dispatch/execution/issue-<N>.json`，schema=`WHD_EXECUTION_RECORD_V2`。
 - record/store：`tools/execution_record.py` + `tools/execution_record_store.py`。
 - action vocabulary：`tools/execution_action_contract.py`。
+- merge precheck：`tools/flow_v2_merge_precheck.py`。
 - atomic transition：`tools/control_transaction.py`。
 - terminal transport：`tools/control_transaction_transport.py` + `tools/control_transaction_terminal_executor.py`。
 - scheduler view：`tools/execution_scheduler_view.py`。
@@ -65,7 +66,35 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 
 ## Structured next_action
 
-machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / FAIL_QA / MERGE / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
+machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / FAIL_QA / MERGE / SYNC_TARGET / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
+
+### MERGE_PRECHECK_AND_TARGET_SYNC_V1
+
+Flow v2 的 `MERGE` 不是「accepted QA 後直接呼叫 GitHub merge API」。任何 external PR merge side effect 固定由 trusted `control_transaction_production_executor.py` 擁有，且在 side effect 前執行 live merge precheck。
+
+MERGE precheck 必須 fresh-read並 exact 比對：
+
+- current ExecutionRecord `head_sha / target_branch / target_sha`；
+- PR number、open/merged state、PR head SHA、base branch、base SHA、mergeable；
+- live target branch HEAD；
+- target branch ruleset 的 required status checks，以及 current PR head 上對應 check conclusion。
+
+固定結果：
+
+- identity mismatch → fail closed，不得 merge。
+- required checks 尚未 success → 保留 `MERGE`，只 poll/retry required checks；不得先撞 GitHub 405 再把 405 當流程判斷。
+- live target 或 PR base 已前進 → **不得嘗試 stale MERGE**。該 `MERGE` transaction 必須原子轉為 `semantic_state=TARGET_DRIFT_REQUIRES_SYNC`，更新 fresh `target_sha`，並把 structured `next_action` 改成 `SYNC_TARGET`。
+- exact identity + target current + required checks GREEN + mergeable=true → trusted executor 自己執行 PR merge，fresh-read target SHA 後才寫 `MERGE / RECONCILED`。
+
+`SYNC_TARGET` 是正式 machine action，不是 recovery prose。固定走既有 scheduler-compatible `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1` / `whd-control-transaction-v2-request.yml` trusted transport；chat/runtime 不得以 local git、Remote Desktop 或 connector `update_ref` 取代。trusted executor 使用 GitHub merge transport把 exact live target non-force merge 進 exact work branch：
+
+- target/work ref 任一 SHA drift → CONFLICT，fresh-read重算；禁止 replay。
+- merge conflict → fail closed，進 explicit repair；禁止 force push。
+- sync 後 work HEAD 前進 → accepted QA 立即因 head mismatch失效，固定 `QA_INVALIDATED_BY_TARGET_SYNC → START_QA(exact new head) → POLL_QA → ACCEPT_QA → MERGE`。
+- sync 判定 work branch 已包含 target、HEAD 不變 → 可只更新 target identity，回到 `MERGE`；既有 exact-head QA 可保留。
+- `START_QA / POLL_QA / ACCEPT_QA` 必須把 post-sync PR identity與 revalidation workflow 以 structured args/effect 延續；不得靠聊天記憶找回 PR。
+
+每次重新回到 `MERGE` 都必須再跑一次 live precheck，因 target 可在 QA 完成後再次前進。這個 gate 專門避免 #889 類「QA 已 GREEN，但 target 已 drift，最後到 GitHub merge 才報 required-check/merge error」事故。
 
 ## Atomic transaction
 
