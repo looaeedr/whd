@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
-    "id": 36461286593,
-    "purpose": "FLOW_V2_REVALIDATE_ADVANCED_INTEGRATING_HEAD",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
   "issue": 889,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -29,16 +24,17 @@
   "next_action": {
     "args": {
       "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
-      "run_id": 36461286593
+      "pr_number": 891,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Poll exact #889 integration revalidation QA",
-    "kind": "POLL_QA"
+    "display": "Merge exact PR #891 after revalidated QA",
+    "kind": "MERGE"
   },
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
-    "last_accepted_run": 36392993699
+    "accepted_head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
+    "last_accepted_run": 36461286593
   },
   "recovery_history": [
     {
@@ -63,21 +59,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
   "transaction": {
-    "expected_fingerprint": "b4210dae14d06231d1f9c58ef3f31e607020032efc7538b1e4cce0ba8d217d65",
-    "id": "gha:36461538157:889:START_QA:9",
+    "expected_fingerprint": "4d80cdfe3fc9cdd7120efdcc93fbd5dccfdec7e0e6cbd89efbaa1085d4cf7ebb",
+    "id": "gha:36461645255:889:ACCEPT_QA:10",
     "invocation_identity": "scheduler-a:40:20260928T174200Z:889:g7",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:55:10Z",
+  "updated_at": "2026-09-28T17:56:00Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
