@@ -18,5 +18,7 @@ jobs:
     steps:
       - name: 讀取 #886 分支
         uses: actions/checkout@v4
+      - name: 安裝測試工具
+        run: python -m pip install -q pytest
       - name: 執行 Flow v2 入口契約測試
         run: python -m pytest -q --confcutdir=tests/process tests/process/test_issue886_flow_v2_entrypoint_cutover.py
