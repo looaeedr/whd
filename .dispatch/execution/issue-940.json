@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
-  "head_sha": "856188652d0c503224eec1306fba7acfe77bf368",
+  "generation": 4,
+  "head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
   "issue": 940,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,10 +23,12 @@
   },
   "next_action": {
     "args": {
-      "scope": "machine-enforce fresh startup evidence at Flow v2 trusted transaction ingress"
+      "purpose": "WHD Control Plane Regression exact-head acceptance",
+      "run_head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
+      "run_id": 36437903372
     },
-    "display": "Implement machine-enforced per-invocation startup evidence and negative regression",
-    "kind": "APPLY_COMMIT"
+    "display": "Bind exact-head Control Plane Regression run 36437903372",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,7 +45,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "IMPLEMENTED",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue940-entry-hard-gate-x",
   "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
@@ -51,13 +53,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "8970c0140dac6713765b28fb37e44be7d3653e63312b4326059a0c9a4da0b55b",
-    "id": "gha:36437045602:940:RECONCILE:2",
+    "expected_fingerprint": "1880607f90af796d4cdc3564af736ed5933c6f2460fd4b85886681cf66ee62bd",
+    "id": "gha:36438464706:940:APPLY_COMMIT:3",
     "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
-    "kind": "RECONCILE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T14:35:07Z",
+  "updated_at": "2026-09-28T14:46:25Z",
   "version": 2,
   "work_branch": "governance/issue940-entry-hard-gate-x"
 }
