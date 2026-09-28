@@ -9,6 +9,21 @@ whd_schema: WHD_DOC_META_V1
 
 # Flow v2 Execution
 
+
+## PROJECT_STARTUP_HARD_GATE_V1
+
+<!-- EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1 -->
+
+Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocation（recurring scheduler、/排程A、/排程B、/工作0..3、互動執行、takeover、resume、recovery）在任何 substantive analysis、claim、Guard、repository mutation 或 workflow dispatch 前，固定依序：
+
+1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
+2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
+3. fresh-read project `AGENTS.md`，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1` 與 Phase6 Knowledge Preflight；GitHub-only runtime 使用 trusted remote Phase6 Preflight。
+4. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
+5. 只有上述 project startup gates 成立後，才可進入本 Skill 的 Flow v2 ExecutionRecord / transaction / lease / next_action。
+
+startup declaration 只提供 provenance/intent，不取代 claim、Guard、Preflight、ExecutionRecord 或 transaction fencing；缺任一步固定 `FAIL_CLOSED`。前一聊天、前一 runtime 或前一 scheduler wake 的宣告不得沿用。
+
 <!-- FLOW_V2_EXECUTION_CANONICAL_V1 -->
 
 本 Skill 是 WHD execution/control-plane 的唯一 CURRENT operational contract。其他 workflow Skills 只可做入口 bridge，不得建立第二套 ownership、resume、closure、scheduler 或 recovery state machine。
@@ -175,13 +190,15 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
    - request_id：本 invocation/action 唯一值
    - issue / kind / lane_id / invocation_identity
+   - startup_evidence：由 canonical `tools/execution_entry_contract.py::build_startup_evidence(...)` 產生，exact 綁定本 invocation_identity / repository / purpose / issued_at / expires_at / canonical declaration；非 SEED request 必填。
    - expected_coord_head：步驟1 fresh HEAD
    - expected_generation：步驟1 record.generation
    - effect：fresh external readback payload
 4. 記住 request commit SHA；push 會自動觸發 request workflow。
 5. 只接受 event=push、workflow=`whd-control-transaction-v2-request.yml`、head_sha=request commit SHA 的 exact run。
 6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
-7. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。
+7. trusted ingress 在任何 ExecutionRecord state read/mutation 前，先用 `validate_startup_evidence(...)` 驗 startup_evidence；缺失、過期（TTL>300 秒或已到期）、repository 不符、declaration 被改、或 invocation_identity 不符，一律 FAILED/fail closed。
+8. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。fresh runtime 必須重建 startup evidence；前一 invocation evidence 不得重放。
 
 `coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
