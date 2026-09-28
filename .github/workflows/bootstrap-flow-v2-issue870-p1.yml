@@ -25,11 +25,18 @@ jobs:
           unzip -o /tmp/issue870-p1.zip
           rm -rf .flow-v2
           rm -f .github/workflows/bootstrap-flow-v2-issue870-p1.yml
+      - name: Install focused test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
       - name: Validate focused P1
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q             tests/process/test_issue870_execution_record_v2.py             tests/process/test_issue870_execution_record_store.py
+          python -m pytest -q \
+            tests/process/test_issue870_execution_record_v2.py \
+            tests/process/test_issue870_execution_record_store.py
       - name: Commit exact validated P1 tree
         shell: bash
         run: |
