@@ -473,8 +473,16 @@ def _execute_finalize(
 ) -> ExecutionRecord:
     if record.state != "INTEGRATING":
         raise ControlTransactionError("FINALIZE requires INTEGRATING state")
+    if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+        raise ControlTransactionError("FINALIZE requires accepted QA for current head")
+    if not record.closure.merged_sha or record.target_sha != record.closure.merged_sha:
+        raise ControlTransactionError("FINALIZE requires fresh merged target readback")
     if effect.get("issue_closed") is not True:
         raise ControlTransactionError("FINALIZE requires issue_closed=true readback")
+    if str(effect.get("issue_state") or "").strip().lower() != "closed":
+        raise ControlTransactionError("FINALIZE requires issue_state=closed readback")
+    if str(effect.get("issue_state_reason") or "").strip().lower() != "completed":
+        raise ControlTransactionError("FINALIZE requires issue_state_reason=completed readback")
     released_at = _text(effect.get("released_at"), "released_at")
     closure = ClosureState(
         merged_sha=record.closure.merged_sha,
