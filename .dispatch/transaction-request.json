@@ -1,31 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue948-start-branch-20260928T153730Z",
+  "request_id": "issue948-reacquire-20260928T155041Z",
   "issue": 948,
-  "kind": "START_BRANCH",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "interactive:work3:issue948:bootstrap-fix:20260928",
+  "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work3:issue948:bootstrap-fix:20260928",
-    "purpose": "Execute Issue #948 scheduler startup bootstrap deadlock repair through Flow v2 work3",
-    "issued_at": "2026-09-28T15:37:30Z",
-    "expires_at": "2026-09-28T15:42:30Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Execute Issue #948 scheduler startup bootstrap deadlock repair through Flow v2 work3\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
+    "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
+    "purpose": "修正 scheduler startup Phase6 Preflight 與 ExecutionRecord discovery 的循環依賴，加入最小唯讀 bootstrap discovery，避免 A/B 排程在 owner=NONE / issue=NONE 時合法空停。",
+    "issued_at": "2026-09-28T15:50:41Z",
+    "expires_at": "2026-09-28T15:55:41Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：修正 scheduler startup Phase6 Preflight 與 ExecutionRecord discovery 的循環依賴，加入最小唯讀 bootstrap discovery，避免 A/B 排程在 owner=NONE / issue=NONE 時合法空停。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "expected_coord_head": "550790c697392256f67dba7145cbc9786b2fe537",
-  "expected_generation": 2,
-  "effect": {
-    "work_branch": "governance/issue948-scheduler-startup-bootstrap",
-    "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-    "semantic_state": "IMPLEMENTING",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "reason": "AUTHOR_RED_REGRESSION"
-      },
-      "display": "Apply RED regression commit for Issue #948"
-    }
-  }
+  "expected_coord_head": "721d5cb8d2be30b3daa8b22feb18403160dd1a3f",
+  "expected_generation": 3,
+  "effect": {}
 }
