@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
-    "id": 36421638205,
-    "purpose": "ISSUE910_FOCUSED_XVFB_DIRECT_3D_RUNTIME_LOG",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
   "issue": 910,
   "lane_id": null,
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
-      "run_id": 36421638205
+      "reason": "remove one-shot QA workflow from product branch then re-verify exact final candidate"
     },
-    "display": "Poll exact Issue #910 focused QA run 36421638205",
-    "kind": "POLL_QA"
+    "display": "Remove temporary QA workflow and reconcile exact final candidate",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
+    "last_accepted_run": 36421638205
   },
   "recovery_history": [
     {
@@ -55,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "FOCUSED_QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "feed8fb19d5a4c0dfc8f0091677cb7f6535f57f8",
   "transaction": {
-    "expected_fingerprint": "495d8d3764859a8f38d966156ba6df7510cf234bb492d782bc876f9ae4cd13ce",
-    "id": "gha:36422309389:910:START_QA:5",
+    "expected_fingerprint": "55c0a5d3b3cd6264639a18407aba3eafbfe8af5ab8d856311e3730093c697db8",
+    "id": "gha:36422431443:910:ACCEPT_QA:6",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:31:04Z",
+  "updated_at": "2026-09-28T12:32:13Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
