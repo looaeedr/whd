@@ -125,6 +125,6 @@ def test_trusted_transaction_projects_non_authoritative_progress_observation():
     assert "runtime_observation_commit_sha" in text
     assert "runtime_last_heartbeat_at" in text
     assert "runtime_heartbeat_expires_at" in text
-    assert 'event="PROGRESS"' not in adapter  # event stays inside the projection builder
-    assert '"PROGRESS"' in adapter
+    assert 'event="PROGRESS"' in adapter
+    assert '"HEARTBEAT"' in adapter
     assert "HEARTBEAT_TTL_SECONDS = 300" in adapter
