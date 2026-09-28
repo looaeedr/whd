@@ -30,6 +30,8 @@
     "docs/governance/issue843_control_plane_behavior_matrix.json",
     "docs/governance/main_cleanup_governance_sync_20260928.json",
     "docs/governance/whd_scheduler_takeover_usage.md",
+    "tests/process/test_flow_v2_execution_invocation_exit.py",
+    "tests/process/test_flow_v2_execution_scheduler_view.py",
     "tests/process/test_issue692_governance_parity_gate.py",
     "tests/process/test_issue715_work_slot_skill_contract.py",
     "tests/process/test_issue736_main_x_batch_first_parity.py",
