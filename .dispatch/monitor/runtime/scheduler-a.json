@@ -4,16 +4,16 @@
   "authority": "NON_AUTHORITY",
   "source": "scheduler-a",
   "handler": "排程A",
-  "entrypoint": "20",
-  "event": "EXIT",
-  "runtime_state": "BLOCKED",
+  "entrypoint": "40",
+  "event": "WAKE",
+  "runtime_state": "WAKE",
   "issue": 889,
   "slot_id": null,
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "action": "ACCEPT_QA",
+  "action": "POLL_QA",
   "record_fingerprint": "9f12f03517621b3aa8a104a290c3272a02ca6cee",
-  "last_wake_at": "2026-09-28T09:25:08.463Z",
+  "last_wake_at": "2026-09-28T10:41:24.355Z",
   "last_progress_at": "2026-09-28T09:25:15.131Z",
-  "exit_state": "BLOCKED",
-  "observed_at": "2026-09-28T09:25:24.010Z"
+  "exit_state": null,
+  "observed_at": "2026-09-28T10:41:24.355Z"
 }
