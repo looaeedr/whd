@@ -1,47 +1,33 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue964-scheduler-a-acceptqa-v3",
+  "effect": {},
+  "expected_coord_head": "3bf18c00ead9e0abda06d2b5c9b5e78dbfeeba23",
+  "expected_generation": 5,
+  "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
   "issue": 964,
-  "kind": "ACCEPT_QA",
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
+  "request_id": "issue964-a-acquire-20260928T225144Z",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：以排程A續接 Issue #964，先續租同 lane lease，再依 durable next_action 消費已合併 PR #967 的 MERGE readback，並在同一 invocation 續做 FINALIZE。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "SCHEDULER_LANE",
+    "expires_at": "2026-09-28T22:56:44Z",
+    "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
+    "issued_at": "2026-09-28T22:51:44Z",
+    "purpose": "以排程A續接 Issue #964，先續租同 lane lease，再依 durable next_action 消費已合併 PR #967 的 MERGE readback，並在同一 invocation 續做 FINALIZE。",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U",
+      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+      "execution_mode": "SCHEDULER_LANE",
       "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
       "gate_status": "CURRENT",
-      "read_mode": "GITHUB_MIRROR",
-      "execution_mode": "SCHEDULER_LANE",
-      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
-      "provider": "google_drive",
       "library_path": "/Google Drive/WHD",
-      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-    },
-    "purpose": "以排程A SCHEDULER_LANE 接手並持續執行 Issue #964，依 current Flow v2 durable state 完成 exact next_action、QA、整合與合法終態。",
-    "issued_at": "2026-09-28T21:30:25Z",
-    "expires_at": "2026-09-28T21:35:25Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：以排程A SCHEDULER_LANE 接手並持續執行 Issue #964，依 current Flow v2 durable state 完成 exact next_action、QA、整合與合法終態。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
-  },
-  "expected_coord_head": "cbe0e322faba20466089147d6296271e076f6997",
-  "expected_generation": 4,
-  "effect": {
-    "updated_at": "2026-09-28T21:30:25Z",
-    "run_id": 36453762011,
-    "run_head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "GREEN",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr": 967
-      },
-      "display": "Reconcile already-merged PR #967"
+      "provider": "google_drive",
+      "read_mode": "GITHUB_MIRROR",
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json"
     }
   }
 }
