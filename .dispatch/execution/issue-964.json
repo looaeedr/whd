@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 2,
-  "head_sha": "ca0adb97a819161211a99b1b0bd46949b3431088",
+  "generation": 3,
+  "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
   "issue": 964,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "lease": {
@@ -22,9 +22,12 @@
     "token": "lease:964:36485542780:1"
   },
   "next_action": {
-    "args": {},
-    "display": "Reconstruct merged #964 work branch identity",
-    "kind": "START_BRANCH"
+    "args": {
+      "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
+      "run_id": 36453762011
+    },
+    "display": "Bind exact successful #964 Control Plane Regression run",
+    "kind": "START_QA"
   },
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
@@ -41,7 +44,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ca0adb97a819161211a99b1b0bd46949b3431088",
@@ -49,13 +52,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "transaction": {
-    "expected_fingerprint": "616954600de4bdaf56e415a3694fc97021b990684f5bd80c02e9369c7f913398",
-    "id": "gha:36485542780:964:ACQUIRE:1",
+    "expected_fingerprint": "8dc9b8b060a562810228baa03fd19927eb420f0d528b63fa6d3ddfefc52709bf",
+    "id": "gha:36485698442:964:START_BRANCH:2",
     "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T21:20:58Z",
+  "updated_at": "2026-09-28T21:22:20Z",
   "version": 2,
   "work_branch": "governance/issue964-reqa-integrating-20260929"
 }
