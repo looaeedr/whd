@@ -1,0 +1,77 @@
+name: WHD｜#928｜Windows 3D blank + runtime LOG
+run-name: "WHD｜#928｜FinalScene exact｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue928-windows-3d-blank-no-log-20260928
+    paths:
+      - gui_modules/application/fold_designer_adapter.py
+      - phase6_final_scene_renderer.py
+      - tests/test_issue928_windows_3d_blank_runtime_log.py
+      - .github/workflows/qa-issue928-windows-finalscene.yml
+
+permissions:
+  contents: read
+
+jobs:
+  finalscene-xvfb:
+    name: FinalScene owner + swallowed-error LOG
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install GUI test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib
+
+      - name: Exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "ISSUE928_EXACT_SHA=${GITHUB_SHA}"
+
+      - name: Syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            gui_modules/application/fold_designer_adapter.py \
+            phase6_final_scene_renderer.py
+
+      - name: Focused FinalScene + direct 3D regressions
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue928_windows_3d_blank_runtime_log.py \
+            tests/test_issue189_direct_3d_startup.py \
+            tests/test_issue624_phase7_a7_bridge_residual_reduction.py \
+            tests/test_phase6_3d_view_regressions.py \
+            tests/test_phase6_3d_single_source_renderer.py \
+            --tb=short | tee issue928-finalscene.log
+          echo "ISSUE928_FINALSCENE_GREEN=1" | tee -a issue928-finalscene.log
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue928-finalscene-${{ github.sha }}
+          path: issue928-finalscene.log
+          if-no-files-found: warn
+          retention-days: 14
