@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   validate:
@@ -18,30 +19,46 @@ jobs:
         with:
           ref: coord/execution-v2
           fetch-depth: 0
-      - name: Validate native execution authority readback
+
+      - name: Validate terminal native execution authority readback
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/issues/684" > /tmp/issue684.json
           python - <<'PY'
           import json
           from pathlib import Path
-          from tools.execution_action_contract import validate_execution_action
           from tools.execution_authority_policy import authorize_state_mutation
           from tools.execution_ready_index import build_ready_index, ready_index_to_payload
           from tools.execution_record import execution_record_fingerprint
           from tools.execution_record_store import load_execution_records
 
+          issue = json.loads(Path("/tmp/issue684.json").read_text(encoding="utf-8"))
+          assert issue["state"] == "closed"
+          assert issue["state_reason"] == "completed"
+          assert issue["closed_at"] == "2026-09-28T05:09:01Z"
+
           records = load_execution_records(".")
           assert len(records) == 1, records
           record = records[0]
           assert record.issue == 684
-          assert record.state == "INTEGRATING"
-          assert record.semantic_state == "FLOW_V2_MIGRATED_ACCEPTED_PRODUCT_EVIDENCE"
-          assert record.next_action is not None
-          assert record.next_action.kind == "FINALIZE"
-          assert validate_execution_action(record.next_action)
-          assert record.target_sha == "ca84e4af634053bb35f8f2535fdcbbcfce299114"
-          assert record.closure.merged_sha == record.target_sha
+          assert record.generation == 2
+          assert record.state == "DONE"
+          assert record.semantic_state == "TERMINAL_SUCCESS"
+          assert record.next_action is None
+          assert record.lease is None
+          assert record.active_run is None
+          assert record.blocker is None
+          assert record.transaction is not None
+          assert record.transaction.id == "tx-684-finalize-cutover-20260928"
+          assert record.transaction.kind == "FINALIZE"
+          assert record.transaction.status == "RECONCILED"
+          assert record.transaction.expected_fingerprint == "b85986b6e8e5ae96d6f35f8bf25cd234b9b04666af8979811cf6b21ff916e709"
+          assert record.closure.issue_closed is True
+          assert record.closure.released_at == "2026-09-28T05:09:01Z"
+          assert record.closure.merged_sha == "ca84e4af634053bb35f8f2535fdcbbcfce299114"
           assert record.qa.last_accepted_run == 36329242279
 
           stored = json.loads(Path(".dispatch/execution/ready-index.json").read_text(encoding="utf-8"))
@@ -53,18 +70,21 @@ jobs:
               path=".dispatch/execution/issue-684.json",
           )
           assert native.allowed and native.classification == "NATIVE_EXECUTION_RECORD"
-          legacy_claim = authorize_state_mutation(
-              branch="coord/execution-v2",
-              path=".dispatch/claims/issue-684.json",
-          )
-          legacy_checkpoint = authorize_state_mutation(
-              branch="coord/execution-v2",
-              path=".dispatch/checkpoints/issue-684.json",
-          )
-          assert not legacy_claim.allowed
-          assert not legacy_checkpoint.allowed
-          print("FLOW_V2_CUTOVER_READBACK_GREEN")
+          for legacy in (
+              ".dispatch/claims/issue-684.json",
+              ".dispatch/checkpoints/issue-684.json",
+          ):
+              decision = authorize_state_mutation(
+                  branch="coord/execution-v2",
+                  path=legacy,
+              )
+              assert not decision.allowed
+
+          fingerprint = execution_record_fingerprint(record)
+          assert fingerprint == "d388a5be496957d816429465c508a97b408f4fb52fddc144900661521134b65e"
+          print("FLOW_V2_TERMINAL_READBACK_GREEN")
           print("issue=684")
-          print("fingerprint=" + execution_record_fingerprint(record))
-          print("next_action=FINALIZE")
+          print("state=DONE")
+          print("fingerprint=" + fingerprint)
+          print("coord_head=115cb8be4679e0fc2e7fe1db968eadf623e1e2c0")
           PY
