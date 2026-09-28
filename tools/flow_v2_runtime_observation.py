@@ -49,8 +49,10 @@ def _iso(value: datetime) -> str:
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def _identity_for_record(record: ExecutionRecord) -> tuple[str, str, str | None]:
-    owner = record.owner_id or record.lane_id
+def _identity_for_record(
+    record: ExecutionRecord, *, runtime_owner: str | None = None
+) -> tuple[str, str, str | None]:
+    owner = runtime_owner or record.owner_id or record.lane_id
     if owner not in _SOURCE_BY_OWNER:
         raise RuntimeObservationError(f"unsupported runtime owner for observation: {owner!r}")
     return _SOURCE_BY_OWNER[owner]
@@ -126,6 +128,7 @@ def project_transaction_progress(
     action: str,
     previous: Mapping[str, object] | None = None,
     conversation_identity: str = "UNAVAILABLE",
+    runtime_owner: str | None = None,
     observed_at: datetime | None = None,
 ) -> dict[str, object]:
     """Project trusted durable progress without pretending it was a HEARTBEAT event.
@@ -134,7 +137,7 @@ def project_transaction_progress(
     refresh the heartbeat timestamp/TTL.  It remains event=PROGRESS.
     """
     now = observed_at or datetime.now(timezone.utc)
-    source, handler, entrypoint = _identity_for_record(record)
+    source, handler, entrypoint = _identity_for_record(record, runtime_owner=runtime_owner)
     out = _base(
         previous=previous,
         source=source,
@@ -143,7 +146,7 @@ def project_transaction_progress(
         event="PROGRESS",
         issue=record.issue,
         slot_id=record.slot_id,
-        claim_worker=record.owner_id,
+        claim_worker=(record.owner_id if record.owner_id not in {None, "NONE"} else runtime_owner),
         invocation_identity=invocation_identity,
         conversation_identity=(conversation_identity if record.owner_kind == "INTERACTIVE" else None),
         branch=record.work_branch,
