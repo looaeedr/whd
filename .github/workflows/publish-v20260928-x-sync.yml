@@ -1,0 +1,32 @@
+name: Publish WHD v2026.09.28-x-sync
+
+on:
+  push:
+    branches:
+      - release/publish-v2026.09.28-x-sync
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish exact main release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v2026.09.28-x-sync
+          MAIN_SHA: 6dbf79bfa08f33a2976dfbbf670b5de46f15288f
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release already exists: $TAG"
+            exit 1
+          fi
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$MAIN_SHA" \
+            --title "WHD $TAG" \
+            --notes "Release baseline after full cleanup/2d-3d-sync (X) to main synchronization. main=$MAIN_SHA. This is the pre-Flow-v2 implementation baseline."
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,isDraft,isPrerelease,url
