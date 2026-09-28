@@ -135,6 +135,12 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 
 - A request branch: `coord/transaction-requests-a`
 - B request branch: `coord/transaction-requests-b`
+- interactive work-slot request branches:
+  - `/工作0` → `coord/transaction-requests-work0`
+  - `/工作1` → `coord/transaction-requests-work1`
+  - `/工作2` → `coord/transaction-requests-work2`
+  - `/工作3` → `coord/transaction-requests-work3`
+- request branch/lane identity 是 hard gate：A/B branch 只接受各自 scheduler owner；work0~3 branch 只接受對應 `chatgpt.flowv2.workN`。禁止 scheduler 與 interactive runtime 共用 request branch，也禁止跨 lane 借道。
 - request path: `.dispatch/transaction-request.json`
 - trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
@@ -153,7 +159,7 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
 7. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。
 
-`coord/transaction-requests-a` / `coord/transaction-requests-b` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須回 `APPLIED / SEED_NOOP` 且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 scheduler mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
+`coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
 POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
 

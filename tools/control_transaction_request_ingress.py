@@ -25,6 +25,26 @@ ALLOWED_KINDS = {
     "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
 }
 
+REQUEST_BRANCH_LANES = {
+    "coord/transaction-requests-a": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "coord/transaction-requests-b": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    "coord/transaction-requests-work0": "chatgpt.flowv2.work0",
+    "coord/transaction-requests-work1": "chatgpt.flowv2.work1",
+    "coord/transaction-requests-work2": "chatgpt.flowv2.work2",
+    "coord/transaction-requests-work3": "chatgpt.flowv2.work3",
+}
+
+
+def _validate_request_branch(*, request: dict[str, object], request_branch: str) -> None:
+    expected_lane = REQUEST_BRANCH_LANES.get(request_branch)
+    if expected_lane is None:
+        raise ProductionExecutorError(f"unsupported request branch: {request_branch}")
+    observed_lane = str(request["lane_id"])
+    if observed_lane != expected_lane:
+        raise ProductionExecutorError(
+            f"request lane mismatch: branch {request_branch} requires {expected_lane}, observed {observed_lane}"
+        )
+
 
 def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -99,6 +119,10 @@ def main() -> int:
 
     try:
         request = _load_request(args.request_file)
+        request_branch = os.environ.get("GITHUB_REF_NAME", "").strip()
+        if not request_branch:
+            raise ProductionExecutorError("GITHUB_REF_NAME is required for push request branch binding")
+        _validate_request_branch(request=request, request_branch=request_branch)
         result = execute_request(request=request, repo=repo, token=token, coord_branch=args.coord_branch)
         result["request_id"] = request["request_id"]
         code = 0
