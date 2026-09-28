@@ -23,6 +23,14 @@ whd_schema: WHD_DOC_META_V1
 ## Machine-readable authority rows
 
 <!-- WHD_AUTHORITY contract=canonical-authority-map role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
+<!-- WHD_AUTHORITY contract=flow-v2-execution role=CURRENT path=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
+<!-- WHD_AUTHORITY contract=flow-v2-record-model role=CURRENT path=tools/execution_record.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-record-store role=CURRENT path=tools/execution_record_store.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-atomic-transaction role=CURRENT path=tools/control_transaction.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-action-contract role=CURRENT path=tools/execution_action_contract.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-scheduler-view role=CURRENT path=tools/execution_scheduler_view.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-invocation-exit role=CURRENT path=tools/execution_invocation_exit.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-authority-policy role=CURRENT path=tools/execution_authority_policy.py -->
 
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=knowledge-preflight role=CURRENT path=AGENTS.md -->
@@ -40,19 +48,19 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=manufacturing-layer-classification role=CURRENT path=加工層分類與定義.md -->
 <!-- WHD_AUTHORITY contract=manufacturing-layer-classification role=MIRROR path=標準基準檔格式.md canonical=加工層分類與定義.md -->
 
-<!-- WHD_AUTHORITY contract=continuous-execution-machine role=CURRENT path=tools/continuity_controller.py -->
+<!-- WHD_AUTHORITY contract=continuous-execution-machine role=HISTORICAL path=tools/continuity_controller.py -->
 <!-- WHD_AUTHORITY contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
 
 <!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->\n<!-- WHD_AUTHORITY contract=ha-poweroff-projection role=CURRENT path=tools/whd_poweroff_ha_bridge.py -->
 <!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
 <!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
 
-<!-- WHD_AUTHORITY contract=continuous-execution-operations role=CURRENT path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
+<!-- WHD_AUTHORITY contract=continuous-execution-operations role=MIRROR path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
 
 <!-- WHD_AUTHORITY contract=remote-qa-monitoring role=CURRENT path=.agents/skills/engineering/monitoring-remote-qa/SKILL.md -->
 
-<!-- WHD_AUTHORITY contract=issue-closure role=CURRENT path=.agents/skills/engineering/issue-closure-gate/SKILL.md -->
+<!-- WHD_AUTHORITY contract=issue-closure role=MIRROR path=.agents/skills/engineering/issue-closure-gate/SKILL.md -->
 <!-- WHD_AUTHORITY contract=issue-closure role=REFERENCE path=個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md -->
 
 <!-- WHD_AUTHORITY contract=skill-routing role=CURRENT path=.agents/skills/skill_registry.json -->
@@ -118,41 +126,21 @@ whd_schema: WHD_DOC_META_V1
 5. 跑永久 authority uniqueness、mirror pointer、metadata 與 routing guards。
 6. 驗證只能判斷 authority 是否一致，不得反過來創造 domain truth。
 
-### whd-chatgpt-scheduled-resume
+### whd-chatgpt-scheduled-resume / execution control plane
 
-- AI Library CURRENT owner: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
-- Executable state owner: `tools/continuity_controller.py`
-- Operational Skill owner: `.agents/skills/engineering/executable-continuity-controller/SKILL.md`
-- Remote QA bridge: `.agents/skills/engineering/monitoring-remote-qa/SKILL.md`
-- Development execution bridge: `.agents/skills/engineering/執行開發任務/SKILL.md`
-- Primary wake/executor: hourly ChatGPT scheduled re-entry
-- GitHub Actions schedule role: watchdog / lease / remote-state safety net only
+- AI Library CURRENT reference: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
+- operational CURRENT owner: `.agents/skills/engineering/flow-v2-execution/SKILL.md`
+- native semantic state: `coord/execution-v2:.dispatch/execution/issue-<N>.json`
+- record/store: `tools/execution_record.py` + `tools/execution_record_store.py`
+- atomic mutation: `tools/control_transaction.py`
+- scheduler/exit: `tools/execution_scheduler_view.py` + `tools/execution_invocation_exit.py`
+- work-slot: `tools/execution_work_slot_view.py`
+- explicit READY ingress: `tools/execution_dispatch_ingress.py`
+- mutation policy: `tools/execution_authority_policy.py`
 
-<!-- ISSUE646_AUTHORITY_MAP_V1 -->
-## #646 authority map additions
+ready-index只作 DERIVED_CACHE_ONLY。所有舊 workflow Skills只作 pointer/bridge。2026-09-28前的舊 ownership/prewrite/heartbeat/finalization語意為HISTORICAL；保留 transports已 fail-closed。
 
-- Guard transaction / duplicate GREEN / expired recovery：tools/execution_claim_guard.py
-- stale/takeover + delegated/helper traversal：tools/stale_claim_takeover.py
-- checkpoint/turn-exit/closure/fingerprint：tools/continuity_controller.py
-- scheduler heartbeat selector：tools/scheduler_runtime_liveness.py
-- trusted remote turn-exit：.github/workflows/whd-turn-exit-gate.yml
-- trusted remote finalization：.github/workflows/whd-remote-finalization.yml
-- orchestration responsibility：.agents/skills/engineering/派工/SKILL.md
-
-Prompt/Skill/AI Library不得複製第二套 state machine。Interactive heartbeat/liveness + exact provenance 已由 `tools/interactive_runtime_liveness.py` 擁有；scheduler lane + invocation 仍由 `tools/scheduler_runtime_liveness.py` 擁有。兩者 namespace / identity 不得混用；generic executor_source 永遠不等於 exact runtime provenance。
-
-<!-- ISSUE680_PLANNED_HANDOFF_AUTHORITY_MAP_V1 -->
-## #680 planned handoff authority map
-
-- Planned ownership/routing authority: `.agents/skills/engineering/派工/SKILL.md`.
-- Interactive Scheduler A/B receive/resume semantics: `.agents/skills/engineering/排程模擬/SKILL.md`.
-- `claim-handoff` machine enforcement: `tools/execution_claim_guard.py`.
-- Trusted remote parser/receipt transport: `.github/workflows/whd-remote-execution-guard.yml`.
-- Checkpoint fingerprint and `next_action` continuity: `tools/continuity_controller.py`.
-- Scheduler runtime liveness: `tools/scheduler_runtime_liveness.py`.
-- Long-term scheduled-resume architecture remains owned by the CURRENT scheduled-resume AI Library document above.
-
-Boundary: `WHD_WORK_EXECUTOR_HANDOFF_V1` / `claim-handoff` is a planned transfer. `claim-takeover` is stale/orphan recovery. After the planned CAS is fresh-read as owned by the exact target lane, the scheduler receiver resumes the same checkpoint / exact `next_action` without waiting for stale TTL or performing another takeover. Prompt/Skill/AI Library text documents routing and owner boundaries only; it must not create a second continuity state machine.
+Generation fencing：只有 current generation + canonical branch + expected fingerprint/head具有authority；舊generation寫入為ORPHAN_WRITE，可salvage工程成果但不可直接accept。
 
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback
@@ -182,25 +170,16 @@ Phase 7 Large Module Decomposition 的 CURRENT routing 結論如下。這些 row
 Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#625；Combined Acceptance owner #626，combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
-## Mutating toolcall crash-recovery canonical invariant
+## Mutating toolcall crash-recovery — HISTORICAL → Flow v2 mapping
 
-- Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
-- Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
-- `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
-- `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
-- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
-- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
-- Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
-
+#702 的 crash-boundary經驗保留為歷史來源；CURRENT semantics已由 Flow v2 atomic transaction吸收。所有 side effect 綁 generation/fingerprint/head/target並 fresh readback；effect已存在就 RECONCILE，不 replay；identity/outcome不明就 CONFLICT/FAILED。
 
 <!-- WHD_OUTAGE_RECOVERY_REPLAY_SAFETY_V1 -->
 ### outage-recovery-replay-safety
 
-- Executable CURRENT owner：`tools/stale_claim_takeover.py::evaluate_outage_recovery`。
-- Local-state vocabulary 必須直接重用 WI-1 `tools/local_durability_gate.py::LocalDurabilityState`；不得建立第二套 outage local-state enum。
-- Verified planned handoff 是正常 ownership transfer；fresh evidence 命中 planned handoff 時不得降級成 stale takeover，也不得等待 stale TTL。
-- Exact active remote run 是 absolute lock；outage/stale recovery 不得在同一 exact run 尚 active 時 takeover、replay 或啟動競爭 mutation。
-- Unexpected local outage 只能從 durable GitHub checkpoint / exact `next_action` 恢復。local machine unavailable、unpushed、dirty/conflict 或 mutation-in-progress 的 local-only truth 一律保留為未知，reason 固定 `LOCAL_UNPERSISTED_STATE_UNKNOWN`；不得宣稱已從 remote clean state「復原本機真相」。
-- External mutation outcome 若為 unknown，尤其 non-idempotent mutation，reason 固定 `UNKNOWN_MUTATION_OUTCOME`，必須先 readback/reconcile 才能 replay。
-- Stale takeover 只屬 abnormal recovery；planned handoff、same-lane resume、known durable continuation 都不是 stale takeover trigger。
-- Prompt / Skill / AI Library 只描述 routing 與 invariant；不得複製 `evaluate_outage_recovery` 或 `LocalDurabilityState` 成第二套 machine state。
+CURRENT owner是 Flow v2 ExecutionRecord + atomic transaction + generation fencing。
+- exact active remote run仍是lock。
+- unknown side-effect outcome先RECONCILE，禁止猜測/replay。
+- local-only未持久化狀態不可由remote clean狀態反推。
+- overlapping/late runtime以generation fencing隔離；舊generation只可作donor evidence。
+- planned HANDOFF使用同一native record，不建立平行ownership database。

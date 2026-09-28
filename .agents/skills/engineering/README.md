@@ -12,6 +12,8 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 ## User-invoked navigation
 
+- **[flow-v2-execution](./flow-v2-execution/SKILL.md)**: WHD execution/control-plane 唯一 CURRENT runtime contract；ExecutionRecord、atomic transaction、lease/YIELD、scheduler、handoff、recovery 與 closure 都以此為準。
+
 - **[ask-matt](./ask-matt/SKILL.md)**: Router over engineering/productivity flows.
 - **[拷問邊建立文件](./拷問邊建立文件/SKILL.md)**: 深度質詢並同步維護 `CONTEXT.md` / ADR。
 - **[triage](./triage/SKILL.md)**: Move issues through triage roles.
@@ -22,15 +24,15 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[拆解任務工單](./拆解任務工單/SKILL.md)**: Requirement RED-first，經核准後拆 tracer-bullet tickets。
 - **[執行開發任務](./執行開發任務/SKILL.md)**: 依核准 spec/ticket 實作，遵守 TDD、checkpoint、派工與 QA gate。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
-- **[派工](./派工/SKILL.md)**: WHD PM → Implementer → QA、owning Issue、journal/checkpoint、remote QA 狀態機。
-- **[工作槽](./工作槽/SKILL.md)**: 固定 `/工作1`、`/工作2`、`/工作3` durable slots；裸指令只查狀態，明確 execution verb 才橋接派工/接手/續跑。
+- **[派工](./派工/SKILL.md)**: Flow v2 dispatch bridge；explicit READY ingress → native ExecutionRecord。
+- **[工作槽](./工作槽/SKILL.md)**: Flow v2 slot projection/routing bridge；無獨立 slot state。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 
 ## Model- or user-reachable navigation
 
 - **[prototype](./prototype/SKILL.md)**
 - **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**
-- **[executable-continuity-controller](./executable-continuity-controller/SKILL.md)**: durable state / resume / finalization controller；本 README 只提供 navigation，權威語意仍由該 Skill 與 executable controller 擁有。
+- **[executable-continuity-controller](./executable-continuity-controller/SKILL.md)**: Flow v2 runtime resume bridge；native record + lease/YIELD。
 - **[deterministic-repo-migration](./deterministic-repo-migration/SKILL.md)**: authority-driven repository migration；先 inventory，再 deterministic apply、strict validation、idempotence 與 drift audit，validator 不得成為 authority。
 - **[long-log-context-safe-execution](./long-log-context-safe-execution/SKILL.md)**: 超長 pytest/Xvfb/remote CI 輸出的落檔、bounded tail、failure slice、cursor 與 Runtime-cut 續接規則。
 - **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**
