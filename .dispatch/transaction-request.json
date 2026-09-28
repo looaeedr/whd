@@ -1,17 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-933-finalize-c4817cbf",
-  "issue": 933,
-  "kind": "FINALIZE",
+  "request_id": "work0-940-acquire-23a12a88",
+  "issue": 940,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-  "expected_coord_head": "79948d78fc996ebbf3b2bd7c68f36ca669d1c5a7",
-  "expected_generation": 8,
+  "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
+  "expected_coord_head": "23a12a88b1a1dacc82a67e0c14a3098a813cf8bc",
+  "expected_generation": 1,
   "effect": {
-    "released_at": "2026-09-28T13:57:01.675Z",
-    "semantic_state": "TERMINAL_SUCCESS",
-    "issue_closed": true,
-    "issue_state": "closed",
-    "issue_state_reason": "completed"
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "RECONCILE",
+      "args": {
+        "reason": "adopt live #940 repair branch and verify complete execution-entry hard-gate wiring"
+      },
+      "display": "Reconcile Issue #940 branch and verify execution-entry hard gates"
+    }
   }
 }
