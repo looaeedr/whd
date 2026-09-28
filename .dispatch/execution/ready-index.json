@@ -1,12 +1,12 @@
 {
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
   "authority": "DERIVED_CACHE_ONLY",
-  "source_digest": "6446cacaa553fa07f7515489ccb57bdfa234851726d83b8257b03ed987fca3dc",
+  "source_digest": "79fe9ab8b6ebe1e6ebe22f0810327d6dfbb9e7de1c64334edbe9b57dcdfffac8",
   "entries": [
     {
       "issue": 952,
       "generation": 1,
-      "record_fingerprint": "dd4e40fb0a9b868653a2096c32cbb9608cbbdf7afc1b43a76829043565818c8e",
+      "record_fingerprint": "049191175a0b9ae0ca9e1e854d7129679ada2fc224ffdafda847928a065abda4",
       "execution_intent": "EXECUTE_TICKET",
       "target_branch": "cleanup/2d-3d-sync",
       "target_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",

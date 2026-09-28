@@ -44,7 +44,7 @@
       "kind": "INGRESS_AUTHORITY",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-29:issue952-new-flow",
-      "authority_fingerprint": "cf74348ab9fd9771ea2e869d65ed860bc0d004fb5cfcebcfc38cea940798f280"
+      "authority_fingerprint": "facf2e27dd922e7f12ae2880908aceefc6774bf5fe5d98bc5ec32b81ae8aad23"
     }
   ],
   "updated_at": "2026-09-28T16:38:03Z"
