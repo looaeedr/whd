@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue948-start-final-qa-160510",
+  "request_id": "issue948-accept-final-qa-160611",
   "issue": 948,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
   "startup_evidence": {
@@ -10,25 +10,25 @@
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
     "purpose": "Repair Issue #948 scheduler startup bootstrap ordering deadlock.",
-    "issued_at": "2026-09-28T16:05:10Z",
-    "expires_at": "2026-09-28T16:10:10Z",
+    "issued_at": "2026-09-28T16:06:11Z",
+    "expires_at": "2026-09-28T16:11:11Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Repair Issue #948 scheduler startup bootstrap ordering deadlock.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "expected_coord_head": "52eac2925bf02d9e426e0640957092f9445146c7",
-  "expected_generation": 9,
+  "expected_coord_head": "2d8e6aa12a9b4e7e25ad2e44677d9c8f97482228",
+  "expected_generation": 10,
   "effect": {
     "run_id": 36448088932,
     "run_head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
-    "purpose": "ISSUE948_FINAL_CONTROL_PLANE",
-    "run_status": "success",
-    "semantic_state": "REMOTE_QA",
+    "conclusion": "success",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "MERGE",
       "args": {
-        "run_id": 36448088932,
-        "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6"
+        "pr_number": 956,
+        "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
+        "target_branch": "cleanup/2d-3d-sync"
       },
-      "display": "Poll final Issue #948 control-plane regression"
+      "display": "Merge exact PR #956 after governance mirror is GREEN"
     }
   }
 }
