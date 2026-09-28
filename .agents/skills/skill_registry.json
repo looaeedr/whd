@@ -12,7 +12,10 @@
         "YIELD",
         "structured next_action",
         "atomic transaction",
-        "execution generation"
+        "execution generation",
+        "coord/monitor-v2",
+        "runtime observability",
+        "WAKE PROGRESS EXIT"
       ],
       "file_globs": [
         ".agents/skills/engineering/flow-v2-execution/**",
