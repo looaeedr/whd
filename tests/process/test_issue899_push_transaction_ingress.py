@@ -66,3 +66,11 @@ def test_seed_request_is_noop_without_execution_state(monkeypatch):
     assert result["result"] == "APPLIED"
     assert result["reason"] == "SEED_NOOP"
     assert result["transaction"] == {"status": "RECONCILED", "kind": "SEED"}
+
+
+def test_canonical_skill_forbids_scheduler_host_lifecycle_mutation():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    assert "FLOW_V2_HOST_LIFECYCLE_IMMUTABILITY_V1" in text
+    assert "MUST NOT call automation-management APIs" in text
+    assert "Invocation completion is only a cycle return" in text
+    assert "recurring task object unchanged" in text
