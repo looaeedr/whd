@@ -86,11 +86,18 @@ def test_issue952_reconcile_workflow_preserves_cleanup_tree_and_never_force_push
         "CLEANUP_TREE",
         "CANDIDATE_TREE",
         "PARENTS",
+        "ANCESTRY_CANDIDATE_BRANCH",
+        "gh workflow run whd-governance-mirror-gate.yml",
+        "mode=ANCESTRY_CANDIDATE",
+        "gh run watch",
         "git push origin HEAD:refs/heads/cleanup/2d-3d-sync",
         "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1",
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"ancestry workflow missing safety tokens: {missing}"
+    required_gate = text.index("Run required gate on exact ancestry candidate")
+    protected_push = text.index("git push origin HEAD:refs/heads/cleanup/2d-3d-sync")
+    assert required_gate < protected_push
     assert "--force" not in text
 
 
