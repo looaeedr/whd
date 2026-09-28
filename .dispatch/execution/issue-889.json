@@ -1,0 +1,63 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 889,
+  "execution_intent": "SCHEDULER_LANE",
+  "owner_kind": "SCHEDULER",
+  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "slot_id": null,
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
+  "work_branch": "canary/issue889-scheduler-a-e2e",
+  "head_sha": "1b48bf852ac9b6b9863bc1b7be0fac60d9436acc",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
+  "state": "VERIFYING",
+  "semantic_state": "REMOTE_QA",
+  "next_action": {
+    "kind": "POLL_QA",
+    "args": {
+      "run_id": 36392590093,
+      "head_sha": "1b48bf852ac9b6b9863bc1b7be0fac60d9436acc"
+    },
+    "display": "Poll exact Scheduler A E2E canary QA run"
+  },
+  "lease": null,
+  "active_run": {
+    "id": 36392590093,
+    "head_sha": "1b48bf852ac9b6b9863bc1b7be0fac60d9436acc",
+    "purpose": "Flow v2 Scheduler A E2E canary PR QA",
+    "status": "completed"
+  },
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "schema": "WHD_FLOW_V2_SCHEDULER_CANARY_V1",
+      "prepared_by": "interactive",
+      "handoff_stage": "VERIFYING",
+      "scheduler_lane": "scheduler.6ab13fa557fc8191935c671214b865e2",
+      "pr_number": 890,
+      "qa_run_id": 36392590093,
+      "qa_conclusion_at_handoff": "success",
+      "interactive_must_not_finalize": true
+    }
+  ],
+  "updated_at": "2026-09-28T07:36:56Z"
+}
