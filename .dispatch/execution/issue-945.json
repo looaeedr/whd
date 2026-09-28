@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "lease": {
-    "expires_at": "2026-09-28T23:06:02Z",
-    "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
-    "token": "lease:945:36494748360:1"
-  },
+  "lease": null,
   "next_action": {
     "args": {
       "blocker_kind": "EXTERNAL_DEPENDENCY"
@@ -51,13 +47,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
   "transaction": {
-    "expected_fingerprint": "086663f2705e70295f053506ca7b7a3647b71155ad3ab2d21cfb298cf867edf4",
-    "id": "gha:36495066966:945:RECONCILE:7",
+    "expected_fingerprint": "e7f57dd477190d9395229f86fc9416171dcfefe586ee10ef7a2e3913638ec6a6",
+    "id": "gha:36495135554:945:YIELD:8",
     "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
-    "kind": "RECONCILE",
+    "kind": "YIELD",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T22:54:29Z",
+  "updated_at": "2026-09-28T22:55:13Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
