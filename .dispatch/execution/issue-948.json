@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
-  "head_sha": "f0b40c9544cb942c306630823f9070824aa1bfa8",
+  "generation": 9,
+  "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
   "issue": 948,
   "lane_id": "chatgpt.flowv2.work3",
   "lease": {
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "reason": "IMPLEMENT_BOOTSTRAP_READ_ONLY_DISCOVERY"
+      "purpose": "ISSUE948_FINAL_CONTROL_PLANE"
     },
-    "display": "Implement Issue #948 bootstrap read-only discovery",
-    "kind": "APPLY_COMMIT"
+    "display": "Start final Issue #948 control-plane regression",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
@@ -43,7 +43,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_FAILED_REPAIR",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "transaction": {
-    "expected_fingerprint": "3a9f0d0bb5546c698c57fbd07745bc4f51cee309b04eb296077b18f7c40b5bcd",
-    "id": "gha:36447821484:948:FAIL_QA:7",
+    "expected_fingerprint": "c9983c5468560c29b61d550be4602e23f563d3b00da06c82c914c2cd06c84edf",
+    "id": "gha:36448378337:948:APPLY_COMMIT:8",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "kind": "FAIL_QA",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T16:00:28Z",
+  "updated_at": "2026-09-28T16:04:54Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
