@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "9bfa1c03222941e0b9713880a9a1216c63a7fc14",
+  "generation": 5,
+  "head_sha": "d3edcbc32c734d3fbfc6a295f2dd360aa064b235",
   "issue": 944,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,9 +23,9 @@
   },
   "next_action": {
     "args": {
-      "reason": "AUTHOR_MINIMAL_COMPATIBILITY_PORT_FIX"
+      "reason": "AUTHOR_FOCUSED_QA_WORKFLOW"
     },
-    "display": "Restore the proven-live _phase6_toggle_parameter_panel compatibility port",
+    "display": "Author one-shot focused QA workflow for Issue #944",
     "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "transaction": {
-    "expected_fingerprint": "67cff11814110623c02780566e6169474478b8720ddd3011db75722a70c89a25",
-    "id": "gha:36442643637:944:RECONCILE:3",
+    "expected_fingerprint": "ce48cd5833ce0be8d0ba686b6f81acc82a6d1ba1b3275707af168ba22ec59972",
+    "id": "gha:36443010467:944:RECONCILE:4",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
     "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:19:26Z",
+  "updated_at": "2026-09-28T15:22:15Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }
