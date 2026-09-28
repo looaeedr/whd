@@ -1,0 +1,125 @@
+name: WHD Governance Ancestry Reconcile
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact accepted main SHA to incorporate as ancestry
+        required: true
+        type: string
+      expected_cleanup_sha:
+        description: Exact cleanup HEAD whose tree must be preserved
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whd-governance-ancestry-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          fetch-depth: 0
+
+      - name: Verify exact inputs and governance parity
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_CLEANUP_SHA: ${{ inputs.expected_cleanup_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git fetch --no-tags origin cleanup/2d-3d-sync:refs/remotes/origin/cleanup/2d-3d-sync
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          CLEANUP_SHA="$(git rev-parse refs/remotes/origin/cleanup/2d-3d-sync)"
+          [ "$MAIN_SHA" = "$EXPECTED_MAIN_SHA" ] || {
+            echo "MAIN_SHA_DRIFT expected=$EXPECTED_MAIN_SHA observed=$MAIN_SHA" >&2
+            exit 1
+          }
+          [ "$CLEANUP_SHA" = "$EXPECTED_CLEANUP_SHA" ] || {
+            echo "CLEANUP_SHA_DRIFT expected=$EXPECTED_CLEANUP_SHA observed=$CLEANUP_SHA" >&2
+            exit 1
+          }
+          python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --source-ref refs/remotes/origin/main \
+            --target-ref refs/remotes/origin/cleanup/2d-3d-sync \
+            --verify-live-parity
+
+      - name: Create history-only cleanup-owned ancestry merge
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_CLEANUP_SHA: ${{ inputs.expected_cleanup_sha }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --detach "$EXPECTED_CLEANUP_SHA"
+
+          if git merge-base --is-ancestor "$EXPECTED_MAIN_SHA" "$EXPECTED_CLEANUP_SHA"; then
+            echo "main ancestry already reconciled"
+            echo "RECONCILED_HEAD=$EXPECTED_CLEANUP_SHA" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          CLEANUP_TREE="$(git rev-parse HEAD^{tree})"
+          git merge --no-ff -s ours --no-edit "$EXPECTED_MAIN_SHA"
+          CANDIDATE_SHA="$(git rev-parse HEAD)"
+          CANDIDATE_TREE="$(git rev-parse HEAD^{tree})"
+          PARENTS="$(git show -s --format=%P HEAD)"
+
+          [ "$CANDIDATE_TREE" = "$CLEANUP_TREE" ] || {
+            echo "CLEANUP_TREE_CHANGED before=$CLEANUP_TREE after=$CANDIDATE_TREE" >&2
+            exit 1
+          }
+          [ "$PARENTS" = "$EXPECTED_CLEANUP_SHA $EXPECTED_MAIN_SHA" ] || {
+            echo "INVALID_RECONCILIATION_PARENTS $PARENTS" >&2
+            exit 1
+          }
+
+          # Non-force fast-forward of cleanup to a two-parent ours merge.
+          git push origin HEAD:refs/heads/cleanup/2d-3d-sync
+          echo "RECONCILED_HEAD=$CANDIDATE_SHA" >> "$GITHUB_ENV"
+
+      - name: Fresh readback and ancestry proof
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git fetch --no-tags origin cleanup/2d-3d-sync:refs/remotes/origin/cleanup/2d-3d-sync
+          OBSERVED_MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          OBSERVED_CLEANUP_SHA="$(git rev-parse refs/remotes/origin/cleanup/2d-3d-sync)"
+          [ "$OBSERVED_MAIN_SHA" = "$EXPECTED_MAIN_SHA" ] || {
+            echo "MAIN_SHA_DRIFT_AFTER_RECONCILE expected=$EXPECTED_MAIN_SHA observed=$OBSERVED_MAIN_SHA" >&2
+            exit 1
+          }
+          [ "$OBSERVED_CLEANUP_SHA" = "$RECONCILED_HEAD" ] || {
+            echo "CLEANUP_READBACK_DRIFT expected=$RECONCILED_HEAD observed=$OBSERVED_CLEANUP_SHA" >&2
+            exit 1
+          }
+          python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --source-ref refs/remotes/origin/main \
+            --target-ref refs/remotes/origin/cleanup/2d-3d-sync \
+            --verify-live-ancestry
+
+          OBSERVED_MAIN_SHA="$OBSERVED_MAIN_SHA" OBSERVED_CLEANUP_SHA="$OBSERVED_CLEANUP_SHA" python - <<'PY'
+          import json
+          import os
+          print(json.dumps({
+              "schema": "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1",
+              "result": "GREEN",
+              "main_sha": os.environ["OBSERVED_MAIN_SHA"],
+              "cleanup_sha": os.environ["OBSERVED_CLEANUP_SHA"],
+              "strategy": "TWO_PARENT_OURS_MERGE_PRESERVE_CLEANUP_TREE",
+              "force_push": False,
+          }, sort_keys=True))
+          PY

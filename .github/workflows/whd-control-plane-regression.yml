@@ -17,6 +17,11 @@ on:
       - '.github/workflows/whd-turn-exit-gate.yml'
       - '.github/workflows/whd-phase6-preflight.yml'
       - '.github/workflows/whd-control-plane-regression.yml'
+      - '.github/workflows/whd-governance-mirror-gate.yml'
+      - '.github/workflows/whd-governance-ancestry-reconcile.yml'
+      - 'docs/governance/governance_mirror_manifest.json'
+      - 'tools/governance_parity_gate.py'
+      - 'tests/process/test_issue952_governance_ancestry_reconcile.py'
 
 
       - '.github/workflows/whd-scheduler-host-watchdog.yml'
@@ -79,7 +84,8 @@ jobs:
             tools/execution_invocation_exit.py \
             tools/execution_scheduler_view.py \
             tools/execution_entry_contract.py \
-            tools/work_root_gate.py
+            tools/work_root_gate.py \
+            tools/governance_parity_gate.py
       - name: Run stop/closure focused regressions
         run: |
           python -m pytest -q \
@@ -96,4 +102,5 @@ jobs:
             tests/process/test_issue945_scheduler_host_watchdog.py \
             tests/process/test_issue696_startup_authorization_purpose.py \
             tests/process/test_issue721_task_start_authority_declaration.py \
-            tests/process/test_issue886_flow_v2_entrypoint_cutover.py
+            tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
+            tests/process/test_issue952_governance_ancestry_reconcile.py
