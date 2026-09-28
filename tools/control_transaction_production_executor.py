@@ -499,7 +499,24 @@ def main() -> int:
         )
         code = 0
     except (ControlTransactionConflict, ControlTransactionReplay) as exc:
-        result = {"schema": RESULT_SCHEMA, "result": "CONFLICT", "reason": str(exc)}
+        reason = str(exc)
+        if reason.startswith("coord/execution-v2 ref advanced"):
+            conflict_class = "STALE_COORD_HEAD"
+        elif reason.startswith("generation drift"):
+            conflict_class = "STALE_GENERATION"
+        elif "live lease" in reason:
+            conflict_class = "LIVE_LEASE"
+        else:
+            conflict_class = "STALE_EXECUTION_RECORD"
+        result = {
+            "schema": RESULT_SCHEMA,
+            "result": "CONFLICT",
+            "reason": reason,
+            "conflict_class": conflict_class,
+            "retryable": True,
+            "retry_action": "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION",
+            "semantic_effect_applied": False,
+        }
         code = 3
     except (ControlTransactionError, ExecutionRecordError, ProductionExecutorError, HTTPError, ValueError, TypeError, json.JSONDecodeError) as exc:
         result = {"schema": RESULT_SCHEMA, "result": "FAILED", "reason": str(exc)}
