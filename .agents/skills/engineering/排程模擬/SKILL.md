@@ -42,6 +42,8 @@ Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟�
 
 本入口不複製 host recovery state machine；startup 前的 host-layer recovery 唯一服從 `flow-v2-execution::SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1`。正常 Flow v2 execution 仍不得管理 host lifecycle。任何 task-level結果都只是 physical cycle return，固定保留 `CYCLE_END — KEEP_SCHEDULE_ENABLED` 語意。
 
+相容 hard gate 保留原 literal：`不得自行 disable/delete/complete/reschedule自己或 sibling`；此限制適用於正常 Flow v2 execution，canonical host-recovery micro-bootstrap 不擴張 execution authority。
+
 ### HOST_LIFECYCLE_WATCHDOG_V1 bridge
 
 scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，可且應執行 **read-only host lifecycle inspection**，取得 A00/A20/A40/B15/B45 的 task `enabled / last_run_time`，並以 NON_AUTHORITY snapshot CAS 更新 `coord/monitor-v2:.dispatch/monitor/host/chatgpt-automations.json`。此為唯一 read-only automation introspection 例外；禁止任何 lifecycle mutation API。
