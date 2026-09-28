@@ -1,0 +1,45 @@
+name: Bootstrap Flow v2 Issue 872 P3
+
+on:
+  push:
+    branches:
+      - flow-v2/issue872-scheduler-lease-yield
+    paths:
+      - .github/workflows/bootstrap-flow-v2-issue872-p3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: flow-v2/issue872-scheduler-lease-yield
+          fetch-depth: 0
+
+      - name: Download validated P3 bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 1 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-8548-8209-839d-e1ae5953b58c/raw?se=2026-09-28T04%3A33%3A58Z&sp=r&sv=2026-02-06&sr=b&scid=f74256b0-4140-598d-9483-66bf3a3f100b&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-28T01%3A19%3A32Z&ske=2026-09-29T01%3A19%3A32Z&sks=b&skv=2026-02-06&sig=0oUhhhKDWB6pua4SEYP64He6AMn1mhZ073qrxtWS9z0%3D' -o /tmp/issue872-p3.zip
+          echo '2da2350e3b5946faead0370c493d583bbcdff6f6c77d5d375e21608c7abf200b  /tmp/issue872-p3.zip' | sha256sum -c -
+          unzip -o /tmp/issue872-p3.zip
+
+      - name: Run P3 focused acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          python -m pytest -q --confcutdir=tests/process             tests/process/test_flow_v2_execution_ready_index.py             tests/process/test_flow_v2_execution_scheduler_view.py             tests/process/test_flow_v2_execution_work_slot_view.py             tests/process/test_flow_v2_execution_invocation_exit.py             tests/process/test_flow_v2_execution_dispatch_ingress.py             tests/process/test_flow_v2_protocol_coherence.py
+
+      - name: Commit validated P3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools tests
+          git commit -m 'feat(#872): scheduler lease yield ready-index and work-slot projection'
+          git push origin HEAD:flow-v2/issue872-scheduler-lease-yield
