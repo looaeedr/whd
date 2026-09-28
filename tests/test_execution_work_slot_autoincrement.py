@@ -31,6 +31,24 @@ def test_default_work0_routing_uses_slot0_when_empty():
     assert select_first_available_work_slot(()) == "worker.slot.0"
 
 
+def test_user_explicit_without_slot_preserves_existing_work0_default():
+    record = plan_dispatch_ingress(
+        DispatchIngressRequest(
+            issue=1000,
+            execution_intent="EXECUTE_TICKET",
+            authority_kind="USER_EXPLICIT",
+            authority_ref="test-default-work0",
+            source_branch="main",
+            source_sha="a" * 40,
+            work_branch="work/issue-1000",
+            target_branch="cleanup/2d-3d-sync",
+            target_sha="b" * 40,
+            slot_id=None,
+        )
+    ).record
+    assert record.slot_id == "worker.slot.0"
+
+
 def test_default_work0_routing_auto_increments_to_first_empty_slot():
     records = (
         _record(1001, "worker.slot.0"),
