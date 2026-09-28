@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-reconcile-ancestry-receipt-20260928T175653Z",
+  "request_id": "issue952-reconcile-ancestry-receipt-20260928T175902Z",
   "issue": 952,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,11 +23,11 @@
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
     "purpose": "完成 Issue #952 的已驗證 governance ancestry reconciliation readback、final merged target 綁定與 finalization。",
-    "issued_at": "2026-09-28T17:56:53Z",
-    "expires_at": "2026-09-28T18:01:53Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：完成 Issue #952 的已驗證 governance ancestry reconciliation readback、final merged target 綁定與 finalization。\n範圍：只處理 #952 現有治理鏈；不擴張到其他工單、不改產品內容、不用本機 fallback。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "issued_at": "2026-09-28T17:59:02Z",
+    "expires_at": "2026-09-28T18:04:02Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：完成 Issue #952 的已驗證 governance ancestry reconciliation readback、final merged target 綁定與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "4b52c7c1f1d2eb9aa23719e50b9361bf9f21f07f",
+  "expected_coord_head": "1a272f264f31a5e9c22621907f61a0428c992f7e",
   "expected_generation": 22,
   "effect": {
     "observed_work_branch": "governance/issue952-mirror-ancestry-reconciliation",
