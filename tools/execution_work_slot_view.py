@@ -12,11 +12,11 @@ from typing import Iterable
 from tools.execution_record import ExecutionRecord, execution_record_fingerprint
 
 
-FIXED_SLOT_IDS = ("worker.slot.1", "worker.slot.2", "worker.slot.3")
+FIXED_SLOT_IDS = ("worker.slot.0", "worker.slot.1", "worker.slot.2", "worker.slot.3")
 
 
 class WorkSlotViewError(ValueError):
-    """Raised when records cannot be projected into the three fixed slots."""
+    """Raised when records cannot be projected into the four fixed slots."""
 
 
 @dataclass(frozen=True)
