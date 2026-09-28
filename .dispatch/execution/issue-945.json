@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "lease": {
-    "expires_at": "2026-09-28T21:41:09Z",
-    "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
-    "token": "lease:945:36486027825:1"
+    "expires_at": "2026-09-28T23:06:02Z",
+    "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
+    "token": "lease:945:36494748360:1"
   },
   "next_action": {
     "args": {
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e29f0aba8a5f842be617c14540a2d1be58091243",
   "transaction": {
-    "expected_fingerprint": "796464b4f4119226858634f70a9a1f478f275dad9925f11bd39535d1e8cf8cf2",
-    "id": "gha:36487238095:945:MERGE:5",
-    "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
-    "kind": "MERGE",
+    "expected_fingerprint": "9da2581fb8384e628a6974411f3107087c6fe3ba8db7b81e88597a65b5224e13",
+    "id": "gha:36494748360:945:ACQUIRE:6",
+    "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T21:36:52Z",
+  "updated_at": "2026-09-28T22:51:02Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
