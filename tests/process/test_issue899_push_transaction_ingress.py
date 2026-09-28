@@ -2,6 +2,33 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+def _root_gate_evidence(execution_mode="INTERACTIVE"):
+    import json
+    from tools.work_root_gate import (
+        READ_MODE_GITHUB_MIRROR,
+        READ_MODE_GOOGLE_DRIVE,
+        build_work_root_gate_evidence,
+    )
+
+    payload = json.loads(
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}:
+        read_mode = READ_MODE_GITHUB_MIRROR
+    else:
+        payload.pop("role", None)
+        payload.pop("mirror_policy", None)
+        payload.pop("canonical_source", None)
+        read_mode = READ_MODE_GOOGLE_DRIVE
+    return build_work_root_gate_evidence(
+        gate_payload=payload,
+        read_mode=read_mode,
+        execution_mode=execution_mode,
+    )
+
+
 
 def test_push_request_workflow_is_scheduler_compatible():
     text = (ROOT / ".github/workflows/whd-control-transaction-v2-request.yml").read_text(encoding="utf-8")
@@ -242,6 +269,8 @@ def test_startup_evidence_is_bound_to_exact_invocation_before_state_read(monkeyp
     evidence = build_startup_evidence(
         purpose="Issue #940 mutation",
         invocation_identity="interactive:work0:issue940:other",
+        execution_mode="INTERACTIVE",
+        work_root_gate_evidence=_root_gate_evidence(),
     )
     request = {
         "schema": ingress.REQUEST_SCHEMA,
@@ -278,6 +307,8 @@ def test_stale_startup_evidence_is_rejected_before_state_read(monkeypatch):
     evidence = build_startup_evidence(
         purpose="Issue #940 mutation",
         invocation_identity=invocation,
+        execution_mode="INTERACTIVE",
+        work_root_gate_evidence=_root_gate_evidence(),
         issued_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
     )
     request = {
@@ -315,6 +346,8 @@ def test_canonical_startup_evidence_ttl_and_declaration_are_machine_validated():
     evidence = build_startup_evidence(
         purpose="resume Scheduler A issue",
         invocation_identity=invocation,
+        execution_mode="SCHEDULER_LANE",
+        work_root_gate_evidence=_root_gate_evidence("SCHEDULER_LANE"),
         issued_at=now,
     )
     validated = validate_startup_evidence(
@@ -484,6 +517,8 @@ def test_push_ingress_accepts_fail_qa_kind(tmp_path):
         "startup_evidence": build_startup_evidence(
             purpose="consume exact failed QA",
             invocation_identity=invocation,
+            execution_mode="INTERACTIVE",
+            work_root_gate_evidence=_root_gate_evidence(),
         ),
     }
     path = tmp_path / "request.json"
