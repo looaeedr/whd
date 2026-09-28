@@ -190,13 +190,15 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
    - request_id：本 invocation/action 唯一值
    - issue / kind / lane_id / invocation_identity
+   - startup_evidence：由 canonical `tools/execution_entry_contract.py::build_startup_evidence(...)` 產生，exact 綁定本 invocation_identity / repository / purpose / issued_at / expires_at / canonical declaration；非 SEED request 必填。
    - expected_coord_head：步驟1 fresh HEAD
    - expected_generation：步驟1 record.generation
    - effect：fresh external readback payload
 4. 記住 request commit SHA；push 會自動觸發 request workflow。
 5. 只接受 event=push、workflow=`whd-control-transaction-v2-request.yml`、head_sha=request commit SHA 的 exact run。
 6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
-7. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。
+7. trusted ingress 在任何 ExecutionRecord state read/mutation 前，先用 `validate_startup_evidence(...)` 驗 startup_evidence；缺失、過期（TTL>300 秒或已到期）、repository 不符、declaration 被改、或 invocation_identity 不符，一律 FAILED/fail closed。
+8. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。fresh runtime 必須重建 startup evidence；前一 invocation evidence 不得重放。
 
 `coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
