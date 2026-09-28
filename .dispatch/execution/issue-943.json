@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
@@ -22,9 +22,11 @@
     "token": "lease:943:36439679509:1"
   },
   "next_action": {
-    "args": {},
-    "display": "Reconcile existing work branch for Issue #943",
-    "kind": "START_BRANCH"
+    "args": {
+      "reason": "AUTHOR_EXACT_RED_TEST_COMMIT"
+    },
+    "display": "Author exact RED regression commit for Issue #943",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -41,7 +43,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
@@ -49,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "bd5da1beeedfbb3199e10df35422fbda7e6c79188a1e82d776f202be2cd73e25",
-    "id": "gha:36439679509:943:ACQUIRE:1",
+    "expected_fingerprint": "78227927b9a88a0cb99eaa8106db6c1c252c47641ff64fb0f12178b05e102d8c",
+    "id": "gha:36439967128:943:START_BRANCH:2",
     "invocation_identity": "interactive:work1:issue943:session1",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T14:56:05Z",
+  "updated_at": "2026-09-28T14:58:21Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
