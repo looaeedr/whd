@@ -561,7 +561,7 @@ def _execute_finalize(
     if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
         raise ControlTransactionError("FINALIZE requires accepted QA for current head")
     if not record.closure.merged_sha:
-        raise ControlTransactionError("FINALIZE requires a merged anchor")
+        raise ControlTransactionError("FINALIZE requires fresh merged target readback or a merged anchor")
     final_target_sha = _finalize_target_sha(record, effect)
     if effect.get("issue_closed") is not True:
         raise ControlTransactionError("FINALIZE requires issue_closed=true readback")
