@@ -1,18 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-910-unblock-final-candidate",
+  "request_id": "work0-910-apply-final-exact-f8d37aa8",
   "issue": 910,
-  "kind": "RECONCILE",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-  "expected_coord_head": "eabd225cff6a2acf88fd02b5192f8286897bc6f5",
-  "expected_generation": 9,
+  "expected_coord_head": "5fb2fa024ffb118546749095f8c0ef829ce24909",
+  "expected_generation": 10,
   "effect": {
-    "observed_work_branch": "work/issue910-3d-startup-runtime-log-20260928",
-    "observed_head_sha": "e396c79b3cfea0bde969ddec2aee47dc7f41119e",
-    "observed_target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
-    "state": "ACTIVE",
-    "clear_blocker": true,
+    "head_sha": "f8d37aa81a9ea3cc682d1ce9e429055b54ee697e",
     "semantic_state": "REVERIFY_REQUIRED",
     "next_action": {
       "kind": "START_QA",
