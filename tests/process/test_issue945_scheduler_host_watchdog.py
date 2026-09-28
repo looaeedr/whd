@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from tools.scheduler_host_watchdog import (
     ENTRYPOINTS,
@@ -131,3 +132,13 @@ def test_evaluate_is_non_authoritative_and_degraded_on_missed_wake():
     assert result["overall_state"] == "DEGRADED"
     statuses = {x["entrypoint_key"]: x["status"] for x in result["entries"]}
     assert statuses["b45"] == STATUS_HOST_STATE_UNKNOWN
+
+
+def test_watchdog_workflow_has_default_branch_bootstrap_and_exact_schedule():
+    workflow = Path(".github/workflows/whd-scheduler-host-watchdog.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "- cron: '2,17,22,42,47 * * * *'" in workflow
+    assert "7-57/5" not in workflow
+    assert "  push:\n    branches:\n      - main\n    paths:\n      - .github/workflows/whd-scheduler-host-watchdog.yml" in workflow
+    assert "  workflow_dispatch:" in workflow
