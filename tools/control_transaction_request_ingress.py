@@ -15,7 +15,9 @@ if str(ROOT) not in sys.path:
 from tools.control_transaction import ControlTransactionConflict
 from tools.execution_entry_contract import validate_startup_evidence
 from tools.control_transaction_request_builder import (
+    INTENT_SCHEMA,
     REQUEST_SCHEMA,
+    build_control_transaction_request_from_intent,
     execution_mode_for_lane,
 )
 
@@ -64,7 +66,8 @@ def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ProductionExecutorError("request must be a JSON object")
-    if payload.get("schema") != REQUEST_SCHEMA:
+    schema = payload.get("schema")
+    if schema not in {REQUEST_SCHEMA, INTENT_SCHEMA}:
         raise ProductionExecutorError("unexpected request schema")
     for key in ("request_id","issue","kind","lane_id","invocation_identity","expected_coord_head","expected_generation","effect"):
         if key not in payload:
@@ -74,12 +77,35 @@ def _load_request(path: Path) -> dict[str, object]:
         raise ProductionExecutorError("unsupported transaction kind")
     if not isinstance(payload["effect"], dict):
         raise ProductionExecutorError("effect must be an object")
-    if kind != "SEED" and "startup_evidence" not in payload:
-        raise ProductionExecutorError("request missing startup_evidence")
+
+    if schema == REQUEST_SCHEMA:
+        if kind != "SEED" and "startup_evidence" not in payload:
+            raise ProductionExecutorError("request missing startup_evidence")
+        return payload
+
+    if kind == "SEED":
+        raise ProductionExecutorError("semantic intent does not support SEED")
+    if "startup_evidence" in payload:
+        raise ProductionExecutorError("semantic intent must not supply startup_evidence")
+    for key in ("purpose", "work_root_gate_evidence"):
+        if key not in payload:
+            raise ProductionExecutorError(f"transaction intent missing {key}")
+    if not isinstance(payload["work_root_gate_evidence"], dict):
+        raise ProductionExecutorError("work_root_gate_evidence must be an object")
     return payload
 
 
+def _materialize_request(request: dict[str, object], *, repo: str) -> dict[str, object]:
+    if request.get("schema") == REQUEST_SCHEMA:
+        return request
+    try:
+        return build_control_transaction_request_from_intent(request, repository=repo)
+    except (TypeError, ValueError) as exc:
+        raise ProductionExecutorError(f"transaction intent rejected: {exc}") from exc
+
+
 def execute_request(*, request: dict[str, object], repo: str, token: str, coord_branch: str) -> dict[str, object]:
+    request = _materialize_request(request, repo=repo)
     if str(request["kind"]) == "SEED":
         if int(request["issue"]) != 0:
             raise ProductionExecutorError("SEED request issue must be 0")
