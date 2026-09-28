@@ -1,34 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-start-focused-red-work1-v1",
+  "request_id": "issue943-resume-work1-v1",
   "issue": 943,
-  "kind": "START_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue943:session1",
-  "expected_coord_head": "977b921a4c2ac503acd48ed61f634dcf939b3ad6",
-  "expected_generation": 4,
+  "expected_coord_head": "0208e13d2402b806b9e72e7cb4da35e3725bcbde",
+  "expected_generation": 5,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work1:issue943:session1",
     "purpose": "修正受電箱切換、參數鎖、後面板型式／顯示、三件式左右後獨立資料，以及內門框上方水平 MARKING 不可見的回歸。",
-    "issued_at": "2026-09-28T15:05:54Z",
-    "expires_at": "2026-09-28T15:10:54Z",
+    "issued_at": "2026-09-28T15:12:21Z",
+    "expires_at": "2026-09-28T15:17:21Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：修正受電箱切換、參數鎖、後面板型式／顯示、三件式左右後獨立資料，以及內門框上方水平 MARKING 不可見的回歸。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "effect": {
-    "run_id": 36440753727,
-    "run_head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
-    "purpose": "ISSUE943_FOCUSED_RED",
-    "run_status": "in_progress",
-    "semantic_state": "REMOTE_QA",
-    "next_action": {
-      "kind": "POLL_QA",
-      "args": {
-        "run_id": 36440753727,
-        "head_sha": "58e33270fd8a7833055de744eb9425518a86a537"
-      },
-      "display": "Poll exact focused RED run 36440753727"
-    }
-  }
+  "effect": {}
 }
