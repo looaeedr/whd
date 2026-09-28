@@ -7,6 +7,9 @@ solves or reconstructs manufacturing geometry.
 """
 from __future__ import annotations
 
+import tkinter as tk
+from tkinter import ttk
+
 
 class Phase6CornerDataViewAdapter:
     def __init__(self, *, selected_part_key=None) -> None:
@@ -17,6 +20,67 @@ class Phase6CornerDataViewAdapter:
     @property
     def selected_part_key(self):
         return self._selected_part_key
+
+    @staticmethod
+    def back_panel_mode_is_applicable(
+        selected_part_key,
+        *,
+        family_name,
+        active_type,
+        three_piece_type,
+    ) -> bool:
+        return (
+            str(selected_part_key or "") == "box_body:back"
+            and str(family_name or "") == "受電箱"
+            and str(active_type or "") == str(three_piece_type or "")
+        )
+
+    @staticmethod
+    def refresh_back_panel_mode_control(
+        owner,
+        *,
+        applicable,
+        current_label,
+        values,
+        on_selected,
+    ) -> bool:
+        """Rebuild the Corner Data back-panel selector as view-only projection."""
+        frame = getattr(owner, "corner_data_back_panel_mode_control", None)
+        if frame is not None:
+            try:
+                if frame.winfo_exists():
+                    frame.destroy()
+            except Exception:
+                pass
+        owner.corner_data_back_panel_mode_control = None
+        owner.corner_data_back_panel_mode_selector = None
+
+        panel = getattr(owner, "corner_data_panel", None)
+        if panel is None or not bool(applicable):
+            return False
+
+        var = getattr(owner, "back_panel_mode_var", None)
+        if var is None:
+            var = tk.StringVar(master=panel, value=str(current_label))
+            owner.back_panel_mode_var = var
+        elif str(var.get() or "") != str(current_label):
+            var.set(str(current_label))
+
+        frame = ttk.Frame(panel)
+        ttk.Label(frame, text="後面板形式").pack(side=tk.LEFT, padx=(0, 6))
+        selector = ttk.Combobox(
+            frame,
+            textvariable=var,
+            values=tuple(values or ()),
+            state="readonly",
+            width=10,
+        )
+        selector.pack(side=tk.LEFT)
+        selector.bind("<<ComboboxSelected>>", lambda _event: on_selected(var))
+        frame.pack(fill=tk.X, pady=(2, 6))
+        owner.corner_data_back_panel_mode_control = frame
+        owner.corner_data_back_panel_mode_selector = selector
+        return True
 
     @staticmethod
     def part_keys(workspace) -> tuple[str, ...]:

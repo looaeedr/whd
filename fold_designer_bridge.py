@@ -2390,6 +2390,11 @@ def _phase6_select_back_panel_mode(self, var):
         _phase6_after_box_structure_commit(self, state, rebuild=True)
     finally:
         _phase6_refresh_back_panel_mode_control(self)
+        if (
+            str(getattr(self, "_phase6_3d_display_mode", "") or "")
+            == "corner_data"
+        ):
+            _phase6_refresh_corner_data_back_panel_mode_control(self)
 
 
 def _phase6_apply_box_structure_numeric(self, type_id, field, var):
@@ -4249,6 +4254,21 @@ def _phase6_refresh_persistent_structure_controls(self):
             assembly_var.set(label)
 
 
+def _phase6_final_scene_set_preview_enabled(self, enabled):
+    return _phase6_composition(self).final_scene_set_preview_enabled(enabled)
+
+
+def _phase6_commit_output_draw_stock(self):
+    return _phase6_composition(self).commit_output_draw_stock(globals())
+
+
+def _phase6_export_selected_dxf_from_3d(self):
+    return _phase6_composition(self).export_selected_dxf_from_3d()
+
+
+def _phase6_toggle_parameter_panel(self):
+    return _phase6_composition(self).toggle_parameter_panel(globals())
+
 def _phase6_pack_right_panel_above_canvas(self, widget):
     """Pack a right-side settings/diagnostic panel before the expanding 3D canvas.
 
@@ -4265,44 +4285,6 @@ def _phase6_pack_right_panel_above_canvas(self, widget):
     else:
         widget.pack(**options)
     return True
-
-
-def _phase6_toggle_parameter_panel(self):
-    """Compatibility port consumed dynamically by the application composition root."""
-    self._phase6_parameters_unlocked = not bool(
-        getattr(self, "_phase6_parameters_unlocked", False)
-    )
-    unlocked = self._phase6_parameters_unlocked
-    button = getattr(self, "parameter_lock_button", None)
-    if button is not None:
-        button.configure(text=("參數解鎖" if unlocked else "參數鎖定"))
-
-    center = getattr(self, "settings_center", None)
-    active = str(getattr(self, "active_part_key", None) or "box_body")
-    assembly_selected = (
-        str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    )
-    diagnostics = getattr(self, "assembly_diagnostics_frame", None)
-    if unlocked and assembly_selected:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and not diagnostics.winfo_manager():
-            _phase6_pack_right_panel_above_canvas(self, diagnostics)
-        _phase6_update_assembly_diagnostic_status(self)
-    elif unlocked:
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-        _phase6_invalidate_settings_page(self, active)
-        _phase6_render_settings_context(self, active)
-        if center is not None and not center.winfo_manager():
-            _phase6_pack_right_panel_above_canvas(self, center)
-    else:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    return unlocked
 
 
 def _hide_original_structure_mode_controls(root_widget):
@@ -4931,6 +4913,7 @@ def _phase6_refresh_structure_tree(self):
             else f"part:{active}" if active else ""
         )
         if selected_iid and tree.exists(selected_iid):
+            self._phase6_structure_tree_programmatic_iid = selected_iid
             tree.selection_set(selected_iid)
             tree.focus(selected_iid)
             tree.see(selected_iid)
@@ -4957,6 +4940,13 @@ def _phase6_on_structure_tree_select(self, _event=None):
     if not selected:
         return
     iid = str(selected[0])
+    projected_iid = str(
+        getattr(self, "_phase6_structure_tree_programmatic_iid", "") or ""
+    )
+    if projected_iid:
+        self._phase6_structure_tree_programmatic_iid = ""
+        if iid == projected_iid:
+            return
     if iid == "mode:assembly":
         _phase6_show_assembly(self)
     elif iid == "mode:corner_data":
@@ -5067,6 +5057,12 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
         return
     notebook = getattr(self, "box_body_piece_selector", None)
     if notebook is None:
+        return
+    # #124 retired this Notebook from operator layout. It is compatibility
+    # projection state only; Tk auto-selects the first tab when topology is
+    # rebuilt and emits <<NotebookTabChanged>> asynchronously. A hidden widget
+    # must never turn that presentation event into an active-part mutation.
+    if not notebook.winfo_manager():
         return
     key = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {}).get(
         str(notebook.select())
@@ -5189,6 +5185,7 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
         ),
     )
     _phase6_sync_corner_data_view_compatibility_mirrors(self, adapter)
+    _phase6_refresh_corner_data_back_panel_mode_control(self)
     if previous != resolved:
         canvas = getattr(self, "corner_data_canvas", None)
         if canvas is not None:
@@ -5293,6 +5290,29 @@ def _phase6_refresh_corner_data_unfold_view(self):
         callback(canvas, projection.part_key, projection.render_data)
     return projection
 
+def _phase6_corner_data_back_panel_mode_is_applicable(self):
+    state = _phase6_box_structure_state(self)
+    return _phase6_corner_data_view(self).back_panel_mode_is_applicable(
+        getattr(_phase6_corner_data_view(self), "selected_part_key", None),
+        family_name=cabinet_family_policy.canonical_family_name(
+            getattr(self, "_phase6_input_snapshot", {}) or {}
+        ),
+        active_type=state.get("active_type"),
+        three_piece_type=BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
+    )
+
+
+def _phase6_refresh_corner_data_back_panel_mode_control(self):
+    state = _phase6_box_structure_state(self)
+    current = back_panel_mode(state)
+    return _phase6_corner_data_view(self).refresh_back_panel_mode_control(
+        self,
+        applicable=_phase6_corner_data_back_panel_mode_is_applicable(self),
+        current_label=_BACK_PANEL_MODE_LABELS[current],
+        values=tuple(_BACK_PANEL_MODE_LABELS[item] for item in BackPanelMode),
+        on_selected=lambda var: _phase6_select_back_panel_mode(self, var),
+    )
+
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
     """Refresh the corner-data list as a pure View projection of workspace parts."""
     keys = _phase6_corner_data_part_keys(self)
@@ -5306,6 +5326,8 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
 
     for child in tuple(panel.winfo_children()):
         child.destroy()
+    self.corner_data_back_panel_mode_control = None
+    self.corner_data_back_panel_mode_selector = None
 
     self.corner_data_part_rows = {}
     self.corner_data_part_buttons = {}
@@ -5323,6 +5345,7 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
         self.corner_data_part_rows[key] = row
         self.corner_data_part_buttons[key] = button
         self.corner_data_part_depths[key] = depth
+    _phase6_refresh_corner_data_back_panel_mode_control(self)
     return keys
 
 
