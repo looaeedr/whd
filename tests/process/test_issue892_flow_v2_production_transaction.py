@@ -25,7 +25,8 @@ def test_canonical_skill_requires_null_lease_acquire_and_production_writer():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
     assert "`lease=null`" in text
     assert "whd-control-transaction-v2.yml" in text
-    assert "FLOW_V2_PRODUCTION_TRANSACTION_V1" in text
+    assert "whd-control-transaction-v2-request.yml" in text
+    assert "FLOW_V2_PRODUCTION_TRANSACTION_V2" in text
     assert "同一 invocation 立即續原本 structured next_action" in text
 
 
