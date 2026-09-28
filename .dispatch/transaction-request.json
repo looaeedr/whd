@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-bind-revalidation-20260928T173822Z",
+  "request_id": "issue952-accept-base-refresh-qa-20260928T173951Z",
   "issue": 952,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
   "startup_evidence": {
@@ -27,21 +27,20 @@
     "expires_at": "2026-09-28T17:43:22Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "09fad137c26c5cf3f0b3fbf2ecdab8c0c3fba356",
-  "expected_generation": 15,
+  "expected_coord_head": "a795970879670fb304d612cbca0669f74ace40dc",
+  "expected_generation": 16,
   "effect": {
     "run_id": 36459429312,
     "run_head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
-    "purpose": "ISSUE952_INTEGRATION_REVALIDATION",
-    "run_status": "success",
-    "semantic_state": "REMOTE_QA",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "BASE_REFRESH_QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "run_id": 36459429312,
-        "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9"
+        "candidate_commit_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872"
       },
-      "display": "Poll Issue #952 integration revalidation"
+      "display": "Apply corrected current-cleanup-preserving Issue #952 candidate"
     }
   }
 }
