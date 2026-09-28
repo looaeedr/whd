@@ -7,25 +7,17 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "ae5b4d931db610aca948497a05707cf1786a1b4a",
-    "released_at": null
+    "released_at": "2026-09-28T18:49:42Z"
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
   "issue": 889,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "lease": {
-    "expires_at": "2026-09-28T17:59:53Z",
-    "invocation_identity": "scheduler-a:40:20260928T174200Z:889:g7",
-    "token": "lease:889:36460280366:1"
-  },
-  "next_action": {
-    "args": {},
-    "display": "Finalize Issue #889 after reconciled merge receipt",
-    "kind": "FINALIZE"
-  },
+  "lease": null,
+  "next_action": null,
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
   "qa": {
@@ -55,21 +47,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "ae5b4d931db610aca948497a05707cf1786a1b4a",
+  "target_sha": "5e391c293e5aaeeafc842bc6af70ebff2b8195c7",
   "transaction": {
-    "expected_fingerprint": "e38ddf8455d4ec67be4612eaa8488eb1d98acb9254080c65e1a301809d177b22",
-    "id": "gha:36467778138:889:MERGE:11",
-    "invocation_identity": "scheduler-a:repair:issue889:20260929T024748+0800",
-    "kind": "MERGE",
+    "expected_fingerprint": "b1c6572d420d657e075cfe5ebd98f59f41922073c5c3ffc7bf4cde7a7956c072",
+    "id": "gha:36467902778:889:FINALIZE:12",
+    "invocation_identity": "scheduler-a:repair:issue889:finalize:20260929T024908+0800",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T18:48:37Z",
+  "updated_at": "2026-09-28T18:49:41Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
