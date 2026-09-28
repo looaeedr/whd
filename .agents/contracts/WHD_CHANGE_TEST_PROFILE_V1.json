@@ -6,7 +6,7 @@
   "purpose": "Deterministically select required QA stages from change intent and affected domains. Targeted tests never replace the final full gate for non-doc changes.",
   "workspace": {
     "interactive_root": "/Google Drive/WHD",
-    "interactive_work_prefix": "/Google Drive/WHD/work",
+    "interactive_work_prefix": "/Google Drive/WHD/work/active",
     "policy": "WORKSPACE_FIRST",
     "github_role": "source/code/PR/CI/scheduler/control-plane authority; not the default interactive execution workspace"
   },
