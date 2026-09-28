@@ -1,23 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-work1-startqa-green-v2",
+  "request_id": "issue943-work1-startqa-green-v3",
   "issue": 943,
   "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue943:session1",
-  "expected_coord_head": "75e86d0d26593e99d79c4d677a0529cca60067b7",
+  "expected_coord_head": "ab7e95c0aa132842dca99b11648e390cb38ff1f2",
   "expected_generation": 10,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work1:issue943:session1",
     "purpose": "續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。",
-    "issued_at": "2026-09-28T16:00:26Z",
-    "expires_at": "2026-09-28T16:05:26Z",
+    "issued_at": "2026-09-28T16:01:57Z",
+    "expires_at": "2026-09-28T16:06:57Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
   "effect": {
-    "updated_at": "2026-09-28T16:00:26Z",
+    "updated_at": "2026-09-28T16:01:57Z",
     "run_id": 36445518958,
     "run_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
     "purpose": "ISSUE943_FOCUSED_AND_INTEGRITY_GREEN",
