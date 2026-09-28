@@ -1,8 +1,8 @@
 """Read-only scheduler decision projection for WHD Flow v2.
 
 This module never claims, leases, selects, or mutates work.  It projects the
-canonical ExecutionRecord set into the smallest scheduler wake decision needed
-for shadow-read/cutover validation.
+canonical ExecutionRecord set into the smallest deterministic scheduler wake
+decision needed for execution.
 """
 
 from __future__ import annotations
@@ -130,8 +130,10 @@ def build_scheduler_view(
     """Build a deterministic, side-effect-free scheduler wake projection.
 
     Priority is always same-lane non-terminal continuity.  Only when that is
-    absent may READY cache entries be exposed.  The result never selects a
-    winner and never grants execution authority.
+    absent may READY cache entries be exposed.  READY entries are already
+    deterministically ordered by Issue number, so the first entry is selected
+    as the exact ACQUIRE candidate.  Selection is routing only and never grants
+    execution authority; the trusted ACQUIRE transaction still decides the race.
     """
 
     lane_id = _required_text(lane_id, "lane_id")
@@ -197,12 +199,12 @@ def build_scheduler_view(
             current_issue=None,
             current_record_fingerprint=None,
             current_state=None,
-            next_action_kind=None,
-            next_action_display=None,
+            next_action_kind="ACQUIRE",
+            next_action_display=f"Acquire Issue #{ready_issues[0]}",
             lease_status=None,
             active_run_id=None,
             ready_issues=ready_issues,
-            selected_issue=None,
+            selected_issue=ready_issues[0],
             requires_transaction="ACQUIRE",
         )
 
