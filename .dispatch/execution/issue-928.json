@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
-  "head_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
+  "generation": 4,
+  "head_sha": "1a995b19588050b8e13d3a40088bc97c640b03e8",
   "issue": 928,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,8 +23,8 @@
   },
   "next_action": {
     "args": {},
-    "display": "Diagnose Windows 3D blank/no-log and apply repair",
-    "kind": "APPLY_COMMIT"
+    "display": "Run Issue #928 Windows/FinalScene regression QA",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -49,13 +49,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
   "transaction": {
-    "expected_fingerprint": "6b071a3a59678422293914319b9efe0cc62901f099727cc66cde98df4eaac894",
-    "id": "gha:36427667389:928:START_BRANCH:2",
+    "expected_fingerprint": "475d461fddbda2b75eab3ce962f4dbf3c6925b1a5c7cdf27d7a8ecb7655ed5a4",
+    "id": "gha:36428522095:928:APPLY_COMMIT:3",
     "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:18:35Z",
+  "updated_at": "2026-09-28T13:25:51Z",
   "version": 2,
   "work_branch": "work/issue928-windows-3d-blank-no-log-20260928"
 }
