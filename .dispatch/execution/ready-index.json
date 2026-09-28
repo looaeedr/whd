@@ -1,6 +1,6 @@
 {
-  "schema": "WHD_EXECUTION_READY_INDEX_V1",
   "authority": "DERIVED_CACHE_ONLY",
-  "source_digest": "b87214c671e38b1c39c48568f7c2c83d041586f3da9da0eb5e1428a886bbcce7",
-  "entries": []
+  "entries": [],
+  "schema": "WHD_EXECUTION_READY_INDEX_V1",
+  "source_digest": "bc57c6bd8e0590d2a7d2ea1adb2cc397b8f1406ac629864b85f965008d1b3597"
 }
