@@ -5,7 +5,7 @@
   "source": "scheduler-b",
   "handler": "排程B",
   "entrypoint": "B45",
-  "event": "PROGRESS",
+  "event": "EXIT",
   "runtime_state": "IDLE_NO_WORK",
   "issue": null,
   "slot_id": null,
@@ -14,6 +14,6 @@
   "record_fingerprint": null,
   "last_wake_at": "2026-09-28T11:49:32Z",
   "last_progress_at": "2026-09-28T11:50:00Z",
-  "exit_state": null,
-  "observed_at": "2026-09-28T11:50:00Z"
+  "exit_state": "IDLE_NO_WORK",
+  "observed_at": "2026-09-28T11:50:05Z"
 }
