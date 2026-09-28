@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: ha-poweroff-flow-v2-integration-usage
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD ↔ HA / Node-RED Leaving-Home Power-Off Integration Usage
 
 <!-- WHD_HA_POWEROFF_INTEGRATION_USAGE_V1 -->
