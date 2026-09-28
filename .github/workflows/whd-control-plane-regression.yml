@@ -26,7 +26,7 @@ on:
       - 'tools/control_transaction_production_executor.py'
       - 'tools/execution_invocation_exit.py'
       - 'tools/execution_scheduler_view.py'
-      - 'tools/control_transaction_request_ingress.py'
+      - 'tools/control_transaction_request_ingress.py'\n      - 'tools/execution_entry_contract.py'
       - 'tests/process/test_flow_v2_execution_invocation_exit.py'
       - 'tests/process/test_flow_v2_execution_scheduler_view.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
