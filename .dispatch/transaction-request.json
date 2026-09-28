@@ -1,34 +1,40 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-work1-acceptqa-green-v1",
+  "request_id": "issue943-work1-acquire-antiregrowth-v1",
   "issue": 943,
-  "kind": "ACCEPT_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue943:session1",
-  "expected_coord_head": "8d4807e312e93902258d659a074bdc6b20561f65",
-  "expected_generation": 11,
+  "expected_coord_head": "08ba803d2db2f2e3ccce1df7acf60bfe8226071f",
+  "expected_generation": 12,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work1:issue943:session1",
-    "purpose": "續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。",
-    "issued_at": "2026-09-28T16:03:16Z",
-    "expires_at": "2026-09-28T16:08:16Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
+    "purpose": "續接 #943，修復 PR #957 Bridge anti-regrowth、重新驗收新 head、更新 Flow v2 QA identity，完成 merge / finalization。",
+    "issued_at": "2026-09-28T16:23:00Z",
+    "expires_at": "2026-09-28T16:28:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：續接 #943，修復 PR #957 Bridge anti-regrowth、重新驗收新 head、更新 Flow v2 QA identity，完成 merge / finalization。\n範圍：只處理 #943 / PR #957 與其必要 Flow v2 transaction；不擴張 authority，不改其他工單。"
   },
   "effect": {
-    "updated_at": "2026-09-28T16:03:16Z",
-    "run_id": 36445518958,
-    "run_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
+    "updated_at": "2026-09-28T16:23:00Z",
+    "observed_at": "2026-09-28T16:23:00Z",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work1",
+    "lane_id": "chatgpt.flowv2.work1",
+    "slot_id": "worker.slot.1",
+    "lease": {
+      "token": "lease:943:antiregrowth:20260928T162300Z",
+      "invocation_identity": "interactive:work1:issue943:session1",
+      "expires_at": "2026-09-28T16:28:00Z"
+    },
     "semantic_state": "GREEN",
     "next_action": {
       "kind": "MERGE",
       "args": {
+        "accepted_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
         "source_branch": "work/receiving-ui-regression-20260928",
-        "target_branch": "cleanup/2d-3d-sync",
-        "accepted_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da"
+        "target_branch": "cleanup/2d-3d-sync"
       },
       "display": "Merge accepted #943 candidate into cleanup/2d-3d-sync"
     }
