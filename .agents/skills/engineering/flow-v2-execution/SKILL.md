@@ -54,6 +54,12 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 每次 wake：fresh-read `coord/execution-v2` → same-lane nonterminal record優先 → 無 current record才讀 derived ready-index → exact structured action。active exact QA run只 poll；沒有 current record且ready-index empty才是 NO_EXECUTABLE_WORK。scheduler只走 GitHub/remote capability，不 fallback local。
 
+## Host scheduler lifecycle immutability
+
+<!-- FLOW_V2_HOST_LIFECYCLE_IMMUTABILITY_V1 -->
+
+Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. A scheduled runtime MUST NOT call automation-management APIs or mutate its own or sibling A/B automation lifecycle, title, schedule, timing mode, prompt, or enabled state. Invocation completion is only a cycle return; it never means the recurring task object is terminal. Host lifecycle changes are allowed only from an explicit interactive user request or a dedicated host-reconciliation action outside the scheduled runtime. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object unchanged.
+
 ## Work slot / handoff
 
 固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。
