@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "e29f0aba8a5f842be617c14540a2d1be58091243",
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "pr_number": 986
+      "reason": "PAIR_GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
     },
-    "display": "Merge exact cleanup PR #986 after paired main governance acceptance",
-    "kind": "MERGE"
+    "display": "Reconcile #945 main/cleanup governance ancestry",
+    "kind": "RECONCILE"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -43,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
+  "target_sha": "e29f0aba8a5f842be617c14540a2d1be58091243",
   "transaction": {
-    "expected_fingerprint": "09ea20a0fd6c80a9656f4ef76f6c7f36dbb0d98649cfe9a4791677475a117a5d",
-    "id": "gha:36486959726:945:ACCEPT_QA:4",
+    "expected_fingerprint": "796464b4f4119226858634f70a9a1f478f275dad9925f11bd39535d1e8cf8cf2",
+    "id": "gha:36487238095:945:MERGE:5",
     "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T21:34:27Z",
+  "updated_at": "2026-09-28T21:36:52Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
