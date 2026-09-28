@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: whd-governance-ancestry-reconcile
@@ -53,7 +54,7 @@ jobs:
             --target-ref refs/remotes/origin/cleanup/2d-3d-sync \
             --verify-live-parity
 
-      - name: Create history-only cleanup-owned ancestry merge
+      - name: Create checked history-only ancestry candidate
         env:
           EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
           EXPECTED_CLEANUP_SHA: ${{ inputs.expected_cleanup_sha }}
@@ -65,6 +66,7 @@ jobs:
 
           if git merge-base --is-ancestor "$EXPECTED_MAIN_SHA" "$EXPECTED_CLEANUP_SHA"; then
             echo "main ancestry already reconciled"
+            echo "ANCESTRY_ALREADY_RECONCILED=1" >> "$GITHUB_ENV"
             echo "RECONCILED_HEAD=$EXPECTED_CLEANUP_SHA" >> "$GITHUB_ENV"
             exit 0
           fi
@@ -84,9 +86,86 @@ jobs:
             exit 1
           }
 
-          # Non-force fast-forward of cleanup to a two-parent ours merge.
-          git push origin HEAD:refs/heads/cleanup/2d-3d-sync
+          CANDIDATE_BRANCH="governance/ancestry-reconcile-${EXPECTED_CLEANUP_SHA:0:12}-${EXPECTED_MAIN_SHA:0:12}"
+          EXISTING="$(git ls-remote origin "refs/heads/$CANDIDATE_BRANCH" | awk '{print $1}')"
+          if [ -n "$EXISTING" ]; then
+            [ "$EXISTING" = "$CANDIDATE_SHA" ] || {
+              echo "ANCESTRY_CANDIDATE_BRANCH_CONFLICT branch=$CANDIDATE_BRANCH existing=$EXISTING candidate=$CANDIDATE_SHA" >&2
+              exit 1
+            }
+          else
+            git push origin HEAD:"refs/heads/$CANDIDATE_BRANCH"
+          fi
+
+          echo "ANCESTRY_ALREADY_RECONCILED=0" >> "$GITHUB_ENV"
+          echo "ANCESTRY_CANDIDATE_SHA=$CANDIDATE_SHA" >> "$GITHUB_ENV"
+          echo "ANCESTRY_CANDIDATE_BRANCH=$CANDIDATE_BRANCH" >> "$GITHUB_ENV"
           echo "RECONCILED_HEAD=$CANDIDATE_SHA" >> "$GITHUB_ENV"
+
+      - name: Run required gate on exact ancestry candidate
+        if: env.ANCESTRY_ALREADY_RECONCILED != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_CLEANUP_SHA: ${{ inputs.expected_cleanup_sha }}
+        run: |
+          set -euo pipefail
+          gh workflow run whd-governance-mirror-gate.yml \
+            --ref "$ANCESTRY_CANDIDATE_BRANCH" \
+            -f mode=ANCESTRY_CANDIDATE \
+            -f expected_main_sha="$EXPECTED_MAIN_SHA" \
+            -f expected_cleanup_sha="$EXPECTED_CLEANUP_SHA" \
+            -f candidate_sha="$ANCESTRY_CANDIDATE_SHA"
+
+          RUN_ID=""
+          for _ in $(seq 1 30); do
+            RUN_ID="$(
+              gh run list \
+                --workflow whd-governance-mirror-gate.yml \
+                --branch "$ANCESTRY_CANDIDATE_BRANCH" \
+                --event workflow_dispatch \
+                --limit 20 \
+                --json databaseId,headSha,createdAt \
+              | python -c 'import json,sys,os; rows=json.load(sys.stdin); sha=os.environ["ANCESTRY_CANDIDATE_SHA"]; print(next((str(r["databaseId"]) for r in rows if r.get("headSha")==sha), ""))'
+            )"
+            [ -n "$RUN_ID" ] && break
+            sleep 2
+          done
+          [ -n "$RUN_ID" ] || {
+            echo "ANCESTRY_CANDIDATE_GATE_RUN_NOT_FOUND" >&2
+            exit 1
+          }
+          echo "ANCESTRY_CANDIDATE_GATE_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          gh run watch "$RUN_ID" --exit-status
+
+      - name: Advance protected cleanup after candidate gate
+        if: env.ANCESTRY_ALREADY_RECONCILED != '1'
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_CLEANUP_SHA: ${{ inputs.expected_cleanup_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git fetch --no-tags origin cleanup/2d-3d-sync:refs/remotes/origin/cleanup/2d-3d-sync
+          git fetch --no-tags origin "$ANCESTRY_CANDIDATE_BRANCH:refs/remotes/origin/$ANCESTRY_CANDIDATE_BRANCH"
+
+          [ "$(git rev-parse refs/remotes/origin/main)" = "$EXPECTED_MAIN_SHA" ] || {
+            echo "MAIN_SHA_DRIFT_BEFORE_PROTECTED_ADVANCE" >&2
+            exit 1
+          }
+          [ "$(git rev-parse refs/remotes/origin/cleanup/2d-3d-sync)" = "$EXPECTED_CLEANUP_SHA" ] || {
+            echo "CLEANUP_SHA_DRIFT_BEFORE_PROTECTED_ADVANCE" >&2
+            exit 1
+          }
+          [ "$(git rev-parse "refs/remotes/origin/$ANCESTRY_CANDIDATE_BRANCH")" = "$ANCESTRY_CANDIDATE_SHA" ] || {
+            echo "ANCESTRY_CANDIDATE_READBACK_DRIFT" >&2
+            exit 1
+          }
+
+          git checkout --detach "$ANCESTRY_CANDIDATE_SHA"
+          # Required Governance Mirror Hard Gate is already GREEN on this exact SHA.
+          # This is a non-force fast-forward from EXPECTED_CLEANUP_SHA.
+          git push origin HEAD:refs/heads/cleanup/2d-3d-sync
 
       - name: Fresh readback and ancestry proof
         env:

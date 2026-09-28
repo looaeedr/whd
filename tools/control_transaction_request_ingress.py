@@ -14,13 +14,19 @@ if str(ROOT) not in sys.path:
 
 from tools.control_transaction import ControlTransactionConflict
 from tools.execution_entry_contract import validate_startup_evidence
+from tools.control_transaction_request_builder import (
+    REQUEST_SCHEMA,
+    execution_mode_for_lane,
+)
+
+# Backward-compatible schema marker; canonical owner remains the request builder.
+# WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1
 from tools.control_transaction_production_executor import (
     ProductionExecutorError,
     _load_state,
     execute_one,
 )
 
-REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","FAIL_QA",
     "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
@@ -48,20 +54,10 @@ def _validate_request_branch(*, request: dict[str, object], request_branch: str)
 
 
 def _execution_mode_for_request(request: dict[str, object]) -> str:
-    lane = str(request.get("lane_id") or "").strip()
-    if lane in {
-        "scheduler.6ab13fa557fc8191935c671214b865e2",
-        "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-    }:
-        return "SCHEDULER_LANE"
-    if lane in {
-        "chatgpt.flowv2.work0",
-        "chatgpt.flowv2.work1",
-        "chatgpt.flowv2.work2",
-        "chatgpt.flowv2.work3",
-    }:
-        return "INTERACTIVE"
-    raise ProductionExecutorError(f"unsupported request lane for startup gate: {lane}")
+    try:
+        return execution_mode_for_lane(str(request.get("lane_id") or ""))
+    except ValueError as exc:
+        raise ProductionExecutorError(str(exc)) from exc
 
 
 def _load_request(path: Path) -> dict[str, object]:
@@ -158,10 +154,38 @@ def main() -> int:
         result["request_id"] = request["request_id"]
         code = 0
     except ControlTransactionConflict as exc:
-        result = {"schema":"WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2","result":"CONFLICT","reason":str(exc)}
+        reason = str(exc)
+        if reason.startswith("coord head drift"):
+            conflict_class = "STALE_COORD_HEAD"
+        elif reason.startswith("generation drift"):
+            conflict_class = "STALE_GENERATION"
+        elif "live lease" in reason:
+            conflict_class = "LIVE_LEASE"
+        else:
+            conflict_class = "STALE_EXECUTION_RECORD"
+        result = {
+            "schema": "WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2",
+            "result": "CONFLICT",
+            "reason": reason,
+            "conflict_class": conflict_class,
+            "retryable": True,
+            "retry_action": "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION",
+            "semantic_effect_applied": False,
+        }
         code = 3
     except Exception as exc:
-        result = {"schema":"WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2","result":"FAILED","reason":str(exc)}
+        reason = str(exc)
+        result = {
+            "schema": "WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2",
+            "result": "FAILED",
+            "reason": reason,
+            "error_class": (
+                "STARTUP_EVIDENCE_INVALID"
+                if reason.startswith("startup hard gate rejected request:")
+                else "NON_RETRYABLE_REQUEST_FAILURE"
+            ),
+            "retryable": False,
+        }
         code = 2
 
     rendered = json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
