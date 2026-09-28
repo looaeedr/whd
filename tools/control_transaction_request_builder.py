@@ -11,9 +11,10 @@ import argparse
 from datetime import datetime
 import json
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Sequence
 
 from tools.execution_entry_contract import DEFAULT_REPOSITORY, build_startup_evidence
+from tools.control_transaction_step_executor import REQUEST_KIND as STEP_SEQUENCE_KIND, normalize_step_sequence
 
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 
@@ -93,6 +94,39 @@ def build_control_transaction_request(
     }
 
 
+
+def build_control_step_sequence_request(
+    *,
+    request_id: str,
+    issue: int,
+    lane_id: str,
+    invocation_identity: str,
+    expected_coord_head: str,
+    expected_generation: int,
+    steps: Sequence[Mapping[str, object]],
+    purpose: str,
+    work_root_gate_evidence: Mapping[str, object],
+    repository: str = DEFAULT_REPOSITORY,
+    issued_at: datetime | None = None,
+) -> dict[str, object]:
+    first, second = normalize_step_sequence(steps)
+    base = build_control_transaction_request(
+        request_id=request_id,
+        issue=issue,
+        kind=STEP_SEQUENCE_KIND,
+        lane_id=lane_id,
+        invocation_identity=invocation_identity,
+        expected_coord_head=expected_coord_head,
+        expected_generation=expected_generation,
+        effect={},
+        purpose=purpose,
+        work_root_gate_evidence=work_root_gate_evidence,
+        repository=repository,
+        issued_at=issued_at,
+    )
+    base["steps"] = [first, second]
+    return base
+
 def _load_json(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -111,7 +145,8 @@ def main() -> int:
     parser.add_argument("--expected-generation", type=int, required=True)
     parser.add_argument("--purpose", required=True)
     parser.add_argument("--work-root-evidence", type=Path, required=True)
-    parser.add_argument("--effect", type=Path, required=True)
+    parser.add_argument("--effect", type=Path)
+    parser.add_argument("--steps", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repository", default=DEFAULT_REPOSITORY)
     parser.add_argument("--issued-at")
@@ -121,20 +156,42 @@ def main() -> int:
     if args.issued_at:
         issued_at = datetime.fromisoformat(args.issued_at.replace("Z", "+00:00"))
 
-    request = build_control_transaction_request(
-        request_id=args.request_id,
-        issue=args.issue,
-        kind=args.kind,
-        lane_id=args.lane_id,
-        invocation_identity=args.invocation_identity,
-        expected_coord_head=args.expected_coord_head,
-        expected_generation=args.expected_generation,
-        effect=_load_json(args.effect),
-        purpose=args.purpose,
-        work_root_gate_evidence=_load_json(args.work_root_evidence),
-        repository=args.repository,
-        issued_at=issued_at,
-    )
+    if args.kind == STEP_SEQUENCE_KIND:
+        if args.steps is None:
+            raise SystemExit("--steps is required for STEP_SEQUENCE")
+        raw_steps = json.loads(args.steps.read_text(encoding="utf-8"))
+        if not isinstance(raw_steps, list):
+            raise SystemExit("--steps must contain a JSON array")
+        request = build_control_step_sequence_request(
+            request_id=args.request_id,
+            issue=args.issue,
+            lane_id=args.lane_id,
+            invocation_identity=args.invocation_identity,
+            expected_coord_head=args.expected_coord_head,
+            expected_generation=args.expected_generation,
+            steps=raw_steps,
+            purpose=args.purpose,
+            work_root_gate_evidence=_load_json(args.work_root_evidence),
+            repository=args.repository,
+            issued_at=issued_at,
+        )
+    else:
+        if args.effect is None:
+            raise SystemExit("--effect is required for a single transaction")
+        request = build_control_transaction_request(
+            request_id=args.request_id,
+            issue=args.issue,
+            kind=args.kind,
+            lane_id=args.lane_id,
+            invocation_identity=args.invocation_identity,
+            expected_coord_head=args.expected_coord_head,
+            expected_generation=args.expected_generation,
+            effect=_load_json(args.effect),
+            purpose=args.purpose,
+            work_root_gate_evidence=_load_json(args.work_root_evidence),
+            repository=args.repository,
+            issued_at=issued_at,
+        )
     args.output.write_text(
         json.dumps(request, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
         encoding="utf-8",

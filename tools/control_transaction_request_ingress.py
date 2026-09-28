@@ -18,6 +18,11 @@ from tools.control_transaction_request_builder import (
     REQUEST_SCHEMA,
     execution_mode_for_lane,
 )
+from tools.control_transaction_step_executor import (
+    REQUEST_KIND as STEP_SEQUENCE_KIND,
+    execute_step_sequence,
+    normalize_step_sequence,
+)
 
 # Backward-compatible schema marker; canonical owner remains the request builder.
 # WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1
@@ -29,7 +34,7 @@ from tools.control_transaction_production_executor import (
 
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","FAIL_QA",
-    "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
+    "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",STEP_SEQUENCE_KIND,
 }
 
 REQUEST_BRANCH_LANES = {
@@ -74,6 +79,14 @@ def _load_request(path: Path) -> dict[str, object]:
         raise ProductionExecutorError("unsupported transaction kind")
     if not isinstance(payload["effect"], dict):
         raise ProductionExecutorError("effect must be an object")
+    if kind == STEP_SEQUENCE_KIND:
+        steps = payload.get("steps")
+        if not isinstance(steps, list):
+            raise ProductionExecutorError("STEP_SEQUENCE request missing steps array")
+        try:
+            normalize_step_sequence(steps)
+        except ValueError as exc:
+            raise ProductionExecutorError(f"invalid STEP_SEQUENCE request: {exc}") from exc
     if kind != "SEED" and "startup_evidence" not in payload:
         raise ProductionExecutorError("request missing startup_evidence")
     return payload
@@ -118,6 +131,17 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
     if record.generation != expected_generation:
         raise ControlTransactionConflict(
             f"generation drift: expected {expected_generation}, observed {record.generation}"
+        )
+
+    if str(request["kind"]) == STEP_SEQUENCE_KIND:
+        return execute_step_sequence(
+            repo=repo,
+            token=token,
+            coord_branch=coord_branch,
+            issue=issue,
+            lane_id=str(request["lane_id"]),
+            invocation_identity=str(request["invocation_identity"]),
+            steps=list(request["steps"]),
         )
 
     return execute_one(

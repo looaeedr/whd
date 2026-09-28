@@ -23,6 +23,8 @@ on:
       - 'tools/governance_parity_gate.py'
       - 'tests/process/test_issue952_governance_ancestry_reconcile.py'
       - 'tests/process/test_issue975_flow_v2_closure_stability.py'
+      - 'tests/process/test_issue990_control_step_executor.py'
+      - 'tests/process/test_issue990_scheduler_startup_bundle.py'
 
 
       - '.github/workflows/whd-scheduler-host-watchdog.yml'
@@ -39,6 +41,8 @@ on:
       - 'tools/execution_scheduler_view.py'
       - 'tools/control_transaction_request_ingress.py'
       - 'tools/control_transaction_request_builder.py'
+      - 'tools/control_transaction_step_executor.py'
+      - 'tools/scheduler_startup_bundle.py'
       - 'tools/execution_entry_contract.py'
       - 'tools/work_root_gate.py'
       - 'tests/process/test_flow_v2_execution_invocation_exit.py'
@@ -84,6 +88,8 @@ jobs:
             tools/control_transaction_production_executor.py \
             tools/control_transaction_request_ingress.py \
             tools/control_transaction_request_builder.py \
+            tools/control_transaction_step_executor.py \
+            tools/scheduler_startup_bundle.py \
             tools/execution_invocation_exit.py \
             tools/execution_scheduler_view.py \
             tools/execution_entry_contract.py \
@@ -108,3 +114,6 @@ jobs:
             tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
             tests/process/test_issue952_governance_ancestry_reconcile.py \
             tests/process/test_issue975_flow_v2_closure_stability.py
+
+      - name: Run issue990 latency regressions
+        run: python -m pytest -q tests/process/test_issue990_control_step_executor.py tests/process/test_issue990_scheduler_startup_bundle.py
