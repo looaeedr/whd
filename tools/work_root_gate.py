@@ -37,6 +37,8 @@ def validate_gate_payload(
         raise ValueError("unexpected work-root gate schema")
     if gate.get("status") != "CURRENT":
         raise ValueError("work-root gate is not CURRENT")
+    if "current_synced_source" in gate:
+        raise ValueError("work-root gate must not duplicate mutable current source state")
 
     root = _mapping(gate.get("default_work_root"), "default_work_root")
     if root.get("provider") != DEFAULT_PROVIDER:
