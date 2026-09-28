@@ -124,3 +124,18 @@ def test_explicit_slot_and_scheduler_lane_are_not_overridden():
         authority_kind="USER_EXPLICIT",
     )
     assert scheduler.slot_id is None
+
+
+def test_flow_v2_bridges_preserve_project_startup_hard_gate():
+    canonical = text(CANONICAL)
+    assert "PROJECT_STARTUP_HARD_GATE_V1" in canonical
+    assert "EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1" in canonical
+    assert "tools/execution_entry_contract.py" in canonical
+    assert "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1" in canonical
+    assert "AI_LIBRARY_SEARCHED" in canonical
+    assert "RELEVANT_HISTORY_READ" in canonical
+    assert "LIVE_VS_HISTORY_RECONCILED" in canonical
+    for path in BRIDGES:
+        body = text(path)
+        assert "EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1" in body, path
+        assert "tools/execution_entry_contract.py" in body, path
