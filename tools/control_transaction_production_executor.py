@@ -316,12 +316,17 @@ def _ensure_issue_closed_for_finalize(
     if str(fresh.get("state_reason") or "").lower() != "completed":
         raise ProductionExecutorError("FINALIZE issue close readback is not completed")
 
+    trusted_released_at = str(fresh.get("closed_at") or _iso(_now())).strip()
+    if not trusted_released_at:
+        raise ProductionExecutorError("FINALIZE trusted released_at readback is blank")
+
     return {
         **target_readback,
         "issue_closed": True,
         "issue_state": "closed",
         "issue_state_reason": "completed",
         "issue_closed_at": fresh.get("closed_at"),
+        "released_at": trusted_released_at,
     }
 
 
