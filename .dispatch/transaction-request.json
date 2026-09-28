@@ -1,35 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-work1-reconcile-green-candidate-v1",
+  "request_id": "issue943-work1-startqa-green-v1",
   "issue": 943,
-  "kind": "RECONCILE",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue943:session1",
-  "expected_coord_head": "5314a01d3eb799ce399d70f8944b8df8ebff1951",
-  "expected_generation": 9,
+  "expected_coord_head": "127821c7c9033f4f03912defe989bddd62958521",
+  "expected_generation": 10,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work1:issue943:session1",
     "purpose": "續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。",
-    "issued_at": "2026-09-28T15:57:47Z",
-    "expires_at": "2026-09-28T16:02:47Z",
+    "issued_at": "2026-09-28T15:58:58Z",
+    "expires_at": "2026-09-28T16:03:58Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
   "effect": {
-    "updated_at": "2026-09-28T15:57:47Z",
-    "observed_work_branch": "work/receiving-ui-regression-20260928",
-    "observed_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
-    "observed_target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
-    "semantic_state": "IMPLEMENTING",
+    "updated_at": "2026-09-28T15:58:58Z",
+    "run_id": 36445518958,
+    "run_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
+    "purpose": "ISSUE943_FOCUSED_AND_INTEGRITY_GREEN",
+    "run_status": "completed",
+    "semantic_state": "REMOTE_QA",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "POLL_QA",
       "args": {
         "run_id": 36445518958,
-        "run_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
-        "purpose": "ISSUE943_FOCUSED_AND_INTEGRITY_GREEN"
+        "head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da"
       },
-      "display": "Bind successful #943 focused+integrity run 36445518958"
+      "display": "Poll exact successful #943 run 36445518958"
     }
   }
 }
