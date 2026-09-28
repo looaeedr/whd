@@ -11,6 +11,7 @@
     ".agents/skills/engineering/README.md",
     ".agents/skills/skill_registry.json",
     ".github/workflows/knowledge-governance-bootstrap.yml",
+    ".github/workflows/receiving-ui-regression.yml",
     ".github/workflows/whd-control-plane-regression.yml",
     ".github/workflows/whd-control-transaction-v2-request.yml",
     ".github/workflows/whd-control-transaction-v2-shadow.yml",
