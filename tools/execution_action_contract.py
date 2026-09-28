@@ -100,6 +100,8 @@ def validate_execution_action(action: ActionSpec) -> bool:
             _text(args, "revalidation_workflow")
     elif action.kind == "SYNC_TARGET":
         _sha(args, "target_sha")
+        _positive_int(args, "pr_number")
+        _text(args, "target_branch")
         _text(args, "qa_workflow")
     elif action.kind == "HANDOFF":
         _text(args, "to_owner_kind")
