@@ -164,7 +164,7 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
         "full_gate_required": full_gate_required,
         "profile_id": "+".join([change_type, *domains, full_gate_kind]),
         "workspace_root": "/Google Drive/WHD",
-        "workspace_work_prefix": "/Google Drive/WHD/work",
+        "workspace_work_prefix": "/Google Drive/WHD/work/active",
     }
 
 
