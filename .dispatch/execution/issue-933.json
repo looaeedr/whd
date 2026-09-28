@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
   "issue": 933,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,8 +23,8 @@
   },
   "next_action": {
     "args": {},
-    "display": "Create work branch for Issue #933",
-    "kind": "START_BRANCH"
+    "display": "Repair FINALIZE monitor EXIT projection",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -41,7 +41,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
@@ -49,13 +49,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
   "transaction": {
-    "expected_fingerprint": "3fa23118ecdc62d9b19b1ded31e85b616392faa9bad655ca1211024d747a3a7b",
-    "id": "gha:36430356851:933:ACQUIRE:1",
+    "expected_fingerprint": "4cf6af66ea8f45dbc545112e5670d5e8d857129298c6501af861cd290dd06f75",
+    "id": "gha:36430486661:933:START_BRANCH:2",
     "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:41:21Z",
+  "updated_at": "2026-09-28T13:42:23Z",
   "version": 2,
   "work_branch": "work/issue933-finalize-monitor-exit-20260928"
 }
