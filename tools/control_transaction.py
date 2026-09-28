@@ -333,8 +333,10 @@ def _execute_start_qa(
     plan: ControlTransactionPlan,
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
-    if record.state not in {"ACTIVE", "VERIFYING"}:
-        raise ControlTransactionError("START_QA requires ACTIVE/VERIFYING state")
+    if record.state not in {"ACTIVE", "VERIFYING", "INTEGRATING"}:
+        raise ControlTransactionError(
+            "START_QA requires ACTIVE/VERIFYING/INTEGRATING state"
+        )
     if record.active_run is not None:
         raise ControlTransactionError("START_QA rejected: active_run already exists")
     run_id = effect.get("run_id")
