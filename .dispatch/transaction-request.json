@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-apply-corrected-tree-20260928T174038Z",
+  "request_id": "issue952-apply-corrected-base-20260928T174124Z",
   "issue": 952,
   "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,23 +23,23 @@
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
     "purpose": "繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。",
-    "issued_at": "2026-09-28T17:38:22Z",
-    "expires_at": "2026-09-28T17:43:22Z",
+    "issued_at": "2026-09-28T17:41:24Z",
+    "expires_at": "2026-09-28T17:46:24Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
   "expected_coord_head": "9ed8b55ae1f15ae4435430a52fff330fba9c1ab1",
   "expected_generation": 17,
   "effect": {
     "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
-    "semantic_state": "INTEGRATION_TREE_CORRECTED",
+    "semantic_state": "BASE_REFRESH_REVALIDATION_REQUIRED",
     "next_action": {
       "kind": "START_QA",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml",
-        "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872"
+        "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
+        "run_id": 36459698995
       },
-      "display": "Run exact-head QA for corrected Issue #952 candidate"
+      "display": "Bind exact corrected-head GREEN QA for Issue #952"
     },
-    "updated_at": "2026-09-28T17:40:38Z"
+    "updated_at": "2026-09-28T17:41:24Z"
   }
 }
