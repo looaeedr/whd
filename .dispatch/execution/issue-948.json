@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
+    "id": 36448088932,
+    "purpose": "ISSUE948_FINAL_CONTROL_PLANE",
+    "status": "success"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
   "issue": 948,
   "lane_id": "chatgpt.flowv2.work3",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "purpose": "ISSUE948_FINAL_CONTROL_PLANE"
+      "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
+      "run_id": 36448088932
     },
-    "display": "Start final Issue #948 control-plane regression",
-    "kind": "START_QA"
+    "display": "Poll final Issue #948 control-plane regression",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "transaction": {
-    "expected_fingerprint": "c9983c5468560c29b61d550be4602e23f563d3b00da06c82c914c2cd06c84edf",
-    "id": "gha:36448378337:948:APPLY_COMMIT:8",
+    "expected_fingerprint": "4f88e9a8ce74339ec93e0ea3cd2069bc401e64da4f1c00bb9be2f302113167c6",
+    "id": "gha:36448492503:948:START_QA:9",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T16:04:54Z",
+  "updated_at": "2026-09-28T16:05:49Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
