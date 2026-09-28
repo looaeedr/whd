@@ -242,6 +242,47 @@ def _normalize_effect(
     return effect
 
 
+def _finalize_target_readback(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+) -> dict[str, object]:
+    """Prove that the accepted merge anchor still reaches the live target HEAD."""
+    anchor = str(record.closure.merged_sha or "").strip()
+    if not anchor:
+        raise ProductionExecutorError("FINALIZE requires a merged anchor before target readback")
+
+    encoded_branch = quote(record.target_branch, safe="")
+    ref = _api(repo, "GET", f"/git/ref/heads/{encoded_branch}", token)
+    observed_target = str((ref.get("object") or {}).get("sha") or "").strip()
+    if not observed_target:
+        raise ProductionExecutorError("FINALIZE target ref readback did not return a SHA")
+
+    if observed_target == anchor:
+        return {"observed_target_sha": observed_target}
+
+    compare = _api(repo, "GET", f"/compare/{anchor}...{observed_target}", token)
+    merge_base = str((compare.get("merge_base_commit") or {}).get("sha") or "").strip()
+    if merge_base != anchor:
+        raise ProductionExecutorError(
+            "FINALIZE target advanced outside accepted merge-anchor ancestry"
+        )
+
+    return {
+        "observed_target_sha": observed_target,
+        "target_advance_proof": {
+            "schema": "WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1",
+            "target_branch": record.target_branch,
+            "anchor_sha": anchor,
+            "observed_target_sha": observed_target,
+            "anchor_is_ancestor": True,
+            "fresh_readback": True,
+            "trusted_source": "control_transaction_production_executor",
+        },
+    }
+
+
 def _ensure_issue_closed_for_finalize(
     repo: str,
     token: str,
@@ -254,8 +295,7 @@ def _ensure_issue_closed_for_finalize(
         raise ProductionExecutorError("FINALIZE requires INTEGRATING state before issue close")
     if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
         raise ProductionExecutorError("FINALIZE requires accepted QA for current head before issue close")
-    if not record.closure.merged_sha or record.target_sha != record.closure.merged_sha:
-        raise ProductionExecutorError("FINALIZE requires merged target readback before issue close")
+    target_readback = _finalize_target_readback(repo, token, record=record)
 
     observed = _api(repo, "GET", f"/issues/{issue}", token)
     if (
@@ -276,11 +316,17 @@ def _ensure_issue_closed_for_finalize(
     if str(fresh.get("state_reason") or "").lower() != "completed":
         raise ProductionExecutorError("FINALIZE issue close readback is not completed")
 
+    trusted_released_at = str(fresh.get("closed_at") or _iso(_now())).strip()
+    if not trusted_released_at:
+        raise ProductionExecutorError("FINALIZE trusted released_at readback is blank")
+
     return {
+        **target_readback,
         "issue_closed": True,
         "issue_state": "closed",
         "issue_state_reason": "completed",
         "issue_closed_at": fresh.get("closed_at"),
+        "released_at": trusted_released_at,
     }
 
 
@@ -458,7 +504,24 @@ def main() -> int:
         )
         code = 0
     except (ControlTransactionConflict, ControlTransactionReplay) as exc:
-        result = {"schema": RESULT_SCHEMA, "result": "CONFLICT", "reason": str(exc)}
+        reason = str(exc)
+        if reason.startswith("coord/execution-v2 ref advanced"):
+            conflict_class = "STALE_COORD_HEAD"
+        elif reason.startswith("generation drift"):
+            conflict_class = "STALE_GENERATION"
+        elif "live lease" in reason:
+            conflict_class = "LIVE_LEASE"
+        else:
+            conflict_class = "STALE_EXECUTION_RECORD"
+        result = {
+            "schema": RESULT_SCHEMA,
+            "result": "CONFLICT",
+            "reason": reason,
+            "conflict_class": conflict_class,
+            "retryable": True,
+            "retry_action": "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION",
+            "semantic_effect_applied": False,
+        }
         code = 3
     except (ControlTransactionError, ExecutionRecordError, ProductionExecutorError, HTTPError, ValueError, TypeError, json.JSONDecodeError) as exc:
         result = {"schema": RESULT_SCHEMA, "result": "FAILED", "reason": str(exc)}

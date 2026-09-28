@@ -71,6 +71,23 @@ machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 
 
 所有 mutation 綁定 issue + generation + canonical branch + expected record fingerprint + expected branch/head/target。結果只能是 `APPLIED / CONFLICT / FAILED`；不存在可跨 runtime 保存的中間授權 token。副作用後必須 fresh readback。
 
+### CANONICAL_TRANSACTION_REQUEST_BUILDER_V1
+
+所有 non-SEED Flow v2 push transaction request 必須由 `tools/control_transaction_request_builder.py` 建立 envelope；caller 不得手工拼接 `startup_evidence.declaration / execution_mode / work_root_gate`。builder 必須呼叫 canonical `tools/execution_entry_contract.py::build_startup_evidence`，並由 lane identity 唯一決定 `INTERACTIVE` 或 `SCHEDULER_LANE`。
+
+若 push ingress 回 `CONFLICT` 且 `retryable=true`，固定執行 `FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION`：fresh-read `coord/execution-v2`、generation、lease、target/head，再用 builder 重建**同一 semantic action**。不得沿用 stale request payload，也不得因 coord/generation/live-lease race 重放外部副作用。startup evidence 驗證失敗不是 retryable conflict；先由 builder 重建 fresh evidence。
+
+### MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1
+
+accepted merge SHA is an anchor，不是「target branch 永遠不可再前進」的 freeze point。ticket 已有 exact-head accepted QA 且 `closure.merged_sha` 已成立後，其他合法 ticket 可繼續推進同一 target branch；FINALIZE 不得因此強迫原 ticket 重跑 merge/QA/ancestry。
+
+FINALIZE trusted executor 必須 fresh-read `record.target_branch`：
+- current target == `closure.merged_sha`：直接使用 exact anchor readback。
+- current target > anchor：只有在 machine proof 證明 `closure.merged_sha` 仍是 current target ancestor 時，才可把 `record.target_sha` 原子更新到 current target 並 FINALIZE。
+- anchor 不是 current target ancestor、ref identity 不明、或 readback 無法證明：固定 fail closed；不得把 diverged history 當合法 target advance。
+
+descendant proof 只能由 trusted `tools/control_transaction_production_executor.py` fresh-read GitHub ref/compare 後產生 `WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1`；caller-supplied prose/boolean 不構成 authority。
+
 ## Governance ancestry reconciliation
 
 <!-- GOVERNANCE_ANCESTRY_RECONCILIATION_V1 -->
@@ -79,10 +96,11 @@ Paired governance deployment不得只停在 main / cleanup 兩個獨立 mirror m
 
 Future governance ticket 固定順序：
 1. **merge the paired main governance PR first**，fresh-read accepted main SHA 與 cleanup SHA，並確認 governed content parity 已 GREEN。
-2. 以 `.github/workflows/whd-governance-ancestry-reconcile.yml` 傳入 exact `expected_main_sha + expected_cleanup_sha`。workflow 僅允許 **history-only second-parent merge**：在 cleanup exact head 上執行 two-parent `ours` merge，candidate tree 必須與 merge 前 cleanup tree 完全相同。
-3. reconciliation 禁止 **no force-push** / history rewrite；任何 input SHA drift、tree drift、parent identity drift、governance parity failure 一律 fail closed。
-4. workflow 成功後必須 fresh-read `WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1` 並再次執行 live ancestry gate，證明 accepted main SHA 已是 cleanup ancestor。
-5. paired governance ticket 的 `FINALIZE` 前必須有上述 result receipt + live ancestry GREEN；只有內容 mirror GREEN、但 main 仍不是 cleanup ancestor 時，不得 FINALIZE。
+2. 以 `.github/workflows/whd-governance-ancestry-reconcile.yml` 傳入 exact `expected_main_sha + expected_cleanup_sha`。workflow 僅允許 **history-only second-parent merge**：在 cleanup exact head 上建立 two-parent `ours` candidate，candidate tree 必須與 merge 前 cleanup tree 完全相同。
+3. 若 ancestry 尚未存在，candidate 固定先推到非保護 `governance/ancestry-reconcile-*` branch，並以 `mode=ANCESTRY_CANDIDATE` dispatch `Governance Mirror Hard Gate`；只有 exact candidate SHA required check GREEN 後，才可 non-force fast-forward protected `cleanup/2d-3d-sync`。禁止先 direct-push protected cleanup 再期待 required check。
+4. reconciliation 禁止 force-push / history rewrite；任何 input SHA drift、tree drift、parent identity drift、candidate-check failure 一律 fail closed。
+5. workflow 成功後 fresh-read `WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1` 並再次執行 live ancestry gate，證明 accepted main SHA 已是 cleanup ancestor。receipt 的 cleanup SHA 是 ancestry anchor；後續合法 descendant target advance 不使 receipt 失效。
+6. paired governance ticket 的 `FINALIZE` 前必須有 result receipt + live ancestry GREEN；若 current cleanup 已前進，套用 `MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1`，不得無條件重跑 ancestry。
 
 此 contract 的 machine owner 仍是 `tools/governance_parity_gate.py` + governance mirror/reconciliation workflows；不得新增第二套 ancestry state database。
 
@@ -202,7 +220,7 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 1. Issue 若仍 open，立即以 state=`closed`、state_reason=`completed` 關閉；不得把「PR 已 merge」當作 Issue 已 close。
 2. close 後必須再次 fresh-read GitHub Issue；只有 `state=closed + state_reason=completed` 才能產生 closure evidence。
-3. caller 傳入的 `issue_closed=true` 不具 authority，trusted writer 必須以 GitHub fresh readback 覆寫。
+3. caller 傳入的 `issue_closed=true` 不具 authority，trusted writer 必須以 GitHub fresh readback 覆寫。caller 傳入的 `released_at` 同樣不具 authority；`released_at` 固定優先使用 fresh Issue `closed_at`，只有 GitHub 未提供 `closed_at` 時才可用 trusted writer current UTC time fallback；caller 不得因漏填 `released_at` 讓合法 FINALIZE 失敗。
 4. close/readback 失敗、Issue 仍 open、state_reason 非 completed、QA/merge identity 不符時，FINALIZE 必須 fail closed；ExecutionRecord 保持 nonterminal，不得寫 DONE。
 5. Issue 已 closed/completed 時仍必須 fresh-read確認，不得因為舊 comment、PR body 的 `Closes #N`、或 default/non-default branch 自動關單假設而跳過。
 6. 只有 hard gate 成功後，才把 record寫成 DONE、清 lease/owner、next_action=null並保存 closure evidence。
@@ -255,6 +273,6 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 
 `coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
-POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request；terminal non-success 後先 fresh-read exact run/head/conclusion，再送 FAIL_QA request 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
+POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request；terminal non-success 後先 fresh-read exact run/head/conclusion，再送 FAIL_QA request 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue，並由 fresh `closed_at` 產生 authoritative `released_at`；caller 的 FINALIZE effect 不得必填或授權 `released_at`。request workflow固定具有 `issues: write`。
 
 手動 `whd-control-transaction-v2.yml` 只保留管理/診斷用途；scheduler不得依賴 connector 未提供的 workflow_dispatch。

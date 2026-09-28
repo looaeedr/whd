@@ -1,0 +1,156 @@
+name: WHD Receiving UI Regression
+
+run-name: "WHD Receiving UI Regression | ${{ github.ref_name }} | ${{ github.sha }}"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'work/receiving-ui-regression-*'
+    paths:
+      - fold_designer_bridge.py
+      - gui_modules/application/fold_designer_adapter.py
+      - phase6_corner_data_view_adapter.py
+      - phase6_final_scene_renderer.py
+      - tests/test_issue517_receiving_live_switch_ui_export_marking.py
+      - tests/test_corner_parameter_lock.py
+      - tests/test_issue509_receiving_horizontal_marking.py
+      - tests/test_issue510_receiving_back_panel_modes.py
+      - .github/workflows/receiving-ui-regression.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: receiving-ui-regression-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  focused:
+    name: Xvfb exact operator path
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Run Receiving UI exact regressions
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          xvfb-run -a pytest -q \
+            tests/test_issue517_receiving_live_switch_ui_export_marking.py \
+            tests/test_corner_parameter_lock.py \
+            tests/test_issue509_receiving_horizontal_marking.py \
+            --junitxml=receiving-ui-focused.xml \
+            2>&1 | tee receiving-ui-focused.log
+
+      - name: Upload focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-ui-focused-${{ github.sha }}
+          path: |
+            receiving-ui-focused.xml
+            receiving-ui-focused.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  integrity:
+    name: DXF multipart persistence integrity
+    needs: focused
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install integrity dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Freeze repository invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          sha256sum config.ini > /tmp/config-before.sha256
+          find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/dxf-before.sha256
+          test -s /tmp/dxf-before.sha256
+
+      - name: Run canonical integrity gates
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          xvfb-run -a pytest -q \
+            tests/test_issue510_receiving_back_panel_modes.py \
+            tests/test_dxf_acceptance.py::test_saved_dxf_acceptance_passes_exact_roundtrip \
+            tests/test_multipart_dxf_acceptance.py::test_resolved_saved_dxf_acceptance_reopens_every_physical_part \
+            tests/test_resolved_manufacturing_export.py::test_resolved_dxf_export_uses_exact_canonical_render_data_without_rebuilding \
+            tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object \
+            tests/test_phase6_assembly_3d_view.py::test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum \
+            tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state \
+            tests/test_phase6_project_file.py::test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves \
+            --junitxml=receiving-ui-integrity.xml \
+            2>&1 | tee receiving-ui-integrity.log
+
+      - name: Assert repository invariants unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini > /tmp/config-after.sha256
+          find 基準檔 -type f -iname '*.dxf' -print0 | sort -z | xargs -0 -r sha256sum > /tmp/dxf-after.sha256
+          diff -u /tmp/config-before.sha256 /tmp/config-after.sha256
+          diff -u /tmp/dxf-before.sha256 /tmp/dxf-after.sha256
+          cp /tmp/config-before.sha256 receiving-ui-config-before.sha256
+          cp /tmp/config-after.sha256 receiving-ui-config-after.sha256
+          cp /tmp/dxf-before.sha256 receiving-ui-dxf-before.sha256
+          cp /tmp/dxf-after.sha256 receiving-ui-dxf-after.sha256
+
+      - name: Upload integrity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-ui-integrity-${{ github.sha }}
+          path: |
+            receiving-ui-integrity.xml
+            receiving-ui-integrity.log
+            receiving-ui-config-before.sha256
+            receiving-ui-config-after.sha256
+            receiving-ui-dxf-before.sha256
+            receiving-ui-dxf-after.sha256
+          if-no-files-found: warn
+          retention-days: 14
