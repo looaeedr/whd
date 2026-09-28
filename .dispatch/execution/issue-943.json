@@ -1,51 +1,61 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 943,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.1",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "work_branch": "work/receiving-ui-regression-20260928",
-  "head_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #943"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "issue": 943,
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": {
+    "expires_at": "2026-09-28T15:11:05Z",
+    "invocation_identity": "interactive:work1:issue943:session1",
+    "token": "lease:943:36439679509:1"
+  },
+  "next_action": {
+    "args": {},
+    "display": "Reconcile existing work branch for Issue #943",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "87f1a636e11741d4e44dd36f94ffa43e45fbc42f53cba5768eeee7b049dc5d34",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-28:issue943-receiving-ui-regressions",
-      "authority_fingerprint": "87f1a636e11741d4e44dd36f94ffa43e45fbc42f53cba5768eeee7b049dc5d34"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": null
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "transaction": {
+    "expected_fingerprint": "bd5da1beeedfbb3199e10df35422fbda7e6c79188a1e82d776f202be2cd73e25",
+    "id": "gha:36439679509:943:ACQUIRE:1",
+    "invocation_identity": "interactive:work1:issue943:session1",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-28T14:56:05Z",
+  "version": 2,
+  "work_branch": "work/receiving-ui-regression-20260928"
 }
