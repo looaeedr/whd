@@ -37,7 +37,12 @@ Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟�
 正常 return 前必須通過 canonical `SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1`：WAKE/讀取/回報/HEARTBEAT/單獨 ACQUIRE 都不算 substantive progress。只有 DONE、LANE_BUSY、合法 BLOCKED、active remote QA wait，或本 invocation 已完成 substantive transaction 後的合法 YIELD 可離開；`SCHEDULER_EXECUTION_NO_PROGRESS` 必須繼續施工，不得停止。
 
 ## Lifecycle
-不得自行 disable/delete/complete/reschedule自己或 sibling。cadence與 lane owner只由 host automation config管理。
+
+<!-- SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1 -->
+
+本入口不複製 host recovery state machine；startup 前的 host-layer recovery 唯一服從 `flow-v2-execution::SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1`。正常 Flow v2 execution 仍不得管理 host lifecycle。任何 task-level結果都只是 physical cycle return，固定保留 `CYCLE_END — KEEP_SCHEDULE_ENABLED` 語意。
+
+相容 hard gate 保留原 literal：`不得自行 disable/delete/complete/reschedule自己或 sibling`；此限制適用於正常 Flow v2 execution，canonical host-recovery micro-bootstrap 不擴張 execution authority。
 
 ### HOST_LIFECYCLE_WATCHDOG_V1 bridge
 

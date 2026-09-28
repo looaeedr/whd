@@ -591,3 +591,73 @@ def test_scheduler_lane_rejects_interactive_root_gate_before_state_read(monkeypa
             token="unused",
             coord_branch="coord/execution-v2",
         )
+
+
+def _issue992_semantic_intent():
+    from tools.control_transaction_request_builder import INTENT_SCHEMA
+
+    return {
+        "schema": INTENT_SCHEMA,
+        "request_id": "issue992-b-acquire",
+        "issue": 945,
+        "kind": "ACQUIRE",
+        "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+        "invocation_identity": "scheduler-b:b15:issue945:issue992-regression",
+        "expected_coord_head": "a" * 40,
+        "expected_generation": 6,
+        "effect": {},
+        "purpose": "Resume Issue #945 through the canonical scheduler lane.",
+        "work_root_gate_evidence": _root_gate_evidence("SCHEDULER_LANE"),
+    }
+
+
+def test_trusted_builder_materializes_scheduler_semantic_intent():
+    from tools.control_transaction_request_builder import (
+        REQUEST_SCHEMA,
+        build_control_transaction_request_from_intent,
+    )
+
+    intent = _issue992_semantic_intent()
+    assert "startup_evidence" not in intent
+    request = build_control_transaction_request_from_intent(
+        intent,
+        repository="looaeedr/whd",
+    )
+    assert request["schema"] == REQUEST_SCHEMA
+    assert request["startup_evidence"]["execution_mode"] == "SCHEDULER_LANE"
+    assert request["startup_evidence"]["work_root_gate"]["read_mode"] == "GITHUB_MIRROR"
+
+
+def test_semantic_intent_forbids_caller_supplied_startup_evidence(tmp_path):
+    import json
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    intent = _issue992_semantic_intent()
+    intent["startup_evidence"] = {"schema": "supplied"}
+    path = tmp_path / "intent.json"
+    path.write_text(json.dumps(intent), encoding="utf-8")
+    with pytest.raises(Exception, match="startup_evidence"):
+        ingress._load_request(path)
+
+
+def test_push_ingress_accepts_semantic_intent_shape(tmp_path):
+    import json
+    import tools.control_transaction_request_ingress as ingress
+
+    intent = _issue992_semantic_intent()
+    path = tmp_path / "intent.json"
+    path.write_text(json.dumps(intent), encoding="utf-8")
+    loaded = ingress._load_request(path)
+    assert loaded["schema"] == ingress.INTENT_SCHEMA
+    assert loaded["purpose"] == intent["purpose"]
+
+
+def test_scheduler_host_recovery_bootstrap_remains_non_authoritative():
+    flow = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    scheduler = (ROOT / ".agents/skills/engineering/排程模擬/SKILL.md").read_text(encoding="utf-8")
+    assert "SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1" in flow
+    assert "SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1" in scheduler
+    assert "CYCLE_END — KEEP_SCHEDULE_ENABLED" in flow
+    assert "CYCLE_END — KEEP_SCHEDULE_ENABLED" in scheduler
+    assert "不授權 ACQUIRE" in flow
