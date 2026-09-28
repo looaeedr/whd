@@ -9,7 +9,7 @@ from tools.control_transaction import (
     execute_transaction,
     prepare_transaction,
 )
-from tools.execution_record import RunState, execution_record_fingerprint, execution_record_from_payload
+from tools.execution_record import RunState, TransactionState, execution_record_fingerprint, execution_record_from_payload
 
 
 def _record_payload(**overrides):
@@ -52,6 +52,20 @@ def _record_payload(**overrides):
 
 def _record(**overrides):
     return execution_record_from_payload(_record_payload(**overrides))
+
+
+
+def _yieldable_record():
+    return replace(
+        _record(),
+        transaction=TransactionState(
+            id="tx-substantive-before-yield",
+            kind="RECONCILE",
+            status="RECONCILED",
+            expected_fingerprint="f" * 64,
+            invocation_identity="scheduled:00:run-a",
+        ),
+    )
 
 
 def test_prepare_transaction_binds_generation_fingerprint_and_exact_identity():
@@ -212,7 +226,7 @@ def test_accept_qa_requires_exact_active_run_and_promotes_accepted_head():
 
 
 def test_yield_clears_only_runtime_lease_and_preserves_nonterminal_task():
-    record = _record()
+    record = _yieldable_record()
     plan = prepare_transaction(
         record, kind="YIELD", transaction_id="tx-yield",
         invocation_identity="scheduled:00:run-a",
@@ -506,7 +520,7 @@ def test_expired_lease_reacquire_cannot_change_owner_or_lane():
 
 
 def test_yield_requires_exact_lease_invocation_and_preserves_continuation():
-    record = _record()
+    record = _yieldable_record()
     plan = prepare_transaction(
         record,
         kind="YIELD",
@@ -526,6 +540,31 @@ def test_yield_requires_exact_lease_invocation_and_preserves_continuation():
     assert yielded.head_sha == record.head_sha
     assert yielded.next_action == record.next_action
     assert yielded.transaction.invocation_identity == "scheduled:00:run-a"
+
+
+def test_yield_rejects_immediate_post_acquire_without_substantive_progress():
+    record = replace(
+        _record(),
+        transaction=TransactionState(
+            id="tx-acquire-only",
+            kind="ACQUIRE",
+            status="RECONCILED",
+            expected_fingerprint="a" * 64,
+            invocation_identity="scheduled:00:run-a",
+        ),
+    )
+    plan = prepare_transaction(
+        record,
+        kind="YIELD",
+        transaction_id="tx-yield-after-acquire",
+        invocation_identity="scheduled:00:run-a",
+    )
+    with pytest.raises(ControlTransactionError, match="CONTINUE_EXECUTION"):
+        execute_transaction(
+            record,
+            plan,
+            effect={"updated_at": "2026-09-28T00:45:00Z"},
+        )
 
 
 def test_yield_rejects_foreign_invocation_and_next_action_rewrite():
