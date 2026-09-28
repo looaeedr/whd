@@ -1,0 +1,17 @@
+{
+  "schema": "WHD_SCHEDULER_ENTRYPOINT_OBSERVATION_V1",
+  "version": 1,
+  "authority": "NON_AUTHORITY",
+  "entrypoint": "A40",
+  "task_id": "6ab13fa557fc8191935c671214b865e2",
+  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "invocation_identity": null,
+  "event": "SEED",
+  "last_wake_at": null,
+  "last_heartbeat_at": null,
+  "heartbeat_expires_at": null,
+  "last_progress_at": null,
+  "exit_at": null,
+  "exit_state": null,
+  "observed_at": "2026-09-28T15:44:12Z"
+}
