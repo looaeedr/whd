@@ -1,19 +1,28 @@
 {
-  "effect": {},
-  "expected_coord_head": "3bf18c00ead9e0abda06d2b5c9b5e78dbfeeba23",
-  "expected_generation": 5,
+  "effect": {
+    "merged_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
+    "next_action": {
+      "args": {},
+      "display": "Finalize Issue #964",
+      "kind": "FINALIZE"
+    },
+    "semantic_state": "MERGED",
+    "target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40"
+  },
+  "expected_coord_head": "2780e9df78b51ee67595db07e8c98066da5d627f",
+  "expected_generation": 6,
   "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
   "issue": 964,
-  "kind": "ACQUIRE",
+  "kind": "MERGE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "request_id": "issue964-a-acquire-20260928T225144Z",
+  "request_id": "issue964-a-merge-20260928T225446Z",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：以排程A續接 Issue #964，先續租同 lane lease，再依 durable next_action 消費已合併 PR #967 的 MERGE readback，並在同一 invocation 續做 FINALIZE。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "SCHEDULER_LANE",
-    "expires_at": "2026-09-28T22:56:44Z",
+    "expires_at": "2026-09-28T22:59:46Z",
     "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
-    "issued_at": "2026-09-28T22:51:44Z",
+    "issued_at": "2026-09-28T22:54:46Z",
     "purpose": "以排程A續接 Issue #964，先續租同 lane lease，再依 durable next_action 消費已合併 PR #967 的 MERGE readback，並在同一 invocation 續做 FINALIZE。",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
