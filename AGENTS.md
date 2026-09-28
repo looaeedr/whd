@@ -60,6 +60,16 @@ GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力
 
 `.github/workflows/whd-phase6-preflight.yml`
 
+#### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
+
+GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在 AI Library gate、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。
+
+- 只准讀 `coord/execution-v2`、derived `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only projection，以及取得 exact owning Issue / branch / HEAD 必需的 GitHub metadata。
+- bootstrap 唯一輸出用途是綁定 owning Issue 後送 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`；不得另造永久 bootstrap Issue。
+- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：receipt GREEN 且 REQUIRED SKILLS / REQUIRED REFERENCES 全部 fresh-read 前，禁止 WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease / ExecutionRecord mutation，亦不得 dispatch 除 trusted Phase6 Preflight request 外的其他 workflow / mutation transport。
+- Preflight 完成後必須丟棄 bootstrap projection，重新 fresh-read canonical ExecutionRecord / scheduler view，才可進正常 Flow v2 WAKE / ownership / next_action。
+- 這是 read-only issue-binding bootstrap，不是 Preflight bypass、execution authority 或第二套 scheduler state machine。
+
 owner-authored owning-Issue request 第一行固定 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`，並 exact 綁定 `issue + worker + executor_source + branch + head_sha + task`；預計修改檔已知時逐一加入 `changed_file=`。trusted runner 只允許 checkout/read exact HEAD、執行 canonical `tools/phase6_skill_preflight.py`、讀取 required Skill/reference 並發布 `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`；不接受 arbitrary command，也沒有 repository contents write 權限。
 
 remote result `GREEN` 只證明 exact task/HEAD 的 canonical Preflight 已執行且 requirements 可解析；**呼叫端仍必須 fresh-read result列出的每一個 required Skill / required reference，並留下自己的 `READ_SKILL` / `READ_REFERENCE` evidence，才可開始 substantive analysis 或 mutation。** generic Remote Guard 內部的 preflight 若未綁本次完整 task，不得替代這個 startup Preflight。
