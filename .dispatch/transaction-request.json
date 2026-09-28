@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-accept-corrected-qa-20260928T174246Z",
+  "request_id": "issue952-reconcile-cleanup-merge-20260928T174445Z",
   "issue": 952,
-  "kind": "ACCEPT_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
   "startup_evidence": {
@@ -27,22 +27,20 @@
     "expires_at": "2026-09-28T17:47:46Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "9fd2eb94155ab6d1348a326d3076d2f9d7119552",
-  "expected_generation": 19,
+  "expected_coord_head": "bdbd894c1d8cfda25efc9adb239a8582c1d5f08b",
+  "expected_generation": 20,
   "effect": {
-    "run_id": 36459698995,
-    "run_head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
+    "merged_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
+    "target_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
+    "semantic_state": "MERGED_PENDING_ANCESTRY",
     "next_action": {
-      "kind": "MERGE",
+      "kind": "RECONCILE",
       "args": {
-        "cleanup_pr": 969,
-        "main_pr": 970,
-        "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872"
+        "reason": "GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED",
+        "expected_main_sha": "4cc50f132b76ef0fb850cd2557c27f6ade86e393",
+        "expected_cleanup_sha": "59999f5c84edd054122d376d0a279500f5b580a4"
       },
-      "display": "Merge accepted cleanup PR #969, then run governance ancestry reconciliation"
+      "display": "Reconcile main governance ancestry into cleanup without changing cleanup tree"
     }
   }
 }
