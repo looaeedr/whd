@@ -1,0 +1,13 @@
+{
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
+  "request_id": "bootstrap-seed-b-v1",
+  "issue": 0,
+  "kind": "SEED",
+  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "invocation_identity": "bootstrap-seed",
+  "expected_coord_head": "",
+  "expected_generation": 0,
+  "effect": {
+    "bootstrap": true
+  }
+}
