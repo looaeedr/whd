@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 2,
-  "head_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
+  "generation": 3,
+  "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "lease": {
@@ -22,9 +22,11 @@
     "token": "lease:945:36486027825:1"
   },
   "next_action": {
-    "args": {},
-    "display": "Start fresh #945 watchdog registration repair branch",
-    "kind": "START_BRANCH"
+    "args": {
+      "workflow": "WHD Control Plane Regression"
+    },
+    "display": "Start exact #945 control-plane QA",
+    "kind": "START_QA"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -41,7 +43,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
@@ -49,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "transaction": {
-    "expected_fingerprint": "bc9c4771e4867f208bbecc5dd270577fc9361ebbf9a506419f2a691428974b8b",
-    "id": "gha:36486027825:945:ACQUIRE:1",
+    "expected_fingerprint": "fa8f9d0ab6c9ab1f5fab0dd0935f619462c9d47920d4b6160adf2e349670785d",
+    "id": "gha:36486367426:945:START_BRANCH:2",
     "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T21:26:09Z",
+  "updated_at": "2026-09-28T21:29:05Z",
   "version": 2,
-  "work_branch": "cleanup/2d-3d-sync"
+  "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
