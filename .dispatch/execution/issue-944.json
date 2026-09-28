@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "cdb1bca2af3f879be1f0cefc8463a024f919ef93",
   "issue": 944,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
-    "expires_at": "2026-09-28T15:27:49Z",
+    "expires_at": "2026-09-28T15:44:15Z",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-    "token": "lease:944:36441825114:1"
+    "token": "lease:944:36443917177:1"
   },
   "next_action": {
     "args": {
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "transaction": {
-    "expected_fingerprint": "d139fd8676289a21115221a82281009a8a076d03d5dfea9198dc350ecca20f1f",
-    "id": "gha:36443259414:944:RECONCILE:5",
+    "expected_fingerprint": "d6ed5a48c6760b24103445957252d8b4aa5c65b1383f5cf1a3eea9353621839a",
+    "id": "gha:36443917177:944:ACQUIRE:6",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-    "kind": "RECONCILE",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:24:12Z",
+  "updated_at": "2026-09-28T15:29:15Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }
