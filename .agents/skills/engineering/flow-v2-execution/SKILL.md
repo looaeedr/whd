@@ -127,7 +127,7 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 <!-- FLOW_V2_HOST_LIFECYCLE_IMMUTABILITY_V1 -->
 
-Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. Normal WHD execution MUST NOT call automation-management APIs and MUST NOT mutate scheduler host lifecycle; the only exception is the explicitly bounded `SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1` host-layer micro-bootstrap below. Invocation completion is only a cycle return; it never means the recurring task object is terminal. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object enabled and recurring.
+Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. Normal WHD execution MUST NOT call automation-management APIs and MUST NOT mutate scheduler host lifecycle; the only exception is the explicitly bounded `SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1` host-layer micro-bootstrap below. Invocation completion is only a cycle return; it never means the recurring task object is terminal. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object enabled and recurring. Outside the narrowly bounded host-recovery bootstrap, normal execution must leave the `recurring task object unchanged`.
 
 ### SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1
 
