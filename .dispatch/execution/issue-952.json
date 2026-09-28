@@ -1,0 +1,51 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 952,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "work_branch": "governance/issue952-mirror-ancestry-reconciliation",
+  "head_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #952"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-29:issue952-new-flow",
+      "authority_fingerprint": "cf74348ab9fd9771ea2e869d65ed860bc0d004fb5cfcebcfc38cea940798f280"
+    }
+  ],
+  "updated_at": "2026-09-28T16:38:03Z"
+}
