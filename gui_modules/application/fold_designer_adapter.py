@@ -1604,8 +1604,8 @@ class Phase6FoldDesignerComposition:
             cabinet_family=lambda: required("_phase6_current_cabinet_family")(app),
             assembly_blank_text=assembly_blank_text,
             active_mesh_profiles=lambda material: required(
-                "_phase6_active_mesh_profiles"
-            )(app, material),
+                "_phase6_mesh_profiles_for_part"
+            )(app, app.designer_workspace.active_part, material),
             assembly_render_data_cls=AssemblySceneRenderData,
             assembly_part_cls=AssemblyScenePart,
             final_render_provider=lambda: required(
