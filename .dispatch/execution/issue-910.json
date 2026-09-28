@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
-  "head_sha": "e396c79b3cfea0bde969ddec2aee47dc7f41119e",
+  "generation": 11,
+  "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
   "issue": 910,
   "lane_id": null,
   "lease": {
@@ -57,13 +57,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
   "transaction": {
-    "expected_fingerprint": "6e8fda1be80453500076ec970ab3e008f2b8c397297a278286369b86a3f18901",
-    "id": "gha:36423554618:910:RECONCILE:9",
+    "expected_fingerprint": "2c4d6e4ae21129bfd19ae3283c761c7bfa9cb4976e60c775ee1500bafcc20d16",
+    "id": "gha:36424626645:910:APPLY_COMMIT:10",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "RECONCILE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:42:45Z",
+  "updated_at": "2026-09-28T12:52:29Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
