@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 21,
+  "generation": 22,
   "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
-    "expires_at": "2026-09-28T17:50:14Z",
+    "expires_at": "2026-09-28T18:06:00Z",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "token": "lease:952:36459147725:1"
+    "token": "lease:952:36460988877:1"
   },
   "next_action": {
     "args": {
@@ -53,13 +53,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
   "transaction": {
-    "expected_fingerprint": "0628762a73a5a622122080183a1a161675a3e7fb491568bb002f504ebf8e26a4",
-    "id": "gha:36460399066:952:MERGE:20",
+    "expected_fingerprint": "83ccbe5103786b310c838f252848f92fd6eb18ef838fd262485a09636ca0e1fa",
+    "id": "gha:36460988877:952:ACQUIRE:21",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "kind": "MERGE",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:45:52Z",
+  "updated_at": "2026-09-28T17:51:00Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
