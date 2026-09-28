@@ -104,7 +104,7 @@ def test_flow_v2_project_startup_reads_root_gate_before_ai_library_and_preflight
     assert "WHD_WORK_ROOT_GATE_EVIDENCE_V1" in section
 
 
-def test_every_flow_v2_execution_bridge_still_routes_through_project_startup_gate():
+def test_every_flow_v2_execution_bridge_routes_through_canonical_flow_startup():
     skill_root = ROOT / ".agents/skills/engineering"
     bridged = []
     for path in skill_root.glob("*/SKILL.md"):
@@ -112,8 +112,11 @@ def test_every_flow_v2_execution_bridge_still_routes_through_project_startup_gat
         if "FLOW_V2_EXECUTION_BRIDGE_V1" not in text:
             continue
         bridged.append(path)
-        assert "PROJECT_STARTUP_HARD_GATE_V1" in text, path
         assert "flow-v2-execution" in text, path
+        assert (
+            "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in text
+            or "PROJECT_STARTUP_HARD_GATE_V1" in text
+        ), path
     assert len(bridged) >= 9
 
 
