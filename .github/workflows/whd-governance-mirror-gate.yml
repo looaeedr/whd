@@ -204,3 +204,13 @@ jobs:
             --source-ref "refs/remotes/origin/$CURRENT_REF" \
             --target-ref "refs/remotes/origin/$OTHER_REF" \
             --verify-live-parity
+
+      - name: Verify live main ancestry after cleanup push
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'cleanup/2d-3d-sync'
+        run: |
+          set -euo pipefail
+          python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --source-ref refs/remotes/origin/main \
+            --target-ref refs/remotes/origin/cleanup/2d-3d-sync \
+            --verify-live-ancestry
