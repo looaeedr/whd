@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
+    "id": 36430810020,
+    "purpose": "ISSUE933_FINALIZE_MONITOR_EXIT",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
   "issue": 933,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/qa-issue933-finalize-monitor-exit.yml"
+      "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
+      "run_id": 36430810020
     },
-    "display": "Bind exact Issue #933 FINALIZE monitor EXIT QA",
-    "kind": "START_QA"
+    "display": "Poll exact Issue #933 monitor EXIT QA run 36430810020",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
   "transaction": {
-    "expected_fingerprint": "1069a2bca07c994ca3bf21957ef3272b53bdeb0c192b3b64ea7b41133d35aeac",
-    "id": "gha:36430864422:933:APPLY_COMMIT:3",
+    "expected_fingerprint": "7625e277e75735ad730f3fb959bc490343a9946a6ae8d4b34b30a292bf65c656",
+    "id": "gha:36430965611:933:START_QA:4",
     "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:45:30Z",
+  "updated_at": "2026-09-28T13:46:22Z",
   "version": 2,
   "work_branch": "work/issue933-finalize-monitor-exit-20260928"
 }
