@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
-  "head_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
+  "generation": 3,
+  "head_sha": "856188652d0c503224eec1306fba7acfe77bf368",
   "issue": 940,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "reason": "adopt live #940 repair branch and verify complete execution-entry hard-gate wiring"
+      "scope": "machine-enforce fresh startup evidence at Flow v2 trusted transaction ingress"
     },
-    "display": "Reconcile Issue #940 branch and verify execution-entry hard gates",
-    "kind": "RECONCILE"
+    "display": "Implement machine-enforced per-invocation startup evidence and negative regression",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,7 +43,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue940-entry-hard-gate-x",
   "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "81d827389683890126447423453032c0fe1c3621bc5bd879679a413186cab031",
-    "id": "gha:36436868258:940:ACQUIRE:1",
+    "expected_fingerprint": "8970c0140dac6713765b28fb37e44be7d3653e63312b4326059a0c9a4da0b55b",
+    "id": "gha:36437045602:940:RECONCILE:2",
     "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T14:33:37Z",
+  "updated_at": "2026-09-28T14:35:07Z",
   "version": 2,
   "work_branch": "governance/issue940-entry-hard-gate-x"
 }
