@@ -2,7 +2,7 @@
   "schema": "WHD_CHATGPT_AUTOMATION_HOST_SNAPSHOT_V1",
   "version": 1,
   "authority": "NON_AUTHORITY",
-  "observed_at": "2026-09-28T16:05:50Z",
+  "observed_at": "2026-09-28T16:21:24Z",
   "tasks": {
     "6ab13f881c34819180cee63f5dd9446b": {
       "title": "00",
@@ -16,9 +16,9 @@
       "title": "20",
       "entrypoint": "A20",
       "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-      "enabled": true,
-      "last_run_time": "2026-09-28T15:25:34.130598Z",
-      "updated_at": "2026-09-28T15:53:00.745346Z"
+      "enabled": false,
+      "last_run_time": "2026-09-28T16:16:20.392529Z",
+      "updated_at": "2026-09-28T16:17:24.452398Z"
     },
     "6ab13fa557fc8191935c671214b865e2": {
       "title": "40",
@@ -33,8 +33,8 @@
       "entrypoint": "B15",
       "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
       "enabled": true,
-      "last_run_time": "2026-09-28T15:20:15.880735Z",
-      "updated_at": "2026-09-28T15:53:48.271165Z"
+      "last_run_time": "2026-09-28T16:14:17.887960Z",
+      "updated_at": "2026-09-28T16:14:41.804864Z"
     },
     "6ab51d9ec6708191a578d67065f8979b": {
       "title": "B45",
