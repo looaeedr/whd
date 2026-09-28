@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
-    "id": 36430810020,
-    "purpose": "ISSUE933_FINALIZE_MONITOR_EXIT",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
   "issue": 933,
   "lane_id": "chatgpt.flowv2.work0",
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
-      "run_id": 36430810020
+      "reason": "exclude one-shot QA workflow and reconcile latest cleanup target"
     },
-    "display": "Poll exact Issue #933 monitor EXIT QA run 36430810020",
-    "kind": "POLL_QA"
+    "display": "Reconcile latest cleanup target with accepted Issue #933 blobs",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
+    "last_accepted_run": 36430810020
   },
   "recovery_history": [
     {
@@ -49,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
   "transaction": {
-    "expected_fingerprint": "7625e277e75735ad730f3fb959bc490343a9946a6ae8d4b34b30a292bf65c656",
-    "id": "gha:36430965611:933:START_QA:4",
+    "expected_fingerprint": "e58d32d234bc778f3aa4e30d13006a4655dc846b81b9384b385e470dd430253c",
+    "id": "gha:36431080688:933:ACCEPT_QA:5",
     "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:46:22Z",
+  "updated_at": "2026-09-28T13:47:13Z",
   "version": 2,
   "work_branch": "work/issue933-finalize-monitor-exit-20260928"
 }
