@@ -29,7 +29,7 @@ from tools.control_transaction_production_executor import (
 
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","FAIL_QA",
-    "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
+    "BLOCK","MERGE","SYNC_TARGET","HANDOFF","FINALIZE","RECONCILE","YIELD",
 }
 
 REQUEST_BRANCH_LANES = {
@@ -161,6 +161,14 @@ def main() -> int:
             conflict_class = "STALE_GENERATION"
         elif "live lease" in reason:
             conflict_class = "LIVE_LEASE"
+        elif reason.startswith("merge precheck required checks pending:"):
+            conflict_class = "REQUIRED_CHECKS_PENDING"
+        elif reason.startswith("merge precheck PR is not mergeable"):
+            conflict_class = "PR_NOT_MERGEABLE"
+        elif reason.startswith("SYNC_TARGET target drift:"):
+            conflict_class = "TARGET_DRIFT"
+        elif reason.startswith("SYNC_TARGET work head drift:"):
+            conflict_class = "WORK_HEAD_DRIFT"
         else:
             conflict_class = "STALE_EXECUTION_RECORD"
         result = {
@@ -169,7 +177,11 @@ def main() -> int:
             "reason": reason,
             "conflict_class": conflict_class,
             "retryable": True,
-            "retry_action": "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION",
+            "retry_action": (
+                "POLL_REQUIRED_CHECKS"
+                if conflict_class == "REQUIRED_CHECKS_PENDING"
+                else "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION"
+            ),
             "semantic_effect_applied": False,
         }
         code = 3

@@ -9,7 +9,7 @@ from tools.control_transaction import (
     execute_transaction,
     prepare_transaction,
 )
-from tools.execution_record import RunState, execution_record_fingerprint, execution_record_from_payload
+from tools.execution_record import RunState, TransactionState, execution_record_fingerprint, execution_record_from_payload
 
 
 def _record_payload(**overrides):
@@ -52,6 +52,20 @@ def _record_payload(**overrides):
 
 def _record(**overrides):
     return execution_record_from_payload(_record_payload(**overrides))
+
+
+
+def _yieldable_record():
+    return replace(
+        _record(),
+        transaction=TransactionState(
+            id="tx-substantive-before-yield",
+            kind="RECONCILE",
+            status="RECONCILED",
+            expected_fingerprint="f" * 64,
+            invocation_identity="scheduled:00:run-a",
+        ),
+    )
 
 
 def test_prepare_transaction_binds_generation_fingerprint_and_exact_identity():
@@ -175,6 +189,109 @@ def test_start_qa_locks_exact_current_head_and_single_active_run():
         )
 
 
+def test_integrating_head_advance_can_reenter_exact_qa_before_merge():
+    accepted = _record(
+        state="INTEGRATING",
+        semantic_state="GREEN",
+        next_action={"kind": "MERGE", "args": {}, "display": "merge accepted head"},
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+
+    apply_plan = prepare_transaction(
+        accepted,
+        kind="APPLY_COMMIT",
+        transaction_id="tx-integrating-advance",
+    )
+    advanced = execute_transaction(
+        accepted,
+        apply_plan,
+        effect={
+            "head_sha": "d" * 40,
+            "next_action": {
+                "kind": "START_QA",
+                "args": {},
+                "display": "revalidate exact advanced head",
+            },
+            "semantic_state": "QA_INVALIDATED_BY_HEAD_ADVANCE",
+            "updated_at": "2026-09-28T00:32:00Z",
+        },
+    )
+    assert advanced.state == "INTEGRATING"
+    assert advanced.head_sha == "d" * 40
+    assert advanced.qa.accepted_head_sha == "b" * 40
+
+    start_plan = prepare_transaction(
+        advanced,
+        kind="START_QA",
+        transaction_id="tx-integrating-qa",
+    )
+    running = execute_transaction(
+        advanced,
+        start_plan,
+        effect={
+            "run_id": 36370000002,
+            "run_head_sha": "d" * 40,
+            "purpose": "FLOW_V2_REVALIDATE_ADVANCED_INTEGRATING_HEAD",
+            "run_status": "completed",
+            "next_action": {
+                "kind": "POLL_QA",
+                "args": {"run_id": 36370000002},
+                "display": "poll revalidation run",
+            },
+            "updated_at": "2026-09-28T00:33:00Z",
+        },
+    )
+    assert running.state == "VERIFYING"
+    assert running.active_run.head_sha == "d" * 40
+
+    accept_plan = prepare_transaction(
+        running,
+        kind="ACCEPT_QA",
+        transaction_id="tx-integrating-accept",
+    )
+    reaccepted = execute_transaction(
+        running,
+        accept_plan,
+        effect={
+            "run_id": 36370000002,
+            "run_head_sha": "d" * 40,
+            "conclusion": "success",
+            "next_state": "INTEGRATING",
+            "next_action": {
+                "kind": "MERGE",
+                "args": {},
+                "display": "merge revalidated head",
+            },
+            "updated_at": "2026-09-28T00:34:00Z",
+        },
+    )
+    assert reaccepted.state == "INTEGRATING"
+    assert reaccepted.qa.accepted_head_sha == "d" * 40
+    assert reaccepted.qa.last_accepted_run == 36370000002
+
+    merge_plan = prepare_transaction(
+        reaccepted,
+        kind="MERGE",
+        transaction_id="tx-integrating-merge",
+    )
+    merged = execute_transaction(
+        reaccepted,
+        merge_plan,
+        effect={
+            "merged_sha": "e" * 40,
+            "target_sha": "e" * 40,
+            "next_action": {
+                "kind": "FINALIZE",
+                "args": {},
+                "display": "finalize",
+            },
+            "updated_at": "2026-09-28T00:35:00Z",
+        },
+    )
+    assert merged.closure.merged_sha == "e" * 40
+    assert merged.target_sha == "e" * 40
+
+
 def test_accept_qa_requires_exact_active_run_and_promotes_accepted_head():
     base = _record(next_action={"kind": "START_QA", "args": {}, "display": "start QA"})
     start = prepare_transaction(base, kind="START_QA", transaction_id="tx-qa")
@@ -212,7 +329,7 @@ def test_accept_qa_requires_exact_active_run_and_promotes_accepted_head():
 
 
 def test_yield_clears_only_runtime_lease_and_preserves_nonterminal_task():
-    record = _record()
+    record = _yieldable_record()
     plan = prepare_transaction(
         record, kind="YIELD", transaction_id="tx-yield",
         invocation_identity="scheduled:00:run-a",
@@ -284,6 +401,8 @@ def test_merge_then_finalize_reaches_done_without_half_terminal_state():
         finalize_plan,
         effect={
             "issue_closed": True,
+            "issue_state": "closed",
+            "issue_state_reason": "completed",
             "released_at": "2026-09-28T00:39:00Z",
             "updated_at": "2026-09-28T00:39:00Z",
         },
@@ -506,7 +625,7 @@ def test_expired_lease_reacquire_cannot_change_owner_or_lane():
 
 
 def test_yield_requires_exact_lease_invocation_and_preserves_continuation():
-    record = _record()
+    record = _yieldable_record()
     plan = prepare_transaction(
         record,
         kind="YIELD",
@@ -526,6 +645,31 @@ def test_yield_requires_exact_lease_invocation_and_preserves_continuation():
     assert yielded.head_sha == record.head_sha
     assert yielded.next_action == record.next_action
     assert yielded.transaction.invocation_identity == "scheduled:00:run-a"
+
+
+def test_yield_rejects_immediate_post_acquire_without_substantive_progress():
+    record = replace(
+        _record(),
+        transaction=TransactionState(
+            id="tx-acquire-only",
+            kind="ACQUIRE",
+            status="RECONCILED",
+            expected_fingerprint="a" * 64,
+            invocation_identity="scheduled:00:run-a",
+        ),
+    )
+    plan = prepare_transaction(
+        record,
+        kind="YIELD",
+        transaction_id="tx-yield-after-acquire",
+        invocation_identity="scheduled:00:run-a",
+    )
+    with pytest.raises(ControlTransactionError, match="SCHEDULER_EXECUTION_NO_PROGRESS"):
+        execute_transaction(
+            record,
+            plan,
+            effect={"updated_at": "2026-09-28T00:45:00Z"},
+        )
 
 
 def test_yield_rejects_foreign_invocation_and_next_action_rewrite():
@@ -695,3 +839,137 @@ def test_reconcile_can_clear_blocker_only_with_explicit_blocked_to_active_transi
     assert active.state == "ACTIVE"
     assert active.blocker is None
     assert active.next_action.kind == "APPLY_COMMIT"
+
+
+
+def test_merge_target_drift_redirects_to_sync_target_without_closure():
+    record = _record(
+        state="INTEGRATING",
+        semantic_state="QA_ACCEPTED",
+        next_action={
+            "kind": "MERGE",
+            "args": {
+                "pr_number": 891,
+                "head_sha": "b" * 40,
+                "target_branch": "cleanup/2d-3d-sync",
+                "revalidation_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+            },
+            "display": "merge",
+        },
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+    plan = prepare_transaction(record, kind="MERGE", transaction_id="tx-merge-drift")
+    redirected = execute_transaction(
+        record,
+        plan,
+        effect={
+            "merge_precheck_status": "TARGET_DRIFT",
+            "target_sha": "e" * 40,
+            "semantic_state": "TARGET_DRIFT_REQUIRES_SYNC",
+            "next_action": {
+                "kind": "SYNC_TARGET",
+                "args": {
+                    "target_sha": "e" * 40,
+                    "pr_number": 891,
+                    "target_branch": "cleanup/2d-3d-sync",
+                    "qa_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+                },
+                "display": "sync target",
+            },
+            "updated_at": "2026-09-29T00:00:00Z",
+        },
+    )
+
+    assert redirected.state == "INTEGRATING"
+    assert redirected.target_sha == "e" * 40
+    assert redirected.head_sha == record.head_sha
+    assert redirected.closure.merged_sha is None
+    assert redirected.next_action.kind == "SYNC_TARGET"
+
+
+def test_sync_target_head_advance_requires_revalidation():
+    record = _record(
+        state="INTEGRATING",
+        semantic_state="TARGET_DRIFT_REQUIRES_SYNC",
+        next_action={
+            "kind": "SYNC_TARGET",
+            "args": {
+                "target_sha": "e" * 40,
+                "pr_number": 891,
+                "target_branch": "cleanup/2d-3d-sync",
+                "qa_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+            },
+            "display": "sync target",
+        },
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+    plan = prepare_transaction(record, kind="SYNC_TARGET", transaction_id="tx-sync-target")
+    synced = execute_transaction(
+        record,
+        plan,
+        effect={
+            "head_sha": "d" * 40,
+            "target_sha": "e" * 40,
+            "semantic_state": "QA_INVALIDATED_BY_TARGET_SYNC",
+            "next_action": {
+                "kind": "START_QA",
+                "args": {
+                    "workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+                    "post_accept_pr_number": 891,
+                },
+                "display": "revalidate",
+            },
+            "updated_at": "2026-09-29T00:01:00Z",
+        },
+    )
+
+    assert synced.head_sha == "d" * 40
+    assert synced.target_sha == "e" * 40
+    assert synced.next_action.kind == "START_QA"
+    assert synced.qa.accepted_head_sha == "b" * 40
+    assert synced.qa.accepted_head_sha != synced.head_sha
+
+
+def test_sync_target_noop_head_can_return_to_merge():
+    record = _record(
+        state="INTEGRATING",
+        semantic_state="TARGET_DRIFT_REQUIRES_SYNC",
+        next_action={
+            "kind": "SYNC_TARGET",
+            "args": {
+                "target_sha": "e" * 40,
+                "pr_number": 891,
+                "target_branch": "cleanup/2d-3d-sync",
+                "qa_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+            },
+            "display": "sync target",
+        },
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+    plan = prepare_transaction(record, kind="SYNC_TARGET", transaction_id="tx-sync-target-noop")
+    synced = execute_transaction(
+        record,
+        plan,
+        effect={
+            "head_sha": "b" * 40,
+            "target_sha": "e" * 40,
+            "semantic_state": "TARGET_RECONCILED",
+            "next_action": {
+                "kind": "MERGE",
+                "args": {
+                    "pr_number": 891,
+                    "head_sha": "b" * 40,
+                    "target_branch": "cleanup/2d-3d-sync",
+                    "expected_target_sha": "e" * 40,
+                    "revalidation_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+                },
+                "display": "merge",
+            },
+            "updated_at": "2026-09-29T00:02:00Z",
+        },
+    )
+
+    assert synced.head_sha == record.head_sha
+    assert synced.target_sha == "e" * 40
+    assert synced.next_action.kind == "MERGE"
+    assert synced.qa.accepted_head_sha == synced.head_sha
