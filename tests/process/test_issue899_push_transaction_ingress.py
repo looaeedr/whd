@@ -306,7 +306,6 @@ def test_startup_evidence_is_bound_to_exact_invocation_before_state_read(monkeyp
         purpose="Issue #940 mutation",
         invocation_identity="interactive:work0:issue940:other",
         execution_mode="INTERACTIVE",
-        work_root_gate_evidence=_root_gate_evidence(),
     )
     request = {
         "schema": ingress.REQUEST_SCHEMA,
@@ -344,7 +343,6 @@ def test_stale_startup_evidence_is_rejected_before_state_read(monkeypatch):
         purpose="Issue #940 mutation",
         invocation_identity=invocation,
         execution_mode="INTERACTIVE",
-        work_root_gate_evidence=_root_gate_evidence(),
         issued_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
     )
     request = {
@@ -383,7 +381,6 @@ def test_canonical_startup_evidence_ttl_and_declaration_are_machine_validated():
         purpose="resume Scheduler A issue",
         invocation_identity=invocation,
         execution_mode="SCHEDULER_LANE",
-        work_root_gate_evidence=_root_gate_evidence("SCHEDULER_LANE"),
         issued_at=now,
     )
     validated = validate_startup_evidence(
@@ -554,7 +551,6 @@ def test_push_ingress_accepts_fail_qa_kind(tmp_path):
             purpose="consume exact failed QA",
             invocation_identity=invocation,
             execution_mode="INTERACTIVE",
-            work_root_gate_evidence=_root_gate_evidence(),
         ),
     }
     path = tmp_path / "request.json"
