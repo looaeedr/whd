@@ -23,6 +23,7 @@ on:
       - 'tools/governance_parity_gate.py'
       - 'tests/process/test_issue952_governance_ancestry_reconcile.py'
       - 'tests/process/test_issue975_flow_v2_closure_stability.py'
+      - 'tests/process/test_issue992_scheduler_host_recovery_builder.py'
 
 
       - '.github/workflows/whd-scheduler-host-watchdog.yml'
@@ -107,4 +108,5 @@ jobs:
             tests/process/test_issue721_task_start_authority_declaration.py \
             tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
             tests/process/test_issue952_governance_ancestry_reconcile.py \
-            tests/process/test_issue975_flow_v2_closure_stability.py
+            tests/process/test_issue975_flow_v2_closure_stability.py \
+            tests/process/test_issue992_scheduler_host_recovery_builder.py
