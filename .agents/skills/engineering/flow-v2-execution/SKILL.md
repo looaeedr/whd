@@ -9,6 +9,21 @@ whd_schema: WHD_DOC_META_V1
 
 # Flow v2 Execution
 
+
+## PROJECT_STARTUP_HARD_GATE_V1
+
+<!-- EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1 -->
+
+Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocation（recurring scheduler、/排程A、/排程B、/工作0..3、互動執行、takeover、resume、recovery）在任何 substantive analysis、claim、Guard、repository mutation 或 workflow dispatch 前，固定依序：
+
+1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
+2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
+3. fresh-read project `AGENTS.md`，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1` 與 Phase6 Knowledge Preflight；GitHub-only runtime 使用 trusted remote Phase6 Preflight。
+4. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
+5. 只有上述 project startup gates 成立後，才可進入本 Skill 的 Flow v2 ExecutionRecord / transaction / lease / next_action。
+
+startup declaration 只提供 provenance/intent，不取代 claim、Guard、Preflight、ExecutionRecord 或 transaction fencing；缺任一步固定 `FAIL_CLOSED`。前一聊天、前一 runtime 或前一 scheduler wake 的宣告不得沿用。
+
 <!-- FLOW_V2_EXECUTION_CANONICAL_V1 -->
 
 本 Skill 是 WHD execution/control-plane 的唯一 CURRENT operational contract。其他 workflow Skills 只可做入口 bridge，不得建立第二套 ownership、resume、closure、scheduler 或 recovery state machine。
