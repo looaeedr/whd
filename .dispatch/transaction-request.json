@@ -1,28 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-928-acquire-g1",
+  "request_id": "work0-928-start-branch-g2",
   "issue": 928,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-  "expected_coord_head": "5f32c05274077cbd1d2e6f74acdb1724dfdbdeba",
-  "expected_generation": 1,
+  "expected_coord_head": "fe58d3486733fd8d4c40b08331a5e6ee8060aed5",
+  "expected_generation": 2,
   "effect": {
-    "owner_kind": "INTERACTIVE",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": null,
-    "slot_id": "worker.slot.0",
-    "observed_at": "2026-09-28T13:17:14Z",
-    "lease": {
-      "token": "lease:928:interactive:work0:g1",
-      "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-      "expires_at": "2026-09-28T13:47:14Z"
-    },
-    "semantic_state": "CLAIMED",
+    "work_branch": "work/issue928-windows-3d-blank-no-log-20260928",
+    "head_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {},
-      "display": "Create work branch for Issue #928"
+      "display": "Diagnose Windows 3D blank/no-log and apply repair"
     }
   }
 }
