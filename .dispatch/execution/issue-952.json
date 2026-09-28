@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
-    "id": 36459429312,
-    "purpose": "ISSUE952_INTEGRATION_REVALIDATION",
-    "status": "success"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
-      "run_id": 36459429312
+      "candidate_commit_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872"
     },
-    "display": "Poll Issue #952 integration revalidation",
-    "kind": "POLL_QA"
+    "display": "Apply corrected current-cleanup-preserving Issue #952 candidate",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
-    "last_accepted_run": 36455674006
+    "accepted_head_sha": "56e7d0c7eb7c1dc07feefe73fb71d1afd84927f9",
+    "last_accepted_run": 36459429312
   },
   "recovery_history": [
     {
@@ -49,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "BASE_REFRESH_QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
   "transaction": {
-    "expected_fingerprint": "943116ad5da14e802455bc00351899852beb77d215fc7081e76521167ba8d95c",
-    "id": "gha:36459597202:952:START_QA:15",
+    "expected_fingerprint": "6ed38444e61cf305773d9f8692c6dc1587a1dedd1b6fb620ab919722554c8bce",
+    "id": "gha:36459788319:952:ACCEPT_QA:16",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:39:03Z",
+  "updated_at": "2026-09-28T17:40:38Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
