@@ -27,6 +27,7 @@ whd_schema: WHD_DOC_META_V1
 - work-slot projection：`tools/execution_work_slot_view.py`。
 - explicit READY ingress：`tools/execution_dispatch_ingress.py`。
 - mutation policy：`tools/execution_authority_policy.py`。
+- runtime observability (NON_AUTHORITY)：`coord/monitor-v2:.dispatch/monitor/runtime/*.json`。
 
 `.dispatch/execution/ready-index.json` 固定 `authority=DERIVED_CACHE_ONLY`；它可重建，永遠不能授權 mutation 或 ownership。
 
@@ -55,7 +56,33 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 ## Work slot / handoff
 
-`worker.slot.1/2/3` 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。
+固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。
+
+### DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
+
+- 互動式使用者明確要求執行 ticket，且未指定任何 `/工作N` / slot 時，machine ingress 必須把 `slot_id` 正規化為 `worker.slot.0`。
+- `/工作1`、`/工作2`、`/工作3` 明確指定時保持原 slot，不得被工作0覆蓋。
+- `SCHEDULER_LANE`、chain successor、純 query/status 不得因本 gate 自動取得 `worker.slot.0`。
+- `/工作0` 是預設互動入口，不是新的 claim/lease/ExecutionRecord authority。
+
+## Runtime observability
+
+<!-- WHD_RUNTIME_OBSERVABILITY_V1 -->
+
+聊天室輸出不是 liveness authority。每個 scheduler A/B 與 `/工作0/1/2/3` runtime 都必須把非權威 observation 投影到 `coord/monitor-v2:.dispatch/monitor/runtime/<source>.json`。
+
+固定事件：
+- `WAKE`：runtime 成功進場並 fresh-read 本 Skill 後立即寫入。
+- `PROGRESS`：每次 substantive durable action/readback 後更新。
+- `EXIT`：正常離開前更新；結果只使用 `IDLE_NO_WORK / LANE_BUSY / YIELDED / BLOCKED / DONE` 等可判讀狀態。
+
+至少包含：source、handler、entrypoint、issue、slot_id、owner_id、state、action、last_wake_at、last_progress_at、exit_state、observed_at、record_fingerprint（有 record 且可可靠取得時）。
+
+監控 branch 僅供 observability：
+- `coord/monitor-v2` 永遠不是 execution authority。
+- monitor observation 不得授權 ACQUIRE、mutation、merge、closure 或 takeover。
+- observation 與 `coord/execution-v2` 衝突時，以 ExecutionRecord 為準；monitor 只能標記 `OBSERVATION_DRIFT`。
+- 缺少 EXIT 或長時間沒有 progress 可被 whd-monitor 判為 `STALE_RUNTIME_SUSPECTED`，但不能因此直接改 execution state。
 
 ## Generation fencing + salvage
 
