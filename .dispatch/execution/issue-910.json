@@ -1,7 +1,7 @@
 {
   "schema": "WHD_EXECUTION_RECORD_V2",
   "version": 2,
-  "generation": 3,
+  "generation": 4,
   "issue": 910,
   "execution_intent": "EXECUTE_TICKET",
   "owner_kind": "INTERACTIVE",
@@ -24,17 +24,17 @@
     "display": "Start Issue #910 focused Xvfb QA"
   },
   "lease": {
-    "token": "lease:910:interactive:work0:g1",
-    "invocation_identity": "interactive:work0:20260928T120703Z:910:g1",
-    "expires_at": "2026-09-28T12:22:03Z"
+    "token": "lease:910:interactive:work0:g2",
+    "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
+    "expires_at": "2026-09-28T12:37:17Z"
   },
   "active_run": null,
   "transaction": {
-    "id": "chatgpt:work0:910:START_BRANCH:2",
-    "kind": "START_BRANCH",
+    "id": "chatgpt:work0:910:ACQUIRE:3",
+    "kind": "ACQUIRE",
     "status": "RECONCILED",
-    "expected_fingerprint": "3fe7b0ddf4f99efdd63b5b07a4ec3853a65568a6f57ea6ba124efc03a4a661a5",
-    "invocation_identity": "interactive:work0:20260928T120703Z:910:g1"
+    "expected_fingerprint": "393152ffe191f30a708f5499a6b30de72fa19c7d4017869fdfd7c5ed99f82c4e",
+    "invocation_identity": "interactive:work0:20260928T122217Z:910:g2"
   },
   "qa": {
     "last_accepted_run": null,
@@ -59,5 +59,5 @@
       "authority_fingerprint": "6ef6765f7c844e5ae023514a307e7172a1660734fe62568fd0e91e30e50fb1d6"
     }
   ],
-  "updated_at": "2026-09-28T12:21:20Z"
+  "updated_at": "2026-09-28T12:22:17Z"
 }
