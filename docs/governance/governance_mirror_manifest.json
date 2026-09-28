@@ -13,6 +13,7 @@
     ".github/workflows/whd-control-plane-regression.yml",
     ".github/workflows/whd-control-transaction-v2-shadow.yml",
     ".github/workflows/whd-control-transaction-v2-terminal-shadow.yml",
+    ".github/workflows/whd-control-transaction-v2.yml",
     ".github/workflows/whd-governance-mirror-gate.yml",
     ".github/workflows/whd-phase6-preflight.yml",
     ".github/workflows/whd-remote-claim-activation.yml",
@@ -43,6 +44,7 @@
     "tools/claim_activation_recovery.py",
     "tools/continuity_controller.py",
     "tools/control_transaction.py",
+    "tools/control_transaction_production_executor.py",
     "tools/control_transaction_shadow_executor.py",
     "tools/control_transaction_terminal_executor.py",
     "tools/control_transaction_transport.py",
@@ -95,4 +97,4 @@
     ".agents/skills/engineering/排程模擬",
     ".agents/skills/engineering/派工"
   ]
-}
+}\n
