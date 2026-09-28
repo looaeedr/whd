@@ -50,18 +50,19 @@ def _record(issue: int, *, slot_id: str | None, state: str = "ACTIVE"):
     })
 
 
-def test_projection_always_returns_three_fixed_slots_and_only_record_backed_occupancy():
+def test_projection_always_returns_four_fixed_slots_and_only_record_backed_occupancy():
     records = [_record(844, slot_id="worker.slot.2")]
 
     slots = project_work_slots(records)
 
     assert tuple(slot.slot_id for slot in slots) == FIXED_SLOT_IDS
     assert slots[0].status == "EMPTY"
-    assert slots[1].status == "BOUND"
-    assert slots[1].issue == 844
-    assert slots[1].owner_id == LANE_A
-    assert slots[1].next_action_kind == "APPLY_COMMIT"
-    assert slots[2].status == "EMPTY"
+    assert slots[1].status == "EMPTY"
+    assert slots[2].status == "BOUND"
+    assert slots[2].issue == 844
+    assert slots[2].owner_id == LANE_A
+    assert slots[2].next_action_kind == "APPLY_COMMIT"
+    assert slots[3].status == "EMPTY"
 
 
 def test_unbound_nonterminal_record_does_not_get_guessed_into_an_empty_slot():
@@ -85,7 +86,7 @@ def test_two_nonterminal_records_cannot_occupy_same_slot():
         ])
 
 
-def test_unknown_slot_identity_fails_closed_instead_of_creating_a_fourth_slot():
+def test_unknown_slot_identity_fails_closed_instead_of_creating_a_fifth_slot():
     with pytest.raises(WorkSlotViewError, match="unknown slot_id"):
         project_work_slots([_record(844, slot_id="worker.slot.4")])
 
