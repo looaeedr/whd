@@ -104,6 +104,7 @@ def validate_startup_evidence(
     evidence: Mapping[str, object] | object,
     *,
     invocation_identity: str,
+    execution_mode: str | None = None,
     repository: str = DEFAULT_REPOSITORY,
     now: datetime | None = None,
 ) -> dict[str, object]:
@@ -137,12 +138,16 @@ def validate_startup_evidence(
     if not expected_invocation or observed_invocation != expected_invocation:
         raise ValueError("startup evidence invocation mismatch")
 
-    execution_mode = str(evidence.get("execution_mode") or "").strip()
-    if not execution_mode:
+    observed_execution_mode = str(evidence.get("execution_mode") or "").strip()
+    if not observed_execution_mode:
         raise ValueError("startup evidence execution_mode must be nonblank")
+    if execution_mode is not None:
+        expected_execution_mode = str(execution_mode).strip()
+        if not expected_execution_mode or observed_execution_mode != expected_execution_mode:
+            raise ValueError("startup evidence execution_mode mismatch")
     validate_work_root_gate_evidence(
         evidence.get("work_root_gate"),
-        execution_mode=execution_mode,
+        execution_mode=observed_execution_mode,
     )
 
     purpose = str(evidence.get("purpose") or "").strip()
