@@ -95,6 +95,11 @@ def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_geomet
         _pump(root, 8)
 
         assert str(designer._phase6_input_snapshot.get("model") or "") == "受電箱"
+        assert designer._phase6_3d_display_mode == "assembly", (
+            "Live-switch from a visible Vault assembly must preserve assembly mode"
+        )
+        assert str(designer.part_var.get()) == "組合體"
+        assert bool(designer.assembly_parts_panel.winfo_ismapped())
         after = _mesh_bounds(scene_renderer.last_cutting_mesh)
         assert after != before, (
             "Visible 3D mesh bounds stayed identical after live-switch to 受電箱; "
@@ -150,6 +155,72 @@ def test_structure_tree_selecting_back_panel_exposes_mapped_back_panel_mode_sele
         assert inside_input, (
             "後面板形式 is mapped, but not inside the operator's normal input region"
         )
+
+        # The same canonical product choice must also be visible from 截角資料
+        # when the operator selects the physical rear panel there. This is a
+        # second presentation of the same state, never a second authority.
+        tree.selection_set("mode:corner_data")
+        tree.focus("mode:corner_data")
+        tree.event_generate("<<TreeviewSelect>>")
+        _pump(root, 5)
+        assert designer._phase6_3d_display_mode == "corner_data"
+        assert "box_body:back" in designer.corner_data_part_buttons
+        designer.corner_data_part_buttons["box_body:back"].invoke()
+        _pump(root, 4)
+
+        selectors = _visible_back_panel_selector(designer)
+        assert len(selectors) == 1, (
+            "Selecting 後面板 in 截角資料 must expose the canonical 後面板形式 selector"
+        )
+        selector = selectors[0]
+        parent = selector
+        inside_corner_data = False
+        while parent is not None:
+            if parent is designer.corner_data_panel:
+                inside_corner_data = True
+                break
+            parent = getattr(parent, "master", None)
+        assert inside_corner_data, (
+            "截角資料的後面板形式 selector must live inside the existing Corner Data region"
+        )
+    finally:
+        _close(tk, root, designer)
+
+
+def test_receiving_side_back_children_keep_independent_profiles_and_back_panel_is_flat():
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+
+        wanted = (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+        )
+        assert set(wanted) <= set(designer.designer_workspace.available_parts)
+
+        signatures = []
+        for key in wanted:
+            profiles = designer.designer_workspace.profiles_for(key, {}) or {}
+            rows = tuple(dict(row) for row in tuple(profiles.get("X") or ()))
+            assert rows, f"{key} must own an independent physical-piece X profile"
+            signatures.append(tuple(str(row.get("phase6_key") or "") for row in rows))
+        assert len(set(signatures)) == 3, (
+            "left/back/right physical pieces must not collapse into one shared editor profile"
+        )
+
+        import fold_designer_bridge as bridge
+        from ae_engine.sheetmetal_drawing import LinePrimitive
+
+        back = bridge._phase6_box_body_piece_render_data(designer, "box_body:back")
+        bends = [
+            primitive for primitive in tuple(back.scene.primitives)
+            if isinstance(primitive, LinePrimitive)
+            and str(primitive.layer).upper() == "BEND"
+        ]
+        assert bends == [], "Receiving rear panel is a flat plate and must not expose BEND lines"
+        assert tuple(back.fold_guides or ()) == ()
     finally:
         _close(tk, root, designer)
 
@@ -239,5 +310,10 @@ def test_receiving_assembly_view_visibly_projects_three_frame_markings():
             "Canonical MARKING exists in frame FinalScenes but is not visibly "
             "projected in Receiving assembly 3D"
         )
+        assert all(float(line.get_zorder()) >= 10.0 for line in marking_lines), (
+            "Receiving MARKING must be drawn as a foreground overlay; default 3D "
+            "artist depth can hide a coplanar marking behind the sheet surface"
+        )
+        assert all(float(line.get_linewidth()) >= 1.8 for line in marking_lines)
     finally:
         _close(tk, root, designer)

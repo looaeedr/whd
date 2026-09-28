@@ -23,6 +23,47 @@ def _require_display():
         pytest.skip("需要 Tk 顯示環境")
 
 
+def test_workspace_parameter_lock_button_has_live_callback_and_toggles_without_tk_error():
+    _require_display()
+    import tkinter as tk
+
+    root = tk.Tk(); root.withdraw()
+    app = None
+    errors = []
+    original_report = root.report_callback_exception
+    try:
+        root.report_callback_exception = lambda *args: errors.append(args)
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var = DummyVar("金庫型")
+        designer = app.open_original_fold_designer()
+        designer.activate_part("head")
+        root.update_idletasks(); root.update()
+
+        assert callable(getattr(bridge, "_phase6_toggle_parameter_panel", None)), (
+            "WorkspaceShell parameter-lock command points at a missing live bridge port"
+        )
+        assert designer._phase6_parameters_unlocked is False
+        designer.parameter_lock_button.invoke()
+        root.update_idletasks(); root.update()
+        assert errors == []
+        assert designer._phase6_parameters_unlocked is True
+        assert "解鎖" in designer.parameter_lock_button.cget("text")
+
+        designer.parameter_lock_button.invoke()
+        root.update_idletasks(); root.update()
+        assert errors == []
+        assert designer._phase6_parameters_unlocked is False
+        assert "鎖定" in designer.parameter_lock_button.cget("text")
+    finally:
+        root.report_callback_exception = original_report
+        try:
+            if app is not None and app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
+        root.destroy()
+
+
 def test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state():
     _require_display()
     import tkinter as tk
