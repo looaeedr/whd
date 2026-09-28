@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
+    "id": 36443646900,
+    "purpose": "ISSUE944_FOCUSED_GREEN",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
   "issue": 944,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/qa-issue944-focused.yml"
+      "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
+      "run_id": 36443646900
     },
-    "display": "Bind exact Issue #944 focused QA run",
-    "kind": "START_QA"
+    "display": "Accept exact Issue #944 focused QA run 36443646900",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "transaction": {
-    "expected_fingerprint": "61bd206bb99aac2cd2033c7b7d73ed662797275ace77d2e607c2a011347262da",
-    "id": "gha:36444029380:944:RECONCILE:7",
+    "expected_fingerprint": "0de65dcdef5d40f1d1ff38f5b4c67485955ebd3c9cea4c05e8aaa41f058d2a1c",
+    "id": "gha:36444148943:944:START_QA:8",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-    "kind": "RECONCILE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:30:12Z",
+  "updated_at": "2026-09-28T15:31:08Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }
