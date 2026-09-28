@@ -5,15 +5,15 @@
   "source": "scheduler-a",
   "handler": "排程A",
   "entrypoint": "20",
-  "event": "WAKE",
-  "runtime_state": "WAKE",
+  "event": "PROGRESS",
+  "runtime_state": "WORKING",
   "issue": 889,
   "slot_id": null,
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "action": "ACQUIRE",
+  "action": "MERGE",
   "record_fingerprint": null,
   "last_wake_at": "2026-09-28T13:22:40Z",
-  "last_progress_at": "2026-09-28T11:39:20Z",
+  "last_progress_at": "2026-09-28T13:23:30Z",
   "exit_state": null,
-  "observed_at": "2026-09-28T13:22:40Z"
+  "observed_at": "2026-09-28T13:23:30Z"
 }
