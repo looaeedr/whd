@@ -102,8 +102,8 @@ Flow v2 CURRENT hard gate 固定為：
 1. 本 invocation 已先完成 `EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1`，並 user-visible 輸出 canonical `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`。
 2. 已對 **exact branch + exact pre-write HEAD + 完整 task + 全部 planned changed files** 執行 canonical Phase6 Knowledge Preflight。GitHub-only runtime 固定使用 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1` / `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`。
 3. remote receipt 必須 `result=GREEN`，且 exact 綁定 issue、worker、branch、head_sha、task hash 與 changed_files；呼叫端再 fresh-read receipt 列出的全部 REQUIRED SKILLS / REQUIRED REFERENCES。
-4. 寫入只能發生在 receipt 綁定的 branch，且 GitHub contents CAS 必須使用 pre-write blob SHA；branch/target blob 漂移即 fail closed，重新跑 Preflight，不得沿用 stale receipt。
-5. mutation scope 不得超出 receipt 的 `changed_files`。途中新增 target 必須回到第 2 步重跑。
+4. 寫入只能發生在 receipt 綁定的 branch。GitHub contents mutation 必須逐 target 使用 fresh blob SHA 做 CAS。若 branch HEAD 自 receipt HEAD 往後的新增 commits **全部由同一 invocation、且全部只修改 receipt.changed_files 內路徑**，可作為同一 authorized mutation chain 連續施工；任一 foreign/intervening commit、target blob 非預期 drift、branch rewrite 或 owner/invocation 不可證明時立即 fail closed，重新跑 Preflight。
+5. mutation scope 不得超出 receipt 的 `changed_files`。途中新增 target 必須回到第 2 步重跑；不得用同一 receipt 擴張 scope。
 6. Skill/governance mutation 必須經 paired governance PR（main / cleanup）及 `WHD Control Plane Regression` + `Governance Mirror Hard Gate`；Control Plane Regression 必須包含 startup hard-gate contract tests。
 7. `.github/workflows/whd-remote-execution-guard.yml` 已由 Flow v2 cutover 明確標記 `FLOW_V2_LEGACY_TRANSPORT_RETIRED_V1`，**不得把已退役 legacy Remote Guard 當 CURRENT Skill write gate**。不得為了滿足舊文字而重新啟用 legacy claim/Guard authority。
 
