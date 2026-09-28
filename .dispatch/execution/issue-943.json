@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
-    "id": 36440753727,
-    "purpose": "ISSUE943_FOCUSED_RED",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
@@ -28,11 +23,11 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
-      "run_id": 36440753727
+      "observed_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
+      "observed_work_branch": "work/receiving-ui-regression-20260928"
     },
-    "display": "Poll exact focused RED run 36440753727",
-    "kind": "POLL_QA"
+    "display": "Reconcile #943 record to GREEN candidate 1a8d65b6",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -49,21 +44,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_FAILED_REPAIR",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "VERIFYING",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "01437f3bb4ddfce5dc0f281e94558c5921dc1ebb8d9adc81a8289926985965ad",
-    "id": "gha:36447142750:943:ACQUIRE:7",
+    "expected_fingerprint": "d42b7493b7cfb8481ebcf66cccccfe2a8610fc5a3d9642a9443b0747c30162f8",
+    "id": "gha:36447436982:943:FAIL_QA:8",
     "invocation_identity": "interactive:work1:issue943:session1",
-    "kind": "ACQUIRE",
+    "kind": "FAIL_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:54:12Z",
+  "updated_at": "2026-09-28T15:56:39Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
