@@ -123,17 +123,32 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 ## Production transaction transport
 
-<!-- FLOW_V2_PRODUCTION_TRANSACTION_V1 -->
+<!-- FLOW_V2_PRODUCTION_TRANSACTION_V2 -->
 
-production state mutation 的 trusted writer 是 `.github/workflows/whd-control-transaction-v2.yml`，實作者為 `tools/control_transaction_production_executor.py`。
+Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 workflow_dispatch。
 
-scheduler/interactive runtime 不可直接手寫 `coord/execution-v2`。需要 ACQUIRE/ACCEPT_QA/MERGE/FINALIZE/YIELD 等 state transition 時：
-1. fresh-read native record / exact external readback。
-2. dispatch `whd-control-transaction-v2.yml`，輸入 exact issue、kind、lane_id、invocation_identity、effect_json。
-3. 鎖定該 workflow run 到 terminal。
-4. success 後 fresh-read `coord/execution-v2`，必須看到 generation +1、transaction.status=RECONCILED 與 exact next_action/state。
-5. CONFLICT/FAILED 時重新 fresh-read，不得 replay 舊 effect。
+- A request branch: `coord/transaction-requests-a`
+- B request branch: `coord/transaction-requests-b`
+- request path: `.dispatch/transaction-request.json`
+- trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
+- trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
-`lease=null` 的 same-lane nonterminal record：先 dispatch ACQUIRE（effect_json 可為 `{}`），readback成功後在同一 scheduler invocation 繼續原 next_action。
+每次需要 ACQUIRE/ACCEPT_QA/MERGE/FINALIZE/YIELD 等 transaction：
+1. fresh-read `coord/execution-v2` exact HEAD 與 native record generation。
+2. 在本 lane request branch fresh-read request blob（若無則 create，若有則 CAS update）。
+3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
+   - request_id：本 invocation/action 唯一值
+   - issue / kind / lane_id / invocation_identity
+   - expected_coord_head：步驟1 fresh HEAD
+   - expected_generation：步驟1 record.generation
+   - effect：fresh external readback payload
+4. 記住 request commit SHA；push 會自動觸發 request workflow。
+5. 只接受 event=push、workflow=`whd-control-transaction-v2-request.yml`、head_sha=request commit SHA 的 exact run。
+6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
+7. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。
 
-POLL_QA 是 observation，不直接 mutation。若 exact run terminal success，先 fresh-read run/head，再以 ACCEPT_QA transaction 寫入 QA acceptance與下一個 MERGE action。MERGE/FNALIZE 的外部 GitHub side effect 必須先做 fresh readback，再把該 readback作 effect_json交給 production transaction writer。
+`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
+
+POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
+
+手動 `whd-control-transaction-v2.yml` 只保留管理/診斷用途；scheduler不得依賴 connector 未提供的 workflow_dispatch。
