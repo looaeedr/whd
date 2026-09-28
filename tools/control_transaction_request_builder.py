@@ -16,6 +16,20 @@ from typing import Mapping
 from tools.execution_entry_contract import DEFAULT_REPOSITORY, build_startup_evidence
 
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
+INTENT_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1"
+
+INTENT_REQUIRED_FIELDS = (
+    "request_id",
+    "issue",
+    "kind",
+    "lane_id",
+    "invocation_identity",
+    "expected_coord_head",
+    "expected_generation",
+    "effect",
+    "purpose",
+    "work_root_gate_evidence",
+)
 
 LANE_EXECUTION_MODES = {
     "scheduler.6ab13fa557fc8191935c671214b865e2": "SCHEDULER_LANE",
@@ -91,6 +105,46 @@ def build_control_transaction_request(
         "expected_generation": int(expected_generation),
         "effect": dict(effect),
     }
+
+
+def build_control_transaction_request_from_intent(
+    intent: Mapping[str, object],
+    *,
+    repository: str = DEFAULT_REPOSITORY,
+    issued_at: datetime | None = None,
+) -> dict[str, object]:
+    """Materialize a semantic request intent through the canonical startup builder.
+
+    GitHub-only callers submit only transaction semantics plus already-resolved
+    work-root evidence.  The trusted ingress owns declaration/execution-mode
+    construction, so callers cannot hand-compose startup_evidence.
+    """
+    if not isinstance(intent, Mapping):
+        raise ValueError("intent must be a mapping")
+    if intent.get("schema") != INTENT_SCHEMA:
+        raise ValueError("unexpected transaction intent schema")
+    if "startup_evidence" in intent:
+        raise ValueError("transaction intent must not supply startup_evidence")
+    missing = [field for field in INTENT_REQUIRED_FIELDS if field not in intent]
+    if missing:
+        raise ValueError(f"transaction intent missing {missing[0]}")
+    root_evidence = intent["work_root_gate_evidence"]
+    if not isinstance(root_evidence, Mapping):
+        raise ValueError("work_root_gate_evidence must be a mapping")
+    return build_control_transaction_request(
+        request_id=str(intent["request_id"]),
+        issue=int(intent["issue"]),
+        kind=str(intent["kind"]),
+        lane_id=str(intent["lane_id"]),
+        invocation_identity=str(intent["invocation_identity"]),
+        expected_coord_head=str(intent["expected_coord_head"]),
+        expected_generation=int(intent["expected_generation"]),
+        effect=intent["effect"],
+        purpose=str(intent["purpose"]),
+        work_root_gate_evidence=root_evidence,
+        repository=repository,
+        issued_at=issued_at,
+    )
 
 
 def _load_json(path: Path) -> dict[str, object]:
