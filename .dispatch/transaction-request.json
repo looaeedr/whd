@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-reacquire-finalization-20260928T175016Z",
+  "request_id": "issue952-reconcile-ancestry-receipt-20260928T175653Z",
   "issue": 952,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
   "startup_evidence": {
@@ -22,33 +22,27 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "繼續 Issue #952 的 CURRENT Flow v2 狀態，完成已驗證的 governance ancestry reconciliation readback、final merged target 綁定與 finalization。",
-    "issued_at": "2026-09-28T17:48:58Z",
-    "expires_at": "2026-09-28T17:53:58Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成已驗證的 governance ancestry reconciliation readback、final merged target 綁定與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "完成 Issue #952 的已驗證 governance ancestry reconciliation readback、final merged target 綁定與 finalization。",
+    "issued_at": "2026-09-28T17:56:53Z",
+    "expires_at": "2026-09-28T18:01:53Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：完成 Issue #952 的已驗證 governance ancestry reconciliation readback、final merged target 綁定與 finalization。\n範圍：只處理 #952 現有治理鏈；不擴張到其他工單、不改產品內容、不用本機 fallback。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "5fc10039a7b445611e68793248670e4aaa480ced",
-  "expected_generation": 21,
+  "expected_coord_head": "4b52c7c1f1d2eb9aa23719e50b9361bf9f21f07f",
+  "expected_generation": 22,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.0",
-    "observed_at": "2026-09-28T17:50:16Z",
-    "lease": {
-      "token": "lease:952:finalization:175016",
-      "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-      "expires_at": "2026-09-28T18:05:16Z"
-    },
-    "semantic_state": "MERGED_PENDING_ANCESTRY",
+    "observed_work_branch": "governance/issue952-mirror-ancestry-reconciliation",
+    "observed_head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
+    "observed_target_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
+    "semantic_state": "ANCESTRY_RECONCILED",
     "next_action": {
+      "kind": "MERGE",
       "args": {
-        "expected_cleanup_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
-        "expected_main_sha": "4cc50f132b76ef0fb850cd2557c27f6ade86e393",
-        "reason": "GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
+        "ancestry_run_id": 36461596195,
+        "main_sha": "4cc50f132b76ef0fb850cd2557c27f6ade86e393",
+        "cleanup_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
+        "receipt_schema": "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1"
       },
-      "display": "Reconcile main governance ancestry into cleanup without changing cleanup tree",
-      "kind": "RECONCILE"
+      "display": "Record final ancestry-reconciled cleanup target for Issue #952"
     }
   }
 }
