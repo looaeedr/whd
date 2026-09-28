@@ -1,51 +1,61 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 948,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.3",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-  "work_branch": "governance/issue948-scheduler-startup-bootstrap",
-  "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #948"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "issue": 948,
+  "lane_id": "chatgpt.flowv2.work3",
+  "lease": {
+    "expires_at": "2026-09-28T15:50:41Z",
+    "invocation_identity": "interactive:work3:issue948:bootstrap-fix:20260928",
+    "token": "lease:948:36444723242:1"
+  },
+  "next_action": {
+    "args": {},
+    "display": "Start work branch governance/issue948-scheduler-startup-bootstrap",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work3",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "47ff7bf6c1d26bb8c1c8e326bb568791e1acbbcaaf979c4dce092c4e1288c573",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-28:issue948-scheduler-startup-bootstrap",
-      "authority_fingerprint": "47ff7bf6c1d26bb8c1c8e326bb568791e1acbbcaaf979c4dce092c4e1288c573"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": null
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.3",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "transaction": {
+    "expected_fingerprint": "385684ef48c59374daea0d7aa7c67f1503992e801aa57301156d23b23d54037b",
+    "id": "gha:36444723242:948:ACQUIRE:1",
+    "invocation_identity": "interactive:work3:issue948:bootstrap-fix:20260928",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-28T15:35:41Z",
+  "version": 2,
+  "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
