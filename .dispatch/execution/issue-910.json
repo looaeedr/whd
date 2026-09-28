@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
-    "id": 36424574607,
-    "purpose": "ISSUE910_FINAL_EXACT_3D_STARTUP_RUNTIME_LOG",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
   "issue": 910,
   "lane_id": null,
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
-      "run_id": 36424574607
+      "reason": "reconcile latest cleanup target and integration envelope after exact QA"
     },
-    "display": "Poll exact Issue #910 final QA run 36424574607",
-    "kind": "POLL_QA"
+    "display": "Reconcile latest cleanup target and exact integration envelope",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
   "qa": {
-    "accepted_head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
-    "last_accepted_run": 36421638205
+    "accepted_head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
+    "last_accepted_run": 36424574607
   },
   "recovery_history": [
     {
@@ -55,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
   "transaction": {
-    "expected_fingerprint": "461aa26057dab56a39c7601fe02b5faed68a8609711ceaf098264361222ac0c6",
-    "id": "gha:36424724368:910:START_QA:11",
+    "expected_fingerprint": "4511ac3ed1f874a8be1ff45da8490ed1b5a3fd1d08c4066c5e1263c80ead5a8d",
+    "id": "gha:36424816104:910:ACCEPT_QA:12",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:53:21Z",
+  "updated_at": "2026-09-28T12:54:07Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
