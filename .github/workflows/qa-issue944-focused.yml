@@ -52,6 +52,9 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ github.sha }}"
           xvfb-run -a python -m pytest -q \
             tests/test_issue624_phase7_a7_bridge_residual_reduction.py \
+            tests/test_corner_parameter_lock.py::test_known_model_corner_type_stays_readonly_but_parameters_can_unlock \
+            tests/test_corner_parameter_lock.py::test_project_load_does_not_restore_transient_corner_parameter_locks \
+            tests/test_corner_parameter_lock.py::test_receiving_bottom_wrap_controls_live_only_in_unlocked_3d_parameters_and_link_head_tail \
             --junitxml=issue944-focused.xml \
             2>&1 | tee issue944-focused.log
 
@@ -59,7 +62,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/phase6_bridge_anti_regrowth_guard.py             --root .             --baseline docs/architecture/phase6_bridge_anti_regrowth_baseline.json             --c0-record docs/superpowers/checkpoints/issue532-c0-final-classification.json             --json-out issue944-anti-regrowth.json             2>&1 | tee issue944-anti-regrowth.log
+          python tools/phase6_bridge_anti_regrowth_guard.py \
+            --root . \
+            --baseline docs/architecture/phase6_bridge_anti_regrowth_baseline.json \
+            --c0-record docs/superpowers/checkpoints/issue532-c0-final-classification.json \
+            --json-out issue944-anti-regrowth.json \
+            2>&1 | tee issue944-anti-regrowth.log
           grep -F "PHASE6_BRIDGE_ANTI_REGROWTH_GREEN" issue944-anti-regrowth.log
 
       - name: Upload focused evidence
