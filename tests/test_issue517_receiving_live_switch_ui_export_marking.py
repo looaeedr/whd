@@ -93,6 +93,14 @@ def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_geomet
 
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
+        print("ISSUE943_SWITCH_DEBUG", {
+            "active_part": designer.designer_workspace.active_part,
+            "selected_part": designer.designer_workspace.selected_part,
+            "display_mode": designer._phase6_3d_display_mode,
+            "part_var": designer.part_var.get(),
+            "settings_context": designer.settings_context,
+            "tree_selection": tuple(designer.structure_tree.selection()),
+        })
 
         assert str(designer._phase6_input_snapshot.get("model") or "") == "受電箱"
         assert designer._phase6_3d_display_mode == "assembly", (
