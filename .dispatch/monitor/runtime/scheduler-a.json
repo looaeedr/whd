@@ -4,16 +4,16 @@
   "authority": "NON_AUTHORITY",
   "source": "scheduler-a",
   "handler": "排程A",
-  "entrypoint": "40",
-  "event": "PROGRESS",
-  "runtime_state": "WORKING",
+  "entrypoint": "20",
+  "event": "WAKE",
+  "runtime_state": "WAKE",
   "issue": 889,
   "slot_id": null,
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "action": "ACQUIRE",
-  "record_fingerprint": "9f12f03517621b3aa8a104a290c3272a02ca6cee",
-  "last_wake_at": "2026-09-28T11:38:49Z",
+  "record_fingerprint": null,
+  "last_wake_at": "2026-09-28T13:22:40Z",
   "last_progress_at": "2026-09-28T11:39:20Z",
   "exit_state": null,
-  "observed_at": "2026-09-28T11:39:20Z"
+  "observed_at": "2026-09-28T13:22:40Z"
 }
