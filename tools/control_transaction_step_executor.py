@@ -88,31 +88,16 @@ def execute_step_sequence(
             raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
         kind = str(step["kind"])
         _assert_next_action(record=record, kind=kind)
-        try:
-            result = execute_one(
-                repo=repo,
-                token=token,
-                coord_branch=coord_branch,
-                issue=issue,
-                kind=kind,
-                lane_id=lane_id,
-                invocation_identity=invocation_identity,
-                supplied_effect=dict(step["effect"]),
-            )
-        except Exception as exc:
-            if not results:
-                raise
-            return {
-                "schema": SCHEMA,
-                "result": "PARTIAL",
-                "issue": issue,
-                "applied_steps": results,
-                "failed_step": kind,
-                "reason": str(exc),
-                "retryable": True,
-                "retry_action": "FRESH_READ_CONTINUE_FROM_CURRENT_RECORD",
-                "semantic_effect_applied": True,
-            }
+        result = execute_one(
+            repo=repo,
+            token=token,
+            coord_branch=coord_branch,
+            issue=issue,
+            kind=kind,
+            lane_id=lane_id,
+            invocation_identity=invocation_identity,
+            supplied_effect=dict(step["effect"]),
+        )
         results.append(result)
 
     return {
