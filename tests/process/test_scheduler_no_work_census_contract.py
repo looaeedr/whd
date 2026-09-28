@@ -55,3 +55,4 @@ def test_canonical_flow_v2_owns_progress_exit_and_generation_fencing() -> None:
     assert "Generation fencing + salvage" in text
     assert "ORPHAN_WRITE" in text
     assert "回報後只要 current invocation 還能合法施工，就立即繼續" in text
+# FLOW_V2_SCHEDULER_A_E2E_CANARY_ISSUE_889
