@@ -16,6 +16,7 @@
     ".github/workflows/whd-control-transaction-v2-shadow.yml",
     ".github/workflows/whd-control-transaction-v2-terminal-shadow.yml",
     ".github/workflows/whd-control-transaction-v2.yml",
+    ".github/workflows/whd-governance-ancestry-reconcile.yml",
     ".github/workflows/whd-governance-mirror-gate.yml",
     ".github/workflows/whd-phase6-preflight.yml",
     ".github/workflows/whd-remote-claim-activation.yml",
@@ -50,16 +51,17 @@
     "tests/process/test_issue899_push_transaction_ingress.py",
     "tests/process/test_issue927_flow_v2_runtime_observation.py",
     "tests/process/test_issue945_scheduler_host_watchdog.py",
+    "tests/process/test_issue952_governance_ancestry_reconcile.py",
     "tests/process/test_issue961_work_root_hard_gate.py",
     "tests/process/test_scheduler_no_work_census_contract.py",
     "tools/claim_activation_recovery.py",
     "tools/continuity_controller.py",
-    "tools/control_transaction.py",
     "tools/control_transaction_production_executor.py",
     "tools/control_transaction_request_ingress.py",
     "tools/control_transaction_shadow_executor.py",
     "tools/control_transaction_terminal_executor.py",
     "tools/control_transaction_transport.py",
+    "tools/control_transaction.py",
     "tools/execution_action_contract.py",
     "tools/execution_authority_policy.py",
     "tools/execution_claim_guard.py",
@@ -68,10 +70,10 @@
     "tools/execution_entry_contract.py",
     "tools/execution_invocation_exit.py",
     "tools/execution_ready_index.py",
-    "tools/execution_record.py",
     "tools/execution_record_bootstrap.py",
     "tools/execution_record_shadow.py",
     "tools/execution_record_store.py",
+    "tools/execution_record.py",
     "tools/execution_scheduler_view.py",
     "tools/execution_work_slot_view.py",
     "tools/flow_v2_runtime_observation.py",
@@ -111,5 +113,12 @@
     ".agents/skills/engineering/拆解任務工單",
     ".agents/skills/engineering/排程模擬",
     ".agents/skills/engineering/派工"
-  ]
+  ],
+  "ancestry_reconciliation": {
+    "owner_branch": "cleanup/2d-3d-sync",
+    "source_branch": "main",
+    "strategy": "TWO_PARENT_OURS_MERGE_PRESERVE_CLEANUP_TREE",
+    "force_push_allowed": false,
+    "workflow": ".github/workflows/whd-governance-ancestry-reconcile.yml"
+  }
 }
