@@ -79,6 +79,7 @@
     "tools/execution_record.py",
     "tools/execution_scheduler_view.py",
     "tools/execution_work_slot_view.py",
+    "tools/flow_v2_merge_precheck.py",
     "tools/flow_v2_runtime_observation.py",
     "tools/governance_parity_gate.py",
     "tools/interactive_runtime_liveness.py",
