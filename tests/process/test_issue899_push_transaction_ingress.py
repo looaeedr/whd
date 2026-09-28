@@ -128,3 +128,81 @@ def test_trusted_transaction_projects_non_authoritative_progress_observation():
     assert 'event="PROGRESS"' in adapter
     assert '"HEARTBEAT"' in adapter
     assert "HEARTBEAT_TTL_SECONDS = 300" in adapter
+
+
+def test_yield_trusted_writer_rejects_acquire_only_churn():
+    from tools.control_transaction import (
+        ControlTransactionError,
+        execute_transaction,
+        prepare_transaction,
+    )
+    from tools.execution_record import execution_record_from_payload
+    import pytest
+
+    invocation = "scheduler-a-20-run"
+    record = execution_record_from_payload({
+        "schema": "WHD_EXECUTION_RECORD_V2",
+        "version": 2,
+        "generation": 5,
+        "issue": 889,
+        "execution_intent": "SCHEDULER_LANE",
+        "owner_kind": "SCHEDULER",
+        "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "slot_id": None,
+        "source_branch": "cleanup/2d-3d-sync",
+        "source_sha": "a" * 40,
+        "work_branch": "canary/issue889",
+        "head_sha": "b" * 40,
+        "target_branch": "cleanup/2d-3d-sync",
+        "target_sha": "c" * 40,
+        "state": "INTEGRATING",
+        "semantic_state": "QA_ACCEPTED",
+        "next_action": {
+            "kind": "MERGE",
+            "args": {"pr_number": 891, "head_sha": "b" * 40, "target_branch": "cleanup/2d-3d-sync"},
+            "display": "Merge exact PR",
+        },
+        "lease": {
+            "token": "lease-889",
+            "invocation_identity": invocation,
+            "expires_at": "2026-09-28T14:00:00Z",
+        },
+        "active_run": None,
+        "transaction": {
+            "id": "gha:acquire",
+            "kind": "ACQUIRE",
+            "status": "RECONCILED",
+            "expected_fingerprint": "d" * 64,
+            "invocation_identity": invocation,
+        },
+        "qa": {"last_accepted_run": 36392993699, "accepted_head_sha": "b" * 40},
+        "blocker": None,
+        "closure": {"merged_sha": None, "issue_closed": False, "released_at": None},
+        "chain": {"parent_issue": None, "next_issue": None, "next_action": None},
+        "recovery_history": [],
+        "updated_at": "2026-09-28T13:40:00Z",
+    })
+    plan = prepare_transaction(
+        record,
+        kind="YIELD",
+        transaction_id="tx-noop-yield",
+        invocation_identity=invocation,
+    )
+
+    with pytest.raises(ControlTransactionError, match="CONTINUE_EXECUTION"):
+        execute_transaction(
+            record,
+            plan,
+            effect={"updated_at": "2026-09-28T13:41:00Z"},
+        )
+
+
+def test_control_plane_regression_watches_core_flow_v2_exit_files():
+    workflow = (ROOT / ".github/workflows/whd-control-plane-regression.yml").read_text(encoding="utf-8")
+    for required in (
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "tools/control_transaction.py",
+        "tools/execution_invocation_exit.py",
+    ):
+        assert required in workflow
