@@ -33,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install -q pytest
-          python -m pytest -q             tests/process/test_flow_v2_atomic_control_transaction.py             tests/process/test_flow_v2_control_transaction_transport.py             tests/process/test_flow_v2_control_transaction_terminal_executor.py             tests/process/test_flow_v2_execution_action_contract.py             tests/process/test_flow_v2_control_transaction_shadow_workflow.py             tests/process/test_flow_v2_terminal_shadow_workflow_contract.py
+          python -m pytest -q --confcutdir=tests/process             tests/process/test_flow_v2_atomic_control_transaction.py             tests/process/test_flow_v2_control_transaction_transport.py             tests/process/test_flow_v2_control_transaction_terminal_executor.py             tests/process/test_flow_v2_execution_action_contract.py             tests/process/test_flow_v2_control_transaction_shadow_workflow.py             tests/process/test_flow_v2_terminal_shadow_workflow_contract.py
 
       - name: Commit validated P2
         shell: bash
