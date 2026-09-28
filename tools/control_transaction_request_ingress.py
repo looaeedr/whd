@@ -18,6 +18,11 @@ from tools.control_transaction_request_builder import (
     REQUEST_SCHEMA,
     execution_mode_for_lane,
 )
+from tools.control_transaction_step_executor import (
+    REQUEST_KIND as STEP_SEQUENCE_KIND,
+    execute_step_sequence,
+    normalize_step_sequence,
+)
 
 # Backward-compatible schema marker; canonical owner remains the request builder.
 # WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1
@@ -29,7 +34,7 @@ from tools.control_transaction_production_executor import (
 
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","FAIL_QA",
-    "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
+    "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",STEP_SEQUENCE_KIND,
 }
 
 REQUEST_BRANCH_LANES = {
