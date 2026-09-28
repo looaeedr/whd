@@ -47,6 +47,23 @@ def _validate_request_branch(*, request: dict[str, object], request_branch: str)
         )
 
 
+def _execution_mode_for_request(request: dict[str, object]) -> str:
+    lane = str(request.get("lane_id") or "").strip()
+    if lane in {
+        "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+    }:
+        return "SCHEDULER_LANE"
+    if lane in {
+        "chatgpt.flowv2.work0",
+        "chatgpt.flowv2.work1",
+        "chatgpt.flowv2.work2",
+        "chatgpt.flowv2.work3",
+    }:
+        return "INTERACTIVE"
+    raise ProductionExecutorError(f"unsupported request lane for startup gate: {lane}")
+
+
 def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -84,6 +101,7 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
         validate_startup_evidence(
             request.get("startup_evidence"),
             invocation_identity=str(request["invocation_identity"]),
+            execution_mode=_execution_mode_for_request(request),
             repository=repo,
         )
     except ValueError as exc:

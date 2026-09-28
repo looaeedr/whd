@@ -15,6 +15,36 @@ whd_schema: WHD_DOC_META_V1
 
 ## AI 開發交接總覽
 
+## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V1：先解析 Google Drive WHD 根目錄
+
+<!-- WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 -->
+
+對 WHD 的任何新 task/runtime/invocation，**預設工作根目錄不需要使用者重複指定**。固定 canonical root 是：
+
+`/Google Drive/WHD`
+
+canonical gate 是：
+
+`/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json`
+
+在任何一般 workspace/file discovery、專案檔案讀取、分析或 mutation 前，只允許完成下列 bootstrap read：
+
+1. 列出 Library root，確認 `/Google Drive` 的 mount identity 為 `external-gdrive:root`。
+2. 列出 `/Google Drive`，解析 exact `/Google Drive/WHD` 並驗 folder id=`1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_`。
+3. fresh-read canonical `WHD_WORK_ROOT_HARD_GATE_V1.json`。
+4. fresh-read `/Google Drive/WHD/source/manifests/WHD Current Source Manifest`，完成 `CURRENT_SOURCE_MANIFEST_READ`。
+5. 產生 `WHD_WORK_ROOT_GATE_EVIDENCE_V1`；沒有這張 evidence，不得建立 Flow v2 startup_evidence，也不得進入 mutation ingress。
+
+互動式/chat runtime 固定使用 `read_mode=GOOGLE_DRIVE_CANONICAL`。若使用者只說「根目錄／工作根目錄／專案根目錄／root」，不得再解讀為 `/`、`/mnt/data`、Library `/WHD` 或 GitHub checkout。
+
+GitHub-only / `SCHEDULER_LANE` / trusted remote action 若 execution environment 沒有 Google Drive connector，必須在**任何一般 GitHub discovery 前** fresh-read pointer-only mirror：
+
+`.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json`
+
+並使用 `read_mode=GITHUB_MIRROR`。此 mirror 只證明 canonical root identity，**不得**把 GitHub checkout 改綁成預設工作根目錄。scheduler 的 code/PR/CI/control-plane transport 仍走 GitHub；workspace root 語意仍屬 Google Drive。
+
+machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest 任一缺失或 identity mismatch 都 fail closed；不得用聊天記憶、`/mnt/data` 暫存路徑或前一 invocation evidence 代替。
+
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
 ### 0.0.0 Skill 使用前 user-visible 公告硬閘門
