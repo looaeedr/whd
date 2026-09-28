@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-repair-postqa-head-drift-20260928T171014Z",
+  "request_id": "issue952-bind-current-head-qa-20260928T171054Z",
   "issue": 952,
-  "kind": "RECONCILE",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
   "startup_evidence": {
@@ -27,21 +27,21 @@
     "expires_at": "2026-09-28T17:14:11Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：依新流程執行 Issue #952，修正 main / cleanup 治理 mirror 的 ancestry reconciliation，保留 cleanup-only product code，禁止 force-push/history rewrite，並完成 Flow v2 驗收與結案。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "9f3b1caa44457800d01e4d365e0429ccf5329696",
-  "expected_generation": 10,
+  "expected_coord_head": "73bedd70d01f235d97e0853dcd07036e2cd25480",
+  "expected_generation": 11,
   "effect": {
-    "observed_work_branch": "governance/issue952-mirror-ancestry-reconciliation",
-    "observed_head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
-    "observed_target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
-    "state": "ACTIVE",
-    "clear_blocker": true,
-    "semantic_state": "POST_QA_DRIFT_REPAIR",
+    "run_id": 36455674006,
+    "run_head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
+    "purpose": "Issue #952 exact-head Control Plane Regression after paired-governance synchronization",
+    "run_status": "completed",
+    "semantic_state": "REMOTE_QA",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "ACCEPT_QA",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "run_id": 36455674006,
+        "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493"
       },
-      "display": "Bind exact current-head QA after paired-governance synchronization"
+      "display": "Accept exact current-head GREEN QA for Issue #952"
     }
   }
 }
