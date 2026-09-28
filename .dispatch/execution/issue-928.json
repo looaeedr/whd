@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
-    "id": 36428868073,
-    "purpose": "ISSUE928_WINDOWS_3D_BLANK_RUNTIME_LOG",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
   "issue": 928,
   "lane_id": "chatgpt.flowv2.work0",
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
-      "run_id": 36428868073
+      "reason": "exclude one-shot QA workflow and reconcile latest cleanup target"
     },
-    "display": "Poll exact Issue #928 FinalScene QA run 36428868073",
-    "kind": "POLL_QA"
+    "display": "Reconcile latest cleanup target with accepted Issue #928 blobs",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
+    "last_accepted_run": 36428868073
   },
   "recovery_history": [
     {
@@ -49,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
   "transaction": {
-    "expected_fingerprint": "b7762ab05cd068fafd858e590584ce59cf420dd7cd24adfcaf5ab75fa99dd707",
-    "id": "gha:36429011598:928:START_QA:5",
+    "expected_fingerprint": "97f786f0d970828b5ee1c3f849f23b424c2cf5ea0c33c3f2615798dfdc08ad88",
+    "id": "gha:36429207176:928:ACCEPT_QA:6",
     "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:29:56Z",
+  "updated_at": "2026-09-28T13:31:34Z",
   "version": 2,
   "work_branch": "work/issue928-windows-3d-blank-no-log-20260928"
 }
