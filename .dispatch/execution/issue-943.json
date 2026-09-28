@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
+    "id": 36440753727,
+    "purpose": "ISSUE943_FOCUSED_RED",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": "qa-issue943-focused.yml"
+      "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
+      "run_id": 36440753727
     },
-    "display": "Bind exact focused QA for Issue #943",
-    "kind": "START_QA"
+    "display": "Poll exact focused RED run 36440753727",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "d888b678433c6fa13f1fe617406966d75e7e5ecd18041e57c9791cd583daa6f7",
-    "id": "gha:36440843713:943:APPLY_COMMIT:3",
+    "expected_fingerprint": "6fe8d9c7f2c1c3669cda6c0490f922fc89f556acc324fe7475c50478cdd5f328",
+    "id": "gha:36441024870:943:START_QA:4",
     "invocation_identity": "interactive:work1:issue943:session1",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:05:05Z",
+  "updated_at": "2026-09-28T15:06:25Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
