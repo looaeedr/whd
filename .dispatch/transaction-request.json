@@ -1,24 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-910-accept-final-qa-36424574607",
+  "request_id": "work0-910-reconcile-pr926-final",
   "issue": 910,
-  "kind": "ACCEPT_QA",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-  "expected_coord_head": "6f07d2dc9e61630ca4e693559e172dcf84709c44",
-  "expected_generation": 12,
+  "expected_coord_head": "f81c72d980ac6827ae076d0838ba36d48c04512b",
+  "expected_generation": 13,
   "effect": {
-    "run_id": 36424574607,
-    "run_head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
+    "observed_work_branch": "work/issue910-3d-startup-runtime-log-20260928",
+    "observed_head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
+    "observed_target_sha": "f2aa42bb83aa5f9f1502f3c13f753191c11df54c",
     "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "RECONCILE",
+      "kind": "MERGE",
       "args": {
-        "reason": "reconcile latest cleanup target and integration envelope after exact QA"
+        "pr_number": 926,
+        "head_sha": "92f01cd651a20d072107479ce23353024899ecb2",
+        "tested_head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
+        "target_branch": "cleanup/2d-3d-sync"
       },
-      "display": "Reconcile latest cleanup target and exact integration envelope"
+      "display": "Merge exact Issue #910 integration PR #926"
     }
   }
 }
