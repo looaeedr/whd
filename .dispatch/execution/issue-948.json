@@ -17,14 +17,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
   "issue": 948,
   "lane_id": "chatgpt.flowv2.work3",
   "lease": {
-    "expires_at": "2026-09-28T16:06:29Z",
+    "expires_at": "2026-09-28T16:23:14Z",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "token": "lease:948:36446725113:1"
+    "token": "lease:948:36448786518:1"
   },
   "next_action": {
     "args": {
@@ -57,13 +57,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "transaction": {
-    "expected_fingerprint": "4f88e9a8ce74339ec93e0ea3cd2069bc401e64da4f1c00bb9be2f302113167c6",
-    "id": "gha:36448492503:948:START_QA:9",
+    "expected_fingerprint": "24257ca63ff3f2cc52b623be8fe0a3a7159ec6a9ff02fe67ab6ac40424b4f99e",
+    "id": "gha:36448786518:948:ACQUIRE:10",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "kind": "START_QA",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T16:05:49Z",
+  "updated_at": "2026-09-28T16:08:14Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
