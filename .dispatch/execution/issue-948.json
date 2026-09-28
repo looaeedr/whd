@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
-    "id": 36448088932,
-    "purpose": "ISSUE948_FINAL_CONTROL_PLANE",
-    "status": "success"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
   "issue": 948,
   "lane_id": "chatgpt.flowv2.work3",
@@ -29,16 +24,17 @@
   "next_action": {
     "args": {
       "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
-      "run_id": 36448088932
+      "pr_number": 956,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Poll final Issue #948 control-plane regression",
-    "kind": "POLL_QA"
+    "display": "Merge exact PR #956 after governance mirror is GREEN",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
+    "last_accepted_run": 36448088932
   },
   "recovery_history": [
     {
@@ -49,21 +45,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "transaction": {
-    "expected_fingerprint": "24257ca63ff3f2cc52b623be8fe0a3a7159ec6a9ff02fe67ab6ac40424b4f99e",
-    "id": "gha:36448786518:948:ACQUIRE:10",
+    "expected_fingerprint": "c8613dd70b33e8149542f1db275119b7b2b4f9ea8526422d0a337ec8371da911",
+    "id": "gha:36448905830:948:ACCEPT_QA:11",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "kind": "ACQUIRE",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T16:08:14Z",
+  "updated_at": "2026-09-28T16:09:08Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
