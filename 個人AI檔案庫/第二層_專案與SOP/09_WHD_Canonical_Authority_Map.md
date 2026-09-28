@@ -32,6 +32,7 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=flow-v2-invocation-exit role=CURRENT path=tools/execution_invocation_exit.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-authority-policy role=CURRENT path=tools/execution_authority_policy.py -->
 
+<!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=knowledge-preflight role=CURRENT path=AGENTS.md -->
 
@@ -68,6 +69,15 @@ whd_schema: WHD_DOC_META_V1
 
 <!-- WHD_AUTHORITY contract=pitfall-ledger role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
 <!-- WHD_AUTHORITY contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md -->
+
+## Work-root bootstrap authority
+
+- canonical workspace root identity/data lives in Google Drive at `/Google Drive/WHD`.
+- canonical external gate: `/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json`.
+- repository pointer-only mirror: `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json`; it exists only so GitHub-only / scheduler runtimes can read the same root identity before general repo discovery.
+- machine validator: `tools/work_root_gate.py`.
+- interactive/chat runtime must read the Google Drive canonical gate + Current Source Manifest; GitHub-only / `SCHEDULER_LANE` uses the mirror and may not reinterpret GitHub checkout, `/mnt/data`, `/`, or Library `/WHD` as the default workspace root.
+- Flow v2 mutation startup evidence must include `WHD_WORK_ROOT_GATE_EVIDENCE_V1`; missing/mismatched root identity fails closed before ExecutionRecord state read.
 
 ## Permanent routing boundaries
 
