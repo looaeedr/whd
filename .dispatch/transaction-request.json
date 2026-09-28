@@ -1,24 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-933-start-qa-36430810020",
+  "request_id": "work0-933-accept-qa-36430810020",
   "issue": 933,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-  "expected_coord_head": "4d6a80d9615eb50a092c7b2329e1b7db56772d45",
-  "expected_generation": 4,
+  "expected_coord_head": "8f7a332c6b45d29c4abb9b03dc48577325c334de",
+  "expected_generation": 5,
   "effect": {
     "run_id": 36430810020,
     "run_head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
-    "purpose": "ISSUE933_FINALIZE_MONITOR_EXIT",
-    "run_status": "completed",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "RECONCILE",
       "args": {
-        "run_id": 36430810020,
-        "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341"
+        "reason": "exclude one-shot QA workflow and reconcile latest cleanup target"
       },
-      "display": "Poll exact Issue #933 monitor EXIT QA run 36430810020"
+      "display": "Reconcile latest cleanup target with accepted Issue #933 blobs"
     }
   }
 }
