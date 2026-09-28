@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue945-b-acquire-v1",
+  "request_id": "issue945-b-start-branch-v3",
   "issue": 945,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
   "startup_evidence": {
@@ -22,19 +22,23 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Scheduler B acquires explicit Issue #945 and immediately continues the unfinished watchdog registration repair by starting a fresh branch from current cleanup; acquisition is not a stopping point.",
-    "issued_at": "2026-09-28T21:26:00Z",
-    "expires_at": "2026-09-28T21:31:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Scheduler B acquires explicit Issue #945 and immediately continues the unfinished watchdog registration repair by starting a fresh branch from current cleanup; acquisition is not a stopping point.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Record the fresh Issue #945 watchdog registration repair branch at candidate head 305d15dd37cd05335493a2187c9525412ff74e05 and continue directly to exact control-plane QA.",
+    "issued_at": "2026-09-28T21:28:40Z",
+    "expires_at": "2026-09-28T21:33:40Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Record the fresh Issue #945 watchdog registration repair branch at candidate head 305d15dd37cd05335493a2187c9525412ff74e05 and continue directly to exact control-plane QA.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "891f6f18f7f781b18b0624136d65947617ca1a51",
-  "expected_generation": 1,
+  "expected_coord_head": "816a2f5541e8ed3885587e0c95e40c780f1ae7d7",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED",
+    "work_branch": "governance/issue945-watchdog-registration-repair-20260929",
+    "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Start fresh #945 watchdog registration repair branch"
+      "kind": "START_QA",
+      "args": {
+        "workflow": "WHD Control Plane Regression"
+      },
+      "display": "Start exact #945 control-plane QA"
     }
   }
 }
