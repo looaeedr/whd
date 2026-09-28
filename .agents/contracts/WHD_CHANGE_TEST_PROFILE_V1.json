@@ -1,0 +1,81 @@
+{
+  "schema": "WHD_CHANGE_TEST_PROFILE_V1",
+  "version": 1,
+  "status": "CURRENT",
+  "owner": "tools/change_test_profile.py",
+  "purpose": "Deterministically select required QA stages from change intent and affected domains. Targeted tests never replace the final full gate for non-doc changes.",
+  "workspace": {
+    "interactive_root": "/Google Drive/WHD",
+    "interactive_work_prefix": "/Google Drive/WHD/work",
+    "policy": "WORKSPACE_FIRST",
+    "github_role": "source/code/PR/CI/scheduler/control-plane authority; not the default interactive execution workspace"
+  },
+  "primary_change_types": {
+    "BUGFIX": [
+      "REPRODUCER_RED",
+      "TARGETED_REGRESSION",
+      "AFFECTED_SUBSYSTEM",
+      "INTEGRATION"
+    ],
+    "FEATURE": [
+      "FEATURE_ACCEPTANCE",
+      "UNIT_OR_COMPONENT",
+      "AFFECTED_SUBSYSTEM",
+      "INTEGRATION"
+    ],
+    "UPDATE": [
+      "COMPATIBILITY",
+      "MIGRATION_CONFIG",
+      "AFFECTED_SUBSYSTEM",
+      "INTEGRATION"
+    ],
+    "REFACTOR": [
+      "BEHAVIORAL_EQUIVALENCE",
+      "UNIT",
+      "INTEGRATION"
+    ],
+    "GOVERNANCE": [
+      "CONTRACT",
+      "CONTROL_PLANE_REGRESSION",
+      "GOVERNANCE_MIRROR_HARD_GATE"
+    ],
+    "DOCS_METADATA": [
+      "SCHEMA_LINT_LINK"
+    ]
+  },
+  "domain_overlays": {
+    "UI": [
+      "UI_CONTRACT_STATE",
+      "TK_XVFB",
+      "VISUAL_ACCEPTANCE"
+    ],
+    "GEOMETRY": [
+      "GEOMETRY_INVARIANTS",
+      "DXF_ACCEPTANCE",
+      "RENDERER_SYNC",
+      "SAVE_RELOAD"
+    ]
+  },
+  "final_full_gate": {
+    "product_or_behavior_change": "PRODUCT_FULL_REGRESSION",
+    "governance_only_change": "GOVERNANCE_FULL_SUITE",
+    "docs_metadata_only_change": "NONE",
+    "rule": "Every non-doc change must finish with the appropriate full gate before ACCEPT/CLOSE. Focused/targeted suites are additive and cannot replace it."
+  },
+  "classification": {
+    "explicit_type_overrides_inference": true,
+    "ambiguity_policy": "FAIL_CLOSED_REQUIRE_EXPLICIT_CHANGE_TYPE",
+    "required_inputs": [
+      "task",
+      "changed_files"
+    ],
+    "output_fields": [
+      "change_type",
+      "domains",
+      "required_stages",
+      "full_gate_kind",
+      "full_gate_required",
+      "profile_id"
+    ]
+  }
+}
