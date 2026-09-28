@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
   "issue": 910,
   "lane_id": null,
@@ -23,10 +23,13 @@
   },
   "next_action": {
     "args": {
-      "reason": "reconcile latest cleanup target and integration envelope after exact QA"
+      "head_sha": "92f01cd651a20d072107479ce23353024899ecb2",
+      "pr_number": 926,
+      "target_branch": "cleanup/2d-3d-sync",
+      "tested_head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98"
     },
-    "display": "Reconcile latest cleanup target and exact integration envelope",
-    "kind": "RECONCILE"
+    "display": "Merge exact Issue #910 integration PR #926",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
@@ -55,15 +58,15 @@
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
+  "target_sha": "f2aa42bb83aa5f9f1502f3c13f753191c11df54c",
   "transaction": {
-    "expected_fingerprint": "4511ac3ed1f874a8be1ff45da8490ed1b5a3fd1d08c4066c5e1263c80ead5a8d",
-    "id": "gha:36424816104:910:ACCEPT_QA:12",
+    "expected_fingerprint": "245dcbf05fa9c47810999d3d11b49fe2839ec09da787ebd3ae43e9b12063ad0d",
+    "id": "gha:36425414335:910:RECONCILE:13",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "ACCEPT_QA",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:54:07Z",
+  "updated_at": "2026-09-28T12:59:27Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
