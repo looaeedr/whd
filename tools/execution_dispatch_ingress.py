@@ -22,6 +22,7 @@ from tools.execution_record import (
 )
 
 INGRESS_SCHEMA = "WHD_EXECUTION_DISPATCH_INGRESS_V1"
+DEFAULT_INTERACTIVE_SLOT_ID = "worker.slot.0"
 ALLOWED_EXECUTION_INTENTS = frozenset({"EXECUTE_TICKET", "EXECUTE_CHAIN", "SCHEDULER_LANE"})
 AUTHORITY_KINDS = frozenset({"USER_EXPLICIT", "CHAIN_SUCCESSOR", "WORK_SLOT_ASSIGNMENT"})
 
@@ -107,12 +108,23 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
     parent_issue = _issue(request.parent_issue, "parent_issue", optional=True)
     slot_id = _text(request.slot_id, "slot_id", optional=True)
 
+    # DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
+    # A user-explicit interactive ticket with no explicit slot always enters
+    # through worker.slot.0. Scheduler/chain/query paths do not inherit it.
+    if (
+        authority_kind == "USER_EXPLICIT"
+        and execution_intent == "EXECUTE_TICKET"
+        and slot_id is None
+    ):
+        slot_id = DEFAULT_INTERACTIVE_SLOT_ID
+
     if authority_kind == "CHAIN_SUCCESSOR" and parent_issue is None:
         raise DispatchIngressError("CHAIN_SUCCESSOR requires parent_issue")
     if authority_kind == "WORK_SLOT_ASSIGNMENT" and slot_id is None:
         raise DispatchIngressError("WORK_SLOT_ASSIGNMENT requires slot_id")
 
     request_payload = _request_payload(request)
+    request_payload["effective_slot_id"] = slot_id
     request_fp = _digest(request_payload)
     authority_fp = _digest(
         {
