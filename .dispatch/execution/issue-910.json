@@ -1,6 +1,10 @@
 {
   "active_run": null,
-  "blocker": null,
+  "blocker": {
+    "evidence": "GitHub ruleset rejects PR #914 although Governance Mirror Hard Gate is GREEN because accepted donor head is behind current cleanup base; exact-head revalidation requires updating the work branch with the current base first.",
+    "kind": "PLATFORM_FAILURE",
+    "recheck_after": null
+  },
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -12,7 +16,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
   "issue": 910,
   "lane_id": null,
@@ -23,12 +27,10 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
-      "pr_number": 914,
-      "target_branch": "cleanup/2d-3d-sync"
+      "blocker_kind": "PLATFORM_FAILURE"
     },
-    "display": "Merge exact accepted donor PR #914",
-    "kind": "MERGE"
+    "display": "Update Issue #910 work branch with current cleanup base, then reconcile to ACTIVE for exact-head QA",
+    "kind": "WAIT_EXTERNAL"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
@@ -51,21 +53,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "FOCUSED_QA_ACCEPTED",
+  "semantic_state": "BLOCKED_STRICT_BASE_UPDATE",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
-  "state": "INTEGRATING",
+  "state": "BLOCKED",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
   "transaction": {
-    "expected_fingerprint": "3105184e7ae0e962806af8cfee36ad859e180942575c6276b79351f53cdf8179",
-    "id": "gha:36422950338:910:RECONCILE:7",
+    "expected_fingerprint": "3627ac27f6c6c6d71afac1ebf1abdd4f5db6688d1aa28adb2f1dd1a2826aad66",
+    "id": "gha:36423238429:910:BLOCK:8",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "RECONCILE",
+    "kind": "BLOCK",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:37:00Z",
+  "updated_at": "2026-09-28T12:39:43Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
