@@ -1,26 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "scheduler-a-00-20260928T115850Z-889-accept-qa",
+  "request_id": "scheduler-a-20-20260928T132240Z-889-acquire",
   "issue": 889,
-  "kind": "ACCEPT_QA",
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a:00:20260928T115532Z:889:g2",
-  "expected_coord_head": "20d7114ed09ef84255e5c1d28e2e4546a74b5ebf",
-  "expected_generation": 3,
-  "effect": {
-    "run_id": 36392993699,
-    "run_head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 891,
-        "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
-        "target_branch": "cleanup/2d-3d-sync"
-      },
-      "display": "Merge exact PR #891 after accepted QA"
-    }
-  }
+  "invocation_identity": "scheduler-a:20:20260928T132240Z:889:g4",
+  "expected_coord_head": "2d047706df5e67cf662101a5f1a303e1985cb9cf",
+  "expected_generation": 4,
+  "effect": {}
 }
