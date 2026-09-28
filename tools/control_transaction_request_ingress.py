@@ -21,7 +21,7 @@ from tools.control_transaction_production_executor import (
 
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 ALLOWED_KINDS = {
-    "ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA",
+    "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA",
     "BLOCK","MERGE","HANDOFF","FINALIZE","RECONCILE","YIELD",
 }
 
@@ -43,6 +43,19 @@ def _load_request(path: Path) -> dict[str, object]:
 
 
 def execute_request(*, request: dict[str, object], repo: str, token: str, coord_branch: str) -> dict[str, object]:
+    if str(request["kind"]) == "SEED":
+        if int(request["issue"]) != 0:
+            raise ProductionExecutorError("SEED request issue must be 0")
+        return {
+            "schema": "WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2",
+            "result": "APPLIED",
+            "reason": "SEED_NOOP",
+            "issue": 0,
+            "generation_before": int(request["expected_generation"]),
+            "generation_after": int(request["expected_generation"]),
+            "transaction": {"status": "RECONCILED", "kind": "SEED"},
+        }
+
     parent_sha, _, records = _load_state(repo, token, coord_branch)
     expected_parent = str(request["expected_coord_head"])
     if parent_sha != expected_parent:
