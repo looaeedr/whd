@@ -95,3 +95,4 @@ def test_arg7_new_full_app_owner_interface_is_detectable():
     risky = ("app", "bridge", "full_app")
     assert guard.full_app_interfaces(old, risky) == set()
     assert guard.full_app_interfaces(new, risky) == {"execute(request,app)"}
+# FLOW_V2_SCHEDULER_A_E2E_CANARY_ISSUE_889_GENERATION_2
