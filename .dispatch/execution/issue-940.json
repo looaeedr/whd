@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
   "issue": 940,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,12 +23,11 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
-      "pr_number": 941,
-      "target_branch": "cleanup/2d-3d-sync"
+      "main_mirror_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
+      "merged_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07"
     },
-    "display": "Merge exact PR #941 into cleanup/2d-3d-sync",
-    "kind": "MERGE"
+    "display": "Finalize Issue #940 after merged target and mirror readback",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -45,21 +44,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue940-entry-hard-gate-x",
   "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "transaction": {
-    "expected_fingerprint": "c4903655f22231b8cf5d934c26026ecd9dc13576a46fd2cdc4495589af89b594",
-    "id": "gha:36438912667:940:ACCEPT_QA:5",
+    "expected_fingerprint": "5a62a2e1e3951710f2cdc388f63e2dc8859d6e611bef16ac749d37c04b1ef7e7",
+    "id": "gha:36440294942:940:MERGE:6",
     "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T14:49:59Z",
+  "updated_at": "2026-09-28T15:00:50Z",
   "version": 2,
   "work_branch": "governance/issue940-entry-hard-gate-x"
 }
