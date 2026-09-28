@@ -116,3 +116,15 @@ def test_request_branch_isolation_rejects_unknown_branch():
             request={"lane_id": "chatgpt.flowv2.work0"},
             request_branch="coord/transaction-requests-unknown",
         )
+
+
+def test_trusted_transaction_projects_non_authoritative_progress_observation():
+    text = (ROOT / "tools/control_transaction_production_executor.py").read_text(encoding="utf-8")
+    adapter = (ROOT / "tools/flow_v2_runtime_observation.py").read_text(encoding="utf-8")
+    assert "_publish_transaction_progress(" in text
+    assert "runtime_observation_commit_sha" in text
+    assert "runtime_last_heartbeat_at" in text
+    assert "runtime_heartbeat_expires_at" in text
+    assert 'event="PROGRESS"' in adapter
+    assert '"HEARTBEAT"' in adapter
+    assert "HEARTBEAT_TTL_SECONDS = 300" in adapter

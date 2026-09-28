@@ -33,6 +33,7 @@ from tools.control_transaction import (
     prepare_transaction,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
+from tools.flow_v2_runtime_observation import project_transaction_progress
 from tools.execution_record import (
     ActionSpec,
     ExecutionRecord,
@@ -43,6 +44,7 @@ from tools.execution_record import (
 )
 
 RESULT_SCHEMA = "WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2"
+MONITOR_BRANCH = "coord/monitor-v2"
 _RECORD_RE = re.compile(r"^\.dispatch/execution/issue-(\d+)\.json$")
 
 
@@ -107,6 +109,87 @@ def _action_payload(action: ActionSpec | None) -> dict[str, object] | None:
     if action is None:
         return None
     return {"kind": action.kind, "args": dict(action.args), "display": action.display}
+
+
+def _monitor_path(source: str) -> str:
+    return f".dispatch/monitor/runtime/{source}.json"
+
+
+def _read_monitor_observation(repo: str, token: str, source: str) -> tuple[dict[str, object] | None, str | None]:
+    path = _monitor_path(source)
+    encoded_path = quote(path, safe="/")
+    encoded_ref = quote(MONITOR_BRANCH, safe="")
+    try:
+        row = _api(repo, "GET", f"/contents/{encoded_path}?ref={encoded_ref}", token)
+    except HTTPError as exc:
+        if exc.code == 404:
+            return None, None
+        raise
+    if str(row.get("encoding") or "") != "base64":
+        raise ProductionExecutorError("runtime observation is not base64 encoded")
+    payload = json.loads(base64.b64decode(str(row["content"])).decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise ProductionExecutorError("runtime observation must be a JSON object")
+    return payload, str(row.get("sha") or "") or None
+
+
+def _write_monitor_observation(repo: str, token: str, observation: dict[str, object]) -> str:
+    source = str(observation.get("source") or "")
+    if not source:
+        raise ProductionExecutorError("runtime observation source is missing")
+    path = _monitor_path(source)
+    encoded_path = quote(path, safe="/")
+    body = json.dumps(observation, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    content = base64.b64encode(body.encode("utf-8")).decode("ascii")
+
+    last_error: Exception | None = None
+    for _ in range(3):
+        _, current_sha = _read_monitor_observation(repo, token, source)
+        payload: dict[str, object] = {
+            "message": f"monitor: {source} {observation.get('event')} issue {observation.get('issue')}",
+            "content": content,
+            "branch": MONITOR_BRANCH,
+        }
+        if current_sha:
+            payload["sha"] = current_sha
+        try:
+            result = _api(repo, "PUT", f"/contents/{encoded_path}", token, payload)
+            return str(result["commit"]["sha"])
+        except HTTPError as exc:
+            last_error = exc
+            if exc.code not in {409, 422}:
+                raise
+    raise ProductionExecutorError(
+        f"runtime observation CAS failed after retries: {last_error}"
+    )
+
+
+def _publish_transaction_progress(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    invocation_identity: str,
+    runtime_owner: str,
+    action: str,
+) -> tuple[str, dict[str, object]]:
+    provisional = project_transaction_progress(
+        record=record,
+        invocation_identity=invocation_identity,
+        runtime_owner=runtime_owner,
+        action=action,
+        previous=None,
+    )
+    previous, _ = _read_monitor_observation(repo, token, str(provisional["source"]))
+    observation = project_transaction_progress(
+        record=record,
+        invocation_identity=invocation_identity,
+        runtime_owner=runtime_owner,
+        action=action,
+        previous=previous,
+    )
+    commit_sha = _write_monitor_observation(repo, token, observation)
+    return commit_sha, observation
 
 
 def _normalize_effect(
@@ -307,6 +390,15 @@ def execute_one(
     if execution_record_fingerprint(fresh) != execution_record_fingerprint(post):
         raise ProductionExecutorError("post-commit ExecutionRecord fingerprint mismatch")
 
+    monitor_commit_sha, observation = _publish_transaction_progress(
+        repo,
+        token,
+        record=fresh,
+        invocation_identity=invocation_identity,
+        runtime_owner=lane_id,
+        action=kind,
+    )
+
     return {
         "schema": RESULT_SCHEMA,
         "result": "APPLIED",
@@ -319,6 +411,11 @@ def execute_one(
         "post_state": fresh.state,
         "post_next_action": fresh.next_action.kind if fresh.next_action else None,
         "lease_invocation_identity": fresh.lease.invocation_identity if fresh.lease else None,
+        "runtime_observation_commit_sha": monitor_commit_sha,
+        "runtime_observation_event": observation["event"],
+        "runtime_liveness_state": observation["liveness_state"],
+        "runtime_last_heartbeat_at": observation["last_heartbeat_at"],
+        "runtime_heartbeat_expires_at": observation["heartbeat_expires_at"],
     }
 
 
