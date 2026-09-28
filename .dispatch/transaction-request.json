@@ -1,13 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "bootstrap-seed-a-v1",
-  "issue": 0,
-  "kind": "SEED",
+  "request_id": "scheduler-a-00-20260928T115532Z-889-acquire",
+  "issue": 889,
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "bootstrap-seed",
-  "expected_coord_head": "",
-  "expected_generation": 0,
-  "effect": {
-    "bootstrap": true
-  }
+  "invocation_identity": "scheduler-a:00:20260928T115532Z:889:g2",
+  "expected_coord_head": "3fee08c278e88855344d766aa9846259d8bbde7f",
+  "expected_generation": 2,
+  "effect": {}
 }
