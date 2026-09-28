@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
-    "id": 36469321344,
-    "purpose": "ISSUE943_EXACT_REVALIDATION_AFTER_TARGET_RECONCILE",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 20,
+  "generation": 21,
   "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
@@ -28,17 +23,18 @@
   },
   "next_action": {
     "args": {
-      "run_head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
-      "run_id": 36469321344
+      "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
+      "pr_number": 957,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Poll exact #943 Receiving UI regression run 36469321344",
-    "kind": "POLL_QA"
+    "display": "Merge exact PR #957 after accepted Receiving QA",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da",
-    "last_accepted_run": 36445518958
+    "accepted_head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
+    "last_accepted_run": 36469321344
   },
   "recovery_history": [
     {
@@ -49,21 +45,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "6ec65e7a9aab6e2c97605282e31619159d1b48e0",
   "transaction": {
-    "expected_fingerprint": "daf32dd0a95022ffcbb0d2f1ccfbe7e45f6e064f15cb6318098077c4ca4bdf23",
-    "id": "gha:36469594857:943:START_QA:19",
+    "expected_fingerprint": "3eb6ee69e8147e2f6b30d95b74e0ffe1722f07f45735baf57d02cad58aa11721",
+    "id": "gha:36469720594:943:ACCEPT_QA:20",
     "invocation_identity": "interactive:work1:issue943:qa-bind:20260929T030245+0800",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T19:04:06Z",
+  "updated_at": "2026-09-28T19:05:11Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
