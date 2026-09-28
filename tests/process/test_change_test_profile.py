@@ -12,7 +12,7 @@ def test_contract_is_current_and_workspace_first():
     assert payload["schema"] == "WHD_CHANGE_TEST_PROFILE_V1"
     assert payload["status"] == "CURRENT"
     assert payload["workspace"]["interactive_root"] == "/Google Drive/WHD"
-    assert payload["workspace"]["interactive_work_prefix"] == "/Google Drive/WHD/work"
+    assert payload["workspace"]["interactive_work_prefix"] == "/Google Drive/WHD/work/active"
     assert payload["workspace"]["policy"] == "WORKSPACE_FIRST"
 
 
