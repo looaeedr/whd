@@ -495,6 +495,29 @@ def _execute_merge(
         raise ControlTransactionError("MERGE requires INTEGRATING state")
     if record.qa.accepted_head_sha != record.head_sha or record.qa.last_accepted_run is None:
         raise ControlTransactionError("MERGE requires accepted_head equal to current head")
+
+    precheck_status = str(effect.get("merge_precheck_status") or "").strip()
+    if precheck_status == "TARGET_DRIFT":
+        target_sha = _text(effect.get("target_sha"), "target_sha")
+        if target_sha == record.target_sha:
+            raise ControlTransactionError("MERGE target-drift redirect requires a new target SHA")
+        next_action = _action(effect.get("next_action"))
+        if next_action.kind != "SYNC_TARGET":
+            raise ControlTransactionError("MERGE target drift must redirect to SYNC_TARGET")
+        return _base_update(
+            record,
+            plan,
+            effect,
+            target_sha=target_sha,
+            state="INTEGRATING",
+            semantic_state=str(effect.get("semantic_state") or "TARGET_DRIFT_REQUIRES_SYNC"),
+            next_action=next_action,
+            blocker=None,
+        )
+
+    if precheck_status and precheck_status not in {"READY_TO_MERGE", "ALREADY_MERGED"}:
+        raise ControlTransactionError(f"MERGE rejected by precheck status {precheck_status}")
+
     merged_sha = _text(effect.get("merged_sha"), "merged_sha")
     target_sha = _text(effect.get("target_sha"), "target_sha")
     if merged_sha != target_sha:
