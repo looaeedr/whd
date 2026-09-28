@@ -1,0 +1,11 @@
+{
+  "schema": "WHD_FLOW_V2_EXECUTION_FENCE_V1",
+  "issue": 871,
+  "generation": 2,
+  "canonical_branch": "flow-v2/issue871-atomic-transactions-r2",
+  "supersedes_branch": "flow-v2/issue871-atomic-transactions-r1",
+  "superseded_head": "50845922f6734c9aba5b4a142c595fc3f719a55c",
+  "base_branch": "cleanup/2d-3d-sync",
+  "base_sha": "c756328f20aed512681e043e68a71903e1ebe81e",
+  "rule": "Only this generation and canonical branch may produce accepted mutations for issue #871. Writes to earlier generations are orphan evidence only."
+}
