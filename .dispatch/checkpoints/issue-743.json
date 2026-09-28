@@ -3,23 +3,28 @@
   "issue": "743",
   "branch": "governance/issue743-multihop-reconcile-20260926",
   "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
-  "state": "RUNNING",
-  "next_action": "Establish RED proving current guard rejects exact same-owner guarded H0→H1→H2 reconciliation; then implement bounded multi-hop reconciliation without weakening direct-child/merge-sync gates.",
+  "state": "TERMINAL_SUPERSEDED",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Authority: user continuation of #733/#690 repair.",
-    "Target: trusted main multi-hop reconciliation capability.",
-    "Immediate recovery target after deployment: #690."
+    "MIGRATION_FREEZE_V2: #743 legacy reconciliation path superseded by Flow v2.",
+    "No implementation acceptance is implied; authority moved to #869/#871/#873."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
+  "master_issue": 869,
+  "chain_state": "SUPERSEDED",
+  "next_issue": 871,
+  "chain_next_action": "IMPLEMENT_FLOW_V2_ATOMIC_RECONCILIATION",
+  "chain_reason": "LEGACY_GOVERNANCE_RETIRED_BY_USER",
   "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_next_action": null,
+  "migration": {
+    "schema": "WHD_FLOW_V2_LEGACY_FREEZE_V1",
+    "legacy_authority": false,
+    "resume_forbidden": true,
+    "superseded_by_issue": 869
+  }
 }
