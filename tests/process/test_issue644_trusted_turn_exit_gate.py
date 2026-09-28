@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -35,6 +36,30 @@ def _checkpoint(*, closure_state=continuity.ClosureState.CLOSED):
             None
             if closure_state is continuity.ClosureState.CLOSED
             else "finish canonical closure"
+        ),
+    )
+
+
+def _blocked_checkpoint():
+    return continuity.Checkpoint(
+        issue=ISSUE,
+        branch=BRANCH,
+        head_sha=HEAD,
+        state=continuity.ContinuityState.BLOCKED,
+        next_action="wait for the one external authority blocker to change",
+        blocked_exit_proof=continuity.BlockedExitProof(
+            exhaustive=True,
+            executable_leaf_count=0,
+            evidence=("fresh trusted durable blocker readback",),
+            stop_reason=continuity.StopReason.EXTERNAL_AUTHORITY_REQUIRED,
+            blocker_id="external-authority:issue-644:user-decision",
+            blocker_count=1,
+            observed_at=(
+                datetime.now(timezone.utc)
+                .replace(microsecond=0)
+                .isoformat()
+                .replace("+00:00", "Z")
+            ),
         ),
     )
 
@@ -165,7 +190,29 @@ def test_c_r11_only_fully_closed_idle_state_is_permitted():
         )
 
 
-def test_c_r12_trusted_workflow_binds_scheduler_end_to_machine_permission():
+def test_c_r12_trusted_gate_permits_only_fresh_proven_blocked_nonterminal_exit():
+    assert (
+        _gate(
+            checkpoint=_blocked_checkpoint(),
+            claim_state=_claim("IMPLEMENTING"),
+            transaction_state=_tx("NONE"),
+            issue_state="open",
+            issue_state_reason=None,
+        )
+        == "TURN_EXIT_PERMITTED"
+    )
+
+    with pytest.raises(continuity.TurnExitBlocked, match="BLOCKED_CLAIM_NOT_ACTIVE"):
+        _gate(
+            checkpoint=_blocked_checkpoint(),
+            claim_state=_claim("RELEASED"),
+            transaction_state=_tx("NONE"),
+            issue_state="open",
+            issue_state_reason=None,
+        )
+
+
+def test_c_r13_trusted_workflow_binds_scheduler_end_to_machine_permission():
     assert TURN_EXIT_WORKFLOW.is_file(), (
         "RED-CLOSE-03: trusted .github/workflows/whd-turn-exit-gate.yml is missing"
     )

@@ -122,16 +122,18 @@ def _install_expired_postcommit(monkeypatch, guard, claim_path: Path) -> None:
     )
 
 
-def _write_recovery_comment(path: Path, **overrides) -> Path:
+def _write_recovery_comment(path: Path, claim_blob_sha: str, **overrides) -> Path:
     fields = {
         "issue": str(ISSUE),
         "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
         "executor_source": "scheduler",
         "branch": BRANCH,
+        "claim_blob_sha": claim_blob_sha,
         "claim_head_sha": HEAD,
         "live_head_sha": LIVE_HEAD,
         "prior_guard_run_id": str(RECOVERY_RUN_ID),
         "prior_request_comment_id": str(RECOVERY_REQUEST_ID),
+        "recovery_reason": "LEGACY_RECEIPT_WINDOW_EXPIRED_AFTER_MUTATION",
         "changed_file": MUTATED_FILE,
     }
     fields.update(overrides)
@@ -172,7 +174,7 @@ def test_expired_postcommit_accepts_exact_owner_recovery(
     claim_path = _write(tmp_path / "claim.json", _claim())
     claim = guard.load_execution_claim(claim_path)
     _install_expired_postcommit(monkeypatch, guard, claim_path)
-    recovery = _write_recovery_comment(tmp_path / "recovery.json")
+    recovery = _write_recovery_comment(tmp_path / "recovery.json", guard._git_blob_sha(claim_path))
 
     guard._assert_post_commit_claim_head_reconciliation(
         claim_path,
@@ -196,6 +198,7 @@ def test_expired_postcommit_recovery_rejects_live_head_drift(
     _install_expired_postcommit(monkeypatch, guard, claim_path)
     recovery = _write_recovery_comment(
         tmp_path / "recovery.json",
+        guard._git_blob_sha(claim_path),
         live_head_sha="9" * 40,
     )
 
@@ -222,6 +225,7 @@ def test_expired_postcommit_recovery_rejects_wrong_prior_guard_run(
     _install_expired_postcommit(monkeypatch, guard, claim_path)
     recovery = _write_recovery_comment(
         tmp_path / "recovery.json",
+        guard._git_blob_sha(claim_path),
         prior_guard_run_id=str(RECOVERY_RUN_ID + 1),
     )
 

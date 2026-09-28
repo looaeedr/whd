@@ -83,3 +83,19 @@ Acceptance 可以驗證 layout、identity、visibility、data availability、nav
 - GEOMETRY_OWNER_DRIFT = 0
 - DATAFLOW_OWNER_DRIFT = 0
 - PROTECTED_DRIFT = 0
+
+<!-- WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 -->
+## Phase 7 presentation-boundary confirmation
+
+Phase 7 Combined Acceptance 再次確認：本文件的 shared-content presentation contract **不因大型模組拆分而改變 domain authority**。
+
+- Settings/shared-content 的 Tk/UI presentation 仍由 `phase6_settings_panel.py::Phase6SettingsPanel` 擁有。
+- 唯一 construction/wiring root 仍是 `gui_modules/application/fold_designer_adapter.py::Phase6FoldDesignerComposition`；不得為組合體、Settings 或 compatibility mirror 建第二個 composition root。
+- `fold_designer_bridge.py` 在這條路徑只可保留 bounded compatibility projection/dataflow delegate；不得重新持有 shared-content、Settings transaction、workspace、geometry 或 manufacturing authority。
+- Settings → Profile pure planning 仍由 `phase6_settings_profile_projection.py` 擁有；shared-content presentation 不得自行推導 profile / geometry / manufacturing state。
+- P7-G 的 canonical decision 是 **KEEP_CURRENT_BOUNDARY**：既有 presentation/composition boundary 已是單一且 bounded；沒有新的合法 deep owner 可以在不污染 presentation purity、pure projection ownership 或 composition responsibility 的情況下吸收這組 responsibility。
+
+因此本文件既有 show/hide、collapse、physical-part identity、read-only data、navigation 與 MouseWheel 規則保持不變；Phase 7 只確認 owner boundary，不新增 UI capability 或 domain state。
+
+Accepted provenance：#625 P7-G + #626 Combined Acceptance；combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
+
