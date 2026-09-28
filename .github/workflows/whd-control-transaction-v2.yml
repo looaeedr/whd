@@ -1,0 +1,80 @@
+name: WHD｜Flow v2｜Production Atomic Transaction
+run-name: WHD｜Flow v2 Production｜Issue #${{ inputs.issue }}｜${{ inputs.kind }}｜${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Native Flow v2 Issue number
+        required: true
+        type: string
+      kind:
+        description: Atomic transaction kind
+        required: true
+        type: choice
+        options:
+          - ACQUIRE
+          - START_BRANCH
+          - APPLY_COMMIT
+          - START_QA
+          - ACCEPT_QA
+          - BLOCK
+          - MERGE
+          - HANDOFF
+          - FINALIZE
+          - RECONCILE
+          - YIELD
+      lane_id:
+        description: Exact scheduler/worker lane identity
+        required: true
+        type: string
+      invocation_identity:
+        description: Exact current invocation identity
+        required: true
+        type: string
+      effect_json:
+        description: Fresh side-effect/readback JSON; ACQUIRE may use {}
+        required: true
+        default: "{}"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whd-flow-v2-transaction-${{ inputs.issue }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: 原子套用 native ExecutionRecord transaction
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 讀取 production Flow v2 implementation
+        uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          fetch-depth: 1
+      - name: 套用 exact transaction 並 CAS 回寫
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EFFECT_JSON: ${{ inputs.effect_json }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/control_transaction_production_executor.py \
+            --issue "${{ inputs.issue }}" \
+            --kind "${{ inputs.kind }}" \
+            --lane-id "${{ inputs.lane_id }}" \
+            --invocation-identity "${{ inputs.invocation_identity }}" \
+            --effect-json "$EFFECT_JSON" \
+            --output /tmp/flow-v2-production-result.json
+      - name: 保存 terminal result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flow-v2-production-transaction-${{ github.run_id }}
+          path: /tmp/flow-v2-production-result.json
+          if-no-files-found: warn
+          retention-days: 7
