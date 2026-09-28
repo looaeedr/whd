@@ -33,7 +33,7 @@ def _root_evidence():
     }
 
 
-def test_no_work_bundle_skips_project_startup_and_remote_preflight():
+def test_no_work_projection_keeps_mandatory_startup_gates():
     bundle = build_scheduler_startup_bundle(
         [],
         lane_id="scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -46,10 +46,10 @@ def test_no_work_bundle_skips_project_startup_and_remote_preflight():
 
     assert bundle["schema"] == SCHEMA
     assert bundle["projection"]["decision"] == "NO_EXECUTABLE_WORK"
-    assert bundle["no_work_fast_path"] is True
-    assert bundle["requires_project_startup"] is False
-    assert bundle["requires_phase6_preflight"] is False
-    assert bundle["fast_exit"] == "NO_EXECUTABLE_WORK"
+    assert bundle["no_work_observed"] is True
+    assert bundle["requires_project_startup"] is True
+    assert bundle["requires_phase6_preflight"] is True
+    assert bundle["can_reuse_projection_after_preflight"] is True
     validate_scheduler_startup_bundle(
         bundle,
         lane_id="scheduler.6ab13fa557fc8191935c671214b865e2",
