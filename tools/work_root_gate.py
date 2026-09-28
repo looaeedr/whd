@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Mapping
 
+import re
+
 GATE_SCHEMA = "WHD_WORK_ROOT_HARD_GATE_V1"
 EVIDENCE_SCHEMA = "WHD_WORK_ROOT_GATE_EVIDENCE_V1"
 
@@ -14,11 +16,47 @@ CANONICAL_GATE_LIBRARY_PATH = "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json
 CANONICAL_GATE_FILE_ID = "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH"
 CURRENT_SOURCE_MANIFEST_FILE_ID = "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
 REPO_MIRROR_PATH = ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json"
+DEFAULT_WORK_PREFIX = f"{DEFAULT_LIBRARY_PATH}/work"
 
 READ_MODE_GOOGLE_DRIVE = "GOOGLE_DRIVE_CANONICAL"
 READ_MODE_GITHUB_MIRROR = "GITHUB_MIRROR"
 _MIRROR_ALLOWED_EXECUTION_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
 
+
+def build_interactive_work_path(*, issue: int | None = None, task_key: str | None = None, source_sha: str | None = None) -> str:
+    """Build the canonical interactive work path below /Google Drive/WHD/work."""
+    if issue is None and not str(task_key or "").strip():
+        raise ValueError("issue or task_key is required")
+    if issue is not None:
+        if isinstance(issue, bool) or int(issue) <= 0:
+            raise ValueError("issue must be a positive integer")
+        owner = f"issue-{int(issue)}"
+    else:
+        raw = str(task_key).strip()
+        owner = "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in raw).strip("-")
+        if not owner:
+            raise ValueError("task_key must contain a usable character")
+
+    path = f"{DEFAULT_WORK_PREFIX}/{owner}"
+    if source_sha is not None:
+        sha = str(source_sha).strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ValueError("source_sha must be a 40-character hex commit SHA")
+        path = f"{path}/{sha[:12]}"
+    return path
+
+
+def validate_interactive_workspace_path(path: str, *, execution_mode: str = "INTERACTIVE") -> str:
+    """Reject implicit container/GitHub workspaces for normal interactive execution."""
+    value = str(path).strip().rstrip("/")
+    mode = str(execution_mode).strip() or "INTERACTIVE"
+    if mode in _MIRROR_ALLOWED_EXECUTION_MODES:
+        return value
+    if value != DEFAULT_WORK_PREFIX and not value.startswith(DEFAULT_WORK_PREFIX + "/"):
+        raise ValueError(
+            f"interactive workspace must be under {DEFAULT_WORK_PREFIX}; got {path!r}"
+        )
+    return value
 
 def _mapping(value: Mapping[str, object] | object, label: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
