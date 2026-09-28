@@ -10,18 +10,25 @@
   "claimed_at": "2026-09-26T16:22:00Z",
   "base_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
   "head_sha": "6091bf003aae085d396f7e61f165e3f6a0e58260",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-26T16:22:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-28T03:20:00Z",
   "production_target": "main",
   "slot_id": "UNBOUND",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Establish RED proving current guard rejects exact same-owner guarded H0→H1→H2 reconciliation; then implement bounded multi-hop reconciliation without weakening direct-child/merge-sync gates.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-743.json",
   "evidence": [
-    "TASK_START_AUTHORITY_DECLARATION_V1: user directed continuation of the #733/#690 repair chain.",
-    "Immediate blocker evidence: #690 claim H0=286bc3e3..., live H2=9c1fe13c..., ordinary reconciliation run 36255060142 failed because live head is not direct child or production merge-sync.",
-    "Trusted main authority at start: 6091bf003aae085d396f7e61f165e3f6a0e58260."
-  ]
+    "MIGRATION_FREEZE_V2: legacy multi-hop claim reconciliation governance is retired by Flow v2 Master #869.",
+    "Replacement safety/functionality is absorbed by #871/#873 atomic transaction and migration reconciliation paths.",
+    "Historical #743 evidence remains in Git history; no further execution is authorized from this claim."
+  ],
+  "migration": {
+    "schema": "WHD_FLOW_V2_LEGACY_FREEZE_V1",
+    "superseded_by_issue": 869,
+    "replacement_issue": 871,
+    "legacy_authority": false,
+    "resume_forbidden": true
+  }
 }
