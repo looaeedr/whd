@@ -1,0 +1,56 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 684,
+  "execution_intent": "SCHEDULER_LANE",
+  "owner_kind": "SCHEDULER",
+  "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "slot_id": null,
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
+  "work_branch": "repair/issue684-main-mirror-sealed-20260928",
+  "head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "ca84e4af634053bb35f8f2535fdcbbcfce299114",
+  "state": "INTEGRATING",
+  "semantic_state": "FLOW_V2_MIGRATED_ACCEPTED_PRODUCT_EVIDENCE",
+  "next_action": {
+    "kind": "FINALIZE",
+    "args": {},
+    "display": "close product Issue #684 after Flow v2 cutover readback"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": 36329242279,
+    "accepted_head_sha": "2a65b8ebbd85c96083874a49aceb687cb56d2848"
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": "ca84e4af634053bb35f8f2535fdcbbcfce299114",
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": 869,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "schema": "WHD_FLOW_V2_MIGRATION_EVIDENCE_V1",
+      "legacy_claim_phase": "RELEASED",
+      "legacy_checkpoint_state": "TERMINAL_SUPERSEDED",
+      "preserved_accepted_run": 36329242279,
+      "preserved_accepted_head_sha": "2a65b8ebbd85c96083874a49aceb687cb56d2848",
+      "preserved_sealed_head_sha": "a4fcfaf6af265b747f4bc838ff72df8a37025688",
+      "cutover_merge_sha": "ca84e4af634053bb35f8f2535fdcbbcfce299114",
+      "legacy_governance_writeback": "SUPERSEDED_BY_FLOW_V2",
+      "product_evidence": "PRESERVED"
+    }
+  ],
+  "updated_at": "2026-09-28T04:57:00Z"
+}
