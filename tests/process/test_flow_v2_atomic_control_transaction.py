@@ -837,3 +837,137 @@ def test_reconcile_can_clear_blocker_only_with_explicit_blocked_to_active_transi
     assert active.state == "ACTIVE"
     assert active.blocker is None
     assert active.next_action.kind == "APPLY_COMMIT"
+
+
+
+def test_merge_target_drift_redirects_to_sync_target_without_closure():
+    record = _record(
+        state="INTEGRATING",
+        semantic_state="QA_ACCEPTED",
+        next_action={
+            "kind": "MERGE",
+            "args": {
+                "pr_number": 891,
+                "head_sha": "b" * 40,
+                "target_branch": "cleanup/2d-3d-sync",
+                "revalidation_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+            },
+            "display": "merge",
+        },
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+    plan = prepare_transaction(record, kind="MERGE", transaction_id="tx-merge-drift")
+    redirected = execute_transaction(
+        record,
+        plan,
+        effect={
+            "merge_precheck_status": "TARGET_DRIFT",
+            "target_sha": "e" * 40,
+            "semantic_state": "TARGET_DRIFT_REQUIRES_SYNC",
+            "next_action": {
+                "kind": "SYNC_TARGET",
+                "args": {
+                    "target_sha": "e" * 40,
+                    "pr_number": 891,
+                    "target_branch": "cleanup/2d-3d-sync",
+                    "qa_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+                },
+                "display": "sync target",
+            },
+            "updated_at": "2026-09-29T00:00:00Z",
+        },
+    )
+
+    assert redirected.state == "INTEGRATING"
+    assert redirected.target_sha == "e" * 40
+    assert redirected.head_sha == record.head_sha
+    assert redirected.closure.merged_sha is None
+    assert redirected.next_action.kind == "SYNC_TARGET"
+
+
+def test_sync_target_head_advance_requires_revalidation():
+    record = _record(
+        state="INTEGRATING",
+        semantic_state="TARGET_DRIFT_REQUIRES_SYNC",
+        next_action={
+            "kind": "SYNC_TARGET",
+            "args": {
+                "target_sha": "e" * 40,
+                "pr_number": 891,
+                "target_branch": "cleanup/2d-3d-sync",
+                "qa_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+            },
+            "display": "sync target",
+        },
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+    plan = prepare_transaction(record, kind="SYNC_TARGET", transaction_id="tx-sync-target")
+    synced = execute_transaction(
+        record,
+        plan,
+        effect={
+            "head_sha": "d" * 40,
+            "target_sha": "e" * 40,
+            "semantic_state": "QA_INVALIDATED_BY_TARGET_SYNC",
+            "next_action": {
+                "kind": "START_QA",
+                "args": {
+                    "workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+                    "post_accept_pr_number": 891,
+                },
+                "display": "revalidate",
+            },
+            "updated_at": "2026-09-29T00:01:00Z",
+        },
+    )
+
+    assert synced.head_sha == "d" * 40
+    assert synced.target_sha == "e" * 40
+    assert synced.next_action.kind == "START_QA"
+    assert synced.qa.accepted_head_sha == "b" * 40
+    assert synced.qa.accepted_head_sha != synced.head_sha
+
+
+def test_sync_target_noop_head_can_return_to_merge():
+    record = _record(
+        state="INTEGRATING",
+        semantic_state="TARGET_DRIFT_REQUIRES_SYNC",
+        next_action={
+            "kind": "SYNC_TARGET",
+            "args": {
+                "target_sha": "e" * 40,
+                "pr_number": 891,
+                "target_branch": "cleanup/2d-3d-sync",
+                "qa_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+            },
+            "display": "sync target",
+        },
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+    plan = prepare_transaction(record, kind="SYNC_TARGET", transaction_id="tx-sync-target-noop")
+    synced = execute_transaction(
+        record,
+        plan,
+        effect={
+            "head_sha": "b" * 40,
+            "target_sha": "e" * 40,
+            "semantic_state": "TARGET_RECONCILED",
+            "next_action": {
+                "kind": "MERGE",
+                "args": {
+                    "pr_number": 891,
+                    "head_sha": "b" * 40,
+                    "target_branch": "cleanup/2d-3d-sync",
+                    "expected_target_sha": "e" * 40,
+                    "revalidation_workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml",
+                },
+                "display": "merge",
+            },
+            "updated_at": "2026-09-29T00:02:00Z",
+        },
+    )
+
+    assert synced.head_sha == record.head_sha
+    assert synced.target_sha == "e" * 40
+    assert synced.next_action.kind == "MERGE"
+    assert synced.qa.accepted_head_sha == synced.head_sha
