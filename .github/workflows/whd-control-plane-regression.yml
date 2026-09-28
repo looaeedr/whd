@@ -10,6 +10,7 @@ on:
       - '.agents/skills/engineering/寫排程/SKILL.md'
       - '.agents/skills/engineering/派工/SKILL.md'
       - '.agents/skills/engineering/flow-v2-execution/SKILL.md'
+      - '.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json'
       - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
       - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
       - '.agents/skills/engineering/remote-execution-guard/SKILL.md'
@@ -32,6 +33,7 @@ on:
       - 'tools/execution_scheduler_view.py'
       - 'tools/control_transaction_request_ingress.py'
       - 'tools/execution_entry_contract.py'
+      - 'tools/work_root_gate.py'
       - 'tests/process/test_flow_v2_execution_invocation_exit.py'
       - 'tests/process/test_flow_v2_execution_scheduler_view.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
@@ -41,6 +43,7 @@ on:
       - 'tests/process/test_scheduler_no_work_census_contract.py'
       - 'tests/process/test_issue892_flow_v2_production_transaction.py'
       - 'tests/process/test_issue899_push_transaction_ingress.py'
+      - 'tests/process/test_issue961_work_root_hard_gate.py'
       - 'tests/process/test_issue945_scheduler_host_watchdog.py'
       - 'tests/process/test_issue696_startup_authorization_purpose.py'
       - 'tests/process/test_issue721_task_start_authority_declaration.py'
@@ -76,6 +79,7 @@ jobs:
             tools/execution_invocation_exit.py \
             tools/execution_scheduler_view.py \
             tools/execution_entry_contract.py
+            tools/work_root_gate.py
       - name: Run stop/closure focused regressions
         run: |
           python -m pytest -q \
@@ -88,6 +92,7 @@ jobs:
             tests/process/test_scheduler_no_work_census_contract.py \
             tests/process/test_issue892_flow_v2_production_transaction.py \
             tests/process/test_issue899_push_transaction_ingress.py \
+            tests/process/test_issue961_work_root_hard_gate.py \
             tests/process/test_issue945_scheduler_host_watchdog.py \
             tests/process/test_issue696_startup_authorization_purpose.py \
             tests/process/test_issue721_task_start_authority_declaration.py \
