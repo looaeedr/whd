@@ -25,7 +25,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[執行開發任務](./執行開發任務/SKILL.md)**: 依核准 spec/ticket 實作，遵守 TDD、checkpoint、派工與 QA gate。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
 - **[派工](./派工/SKILL.md)**: Flow v2 dispatch bridge；explicit READY ingress → native ExecutionRecord。
-- **[工作槽](./工作槽/SKILL.md)**: Flow v2 slot projection/routing bridge；無獨立 slot state。
+- **[工作槽](./工作槽/SKILL.md)**: Flow v2 slot projection/routing bridge；固定 /工作0～/工作3，/工作0 為預設互動入口；無獨立 slot state。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 
 ## Model- or user-reachable navigation
