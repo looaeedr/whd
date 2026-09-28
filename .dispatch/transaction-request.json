@@ -1,45 +1,51 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-bind-current-head-qa-20260928T171054Z",
+  "request_id": "issue952-reacquire-20260928T173308Z",
   "issue": 952,
-  "kind": "START_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
+  "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
-    "execution_mode": "INTERACTIVE",
+    "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
+    "execution_mode": "GITHUB_ONLY",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
       "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
       "gate_status": "CURRENT",
-      "read_mode": "GOOGLE_DRIVE_CANONICAL",
-      "execution_mode": "INTERACTIVE",
-      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+      "read_mode": "GITHUB_MIRROR",
+      "execution_mode": "GITHUB_ONLY",
+      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
       "provider": "google_drive",
       "library_path": "/Google Drive/WHD",
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "依新流程執行 Issue #952，修正 main / cleanup 治理 mirror 的 ancestry reconciliation，保留 cleanup-only product code，禁止 force-push/history rewrite，並完成 Flow v2 驗收與結案。",
-    "issued_at": "2026-09-28T17:09:11Z",
-    "expires_at": "2026-09-28T17:14:11Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：依新流程執行 Issue #952，修正 main / cleanup 治理 mirror 的 ancestry reconciliation，保留 cleanup-only product code，禁止 force-push/history rewrite，並完成 Flow v2 驗收與結案。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。",
+    "issued_at": "2026-09-28T17:33:08Z",
+    "expires_at": "2026-09-28T17:38:08Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "73bedd70d01f235d97e0853dcd07036e2cd25480",
-  "expected_generation": 11,
+  "expected_coord_head": "d4bc57840982109153ca527ac7787d8c5bbb600a",
+  "expected_generation": 12,
   "effect": {
-    "run_id": 36455674006,
-    "run_head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
-    "purpose": "Issue #952 exact-head Control Plane Regression after paired-governance synchronization",
-    "run_status": "completed",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "observed_at": "2026-09-28T17:33:08Z",
+    "lease": {
+      "token": "lease:952:continue:20260928T173308Z",
+      "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
+      "expires_at": "2026-09-28T17:48:08Z"
+    },
     "semantic_state": "REMOTE_QA",
     "next_action": {
       "kind": "ACCEPT_QA",
       "args": {
-        "run_id": 36455674006,
-        "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493"
+        "head_sha": "88260a3e8e0ed586e60876f12abca917a3673493",
+        "run_id": 36455674006
       },
       "display": "Accept exact current-head GREEN QA for Issue #952"
     }
