@@ -1,0 +1,12 @@
+{
+  "schema": "WHD_SCHEDULER_HOST_WATCHDOG_V1",
+  "version": 1,
+  "authority": "NON_AUTHORITY",
+  "observed_at": "2026-09-28T15:44:12Z",
+  "timezone": "Asia/Taipei",
+  "grace_seconds": 120,
+  "heartbeat_ttl_seconds": 300,
+  "host_snapshot_max_age_seconds": 1800,
+  "overall_state": "UNINITIALIZED",
+  "entries": []
+}
