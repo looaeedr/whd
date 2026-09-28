@@ -1,0 +1,59 @@
+name: WHD｜#933｜FINALIZE monitor EXIT
+run-name: "WHD｜#933｜Monitor EXIT exact｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue933-finalize-monitor-exit-20260928
+    paths:
+      - tools/flow_v2_runtime_observation.py
+      - tools/control_transaction_production_executor.py
+      - tests/process/test_issue933_finalize_monitor_exit.py
+      - .github/workflows/qa-issue933-finalize-monitor-exit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  process-regression:
+    name: Flow v2 FINALIZE → EXIT
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest
+        run: python -m pip install pytest
+
+      - name: Exact head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "ISSUE933_EXACT_SHA=${GITHUB_SHA}"
+
+      - name: Process regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/process/test_issue933_finalize_monitor_exit.py \
+            tests/process/test_issue927_flow_v2_runtime_observation.py \
+            tests/process/test_issue899_push_transaction_ingress.py \
+            --tb=short | tee issue933-monitor-exit.log
+          echo "ISSUE933_MONITOR_EXIT_GREEN=1" | tee -a issue933-monitor-exit.log
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue933-monitor-exit-${{ github.sha }}
+          path: issue933-monitor-exit.log
+          if-no-files-found: warn
+          retention-days: 14
