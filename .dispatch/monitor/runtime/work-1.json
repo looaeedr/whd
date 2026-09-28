@@ -1,0 +1,19 @@
+{
+  "schema": "WHD_RUNTIME_OBSERVATION_V1",
+  "version": 1,
+  "authority": "NON_AUTHORITY",
+  "source": "work-1",
+  "handler": null,
+  "entrypoint": null,
+  "event": "INIT",
+  "runtime_state": "UNSEEN",
+  "issue": null,
+  "slot_id": "worker.slot.1",
+  "owner_id": null,
+  "action": null,
+  "record_fingerprint": null,
+  "last_wake_at": null,
+  "last_progress_at": null,
+  "exit_state": null,
+  "observed_at": null
+}
