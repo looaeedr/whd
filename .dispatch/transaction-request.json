@@ -1,11 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "scheduler-a-00-20260928T115532Z-889-acquire",
+  "request_id": "scheduler-a-00-20260928T115532Z-889-accept-qa",
   "issue": 889,
-  "kind": "ACQUIRE",
+  "kind": "ACCEPT_QA",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "scheduler-a:00:20260928T115532Z:889:g2",
-  "expected_coord_head": "3fee08c278e88855344d766aa9846259d8bbde7f",
-  "expected_generation": 2,
-  "effect": {}
+  "expected_coord_head": "20d7114ed09ef84255e5c1d28e2e4546a74b5ebf",
+  "expected_generation": 3,
+  "effect": {
+    "run_id": 36392993699,
+    "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
+    "status": "completed",
+    "conclusion": "success"
+  }
 }
