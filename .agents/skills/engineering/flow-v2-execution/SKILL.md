@@ -77,6 +77,14 @@ machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 
 
 若 push ingress 回 `CONFLICT` 且 `retryable=true`，固定執行 `FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION`：fresh-read `coord/execution-v2`、generation、lease、target/head，再用 builder 重建**同一 semantic action**。不得沿用 stale request payload，也不得因 coord/generation/live-lease race 重放外部副作用。startup evidence 驗證失敗不是 retryable conflict；先由 builder 重建 fresh evidence。
 
+### CONTROL_STEP_SEQUENCE_V1
+
+為降低重複 Actions runner 啟動成本，兩個**已具備完整 fresh evidence**、且中間不需要新的外部副作用的 control transition，可由 `tools/control_transaction_request_builder.py::build_control_step_sequence_request(...)` 建立 `kind=STEP_SEQUENCE` request，並由 `tools/control_transaction_step_executor.py` 在同一 trusted runner 內依序執行。
+
+固定只允許 machine whitelist pair；每一步仍各自執行 canonical transaction、generation increment、coord ref CAS、post-commit readback 與 runtime observation。第二步執行前必須 fresh-read current ExecutionRecord，且 step kind 必須等於 current `next_action.kind`（ACQUIRE 例外只處理 lease）。任何一步失敗，整個 workflow 必須 FAILED；已 durable 套用的前一步不得 replay，caller fresh-read current record 後續做。
+
+這只是 transport batching，不改變 startup evidence、lane/request-branch binding、expected_coord_head / expected_generation fencing、QA exact run/head、PR merge readback、FINALIZE trusted close/readback或其他 authority。
+
 ### MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1
 
 accepted merge SHA is an anchor，不是「target branch 永遠不可再前進」的 freeze point。ticket 已有 exact-head accepted QA 且 `closure.merged_sha` 已成立後，其他合法 ticket 可繼續推進同一 target branch；FINALIZE 不得因此強迫原 ticket 重跑 merge/QA/ancestry。
@@ -114,6 +122,12 @@ A owner=`scheduler.6ab13fa557fc8191935c671214b865e2`，entrypoints=`00/20/40`。
 B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 每次 wake：fresh-read `coord/execution-v2` → same-lane nonterminal record優先 → 無 current record才讀 derived ready-index → exact structured action。active exact QA run只 poll；沒有 current record且ready-index empty才是 NO_EXECUTABLE_WORK。scheduler只走 GitHub/remote capability，不 fallback local。
+
+### SCHEDULER_STARTUP_BUNDLE_CACHE_V1
+
+完整 PROJECT_STARTUP_HARD_GATE_V1 / Phase6 Preflight / required Skill-reference read 與 mandatory fresh scheduler projection 全部完成後，可由 `tools/scheduler_startup_bundle.py` 將該 projection + exact `coord/execution-v2` HEAD + root-gate evidence 封裝成 `WHD_SCHEDULER_STARTUP_BUNDLE_V1`。同一 invocation 內，只要 fresh-read coord HEAD 仍等於 bundle.coord_head，可重用 bundle projection，避免重複列舉所有 ExecutionRecords/ready-index；HEAD 一旦改變，bundle 立即失效並重建。
+
+bundle 是 read-only cache，不提供 mutation authority，也不取代任何 startup gate、Preflight、transaction expected_coord_head / generation fencing 或 post-mutation readback。
 
 ### SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1
 
