@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
-    "id": 36392993699,
-    "purpose": "Flow v2 Scheduler A E2E generation-2 PR QA",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
   "issue": 889,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -29,16 +24,17 @@
   "next_action": {
     "args": {
       "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
-      "run_id": 36392993699
+      "pr_number": 891,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Poll exact Scheduler A E2E generation-2 QA run",
-    "kind": "POLL_QA"
+    "display": "Merge exact PR #891 after accepted QA",
+    "kind": "MERGE"
   },
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
+    "last_accepted_run": 36392993699
   },
   "recovery_history": [
     {
@@ -63,21 +59,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
   "transaction": {
-    "expected_fingerprint": "1ea96bb748c77c8c9a4d8e1ae9a19895a3b3730a57c688f7860d748641c2dd9c",
-    "id": "gha:36418636699:889:ACQUIRE:2",
+    "expected_fingerprint": "b4d1e0b56224421d5eac5f3bb39cf47466f506978c7def92940210203f90f0b4",
+    "id": "gha:36418981266:889:ACCEPT_QA:3",
     "invocation_identity": "scheduler-a:00:20260928T115532Z:889:g2",
-    "kind": "ACQUIRE",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T11:56:16Z",
+  "updated_at": "2026-09-28T11:59:45Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
