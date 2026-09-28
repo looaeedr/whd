@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue948-start-red-qa-155822",
+  "request_id": "issue948-consume-red-qa-155947",
   "issue": 948,
-  "kind": "START_QA",
+  "kind": "FAIL_QA",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
   "startup_evidence": {
@@ -10,25 +10,23 @@
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
     "purpose": "Repair Issue #948 scheduler startup bootstrap ordering deadlock.",
-    "issued_at": "2026-09-28T15:58:22Z",
-    "expires_at": "2026-09-28T16:03:22Z",
+    "issued_at": "2026-09-28T15:59:47Z",
+    "expires_at": "2026-09-28T16:04:47Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Repair Issue #948 scheduler startup bootstrap ordering deadlock.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "expected_coord_head": "127821c7c9033f4f03912defe989bddd62958521",
-  "expected_generation": 6,
+  "expected_coord_head": "75e86d0d26593e99d79c4d677a0529cca60067b7",
+  "expected_generation": 7,
   "effect": {
     "run_id": 36447357793,
     "run_head_sha": "f0b40c9544cb942c306630823f9070824aa1bfa8",
-    "purpose": "ISSUE948_RED_REGRESSION",
-    "run_status": "failure",
-    "semantic_state": "REMOTE_QA",
+    "conclusion": "failure",
+    "semantic_state": "QA_FAILED_REPAIR",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "run_id": 36447357793,
-        "head_sha": "f0b40c9544cb942c306630823f9070824aa1bfa8"
+        "reason": "IMPLEMENT_BOOTSTRAP_READ_ONLY_DISCOVERY"
       },
-      "display": "Poll Issue #948 RED regression"
+      "display": "Implement Issue #948 bootstrap read-only discovery"
     }
   }
 }
