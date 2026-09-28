@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue945-b-start-qa-v4",
+  "request_id": "issue945-b-accept-qa-v5",
   "issue": 945,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
   "startup_evidence": {
@@ -22,26 +22,25 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Bind Issue #945 to exact successful WHD Control Plane Regression run 36486734271 on candidate head 305d15dd37cd05335493a2187c9525412ff74e05 and continue to terminal QA acceptance.",
-    "issued_at": "2026-09-28T21:32:44Z",
-    "expires_at": "2026-09-28T21:37:44Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Bind Issue #945 to exact successful WHD Control Plane Regression run 36486734271 on candidate head 305d15dd37cd05335493a2187c9525412ff74e05 and continue to terminal QA acceptance.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Accept exact successful #945 Control Plane Regression run 36486734271 and advance the native record to governance integration for paired PR #986/#987.",
+    "issued_at": "2026-09-28T21:33:40Z",
+    "expires_at": "2026-09-28T21:38:40Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Accept exact successful #945 Control Plane Regression run 36486734271 and advance the native record to governance integration for paired PR #986/#987.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "4ec7b31668ce07f402f078da4e6262896a46275f",
-  "expected_generation": 3,
+  "expected_coord_head": "8a58e8f16a8951ea24cf378973d6cbf00e877b2c",
+  "expected_generation": 4,
   "effect": {
     "run_id": 36486734271,
     "run_head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
-    "purpose": "ISSUE945_WHD_CONTROL_PLANE_REGRESSION",
-    "run_status": "completed",
-    "semantic_state": "REMOTE_QA",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "MERGE",
       "args": {
-        "run_id": 36486734271,
-        "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05"
+        "pr_number": 986
       },
-      "display": "Poll exact #945 control-plane QA run 36486734271"
+      "display": "Merge exact cleanup PR #986 after paired main governance acceptance"
     }
   }
 }
