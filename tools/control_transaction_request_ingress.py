@@ -18,6 +18,9 @@ from tools.control_transaction_request_builder import (
     REQUEST_SCHEMA,
     execution_mode_for_lane,
 )
+
+# Backward-compatible schema marker; canonical owner remains the request builder.
+# WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1
 from tools.control_transaction_production_executor import (
     ProductionExecutorError,
     _load_state,
