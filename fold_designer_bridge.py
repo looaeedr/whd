@@ -88,7 +88,11 @@ from phase6_workspace_shell import (
 )
 from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
+    commit_output_draw_stock as _composition_commit_output_draw_stock,
+    export_selected_dxf_from_3d as _composition_export_selected_dxf_from_3d,
+    final_scene_set_preview_enabled as _composition_final_scene_set_preview_enabled,
     install_fold_designer_bridge_facade,
+    toggle_parameter_panel as _composition_toggle_parameter_panel,
 )
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
@@ -4255,75 +4259,38 @@ def _phase6_refresh_persistent_structure_controls(self):
 
 
 def _phase6_final_scene_set_preview_enabled(self, enabled):
-    """Compatibility effect port retained for FinalScene composition callers."""
-    enabled = bool(enabled)
-    self.preview_3d_enabled = enabled
-    var = getattr(self, "preview_3d_var", None)
-    if var is not None and bool(var.get()) != enabled:
-        var.set(enabled)
-    widget = self.renderer.canvas.get_tk_widget()
-    if enabled:
-        if not widget.winfo_manager():
-            widget.pack(fill="both", expand=True)
-        self.submit_update_intent("display", commit=True)
-    elif widget.winfo_manager() == "pack":
-        widget.pack_forget()
-    return enabled
+    return _composition_final_scene_set_preview_enabled(self, enabled)
 
 
 def _phase6_commit_output_draw_stock(self):
-    """Commit the 3D STOCK toggle through the project command owner."""
-    return Phase6ProjectController.commit_output_stock(
-        bool(self.output_draw_stock_var.get()),
-        lambda key, value: _phase6_stage_setting_update(self, key, value),
+    return _composition_commit_output_draw_stock(
+        self,
+        stage_setting_update=lambda key, value: _phase6_stage_setting_update(
+            self, key, value
+        ),
     )
 
 
 def _phase6_export_selected_dxf_from_3d(self):
-    """Delegate the 3D DXF action through the project command owner."""
-    return Phase6ProjectController.route_selected_dxf_export(
-        getattr(self, "_phase6_export_selected_dxf_callback", None),
-        self.flush_pending_settings,
-    )
+    return _composition_export_selected_dxf_from_3d(self)
 
 
 def _phase6_toggle_parameter_panel(self):
-    """Toggle the existing parameter/settings surface; never create a second owner."""
-    self._phase6_parameters_unlocked = not bool(
-        getattr(self, "_phase6_parameters_unlocked", False)
+    return _composition_toggle_parameter_panel(
+        self,
+        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(
+            self, widget
+        ),
+        update_assembly_diagnostic_status=lambda: _phase6_update_assembly_diagnostic_status(
+            self
+        ),
+        invalidate_settings_page=lambda key: _phase6_invalidate_settings_page(
+            self, key
+        ),
+        render_settings_context=lambda key: _phase6_render_settings_context(
+            self, key
+        ),
     )
-    unlocked = self._phase6_parameters_unlocked
-    button = getattr(self, "parameter_lock_button", None)
-    if button is not None:
-        button.configure(text=("參數解鎖" if unlocked else "參數鎖定"))
-
-    center = getattr(self, "settings_center", None)
-    active = str(getattr(self, "active_part_key", None) or "box_body")
-    assembly_selected = (
-        str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    )
-    diagnostics = getattr(self, "assembly_diagnostics_frame", None)
-    if unlocked and assembly_selected:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and not diagnostics.winfo_manager():
-            _phase6_pack_right_panel_above_canvas(self, diagnostics)
-        _phase6_update_assembly_diagnostic_status(self)
-    elif unlocked:
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-        _phase6_invalidate_settings_page(self, active)
-        _phase6_render_settings_context(self, active)
-        if center is not None and not center.winfo_manager():
-            _phase6_pack_right_panel_above_canvas(self, center)
-    else:
-        if center is not None and center.winfo_manager():
-            center.pack_forget()
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    return unlocked
-
 
 def _phase6_pack_right_panel_above_canvas(self, widget):
     """Pack a right-side settings/diagnostic panel before the expanding 3D canvas.
@@ -5347,67 +5314,27 @@ def _phase6_refresh_corner_data_unfold_view(self):
     return projection
 
 def _phase6_corner_data_back_panel_mode_is_applicable(self):
-    selected = str(
-        getattr(_phase6_corner_data_view(self), "selected_part_key", "") or ""
-    )
-    if selected != "box_body:back":
-        return False
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
-        return False
     state = _phase6_box_structure_state(self)
-    return (
-        str(state.get("active_type") or "")
-        == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    return _phase6_corner_data_view(self).back_panel_mode_is_applicable(
+        getattr(_phase6_corner_data_view(self), "selected_part_key", None),
+        family_name=cabinet_family_policy.canonical_family_name(
+            getattr(self, "_phase6_input_snapshot", {}) or {}
+        ),
+        active_type=state.get("active_type"),
+        three_piece_type=BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
     )
 
 
 def _phase6_refresh_corner_data_back_panel_mode_control(self):
-    """Project 後面板形式 inside Corner Data without creating new state authority."""
-    frame = getattr(self, "corner_data_back_panel_mode_control", None)
-    if frame is not None:
-        try:
-            if frame.winfo_exists():
-                frame.destroy()
-        except Exception:
-            pass
-    self.corner_data_back_panel_mode_control = None
-    self.corner_data_back_panel_mode_selector = None
-
-    panel = getattr(self, "corner_data_panel", None)
-    if panel is None or not _phase6_corner_data_back_panel_mode_is_applicable(self):
-        return False
-
-    current = back_panel_mode(_phase6_box_structure_state(self))
-    label = _BACK_PANEL_MODE_LABELS[current]
-    var = getattr(self, "back_panel_mode_var", None)
-    if var is None:
-        var = original.tk.StringVar(master=panel, value=label)
-        self.back_panel_mode_var = var
-    elif str(var.get() or "") != label:
-        var.set(label)
-
-    frame = original.ttk.Frame(panel)
-    original.ttk.Label(frame, text="後面板形式").pack(
-        side=original.tk.LEFT, padx=(0, 6)
-    )
-    selector = original.ttk.Combobox(
-        frame,
-        textvariable=var,
+    state = _phase6_box_structure_state(self)
+    current = back_panel_mode(state)
+    return _phase6_corner_data_view(self).refresh_back_panel_mode_control(
+        self,
+        applicable=_phase6_corner_data_back_panel_mode_is_applicable(self),
+        current_label=_BACK_PANEL_MODE_LABELS[current],
         values=tuple(_BACK_PANEL_MODE_LABELS[item] for item in BackPanelMode),
-        state="readonly",
-        width=10,
+        on_selected=lambda var: _phase6_select_back_panel_mode(self, var),
     )
-    selector.pack(side=original.tk.LEFT)
-    selector.bind(
-        "<<ComboboxSelected>>",
-        lambda _event: _phase6_select_back_panel_mode(self, var),
-    )
-    frame.pack(fill=original.tk.X, pady=(2, 6))
-    self.corner_data_back_panel_mode_control = frame
-    self.corner_data_back_panel_mode_selector = selector
-    return True
-
 
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
     """Refresh the corner-data list as a pure View projection of workspace parts."""
