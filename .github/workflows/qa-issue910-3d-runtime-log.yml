@@ -1,0 +1,68 @@
+name: WHD｜#910｜3D 啟動與錯誤 LOG Focused QA
+run-name: "WHD｜#910｜3D startup + runtime LOG｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue910-3d-startup-runtime-log-20260928
+    paths:
+      - gui.py
+      - gui_modules/application/lifecycle.py
+      - gui_modules/runtime_error_log.py
+      - tests/test_issue910_runtime_error_log.py
+      - .github/workflows/qa-issue910-3d-runtime-log.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused-xvfb:
+    name: 真 Tk 3D startup + runtime error log
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝 GUI / 測試相依
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: 語法檢查
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile gui.py gui_modules/application/lifecycle.py gui_modules/runtime_error_log.py
+          echo "ISSUE910_COMPILE_GREEN=1"
+
+      - name: 真 Tk / Xvfb focused regression
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue910_runtime_error_log.py \
+            tests/test_issue189_direct_3d_startup.py \
+            --tb=short | tee issue910-focused-xvfb.log
+          echo "ISSUE910_XVFB_GREEN=1" | tee -a issue910-focused-xvfb.log
+
+      - name: 上傳 focused evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue910-focused-xvfb-${{ github.sha }}
+          path: issue910-focused-xvfb.log
+          if-no-files-found: warn
+          retention-days: 14
