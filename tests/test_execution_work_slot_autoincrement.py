@@ -1,3 +1,4 @@
+# Mirror governance is validated by the paired PR hard gate; this file tests runtime slot routing.
 from dataclasses import replace
 
 import pytest
