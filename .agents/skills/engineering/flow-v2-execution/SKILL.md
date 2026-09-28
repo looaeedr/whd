@@ -123,6 +123,12 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 每次 wake：fresh-read `coord/execution-v2` → same-lane nonterminal record優先 → 無 current record才讀 derived ready-index → exact structured action。active exact QA run只 poll；沒有 current record且ready-index empty才是 NO_EXECUTABLE_WORK。scheduler只走 GitHub/remote capability，不 fallback local。
 
+### SCHEDULER_STARTUP_BUNDLE_CACHE_V1
+
+完整 PROJECT_STARTUP_HARD_GATE_V1 / Phase6 Preflight / required Skill-reference read 與 mandatory fresh scheduler projection 全部完成後，可由 `tools/scheduler_startup_bundle.py` 將該 projection + exact `coord/execution-v2` HEAD + root-gate evidence 封裝成 `WHD_SCHEDULER_STARTUP_BUNDLE_V1`。同一 invocation 內，只要 fresh-read coord HEAD 仍等於 bundle.coord_head，可重用 bundle projection，避免重複列舉所有 ExecutionRecords/ready-index；HEAD 一旦改變，bundle 立即失效並重建。
+
+bundle 是 read-only cache，不提供 mutation authority，也不取代任何 startup gate、Preflight、transaction expected_coord_head / generation fencing 或 post-mutation readback。
+
 ### SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1
 
 - `RESUME_CURRENT`：若 lease 缺失/expired，先 ACQUIRE；**ACQUIRE 成功只是續跑前置，不是本輪 progress，也不是停止點**。同一 invocation 必須立即 fresh-read，繼續執行 ACQUIRE 前保存的 exact `next_action`。
