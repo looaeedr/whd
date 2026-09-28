@@ -5,15 +5,15 @@
   "source": "scheduler-b",
   "handler": "排程B",
   "entrypoint": "B15",
-  "event": "EXIT",
+  "event": "WAKE",
   "runtime_state": "IDLE_NO_WORK",
   "issue": null,
   "slot_id": null,
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "action": null,
   "record_fingerprint": null,
-  "last_wake_at": "2026-09-28T09:12:36Z",
+  "last_wake_at": "2026-09-28T10:16:05Z",
   "last_progress_at": null,
-  "exit_state": "IDLE_NO_WORK",
-  "observed_at": "2026-09-28T09:12:45Z"
+  "exit_state": null,
+  "observed_at": "2026-09-28T10:16:05Z"
 }
