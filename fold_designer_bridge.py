@@ -4267,6 +4267,44 @@ def _phase6_pack_right_panel_above_canvas(self, widget):
     return True
 
 
+def _phase6_toggle_parameter_panel(self):
+    """Compatibility port consumed dynamically by the application composition root."""
+    self._phase6_parameters_unlocked = not bool(
+        getattr(self, "_phase6_parameters_unlocked", False)
+    )
+    unlocked = self._phase6_parameters_unlocked
+    button = getattr(self, "parameter_lock_button", None)
+    if button is not None:
+        button.configure(text=("參數解鎖" if unlocked else "參數鎖定"))
+
+    center = getattr(self, "settings_center", None)
+    active = str(getattr(self, "active_part_key", None) or "box_body")
+    assembly_selected = (
+        str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
+        == "assembly"
+    )
+    diagnostics = getattr(self, "assembly_diagnostics_frame", None)
+    if unlocked and assembly_selected:
+        if center is not None and center.winfo_manager():
+            center.pack_forget()
+        if diagnostics is not None and not diagnostics.winfo_manager():
+            _phase6_pack_right_panel_above_canvas(self, diagnostics)
+        _phase6_update_assembly_diagnostic_status(self)
+    elif unlocked:
+        if diagnostics is not None and diagnostics.winfo_manager():
+            diagnostics.pack_forget()
+        _phase6_invalidate_settings_page(self, active)
+        _phase6_render_settings_context(self, active)
+        if center is not None and not center.winfo_manager():
+            _phase6_pack_right_panel_above_canvas(self, center)
+    else:
+        if center is not None and center.winfo_manager():
+            center.pack_forget()
+        if diagnostics is not None and diagnostics.winfo_manager():
+            diagnostics.pack_forget()
+    return unlocked
+
+
 def _hide_original_structure_mode_controls(root_widget):
     """Hide only the prototype's user-visible mode chooser; keep its internals."""
     targets = {"標準十字型", "金庫型(三件)", "結構:"}
