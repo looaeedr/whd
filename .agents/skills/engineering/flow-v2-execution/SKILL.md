@@ -135,7 +135,7 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 
 每次需要 ACQUIRE/ACCEPT_QA/MERGE/FINALIZE/YIELD 等 transaction：
 1. fresh-read `coord/execution-v2` exact HEAD 與 native record generation。
-2. 在本 lane request branch fresh-read request blob（若無則 create，若有則 CAS update）。
+2. 本 lane request branch 必須已存在 `.dispatch/transaction-request.json` bootstrap seed；fresh-read 其 blob SHA，scheduler 只允許 CAS update，禁止在 runtime 走首次 `create_file`。若 seed 缺失，fail closed 並交由治理/bootstrap 修復。
 3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
    - request_id：本 invocation/action 唯一值
    - issue / kind / lane_id / invocation_identity
@@ -147,7 +147,7 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
 7. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。
 
-`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
+`coord/transaction-requests-a` / `coord/transaction-requests-b` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須回 `APPLIED / SEED_NOOP` 且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 scheduler mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
 POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue；request workflow固定具有 `issues: write`。
 
