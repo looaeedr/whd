@@ -8,6 +8,7 @@ on:
     paths:
       - gui.py
       - gui_modules/application/lifecycle.py
+      - gui_modules/application/fold_designer_adapter.py
       - gui_modules/runtime_error_log.py
       - tests/test_issue910_runtime_error_log.py
       - .github/workflows/qa-issue910-final-exact.yml
