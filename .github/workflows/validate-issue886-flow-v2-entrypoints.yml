@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - governance/issue886-flow-v2-entrypoints
+    paths:
+      - .flow-v2/issue886.ready
 
 permissions:
   contents: read
