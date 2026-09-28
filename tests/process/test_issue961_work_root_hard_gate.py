@@ -186,3 +186,29 @@ def test_repository_mirror_tracks_stable_drive_gate_payload_hash():
         payload["canonical_source"]["canonical_payload_sha256"]
         == "6c5fb106798b593df723b8d4ff4ed99e1ab14f7ca4dc20c20ce6f8580a46ea4e"
     )
+
+
+def test_interactive_work_path_is_always_below_drive_work_prefix():
+    from tools.work_root_gate import (
+        DEFAULT_WORK_PREFIX,
+        build_interactive_work_path,
+        validate_interactive_workspace_path,
+    )
+
+    path = build_interactive_work_path(issue=996, source_sha="a" * 40)
+    assert path == f"{DEFAULT_WORK_PREFIX}/issue-996/{'a' * 12}"
+    assert validate_interactive_workspace_path(path) == path
+
+    with pytest.raises(ValueError, match="interactive workspace must be under"):
+        validate_interactive_workspace_path("/mnt/data/whd")
+
+
+def test_flow_v2_requires_workspace_first_execution_not_only_root_identity():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "WORKSPACE_EXECUTION_POLICY_V1" in text
+    assert "/Google Drive/WHD/work/..." in text
+    assert "build_interactive_work_path" in text
+    assert "GitHub checkout" in text
+    assert "manifest stale" in text
