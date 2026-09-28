@@ -164,6 +164,70 @@ def project_transaction_progress(
     return out
 
 
+def project_terminal_record_exit(
+    *,
+    record: ExecutionRecord,
+    invocation_identity: str,
+    action: str,
+    previous: Mapping[str, object] | None = None,
+    conversation_identity: str = "UNAVAILABLE",
+    runtime_owner: str | None = None,
+    observed_at: datetime | None = None,
+) -> dict[str, object]:
+    """Project canonical Flow v2 terminal state as one monitor EXIT event.
+
+    The execution record remains the authority.  This adapter only projects a
+    terminal record into coord/monitor-v2 so a completed slot cannot remain
+    visually WORKING/LIVE after FINALIZE.
+    """
+    if record.state != "DONE":
+        raise RuntimeObservationError("terminal EXIT projection requires DONE record")
+    if record.next_action is not None or record.lease is not None:
+        raise RuntimeObservationError(
+            "terminal EXIT projection requires cleared next_action and lease"
+        )
+    if not record.closure.issue_closed:
+        raise RuntimeObservationError(
+            "terminal EXIT projection requires closed issue readback"
+        )
+
+    now = observed_at or datetime.now(timezone.utc)
+    source, handler, entrypoint = _identity_for_record(
+        record, runtime_owner=runtime_owner
+    )
+    exit_state = str(record.semantic_state or "TERMINAL_SUCCESS")
+    out = _base(
+        previous=previous,
+        source=source,
+        handler=handler,
+        entrypoint=entrypoint,
+        event="EXIT",
+        issue=record.issue,
+        slot_id=record.slot_id,
+        claim_worker=(
+            record.owner_id
+            if record.owner_id not in {None, "NONE"}
+            else runtime_owner
+        ),
+        invocation_identity=invocation_identity,
+        conversation_identity=(
+            conversation_identity
+            if record.owner_kind == "INTERACTIVE"
+            else None
+        ),
+        branch=record.work_branch,
+        head_sha=record.head_sha,
+        action=action,
+        record_fingerprint=execution_record_fingerprint(record),
+        observed_at=now,
+    )
+    out["runtime_state"] = exit_state
+    out["exit_at"] = _iso(now)
+    out["exit_state"] = exit_state
+    out["liveness_state"] = "ENDED"
+    return out
+
+
 def project_interactive_liveness(
     parsed: Mapping[str, object],
     *,
