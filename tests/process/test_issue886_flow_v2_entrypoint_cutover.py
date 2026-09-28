@@ -41,6 +41,9 @@ def test_canonical_flow_v2_skill_exists_and_owns_execution():
     assert "DERIVED_CACHE_ONLY" in body
     assert "YIELD" in body
     assert "ORPHAN_WRITE" in body
+    assert "DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1" in body
+    assert "WHD_RUNTIME_OBSERVABILITY_V1" in body
+    assert "coord/monitor-v2" in body
 
 
 def test_workflow_entry_skills_are_flow_v2_bridges_not_legacy_authorities():
@@ -55,6 +58,7 @@ def test_workflow_entry_skills_are_flow_v2_bridges_not_legacy_authorities():
 def test_registry_routes_workflow_entries_through_flow_v2():
     registry = json.loads(text(ROOT / ".agents/skills/skill_registry.json"))
     routes = {r["id"]: r for r in registry["routes"]}
+    assert "/工作0" in routes["work-slot-routing"]["keywords"]
     for route_id in [
         "scheduler-authoring",
         "scheduler-simulation",
