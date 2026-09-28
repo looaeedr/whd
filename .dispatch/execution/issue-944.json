@@ -1,0 +1,51 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 944,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "work_branch": "work/issue944-restore-parameter-panel-port-20260928",
+  "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #944"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-28:issue944-restore-parameter-panel-port",
+      "authority_fingerprint": "74a40449128561c25a117ef4100b4edebbf019e54c7aaf5e5b2381bcf783600c"
+    }
+  ],
+  "updated_at": null
+}
