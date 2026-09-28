@@ -1,17 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-928-finalize-c6ac3c16",
-  "issue": 928,
-  "kind": "FINALIZE",
+  "request_id": "work0-933-acquire-g1",
+  "issue": 933,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-  "expected_coord_head": "cef0fac09fd867f83a26e9c0c9a7b57a4cee9f8b",
-  "expected_generation": 9,
+  "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
+  "expected_coord_head": "e35c0b2f9fc7a6ec94d2d2a4286a1194c5f7f37e",
+  "expected_generation": 1,
   "effect": {
-    "released_at": "2026-09-28T13:37:44.686Z",
-    "semantic_state": "TERMINAL_SUCCESS",
-    "issue_closed": true,
-    "issue_state": "closed",
-    "issue_state_reason": "completed"
+    "owner_kind": "INTERACTIVE",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": null,
+    "slot_id": "worker.slot.0",
+    "observed_at": "2026-09-28T13:41:01Z",
+    "lease": {
+      "token": "lease:933:interactive:work0:g1",
+      "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
+      "expires_at": "2026-09-28T14:11:01Z"
+    },
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create work branch for Issue #933"
+    }
   }
 }
