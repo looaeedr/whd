@@ -1,0 +1,51 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 945,
+  "execution_intent": "SCHEDULER_LANE",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": null,
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
+  "work_branch": "cleanup/2d-3d-sync",
+  "head_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #945"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-29:/排程B-945",
+      "authority_fingerprint": "3ef145aefd93c9ef9a49629afb1d5a78b36fd936148bfcd5daaba097a33b3700"
+    }
+  ],
+  "updated_at": "2026-09-28T21:22:00Z"
+}
