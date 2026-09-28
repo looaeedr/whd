@@ -401,6 +401,8 @@ def test_merge_then_finalize_reaches_done_without_half_terminal_state():
         finalize_plan,
         effect={
             "issue_closed": True,
+            "issue_state": "closed",
+            "issue_state_reason": "completed",
             "released_at": "2026-09-28T00:39:00Z",
             "updated_at": "2026-09-28T00:39:00Z",
         },
@@ -662,7 +664,7 @@ def test_yield_rejects_immediate_post_acquire_without_substantive_progress():
         transaction_id="tx-yield-after-acquire",
         invocation_identity="scheduled:00:run-a",
     )
-    with pytest.raises(ControlTransactionError, match="CONTINUE_EXECUTION"):
+    with pytest.raises(ControlTransactionError, match="SCHEDULER_EXECUTION_NO_PROGRESS"):
         execute_transaction(
             record,
             plan,
