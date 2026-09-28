@@ -37,6 +37,15 @@ from tools.flow_v2_runtime_observation import (
     project_terminal_record_exit,
     project_transaction_progress,
 )
+from tools.flow_v2_merge_precheck import (
+    ALREADY_MERGED,
+    PR_IDENTITY_MISMATCH,
+    PR_NOT_MERGEABLE,
+    READY_TO_MERGE,
+    REQUIRED_CHECKS_PENDING,
+    TARGET_DRIFT,
+    evaluate_merge_precheck,
+)
 from tools.execution_record import (
     ActionSpec,
     ExecutionRecord,
@@ -242,6 +251,350 @@ def _normalize_effect(
     return effect
 
 
+
+def _require_current_invocation_lease(
+    record: ExecutionRecord,
+    invocation_identity: str,
+) -> None:
+    if record.lease is None:
+        raise ProductionExecutorError("trusted side effect requires an active Flow v2 lease")
+    if record.lease.invocation_identity != invocation_identity:
+        raise ControlTransactionConflict(
+            "live lease belongs to a different invocation"
+        )
+
+
+def _read_branch_head(repo: str, token: str, branch: str) -> str:
+    encoded = quote(branch, safe="")
+    ref = _api(repo, "GET", f"/git/ref/heads/{encoded}", token)
+    sha = str((ref.get("object") or {}).get("sha") or "").strip()
+    if not sha:
+        raise ProductionExecutorError(f"branch {branch!r} did not resolve to a SHA")
+    return sha
+
+
+def _required_checks_for_target(
+    repo: str,
+    token: str,
+    target_branch: str,
+) -> list[str]:
+    contexts: set[str] = set()
+    target_ref = f"refs/heads/{target_branch}"
+    try:
+        summaries = _api(repo, "GET", "/rulesets", token) or []
+        for summary in summaries:
+            if str(summary.get("enforcement") or "").lower() != "active":
+                continue
+            ruleset_id = summary.get("id")
+            if not ruleset_id:
+                continue
+            detail = _api(repo, "GET", f"/rulesets/{ruleset_id}", token) or {}
+            conditions = detail.get("conditions") or {}
+            ref_name = conditions.get("ref_name") or {}
+            includes = set(ref_name.get("include") or [])
+            excludes = set(ref_name.get("exclude") or [])
+            if target_ref in excludes:
+                continue
+            if includes and target_ref not in includes and "~ALL" not in includes:
+                continue
+            for rule in detail.get("rules") or []:
+                if rule.get("type") != "required_status_checks":
+                    continue
+                params = rule.get("parameters") or {}
+                for item in params.get("required_status_checks") or []:
+                    context = str(item.get("context") or "").strip()
+                    if context:
+                        contexts.add(context)
+    except HTTPError:
+        # GitHub Actions token permissions can make ruleset reads unavailable.
+        # The protected production targets have a stable required context; this
+        # fallback keeps the merge precheck fail-closed instead of silently
+        # skipping required checks.
+        pass
+
+    if target_branch in {"main", "cleanup/2d-3d-sync"}:
+        contexts.add("Governance Mirror Hard Gate")
+    return sorted(contexts)
+
+
+def _check_conclusions_for_head(
+    repo: str,
+    token: str,
+    head_sha: str,
+) -> dict[str, str]:
+    payload = _api(
+        repo,
+        "GET",
+        f"/commits/{head_sha}/check-runs?per_page=100",
+        token,
+    ) or {}
+    conclusions: dict[str, str] = {}
+    for row in payload.get("check_runs") or []:
+        name = str(row.get("name") or "").strip()
+        conclusion = str(row.get("conclusion") or "").strip().lower()
+        if not name:
+            continue
+        if conclusion == "success" or name not in conclusions:
+            conclusions[name] = conclusion
+    return conclusions
+
+
+def _merge_precheck_readback(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    pr_number: int,
+) -> tuple[dict[str, object], object]:
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    if pr.get("mergeable") is None and not pr.get("merged"):
+        # GitHub may return null while mergeability is being computed. One
+        # immediate fresh read is enough; unresolved null remains fail-closed.
+        pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+
+    observed_target = _read_branch_head(repo, token, record.target_branch)
+    required_checks = _required_checks_for_target(
+        repo,
+        token,
+        record.target_branch,
+    )
+    check_conclusions = _check_conclusions_for_head(
+        repo,
+        token,
+        record.head_sha,
+    )
+
+    result = evaluate_merge_precheck(
+        record_head_sha=record.head_sha,
+        record_target_branch=record.target_branch,
+        record_target_sha=record.target_sha,
+        pr_number=pr_number,
+        pr_state=str(pr.get("state") or "").lower(),
+        pr_merged=bool(pr.get("merged")),
+        pr_head_sha=str((pr.get("head") or {}).get("sha") or ""),
+        pr_base_branch=str((pr.get("base") or {}).get("ref") or ""),
+        pr_base_sha=str((pr.get("base") or {}).get("sha") or ""),
+        pr_mergeable=pr.get("mergeable") if isinstance(pr.get("mergeable"), bool) else None,
+        observed_target_sha=observed_target,
+        required_checks=required_checks,
+        check_conclusions=check_conclusions,
+    )
+    return pr, result
+
+
+def _trusted_merge_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    invocation_identity: str,
+    supplied: dict[str, object],
+) -> dict[str, object]:
+    _require_current_invocation_lease(record, invocation_identity)
+    if record.next_action is None or record.next_action.kind != "MERGE":
+        raise ProductionExecutorError("MERGE requires current structured MERGE next_action")
+
+    pr_number = record.next_action.args.get("pr_number")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        raise ProductionExecutorError("MERGE next_action.pr_number is invalid")
+
+    pr, precheck = _merge_precheck_readback(
+        repo,
+        token,
+        record=record,
+        pr_number=pr_number,
+    )
+
+    if precheck.classification == TARGET_DRIFT:
+        revalidation_workflow = str(
+            record.next_action.args.get("revalidation_workflow")
+            or supplied.get("revalidation_workflow")
+            or ""
+        ).strip()
+        if not revalidation_workflow:
+            raise ProductionExecutorError(
+                "MERGE target drift requires structured revalidation_workflow"
+            )
+        return {
+            "merge_precheck_status": TARGET_DRIFT,
+            "target_sha": precheck.observed_target_sha,
+            "semantic_state": "TARGET_DRIFT_REQUIRES_SYNC",
+            "next_action": {
+                "kind": "SYNC_TARGET",
+                "args": {
+                    "target_sha": precheck.observed_target_sha,
+                    "pr_number": pr_number,
+                    "target_branch": record.target_branch,
+                    "qa_workflow": revalidation_workflow,
+                },
+                "display": "Sync live target into work branch and revalidate exact head",
+            },
+            "updated_at": _iso(_now()),
+        }
+
+    if precheck.classification == REQUIRED_CHECKS_PENDING:
+        missing = ",".join(precheck.missing_required_checks)
+        raise ControlTransactionConflict(
+            f"merge precheck required checks pending: {missing}"
+        )
+    if precheck.classification == PR_NOT_MERGEABLE:
+        raise ControlTransactionConflict(
+            "merge precheck PR is not mergeable"
+        )
+    if precheck.classification == PR_IDENTITY_MISMATCH:
+        raise ProductionExecutorError(
+            f"merge precheck PR identity mismatch: {precheck.reason}"
+        )
+
+    if precheck.classification == ALREADY_MERGED:
+        observed_target = _read_branch_head(repo, token, record.target_branch)
+        return {
+            "merge_precheck_status": ALREADY_MERGED,
+            "merged_sha": observed_target,
+            "target_sha": observed_target,
+            "semantic_state": "MERGED",
+            "next_action": {
+                "kind": "FINALIZE",
+                "args": {},
+                "display": "Finalize exact merged Issue",
+            },
+            "updated_at": _iso(_now()),
+        }
+
+    if precheck.classification != READY_TO_MERGE:
+        raise ProductionExecutorError(
+            f"unsupported merge precheck classification {precheck.classification}"
+        )
+
+    merge_result = _api(
+        repo,
+        "PUT",
+        f"/pulls/{pr_number}/merge",
+        token,
+        {
+            "sha": record.head_sha,
+            "merge_method": "merge",
+            "commit_title": f"Merge PR #{pr_number}: Flow v2 trusted merge",
+        },
+    ) or {}
+    if merge_result.get("merged") is not True:
+        raise ProductionExecutorError(
+            f"trusted PR merge was rejected: {merge_result.get('message')}"
+        )
+
+    fresh_pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    if fresh_pr.get("merged") is not True:
+        raise ProductionExecutorError("trusted PR merge readback is not merged")
+    observed_target = _read_branch_head(repo, token, record.target_branch)
+
+    return {
+        "merge_precheck_status": READY_TO_MERGE,
+        "merged_sha": observed_target,
+        "target_sha": observed_target,
+        "semantic_state": "MERGED",
+        "next_action": {
+            "kind": "FINALIZE",
+            "args": {},
+            "display": "Finalize exact merged Issue",
+        },
+        "updated_at": _iso(_now()),
+    }
+
+
+def _trusted_sync_target_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    invocation_identity: str,
+) -> dict[str, object]:
+    _require_current_invocation_lease(record, invocation_identity)
+    if record.next_action is None or record.next_action.kind != "SYNC_TARGET":
+        raise ProductionExecutorError(
+            "SYNC_TARGET requires current structured SYNC_TARGET next_action"
+        )
+
+    args = record.next_action.args
+    target_sha = str(args.get("target_sha") or "").strip()
+    target_branch = str(args.get("target_branch") or "").strip()
+    qa_workflow = str(args.get("qa_workflow") or "").strip()
+    pr_number = args.get("pr_number")
+    if target_branch != record.target_branch:
+        raise ProductionExecutorError("SYNC_TARGET target branch identity mismatch")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        raise ProductionExecutorError("SYNC_TARGET pr_number is invalid")
+    if not qa_workflow:
+        raise ProductionExecutorError("SYNC_TARGET qa_workflow is missing")
+
+    live_target = _read_branch_head(repo, token, target_branch)
+    if live_target != target_sha:
+        raise ControlTransactionConflict(
+            f"SYNC_TARGET target drift: expected {target_sha}, observed {live_target}"
+        )
+    live_work = _read_branch_head(repo, token, record.work_branch)
+    if live_work != record.head_sha:
+        raise ControlTransactionConflict(
+            f"SYNC_TARGET work head drift: expected {record.head_sha}, observed {live_work}"
+        )
+
+    try:
+        _api(
+            repo,
+            "POST",
+            "/merges",
+            token,
+            {
+                "base": record.work_branch,
+                "head": target_sha,
+                "commit_message": (
+                    f"Flow v2 SYNC_TARGET for Issue #{record.issue}: "
+                    f"{target_branch}@{target_sha}"
+                ),
+            },
+        )
+    except HTTPError as exc:
+        if exc.code == 409:
+            raise ProductionExecutorError(
+                "SYNC_TARGET merge conflict requires explicit repair"
+            ) from exc
+        raise
+
+    new_head = _read_branch_head(repo, token, record.work_branch)
+    if new_head == record.head_sha:
+        next_action = {
+            "kind": "MERGE",
+            "args": {
+                "pr_number": pr_number,
+                "head_sha": new_head,
+                "target_branch": target_branch,
+                "expected_target_sha": target_sha,
+                "revalidation_workflow": qa_workflow,
+            },
+            "display": f"Merge exact PR #{pr_number} after target reconciliation",
+        }
+        semantic_state = "TARGET_RECONCILED"
+    else:
+        next_action = {
+            "kind": "START_QA",
+            "args": {
+                "workflow": qa_workflow,
+                "post_accept_pr_number": pr_number,
+                "post_accept_target_branch": target_branch,
+                "post_accept_revalidation_workflow": qa_workflow,
+            },
+            "display": "Revalidate exact head after target synchronization",
+        }
+        semantic_state = "QA_INVALIDATED_BY_TARGET_SYNC"
+
+    return {
+        "head_sha": new_head,
+        "target_sha": target_sha,
+        "semantic_state": semantic_state,
+        "next_action": next_action,
+        "updated_at": _iso(_now()),
+    }
+
+
 def _finalize_target_readback(
     repo: str,
     token: str,
@@ -413,6 +766,21 @@ def execute_one(
         invocation_identity=invocation_identity,
         supplied=supplied_effect,
     )
+    if kind == "MERGE":
+        effect = _trusted_merge_effect(
+            repo,
+            token,
+            record=record,
+            invocation_identity=invocation_identity,
+            supplied=supplied_effect,
+        )
+    elif kind == "SYNC_TARGET":
+        effect = _trusted_sync_target_effect(
+            repo,
+            token,
+            record=record,
+            invocation_identity=invocation_identity,
+        )
     if kind == "FINALIZE":
         # FINALIZE does not trust caller-supplied closure booleans.  The trusted
         # writer owns the GitHub side effect and fresh readback, so an accepted
