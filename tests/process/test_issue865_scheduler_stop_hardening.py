@@ -183,3 +183,19 @@ def test_agents_has_github_only_remote_phase6_preflight_bridge() -> None:
     assert ".github/workflows/whd-phase6-preflight.yml" in text
     assert "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1" in text
     assert "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1" in text
+
+def test_flow_v2_cutover_retires_all_legacy_control_plane_transports() -> None:
+    workflows = (
+        ".github/workflows/whd-remote-claim-activation.yml",
+        ".github/workflows/whd-remote-execution-guard.yml",
+        ".github/workflows/whd-remote-finalization.yml",
+        ".github/workflows/whd-remote-parent-branch-identity-repair.yml",
+        ".github/workflows/whd-turn-exit-gate.yml",
+    )
+    for relative in workflows:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        jobs = text.count("    steps:\n")
+        assert jobs >= 1, relative
+        assert text.count("FLOW_V2_LEGACY_TRANSPORT_RETIRED_V1") == jobs, relative
+        assert text.count("FLOW_V2_CUTOVER_ACTIVE") == jobs, relative
+        assert "use coord/execution-v2" in text, relative
