@@ -138,7 +138,7 @@ def test_host_boundary_requires_current_invocation_substantive_transaction_befor
         now=NOW,
         host_boundary=True,
     )
-    assert other_result.decision == "CONTINUE_EXECUTION"
+    assert other_result.decision == "SCHEDULER_EXECUTION_NO_PROGRESS"
     assert other_result.may_return is False
 
 
@@ -158,4 +158,24 @@ def test_completed_yield_is_machine_proof_for_physical_return():
     result = classify_invocation_exit(yielded, invocation_identity=INV, now=NOW)
     assert result.decision == "YIELDED"
     assert result.may_return is True
+    assert result.requires_yield is False
+
+
+def test_host_boundary_rejects_acquire_only_as_no_progress():
+    record = _record("ACTIVE")
+    acquire_tx = TransactionState(
+        id="tx-acquire-only",
+        kind="ACQUIRE",
+        status="RECONCILED",
+        expected_fingerprint="a" * 64,
+        invocation_identity=INV,
+    )
+    result = classify_invocation_exit(
+        replace(record, transaction=acquire_tx),
+        invocation_identity=INV,
+        now=NOW,
+        host_boundary=True,
+    )
+    assert result.decision == "SCHEDULER_EXECUTION_NO_PROGRESS"
+    assert result.may_return is False
     assert result.requires_yield is False
