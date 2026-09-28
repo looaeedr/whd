@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
-  "head_sha": "cdb1bca2af3f879be1f0cefc8463a024f919ef93",
+  "generation": 8,
+  "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
   "issue": 944,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "transaction": {
-    "expected_fingerprint": "d6ed5a48c6760b24103445957252d8b4aa5c65b1383f5cf1a3eea9353621839a",
-    "id": "gha:36443917177:944:ACQUIRE:6",
+    "expected_fingerprint": "61bd206bb99aac2cd2033c7b7d73ed662797275ace77d2e607c2a011347262da",
+    "id": "gha:36444029380:944:RECONCILE:7",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:29:15Z",
+  "updated_at": "2026-09-28T15:30:12Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }
