@@ -1,0 +1,55 @@
+name: WHD｜Flow v2｜原子交易 Shadow 驗證
+run-name: WHD｜Flow v2 Shadow｜${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_json:
+        description: WHD_CONTROL_TRANSACTION_REQUEST_V2 JSON
+        required: true
+        type: string
+      execution_record_json:
+        description: WHD_EXECUTION_RECORD_V2 JSON
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  shadow-validate:
+    name: 唯讀驗證 request 與 ExecutionRecord identity
+    runs-on: ubuntu-latest
+    steps:
+      - name: 讀取目前程式碼
+        uses: actions/checkout@v4
+
+      - name: 建立 Shadow 輸入
+        shell: bash
+        env:
+          REQUEST_JSON: ${{ inputs.request_json }}
+          EXECUTION_RECORD_JSON: ${{ inputs.execution_record_json }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          Path("request.json").write_text(os.environ["REQUEST_JSON"], encoding="utf-8")
+          Path("execution-record.json").write_text(os.environ["EXECUTION_RECORD_JSON"], encoding="utf-8")
+          PY
+
+      - name: 執行唯讀 Shadow 驗證
+        shell: bash
+        run: |
+          PYTHONPATH=. python tools/control_transaction_shadow_executor.py \
+            --request request.json \
+            --record execution-record.json \
+            --output shadow-result.json
+
+      - name: 保存 Shadow diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-flow-v2-shadow-result-${{ github.run_id }}
+          path: shadow-result.json
+          if-no-files-found: error
+          retention-days: 7

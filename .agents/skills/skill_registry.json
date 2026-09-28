@@ -3,6 +3,31 @@
   "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
+      "id": "flow-v2-execution",
+      "keywords": [
+        "Flow v2",
+        "ExecutionRecord",
+        "coord/execution-v2",
+        "lease",
+        "YIELD",
+        "structured next_action",
+        "atomic transaction",
+        "execution generation"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/flow-v2-execution/**",
+        "tools/execution_*.py",
+        "tools/control_transaction*.py",
+        ".dispatch/execution/**"
+      ],
+      "required_skills": [
+        "flow-v2-execution"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ]
+    },
+    {
       "id": "skill-authoring",
       "keywords": [
         "寫技能",
@@ -43,11 +68,8 @@
         ".agents/skills/engineering/寫排程/**"
       ],
       "required_skills": [
-        "寫排程",
-        "派工",
-        "遠端執行守門",
-        "monitoring-remote-qa",
-        "executable-continuity-controller"
+        "flow-v2-execution",
+        "寫排程"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -69,11 +91,8 @@
         ".agents/skills/engineering/排程模擬/**"
       ],
       "required_skills": [
-        "排程模擬",
-        "派工",
-        "遠端執行守門",
-        "monitoring-remote-qa",
-        "executable-continuity-controller"
+        "flow-v2-execution",
+        "排程模擬"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -97,6 +116,7 @@
         ".agents/skills/engineering/工作槽/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "工作槽"
       ],
       "required_references": []
@@ -317,6 +337,7 @@
         ".agents/skills/engineering/派工/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "派工",
         "issue-closure-gate"
       ],
@@ -345,10 +366,8 @@
         ".agents/skills/engineering/remote-execution-guard/**"
       ],
       "required_skills": [
-        "遠端執行守門",
-        "monitoring-remote-qa",
-        "long-log-context-safe-execution",
-        "executable-continuity-controller"
+        "flow-v2-execution",
+        "遠端執行守門"
       ],
       "required_references": [
         "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
@@ -372,8 +391,8 @@
         ".agents/skills/engineering/issue-closure-gate/**"
       ],
       "required_skills": [
-        "issue-closure-gate",
-        "executable-continuity-controller"
+        "flow-v2-execution",
+        "issue-closure-gate"
       ],
       "required_references": [
         "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
@@ -616,6 +635,7 @@
         ".agents/skills/engineering/executable-continuity-controller/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "executable-continuity-controller"
       ],
       "required_references": [
@@ -640,9 +660,9 @@
         ".github/workflows/*qa*.yaml"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "monitoring-remote-qa",
-        "long-log-context-safe-execution",
-        "executable-continuity-controller"
+        "long-log-context-safe-execution"
       ],
       "required_references": [
         "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
@@ -1237,11 +1257,8 @@
         ".github/workflows/whd-remote-execution-guard.yml"
       ],
       "required_skills": [
-        "強制接手",
-        "派工",
-        "遠端執行守門",
-        "monitoring-remote-qa",
-        "executable-continuity-controller"
+        "flow-v2-execution",
+        "強制接手"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",

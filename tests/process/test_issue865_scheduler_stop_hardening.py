@@ -166,15 +166,16 @@ def test_remote_phase6_preflight_is_read_only_fixed_schema_transport() -> None:
     assert "arbitrary command" not in text.lower()
 
 
-def test_scheduler_authoring_preserves_substantive_progress_and_validated_end() -> None:
+def test_scheduler_authoring_uses_flow_v2_yield_and_recurring_lifecycle() -> None:
     text = (
         ROOT / ".agents/skills/engineering/寫排程/SKILL.md"
     ).read_text(encoding="utf-8")
-    assert "SUBSTANTIVE_DURABLE_PROGRESS_HARD_GATE_V1" in text
-    assert "substantive durable GitHub effect" in text
-    assert "SCHEDULER_EXECUTION_FAILURE" in text
-    assert "WHD_SCHEDULER_RUNTIME_END_RESULT_V1" in text
-    assert "EXACT_TURN_EXIT_RECEIPT_BOUND" in text
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in text
+    assert "coord/execution-v2" in text
+    assert "structured next_action" in text
+    assert "atomic transaction" in text
+    assert "YIELD" in text
+    assert "單輪 task terminal不代表 recurring automation terminal" in text
 
 
 def test_agents_has_github_only_remote_phase6_preflight_bridge() -> None:
