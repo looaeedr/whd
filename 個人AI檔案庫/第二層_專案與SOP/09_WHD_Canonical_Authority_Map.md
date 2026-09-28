@@ -29,6 +29,8 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=flow-v2-atomic-transaction role=CURRENT path=tools/control_transaction.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-action-contract role=CURRENT path=tools/execution_action_contract.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-scheduler-view role=CURRENT path=tools/execution_scheduler_view.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-scheduler-startup-bundle role=CURRENT path=tools/scheduler_startup_bundle.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-control-step-sequence role=CURRENT path=tools/control_transaction_step_executor.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-invocation-exit role=CURRENT path=tools/execution_invocation_exit.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-authority-policy role=CURRENT path=tools/execution_authority_policy.py -->
 
