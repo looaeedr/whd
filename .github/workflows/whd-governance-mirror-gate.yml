@@ -38,9 +38,43 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           HEAD_SHA: ${{ github.sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
           : > /tmp/governance-changed.txt
+
+          # FLOW_V2_FULL_X_RELEASE_SYNC_V1
+          # Narrow release exception after explicit Flow v2 governance retirement:
+          # only owner-authored main PRs whose head is a two-parent sync commit
+          # (parent1=exact PR base, parent2=exact live X) and whose tree equals X.
+          if [ "$EVENT_NAME" = "pull_request" ] && \
+             [ "$TARGET_REF" = "main" ] && \
+             [[ "${PR_HEAD_REF:-}" == release/sync-main-to-x-* ]] && \
+             [ "${PR_AUTHOR:-}" = "${REPOSITORY_OWNER:-}" ]; then
+            git fetch --no-tags origin "$PR_HEAD_REF:refs/remotes/origin/$PR_HEAD_REF"
+            EXACT_HEAD="$(git rev-parse "refs/remotes/origin/$PR_HEAD_REF")"
+            X_SHA="$(git rev-parse refs/remotes/origin/cleanup/2d-3d-sync)"
+            read -r P1 P2 EXTRA <<<"$(git show -s --format=%P "$PR_HEAD_SHA")"
+            HEAD_TREE="$(git show -s --format=%T "$PR_HEAD_SHA")"
+            X_TREE="$(git show -s --format=%T "$X_SHA")"
+            if [ "$EXACT_HEAD" = "$PR_HEAD_SHA" ] && \
+               [ -n "${P1:-}" ] && [ -n "${P2:-}" ] && [ -z "${EXTRA:-}" ] && \
+               [ "$P1" = "$PR_BASE_SHA" ] && \
+               [ "$P2" = "$X_SHA" ] && \
+               [ "$HEAD_TREE" = "$X_TREE" ]; then
+              echo "FLOW_V2_FULL_X_RELEASE_SYNC=1" >> "$GITHUB_ENV"
+              echo "FLOW_V2_FULL_X_RELEASE_SYNC_V1"
+              echo "base=$PR_BASE_SHA"
+              echo "x=$X_SHA"
+              echo "head=$PR_HEAD_SHA"
+              echo "tree=$HEAD_TREE"
+              exit 0
+            fi
+          fi
+
           if [ "$EVENT_NAME" = "pull_request" ]; then
             git -c core.quotePath=false diff --name-only "$PR_BASE_SHA...$HEAD_SHA" > /tmp/governance-changed.txt
           elif [ "$EVENT_NAME" = "push" ]; then
@@ -73,7 +107,7 @@ jobs:
           PY
 
       - name: Verify merge-time governance candidate parity
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.FLOW_V2_FULL_X_RELEASE_SYNC != '1'
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_REF: ${{ github.base_ref }}
