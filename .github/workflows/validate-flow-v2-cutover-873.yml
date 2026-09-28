@@ -1,0 +1,70 @@
+name: Validate Flow v2 Cutover 873
+
+on:
+  push:
+    branches:
+      - flow-v2/issue873-cutover-r1
+    paths:
+      - .github/workflows/validate-flow-v2-cutover-873.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: coord/execution-v2
+          fetch-depth: 0
+      - name: Validate native execution authority readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.execution_action_contract import validate_execution_action
+          from tools.execution_authority_policy import authorize_state_mutation
+          from tools.execution_ready_index import build_ready_index, ready_index_to_payload
+          from tools.execution_record import execution_record_fingerprint
+          from tools.execution_record_store import load_execution_records
+
+          records = load_execution_records(".")
+          assert len(records) == 1, records
+          record = records[0]
+          assert record.issue == 684
+          assert record.state == "INTEGRATING"
+          assert record.semantic_state == "FLOW_V2_MIGRATED_ACCEPTED_PRODUCT_EVIDENCE"
+          assert record.next_action is not None
+          assert record.next_action.kind == "FINALIZE"
+          assert validate_execution_action(record.next_action)
+          assert record.target_sha == "ca84e4af634053bb35f8f2535fdcbbcfce299114"
+          assert record.closure.merged_sha == record.target_sha
+          assert record.qa.last_accepted_run == 36329242279
+
+          stored = json.loads(Path(".dispatch/execution/ready-index.json").read_text(encoding="utf-8"))
+          rebuilt = ready_index_to_payload(build_ready_index(records))
+          assert stored == rebuilt, (stored, rebuilt)
+
+          native = authorize_state_mutation(
+              branch="coord/execution-v2",
+              path=".dispatch/execution/issue-684.json",
+          )
+          assert native.allowed and native.classification == "NATIVE_EXECUTION_RECORD"
+          legacy_claim = authorize_state_mutation(
+              branch="coord/execution-v2",
+              path=".dispatch/claims/issue-684.json",
+          )
+          legacy_checkpoint = authorize_state_mutation(
+              branch="coord/execution-v2",
+              path=".dispatch/checkpoints/issue-684.json",
+          )
+          assert not legacy_claim.allowed
+          assert not legacy_checkpoint.allowed
+          print("FLOW_V2_CUTOVER_READBACK_GREEN")
+          print("issue=684")
+          print("fingerprint=" + execution_record_fingerprint(record))
+          print("next_action=FINALIZE")
+          PY
