@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
+    "merged_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 23,
+  "generation": 24,
   "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -24,12 +24,10 @@
   "next_action": {
     "args": {
       "ancestry_run_id": 36461596195,
-      "cleanup_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
-      "main_sha": "4cc50f132b76ef0fb850cd2557c27f6ade86e393",
       "receipt_schema": "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1"
     },
-    "display": "Record final ancestry-reconciled cleanup target for Issue #952",
-    "kind": "MERGE"
+    "display": "Finalize Issue #952 after canonical ancestry reconciliation",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -46,7 +44,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ANCESTRY_RECONCILED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
@@ -54,13 +52,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
   "transaction": {
-    "expected_fingerprint": "1fda26c2cd41842be6f7e5fe63e85e662c54e98d07d79daf286af82ec2f26bfa",
-    "id": "gha:36462073037:952:RECONCILE:22",
+    "expected_fingerprint": "9bf5340c8bcf00d46a4d8587fad623f582a5746c65715c8a58d92b5a21b4aeb4",
+    "id": "gha:36462242150:952:MERGE:23",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "kind": "RECONCILE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T18:00:07Z",
+  "updated_at": "2026-09-28T18:01:31Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
