@@ -5,15 +5,15 @@
   "source": "work-0",
   "handler": "工作0",
   "entrypoint": "/工作0",
-  "event": "WAKE",
-  "runtime_state": "ROUTING",
-  "issue": null,
+  "event": "PROGRESS",
+  "runtime_state": "ACTIVE",
+  "issue": 910,
   "slot_id": "worker.slot.0",
-  "owner_id": null,
-  "action": "DISPATCH_READY",
+  "owner_id": "chatgpt.flowv2.work0",
+  "action": "START_BRANCH",
   "record_fingerprint": null,
   "last_wake_at": "2026-09-28T12:02:01.456Z",
-  "last_progress_at": "2026-09-28T12:02:01.456Z",
+  "last_progress_at": "2026-09-28T12:12:44.261Z",
   "exit_state": null,
-  "observed_at": "2026-09-28T12:02:01.456Z"
+  "observed_at": "2026-09-28T12:12:44.261Z"
 }
