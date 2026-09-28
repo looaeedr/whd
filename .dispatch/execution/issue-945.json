@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "reason": "PAIR_GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
+      "blocker_kind": "EXTERNAL_DEPENDENCY"
     },
-    "display": "Reconcile #945 main/cleanup governance ancestry",
-    "kind": "RECONCILE"
+    "display": "Wait for first real GitHub event=schedule watchdog run for #945 acceptance",
+    "kind": "WAIT_EXTERNAL"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -43,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "AWAITING_NATURAL_SCHEDULE",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "e29f0aba8a5f842be617c14540a2d1be58091243",
+  "target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
   "transaction": {
-    "expected_fingerprint": "9da2581fb8384e628a6974411f3107087c6fe3ba8db7b81e88597a65b5224e13",
-    "id": "gha:36494748360:945:ACQUIRE:6",
+    "expected_fingerprint": "086663f2705e70295f053506ca7b7a3647b71155ad3ab2d21cfb298cf867edf4",
+    "id": "gha:36495066966:945:RECONCILE:7",
     "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T22:51:02Z",
+  "updated_at": "2026-09-28T22:54:29Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
