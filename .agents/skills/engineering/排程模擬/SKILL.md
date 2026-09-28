@@ -33,6 +33,14 @@ whd_schema: WHD_DOC_META_V1
 ## Lifecycle
 不得自行 disable/delete/complete/reschedule自己或 sibling。cadence與 lane owner只由 host automation config管理。
 
+### HOST_LIFECYCLE_WATCHDOG_V1 bridge
+
+scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，可且應執行 **read-only host lifecycle inspection**，取得 A00/A20/A40/B15/B45 的 task `enabled / last_run_time`，並以 NON_AUTHORITY snapshot CAS 更新 `coord/monitor-v2:.dispatch/monitor/host/chatgpt-automations.json`。此為唯一 read-only automation introspection 例外；禁止任何 lifecycle mutation API。
+
+每個 entrypoint 必須把自己的 WAKE/HEARTBEAT/PROGRESS/EXIT 同步 mirror 到 exact entrypoint observation file，使用 canonical `WHD_SCHEDULER_ENTRYPOINT_OBSERVATION_V1`。host snapshot 與 entrypoint mirror 都只是 observability，不可當 claim/lease/transaction authority。
+
+GitHub independent watchdog `whd-scheduler-host-watchdog.yml` 每 5 分鐘獨立檢查 expected occurrence；120 秒 grace 後沒有 durable WAKE 即 fail-visible，並依 fresh host snapshot分類 `HOST_ENTRY_FAILURE / HOST_AUTO_PAUSE / HOST_STATE_UNKNOWN`。
+
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
 
 
