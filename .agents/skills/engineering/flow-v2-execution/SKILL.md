@@ -44,7 +44,7 @@ machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 
 
 ## Lease / YIELD
 
-live lease 時其他 invocation 回 busy，不覆寫。expired lease 只允許符合 owner/lane contract 的原子 reacquire。runtime 物理邊界但 task 未 terminal時用 YIELD 清 lease、保留 exact next_action。YIELD 不是 task complete；DONE 才是 terminal。
+live lease 時其他 invocation 回 busy，不覆寫。`lease=null` 的 same-lane nonterminal record 必須先做 ACQUIRE；expired lease 只允許符合 owner/lane contract 的原子 reacquire。ACQUIRE 成功後同一 invocation 立即續原本 structured next_action，不得把『拿到 lease』當停止點。runtime 物理邊界但 task 未 terminal時用 YIELD 清 lease、保留 exact next_action。YIELD 不是 task complete；DONE 才是 terminal。
 
 ## Scheduler A/B
 
@@ -82,3 +82,20 @@ FINALIZE 驗 merge/target/QA，close Issue後 fresh-read，再把 record寫成 D
 進度/status是 non-blocking checkpoint。scheduler/長任務第一行固定：
 `【處理者：<handler>｜owner=<record owner|NONE>｜工單：#<issue|NONE>】`
 回報後只要 current invocation 還能合法施工，就立即繼續。
+
+## Production transaction transport
+
+<!-- FLOW_V2_PRODUCTION_TRANSACTION_V1 -->
+
+production state mutation 的 trusted writer 是 `.github/workflows/whd-control-transaction-v2.yml`，實作者為 `tools/control_transaction_production_executor.py`。
+
+scheduler/interactive runtime 不可直接手寫 `coord/execution-v2`。需要 ACQUIRE/ACCEPT_QA/MERGE/FINALIZE/YIELD 等 state transition 時：
+1. fresh-read native record / exact external readback。
+2. dispatch `whd-control-transaction-v2.yml`，輸入 exact issue、kind、lane_id、invocation_identity、effect_json。
+3. 鎖定該 workflow run 到 terminal。
+4. success 後 fresh-read `coord/execution-v2`，必須看到 generation +1、transaction.status=RECONCILED 與 exact next_action/state。
+5. CONFLICT/FAILED 時重新 fresh-read，不得 replay 舊 effect。
+
+`lease=null` 的 same-lane nonterminal record：先 dispatch ACQUIRE（effect_json 可為 `{}`），readback成功後在同一 scheduler invocation 繼續原 next_action。
+
+POLL_QA 是 observation，不直接 mutation。若 exact run terminal success，先 fresh-read run/head，再以 ACCEPT_QA transaction 寫入 QA acceptance與下一個 MERGE action。MERGE/FNALIZE 的外部 GitHub side effect 必須先做 fresh readback，再把該 readback作 effect_json交給 production transaction writer。
