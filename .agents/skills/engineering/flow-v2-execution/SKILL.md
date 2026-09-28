@@ -71,6 +71,21 @@ machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 
 
 所有 mutation 綁定 issue + generation + canonical branch + expected record fingerprint + expected branch/head/target。結果只能是 `APPLIED / CONFLICT / FAILED`；不存在可跨 runtime 保存的中間授權 token。副作用後必須 fresh readback。
 
+## Governance ancestry reconciliation
+
+<!-- GOVERNANCE_ANCESTRY_RECONCILIATION_V1 -->
+
+Paired governance deployment不得只停在 main / cleanup 兩個獨立 mirror merge。**cleanup/2d-3d-sync owns the final ancestry reconciliation**；main 只提供已接受的治理 history input，cleanup 仍是 product authority。
+
+Future governance ticket 固定順序：
+1. **merge the paired main governance PR first**，fresh-read accepted main SHA 與 cleanup SHA，並確認 governed content parity 已 GREEN。
+2. 以 `.github/workflows/whd-governance-ancestry-reconcile.yml` 傳入 exact `expected_main_sha + expected_cleanup_sha`。workflow 僅允許 **history-only second-parent merge**：在 cleanup exact head 上執行 two-parent `ours` merge，candidate tree 必須與 merge 前 cleanup tree 完全相同。
+3. reconciliation 禁止 **no force-push** / history rewrite；任何 input SHA drift、tree drift、parent identity drift、governance parity failure 一律 fail closed。
+4. workflow 成功後必須 fresh-read `WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1` 並再次執行 live ancestry gate，證明 accepted main SHA 已是 cleanup ancestor。
+5. paired governance ticket 的 `FINALIZE` 前必須有上述 result receipt + live ancestry GREEN；只有內容 mirror GREEN、但 main 仍不是 cleanup ancestor 時，不得 FINALIZE。
+
+此 contract 的 machine owner 仍是 `tools/governance_parity_gate.py` + governance mirror/reconciliation workflows；不得新增第二套 ancestry state database。
+
 ## Lease / YIELD
 
 live lease 時其他 invocation 回 busy，不覆寫。`lease=null` 的 same-lane nonterminal record 必須先做 ACQUIRE；expired lease 只允許符合 owner/lane contract 的原子 reacquire。ACQUIRE 成功後同一 invocation 立即續原本 structured next_action，不得把『拿到 lease』當停止點。runtime 物理邊界但 task 未 terminal時用 YIELD 清 lease、保留 exact next_action。**trusted writer 必須先以 `tools/execution_invocation_exit.py::classify_invocation_exit(..., host_boundary=True)` 驗證 `requires_yield=true` 才能接受 YIELD；`ACQUIRE → 無 substantive action → YIELD` 必須 fail closed。** YIELD 不是 task complete；DONE 才是 terminal。
