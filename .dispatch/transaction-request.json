@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-reconcile-cleanup-merge-20260928T174445Z",
+  "request_id": "issue952-renew-finalization-20260928T174858Z",
   "issue": 952,
-  "kind": "MERGE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
   "startup_evidence": {
@@ -22,25 +22,33 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。",
-    "issued_at": "2026-09-28T17:42:46Z",
-    "expires_at": "2026-09-28T17:47:46Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成 exact-head QA 接受、paired main governance mirror、cleanup ancestry reconciliation、merge 與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "繼續 Issue #952 的 CURRENT Flow v2 狀態，完成已驗證的 governance ancestry reconciliation readback、final merged target 綁定與 finalization。",
+    "issued_at": "2026-09-28T17:48:58Z",
+    "expires_at": "2026-09-28T17:53:58Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：繼續 Issue #952 的 CURRENT Flow v2 狀態，完成已驗證的 governance ancestry reconciliation readback、final merged target 綁定與 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "bdbd894c1d8cfda25efc9adb239a8582c1d5f08b",
-  "expected_generation": 20,
+  "expected_coord_head": "5fc10039a7b445611e68793248670e4aaa480ced",
+  "expected_generation": 21,
   "effect": {
-    "merged_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
-    "target_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "observed_at": "2026-09-28T17:48:58Z",
+    "lease": {
+      "token": "lease:952:finalization:174858",
+      "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
+      "expires_at": "2026-09-28T18:03:58Z"
+    },
     "semantic_state": "MERGED_PENDING_ANCESTRY",
     "next_action": {
-      "kind": "RECONCILE",
       "args": {
-        "reason": "GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED",
+        "expected_cleanup_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
         "expected_main_sha": "4cc50f132b76ef0fb850cd2557c27f6ade86e393",
-        "expected_cleanup_sha": "59999f5c84edd054122d376d0a279500f5b580a4"
+        "reason": "GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
       },
-      "display": "Reconcile main governance ancestry into cleanup without changing cleanup tree"
+      "display": "Reconcile main governance ancestry into cleanup without changing cleanup tree",
+      "kind": "RECONCILE"
     }
   }
 }
