@@ -23,6 +23,12 @@ whd_schema: WHD_DOC_META_V1
 - B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`；entrypoints=`B15/B45`。
 - entrypoint 不是 owner；scheduled 與 interactive resume 必須保存真實 invocation provenance。
 
+### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
+
+若新 scheduler invocation 在 project startup 階段還不知道 exact owning Issue，先依 canonical Flow v2 做 `READ_ONLY_BOOTSTRAP_ONLY`：只讀 `coord/execution-v2`、derived ready-index、`tools/execution_scheduler_view.py` scheduler projection 與 Issue/branch/HEAD identity，用來綁 trusted Phase6 Preflight request。此 bootstrap projection 不得授權 WAKE、HEARTBEAT、claim、ACQUIRE、transaction、Guard 或任何 mutation。
+
+Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟棄 bootstrap projection，再 fresh-read canonical scheduler state，才進入下面的 Wake。禁止建立永久 bootstrap Issue，也不得把這個 bridge 擴張成第二套 scheduler authority。
+
 ## Wake
 每次 wake 先 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。live lease退讓、expired lease走 atomic reacquire。沒有 current record且ready-index empty才可回 NO_EXECUTABLE_WORK。
 
