@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
+    "id": 36486734271,
+    "purpose": "ISSUE945_WHD_CONTROL_PLANE_REGRESSION",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": "WHD Control Plane Regression"
+      "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
+      "run_id": 36486734271
     },
-    "display": "Start exact #945 control-plane QA",
-    "kind": "START_QA"
+    "display": "Poll exact #945 control-plane QA run 36486734271",
+    "kind": "POLL_QA"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "transaction": {
-    "expected_fingerprint": "fa8f9d0ab6c9ab1f5fab0dd0935f619462c9d47920d4b6160adf2e349670785d",
-    "id": "gha:36486367426:945:START_BRANCH:2",
+    "expected_fingerprint": "544715f12c4f3c6711983519343fc8669fe1e97a0d9c8b9b4b2a50c4e29ac543",
+    "id": "gha:36486839312:945:START_QA:3",
     "invocation_identity": "scheduler-b:interactive:issue945:20260929T052600+0800",
-    "kind": "START_BRANCH",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T21:29:05Z",
+  "updated_at": "2026-09-28T21:33:17Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
