@@ -4,7 +4,7 @@ on:
   schedule:
     # Evaluate two minutes after each five-minute boundary. This lands exactly
     # at :02/:17/:22/:42/:47 for the A/B entrypoints' 120s grace window.
-    - cron: '2-57/5 * * * *'
+    - cron: '7-57/5 * * * *'
   workflow_dispatch:
 
 permissions:
