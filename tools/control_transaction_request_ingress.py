@@ -79,6 +79,14 @@ def _load_request(path: Path) -> dict[str, object]:
         raise ProductionExecutorError("unsupported transaction kind")
     if not isinstance(payload["effect"], dict):
         raise ProductionExecutorError("effect must be an object")
+    if kind == STEP_SEQUENCE_KIND:
+        steps = payload.get("steps")
+        if not isinstance(steps, list):
+            raise ProductionExecutorError("STEP_SEQUENCE request missing steps array")
+        try:
+            normalize_step_sequence(steps)
+        except ValueError as exc:
+            raise ProductionExecutorError(f"invalid STEP_SEQUENCE request: {exc}") from exc
     if kind != "SEED" and "startup_evidence" not in payload:
         raise ProductionExecutorError("request missing startup_evidence")
     return payload
