@@ -1,0 +1,72 @@
+name: WHD｜Flow v2｜終態交易 Shadow
+run-name: WHD｜Flow v2 終態 Shadow｜${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_json:
+        description: WHD_CONTROL_TRANSACTION_REQUEST_V2 JSON
+        required: true
+        type: string
+      execution_record_json:
+        description: WHD_EXECUTION_RECORD_V2 JSON
+        required: true
+        type: string
+      candidate_json:
+        description: 交易前已綁定的 deterministic candidate intent JSON
+        required: true
+        type: string
+      fresh_effect_json:
+        description: 副作用完成後 fresh readback effect JSON（Shadow 模式由呼叫者提供）
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  terminal-shadow:
+    name: 唯讀產生 terminal receipt 與 reconciled record
+    runs-on: ubuntu-latest
+    steps:
+      - name: 讀取目前程式碼
+        uses: actions/checkout@v4
+
+      - name: 建立終態 Shadow 輸入
+        shell: bash
+        env:
+          REQUEST_JSON: ${{ inputs.request_json }}
+          EXECUTION_RECORD_JSON: ${{ inputs.execution_record_json }}
+          CANDIDATE_JSON: ${{ inputs.candidate_json }}
+          FRESH_EFFECT_JSON: ${{ inputs.fresh_effect_json }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          for name, env_name in {
+              "request.json": "REQUEST_JSON",
+              "execution-record.json": "EXECUTION_RECORD_JSON",
+              "candidate.json": "CANDIDATE_JSON",
+              "fresh-effect.json": "FRESH_EFFECT_JSON",
+          }.items():
+              Path(name).write_text(os.environ[env_name], encoding="utf-8")
+          PY
+
+      - name: 執行 terminal-only Shadow executor
+        shell: bash
+        run: |
+          PYTHONPATH=. python tools/control_transaction_terminal_executor.py \
+            --request request.json \
+            --record execution-record.json \
+            --candidate candidate.json \
+            --effect fresh-effect.json \
+            --output terminal-result.json
+
+      - name: 保存 terminal receipt diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-flow-v2-terminal-shadow-${{ github.run_id }}
+          path: terminal-result.json
+          if-no-files-found: error
+          retention-days: 7
