@@ -83,6 +83,31 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. A scheduled runtime MUST NOT call automation-management APIs or mutate its own or sibling A/B automation lifecycle, title, schedule, timing mode, prompt, or enabled state. Invocation completion is only a cycle return; it never means the recurring task object is terminal. Host lifecycle changes are allowed only from an explicit interactive user request or a dedicated host-reconciliation action outside the scheduled runtime. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object unchanged.
 
+### HOST_LIFECYCLE_WATCHDOG_V1
+
+Host lifecycle observation is NON_AUTHORITY and must remain separate from Flow v2 execution state.
+
+- independent durable watchdog workflow: `.github/workflows/whd-scheduler-host-watchdog.yml`
+- evaluator: `tools/scheduler_host_watchdog.py`
+- watchdog output: `coord/monitor-v2:.dispatch/monitor/host/watchdog.json`
+- optional ChatGPT host snapshot: `coord/monitor-v2:.dispatch/monitor/host/chatgpt-automations.json`
+- exact entrypoint mirrors:
+  - A00 → `.dispatch/monitor/host/entrypoints/a00.json`
+  - A20 → `.dispatch/monitor/host/entrypoints/a20.json`
+  - A40 → `.dispatch/monitor/host/entrypoints/a40.json`
+  - B15 → `.dispatch/monitor/host/entrypoints/b15.json`
+  - B45 → `.dispatch/monitor/host/entrypoints/b45.json`
+
+Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
+- expected occurrence without matching durable WAKE + fresh host snapshot enabled=true → `HOST_ENTRY_FAILURE`.
+- expected occurrence without matching durable WAKE + fresh host snapshot enabled=false → `HOST_AUTO_PAUSE`.
+- expected occurrence without matching durable WAKE and missing/stale host snapshot → `HOST_STATE_UNKNOWN`;不得猜成 auto-pause。
+- matching WAKE but heartbeat expires before EXIT → `RUNTIME_LIVENESS_FAILURE`.
+
+Scheduled runtimes may perform **read-only** host lifecycle inspection for observability and mirror `enabled / last_run_time` for all five A/B automations into the host snapshot. This explicit read-only exception does not permit any automation lifecycle mutation. Scheduled runtime仍不得 create/update/disable/delete/reschedule/complete任何 automation。
+
+每個 scheduler runtime 在寫 canonical lane observation 時，還必須 mirror 同一 invocation 的 `WAKE / HEARTBEAT / PROGRESS / EXIT` 到自己的 exact entrypoint file，保留 `invocation_identity / last_wake_at / last_heartbeat_at / heartbeat_expires_at / last_progress_at / exit_at / exit_state`。host snapshot、entrypoint mirror與watchdog result都不得授權 ACQUIRE、mutation、merge、closure、takeover 或 owner 變更。
+
 ## Work slot / handoff
 
 固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。`worker.slot.N` identity 永遠固定；下面的自動遞增只決定新工作要綁哪個既有 fixed slot。
