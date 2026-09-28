@@ -1,20 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-940-acquire-23a12a88",
+  "request_id": "work0-940-reconcile-85618865",
   "issue": 940,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
-  "expected_coord_head": "23a12a88b1a1dacc82a67e0c14a3098a813cf8bc",
-  "expected_generation": 1,
+  "expected_coord_head": "e8927932b542f186394d202ba6f2cee3695bfbc5",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED",
+    "observed_work_branch": "governance/issue940-entry-hard-gate-x",
+    "observed_head_sha": "856188652d0c503224eec1306fba7acfe77bf368",
+    "observed_target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "RECONCILE",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "reason": "adopt live #940 repair branch and verify complete execution-entry hard-gate wiring"
+        "scope": "machine-enforce fresh startup evidence at Flow v2 trusted transaction ingress"
       },
-      "display": "Reconcile Issue #940 branch and verify execution-entry hard gates"
+      "display": "Implement machine-enforced per-invocation startup evidence and negative regression"
     }
   }
 }
