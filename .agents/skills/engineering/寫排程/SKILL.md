@@ -1,7 +1,7 @@
 ---
 name: 寫排程
 description: 建立、修改與修復 WHD recurring scheduler automation。prompt 必須是 Flow v2 wake/resume bridge，不得內嵌第二套 execution state machine。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: scheduler-authoring
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

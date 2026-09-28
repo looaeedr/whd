@@ -1,7 +1,7 @@
 ---
 name: issue-closure-gate
 description: Flow v2 merge/acceptance/Issue closure bridge。完成只由 FINALIZE transaction 與 native DONE record證明。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: issue-closure
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

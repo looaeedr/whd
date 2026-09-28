@@ -1,7 +1,7 @@
 ---
 name: 排程模擬
 description: WHD A/B recurring scheduler lane 與 /排程A、/排程B same-lane resume 入口。只透過 Flow v2 ExecutionRecord、lease/YIELD 與 structured next_action 執行。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: scheduler-interactive-lane-resume
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

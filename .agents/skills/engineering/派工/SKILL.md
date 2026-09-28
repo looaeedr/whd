@@ -1,7 +1,7 @@
 ---
 name: 派工
 description: WHD PM→Implementer→QA 與 execution routing 入口。新工作只透過 explicit READY ingress 建立 Flow v2 ExecutionRecord。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: dispatching-workflow
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

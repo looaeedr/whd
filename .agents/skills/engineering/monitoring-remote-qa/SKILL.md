@@ -1,7 +1,7 @@
 ---
 name: monitoring-remote-qa
 description: Flow v2 remote CI/QA 監控入口。只追 ExecutionRecord.active_run 的 exact run/head，terminal結果回寫同一 record。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: remote-qa-monitoring
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

@@ -1,7 +1,7 @@
 ---
 name: 遠端執行守門
 description: Flow v2 remote mutation compatibility入口。舊式中間授權 protocol已退役；新的遠端 mutation 只接受 atomic transaction terminal result。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: remote-execution-guard
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

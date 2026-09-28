@@ -1,7 +1,7 @@
 ---
 name: 執行開發任務
 description: 依核准規格／工單執行實作的 Flow v2 入口。execution intent轉成 native READY/ACTIVE record，不使用平行 ownership state。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: development-task-execution
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

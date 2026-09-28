@@ -1,7 +1,7 @@
 ---
 name: executable-continuity-controller
 description: Flow v2 長任務／runtime interruption／remote QA resume bridge。continuity 只讀 native ExecutionRecord、lease 與 structured next_action。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: continuous-execution-operations
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

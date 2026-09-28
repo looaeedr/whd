@@ -1,7 +1,7 @@
 ---
 name: 強制接手
 description: 使用者明確要求接手既有 WHD 工作時使用。Flow v2 以 generation fencing + atomic owner transition處理，不直接覆寫 foreign runtime。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: user-directed-force-takeover
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1

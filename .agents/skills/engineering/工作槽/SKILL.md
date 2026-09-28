@@ -1,7 +1,7 @@
 ---
 name: 工作槽
 description: 固定 /工作1、/工作2、/工作3 routing/projection 入口。slot 不擁有獨立狀態，全部由 Flow v2 ExecutionRecord.slot_id 投影。
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: work-slot-routing
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1
