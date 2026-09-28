@@ -30,6 +30,9 @@ from tools.execution_record import (
 )
 
 
+TARGET_ADVANCE_PROOF_SCHEMA = "WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1"
+
+
 TRANSACTION_KINDS = frozenset(
     {
         "ACQUIRE",
@@ -278,7 +281,7 @@ def _execute_acquire(
     if record.lease is not None:
         prior_expires = _aware_timestamp(record.lease.expires_at, "existing lease.expires_at")
         if prior_expires > observed_at:
-            raise ControlTransactionError("ACQUIRE cannot replace a live lease")
+            raise ControlTransactionConflict("ACQUIRE cannot replace a live lease")
 
     return _base_update(record, plan, effect, lease=lease)
 
@@ -511,6 +514,43 @@ def _execute_handoff(
     )
 
 
+def _finalize_target_sha(
+    record: ExecutionRecord,
+    effect: Mapping[str, object],
+) -> str:
+    """Accept the merge SHA as a stable anchor while allowing a proven descendant target."""
+    anchor = _text(record.closure.merged_sha, "closure.merged_sha")
+    observed_target = _text(
+        effect.get("observed_target_sha"),
+        "observed_target_sha",
+        optional=True,
+    ) or record.target_sha
+
+    if observed_target == anchor:
+        return observed_target
+
+    proof = effect.get("target_advance_proof")
+    if not isinstance(proof, Mapping):
+        raise ControlTransactionError(
+            "FINALIZE target advanced beyond merge anchor without trusted descendant proof"
+        )
+    if proof.get("schema") != TARGET_ADVANCE_PROOF_SCHEMA:
+        raise ControlTransactionError("FINALIZE target advance proof schema mismatch")
+    if str(proof.get("target_branch") or "").strip() != record.target_branch:
+        raise ControlTransactionError("FINALIZE target advance proof branch mismatch")
+    if str(proof.get("anchor_sha") or "").strip() != anchor:
+        raise ControlTransactionError("FINALIZE target advance proof anchor mismatch")
+    if str(proof.get("observed_target_sha") or "").strip() != observed_target:
+        raise ControlTransactionError("FINALIZE target advance proof target mismatch")
+    if proof.get("anchor_is_ancestor") is not True:
+        raise ControlTransactionError("FINALIZE target advance proof must prove anchor ancestry")
+    if proof.get("fresh_readback") is not True:
+        raise ControlTransactionError("FINALIZE target advance proof requires fresh readback")
+    if str(proof.get("trusted_source") or "").strip() != "control_transaction_production_executor":
+        raise ControlTransactionError("FINALIZE target advance proof has untrusted source")
+    return observed_target
+
+
 def _execute_finalize(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -520,8 +560,9 @@ def _execute_finalize(
         raise ControlTransactionError("FINALIZE requires INTEGRATING state")
     if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
         raise ControlTransactionError("FINALIZE requires accepted QA for current head")
-    if not record.closure.merged_sha or record.target_sha != record.closure.merged_sha:
-        raise ControlTransactionError("FINALIZE requires fresh merged target readback")
+    if not record.closure.merged_sha:
+        raise ControlTransactionError("FINALIZE requires a merged anchor")
+    final_target_sha = _finalize_target_sha(record, effect)
     if effect.get("issue_closed") is not True:
         raise ControlTransactionError("FINALIZE requires issue_closed=true readback")
     if str(effect.get("issue_state") or "").strip().lower() != "closed":
@@ -556,6 +597,7 @@ def _execute_finalize(
         blocker=None,
         closure=closure,
         chain=chain,
+        target_sha=final_target_sha,
     )
 
 

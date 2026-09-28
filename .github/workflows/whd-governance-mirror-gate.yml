@@ -11,6 +11,24 @@ on:
       - main
       - cleanup/2d-3d-sync
   workflow_dispatch:
+    inputs:
+      mode:
+        description: LIVE_BRANCH or ANCESTRY_CANDIDATE
+        required: false
+        default: LIVE_BRANCH
+        type: string
+      expected_main_sha:
+        description: Exact main SHA for ancestry candidate validation
+        required: false
+        type: string
+      expected_cleanup_sha:
+        description: Exact cleanup first parent for ancestry candidate validation
+        required: false
+        type: string
+      candidate_sha:
+        description: Exact ancestry candidate SHA receiving this required check
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -31,7 +49,55 @@ jobs:
           git fetch --no-tags origin main:refs/remotes/origin/main
           git fetch --no-tags origin cleanup/2d-3d-sync:refs/remotes/origin/cleanup/2d-3d-sync
 
+      - name: Verify protected cleanup ancestry candidate
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'ANCESTRY_CANDIDATE'
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_CLEANUP_SHA: ${{ inputs.expected_cleanup_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          [ -n "$EXPECTED_MAIN_SHA" ] && [ -n "$EXPECTED_CLEANUP_SHA" ] && [ -n "$CANDIDATE_SHA" ] || {
+            echo "ANCESTRY_CANDIDATE_INPUTS_REQUIRED" >&2
+            exit 1
+          }
+          OBSERVED_HEAD="$(git rev-parse HEAD)"
+          [ "$OBSERVED_HEAD" = "$CANDIDATE_SHA" ] || {
+            echo "ANCESTRY_CANDIDATE_HEAD_MISMATCH expected=$CANDIDATE_SHA observed=$OBSERVED_HEAD" >&2
+            exit 1
+          }
+
+          OBSERVED_MAIN="$(git rev-parse refs/remotes/origin/main)"
+          OBSERVED_CLEANUP="$(git rev-parse refs/remotes/origin/cleanup/2d-3d-sync)"
+          [ "$OBSERVED_MAIN" = "$EXPECTED_MAIN_SHA" ] || {
+            echo "ANCESTRY_MAIN_DRIFT expected=$EXPECTED_MAIN_SHA observed=$OBSERVED_MAIN" >&2
+            exit 1
+          }
+          [ "$OBSERVED_CLEANUP" = "$EXPECTED_CLEANUP_SHA" ] || {
+            echo "ANCESTRY_CLEANUP_DRIFT expected=$EXPECTED_CLEANUP_SHA observed=$OBSERVED_CLEANUP" >&2
+            exit 1
+          }
+
+          read -r P1 P2 EXTRA <<<"$(git show -s --format=%P "$CANDIDATE_SHA")"
+          [ "$P1" = "$EXPECTED_CLEANUP_SHA" ] && [ "$P2" = "$EXPECTED_MAIN_SHA" ] && [ -z "${EXTRA:-}" ] || {
+            echo "ANCESTRY_CANDIDATE_PARENT_MISMATCH parents=$P1,$P2,${EXTRA:-}" >&2
+            exit 1
+          }
+          CANDIDATE_TREE="$(git show -s --format=%T "$CANDIDATE_SHA")"
+          CLEANUP_TREE="$(git show -s --format=%T "$EXPECTED_CLEANUP_SHA")"
+          [ "$CANDIDATE_TREE" = "$CLEANUP_TREE" ] || {
+            echo "ANCESTRY_CANDIDATE_TREE_CHANGED cleanup=$CLEANUP_TREE candidate=$CANDIDATE_TREE" >&2
+            exit 1
+          }
+
+          python tools/governance_parity_gate.py \
+            --manifest docs/governance/governance_mirror_manifest.json \
+            --source-ref refs/remotes/origin/main \
+            --target-ref refs/remotes/origin/cleanup/2d-3d-sync \
+            --verify-live-parity
+
       - name: Validate changed-file scope
+        if: github.event_name != 'workflow_dispatch' || inputs.mode != 'ANCESTRY_CANDIDATE'
         env:
           EVENT_NAME: ${{ github.event_name }}
           TARGET_REF: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
@@ -189,7 +255,7 @@ jobs:
             --verify-pr-candidate-parity
 
       - name: Verify live bidirectional governance parity after branch push
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode != 'ANCESTRY_CANDIDATE')
         env:
           CURRENT_REF: ${{ github.ref_name }}
         run: |
@@ -206,7 +272,7 @@ jobs:
             --verify-live-parity
 
       - name: Verify live main ancestry after cleanup push
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'cleanup/2d-3d-sync'
+        if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode != 'ANCESTRY_CANDIDATE')) && github.ref_name == 'cleanup/2d-3d-sync'
         run: |
           set -euo pipefail
           python tools/governance_parity_gate.py \
