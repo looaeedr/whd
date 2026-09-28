@@ -1,23 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-940-reconcile-85618865",
+  "request_id": "work0-940-apply-1ae41048",
   "issue": 940,
-  "kind": "RECONCILE",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
-  "expected_coord_head": "e8927932b542f186394d202ba6f2cee3695bfbc5",
-  "expected_generation": 2,
+  "expected_coord_head": "aed664478994f303fc3653619b990485eeefba7f",
+  "expected_generation": 3,
+  "startup_evidence": {
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
+    "purpose": "Issue #940 record accepted hard-gate implementation and advance to exact-head QA",
+    "issued_at": "2026-09-28T14:45:00Z",
+    "expires_at": "2026-09-28T14:50:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #940 record accepted hard-gate implementation and advance to exact-head QA\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
+  },
   "effect": {
-    "observed_work_branch": "governance/issue940-entry-hard-gate-x",
-    "observed_head_sha": "856188652d0c503224eec1306fba7acfe77bf368",
-    "observed_target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-    "semantic_state": "IMPLEMENTING",
+    "head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
+    "semantic_state": "IMPLEMENTED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "scope": "machine-enforce fresh startup evidence at Flow v2 trusted transaction ingress"
+        "run_id": 36437903372,
+        "run_head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
+        "purpose": "WHD Control Plane Regression exact-head acceptance"
       },
-      "display": "Implement machine-enforced per-invocation startup evidence and negative regression"
+      "display": "Bind exact-head Control Plane Regression run 36437903372"
     }
   }
 }
