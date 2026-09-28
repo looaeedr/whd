@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "scheduler-a-20-20260928T132240Z-889-acquire",
+  "request_id": "scheduler-a-20-20260928T132400Z-889-yield",
   "issue": 889,
-  "kind": "ACQUIRE",
+  "kind": "YIELD",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "scheduler-a:20:20260928T132240Z:889:g4",
-  "expected_coord_head": "2d047706df5e67cf662101a5f1a303e1985cb9cf",
-  "expected_generation": 4,
+  "expected_coord_head": "b009111f6e5c8641b2a9d87bc0355daf30000030",
+  "expected_generation": 5,
   "effect": {}
 }
