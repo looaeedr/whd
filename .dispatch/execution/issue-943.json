@@ -7,25 +7,17 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
-    "released_at": null
+    "released_at": "2026-09-28T19:07:32Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 22,
+  "generation": 23,
   "head_sha": "29b989af90b35e47f8172689b359e6021d24dfcb",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-09-28T19:18:13Z",
-    "invocation_identity": "interactive:work1:issue943:qa-bind:20260929T030245+0800",
-    "token": "lease:943:36469497658:1"
-  },
-  "next_action": {
-    "args": {},
-    "display": "Finalize Issue #943 after exact merged target readback",
-    "kind": "FINALIZE"
-  },
+  "lease": null,
+  "next_action": null,
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
@@ -41,21 +33,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "transaction": {
-    "expected_fingerprint": "8dd7a53f68ce645782fd371d5cac91c5c79ee81185c1713a889e74b0d1706a7c",
-    "id": "gha:36469891997:943:MERGE:21",
+    "expected_fingerprint": "be2591f2bc676e15eb33600e3747b532a1554b09e7485aabe45aa3a517511bdb",
+    "id": "gha:36470003641:943:FINALIZE:22",
     "invocation_identity": "interactive:work1:issue943:qa-bind:20260929T030245+0800",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T19:06:37Z",
+  "updated_at": "2026-09-28T19:07:31Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
