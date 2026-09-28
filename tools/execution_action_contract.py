@@ -15,6 +15,7 @@ ACTION_TRANSACTION_KIND = {
     "START_QA": "START_QA",
     "ACCEPT_QA": "ACCEPT_QA",
     "MERGE": "MERGE",
+    "SYNC_TARGET": "SYNC_TARGET",
     "HANDOFF": "HANDOFF",
     "FINALIZE": "FINALIZE",
     "YIELD": "YIELD",
@@ -31,6 +32,7 @@ EXECUTABLE_ACTION_KINDS = frozenset(
         "POLL_QA",
         "ACCEPT_QA",
         "MERGE",
+        "SYNC_TARGET",
         "HANDOFF",
         "FINALIZE",
         "YIELD",
@@ -88,6 +90,19 @@ def validate_execution_action(action: ActionSpec) -> bool:
         _sha(args, "head_sha")
     elif action.kind == "MERGE":
         _positive_int(args, "pr_number")
+        if "head_sha" in args:
+            _sha(args, "head_sha")
+        if "target_branch" in args:
+            _text(args, "target_branch")
+        if "expected_target_sha" in args:
+            _sha(args, "expected_target_sha")
+        if "revalidation_workflow" in args:
+            _text(args, "revalidation_workflow")
+    elif action.kind == "SYNC_TARGET":
+        _sha(args, "target_sha")
+        _positive_int(args, "pr_number")
+        _text(args, "target_branch")
+        _text(args, "qa_workflow")
     elif action.kind == "HANDOFF":
         _text(args, "to_owner_kind")
         _text(args, "to_owner_id")
