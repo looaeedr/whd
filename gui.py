@@ -23,6 +23,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
+from gui_modules.runtime_error_log import install_tk_exception_logging, write_runtime_exception
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -2368,14 +2369,51 @@ def main(argv=None):
         pass
 
     root = tk.Tk()
-    app = Phase6PrimaryApplication(root)
+    runtime_metadata = {"build_id": PHASE6_BUILD_ID}
+    runtime_log_path = install_tk_exception_logging(
+        root, metadata=runtime_metadata
+    )
+    try:
+        app = Phase6PrimaryApplication(root)
+    except Exception as exc:
+        logged_path = write_runtime_exception(
+            "application_startup",
+            exc,
+            metadata=runtime_metadata,
+        ) or runtime_log_path
+        try:
+            messagebox.showerror(
+                "3D 啟動失敗",
+                f"Phase6 3D 工作區載入失敗：\n{exc}\n\n錯誤紀錄：{logged_path}",
+                parent=root,
+            )
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
+        raise
+
     project_path = project_path_from_argv(argv)
     if project_path is not None:
         def open_project_after_startup():
             try:
                 app.load_phase6_project(project_path, open_designer=True)
             except Exception as exc:
-                messagebox.showerror("專案開啟失敗", f"無法開啟 Phase6 專案：\n{exc}", parent=root)
+                logged_path = write_runtime_exception(
+                    "project_load",
+                    exc,
+                    metadata={
+                        **runtime_metadata,
+                        "project_path": str(project_path),
+                    },
+                ) or runtime_log_path
+                messagebox.showerror(
+                    "專案開啟失敗",
+                    f"無法開啟 Phase6 專案：\n{exc}\n\n錯誤紀錄：{logged_path}",
+                    parent=root,
+                )
         root.after_idle(open_project_after_startup)
     root.mainloop()
     return app
