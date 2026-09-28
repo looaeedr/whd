@@ -62,14 +62,19 @@ Recurring scheduler entrypoints are persistent host infrastructure, not per-Issu
 
 ## Work slot / handoff
 
-固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。
+固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。`worker.slot.N` identity 永遠固定；下面的自動遞增只決定新工作要綁哪個既有 fixed slot。
 
 ### DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
 
-- 互動式使用者明確要求執行 ticket，且未指定任何 `/工作N` / slot 時，machine ingress 必須把 `slot_id` 正規化為 `worker.slot.0`。
-- `/工作1`、`/工作2`、`/工作3` 明確指定時保持原 slot，不得被工作0覆蓋。
-- `SCHEDULER_LANE`、chain successor、純 query/status 不得因本 gate 自動取得 `worker.slot.0`。
-- `/工作0` 是預設互動入口，不是新的 claim/lease/ExecutionRecord authority。
+- 互動式使用者明確要求執行新 ticket，且未指定任何 `/工作N` / slot 時，routing 起點視為 `/工作0`；**不得再無條件把 `slot_id` 寫死成 `worker.slot.0`**。
+- 新工作明確使用 `/工作0`，或由 default gate 落到 `/工作0` 時，必須 fresh-read canonical ExecutionRecords，呼叫 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)`，依 `worker.slot.0 → 1 → 2 → 3` 找第一個 EMPTY，再把該 fixed `slot_id` 傳給 explicit READY ingress。
+- 0–3 全部 BOUND 時，結果固定為 fail closed / `NO_AVAILABLE_WORK_SLOT`；不得覆蓋現有 occupant、不得 takeover、不得建立 duplicate slot occupancy。
+- 若 ticket 已有 nonterminal ExecutionRecord，必須 resume 其原 `slot_id`，不得重新跑自動遞增。
+- 裸 `/工作0` query/status 仍只查 slot0；不因 slot0 BOUND 而跳去 slot1。
+- `/工作1`、`/工作2`、`/工作3` 明確指定時保持原 fixed slot，不套用 auto-increment。
+- `SCHEDULER_LANE`、chain successor、純 query/status 不得因本 gate 自動取得任何工作槽。
+- selection 後若發生 stale read / CAS / transaction conflict，必須 fresh-read 後重新選槽，不得沿用舊 EMPTY 判斷。
+- `/工作0` 是預設互動 routing 入口，不是新的 claim/lease/ExecutionRecord authority。
 
 ## Runtime observability
 
