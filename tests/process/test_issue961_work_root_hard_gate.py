@@ -208,7 +208,7 @@ def test_flow_v2_requires_workspace_first_execution_not_only_root_identity():
         encoding="utf-8"
     )
     assert "WORKSPACE_EXECUTION_POLICY_V1" in text
-    assert "/Google Drive/WHD/work/..." in text
+    assert "/Google Drive/WHD/work/active/..." in text
     assert "build_interactive_work_path" in text
     assert "GitHub checkout" in text
     assert "manifest stale" in text
