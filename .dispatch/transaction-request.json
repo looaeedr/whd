@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-work1-reconcile-current-head-target-v2",
+  "request_id": "issue943-work1-reconcile-current-head-target-v3",
   "issue": 943,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue943:session2",
-  "expected_coord_head": "0ad83c01fafd4feec91cc063d9d6237a0071c617",
+  "expected_coord_head": "0119d9b4e6810f78ee1172ea18053f37e4aea7a0",
   "expected_generation": 14,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
@@ -25,12 +25,12 @@
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
     "purpose": "續接 #943，對最新 Receiving UI 修復 branch 完成 exact Preflight、QA identity 重綁、PR #957 merge 與 Flow v2 finalization。",
-    "issued_at": "2026-09-28T17:32:30Z",
-    "expires_at": "2026-09-28T17:37:30Z",
+    "issued_at": "2026-09-28T17:35:30Z",
+    "expires_at": "2026-09-28T17:40:30Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：續接 #943，對最新 Receiving UI 修復 branch 完成 exact Preflight、QA identity 重綁、PR #957 merge 與 Flow v2 finalization。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
   "effect": {
-    "updated_at": "2026-09-28T17:34:45Z",
+    "updated_at": "2026-09-28T17:35:30Z",
     "observed_work_branch": "work/receiving-ui-regression-20260928",
     "observed_head_sha": "83a4a537c0a0c7816321605a86a1b1066692cd43",
     "observed_target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
