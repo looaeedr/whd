@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
   "issue": 910,
   "lane_id": null,
@@ -23,10 +23,12 @@
   },
   "next_action": {
     "args": {
-      "reason": "remove one-shot QA workflow from product branch then re-verify exact final candidate"
+      "head_sha": "4bc14a45774423c3f72f0619c95c3214617dc330",
+      "pr_number": 914,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Remove temporary QA workflow and reconcile exact final candidate",
-    "kind": "RECONCILE"
+    "display": "Merge exact accepted donor PR #914",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
@@ -55,15 +57,15 @@
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "feed8fb19d5a4c0dfc8f0091677cb7f6535f57f8",
+  "target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
   "transaction": {
-    "expected_fingerprint": "55c0a5d3b3cd6264639a18407aba3eafbfe8af5ab8d856311e3730093c697db8",
-    "id": "gha:36422431443:910:ACCEPT_QA:6",
+    "expected_fingerprint": "3105184e7ae0e962806af8cfee36ad859e180942575c6276b79351f53cdf8179",
+    "id": "gha:36422950338:910:RECONCILE:7",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "ACCEPT_QA",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:32:13Z",
+  "updated_at": "2026-09-28T12:37:00Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
