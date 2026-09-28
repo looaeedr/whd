@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
-  "head_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
+  "generation": 6,
+  "head_sha": "f0b40c9544cb942c306630823f9070824aa1bfa8",
   "issue": 948,
   "lane_id": "chatgpt.flowv2.work3",
   "lease": {
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "reason": "AUTHOR_RED_REGRESSION"
+      "purpose": "ISSUE948_RED_REGRESSION"
     },
-    "display": "Apply RED regression commit for Issue #948",
-    "kind": "APPLY_COMMIT"
+    "display": "Start RED regression for Issue #948",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a74c58450156691bff0a0dc8ca9c22dc02db43dd",
   "transaction": {
-    "expected_fingerprint": "c66784b283ef7111654733af884d2b865000bc89356cf128525fd842427fd622",
-    "id": "gha:36446898192:948:RECONCILE:4",
+    "expected_fingerprint": "7e089cc53d0df022b071f5f918c68feccd0ae6244e7e9bedd7b1eb97c5cdd77e",
+    "id": "gha:36447261935:948:APPLY_COMMIT:5",
     "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "kind": "RECONCILE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:52:55Z",
+  "updated_at": "2026-09-28T15:55:45Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
