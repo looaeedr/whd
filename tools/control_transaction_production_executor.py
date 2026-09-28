@@ -33,7 +33,10 @@ from tools.control_transaction import (
     prepare_transaction,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
-from tools.flow_v2_runtime_observation import project_transaction_progress
+from tools.flow_v2_runtime_observation import (
+    project_terminal_record_exit,
+    project_transaction_progress,
+)
 from tools.execution_record import (
     ActionSpec,
     ExecutionRecord,
@@ -173,7 +176,12 @@ def _publish_transaction_progress(
     runtime_owner: str,
     action: str,
 ) -> tuple[str, dict[str, object]]:
-    provisional = project_transaction_progress(
+    projector = (
+        project_terminal_record_exit
+        if record.state == "DONE"
+        else project_transaction_progress
+    )
+    provisional = projector(
         record=record,
         invocation_identity=invocation_identity,
         runtime_owner=runtime_owner,
@@ -181,7 +189,7 @@ def _publish_transaction_progress(
         previous=None,
     )
     previous, _ = _read_monitor_observation(repo, token, str(provisional["source"]))
-    observation = project_transaction_progress(
+    observation = projector(
         record=record,
         invocation_identity=invocation_identity,
         runtime_owner=runtime_owner,
