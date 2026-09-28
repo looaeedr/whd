@@ -88,6 +88,8 @@ jobs:
             tools/control_transaction_production_executor.py \
             tools/control_transaction_request_ingress.py \
             tools/control_transaction_request_builder.py \
+            tools/control_transaction_step_executor.py \
+            tools/scheduler_startup_bundle.py \
             tools/execution_invocation_exit.py \
             tools/execution_scheduler_view.py \
             tools/execution_entry_contract.py \
