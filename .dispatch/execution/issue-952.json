@@ -7,28 +7,17 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
-    "released_at": null
+    "released_at": "2026-09-28T18:04:42Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 24,
+  "generation": 25,
   "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-09-28T18:06:00Z",
-    "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "token": "lease:952:36460988877:1"
-  },
-  "next_action": {
-    "args": {
-      "ancestry_run_id": 36461596195,
-      "receipt_schema": "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1"
-    },
-    "display": "Finalize Issue #952 after canonical ancestry reconciliation",
-    "kind": "FINALIZE"
-  },
+  "lease": null,
+  "next_action": null,
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
@@ -44,21 +33,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8a6fd747ce83e6756bd244cdd436ed07de17302d",
   "transaction": {
-    "expected_fingerprint": "9bf5340c8bcf00d46a4d8587fad623f582a5746c65715c8a58d92b5a21b4aeb4",
-    "id": "gha:36462242150:952:MERGE:23",
+    "expected_fingerprint": "e055752ae4d8f4dbab2cae7de0a1fe2f038f498c194541e14b152887cad7600c",
+    "id": "gha:36462696872:952:FINALIZE:24",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T18:01:31Z",
+  "updated_at": "2026-09-28T18:05:22Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
