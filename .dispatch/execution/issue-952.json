@@ -1,6 +1,10 @@
 {
   "active_run": null,
-  "blocker": null,
+  "blocker": {
+    "evidence": "POST_QA_HEAD_DRIFT_REQUIRES_REVALIDATION: accepted_head=aa8552fdf82895c195801199afe080a3f8a75b82; live_pr_head=88260a3e8e0ed586e60876f12abca917a3673493; paired governance synchronization advanced governed base after QA acceptance. Exact current head must be revalidated before merge.",
+    "kind": "PLATFORM_FAILURE",
+    "recheck_after": null
+  },
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -12,7 +16,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "aa8552fdf82895c195801199afe080a3f8a75b82",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,11 +27,10 @@
   },
   "next_action": {
     "args": {
-      "cleanup_pr": 969,
-      "reason": "PAIRED_GOVERNANCE_MIRROR_AND_ANCESTRY_REQUIRED"
+      "blocker_kind": "PLATFORM_FAILURE"
     },
-    "display": "Complete paired main mirror and governance ancestry reconciliation for Issue #952",
-    "kind": "RECONCILE"
+    "display": "Repair post-QA head drift and revalidate exact current head",
+    "kind": "WAIT_EXTERNAL"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -44,21 +47,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "POST_QA_HEAD_DRIFT",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "INTEGRATING",
+  "state": "BLOCKED",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
   "transaction": {
-    "expected_fingerprint": "9e4f32ab04f04a6aab7cd9fc64df128b110d68bd4b1bbcb1b938679f77465fc3",
-    "id": "gha:36455455476:952:ACCEPT_QA:8",
+    "expected_fingerprint": "2aced8fdf480789af3960cc56711f236bf2a50db9391e7f8e3244f667ad83286",
+    "id": "gha:36456158692:952:BLOCK:9",
     "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
-    "kind": "ACCEPT_QA",
+    "kind": "BLOCK",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:03:57Z",
+  "updated_at": "2026-09-28T17:09:58Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
