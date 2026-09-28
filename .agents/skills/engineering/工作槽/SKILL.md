@@ -52,8 +52,22 @@ whd_schema: WHD_DOC_META_V1
 
 指派使用 explicit READY ingress；繼續讀該 slot record；接手走 atomic ACQUIRE/HANDOFF；交給排程或收回互動只改 owner/routing/lease並保留 slot_id。不得建立第二套 slot/handoff state。
 
-## Observability
+## Observability / interactive liveness
 
-每次 `/工作0/1/2/3` runtime 依 canonical `WHD_RUNTIME_OBSERVABILITY_V1` 寫 `WAKE / PROGRESS / EXIT` 到 `coord/monitor-v2`。這些 observation 只供 whd-monitor/HA 顯示，絕對不能反向授權施工。
+#679 / PR #703 的 `tools/interactive_runtime_liveness.py` 已是既有 interactive liveness machine owner；**CAPABILITY EXISTS**。目前只修 Flow v2 observability wiring，禁止另造第二套 heartbeat parser/schema。
+
+每次 `/工作0/1/2/3` runtime 依 canonical runtime model 保留四種不同事件：
+`WAKE / HEARTBEAT / PROGRESS / EXIT`。
+
+- WAKE = invocation 開始。
+- HEARTBEAT = invocation 仍存活；沿用 #679 machine owner。
+- PROGRESS = durable 工作有實質進展；可順便刷新 heartbeat timestamp/TTL，但不能取代 HEARTBEAT event。
+- EXIT = invocation 結束。
+- heartbeat TTL 沿用 300 秒。
+- `last_progress_at` 不可當 liveness。
+- conversation identity host 無法提供時記 `UNAVAILABLE`，不得猜。
+- monitor snapshot 必須能輸出：`slot_id, issue, claim_worker, invocation_identity, conversation_identity, branch, head_sha, last_wake_at, last_heartbeat_at, heartbeat_expires_at, last_progress_at, exit_at, exit_state, liveness_state`。
+
+Flow v2 透過 `tools/flow_v2_runtime_observation.py` adapter 投影至 `coord/monitor-v2`。這些 observation 只供 whd-monitor/HA 顯示，絕對不能反向授權施工、claim、takeover、merge 或 closure。
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
