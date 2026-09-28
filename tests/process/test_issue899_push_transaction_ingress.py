@@ -2,6 +2,42 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+
+def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, execution_mode="INTERACTIVE"):
+    import json
+    from tools.execution_entry_contract import build_startup_evidence as canonical_build_startup_evidence
+    from tools.work_root_gate import (
+        READ_MODE_GITHUB_MIRROR,
+        READ_MODE_GOOGLE_DRIVE,
+        build_work_root_gate_evidence,
+    )
+
+    mirror = json.loads(
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").read_text(encoding="utf-8")
+    )
+    if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}:
+        gate_payload = mirror
+        read_mode = READ_MODE_GITHUB_MIRROR
+    else:
+        gate_payload = dict(mirror)
+        gate_payload.pop("role", None)
+        gate_payload.pop("mirror_policy", None)
+        gate_payload.pop("canonical_source", None)
+        read_mode = READ_MODE_GOOGLE_DRIVE
+
+    gate_evidence = build_work_root_gate_evidence(
+        gate_payload=gate_payload,
+        read_mode=read_mode,
+        execution_mode=execution_mode,
+    )
+    return canonical_build_startup_evidence(
+        purpose=purpose,
+        invocation_identity=invocation_identity,
+        execution_mode=execution_mode,
+        work_root_gate_evidence=gate_evidence,
+        issued_at=issued_at,
+    )
+
 def _root_gate_evidence(execution_mode="INTERACTIVE"):
     import json
     from tools.work_root_gate import (
@@ -266,7 +302,7 @@ def test_startup_evidence_is_bound_to_exact_invocation_before_state_read(monkeyp
         raise AssertionError("execution state must not be read before startup gate")
 
     monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
-    evidence = build_startup_evidence(
+    evidence = _build_startup_evidence(
         purpose="Issue #940 mutation",
         invocation_identity="interactive:work0:issue940:other",
         execution_mode="INTERACTIVE",
@@ -304,7 +340,7 @@ def test_stale_startup_evidence_is_rejected_before_state_read(monkeypatch):
 
     monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
     invocation = "interactive:work0:issue940:stale"
-    evidence = build_startup_evidence(
+    evidence = _build_startup_evidence(
         purpose="Issue #940 mutation",
         invocation_identity=invocation,
         execution_mode="INTERACTIVE",
@@ -343,7 +379,7 @@ def test_canonical_startup_evidence_ttl_and_declaration_are_machine_validated():
 
     now = datetime(2026, 9, 28, 14, 0, tzinfo=timezone.utc)
     invocation = "scheduler-a:20:2026-09-28T14:00:00Z"
-    evidence = build_startup_evidence(
+    evidence = _build_startup_evidence(
         purpose="resume Scheduler A issue",
         invocation_identity=invocation,
         execution_mode="SCHEDULER_LANE",
@@ -514,7 +550,7 @@ def test_push_ingress_accepts_fail_qa_kind(tmp_path):
         "expected_coord_head": "a" * 40,
         "expected_generation": 7,
         "effect": {},
-        "startup_evidence": build_startup_evidence(
+        "startup_evidence": _build_startup_evidence(
             purpose="consume exact failed QA",
             invocation_identity=invocation,
             execution_mode="INTERACTIVE",
@@ -525,3 +561,37 @@ def test_push_ingress_accepts_fail_qa_kind(tmp_path):
     path.write_text(json.dumps(request), encoding="utf-8")
     loaded = ingress._load_request(path)
     assert loaded["kind"] == "FAIL_QA"
+
+
+def test_scheduler_lane_rejects_interactive_root_gate_before_state_read(monkeypatch):
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    def _unexpected_state_read(*args, **kwargs):
+        raise AssertionError("execution state must not be read before root-gate mode validation")
+
+    monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
+    invocation = "scheduler-a:20:issue961:wrong-root-mode"
+    request = {
+        "schema": ingress.REQUEST_SCHEMA,
+        "request_id": "scheduler-wrong-root-mode",
+        "issue": 961,
+        "kind": "ACQUIRE",
+        "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "invocation_identity": invocation,
+        "expected_coord_head": "a" * 40,
+        "expected_generation": 1,
+        "effect": {},
+        "startup_evidence": _build_startup_evidence(
+            purpose="scheduler wrong root mode",
+            invocation_identity=invocation,
+            execution_mode="INTERACTIVE",
+        ),
+    }
+    with pytest.raises(Exception, match="execution_mode mismatch"):
+        ingress.execute_request(
+            request=request,
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+        )
