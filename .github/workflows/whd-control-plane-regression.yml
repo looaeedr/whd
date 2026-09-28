@@ -25,7 +25,10 @@ on:
       - 'tools/control_transaction.py'
       - 'tools/control_transaction_production_executor.py'
       - 'tools/execution_invocation_exit.py'
+      - 'tools/execution_scheduler_view.py'
       - 'tools/control_transaction_request_ingress.py'
+      - 'tests/process/test_flow_v2_execution_invocation_exit.py'
+      - 'tests/process/test_flow_v2_execution_scheduler_view.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
       - 'tests/process/test_issue851_recurring_lifecycle_turn_exit.py'
       - 'tests/process/test_issue769_terminal_scheduler_census_exit_gate.py'
@@ -60,10 +63,13 @@ jobs:
             tools/control_transaction.py \
             tools/control_transaction_production_executor.py \
             tools/control_transaction_request_ingress.py \
-            tools/execution_invocation_exit.py
+            tools/execution_invocation_exit.py \
+            tools/execution_scheduler_view.py
       - name: Run stop/closure focused regressions
         run: |
           python -m pytest -q \
+            tests/process/test_flow_v2_execution_invocation_exit.py \
+            tests/process/test_flow_v2_execution_scheduler_view.py \
             tests/process/test_issue865_scheduler_stop_hardening.py \
             tests/process/test_issue851_recurring_lifecycle_turn_exit.py \
             tests/process/test_issue769_terminal_scheduler_census_exit_gate.py \
