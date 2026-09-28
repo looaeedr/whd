@@ -1,20 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-928-start-branch-g2",
+  "request_id": "work0-928-apply-1a995b19",
   "issue": 928,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-  "expected_coord_head": "fe58d3486733fd8d4c40b08331a5e6ee8060aed5",
-  "expected_generation": 2,
+  "expected_coord_head": "dc1a0a2de178a6ace971f7b94a497fd96f67fc55",
+  "expected_generation": 3,
   "effect": {
-    "work_branch": "work/issue928-windows-3d-blank-no-log-20260928",
-    "head_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
+    "head_sha": "1a995b19588050b8e13d3a40088bc97c640b03e8",
     "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {},
-      "display": "Diagnose Windows 3D blank/no-log and apply repair"
+      "display": "Run Issue #928 Windows/FinalScene regression QA"
     }
   }
 }
