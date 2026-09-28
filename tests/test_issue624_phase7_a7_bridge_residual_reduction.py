@@ -117,11 +117,12 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
         "_phase6_final_scene_view_request",
         "_phase6_save_settings_context_as_defaults",
         "_phase6_toggle_parameter_panel",
-    ):
+        ):
         assert name in funcs
     adapter = ADAPTER.read_text(encoding="utf-8")
     assert "_phase6_refresh_sticky_structure_tree" in adapter
     assert "_phase6_install_keyboard_shortcuts" in adapter
     assert "_phase6_final_scene_view_request" in adapter
     assert "_phase6_save_settings_context_as_defaults" in adapter
+    assert "_phase6_toggle_parameter_panel" in adapter
     assert "_phase6_toggle_parameter_panel" in adapter
