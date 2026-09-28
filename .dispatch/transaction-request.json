@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue952-renew-finalization-20260928T174858Z",
+  "request_id": "issue952-reacquire-finalization-20260928T175016Z",
   "issue": 952,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -34,11 +34,11 @@
     "owner_id": "chatgpt.flowv2.work0",
     "lane_id": "chatgpt.flowv2.work0",
     "slot_id": "worker.slot.0",
-    "observed_at": "2026-09-28T17:48:58Z",
+    "observed_at": "2026-09-28T17:50:16Z",
     "lease": {
-      "token": "lease:952:finalization:174858",
+      "token": "lease:952:finalization:175016",
       "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-      "expires_at": "2026-09-28T18:03:58Z"
+      "expires_at": "2026-09-28T18:05:16Z"
     },
     "semantic_state": "MERGED_PENDING_ANCESTRY",
     "next_action": {
