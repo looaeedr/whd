@@ -134,14 +134,17 @@ Accepted behavior head: `da0abb85d287d05d6f3a6f27c335eb2a9f3b052c`.
 
 Final P7-R-A classification after runtime/facade readback:
 
+> **2026-09-28 correction (#944):** `_phase6_toggle_parameter_panel` has a live dynamic consumer in `Phase6FoldDesignerComposition.workspace_shell_owner()` via composition-namespace lookup. The earlier Bridge-local caller census missed that indirect edge; this symbol is therefore `KEEP_COMPATIBILITY_PORT`, not `REMOVE / NO_CALLER`.
+
+
 - **REMOVE / NO_CALLER**:
   - `_phase6_active_mesh_profiles`
   - `_phase6_query_assembly_render_data`
   - `_phase6_final_scene_set_preview_enabled`
   - `_phase6_commit_output_draw_stock`
   - `_phase6_export_selected_dxf_from_3d`
-  - `_phase6_toggle_parameter_panel`
 - **KEEP_COMPATIBILITY_PORT**:
+  - `_phase6_toggle_parameter_panel`
   - `_phase6_refresh_sticky_structure_tree`
   - `_phase6_install_keyboard_shortcuts`
   - `_phase6_final_scene_view_request`
