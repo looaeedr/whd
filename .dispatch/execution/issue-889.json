@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
   "issue": 889,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "lease": {
-    "expires_at": "2026-09-28T12:11:16Z",
-    "invocation_identity": "scheduler-a:00:20260928T115532Z:889:g2",
-    "token": "lease:889:36418636699:1"
+    "expires_at": "2026-09-28T13:38:11Z",
+    "invocation_identity": "scheduler-a:20:20260928T132240Z:889:g4",
+    "token": "lease:889:36428210912:1"
   },
   "next_action": {
     "args": {
@@ -67,13 +67,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
   "transaction": {
-    "expected_fingerprint": "b4d1e0b56224421d5eac5f3bb39cf47466f506978c7def92940210203f90f0b4",
-    "id": "gha:36418981266:889:ACCEPT_QA:3",
-    "invocation_identity": "scheduler-a:00:20260928T115532Z:889:g2",
-    "kind": "ACCEPT_QA",
+    "expected_fingerprint": "ee9f183670dc52b3773c48dece4e5389ee19ab9a6fca218c7523ecf15145f6db",
+    "id": "gha:36428210912:889:ACQUIRE:4",
+    "invocation_identity": "scheduler-a:20:20260928T132240Z:889:g4",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T11:59:45Z",
+  "updated_at": "2026-09-28T13:23:11Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
