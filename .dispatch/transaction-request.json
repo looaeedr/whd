@@ -1,26 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-933-reconcile-pr936",
+  "request_id": "work0-933-merge-pr936-c4817cbf",
   "issue": 933,
-  "kind": "RECONCILE",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T134101Z:933:g1",
-  "expected_coord_head": "4589fad0647e2e3f600121cb373f7ae6510ea3b2",
-  "expected_generation": 6,
+  "expected_coord_head": "f299ebf5b9a52c78e8e5d1afa695b4ac319b71de",
+  "expected_generation": 7,
   "effect": {
-    "observed_work_branch": "work/issue933-finalize-monitor-exit-20260928",
-    "observed_head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
-    "observed_target_sha": "bfdd76b30b0a2bb3a251cf229dd28f01d2be4c3c",
-    "semantic_state": "QA_ACCEPTED",
+    "merged_sha": "c4817cbfab253474a19951b675b6ed5c0b4c90b7",
+    "target_sha": "c4817cbfab253474a19951b675b6ed5c0b4c90b7",
+    "semantic_state": "MERGED",
     "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 936,
-        "head_sha": "11e361bc807eb9240c306ae0f385f776b10d07dc",
-        "tested_head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
-        "target_branch": "cleanup/2d-3d-sync"
-      },
-      "display": "Merge exact Issue #933 integration PR #936"
+      "kind": "FINALIZE",
+      "args": {},
+      "display": "Finalize Issue #933 and prove monitor EXIT"
     }
   }
 }
