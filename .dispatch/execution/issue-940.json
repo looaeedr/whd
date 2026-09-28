@@ -1,51 +1,63 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 940,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "governance/issue940-entry-hard-gate-x",
-  "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
-  "work_branch": "governance/issue940-entry-hard-gate-x",
-  "head_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #940"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
+  "issue": 940,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-28T14:48:37Z",
+    "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
+    "token": "lease:940:36436868258:1"
+  },
+  "next_action": {
+    "args": {
+      "reason": "adopt live #940 repair branch and verify complete execution-entry hard-gate wiring"
+    },
+    "display": "Reconcile Issue #940 branch and verify execution-entry hard gates",
+    "kind": "RECONCILE"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "ebe8a792fe64635f82adaa0bac21ba5d701e8f9318632b4cfe4c09749ec4f344",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-28:restore-entry-hard-gates",
-      "authority_fingerprint": "ebe8a792fe64635f82adaa0bac21ba5d701e8f9318632b4cfe4c09749ec4f344"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": null
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "governance/issue940-entry-hard-gate-x",
+  "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "transaction": {
+    "expected_fingerprint": "81d827389683890126447423453032c0fe1c3621bc5bd879679a413186cab031",
+    "id": "gha:36436868258:940:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-28T14:33:37Z",
+  "version": 2,
+  "work_branch": "governance/issue940-entry-hard-gate-x"
 }
