@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "aa8552fdf82895c195801199afe080a3f8a75b82",
+    "id": 36454950236,
+    "purpose": "ISSUE952_FINAL_CONTROL_PLANE",
+    "status": "success"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "aa8552fdf82895c195801199afe080a3f8a75b82",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -26,8 +31,8 @@
       "head_sha": "aa8552fdf82895c195801199afe080a3f8a75b82",
       "run_id": 36454950236
     },
-    "display": "Bind exact GREEN Control Plane Regression run 36454950236",
-    "kind": "START_QA"
+    "display": "Poll exact Issue #952 GREEN control-plane run",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -44,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "GREEN_CANDIDATE",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
   "transaction": {
-    "expected_fingerprint": "9ef954e1f4759de1d9e3672ab43ccf8535bde3792eb399de861110cd97ba260b",
-    "id": "gha:36455183642:952:RECONCILE:6",
+    "expected_fingerprint": "961997633c9765b461c9c970779740b95491cd3b0f7c5d03ed3beb0ae397d51b",
+    "id": "gha:36455295750:952:START_QA:7",
     "invocation_identity": "interactive:work0:issue952:new-flow:20260929T004231+0800",
-    "kind": "RECONCILE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:01:35Z",
+  "updated_at": "2026-09-28T17:02:36Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
