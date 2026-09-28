@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-944-acquire-20260928T151107Z",
+  "request_id": "work0-944-acquire-repair-20260928T151215Z",
   "issue": 944,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -12,9 +12,16 @@
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
     "purpose": "Restore Issue #944 live Fold Designer parameter-panel composition port and correct the #624 dead-caller regression guard",
-    "issued_at": "2026-09-28T15:11:07Z",
-    "expires_at": "2026-09-28T15:16:07Z",
+    "issued_at": "2026-09-28T15:12:15Z",
+    "expires_at": "2026-09-28T15:17:15Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Restore Issue #944 live Fold Designer parameter-panel composition port and correct the #624 dead-caller regression guard\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "effect": {}
+  "effect": {
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Start work branch work/issue944-restore-parameter-panel-port-20260928"
+    }
+  }
 }
