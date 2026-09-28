@@ -141,7 +141,7 @@ def test_expired_other_invocation_lease_resumes_via_acquire_at_exact_boundary():
     assert view.requires_transaction == "ACQUIRE"
 
 
-def test_no_current_work_exposes_ready_candidates_without_selecting_a_winner():
+def test_no_current_work_deterministically_selects_first_ready_issue():
     ready_b = _record(902, "READY")
     ready_a = _record(901, "READY")
     done = _record(844, "DONE")
@@ -159,7 +159,9 @@ def test_no_current_work_exposes_ready_candidates_without_selecting_a_winner():
     assert view.decision == "READY_CANDIDATES"
     assert view.current_issue is None
     assert view.ready_issues == (901, 902)
-    assert view.selected_issue is None
+    assert view.selected_issue == 901
+    assert view.next_action_kind == "ACQUIRE"
+    assert view.next_action_display == "Acquire Issue #901"
     assert view.requires_transaction == "ACQUIRE"
 
 
@@ -217,6 +219,7 @@ def test_input_order_does_not_change_ready_candidate_projection():
 
     assert one == two
     assert one.ready_issues == (901, 902)
+    assert one.selected_issue == 901
 
 
 def test_scheduler_view_rejects_non_executable_same_lane_action():

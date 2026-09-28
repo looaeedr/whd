@@ -19,7 +19,11 @@ whd_schema: WHD_DOC_META_V1
 - entrypoint 不是 owner；scheduled 與 interactive resume 必須保存真實 invocation provenance。
 
 ## Wake
-每次 wake 先 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。live lease退讓、expired lease走 atomic reacquire。沒有 current record且ready-index empty才可回 NO_EXECUTABLE_WORK。runtime 邊界用 YIELD。
+每次 wake 先 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。live lease退讓、expired lease走 atomic reacquire。沒有 current record且ready-index empty才可回 NO_EXECUTABLE_WORK。
+
+`RESUME_CURRENT` 若先 ACQUIRE，ACQUIRE 後同一 invocation 必須立即 fresh-read並執行原 exact `next_action`；不得把拿到 lease 當 progress/停止點。`READY_CANDIDATES` 必須使用 scheduler view 的 deterministic `selected_issue` 立即 ACQUIRE；race/conflict後 fresh-read重選。
+
+正常 return 前必須通過 canonical `SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1`：WAKE/讀取/回報/HEARTBEAT/單獨 ACQUIRE 都不算 substantive progress。只有 DONE、LANE_BUSY、合法 BLOCKED、active remote QA wait，或本 invocation 已完成 substantive transaction 後的合法 YIELD 可離開；`SCHEDULER_EXECUTION_NO_PROGRESS` 必須繼續施工，不得停止。
 
 ## Lifecycle
 不得自行 disable/delete/complete/reschedule自己或 sibling。cadence與 lane owner只由 host automation config管理。
