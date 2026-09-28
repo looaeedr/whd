@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue948-acquire-20260928T153502Z",
+  "request_id": "issue948-start-branch-20260928153626",
   "issue": 948,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "interactive:work3:issue948:bootstrap-fix:20260928",
   "startup_evidence": {
@@ -10,18 +10,22 @@
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work3:issue948:bootstrap-fix:20260928",
     "purpose": "Execute Issue #948 scheduler startup bootstrap deadlock repair through Flow v2 work3",
-    "issued_at": "2026-09-28T15:35:02Z",
-    "expires_at": "2026-09-28T15:40:02Z",
+    "issued_at": "2026-09-28T15:36:26Z",
+    "expires_at": "2026-09-28T15:41:26Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Execute Issue #948 scheduler startup bootstrap deadlock repair through Flow v2 work3\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
-  "expected_coord_head": "0d74f6a333f8e4715dd52f15d718098b39662c79",
-  "expected_generation": 1,
+  "expected_coord_head": "dbcd070ba9f38e2ed0998cdcc3e5492e16a824b2",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED",
+    "work_branch": "governance/issue948-scheduler-startup-bootstrap",
+    "head_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Start work branch governance/issue948-scheduler-startup-bootstrap"
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "reason": "AUTHOR_RED_REGRESSION"
+      },
+      "display": "Apply RED regression commit for Issue #948"
     }
   }
 }
