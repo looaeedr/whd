@@ -5095,7 +5095,6 @@ def _phase6_refresh_box_body_piece_selector(self):
             None,
         )
         if target_tab is not None and str(notebook.select()) != str(target_tab):
-            self._phase6_box_body_piece_programmatic_key = desired
             self._phase6_box_body_piece_tab_guard = True
             try:
                 notebook.select(target_tab)
@@ -5115,18 +5114,17 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
     notebook = getattr(self, "box_body_piece_selector", None)
     if notebook is None:
         return
+    # #124 retired this Notebook from operator layout. It is compatibility
+    # projection state only; Tk auto-selects the first tab when topology is
+    # rebuilt and emits <<NotebookTabChanged>> asynchronously. A hidden widget
+    # must never turn that presentation event into an active-part mutation.
+    if not notebook.winfo_manager():
+        return
     key = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {}).get(
         str(notebook.select())
     )
     if not key:
         return
-    projected_key = str(
-        getattr(self, "_phase6_box_body_piece_programmatic_key", "") or ""
-    )
-    if projected_key:
-        self._phase6_box_body_piece_programmatic_key = ""
-        if str(key) == projected_key:
-            return
     workspace = _designer_workspace(self)
     if str(getattr(workspace, "active_part", "") or "") == key:
         # Keep ephemeral navigation memory synchronized without re-activating an
