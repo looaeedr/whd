@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
-  "head_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
+  "generation": 4,
+  "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
   "issue": 943,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -23,10 +23,10 @@
   },
   "next_action": {
     "args": {
-      "reason": "AUTHOR_EXACT_RED_TEST_COMMIT"
+      "workflow": "qa-issue943-focused.yml"
     },
-    "display": "Author exact RED regression commit for Issue #943",
-    "kind": "RECONCILE"
+    "display": "Bind exact focused QA for Issue #943",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -51,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "78227927b9a88a0cb99eaa8106db6c1c252c47641ff64fb0f12178b05e102d8c",
-    "id": "gha:36439967128:943:START_BRANCH:2",
+    "expected_fingerprint": "d888b678433c6fa13f1fe617406966d75e7e5ecd18041e57c9791cd583daa6f7",
+    "id": "gha:36440843713:943:APPLY_COMMIT:3",
     "invocation_identity": "interactive:work1:issue943:session1",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T14:58:21Z",
+  "updated_at": "2026-09-28T15:05:05Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-20260928"
 }
