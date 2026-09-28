@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
   "issue": 928,
   "lane_id": "chatgpt.flowv2.work0",
@@ -22,14 +22,9 @@
     "token": "lease:928:36427544831:1"
   },
   "next_action": {
-    "args": {
-      "head_sha": "5dcb25d1492698b03de4f0a76c38210eb3971dc7",
-      "pr_number": 932,
-      "target_branch": "cleanup/2d-3d-sync",
-      "tested_head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7"
-    },
-    "display": "Merge exact Issue #928 integration PR #932",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize Issue #928 after merged target readback",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -46,21 +41,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "fca93ac47b92c25f0b8eca1a567b47018dfed838",
+  "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
   "transaction": {
-    "expected_fingerprint": "8d16873100af57c27288826e127d012c0511a7d3303fce94f2150dbe7ed8babe",
-    "id": "gha:36429686743:928:RECONCILE:7",
+    "expected_fingerprint": "22394d190714542bb6142e769ddf10c3adc4dacbae732a7874133f26679530cd",
+    "id": "gha:36429848870:928:MERGE:8",
     "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-    "kind": "RECONCILE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:35:42Z",
+  "updated_at": "2026-09-28T13:37:05Z",
   "version": 2,
   "work_branch": "work/issue928-windows-3d-blank-no-log-20260928"
 }
