@@ -1,0 +1,37 @@
+name: WHD Drive Source Snapshot Export
+
+on:
+  push:
+    branches:
+      - ops/drive-source-snapshot-a74c5845
+    paths:
+      - .github/workflows/drive-source-snapshot-export.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact production commit
+        uses: actions/checkout@v4
+        with:
+          ref: a74c58450156691bff0a0dc8ca9c22dc02db43dd
+          fetch-depth: 1
+
+      - name: Build immutable source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .git
+          zip -q -r whd-cleanup-2d-3d-sync.zip . \
+            -x 'whd-cleanup-2d-3d-sync.zip'
+
+      - name: Upload immutable source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-cleanup-2d-3d-sync-a74c58450156691b
+          path: whd-cleanup-2d-3d-sync.zip
+          if-no-files-found: error
+          retention-days: 14
