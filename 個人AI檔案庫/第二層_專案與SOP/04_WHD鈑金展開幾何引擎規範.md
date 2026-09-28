@@ -247,3 +247,46 @@ Current 製造語意應回到：
 - validation one-way boundary。
 
 不得因舊文件曾記錄某個 fixture、probe 或碰撞量測，就把該數字重新寫回 current production。
+
+<!-- WHD_PHASE7_OWNERSHIP_WRITEBACK_V1 -->
+## Phase 7 — manufacturing owner consolidation
+
+Phase 7 對大型 manufacturing modules 做 owner deepening；CURRENT 規則是「public/compatibility facade 薄化，solver / serialization / request / render / export 各回唯一 deep owner」，不改變本文件既有 Registry / Family / Topology / validation-one-way authority。
+
+### P7-C — `ae_engine/ae.py`
+
+- `ae_engine/ae.py`：legacy/public compatibility facade。
+- DXF serialization：`ae_engine/dxf_serialization.py`。
+- baseline source/cache/resource：`ae_engine/baseline_source.py` + `ae_engine/baseline_resources.py`。
+- baseline-to-scene adapter：`ae_engine/baseline_scene_adapters.py`。
+
+### P7-D — `manufacturing_api.py`
+
+- `ae_engine/manufacturing_api.py`：thin public facade。
+- verification owner：`ae_engine/manufacturing_verification.py`。
+- export / naming / physical-part sink owner：`ae_engine/manufacturing_export.py`。
+- resolved request / precedence owner：`ae_engine/manufacturing_requests.py`。
+- render-data orchestration owner：`ae_engine/manufacturing_render.py`。
+
+Public facade 可以 re-export / delegate，但不得重新持有第二份 verification、request precedence、export naming 或 render orchestration implementation。
+
+### P7-E — collision / relief solvers
+
+- `ae_engine/assembly_collision.py`：thin shared collision/backprojection compatibility facade。
+- generic collision/backprojection owner：`ae_engine/collision_backprojection.py`。
+- Divider relief solver owner：`ae_engine/divider_relief_solver.py`。
+- EndCap world-relief solver owner：`ae_engine/endcap_world_relief_solver.py`。
+
+上述 solver separation 不改變 Registry HIT/MISS 規則：Certified Registry HIT 仍是 production answer；collision/backprojection 對 HIT 仍只是 shadow validation，不得回灌 formula。
+
+### P7-F — explicit-joint pipeline
+
+- `phase6_manufacturing_geometry.py::_phase6_resolve_explicit_joint_reliefs`：thin compatibility/manufacturing facade。
+- bounded explicit-joint orchestration owner：`phase6_explicit_joint_pipeline.py`。
+- canonical collision/backprojection solver truth：`ae_engine.assembly_collision` 及其 Phase 7 deep owners。
+- canonical world/cut geometry helpers 仍由 `phase6_manufacturing_geometry.py` 擁有，透過 bounded `ExplicitJointPipelineOps` 注入；pipeline 不得複製 geometry formula。
+
+永久 invariant：facade forwarding 不建立第二份 production path；reverse import、duplicate owner、第二 composition root、validation→production backflow 都必須保持 0。
+
+Accepted provenance：Phase 7 #618/#620/#621/#623 與 Combined Acceptance #626；combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
+
