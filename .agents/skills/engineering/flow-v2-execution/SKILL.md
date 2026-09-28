@@ -127,7 +127,29 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 <!-- FLOW_V2_HOST_LIFECYCLE_IMMUTABILITY_V1 -->
 
-Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. A scheduled runtime MUST NOT call automation-management APIs or mutate its own or sibling A/B automation lifecycle, title, schedule, timing mode, prompt, or enabled state. Invocation completion is only a cycle return; it never means the recurring task object is terminal. Host lifecycle changes are allowed only from an explicit interactive user request or a dedicated host-reconciliation action outside the scheduled runtime. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object unchanged.
+Recurring scheduler entrypoints are persistent host infrastructure, not per-Issue execution state. Normal WHD execution MUST NOT mutate scheduler host lifecycle. Invocation completion is only a cycle return; it never means the recurring task object is terminal. ExecutionRecord DONE, LANE_BUSY, BLOCKED, NO_EXECUTABLE_WORK, or any other per-cycle outcome must leave the recurring task object enabled and recurring.
+
+### SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1
+
+A/B 的 host recovery 是 **Flow v2 外層、NON_AUTHORITY、固定 allowlist 的 micro-bootstrap**，不是 execution phase。它由使用者明確啟用的五顆 recurring A/B host task 共同承擔，目的只是在第六顆 watchdog 無法存在時修復 host auto-pause；它不授權 repository execution。
+
+固定 allowlist：
+- A00=`6ab13f881c34819180cee63f5dd9446b`
+- A20=`6ab4eaee5e008191a0e7e23303f64cea`
+- A40=`6ab13fa557fc8191935c671214b865e2`
+- B15=`6ab51d9226808191b9ae0c624e28c246`
+- B45=`6ab51d9ec6708191a578d67065f8979b`
+
+每個仍有機會啟動的 A/B host invocation，在進入 WHD project startup 前可執行這個窄 bootstrap：
+1. 只讀上述五個 exact task 的 `is_enabled / title / schedule / timing_mode / last_run_time / updated_at`。
+2. 若 allowlist 內任一 sibling 因 host auto-pause 成為 disabled，唯一允許的 mutation 是把該 exact task 設成 `is_enabled=true`。
+3. **不得改 title / schedule / timing_mode / prompt**；不得 create/delete/complete/reschedule task；不得 disable任何 task。
+4. 這個 host-layer repair **不授權 ACQUIRE、claim、lease、ExecutionRecord、transaction、Issue、PR、workflow 或 repository mutation**，也不得被當成 substantive progress。
+5. host introspection/re-enable capability 缺失或 update 失敗時只記 `HOST_RECOVERY_DEGRADED`；不得因此阻止後續 canonical WHD startup/execution。
+6. bootstrap 完成後仍必須從 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1` 第 0 步重新開始 project startup；host task state 不可代替 root/AI Library/declaration/Preflight evidence。
+7. 不新增第六顆 ChatGPT watchdog；五顆 fixed entrypoint 本身就是 host recovery quorum。
+
+每一輪 user-visible/task-level結果最後都只代表 physical cycle return。host surface 固定以 `CYCLE_END — KEEP_SCHEDULE_ENABLED` 表示 recurring object 必須保留；不得把 task-level DONE/BLOCKED/NO_EXECUTABLE_WORK 解讀成 automation terminal。
 
 ### HOST_LIFECYCLE_WATCHDOG_V1
 
@@ -150,7 +172,7 @@ Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
 - expected occurrence without matching durable WAKE and missing/stale host snapshot → `HOST_STATE_UNKNOWN`;不得猜成 auto-pause。
 - matching WAKE but heartbeat expires before EXIT → `RUNTIME_LIVENESS_FAILURE`.
 
-Scheduled runtimes may perform **read-only** host lifecycle inspection for observability and mirror `enabled / last_run_time` for all five A/B automations into the host snapshot. This explicit read-only exception does not permit any automation lifecycle mutation. Scheduled runtime仍不得 create/update/disable/delete/reschedule/complete任何 automation。
+正常 Flow v2 runtime 對 host lifecycle 仍只有 read-only observability；唯一 mutation 例外只限上方 `SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1` 的 fixed allowlist disabled→`is_enabled=true`。完成 project startup 後，可 mirror `enabled / last_run_time` 到 NON_AUTHORITY host snapshot；不得以 snapshot 授權任何 execution mutation。
 
 每個 scheduler runtime 在寫 canonical lane observation 時，還必須 mirror 同一 invocation 的 `WAKE / HEARTBEAT / PROGRESS / EXIT` 到自己的 exact entrypoint file，保留 `invocation_identity / last_wake_at / last_heartbeat_at / heartbeat_expires_at / last_progress_at / exit_at / exit_state`。host snapshot、entrypoint mirror與watchdog result都不得授權 ACQUIRE、mutation、merge、closure、takeover 或 owner 變更。
 
