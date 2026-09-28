@@ -206,3 +206,134 @@ def test_control_plane_regression_watches_core_flow_v2_exit_files():
         "tools/execution_invocation_exit.py",
     ):
         assert required in workflow
+
+
+def test_non_seed_request_without_startup_evidence_is_rejected(tmp_path):
+    import json
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    request = {
+        "schema": ingress.REQUEST_SCHEMA,
+        "request_id": "no-startup-evidence",
+        "issue": 940,
+        "kind": "ACQUIRE",
+        "lane_id": "chatgpt.flowv2.work0",
+        "invocation_identity": "interactive:work0:issue940:test",
+        "expected_coord_head": "a" * 40,
+        "expected_generation": 1,
+        "effect": {},
+    }
+    path = tmp_path / "request.json"
+    path.write_text(json.dumps(request), encoding="utf-8")
+    with pytest.raises(Exception, match="request missing startup_evidence"):
+        ingress._load_request(path)
+
+
+def test_startup_evidence_is_bound_to_exact_invocation_before_state_read(monkeypatch):
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+    from tools.execution_entry_contract import build_startup_evidence
+
+    def _unexpected_state_read(*args, **kwargs):
+        raise AssertionError("execution state must not be read before startup gate")
+
+    monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
+    evidence = build_startup_evidence(
+        purpose="Issue #940 mutation",
+        invocation_identity="interactive:work0:issue940:other",
+    )
+    request = {
+        "schema": ingress.REQUEST_SCHEMA,
+        "request_id": "cross-invocation",
+        "issue": 940,
+        "kind": "ACQUIRE",
+        "lane_id": "chatgpt.flowv2.work0",
+        "invocation_identity": "interactive:work0:issue940:current",
+        "expected_coord_head": "a" * 40,
+        "expected_generation": 1,
+        "effect": {},
+        "startup_evidence": evidence,
+    }
+    with pytest.raises(Exception, match="startup evidence invocation mismatch"):
+        ingress.execute_request(
+            request=request,
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+        )
+
+
+def test_stale_startup_evidence_is_rejected_before_state_read(monkeypatch):
+    from datetime import datetime, timezone
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+    from tools.execution_entry_contract import build_startup_evidence
+
+    def _unexpected_state_read(*args, **kwargs):
+        raise AssertionError("execution state must not be read before startup gate")
+
+    monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
+    invocation = "interactive:work0:issue940:stale"
+    evidence = build_startup_evidence(
+        purpose="Issue #940 mutation",
+        invocation_identity=invocation,
+        issued_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+    )
+    request = {
+        "schema": ingress.REQUEST_SCHEMA,
+        "request_id": "stale-startup-evidence",
+        "issue": 940,
+        "kind": "ACQUIRE",
+        "lane_id": "chatgpt.flowv2.work0",
+        "invocation_identity": invocation,
+        "expected_coord_head": "a" * 40,
+        "expected_generation": 1,
+        "effect": {},
+        "startup_evidence": evidence,
+    }
+    with pytest.raises(Exception, match="startup evidence expired"):
+        ingress.execute_request(
+            request=request,
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+        )
+
+
+def test_canonical_startup_evidence_ttl_and_declaration_are_machine_validated():
+    from datetime import datetime, timedelta, timezone
+    import pytest
+    from tools.execution_entry_contract import (
+        EVIDENCE_MAX_AGE_SECONDS,
+        build_startup_evidence,
+        validate_startup_evidence,
+    )
+
+    now = datetime(2026, 9, 28, 14, 0, tzinfo=timezone.utc)
+    invocation = "scheduler-a:20:2026-09-28T14:00:00Z"
+    evidence = build_startup_evidence(
+        purpose="resume Scheduler A issue",
+        invocation_identity=invocation,
+        issued_at=now,
+    )
+    validated = validate_startup_evidence(
+        evidence,
+        invocation_identity=invocation,
+        repository="looaeedr/whd",
+        now=now + timedelta(seconds=EVIDENCE_MAX_AGE_SECONDS),
+    )
+    assert validated["schema"] == "WHD_EXECUTION_ENTRY_EVIDENCE_V1"
+    assert validated["declaration"].startswith(
+        "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n"
+    )
+
+    tampered = dict(evidence)
+    tampered["declaration"] = "forged"
+    with pytest.raises(ValueError, match="declaration mismatch"):
+        validate_startup_evidence(
+            tampered,
+            invocation_identity=invocation,
+            repository="looaeedr/whd",
+            now=now,
+        )
