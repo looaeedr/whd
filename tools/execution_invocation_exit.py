@@ -122,4 +122,12 @@ def classify_invocation_exit(
     if host_boundary and current_substantive:
         return _decision(record, "YIELD_REQUIRED_HOST_BOUNDARY", may_return=False, requires_yield=True)
 
+    if host_boundary and record.owner_kind == "SCHEDULER":
+        return _decision(
+            record,
+            "SCHEDULER_EXECUTION_NO_PROGRESS",
+            may_return=False,
+            requires_yield=False,
+        )
+
     return _decision(record, "CONTINUE_EXECUTION", may_return=False, requires_yield=False)
