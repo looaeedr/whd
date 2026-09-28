@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 8,
-  "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
+  "generation": 9,
+  "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
   "issue": 889,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "lease": {
@@ -23,12 +23,10 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "709d8cd959fbd6952060e363f7ab7640465a1282",
-      "pr_number": 891,
-      "target_branch": "cleanup/2d-3d-sync"
+      "workflow": ".github/workflows/phase6-bridge-anti-regrowth.yml"
     },
-    "display": "Merge exact PR #891 after accepted QA",
-    "kind": "MERGE"
+    "display": "Revalidate exact reconciled #889 head before merge",
+    "kind": "START_QA"
   },
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
@@ -59,7 +57,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "QA_INVALIDATED_BY_HEAD_ADVANCE",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
@@ -67,13 +65,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e94a6f84f9894cdda9fc2c22d09e759a90f88746",
   "transaction": {
-    "expected_fingerprint": "5fbe949ff1e44ca225e85cfecd4e8a8ff9072e86bb5bc375a2d99ecc2a6d702e",
-    "id": "gha:36460280366:889:ACQUIRE:7",
+    "expected_fingerprint": "abb8277bdcd500d5ca8a0c2dfb66e62b01ad93c80d1c24e507069825d5999e56",
+    "id": "gha:36461385894:889:APPLY_COMMIT:8",
     "invocation_identity": "scheduler-a:40:20260928T174200Z:889:g7",
-    "kind": "ACQUIRE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:44:53Z",
+  "updated_at": "2026-09-28T17:54:00Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
