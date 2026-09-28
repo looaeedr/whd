@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
-    "id": 36453762011,
-    "purpose": "ISSUE964_REQA_FIX_VERIFICATION",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
   "issue": 964,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
-      "run_id": 36453762011
+      "pr": 967
     },
-    "display": "Poll exact #964 verification run",
-    "kind": "POLL_QA"
+    "display": "Reconcile already-merged PR #967",
+    "kind": "MERGE"
   },
   "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
+    "last_accepted_run": 36453762011
   },
   "recovery_history": [
     {
@@ -49,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "GREEN",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ca0adb97a819161211a99b1b0bd46949b3431088",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87af6d2f8ecc2a1fa83a3918705acc5de37706e3",
   "transaction": {
-    "expected_fingerprint": "352775f842854223c7f45c085390c58ed7f324aca135ad4af2873739a5025100",
-    "id": "gha:36486211075:964:START_QA:3",
+    "expected_fingerprint": "46ffe6c865b105e389ba59cea51b7dabc04f6551f88836fb2218d8dccf2e41cd",
+    "id": "gha:36486744384:964:ACCEPT_QA:4",
     "invocation_identity": "scheduler-a:issue964:20260928T212058Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T21:27:06Z",
+  "updated_at": "2026-09-28T21:30:25Z",
   "version": 2,
   "work_branch": "governance/issue964-reqa-integrating-20260929"
 }
