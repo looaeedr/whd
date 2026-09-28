@@ -1,26 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-928-reconcile-pr932",
+  "request_id": "work0-928-merge-pr932-c6ac3c16",
   "issue": 928,
-  "kind": "RECONCILE",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-  "expected_coord_head": "1579ec718a6a41055a69e7c6f7cdfd76651ff37b",
-  "expected_generation": 7,
+  "expected_coord_head": "b5aa10cceb24c3d60bf77814da115617d1391e1a",
+  "expected_generation": 8,
   "effect": {
-    "observed_work_branch": "work/issue928-windows-3d-blank-no-log-20260928",
-    "observed_head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
-    "observed_target_sha": "fca93ac47b92c25f0b8eca1a567b47018dfed838",
-    "semantic_state": "QA_ACCEPTED",
+    "merged_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
+    "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
+    "semantic_state": "MERGED",
     "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 932,
-        "head_sha": "5dcb25d1492698b03de4f0a76c38210eb3971dc7",
-        "tested_head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
-        "target_branch": "cleanup/2d-3d-sync"
-      },
-      "display": "Merge exact Issue #928 integration PR #932"
+      "kind": "FINALIZE",
+      "args": {},
+      "display": "Finalize Issue #928 after merged target readback"
     }
   }
 }
