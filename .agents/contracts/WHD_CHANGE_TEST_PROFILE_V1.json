@@ -76,6 +76,8 @@
       "full_gate_kind",
       "full_gate_required",
       "profile_id"
-    ]
+    ],
+    "recompute_on_changed_files_expansion": true,
+    "focused_tests_can_replace_full_gate": false
   }
 }
