@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
   "issue": 944,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,10 +23,12 @@
   },
   "next_action": {
     "args": {
-      "reason": "OPEN_PR_FOR_ACCEPTED_HEAD"
+      "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
+      "pr_number": 953,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Open PR for accepted Issue #944 head",
-    "kind": "RECONCILE"
+    "display": "Merge exact PR #953 after accepted QA",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -49,15 +51,15 @@
   "source_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
+  "target_sha": "8386988d2f8a042d98ec5296d1af1df09b5bec07",
   "transaction": {
-    "expected_fingerprint": "c77b9c447e1fefcdd474c6c86a7f33d0f1a9ff14839d07262a2ca2e1199623e3",
-    "id": "gha:36444345667:944:ACCEPT_QA:9",
+    "expected_fingerprint": "dc7a2ac85fa8ebd17ead90d44049c3da30003646ddb545dd912a2527e988d6bd",
+    "id": "gha:36444965643:944:RECONCILE:10",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-    "kind": "ACCEPT_QA",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:32:43Z",
+  "updated_at": "2026-09-28T15:37:29Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }
