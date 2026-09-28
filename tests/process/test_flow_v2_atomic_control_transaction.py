@@ -189,6 +189,109 @@ def test_start_qa_locks_exact_current_head_and_single_active_run():
         )
 
 
+def test_integrating_head_advance_can_reenter_exact_qa_before_merge():
+    accepted = _record(
+        state="INTEGRATING",
+        semantic_state="GREEN",
+        next_action={"kind": "MERGE", "args": {}, "display": "merge accepted head"},
+        qa={"last_accepted_run": 36370000001, "accepted_head_sha": "b" * 40},
+    )
+
+    apply_plan = prepare_transaction(
+        accepted,
+        kind="APPLY_COMMIT",
+        transaction_id="tx-integrating-advance",
+    )
+    advanced = execute_transaction(
+        accepted,
+        apply_plan,
+        effect={
+            "head_sha": "d" * 40,
+            "next_action": {
+                "kind": "START_QA",
+                "args": {},
+                "display": "revalidate exact advanced head",
+            },
+            "semantic_state": "QA_INVALIDATED_BY_HEAD_ADVANCE",
+            "updated_at": "2026-09-28T00:32:00Z",
+        },
+    )
+    assert advanced.state == "INTEGRATING"
+    assert advanced.head_sha == "d" * 40
+    assert advanced.qa.accepted_head_sha == "b" * 40
+
+    start_plan = prepare_transaction(
+        advanced,
+        kind="START_QA",
+        transaction_id="tx-integrating-qa",
+    )
+    running = execute_transaction(
+        advanced,
+        start_plan,
+        effect={
+            "run_id": 36370000002,
+            "run_head_sha": "d" * 40,
+            "purpose": "FLOW_V2_REVALIDATE_ADVANCED_INTEGRATING_HEAD",
+            "run_status": "completed",
+            "next_action": {
+                "kind": "POLL_QA",
+                "args": {"run_id": 36370000002},
+                "display": "poll revalidation run",
+            },
+            "updated_at": "2026-09-28T00:33:00Z",
+        },
+    )
+    assert running.state == "VERIFYING"
+    assert running.active_run.head_sha == "d" * 40
+
+    accept_plan = prepare_transaction(
+        running,
+        kind="ACCEPT_QA",
+        transaction_id="tx-integrating-accept",
+    )
+    reaccepted = execute_transaction(
+        running,
+        accept_plan,
+        effect={
+            "run_id": 36370000002,
+            "run_head_sha": "d" * 40,
+            "conclusion": "success",
+            "next_state": "INTEGRATING",
+            "next_action": {
+                "kind": "MERGE",
+                "args": {},
+                "display": "merge revalidated head",
+            },
+            "updated_at": "2026-09-28T00:34:00Z",
+        },
+    )
+    assert reaccepted.state == "INTEGRATING"
+    assert reaccepted.qa.accepted_head_sha == "d" * 40
+    assert reaccepted.qa.last_accepted_run == 36370000002
+
+    merge_plan = prepare_transaction(
+        reaccepted,
+        kind="MERGE",
+        transaction_id="tx-integrating-merge",
+    )
+    merged = execute_transaction(
+        reaccepted,
+        merge_plan,
+        effect={
+            "merged_sha": "e" * 40,
+            "target_sha": "e" * 40,
+            "next_action": {
+                "kind": "FINALIZE",
+                "args": {},
+                "display": "finalize",
+            },
+            "updated_at": "2026-09-28T00:35:00Z",
+        },
+    )
+    assert merged.closure.merged_sha == "e" * 40
+    assert merged.target_sha == "e" * 40
+
+
 def test_accept_qa_requires_exact_active_run_and_promotes_accepted_head():
     base = _record(next_action={"kind": "START_QA", "args": {}, "display": "start QA"})
     start = prepare_transaction(base, kind="START_QA", transaction_id="tx-qa")
