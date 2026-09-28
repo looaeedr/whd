@@ -66,8 +66,9 @@ Recurring scheduler entrypoints are persistent host infrastructure, not per-Issu
 
 ### DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
 
-- 互動式使用者明確要求執行新 ticket，且未指定任何 `/工作N` / slot 時，routing 起點視為 `/工作0`；**不得再無條件把 `slot_id` 寫死成 `worker.slot.0`**。
-- 新工作明確使用 `/工作0`，或由 default gate 落到 `/工作0` 時，必須 fresh-read canonical ExecutionRecords，呼叫 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)`，依 `worker.slot.0 → 1 → 2 → 3` 找第一個 EMPTY，再把該 fixed `slot_id` 傳給 explicit READY ingress。
+- 互動式使用者明確要求執行新 ticket，且未指定任何 `/工作N` / slot 時，**預設就是 `/工作0` / `worker.slot.0`**；這個既有 default 不變，`tools/execution_dispatch_ingress.py` 的 default normalization 仍保留 `worker.slot.0`。
+- 只有在**建立新 READY record 前**，fresh-read canonical ExecutionRecords 發現預設 slot0 已 BOUND 時，才呼叫 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 做 overflow，依 `worker.slot.1 → 2 → 3` 找第一個 EMPTY；slot0 EMPTY 時仍使用原本預設 `worker.slot.0`。
+- 新工作明確使用 `/工作0` 時同樣套用上述 overflow；這不是改變 default identity，而是「0 忙時才 +1」的 capacity routing。
 - 0–3 全部 BOUND 時，結果固定為 fail closed / `NO_AVAILABLE_WORK_SLOT`；不得覆蓋現有 occupant、不得 takeover、不得建立 duplicate slot occupancy。
 - 若 ticket 已有 nonterminal ExecutionRecord，必須 resume 其原 `slot_id`，不得重新跑自動遞增。
 - 裸 `/工作0` query/status 仍只查 slot0；不因 slot0 BOUND 而跳去 slot1。
