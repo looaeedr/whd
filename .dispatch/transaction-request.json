@@ -1,32 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-944-reconcile-red-9bfa1c03",
+  "request_id": "work0-944-reconcile-fix-d3edcbc3",
   "issue": 944,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
-  "expected_coord_head": "6fd5bdbadc32b771ccca612903aa56920446a594",
-  "expected_generation": 3,
+  "expected_coord_head": "1a3d0ff45c01805cd03593d902e2bed341b14776",
+  "expected_generation": 4,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work0:20260928T151107Z:944:g1",
     "purpose": "Restore Issue #944 live Fold Designer parameter-panel composition port and correct the #624 dead-caller regression guard",
-    "issued_at": "2026-09-28T15:15:30Z",
-    "expires_at": "2026-09-28T15:20:30Z",
+    "issued_at": "2026-09-28T15:21:30Z",
+    "expires_at": "2026-09-28T15:26:30Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Restore Issue #944 live Fold Designer parameter-panel composition port and correct the #624 dead-caller regression guard\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
   "effect": {
     "observed_work_branch": "work/issue944-restore-parameter-panel-port-20260928",
-    "observed_head_sha": "9bfa1c03222941e0b9713880a9a1216c63a7fc14",
+    "observed_head_sha": "d3edcbc32c734d3fbfc6a295f2dd360aa064b235",
     "observed_target_sha": "41c0b6e8b417ba44e2fd72b40b970d8ffc395c07",
     "semantic_state": "IMPLEMENTING",
     "next_action": {
       "kind": "RECONCILE",
       "args": {
-        "reason": "AUTHOR_MINIMAL_COMPATIBILITY_PORT_FIX"
+        "reason": "AUTHOR_FOCUSED_QA_WORKFLOW"
       },
-      "display": "Restore the proven-live _phase6_toggle_parameter_panel compatibility port"
+      "display": "Author one-shot focused QA workflow for Issue #944"
     }
   }
 }
