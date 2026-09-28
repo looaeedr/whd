@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 20,
+  "generation": 21,
   "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
   "issue": 952,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,12 +23,12 @@
   },
   "next_action": {
     "args": {
-      "cleanup_pr": 969,
-      "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
-      "main_pr": 970
+      "expected_cleanup_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
+      "expected_main_sha": "4cc50f132b76ef0fb850cd2557c27f6ade86e393",
+      "reason": "GOVERNANCE_ANCESTRY_RECONCILIATION_REQUIRED"
     },
-    "display": "Merge accepted cleanup PR #969, then run governance ancestry reconciliation",
-    "kind": "MERGE"
+    "display": "Reconcile main governance ancestry into cleanup without changing cleanup tree",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -45,21 +45,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED_PENDING_ANCESTRY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "993ac6702c6b9ade151b56b7faf6e36de2f6d9ec",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "cb28c045a2951e4cb150bd6465cf4fc9e7b7899f",
+  "target_sha": "59999f5c84edd054122d376d0a279500f5b580a4",
   "transaction": {
-    "expected_fingerprint": "7dff5492548c079ebac45ba2893def5e2987443c796642400982aa794232a739",
-    "id": "gha:36460093223:952:ACCEPT_QA:19",
+    "expected_fingerprint": "0628762a73a5a622122080183a1a161675a3e7fb491568bb002f504ebf8e26a4",
+    "id": "gha:36460399066:952:MERGE:20",
     "invocation_identity": "interactive:work0:issue952:continue:20260929T013308+0800",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T17:43:20Z",
+  "updated_at": "2026-09-28T17:45:52Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }
