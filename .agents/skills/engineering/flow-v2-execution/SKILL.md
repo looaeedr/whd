@@ -58,6 +58,39 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - mutation policy：`tools/execution_authority_policy.py`。
 - runtime observability (NON_AUTHORITY)：`coord/monitor-v2:.dispatch/monitor/runtime/*.json`。
 
+## WORKSPACE_EXECUTION_POLICY_V1
+
+互動式 / chat runtime 的 **實際工作面**固定是 canonical Google Drive workspace，不只是做 root identity check：
+
+- default root=`/Google Drive/WHD`；可在 workspace 完成的 source materialization、分析、編輯、測試、artifact 產生一律優先在 `/Google Drive/WHD/work/...` 執行。
+- canonical work path 由 `tools/work_root_gate.py::build_interactive_work_path(...)` 建立，並由 `validate_interactive_workspace_path(...)` fail closed；`/mnt/data`、Library `/WHD`、Windows 任意目錄與 GitHub checkout 都不得成為互動式預設施工根。
+- GitHub 仍是 source/code/PR/CI/scheduler/control-plane authority。只有 PR/CI、trusted remote QA、scheduler/GITHUB_ONLY/REMOTE_ACTION 或該動作本質上只能由 GitHub 完成時，才在 GitHub execution surface 執行；這不會重新綁定 interactive workspace root。
+- `WHD Current Source Manifest` 是 workspace materialization identity。開始 workspace mutation / local test 前，必須 fresh-read manifest 並與本工單選定的 source branch/HEAD 對齊；若 manifest stale，先 refresh source snapshot/work copy，再施工，不得在舊 snapshot 上改完後才補同步。
+- transient transport 可使用暫存檔，但暫存位置只屬搬運／轉碼，不能冒充 canonical work path、測試根或 durable completion evidence。
+
+### CHANGE_TEST_PROFILE_GATE_V1
+
+任何 implementation / QA 在第一次實質程式 mutation 前，必須先以 `.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json` + `tools/change_test_profile.py` 建立 machine-readable test profile。分類分成 **主要變更意圖**與 **domain overlay**：
+
+- `BUGFIX`：reproducer RED → targeted regression → affected subsystem → integration。
+- `FEATURE`：feature acceptance → unit/component → affected subsystem → integration。
+- `UPDATE`：compatibility → migration/config → affected subsystem → integration。
+- `REFACTOR`：behavioral equivalence → unit → integration。
+- `GOVERNANCE`：contract → Control Plane Regression → Governance Mirror Hard Gate。
+- `DOCS_METADATA`：schema/lint/link；只有 machine proof 為純 docs/metadata 時才可免重型 product full。
+- UI domain 追加 `UI_CONTRACT_STATE / TK_XVFB / VISUAL_ACCEPTANCE`。
+- Geometry/DXF/2D/3D/manufacturing domain 追加 `GEOMETRY_INVARIANTS / DXF_ACCEPTANCE / RENDERER_SYNC / SAVE_RELOAD`。
+
+同一工單可同時是「BUGFIX + UI」或「FEATURE + GEOMETRY」；不得因單一 label 互斥而漏掉 domain 驗證。分類無法唯一判定時 fail closed，要求 explicit `change_type`，不得自行猜。
+
+**final full gate：**
+- product / behavior change → `PRODUCT_FULL_REGRESSION`；
+- governance-only code/change → `GOVERNANCE_FULL_SUITE`（包含 Control Plane Regression、mirror gate 及該治理 owner 的完整 regression）；
+- machine-proven docs/metadata-only → `NONE`。
+- targeted / focused 測試不得取代 final full gate。任何要求 full gate 的工單，在 exact tested HEAD 沒有 final full GREEN 前，不得 `ACCEPT / CLOSE / FINALIZE`。
+
+QA evidence 至少要保存 `change_type / domains / required_stages / full_gate_kind / exact head_sha`；若 changed files 擴張，必須重算 profile，新增 stage 視為尚未驗證。
+
 `.dispatch/execution/ready-index.json` 固定 `authority=DERIVED_CACHE_ONLY`；它可重建，永遠不能授權 mutation 或 ownership。
 
 ## Main state machine
