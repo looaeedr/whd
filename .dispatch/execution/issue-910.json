@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
+    "id": 36424574607,
+    "purpose": "ISSUE910_FINAL_EXACT_3D_STARTUP_RUNTIME_LOG",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
   "issue": 910,
   "lane_id": null,
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/qa-issue910-final-exact.yml"
+      "head_sha": "e722f2eae661fb89747aad2ff02fdd92cfd7ac98",
+      "run_id": 36424574607
     },
-    "display": "Run exact final-candidate 3D startup and runtime LOG QA",
-    "kind": "START_QA"
+    "display": "Poll exact Issue #910 final QA run 36424574607",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "INTERACTIVE",
@@ -49,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REVERIFY_REQUIRED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ab23a8ad6e170be22653888e981f5afeea9e5a05",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
   "transaction": {
-    "expected_fingerprint": "2c4d6e4ae21129bfd19ae3283c761c7bfa9cb4976e60c775ee1500bafcc20d16",
-    "id": "gha:36424626645:910:APPLY_COMMIT:10",
+    "expected_fingerprint": "461aa26057dab56a39c7601fe02b5faed68a8609711ceaf098264361222ac0c6",
+    "id": "gha:36424724368:910:START_QA:11",
     "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T12:52:29Z",
+  "updated_at": "2026-09-28T12:53:21Z",
   "version": 2,
   "work_branch": "work/issue910-3d-startup-runtime-log-20260928"
 }
