@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
+    "id": 36428868073,
+    "purpose": "ISSUE928_WINDOWS_3D_BLANK_RUNTIME_LOG",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
   "issue": 928,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,10 +28,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/qa-issue928-windows-finalscene.yml"
+      "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
+      "run_id": 36428868073
     },
-    "display": "Bind exact Issue #928 FinalScene QA run",
-    "kind": "START_QA"
+    "display": "Poll exact Issue #928 FinalScene QA run 36428868073",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -43,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "0d706f7f5bb28e7afbf2522cd83ee25450f61960",
   "transaction": {
-    "expected_fingerprint": "ea48bd2c63b90a1f46500e644b0adade3ac89764bb0aa253bfac3c55e7644533",
-    "id": "gha:36428916171:928:APPLY_COMMIT:4",
+    "expected_fingerprint": "b7762ab05cd068fafd858e590584ce59cf420dd7cd24adfcaf5ab75fa99dd707",
+    "id": "gha:36429011598:928:START_QA:5",
     "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:29:08Z",
+  "updated_at": "2026-09-28T13:29:56Z",
   "version": 2,
   "work_branch": "work/issue928-windows-3d-blank-no-log-20260928"
 }
