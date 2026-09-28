@@ -2,9 +2,14 @@ name: WHD Scheduler Host Watchdog
 
 on:
   schedule:
-    # Evaluate two minutes after each five-minute boundary. This lands exactly
-    # at :02/:17/:22/:42/:47 for the A/B entrypoints' 120s grace window.
-    - cron: '7-57/5 * * * *'
+    # Evaluate exactly two minutes after the five A/B scheduler entrypoints'
+    # expected occurrences: A00/B15/A20/A40/B45.
+    - cron: '2,17,22,42,47 * * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/whd-scheduler-host-watchdog.yml
   workflow_dispatch:
 
 permissions:
