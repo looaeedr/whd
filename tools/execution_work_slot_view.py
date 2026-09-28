@@ -99,3 +99,31 @@ def project_work_slots(records: Iterable[ExecutionRecord]) -> tuple[WorkSlotProj
             )
         )
     return tuple(projected)
+
+def select_first_available_work_slot(
+    records: Iterable[ExecutionRecord],
+    *,
+    start_slot_id: str = FIXED_SLOT_IDS[0],
+) -> str:
+    """Return the first EMPTY fixed slot at or above start_slot_id.
+
+    This is a routing helper for new interactive work. It never renumbers a
+    slot, mutates a record, steals occupancy, or wraps around to a lower slot.
+    DONE records do not occupy capacity because project_work_slots already
+    excludes them. A fully occupied suffix fails closed.
+    """
+
+    if start_slot_id not in FIXED_SLOT_IDS:
+        raise WorkSlotViewError(
+            f"unknown start_slot_id {start_slot_id!r}; fixed slots are {FIXED_SLOT_IDS}"
+        )
+
+    projections = project_work_slots(records)
+    start_index = FIXED_SLOT_IDS.index(start_slot_id)
+    for projection in projections[start_index:]:
+        if projection.status == "EMPTY":
+            return projection.slot_id
+
+    raise WorkSlotViewError(
+        f"NO_AVAILABLE_WORK_SLOT: no EMPTY slot at or above {start_slot_id}"
+    )
