@@ -15,6 +15,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Mapping
 
+from tools.execution_invocation_exit import classify_invocation_exit
 from tools.execution_record import (
     ActionSpec,
     BlockerState,
@@ -627,6 +628,18 @@ def _execute_yield(
         requested_semantic = _text(effect.get("semantic_state"), "semantic_state")
         if requested_semantic != record.semantic_state:
             raise ControlTransactionError("YIELD cannot rewrite semantic_state")
+
+    exit_decision = classify_invocation_exit(
+        record,
+        invocation_identity=plan.invocation_identity,
+        now=_text(effect.get("updated_at"), "effect.updated_at"),
+        host_boundary=True,
+    )
+    if not exit_decision.requires_yield:
+        raise ControlTransactionError(
+            "YIELD rejected by invocation-exit gate: "
+            f"{exit_decision.decision}"
+        )
     return _base_update(
         record,
         plan,
