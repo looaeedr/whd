@@ -1,41 +1,34 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-work1-acquire-closure-v2",
+  "request_id": "issue943-work1-failqa-old-red-v1",
   "issue": 943,
-  "kind": "ACQUIRE",
+  "kind": "FAIL_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue943:session1",
-  "expected_coord_head": "f3f0ef4d2e3dc8fd90528ea333837fd4c8edeb85",
-  "expected_generation": 7,
+  "expected_coord_head": "707bbb80a0659f0d169a2018a475a1771c0e0537",
+  "expected_generation": 8,
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
     "invocation_identity": "interactive:work1:issue943:session1",
     "purpose": "續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。",
-    "issued_at": "2026-09-28T15:54:12Z",
-    "expires_at": "2026-09-28T15:59:12Z",
+    "issued_at": "2026-09-28T15:55:13Z",
+    "expires_at": "2026-09-28T16:00:13Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：續接 #943，消費舊 RED QA、綁定目前 GREEN candidate、完成 merge / finalization durable closure。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
   },
   "effect": {
-    "updated_at": "2026-09-28T15:54:12Z",
-    "observed_at": "2026-09-28T15:54:12Z",
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "slot_id": "worker.slot.1",
-    "lease": {
-      "token": "lease:943:closure:20260928T155412Z",
-      "invocation_identity": "interactive:work1:issue943:session1",
-      "expires_at": "2026-09-28T15:59:12Z"
-    },
-    "semantic_state": "REMOTE_QA",
+    "updated_at": "2026-09-28T15:55:13Z",
+    "run_id": 36440753727,
+    "run_head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
+    "conclusion": "failure",
+    "semantic_state": "QA_FAILED_REPAIR",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "RECONCILE",
       "args": {
-        "head_sha": "58e33270fd8a7833055de744eb9425518a86a537",
-        "run_id": 36440753727
+        "observed_work_branch": "work/receiving-ui-regression-20260928",
+        "observed_head_sha": "1a8d65b6b3c0a29553698c7cd3ecb59dc6c4e0da"
       },
-      "display": "Poll exact focused RED run 36440753727"
+      "display": "Reconcile #943 record to GREEN candidate 1a8d65b6"
     }
   }
 }
