@@ -106,6 +106,22 @@ MERGE precheck 必須 fresh-read並 exact 比對：
 
 若 push ingress 回 `CONFLICT` 且 `retryable=true`，固定執行 `FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION`：fresh-read `coord/execution-v2`、generation、lease、target/head，再用 builder 重建**同一 semantic action**。不得沿用 stale request payload，也不得因 coord/generation/live-lease race 重放外部副作用。startup evidence 驗證失敗不是 retryable conflict；先由 builder 重建 fresh evidence。
 
+### MERGE_LIVE_TARGET_PRECHECK_V1
+
+`MERGE` 不是單純「QA 已接受就直接合併」。每次執行 structured `MERGE` 前，trusted production executor 必須 fresh-read exact PR、PR head/base、live target HEAD、target ruleset required checks 與 current-head check conclusions，並先執行 `tools/flow_v2_merge_precheck.py`。
+
+硬規則：
+
+1. PR 必須仍為 open、head 必須等於 current `ExecutionRecord.head_sha`、base branch 必須等於 `record.target_branch`。
+2. 若 live target HEAD 或 PR base SHA 不等於 `record.target_sha`，分類固定為 `TARGET_DRIFT`；禁止先嘗試 GitHub merge，也不得把 stale required-check GREEN 當有效。
+3. `TARGET_DRIFT` 必須由 MERGE transaction 原子改寫成 structured `SYNC_TARGET`，保存 exact live target SHA、PR number、target branch 與 revalidation workflow；不得靠聊天 prose 或臨時人工步驟續跑。
+4. `SYNC_TARGET` 由 trusted GitHub-only production executor 使用 GitHub merge API 將 exact target SHA non-force 合入 current work branch。work HEAD 漂移、target SHA 漂移、merge conflict 一律 fail closed。
+5. target sync 若推進 work HEAD，accepted QA 自動失效，下一步必須 `START_QA`；exact-head QA GREEN 後才可 `ACCEPT_QA → MERGE`。若 target 已是 work branch ancestor、work HEAD 未變，只可在 target identity 已 reconciliation 後回到 `MERGE`。
+6. live target 未漂移時，required checks 必須對 current PR head 全部 success，GitHub 必須回報 mergeable=true，才可執行 actual PR merge。required check pending 是可重讀狀態，不得被誤判成 terminal blocker。
+7. actual merge side effect、fresh PR merged readback、fresh target SHA readback全部由 trusted executor擁有；caller 不得提供假的 `merged_sha/target_sha` 來繞過 live precheck。
+
+此 gate 專門防止「accepted QA 綁舊 base、target 已前進、直到 GitHub merge 才 405/required-check failure」的 #889 類型錯誤。
+
 ### MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1
 
 accepted merge SHA is an anchor，不是「target branch 永遠不可再前進」的 freeze point。ticket 已有 exact-head accepted QA 且 `closure.merged_sha` 已成立後，其他合法 ticket 可繼續推進同一 target branch；FINALIZE 不得因此強迫原 ticket 重跑 merge/QA/ancestry。
