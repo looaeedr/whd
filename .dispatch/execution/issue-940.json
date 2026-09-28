@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
+    "id": 36437903372,
+    "purpose": "WHD Control Plane Regression exact-head acceptance",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
   "issue": 940,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,12 +28,12 @@
   },
   "next_action": {
     "args": {
-      "purpose": "WHD Control Plane Regression exact-head acceptance",
+      "conclusion": "success",
       "run_head_sha": "1ae41048edcbbfa50f8fff99e69cf09064ce03e5",
       "run_id": 36437903372
     },
-    "display": "Bind exact-head Control Plane Regression run 36437903372",
-    "kind": "START_QA"
+    "display": "Accept exact-head Control Plane Regression run 36437903372",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -45,21 +50,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue940-entry-hard-gate-x",
   "source_sha": "52c64326f6106f1e29d053f88dfa08c85bbe0ac3",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7eb32de1adc31ad6117a943abd81979db059ca7d",
   "transaction": {
-    "expected_fingerprint": "1880607f90af796d4cdc3564af736ed5933c6f2460fd4b85886681cf66ee62bd",
-    "id": "gha:36438464706:940:APPLY_COMMIT:3",
+    "expected_fingerprint": "c6ed6a01a10666755f80d59321e0cf3da4c683c7460bf2d816fdf8e1119ef9cd",
+    "id": "gha:36438678543:940:START_QA:4",
     "invocation_identity": "interactive:work0:20260928:issue940:hardgate-repair",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T14:46:25Z",
+  "updated_at": "2026-09-28T14:48:09Z",
   "version": 2,
   "work_branch": "governance/issue940-entry-hard-gate-x"
 }
