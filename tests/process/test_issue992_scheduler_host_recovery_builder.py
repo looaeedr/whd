@@ -70,3 +70,14 @@ def test_ingress_accepts_semantic_intent_shape(tmp_path: Path) -> None:
     loaded = _load_request(path)
     assert loaded["schema"] == INTENT_SCHEMA
     assert loaded["purpose"]
+
+
+def test_scheduler_contract_bridges_host_recovery_and_cycle_return() -> None:
+    flow = Path(".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    scheduler = Path(".agents/skills/engineering/排程模擬/SKILL.md").read_text(encoding="utf-8")
+
+    assert "SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1" in flow
+    assert "SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1" in scheduler
+    assert "CYCLE_END — KEEP_SCHEDULE_ENABLED" in flow
+    assert "CYCLE_END — KEEP_SCHEDULE_ENABLED" in scheduler
+    assert "不授權 ACQUIRE" in flow
