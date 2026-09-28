@@ -1,22 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-910-block-strict-base-update",
+  "request_id": "work0-910-unblock-final-candidate",
   "issue": 910,
-  "kind": "BLOCK",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T122217Z:910:g2",
-  "expected_coord_head": "8121626733461b61b990b32b1483adfe2ffcd52d",
-  "expected_generation": 8,
+  "expected_coord_head": "eabd225cff6a2acf88fd02b5192f8286897bc6f5",
+  "expected_generation": 9,
   "effect": {
-    "blocker_kind": "PLATFORM_FAILURE",
-    "blocker_evidence": "GitHub ruleset rejects PR #914 although Governance Mirror Hard Gate is GREEN because accepted donor head is behind current cleanup base; exact-head revalidation requires updating the work branch with the current base first.",
+    "observed_work_branch": "work/issue910-3d-startup-runtime-log-20260928",
+    "observed_head_sha": "e396c79b3cfea0bde969ddec2aee47dc7f41119e",
+    "observed_target_sha": "8ab1fffc2703decc4897f7a38291790bb560a9f2",
+    "state": "ACTIVE",
+    "clear_blocker": true,
+    "semantic_state": "REVERIFY_REQUIRED",
     "next_action": {
-      "kind": "WAIT_EXTERNAL",
+      "kind": "START_QA",
       "args": {
-        "blocker_kind": "PLATFORM_FAILURE"
+        "workflow": ".github/workflows/qa-issue910-final-exact.yml"
       },
-      "display": "Update Issue #910 work branch with current cleanup base, then reconcile to ACTIVE for exact-head QA"
-    },
-    "semantic_state": "BLOCKED_STRICT_BASE_UPDATE"
+      "display": "Run exact final-candidate 3D startup and runtime LOG QA"
+    }
   }
 }
