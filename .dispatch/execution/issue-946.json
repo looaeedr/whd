@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "52108252f9788356a959b5cbf7cd529c97390468",
-    "id": 36443690034,
-    "purpose": "ISSUE946_CONTROL_PLANE_REGRESSION",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "52108252f9788356a959b5cbf7cd529c97390468",
   "issue": 946,
   "lane_id": "chatgpt.flowv2.work2",
@@ -28,17 +23,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "52108252f9788356a959b5cbf7cd529c97390468",
-      "run_id": 36443690034
+      "pr_number": 947
     },
-    "display": "Poll #946 control-plane regression",
-    "kind": "POLL_QA"
+    "display": "Reconcile merged PR #947",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "52108252f9788356a959b5cbf7cd529c97390468",
+    "last_accepted_run": 36443690034
   },
   "recovery_history": [
     {
@@ -49,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.2",
   "source_branch": "main",
   "source_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "main",
   "target_sha": "1db16c9ca8a26a0a8e10fc05046799211ff73eea",
   "transaction": {
-    "expected_fingerprint": "428d4d6f8a110d5a76c522ece5039540783954b5d00b85eeb3a07c9b1feb3392",
-    "id": "gha:36443779166:946:START_QA:4",
+    "expected_fingerprint": "a25b1b40e83838816d721c2501d20466325ac0a1f96debcb895215a40f1bf151",
+    "id": "gha:36444485178:946:ACCEPT_QA:5",
     "invocation_identity": "interactive:work2:issue946:session1",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:28:09Z",
+  "updated_at": "2026-09-28T15:33:53Z",
   "version": 2,
   "work_branch": "governance/issue946-fail-qa-repair"
 }
