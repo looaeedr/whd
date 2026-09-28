@@ -1,20 +1,17 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "work0-928-merge-pr932-c6ac3c16",
+  "request_id": "work0-928-finalize-c6ac3c16",
   "issue": 928,
-  "kind": "MERGE",
+  "kind": "FINALIZE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:20260928T131714Z:928:g1",
-  "expected_coord_head": "b5aa10cceb24c3d60bf77814da115617d1391e1a",
-  "expected_generation": 8,
+  "expected_coord_head": "cef0fac09fd867f83a26e9c0c9a7b57a4cee9f8b",
+  "expected_generation": 9,
   "effect": {
-    "merged_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
-    "target_sha": "c6ac3c1682f802e89c05f0d580e0434b96f46157",
-    "semantic_state": "MERGED",
-    "next_action": {
-      "kind": "FINALIZE",
-      "args": {},
-      "display": "Finalize Issue #928 after merged target readback"
-    }
+    "released_at": "2026-09-28T13:37:44.686Z",
+    "semantic_state": "TERMINAL_SUCCESS",
+    "issue_closed": true,
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
   }
 }
