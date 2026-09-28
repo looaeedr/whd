@@ -37,6 +37,7 @@ TRANSACTION_KINDS = frozenset(
         "APPLY_COMMIT",
         "START_QA",
         "ACCEPT_QA",
+        "FAIL_QA",
         "BLOCK",
         "MERGE",
         "HANDOFF",
@@ -394,6 +395,47 @@ def _execute_accept_qa(
     )
 
 
+_QA_FAILURE_CONCLUSIONS = frozenset({
+    "failure",
+    "cancelled",
+    "timed_out",
+    "action_required",
+    "startup_failure",
+})
+
+
+def _execute_fail_qa(
+    record: ExecutionRecord,
+    plan: ControlTransactionPlan,
+    effect: Mapping[str, object],
+) -> ExecutionRecord:
+    """Consume one exact terminal failed QA run and return to repair work."""
+    if record.state != "VERIFYING" or record.active_run is None:
+        raise ControlTransactionError("FAIL_QA requires one active_run in VERIFYING state")
+    run_id = effect.get("run_id")
+    if run_id != record.active_run.id:
+        raise ControlTransactionError("FAIL_QA run_id does not match active_run")
+    run_head = _text(effect.get("run_head_sha"), "run_head_sha")
+    if run_head != record.active_run.head_sha or run_head != record.head_sha:
+        raise ControlTransactionError("FAIL_QA run_head_sha must match active_run/current head")
+    conclusion = str(effect.get("conclusion") or "").strip().lower()
+    if conclusion not in _QA_FAILURE_CONCLUSIONS:
+        raise ControlTransactionError(
+            "FAIL_QA requires a terminal non-success conclusion"
+        )
+    next_action = _action(effect.get("next_action"))
+    return _base_update(
+        record,
+        plan,
+        effect,
+        state="ACTIVE",
+        semantic_state=str(effect.get("semantic_state") or "QA_FAILED_REPAIR"),
+        active_run=None,
+        next_action=next_action,
+        blocker=None,
+    )
+
+
 def _execute_merge(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -656,6 +698,7 @@ _EXECUTORS = {
     "APPLY_COMMIT": _execute_apply_commit,
     "START_QA": _execute_start_qa,
     "ACCEPT_QA": _execute_accept_qa,
+    "FAIL_QA": _execute_fail_qa,
     "BLOCK": _execute_block,
     "MERGE": _execute_merge,
     "HANDOFF": _execute_handoff,
