@@ -2,7 +2,7 @@
   "schema": "WHD_CHATGPT_AUTOMATION_HOST_SNAPSHOT_V1",
   "version": 1,
   "authority": "NON_AUTHORITY",
-  "observed_at": "2026-09-28T16:21:24Z",
+  "observed_at": "2026-09-28T16:34:10Z",
   "tasks": {
     "6ab13f881c34819180cee63f5dd9446b": {
       "title": "00",
@@ -16,9 +16,9 @@
       "title": "20",
       "entrypoint": "A20",
       "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-      "enabled": false,
+      "enabled": true,
       "last_run_time": "2026-09-28T16:16:20.392529Z",
-      "updated_at": "2026-09-28T16:17:24.452398Z"
+      "updated_at": "2026-09-28T16:28:22.989484Z"
     },
     "6ab13fa557fc8191935c671214b865e2": {
       "title": "40",
