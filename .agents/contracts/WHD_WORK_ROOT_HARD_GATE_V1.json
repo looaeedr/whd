@@ -8,7 +8,7 @@
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
     "drive_file_id": "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH",
-    "canonical_payload_sha256": "248590c9340faf48516a58ae1559202839ebcc3dd32d0bb86190830237003d76"
+    "canonical_payload_sha256": "6c5fb106798b593df723b8d4ff4ed99e1ab14f7ca4dc20c20ce6f8580a46ea4e"
   },
   "default_work_root": {
     "provider": "google_drive",
