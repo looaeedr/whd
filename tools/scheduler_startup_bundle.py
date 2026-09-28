@@ -90,10 +90,10 @@ def build_scheduler_startup_bundle(
         "invocation_identity": view.invocation_identity,
         "projection": projection,
         "projection_fingerprint": _fingerprint(coord_head=head, projection=projection),
-        "no_work_fast_path": no_work,
-        "requires_project_startup": not no_work,
-        "requires_phase6_preflight": not no_work,
-        "fast_exit": _NO_WORK if no_work else None,
+        "no_work_observed": no_work,
+        "requires_project_startup": True,
+        "requires_phase6_preflight": True,
+        "can_reuse_projection_after_preflight": True,
         "work_root_gate": dict(work_root_gate_evidence),
     }
 
@@ -125,15 +125,14 @@ def validate_scheduler_startup_bundle(
         raise SchedulerStartupBundleError("startup bundle fingerprint mismatch")
 
     no_work = projection.get("decision") == _NO_WORK
-    if bool(bundle.get("no_work_fast_path")) != no_work:
+    if bool(bundle.get("no_work_observed")) != no_work:
         raise SchedulerStartupBundleError("startup bundle no-work classification mismatch")
-    if no_work:
-        if bundle.get("requires_project_startup") is not False:
-            raise SchedulerStartupBundleError("no-work fast path must skip project startup")
-        if bundle.get("requires_phase6_preflight") is not False:
-            raise SchedulerStartupBundleError("no-work fast path must skip Phase6 Preflight")
-        if bundle.get("fast_exit") != _NO_WORK:
-            raise SchedulerStartupBundleError("no-work fast path exit mismatch")
+    if bundle.get("requires_project_startup") is not True:
+        raise SchedulerStartupBundleError("startup bundle must preserve project startup gate")
+    if bundle.get("requires_phase6_preflight") is not True:
+        raise SchedulerStartupBundleError("startup bundle must preserve Phase6 Preflight")
+    if bundle.get("can_reuse_projection_after_preflight") is not True:
+        raise SchedulerStartupBundleError("startup bundle reuse policy mismatch")
     return dict(bundle)
 
 
