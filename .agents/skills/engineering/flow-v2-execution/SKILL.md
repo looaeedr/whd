@@ -83,12 +83,22 @@ Recurring scheduler entrypoints are persistent host infrastructure, not per-Issu
 
 聊天室輸出不是 liveness authority。每個 scheduler A/B 與 `/工作0/1/2/3` runtime 都必須把非權威 observation 投影到 `coord/monitor-v2:.dispatch/monitor/runtime/<source>.json`。
 
-固定事件：
-- `WAKE`：runtime 成功進場並 fresh-read 本 Skill 後立即寫入。
-- `PROGRESS`：每次 substantive durable action/readback 後更新。
-- `EXIT`：正常離開前更新；結果只使用 `IDLE_NO_WORK / LANE_BUSY / YIELDED / BLOCKED / DONE` 等可判讀狀態。
+固定事件（語意不得合併）：
+- `WAKE`：invocation 開始；runtime 成功進場並 fresh-read 本 Skill 後立即寫入。
+- `HEARTBEAT`：invocation 仍存活；scheduler 沿用 `tools/scheduler_runtime_liveness.py`，interactive 工作槽沿用 #679 `tools/interactive_runtime_liveness.py` machine owner，Flow v2 只做 adapter/projection，不另造 heartbeat authority。
+- `PROGRESS`：durable 工作有 substantive 進展；trusted Flow v2 transaction APPLIED 後必須自動投影。PROGRESS 可刷新 `last_heartbeat_at / heartbeat_expires_at`，但 event 仍必須是 PROGRESS。
+- `EXIT`：invocation 結束；正常離開前更新；結果只使用 `IDLE_NO_WORK / LANE_BUSY / YIELDED / BLOCKED / DONE` 等可判讀狀態。
 
-至少包含：source、handler、entrypoint、issue、slot_id、owner_id、state、action、last_wake_at、last_progress_at、exit_state、observed_at、record_fingerprint（有 record 且可可靠取得時）。
+`last_progress_at`、host `last_run_time`、聊天室輸出都不是 liveness。heartbeat TTL 沿用既有 machine owner 的 maximum 300 秒。
+
+Flow v2 adapter 固定為 `tools/flow_v2_runtime_observation.py`；它不是 authority，只把既有 scheduler/#679 liveness evidence 與 trusted transaction progress 投影到 `coord/monitor-v2`。
+
+工作槽 observation 最低欄位：
+`slot_id / issue / claim_worker / invocation_identity / conversation_identity / branch / head_sha / last_wake_at / last_heartbeat_at / heartbeat_expires_at / last_progress_at / exit_at / exit_state / liveness_state`。
+`conversation_identity` host 無法提供時可用 machine-readable `UNAVAILABLE`，不得猜測。
+`liveness_state` 只由 heartbeat/exit evidence 推導（`LIVE / EXPIRED / ENDED / UNKNOWN`），不得授權 execution/takeover。
+
+Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head、heartbeat timestamps 與 liveness_state。
 
 監控 branch 僅供 observability：
 - `coord/monitor-v2` 永遠不是 execution authority。
@@ -125,7 +135,7 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 ## Legacy compatibility
 
-2026-09-28 前的舊 coordination、prewrite、heartbeat/end、separate finalization 與 turn-exit artifacts只作 audit/migration evidence。保留 workflow 已 fail-closed，不得重新啟用成 execution authority。
+2026-09-28 前的舊 coordination、prewrite、separate finalization 與 turn-exit artifacts只作 audit/migration evidence。**例外：scheduler runtime liveness 與 #679 interactive runtime liveness 的既有 machine owners 仍為 CURRENT liveness capability，但只可經 Flow v2 observation adapter 投影為 NON_AUTHORITY observability，不得恢復成 execution authority。** 其他 legacy workflow 仍 fail-closed。
 
 ## Progress
 
