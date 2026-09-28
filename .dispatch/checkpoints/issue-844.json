@@ -3,30 +3,31 @@
   "issue": "844",
   "branch": "governance/issue844-unified-execution-record-20260928",
   "head_sha": "3758ad07ff788843fabaf29915c596818a5581c9",
-  "state": "RUNNING",
-  "next_action": "Run broader #844 acceptance against current head 2761f86abb903d4765d6527aea9242890c7f1d5e, then remove the temporary QA workflow, perform drift audit, and continue PR/merge/closure.",
+  "state": "TERMINAL_SUPERSEDED",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Parent relation=#842 is provenance while #844 is non-terminal; terminal chain metadata will be populated at closure handoff.",
-    "#843 terminal/released handed off exact successor #844 from accepted HEAD ec2651809952d2cda018186b0a132c0801ac68b7.",
-    "Frozen Master #842 X baseline=500e6f806de40a74ee8cd5bb4a6372245c5df53c.",
-    "Remote Phase6 preflight 36357867452 GREEN; changed-file preflight 36357926950 GREEN.",
-    "Focused RED test commit 254cb61e198c106a25051c6d718448e852531d3e is the current work head.",
-    "Pair reconciliation Guard 36358042352 GREEN; obsolete REMOTE_PHASE6_PREFLIGHT_EXECUTION_UNAVAILABLE blocker cleared.",
-    "Focused RED runner is present at c7a9ab1e1a2bb8d7293f5dbdb2c5d6ba8ff658bd; pair reconciliation Guard 36358198545 GREEN.",
-    "Focused RED run 36358270773 terminal failure is expected: tools.execution_record does not exist.",
-    "Focused GREEN run 36358444789 at exact head 2761f86abb903d4765d6527aea9242890c7f1d5e: 7 passed in 0.14s."
+    "MIGRATION_FREEZE_V2: #844 legacy execution path superseded by Flow v2 Master #869.",
+    "No acceptance/completion is implied by TERMINAL_SUPERSEDED.",
+    "PR #868 must remain unmerged.",
+    "Replacement execution scope begins at #870."
   ],
   "operation": null,
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
+  "master_issue": 869,
+  "chain_state": "SUPERSEDED",
+  "next_issue": 870,
+  "chain_next_action": "BOOTSTRAP_FLOW_V2_P1",
+  "chain_reason": "LEGACY_GOVERNANCE_RETIRED_BY_USER",
   "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_next_action": null,
+  "migration": {
+    "schema": "WHD_FLOW_V2_LEGACY_FREEZE_V1",
+    "legacy_authority": false,
+    "resume_forbidden": true,
+    "superseded_by_issue": 869
+  }
 }
