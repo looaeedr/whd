@@ -1,48 +1,33 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1019-reconcile-live-work-and-target-1",
-  "issue": 1019,
-  "kind": "RECONCILE",
-  "lane_id": "chatgpt.flowv2.work1",
+  "effect": {},
+  "expected_coord_head": "d70f0c3dc6de496b78dbd51726e86154b3dbbb6d",
+  "expected_generation": 8,
   "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
+  "issue": 1019,
+  "kind": "ACQUIRE",
+  "lane_id": "chatgpt.flowv2.work1",
+  "request_id": "issue1019-renew-lease-1",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 renew expired same-invocation lease before structured SYNC_TARGET\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
+    "expires_at": "2026-09-29T13:58:36Z",
+    "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
+    "issued_at": "2026-09-29T13:53:36Z",
+    "purpose": "Issue #1019 renew expired same-invocation lease before structured SYNC_TARGET",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U",
+      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+      "execution_mode": "INTERACTIVE",
       "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
       "gate_status": "CURRENT",
-      "read_mode": "GOOGLE_DRIVE_CANONICAL",
-      "execution_mode": "INTERACTIVE",
-      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-      "provider": "google_drive",
       "library_path": "/Google Drive/WHD",
-      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-    },
-    "purpose": "Issue #1019 reconcile frozen work head and non-overlapping target drift before trusted SYNC_TARGET",
-    "issued_at": "2026-09-29T13:49:38Z",
-    "expires_at": "2026-09-29T13:54:38Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 reconcile frozen work head and non-overlapping target drift before trusted SYNC_TARGET\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
-  },
-  "expected_coord_head": "d1941ec42e58ccb5f069afb3cd41e319431de0f5",
-  "expected_generation": 7,
-  "effect": {
-    "observed_work_branch": "governance/issue1019-terminal-tail-drain-hardening",
-    "observed_head_sha": "52cbf98b8f4fe11161d910189253c7e74a76ef2f",
-    "observed_target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
-    "semantic_state": "TARGET_DRIFT_REQUIRES_SYNC",
-    "next_action": {
-      "kind": "SYNC_TARGET",
-      "args": {
-        "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
-        "pr_number": 1021,
-        "target_branch": "cleanup/2d-3d-sync",
-        "qa_workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Sync live target into exact frozen work branch then revalidate exact head"
+      "provider": "google_drive",
+      "read_mode": "GOOGLE_DRIVE_CANONICAL",
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json"
     }
   }
 }
