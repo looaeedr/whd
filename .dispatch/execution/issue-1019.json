@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "issue": 1019,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,7 +21,19 @@
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
     "token": "lease:1019:36574010124:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "tests/process/test_issue1019_terminal_tail_drain.py",
+      "tools/control_transaction.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/execution_record.py"
+    ]
+  },
   "next_action": {
     "args": {
       "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
@@ -53,7 +65,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED_ROOT_LOCAL_FIRST",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
@@ -61,13 +73,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "a37b24dd2bb61b6e8890f7b3a0773326602e5145e5c99ecaa278f4ccec1d4dfd",
-    "id": "gha:36574010124:1019:ACQUIRE:1",
+    "expected_fingerprint": "1fec3aa5acfb772ac9389b4a0dd9b617684eb1f603ba41783fb4ec82fbc360cd",
+    "id": "gha:36574174632:1019:RESERVE_PATHS:2",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T13:17:51Z",
+  "updated_at": "2026-09-29T13:19:16Z",
   "version": 2,
   "work_branch": "governance/issue1019-terminal-tail-drain-hardening"
 }
