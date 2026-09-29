@@ -12,10 +12,10 @@
     "released_at": "2026-09-29T17:26:48Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "95f64adad48ed42d5a4702bfedb119f26d500f04",
   "issue": 1032,
-  "lane_id": "chatgpt.flowv2.work1",
+  "lane_id": null,
   "lease": null,
   "mutation_scope": {
     "base_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
@@ -58,6 +58,12 @@
       "kind": "EXTERNAL_MERGE_RECONCILIATION",
       "authority_kind": "USER_CONTINUATION",
       "authority_ref": "pr:1034@16010531b668899b50b5c582c53579c0886b8c1d"
+    },
+    {
+      "kind": "TERMINAL_INVARIANT_REPAIR",
+      "authority_kind": "USER_CONTINUATION",
+      "authority_ref": "work0-followup",
+      "evidence": "Cleared non-null lane_id from DONE record."
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
@@ -75,7 +81,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T17:26:48Z",
+  "updated_at": "2026-09-29T22:47:00Z",
   "version": 2,
   "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover"
 }
