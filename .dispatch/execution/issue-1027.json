@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "fe5546a010ab24fc3745e5366ffeb85f7307bfb5",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "01e357e80776cea615d07813b174be8349461122",
   "issue": 1027,
   "lane_id": "chatgpt.flowv2.work0",
@@ -36,15 +36,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-      "head_sha": "01e357e80776cea615d07813b174be8349461122",
-      "pr_number": 1030,
-      "revalidation_workflow": "WHD Control Plane Regression",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge PR #1030",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -60,21 +54,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "GREEN",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+  "target_sha": "fe5546a010ab24fc3745e5366ffeb85f7307bfb5",
   "transaction": {
-    "expected_fingerprint": "a0584304151151e6da4a61cd113485286947a0ab4251aa3e67c8d3dc36795ed9",
-    "id": "gha:36594510804:1027:ACQUIRE:11",
+    "expected_fingerprint": "188858c69d956eed4403d38c65306f1beb7723936f8402194c2af9717e4bff99",
+    "id": "gha:36594636309:1027:MERGE:12",
     "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:merge-finalize",
-    "kind": "ACQUIRE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:00:44Z",
+  "updated_at": "2026-09-29T16:01:57Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
