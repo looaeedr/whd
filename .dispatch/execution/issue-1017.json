@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
-    "id": 36576164681,
-    "purpose": "WHD Control Plane Regression exact-head post-push QA",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
   "issue": 1017,
   "lane_id": "chatgpt.flowv2.work0",
@@ -45,16 +40,20 @@
   },
   "next_action": {
     "args": {
-      "run_id": 36576164681
+      "expected_target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+      "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
+      "pr_number": 1020,
+      "revalidation_workflow": "WHD Control Plane Regression",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Accept exact-head GREEN QA",
-    "kind": "ACCEPT_QA"
+    "display": "Merge exact PR #1020",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
+    "last_accepted_run": 36576164681
   },
   "recovery_history": [
     {
@@ -65,21 +64,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "GREEN",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "5db0e927ee3c6f6bce25a46f899dba6e9a59697a2b6a4c396c6b6a051d185da3",
-    "id": "gha:36576370620:1017:START_QA:11",
+    "expected_fingerprint": "1e599e52449ea1ba0005dacc5682bfb93dbd988f269c22a9fdb933400a3e2c9c",
+    "id": "gha:36576524042:1017:ACCEPT_QA:12",
     "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1320Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T13:37:06Z",
+  "updated_at": "2026-09-29T13:38:17Z",
   "version": 2,
   "work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929"
 }
