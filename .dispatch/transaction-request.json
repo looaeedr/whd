@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1017-reserve-root-local-first-transport-repair-20260929T1152Z",
-  "issue": 1017,
-  "kind": "RESERVE_PATHS",
+  "request_id": "issue1016-acquire-terminal-tail-reconcile-20260929T124818Z",
+  "issue": 1016,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1147Z",
+  "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1147Z",
+    "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
     "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
@@ -22,27 +22,40 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Reserve Issue #1017 exact root-local-first hardening paths, including the stale main-bound push transport, before root mutation.",
-    "issued_at": "2026-09-29T11:52:00Z",
-    "expires_at": "2026-09-29T11:57:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reserve Issue #1017 exact root-local-first hardening paths, including the stale main-bound push transport, before root mutation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Resume Issue #1016 canonical Flow v2 terminal tail so the already-merged fix can be reconciled through QA, MERGE, FINALIZE, issue close, release, and DONE.",
+    "issued_at": "2026-09-29T12:48:18Z",
+    "expires_at": "2026-09-29T12:53:18Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Resume Issue #1016 canonical Flow v2 terminal tail so the already-merged fix can be reconciled through QA, MERGE, FINALIZE, issue close, release, and DONE.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "2bb6c3a5e0b41f3ca397c44747a50da817d65734",
+  "expected_coord_head": "d4faefc88c1f98c90d324f6c3beecf233581c3aa",
   "expected_generation": 2,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-    "write_paths": [
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      ".github/workflows/whd-control-transaction-v2-request.yml",
-      "AGENTS.md",
-      "tests/process/test_issue899_push_transaction_ingress.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/control_transaction_request_ingress.py",
-      "tools/root_local_first_gate.py",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md"
-    ],
-    "delete_paths": []
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "lease": {
+      "token": "lease:1016:terminal-tail-reconcile:20260929T124818Z",
+      "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
+      "expires_at": "2026-09-29T12:53:18Z"
+    },
+    "observed_at": "2026-09-29T12:48:18Z",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+        "target_branch": "cleanup/2d-3d-sync",
+        "write_paths": [
+          "tools/execution_invocation_exit.py",
+          "tests/process/test_flow_v2_execution_invocation_exit.py",
+          ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+          ".github/workflows/whd-control-plane-regression.yml"
+        ],
+        "delete_paths": []
+      },
+      "display": "Reserve terminal-tail governance paths before root mutation"
+    },
+    "semantic_state": "PATH_RESERVATION_PENDING",
+    "updated_at": "2026-09-29T12:48:18Z"
   }
 }
