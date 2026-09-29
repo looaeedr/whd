@@ -79,3 +79,68 @@ def test_root_local_first_uses_atomic_admission_for_new_work() -> None:
     root = _read(".agents/skills/engineering/root-local-first/SKILL.md")
     assert "ACQUIRE.effect.admission_reservation" in root
     assert "新 work 不得主動拆成 `ACQUIRE → RESERVE_PATHS`" in root
+
+def test_agents_completion_bridge_cannot_restore_legacy_continuity_finalization() -> None:
+    agents = _read("AGENTS.md")
+    assert "FLOW_V2_DURABLE_COMPLETION_BRIDGE_V1" in agents
+    assert "Canonical executable 是 `tools/continuity_controller.py`" not in agents
+    assert "python -m tools.continuity_controller assert-finalizable" not in agents
+    assert "execution_invocation_exit.py" in agents
+    assert "MERGE → FINALIZE → DONE" in agents
+
+
+def test_always_read_references_use_reserved_path_root_order_and_no_mntdata_authority() -> None:
+    global_pitfalls = _read("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md")
+    root_pitfall = _read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
+    expected = "ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED"
+    assert expected in global_pitfalls
+    assert expected in root_pitfall
+    assert "固定落 `/mnt/data` 或其他跨回合持久位置" not in global_pitfalls
+    assert "/mnt/data` 只可作 transient execution/transport materialization" in global_pitfalls
+
+
+def test_skill_governance_does_not_name_legacy_execution_tools_as_current_semantic_owners() -> None:
+    rules = _read("個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md")
+    legacy_current = "Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`"
+    assert legacy_current not in rules
+    assert "HISTORICAL mapping only" in rules
+    assert "WHD_EXECUTION_RECORD_V2" in rules
+
+
+def test_scheduler_required_reference_uses_flow_v2_current_rules_not_legacy_guard_template() -> None:
+    text = _read("個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md")
+    assert "### CURRENT 永久規則" in text
+    assert "施工型 scheduler prompt 必須顯式保留 **派工 + 遠端執行守門**" not in text
+    assert "NORMAL_PATH_FIRST`：正常 implementation 走 `READY → atomic ACQUIRE+reservation" in text
+    assert "排程 remote control-plane 與 root content surface 邊界 — CURRENT" in text
+    assert "需要 Guard 時走 trusted Remote Guard" not in text
+
+
+def test_registry_does_not_auto_route_current_execution_into_legacy_guard_or_continuity_references() -> None:
+    registry = json.loads(_read(".agents/skills/skill_registry.json"))
+    by_id = {route["id"]: route for route in registry["routes"]}
+    remote_guard = by_id["remote-execution-guard"]
+    assert remote_guard["required_skills"] == ["flow-v2-execution"]
+    assert "scheduler no shell" not in remote_guard["keywords"]
+    assert "GUARD_EXECUTION_CAPABILITY_BLOCKER" not in remote_guard["keywords"]
+
+    continuity = by_id["executable-continuity-controller"]
+    for broad in ("不停工", "持續執行", "runtime cut", "task chain", "implement spec"):
+        assert broad not in continuity["keywords"]
+
+    force = by_id["force-takeover"]
+    assert "tools/stale_claim_takeover.py" not in force["file_globs"]
+    assert ".github/workflows/whd-remote-execution-guard.yml" not in force["file_globs"]
+
+    legacy_ref = "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+    for route_id in ("scheduler-authoring", "scheduler-simulation", "remote-qa-monitoring", "issue-closure-gate", "force-takeover"):
+        assert legacy_ref not in by_id[route_id].get("required_references", [])
+
+
+def test_skill_catalog_canonical_classification_is_routing_not_semantic_current() -> None:
+    catalog = json.loads(_read(".agents/skills/skill_catalog.json"))
+    policy = catalog["semantic_authority_policy"]
+    assert policy["classification_scope"] == "ACTIVE_INVOCATION_ROUTING_ONLY"
+    assert policy["canonical_classification_does_not_imply_doc_role_current"] is True
+    assert policy["active_mirror_skill_allowed"] is True
+
