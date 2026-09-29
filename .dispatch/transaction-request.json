@@ -1,46 +1,55 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-start-branch-durable-terminal-gate",
-  "issue": 1027,
-  "kind": "START_BRANCH",
+  "request_id": "issue1022-work0-reacquire-20260929T155255Z",
+  "issue": 1022,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-  "expected_coord_head": "bbf10ea65dcf91b0870236d7307a6570e8378db1",
-  "expected_generation": 7,
+  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
+  "expected_coord_head": "6ccf07559dc096e8607372aeba771caadd9ee23b",
+  "expected_generation": 10,
   "effect": {
-    "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929",
-    "head_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-    "semantic_state": "IMPLEMENTING_ROOT_TESTED_DIFF",
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-      "diff_digest": "71dfc784f11eb87d498dab76e51ec6df8c398e6bc8a3cd5c007567f1746ecf68",
-      "issue": 1027,
-      "generation": 7,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-        "AGENTS.md",
-        "tests/process/test_flow_v2_execution_invocation_exit.py",
-        "tests/process/test_flow_v2_execution_scheduler_view.py",
-        "tools/execution_invocation_exit.py",
-        "tools/execution_record.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "30b4bf78a0ee1a34c4167e7d4027200497a84783e97b29e80cec207ae7a77eb9",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "observed_at": "2026-09-29T15:52:55Z",
+    "updated_at": "2026-09-29T15:52:55Z",
+    "lease": {
+      "token": "lease:1022:work0:20260929T155255Z",
+      "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
+      "expires_at": "2026-09-29T15:57:55Z"
     },
+    "semantic_state": "PATHS_RESERVED_ON_FRESH_TARGET",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "RESERVE_PATHS",
       "args": {
-        "diff_digest": "71dfc784f11eb87d498dab76e51ec6df8c398e6bc8a3cd5c007567f1746ecf68"
+        "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+        "delete_paths": [],
+        "target_branch": "cleanup/2d-3d-sync",
+        "write_paths": [
+          ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+          ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+          ".agents/skills/engineering/root-local-first/SKILL.md",
+          ".agents/skills/engineering/寫排程/SKILL.md",
+          ".agents/skills/engineering/工作槽/SKILL.md",
+          ".agents/skills/engineering/排程模擬/SKILL.md",
+          ".github/workflows/whd-control-plane-regression.yml",
+          ".github/workflows/whd-control-transaction-v2-request.yml",
+          "tests/process/test_flow_v2_execution_invocation_exit.py",
+          "tests/process/test_issue1022_root_ci_parity.py",
+          "tests/process/test_issue724_report_handler_identity_prefix.py",
+          "tests/process/test_issue899_push_transaction_ingress.py",
+          "tests/process/test_root_local_first_entry_hard_gate.py",
+          "tools/change_test_profile.py",
+          "tools/control_plane_regression.py",
+          "tools/execution_invocation_exit.py",
+          "tools/root_local_first_gate.py"
+        ]
       },
-      "display": "Apply exact tested durable-terminal hard gate diff"
+      "display": "Reserve Issue #1022 exact paths on current target 96cb073"
     }
   },
-  "purpose": "Create Issue #1027 work branch only after current-target reservation, root tests, and durable unlock receipt.",
+  "purpose": "Resume Issue #1022 under /工作0 and repair stale reservation continuation before rebuilding the exact tested diff.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
