@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "issue": 1017,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1017",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "34552b62726728945e22f44b021cde92b6f8a4a877749b2a816cf682a1d5a962",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-29:root-local-first-regression-hardening",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "transaction": null,
+  "updated_at": "2026-09-29T11:46:03Z",
+  "version": 2,
+  "work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929"
+}
