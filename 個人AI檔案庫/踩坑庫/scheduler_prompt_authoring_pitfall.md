@@ -34,32 +34,32 @@ whd_schema: WHD_DOC_META_V1
 - 把 GREEN 誤當跨 invocation session token，沒有在 consume 當下驗 `now < expires_at`。
 - 把 claim snapshot 誤當最高 runtime truth，沒有先比較 branch/checkpoint live durable evidence。
 
-### 永久規則
+### CURRENT 永久規則
 
-1. 建立／修改 WHD scheduler prompt 必須使用 `.agents/skills/engineering/寫排程/SKILL.md`。
-2. authoring 前先 baseline-read automation 的 id/title/schedule/timing_mode/enabled/full prompt/updated_at/last_run_time。
-3. 施工型 scheduler prompt 必須顯式保留 **派工 + 遠端執行守門**；不可把後者假設成前者的隱含內容。
-4. 每次 wake 先比對 `claim.head_sha` / claim.next_action 與 **live branch HEAD** / canonical checkpoint；branch/checkpoint 已前進時先 reconcile，禁止重播已完成 mutation。
-5. 任何 GREEN consume 前都必須 fresh 驗 receipt identity + `current UTC < expires_at`；expired GREEN 固定分類 `STALE_GUARD_RECEIPT`，永久禁止 consume。若 mutation 未發生就重申 fresh Guard；若已發生則只做 durable drift reconciliation。
-6. 有 exact-valid、**未過期**的 unconsumed GREEN 時，下一 wake first recovery = validate → consume → exact mutation → readback；heartbeat 不得搶在前面成為假終點。
-7. heartbeat / progress / CHECKPOINT / Guard GREEN / QA PASS 都不是 substantive completion。
-8. `BLOCKED` 只給真正 runtime 無法自行排除的 external authority/capability/dependency blocker。Discovery、poll、read、Guard、mutation、readback、reconcile 都不是 blocker。
-9. exact remote run 存在時鎖 `run_id + head_sha` 到 terminal，不 duplicate dispatch。
-10. 正常 return 前要實際經過 **machine turn-exit** authority；文字說「可以結束」沒有證明力。
-11. 沒有 matching `WHD_SCHEDULER_RUNTIME_END_V1` 的 invocation 不得視為正常完成。
-12. automation update 後必須做 post-update readback；驗 title/schedule/timing_mode/enabled/lane owner/entrypoint 與 required hard gates。
-13. 同一 logical lane 的多 entrypoint 共用 owner是 mutex；不同 owner才可能真平行，但仍受 shared claim / dependency / integration scope 約束。
-14. 修改一個 prompt 發現 reusable authoring defect 時，要搜尋 sibling / parallel lanes 是否有同型缺口，不能只補眼前入口。
+1. 建立／修改 WHD scheduler prompt 必須使用 `.agents/skills/engineering/寫排程/SKILL.md`，而 execution semantics 只 bridge 到 `flow-v2-execution`。
+2. authoring 前 baseline-read automation 的 id/title/schedule/timing_mode/enabled/full prompt/updated_at/last_run_time；update 後必須 fresh readback。
+3. prompt 不得要求 legacy Remote Guard / execution claim / checkpoint closure 作 CURRENT authority；owner/lease/mutation/closure 全由 `WHD_EXECUTION_RECORD_V2` + atomic transaction 決定。
+4. 每次 wake fresh-read canonical scheduler view / ExecutionRecord；live lease、generation、record fingerprint、work/target HEAD 任一 drift 都丟棄 stale plan，從 structured `next_action` 重建。
+5. authorization 不跨 invocation 保存為可重播 GREEN token。mutation 只能消費本次 Flow v2 transaction identity；副作用後 fresh readback。
+6. exact-head terminal QA GREEN 已存在時優先 `CONSUME_QA`；GREEN 被接受且 continuation=MERGE 後立即 drain `MERGE → FINALIZE → DONE`，不得 YIELD。
+7. WAKE / HEARTBEAT / progress / user-visible CHECKPOINT / QA GREEN 都不是 substantive completion 或 turn-exit authority。
+8. `BLOCKED` 只給 fresh machine evidence 證明本 runtime 無合法 executable leaf 的 genuine blocker；read/poll/reconcile/CAS retry 本身不是 blocker。
+9. `active_run` 存在時只追 exact `run_id + head_sha` 到 terminal；不得 duplicate dispatch。
+10. 正常 return 前必須通過 `tools/execution_invocation_exit.py`；`CONTINUE_EXECUTION / CONTINUE_TERMINAL_TAIL / ACQUIRE_REQUIRED / SCHEDULER_EXECUTION_NO_PROGRESS` 都必須繼續。
+11. scheduler runtime END / entrypoint observation 只屬 NON_AUTHORITY liveness；不得反向授權 owner、mutation、merge 或 closure。
+12. 同一 logical lane 的 entrypoints 共用 durable lane owner；entrypoint 不是 owner。不同 lane 仍受 path reservation、single-writer 與 target drift fence。
+13. repository-content implementation 不得在 scheduler/GitHub branch 直接 author/hotfix；必須 HANDOFF 到 canonical Google Drive root，完成 root tests/freeze/unlock 後才回 remote post-push tail。
+14. 修改一個 prompt 發現 reusable authoring defect 時，要檢查 sibling / parallel lanes 與 permanent contract tests，不能只補單一入口。
 
 ### Documentation != enforcement
 
-`寫排程` Skill 能避免 authoring 時刪錯 contract，但不能保證平台 runtime 永遠不會 hard-cut，也不能取代 executable continuity controller。
+`寫排程` Skill 能避免 authoring 時刪錯 contract，但不能保證平台 runtime 永遠不會 hard-cut，也不能取代 Flow v2 ExecutionRecord / atomic transaction / invocation-exit machine。
 
 真正判斷必須區分：
 
 - prompt contract：下一個 runtime 應該怎麼做；
-- Remote Guard：這次 mutation 是否獲授權；
-- continuity controller：目前 workflow state 是否允許 turn exit / finalization；
+- Flow v2 transaction：這次 mutation 的 issue/generation/lease/record/head identity 是否仍有效；
+- invocation-exit / structured next_action：目前是否必須繼續、YIELD、BLOCK 或 drain terminal tail；
 - durable GitHub evidence：上一輪實際做到哪裡。
 
 因此禁止說：「prompt 補好了，所以排程不會再停。」
@@ -67,23 +67,23 @@ whd_schema: WHD_DOC_META_V1
 正確說法只能是：prompt authoring contract 已補；是否持續施工要看下一輪的 durable mutation、exact run、turn-exit proof 與 END readback。
 
 <!-- ISSUE646_PROMPT_AUTHORING_V1 -->
-## #646 prompt authoring hard order
+## #646 prompt authoring hard order — HISTORICAL/SUPERSEDED
 
-Scheduler prompt 固定：Guard recovery → drift reconciliation → delegated/proof/helper traversal → helper dedupe → stale evaluator → guarded mutation → readback → turn-exit。不得把『10分鐘沒更新』放在第一判斷。
+歷史 prompt 曾固定使用 Guard recovery / helper / stale evaluator 鏈；**此 ordering 已被 Flow v2 structured next_action + generation fencing 取代，不得作 CURRENT prompt template。** 保留的教訓只有：不得以時間猜 stale、任何副作用後必須 durable readback。
 
-必須明寫 active delegated child = parent liveness、same helper key reuse、equivalent duplicate GREEN dedupe、expired unconsumed GREEN不可 replay、cadence/IDs/lane owner/recurring enabled policy不得因 writeback改動。
+CURRENT prompt 只保留可泛化 invariant：active exact remote run / delegated work 必須先 fresh-read；不得 replay stale authority；cadence/IDs/lane owner/recurring enabled policy不得因 task writeback改動。legacy helper/duplicate-GREEN 語意只作歷史事故索引。
 
 Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；interactive counterpart後續必須保存 conversation/chat identity + invocation identity並補 heartbeat。
 
 
 <!-- ISSUE667_END_LIVENESS_V1 -->
-## #667 Scheduler END / unified liveness / interactive takeover
+## #667 Scheduler END / unified liveness / interactive takeover — HISTORICAL/SUPERSEDED
 
 - heartbeat 與 invocation 終態使用 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` + exact matching `WHD_SCHEDULER_RUNTIME_END_V1`。
-- selector 綁 exact `issue + scheduler_lane + invocation_identity + claim_blob_sha + branch + head_sha`；identity drift fail closed。
+- 歷史 selector 曾綁 claim blob；CURRENT liveness只作 NON_AUTHORITY observation，execution identity以 record generation/fingerprint + live lease + invocation identity + branch/head 為準，任何 drift fail closed。
 - matching END 後 machine status 是 `ENDED`；active exact remote run 仍是 absolute lock。
 - runtime heartbeat maximum TTL 與 same-lane mutex 統一為 **<=300 秒**；不得另造 420 秒 prompt-only 判斷。
-- user-directed interactive takeover 的 trusted Remote Guard 必須 fresh-read owner-authored `WHD_USER_DIRECTED_TAKEOVER_V1` 並傳給 canonical stale evaluator。
+- user-directed takeover 的 legacy Remote Guard transport已退役；CURRENT 只允許 Flow v2 generation-fenced atomic owner transition，foreign live lease無失效證據即 fail closed。
 - `/排程A` / `/排程B` activation 只 enable exact selected lane matching recurring entrypoints；post-update fresh readback，不改 cadence/prompt/title/owner，不碰另一 lane。
 
 ## EXECUTION_INTENT_ROUTING_PITFALL_V1
@@ -101,8 +101,8 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 1. Scheduler authoring / automation update 預設是 `UPDATE_ONLY`；完成條件是 requested update + minimum validation/readback。
 2. `UPDATE_ONLY` 不授權 implementation claim、implementation branch、successor chain 或 scheduler lane execution。
 3. `/排程A` / `/排程B` 與真正 scheduled invocation 才是 `SCHEDULER_LANE` execution entrypoint。
-4. `open / unblocked Issue`、空 work slot、Guard 可用、next_action 存在都不是 execution authority。
-5. `NORMAL_PATH_FIRST`：正常 implementation 只走 `claim → branch → RED → implementation → GREEN → PR/QA → merge → close/release`。
+4. `open / unblocked Issue`、空 work slot、legacy Guard 可用都不是 execution authority；只有 canonical READY/ACTIVE ExecutionRecord + valid transition/lease 能授權執行。
+5. `NORMAL_PATH_FIRST`：正常 implementation 走 `READY → atomic ACQUIRE+reservation → root implementation/tests/freeze → Git candidate → QA → MERGE → FINALIZE/DONE`；不得復活 legacy claim-first / branch-first。
 6. `RECOVERY_IS_EXCEPTION_NOT_PHASE`：takeover / reactivate / reconciliation / legacy repair 僅由 fresh machine evidence 觸發；condition 修復後立即回 normal path。
 7. 修改 live recurring automation prompt 時只改本次 scope；cadence、enabled、lane owner 若未被使用者點名就保持原值，並 post-update fresh readback。
 
@@ -117,13 +117,13 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
 <!-- ISSUE808_SCHEDULER_REMOTE_ONLY_EXECUTION_V1 -->
-## 排程模擬不得退回本機執行
+## 排程 remote control-plane 與 root content surface 邊界 — CURRENT
 
-- `排程模擬` 的 substantive execution 必須保持 remote-only；合法 execution location 固定為 `GITHUB | SCHEDULER | REMOTE_ACTION`。
-- `handoff_source=LOCAL` 只代表歷史來源/provenance，**不是** execution authority，也不得被解讀成可切換到本機。
-- GitHub / scheduler / remote action capability 暫時不可用時必須 fail closed 並保存 exact durable blocker；禁止改走本機 worktree、Remote Desktop、local shell 或其他 workstation fallback。
-- 需要 Guard 時走 trusted Remote Guard；需要測試/驗證時走 GitHub Actions / remote QA；需要 repository mutation 時走 GitHub durable mutation capability。
-- 此規則同時適用真實 recurring scheduled invocation 與 exact `/排程A` / `/排程B` interactive same-lane resume。
+- 排程A/B 的 **control-plane / post-push integration** 保持 remote：GitHub/SCHEDULER/REMOTE_ACTION 負責 discovery、lease/transaction、preflight、CI/QA、merge、finalization/readback。
+- 只要下一個 action 需要產生 repository-content diff，固定 HANDOFF 到 canonical `/Google Drive/WHD/work/active/...`；這不是 workstation/local-shell fallback，而是 CURRENT root-local-first content surface。
+- `handoff_source=LOCAL` 等 legacy provenance 欄位不提供 authority；CURRENT authority仍是 Flow v2 record + live lease + mutation_scope。
+- remote capability 暫時不可用時保存 genuine blocker；不得改走 Remote Desktop/任意 workstation repo，也不得以 legacy Remote Guard / GitHub-side hotfix繞過 root gate。
+- root-tested/frozen candidate push 後，scheduler 再接回 remote QA/merge/finalization tail。
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
 ## Mutating toolcall crash-recovery canonical invariant
 
@@ -131,8 +131,8 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
 - `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
 - `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
-- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
-- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- **HISTORICAL mapping only**：#702 的 continuity/Guard/Claim Activation owners 只保留 crash-boundary 與 migration evidence；不得再被 scheduler prompt或Entry Skill引用為 CURRENT execution authority。
+- CURRENT continuity/reconcile/owner transfer/turn exit/closure 由 `WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + structured `next_action` + `tools/execution_invocation_exit.py` 單一擁有。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
 
