@@ -1,37 +1,55 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-expand-root-gate-test-20260929T1559Z",
+  "request_id": "issue1022-work0-reacquire-after-terminal-migration-20260929T161151Z",
   "issue": 1022,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
-  "expected_coord_head": "21738c261666d5ef3554169faa034b67e9b48ada",
+  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T161151Z",
+  "expected_coord_head": "e184077be6f4b15912f346c9d18b6a24e1536845",
   "expected_generation": 12,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-    "write_paths": [
-      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      ".agents/skills/engineering/寫排程/SKILL.md",
-      ".agents/skills/engineering/工作槽/SKILL.md",
-      ".agents/skills/engineering/排程模擬/SKILL.md",
-      ".github/workflows/whd-control-plane-regression.yml",
-      ".github/workflows/whd-control-transaction-v2-request.yml",
-      "tests/process/test_issue1022_root_ci_parity.py",
-      "tests/process/test_issue724_report_handler_identity_prefix.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/change_test_profile.py",
-      "tools/control_plane_regression.py",
-      "tools/root_local_first_gate.py",
-      "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY_AND_RECEIPT_TEST",
-    "updated_at": "2026-09-29T15:59:00Z"
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "observed_at": "2026-09-29T16:11:51Z",
+    "updated_at": "2026-09-29T16:11:51Z",
+    "lease": {
+      "token": "lease:1022:work0:20260929T161151Z",
+      "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T161151Z",
+      "expires_at": "2026-09-29T16:26:51Z"
+    },
+    "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+        "delete_paths": [],
+        "target_branch": "cleanup/2d-3d-sync",
+        "write_paths": [
+          ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+          ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+          ".agents/skills/engineering/root-local-first/SKILL.md",
+          ".agents/skills/engineering/寫排程/SKILL.md",
+          ".agents/skills/engineering/工作槽/SKILL.md",
+          ".agents/skills/engineering/排程模擬/SKILL.md",
+          ".github/workflows/whd-control-plane-regression.yml",
+          ".github/workflows/whd-control-transaction-v2-request.yml",
+          "tests/process/test_flow_v2_execution_invocation_exit.py",
+          "tests/process/test_issue1022_root_ci_parity.py",
+          "tests/process/test_issue724_report_handler_identity_prefix.py",
+          "tests/process/test_issue899_push_transaction_ingress.py",
+          "tests/process/test_root_local_first_entry_hard_gate.py",
+          "tools/change_test_profile.py",
+          "tools/control_plane_regression.py",
+          "tools/execution_invocation_exit.py",
+          "tools/root_local_first_gate.py"
+        ]
+      },
+      "display": "Reserve Issue #1022 exact paths on current target 96cb073"
+    }
   },
-  "purpose": "Expand Issue #1022 reservation to update the existing root-local-first contract test for mandatory WHD_TEST_EXECUTION_RECEIPT_V1 validation.",
+  "purpose": "Resume Issue #1022 after migrating legacy DONE owner identity so Flow v2 transactions are readable again.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
