@@ -1,33 +1,51 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue943-finalize-v23",
-  "issue": 943,
-  "kind": "FINALIZE",
+  "effect": {
+    "next_action": {
+      "args": {
+        "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+        "delete_paths": [],
+        "target_branch": "cleanup/2d-3d-sync",
+        "write_paths": [
+          ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+          "tests/process/test_issue1019_terminal_tail_drain.py",
+          "tools/control_transaction.py",
+          "tools/control_transaction_production_executor.py",
+          "tools/execution_record.py"
+        ]
+      },
+      "display": "Reserve Issue #1019 terminal-tail hardening paths",
+      "kind": "RESERVE_PATHS"
+    },
+    "semantic_state": "CLAIMED_ROOT_LOCAL_FIRST"
+  },
+  "expected_coord_head": "861c8dfeb843a8f434be2f35139afa9d79e25b65",
+  "expected_generation": 1,
+  "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
+  "issue": 1019,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "interactive:work1:issue943:qa-bind:20260929T030245+0800",
+  "request_id": "issue1019-acquire-1",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work1:issue943:qa-bind:20260929T030245+0800",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 acquire /工作1 for terminal-tail drain hardening\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
+    "expires_at": "2026-09-29T13:21:53Z",
+    "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
+    "issued_at": "2026-09-29T13:16:53Z",
+    "purpose": "Issue #1019 acquire /工作1 for terminal-tail drain hardening",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U",
+      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+      "execution_mode": "INTERACTIVE",
       "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
       "gate_status": "CURRENT",
-      "read_mode": "GOOGLE_DRIVE_CANONICAL",
-      "execution_mode": "INTERACTIVE",
-      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-      "provider": "google_drive",
       "library_path": "/Google Drive/WHD",
-      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-    },
-    "purpose": "Finalize Issue #943 from accepted QA and reconciled merge anchor using trusted live target ancestry proof plus GitHub Issue close/readback; caller supplies no closure booleans or release timestamp.",
-    "issued_at": "2026-09-28T19:06:50Z",
-    "expires_at": "2026-09-28T19:11:50Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Finalize Issue #943 from accepted QA and reconciled merge anchor using trusted live target ancestry proof plus GitHub Issue close/readback; caller supplies no closure booleans or release timestamp.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
-  },
-  "expected_coord_head": "0bb97d8e47b7f0d2ed723e58a35549bffaf549fc",
-  "expected_generation": 22,
-  "effect": {}
+      "provider": "google_drive",
+      "read_mode": "GOOGLE_DRIVE_CANONICAL",
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json"
+    }
+  }
 }
