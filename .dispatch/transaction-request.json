@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-reserve-disjoint-scope-r1",
+  "request_id": "issue1022-reserve-actual-diff-r2",
   "issue": 1022,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
-  "expected_coord_head": "f63376b48c50d0d2b169a0d65a418610dae40179",
+  "expected_coord_head": "46e27b892568b66022360aed12109f5555162b5e",
   "expected_generation": 9,
   "effect": {
     "target_branch": "cleanup/2d-3d-sync",
@@ -23,13 +23,12 @@
       "tests/process/test_issue724_report_handler_identity_prefix.py",
       "tools/change_test_profile.py",
       "tools/control_plane_regression.py",
-      "tools/report_handler_identity.py",
       "tools/root_local_first_gate.py"
     ],
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED_ON_FRESH_TARGET"
   },
-  "purpose": "Reserve the disjoint Issue #1022 root-local-first scope after moving report identity validation away from Issue #1027 owned paths.",
+  "purpose": "Retry the same Issue #1022 13-path reservation after coord/execution-v2 advanced during the prior transaction.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
