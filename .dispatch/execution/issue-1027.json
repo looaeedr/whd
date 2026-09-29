@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "fe5546a010ab24fc3745e5366ffeb85f7307bfb5",
-    "released_at": null
+    "released_at": "2026-09-29T16:02:20Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "01e357e80776cea615d07813b174be8349461122",
   "issue": 1027,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-09-29T16:15:44Z",
-    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:merge-finalize",
-    "token": "lease:1027:36594510804:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
@@ -35,13 +31,9 @@
       "tools/execution_record.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "01e357e80776cea615d07813b174be8349461122",
     "last_accepted_run": 36594051738
@@ -54,21 +46,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "fe5546a010ab24fc3745e5366ffeb85f7307bfb5",
   "transaction": {
-    "expected_fingerprint": "188858c69d956eed4403d38c65306f1beb7723936f8402194c2af9717e4bff99",
-    "id": "gha:36594636309:1027:MERGE:12",
+    "expected_fingerprint": "fd2f56f138254f8ad6f9b54aa1e98d5eee19262c449c6b070c74587f75e0cefe",
+    "id": "gha:36594636309:1027:FINALIZE:13",
     "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:merge-finalize",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:01:57Z",
+  "updated_at": "2026-09-29T16:02:19Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
