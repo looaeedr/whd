@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1022-acquire-retry-20260929T1422Z",
+  "request_id": "issue1022-reserve-paths-20260929T1423Z",
   "issue": 1022,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
   "startup_evidence": {
@@ -27,29 +27,22 @@
     "expires_at": "2026-09-29T14:26:10Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Acquire Issue #1022 on work0 and immediately reserve exact root-local-first mutation paths for CI parity, retryable conflict status, and identity reporting repair.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "686b01075af156ca5a294a884ea1c5dfe6bb7fd3",
-  "expected_generation": 1,
+  "expected_coord_head": "946c5449f1d5194bb3a80de7a508f37a64227c06",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED",
-    "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {
-        "target_branch": "cleanup/2d-3d-sync",
-        "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
-        "write_paths": [
-          ".agents/skills/engineering/工作槽/SKILL.md",
-          ".agents/skills/engineering/排程模擬/SKILL.md",
-          ".agents/skills/engineering/寫排程/SKILL.md",
-          ".github/workflows/whd-control-plane-regression.yml",
-          ".github/workflows/whd-control-transaction-v2-request.yml",
-          "tools/change_test_profile.py",
-          ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
-          "tools/control_plane_regression.py",
-          "tests/process/test_issue1022_root_ci_parity.py"
-        ],
-        "delete_paths": []
-      },
-      "display": "Reserve exact Issue #1022 root mutation paths"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+    "write_paths": [
+      ".agents/skills/engineering/工作槽/SKILL.md",
+      ".agents/skills/engineering/排程模擬/SKILL.md",
+      ".agents/skills/engineering/寫排程/SKILL.md",
+      ".github/workflows/whd-control-plane-regression.yml",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
+      "tools/change_test_profile.py",
+      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+      "tools/control_plane_regression.py",
+      "tests/process/test_issue1022_root_ci_parity.py"
+    ],
+    "delete_paths": []
   }
 }
