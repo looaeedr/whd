@@ -1,34 +1,36 @@
 {
   "effect": {
+    "conclusion": "success",
     "next_action": {
       "args": {
-        "head_sha": "52cbf98b8f4fe11161d910189253c7e74a76ef2f",
-        "run_id": 36577591272
+        "pr_number": 1021,
+        "qa_workflow": ".github/workflows/whd-control-plane-regression.yml",
+        "target_branch": "cleanup/2d-3d-sync",
+        "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b"
       },
-      "display": "Accept exact-head Control Plane Regression success",
-      "kind": "ACCEPT_QA"
+      "display": "Sync live target after exact-head QA acceptance",
+      "kind": "SYNC_TARGET"
     },
-    "purpose": "WHD Control Plane Regression exact-head acceptance before target sync",
+    "next_state": "INTEGRATING",
     "run_head_sha": "52cbf98b8f4fe11161d910189253c7e74a76ef2f",
     "run_id": 36577591272,
-    "run_status": "completed",
-    "semantic_state": "REMOTE_QA_TERMINAL_SUCCESS_OBSERVED"
+    "semantic_state": "QA_ACCEPTED_BEFORE_SYNC"
   },
-  "expected_coord_head": "9959a1a2d34c8b992f141b37f61058b5491941b6",
-  "expected_generation": 10,
+  "expected_coord_head": "82108ac82b0e6dde39a1117a7d0f9ff448e2ce2e",
+  "expected_generation": 11,
   "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
   "issue": 1019,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1019-startqa-52cb-1",
+  "request_id": "issue1019-acceptqa-52cb-1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 bind completed exact-head Control Plane Regression run 36577591272\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 accept exact-head Control Plane Regression before target sync\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-09-29T14:03:03Z",
+    "expires_at": "2026-09-29T14:04:10Z",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "issued_at": "2026-09-29T13:58:03Z",
-    "purpose": "Issue #1019 bind completed exact-head Control Plane Regression run 36577591272",
+    "issued_at": "2026-09-29T13:59:10Z",
+    "purpose": "Issue #1019 accept exact-head Control Plane Regression before target sync",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
