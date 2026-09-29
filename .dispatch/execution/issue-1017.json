@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
+  "generation": 15,
   "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
   "issue": 1017,
   "lane_id": "chatgpt.flowv2.work0",
@@ -39,15 +39,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-      "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
-      "pr_number": 1020,
-      "revalidation_workflow": "WHD Control Plane Regression",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge exact PR #1020",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -64,21 +58,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "GREEN",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+  "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "transaction": {
-    "expected_fingerprint": "5829d90ca7517d8eb53be91674231a91b2af204c1b06591a78ea84ae614834e2",
-    "id": "gha:36576955177:1017:ACQUIRE:13",
+    "expected_fingerprint": "f5ca474f859ea7a7fe02d1e6b55975b4ca00bffee3e5389a2f0d7ded26d76960",
+    "id": "gha:36577086187:1017:MERGE:14",
     "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1341Z",
-    "kind": "ACQUIRE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T13:41:50Z",
+  "updated_at": "2026-09-29T13:43:01Z",
   "version": 2,
   "work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929"
 }
