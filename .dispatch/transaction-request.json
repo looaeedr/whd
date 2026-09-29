@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1017-apply-exact-frozen-diff-20260929T1331Z",
+  "request_id": "issue1017-apply-exact-tested-diff-retry-20260929T1334Z",
   "issue": 1017,
   "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
@@ -22,16 +22,16 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Apply Issue #1017 exact frozen root-tested diff at branch head 950ae1c8b4de081b7b968b051efc85f5737028b2.",
-    "issued_at": "2026-09-29T13:31:00Z",
-    "expires_at": "2026-09-29T13:36:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Apply Issue #1017 exact frozen root-tested diff at branch head 950ae1c8b4de081b7b968b051efc85f5737028b2.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Reconcile Issue #1017 APPLY_COMMIT to exact root-tested branch head 950ae1c8b4de081b7b968b051efc85f5737028b2 using the live lease.",
+    "issued_at": "2026-09-29T13:34:00Z",
+    "expires_at": "2026-09-29T13:39:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reconcile Issue #1017 APPLY_COMMIT to exact root-tested branch head 950ae1c8b4de081b7b968b051efc85f5737028b2 using the live lease.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
   "expected_coord_head": "1d985b96b8ee115ac258d3e498a972d9b4d3925f",
   "expected_generation": 10,
   "effect": {
     "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
-    "semantic_state": "IMPLEMENTED_ROOT_TESTED_DIFF",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
       "execution_mode": "INTERACTIVE",
@@ -61,7 +61,7 @@
       "args": {
         "workflow": "WHD Control Plane Regression"
       },
-      "display": "Run exact-head post-push QA"
+      "display": "Start exact-head QA"
     }
   }
 }
