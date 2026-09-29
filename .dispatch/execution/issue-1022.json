@@ -12,19 +12,38 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "issue": 1022,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-29T14:38:12Z",
+    "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
+    "token": "lease:1022:36582239949:1"
+  },
   "mutation_scope": null,
   "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1022",
-    "kind": "ACQUIRE"
+    "args": {
+      "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+      "delete_paths": [],
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md",
+        ".agents/skills/engineering/寫排程/SKILL.md",
+        ".github/workflows/whd-control-plane-regression.yml",
+        ".github/workflows/whd-control-transaction-v2-request.yml",
+        "tools/change_test_profile.py",
+        ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+        "tools/control_plane_regression.py",
+        "tests/process/test_issue1022_root_ci_parity.py"
+      ]
+    },
+    "display": "Reserve exact Issue #1022 root mutation paths",
+    "kind": "RESERVE_PATHS"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
-  "transaction": null,
-  "updated_at": "2026-09-29T14:19:00Z",
+  "transaction": {
+    "expected_fingerprint": "408b92651772d3565c69d6873f2203c7cac00e53e2296f4c4b09c48a7bd18844",
+    "id": "gha:36582239949:1022:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-29T14:23:12Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
