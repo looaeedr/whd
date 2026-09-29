@@ -714,6 +714,63 @@ def _ensure_issue_closed_for_finalize(
     }
 
 
+
+def _trusted_consume_qa_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    invocation_identity: str,
+    supplied: dict[str, object],
+) -> dict[str, object]:
+    """Fresh-read one already-terminal exact-head QA run and consume it atomically."""
+    _require_current_invocation_lease(record, invocation_identity)
+    if record.next_action is None or record.next_action.kind != "START_QA":
+        raise ControlTransactionConflict(
+            "CONSUME_QA requires current structured START_QA next_action"
+        )
+    run_id = supplied.get("run_id")
+    if isinstance(run_id, bool) or not isinstance(run_id, int) or run_id <= 0:
+        raise ProductionExecutorError("CONSUME_QA run_id must be a positive integer")
+    expected_workflow = str(record.next_action.args.get("workflow") or "").strip()
+    if not expected_workflow:
+        raise ProductionExecutorError("CONSUME_QA START_QA workflow is missing")
+    run = _api(repo, "GET", f"/actions/runs/{run_id}", token) or {}
+    observed_id = run.get("id")
+    observed_head = str(run.get("head_sha") or "").strip()
+    observed_path = str(run.get("path") or "").strip()
+    observed_status = str(run.get("status") or "").strip().lower()
+    observed_conclusion = str(run.get("conclusion") or "").strip().lower()
+    if observed_id != run_id:
+        raise ProductionExecutorError("CONSUME_QA run identity mismatch")
+    if observed_head != record.head_sha:
+        raise ControlTransactionConflict(
+            f"CONSUME_QA head mismatch: expected {record.head_sha}, observed {observed_head}"
+        )
+    if observed_path != expected_workflow:
+        raise ControlTransactionConflict(
+            f"CONSUME_QA workflow mismatch: expected {expected_workflow}, observed {observed_path}"
+        )
+    if observed_status != "completed":
+        raise ControlTransactionConflict(
+            f"CONSUME_QA run is not terminal: {observed_status or 'unknown'}"
+        )
+    if observed_conclusion != "success":
+        raise ControlTransactionConflict(
+            f"CONSUME_QA requires success: observed {observed_conclusion or 'none'}"
+        )
+    effect = dict(supplied)
+    effect.update(
+        {
+            "run_id": run_id,
+            "run_head_sha": observed_head,
+            "run_status": observed_status,
+            "conclusion": observed_conclusion,
+            "purpose": str(run.get("name") or expected_workflow),
+        }
+    )
+    return effect
+
 def _write_state(
     repo: str,
     token: str,
@@ -803,6 +860,14 @@ def _execute_one_attempt(
     )
     if kind == "MERGE":
         effect = _trusted_merge_effect(
+            repo,
+            token,
+            record=record,
+            invocation_identity=invocation_identity,
+            supplied=supplied_effect,
+        )
+    elif kind == "CONSUME_QA":
+        effect = _trusted_consume_qa_effect(
             repo,
             token,
             record=record,
