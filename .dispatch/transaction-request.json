@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1022-expand-reservation-20260929T1427Z",
+  "request_id": "issue1022-expand-reservation-retry-20260929T1433Z",
   "issue": 1022,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,8 +23,8 @@
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
     "purpose": "Expand Issue #1022 exact path reservation to include report-identity exit contracts and concrete root/CI test receipt enforcement before root mutation.",
-    "issued_at": "2026-09-29T14:27:00Z",
-    "expires_at": "2026-09-29T14:32:00Z",
+    "issued_at": "2026-09-29T14:33:00Z",
+    "expires_at": "2026-09-29T14:38:00Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Expand Issue #1022 exact path reservation to include report-identity exit contracts and concrete root/CI test receipt enforcement before root mutation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
   "expected_coord_head": "5c3496e932bd2c93ced50d06ef88986d51fde8c8",
