@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "fdaf902380ba8018bc4c0a12bb715e7838fd20d0",
+    "id": 36564266679,
+    "purpose": "WHD Control Plane Regression exact-head acceptance for #1016 terminal-tail fix",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "fdaf902380ba8018bc4c0a12bb715e7838fd20d0",
   "issue": 1016,
   "lane_id": "chatgpt.flowv2.work0",
@@ -35,11 +40,10 @@
   },
   "next_action": {
     "args": {
-      "pr_number": 1018,
-      "workflow": "WHD Control Plane Regression"
+      "run_id": 36564266679
     },
-    "display": "Start exact-head QA for reconciled terminal-tail implementation",
-    "kind": "START_QA"
+    "display": "Accept exact successful QA run",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -56,21 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "OUT_OF_BAND_IMPLEMENTATION_RECONCILED",
+  "semantic_state": "REMOTE_QA_COMPLETE_PENDING_ACCEPT",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "159b71abd188de44a5a828ee6a535ea55c7d4b096ae78047ab30fed8c15cab61",
-    "id": "gha:36571119583:1016:RECONCILE:4",
+    "expected_fingerprint": "ae7cf8549c83b213b795a86d269322569bd46c925a00eb19f250326e1c4dc87c",
+    "id": "gha:36571372234:1016:START_QA:5",
     "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
-    "kind": "RECONCILE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T12:52:36Z",
+  "updated_at": "2026-09-29T12:54:45Z",
   "version": 2,
   "work_branch": "governance/issue1016-terminal-tail-drain-20260929"
 }
