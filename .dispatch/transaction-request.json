@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1037-atomic-admission-1",
+  "request_id": "issue1037-atomic-admission-2",
   "issue": 1037,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1037:root-local-pointer:20260930T0646+0800",
-  "expected_coord_head": "842c519dd46bfdbf71cb40ed91fcd2bbc1e76778",
+  "expected_coord_head": "27707252db2296072f707c8b79fd522706e807af",
   "expected_generation": 1,
   "effect": {
     "admission_reservation": {
