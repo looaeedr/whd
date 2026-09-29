@@ -12,19 +12,36 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
   "issue": 1017,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1017",
-    "kind": "ACQUIRE"
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-29T12:04:06Z",
+    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1147Z",
+    "token": "lease:1017:36564060931:1"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "next_action": {
+    "args": {
+      "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+      "delete_paths": [],
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        ".agents/skills/engineering/root-local-first/SKILL.md",
+        "AGENTS.md",
+        "tests/process/test_issue899_push_transaction_ingress.py",
+        "tests/process/test_root_local_first_entry_hard_gate.py",
+        "tools/control_transaction_request_ingress.py",
+        "tools/root_local_first_gate.py",
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md"
+      ]
+    },
+    "display": "Reserve root-local-first regression hardening paths before root mutation",
+    "kind": "RESERVE_PATHS"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "PATH_RESERVATION_PENDING",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-  "transaction": null,
-  "updated_at": "2026-09-29T11:46:03Z",
+  "transaction": {
+    "expected_fingerprint": "00f304c041a1821367feff5413c2074b854057c6b5f395e6a0abc239797eb954",
+    "id": "gha:36564060931:1017:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1147Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-29T11:49:06Z",
   "version": 2,
   "work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929"
 }
