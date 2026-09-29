@@ -714,6 +714,63 @@ def _ensure_issue_closed_for_finalize(
     }
 
 
+
+def _trusted_consume_qa_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    invocation_identity: str,
+    supplied: dict[str, object],
+) -> dict[str, object]:
+    """Fresh-read one already-terminal exact-head QA run and consume it atomically."""
+    _require_current_invocation_lease(record, invocation_identity)
+    if record.next_action is None or record.next_action.kind != "START_QA":
+        raise ControlTransactionConflict(
+            "CONSUME_QA requires current structured START_QA next_action"
+        )
+    run_id = supplied.get("run_id")
+    if isinstance(run_id, bool) or not isinstance(run_id, int) or run_id <= 0:
+        raise ProductionExecutorError("CONSUME_QA run_id must be a positive integer")
+    expected_workflow = str(record.next_action.args.get("workflow") or "").strip()
+    if not expected_workflow:
+        raise ProductionExecutorError("CONSUME_QA START_QA workflow is missing")
+    run = _api(repo, "GET", f"/actions/runs/{run_id}", token) or {}
+    observed_id = run.get("id")
+    observed_head = str(run.get("head_sha") or "").strip()
+    observed_path = str(run.get("path") or "").strip()
+    observed_status = str(run.get("status") or "").strip().lower()
+    observed_conclusion = str(run.get("conclusion") or "").strip().lower()
+    if observed_id != run_id:
+        raise ProductionExecutorError("CONSUME_QA run identity mismatch")
+    if observed_head != record.head_sha:
+        raise ControlTransactionConflict(
+            f"CONSUME_QA head mismatch: expected {record.head_sha}, observed {observed_head}"
+        )
+    if observed_path != expected_workflow:
+        raise ControlTransactionConflict(
+            f"CONSUME_QA workflow mismatch: expected {expected_workflow}, observed {observed_path}"
+        )
+    if observed_status != "completed":
+        raise ControlTransactionConflict(
+            f"CONSUME_QA run is not terminal: {observed_status or 'unknown'}"
+        )
+    if observed_conclusion != "success":
+        raise ControlTransactionConflict(
+            f"CONSUME_QA requires success: observed {observed_conclusion or 'none'}"
+        )
+    effect = dict(supplied)
+    effect.update(
+        {
+            "run_id": run_id,
+            "run_head_sha": observed_head,
+            "run_status": observed_status,
+            "conclusion": observed_conclusion,
+            "purpose": str(run.get("name") or expected_workflow),
+        }
+    )
+    return effect
+
 def _write_state(
     repo: str,
     token: str,
@@ -809,6 +866,14 @@ def _execute_one_attempt(
             invocation_identity=invocation_identity,
             supplied=supplied_effect,
         )
+    elif kind == "CONSUME_QA":
+        effect = _trusted_consume_qa_effect(
+            repo,
+            token,
+            record=record,
+            invocation_identity=invocation_identity,
+            supplied=supplied_effect,
+        )
     elif kind == "SYNC_TARGET":
         effect = _trusted_sync_target_effect(
             repo,
@@ -843,30 +908,73 @@ def _execute_one_attempt(
         kind == "ACQUIRE"
         and supplied_effect.get("admission_reservation") is not None
     )
-    if kind == "RESERVE_PATHS" or admission_reserved:
-        if post.mutation_scope is None:
-            raise ProductionExecutorError(
-                f"{kind} produced no mutation_scope for reservation"
-            )
-        try:
-            require_no_path_reservation_conflict(
-                records.values(),
-                candidate_issue=issue,
-                candidate_scope=post.mutation_scope,
-            )
-        except PathReservationError as exc:
-            raise ControlTransactionConflict(str(exc)) from exc
+    reservation_write = kind == "RESERVE_PATHS" or admission_reserved
+    if reservation_write and post.mutation_scope is None:
+        raise ProductionExecutorError(
+            f"{kind} produced no mutation_scope for reservation"
+        )
 
-    records[issue] = post
-    commit_sha, record_blob_sha = _write_state(
-        repo,
-        token,
-        coord_branch,
-        parent_sha=parent_sha,
-        base_tree_sha=tree_sha,
-        records=records,
-        issue=issue,
-    )
+    # UNRELATED_COORD_CAS_RETRY_V1: a non-force coord ref CAS may lose only
+    # because another Issue advanced the shared coord branch.  Rebuild the
+    # exact same post-record atop the fresh coord tree inside this workflow iff
+    # a fresh read proves the current Issue fingerprint is unchanged.  A
+    # same-Issue change remains fail-closed and must be semantically rebuilt.
+    pre_transaction_fingerprint = execution_record_fingerprint(record)
+    write_parent = parent_sha
+    write_tree = tree_sha
+    write_records = records
+    last_coord_conflict: ControlTransactionConflict | None = None
+    for write_attempt in range(1, 6):
+        if reservation_write:
+            try:
+                require_no_path_reservation_conflict(
+                    write_records.values(),
+                    candidate_issue=issue,
+                    candidate_scope=post.mutation_scope,
+                )
+            except PathReservationError as exc:
+                raise ControlTransactionConflict(str(exc)) from exc
+
+        candidate_records = dict(write_records)
+        candidate_records[issue] = post
+        try:
+            commit_sha, record_blob_sha = _write_state(
+                repo,
+                token,
+                coord_branch,
+                parent_sha=write_parent,
+                base_tree_sha=write_tree,
+                records=candidate_records,
+                issue=issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            last_coord_conflict = exc
+            if not str(exc).startswith(
+                "coord/execution-v2 ref advanced during transaction"
+            ):
+                raise
+            if write_attempt >= 5:
+                raise
+            fresh_parent, fresh_tree, fresh_records = _load_state(
+                repo, token, coord_branch
+            )
+            current = fresh_records.get(issue)
+            if (
+                current is None
+                or execution_record_fingerprint(current)
+                != pre_transaction_fingerprint
+            ):
+                raise ControlTransactionConflict(
+                    "coord/execution-v2 ref advanced during transaction; "
+                    "current Issue changed; fresh semantic rebuild required"
+                ) from exc
+            write_parent = fresh_parent
+            write_tree = fresh_tree
+            write_records = fresh_records
+    else:  # pragma: no cover - defensive
+        assert last_coord_conflict is not None
+        raise last_coord_conflict
 
     fresh_parent, _, fresh_records = _load_state(repo, token, coord_branch)
     fresh = fresh_records.get(issue)

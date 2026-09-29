@@ -94,14 +94,29 @@ Startup/root identity 與 mutation admission 是 **invocation/session-level gate
 
 固定規則：
 
-1. 同一 `invocation_identity` 在已完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 + ROOT_SOURCE_CURRENT + Preflight` 後，若 `source_sha / target_sha / root identity / requested scope` 未變，後續 transaction envelope 可沿用同一份 fresh admission evidence；不得為每個 APPLY/QA/MERGE/FINALIZE 再做一次 Drive mount/root/manifest discovery。
+1. 同一 `invocation_identity` 在已完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 + ROOT_SOURCE_CURRENT + Preflight` 後，若 live lease、source/target identity、root identity 與 requested scope 未變，後續 continuation transaction 使用 `WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1`（`mode=LIVE_LEASE_CONTINUATION`）；不得為每個 APPLY/QA/MERGE/FINALIZE 再建立新的 5 分鐘 startup envelope 或重做 Drive mount/root/manifest discovery。
 2. 新 READY work 的 canonical 快速入口是 **atomic ACQUIRE + admission reservation**：`ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`。trusted executor 必須在同一 coord CAS 前做既有 cross-Issue path-conflict check；成功後 record 直接成為 `ACTIVE + live lease + mutation_scope=ACTIVE`，不再要求第二顆 `RESERVE_PATHS` workflow round-trip。
 3. 舊的分離式 `ACQUIRE → RESERVE_PATHS` 保留 compatibility；但新 interactive execution 不應主動製造兩次等待。
-4. admission 只有在下列條件才失效並要求 fresh re-admission：`invocation_identity/lease` 改變、target/source SHA drift、scope 擴張、root identity/gate status 改變、startup evidence TTL 失效。一般 transaction generation 前進不是重新讀 Drive root 的理由。
+4. admission 只有在下列條件才失效並要求 fresh re-admission：new/different/expired lease、`ACQUIRE / HANDOFF / RECONCILE / SYNC_TARGET / RESERVE_PATHS`、target/source SHA drift、scope 擴張、root identity/gate status 改變。原始 startup evidence TTL 到期**不會單獨讓同一 live lease session 失效**；一般 transaction generation 前進也不是重新讀 Drive root 的理由。
 5. scope 擴張仍必須走 atomic `RESERVE_PATHS` monotonic superset；不得把 session reuse 解讀成可越過 reservation conflict。
 6. terminal tail 不建立新 admission session；同一 live invocation 直接沿用既有 lease/evidence drain 到 DONE。
 
 Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/control_transaction_production_executor.py`。
+
+### TERMINAL_QA_CONSUME_FAST_PATH_V1
+
+已存在 GitHub Actions terminal run 且 trusted executor fresh-read 證明 `run_head_sha == current record.head_sha`、workflow path exact match、`status=completed`、`conclusion=success` 時，不再強迫原本 `START_QA → ACCEPT_QA` 的兩顆 durable transaction（中間另有 workflow round-trip）。
+
+- canonical transaction=`CONSUME_QA`；record 當下仍必須是 structured `START_QA` continuation、沒有 `active_run`、live lease 屬於同一 invocation。
+- trusted executor 自 GitHub API 讀 `run_id/head_sha/path/status/conclusion`；caller 不能自報 GREEN。
+- 成功後單一 coord CAS 直接寫 `qa.last_accepted_run + accepted_head_sha`、清 `active_run` 並進入 supplied structured continuation（通常 `MERGE` 或下一個 implementation action）。
+- run 尚未 terminal、head/workflow 不符、conclusion 非 success 一律 fail closed；需要真的啟動新 QA 時仍走既有 `START_QA → POLL_QA → ACCEPT_QA`。
+
+這個 fast path 只消除「已經有 exact terminal GREEN 還要再綁一次再接受一次」的重複 round-trip，不降低 QA 證據要求。
+
+### UNRELATED_COORD_CAS_RETRY_V1
+
+共享 `coord/execution-v2` 被其他 Issue 推進時，不得把可證明無關的 CAS race 丟回 caller 人工重送。trusted executor 在 CAS 失敗後 fresh-read；只有 current Issue fingerprint 仍與本 transaction pre-state 完全一致時，才可在同一 workflow 內重建相同 semantic action。若 current Issue 已變則 fail closed。對 `RESERVE_PATHS` / atomic admission，任何 retry 都必須重新通過最新 cross-Issue path-conflict check。
 
 ### CHANGE_TEST_PROFILE_GATE_V1
 

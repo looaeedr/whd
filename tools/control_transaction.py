@@ -41,6 +41,7 @@ TRANSACTION_KINDS = frozenset(
         "APPLY_COMMIT",
         "START_QA",
         "ACCEPT_QA",
+        "CONSUME_QA",
         "FAIL_QA",
         "BLOCK",
         "MERGE",
@@ -526,6 +527,45 @@ def _execute_start_qa(
     )
 
 
+
+def _execute_consume_qa(
+    record: ExecutionRecord,
+    plan: ControlTransactionPlan,
+    effect: Mapping[str, object],
+) -> ExecutionRecord:
+    if record.state not in {"ACTIVE", "INTEGRATING"}:
+        raise ControlTransactionError("CONSUME_QA requires ACTIVE or INTEGRATING state")
+    if record.active_run is not None:
+        raise ControlTransactionError("CONSUME_QA requires no active_run")
+    if record.next_action is None or record.next_action.kind != "START_QA":
+        raise ControlTransactionError("CONSUME_QA requires structured START_QA continuation")
+    run_id = effect.get("run_id")
+    if isinstance(run_id, bool) or not isinstance(run_id, int) or run_id <= 0:
+        raise ControlTransactionError("CONSUME_QA run_id must be a positive integer")
+    run_head = _text(effect.get("run_head_sha"), "run_head_sha")
+    if run_head != record.head_sha:
+        raise ControlTransactionError("CONSUME_QA run_head_sha must match current head")
+    if str(effect.get("run_status") or "").strip().lower() != "completed":
+        raise ControlTransactionError("CONSUME_QA requires completed run")
+    if str(effect.get("conclusion") or "").strip().lower() != "success":
+        raise ControlTransactionError("CONSUME_QA requires conclusion=success")
+    next_state = _text(effect.get("next_state"), "next_state")
+    if next_state not in {"ACTIVE", "INTEGRATING"}:
+        raise ControlTransactionError("CONSUME_QA next_state must be ACTIVE or INTEGRATING")
+    next_action = _action(effect.get("next_action"))
+    qa = QAState(last_accepted_run=run_id, accepted_head_sha=record.head_sha)
+    return _base_update(
+        record,
+        plan,
+        effect,
+        state=next_state,
+        semantic_state=str(effect.get("semantic_state") or "QA_ACCEPTED"),
+        active_run=None,
+        qa=qa,
+        next_action=next_action,
+        blocker=None,
+    )
+
 def _execute_accept_qa(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -937,6 +977,7 @@ _EXECUTORS = {
     "APPLY_COMMIT": _execute_apply_commit,
     "START_QA": _execute_start_qa,
     "ACCEPT_QA": _execute_accept_qa,
+    "CONSUME_QA": _execute_consume_qa,
     "FAIL_QA": _execute_fail_qa,
     "BLOCK": _execute_block,
     "MERGE": _execute_merge,

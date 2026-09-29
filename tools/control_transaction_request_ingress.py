@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,8 @@ from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
     INTENT_SCHEMA,
     REQUEST_SCHEMA,
+    SESSION_REUSE_KINDS,
+    SESSION_REUSE_SCHEMA,
     build_control_transaction_request_from_intent,
     execution_mode_for_lane,
 )
@@ -31,7 +34,7 @@ from tools.control_transaction_production_executor import (
 )
 
 ALLOWED_KINDS = {
-    "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","FAIL_QA",
+    "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","CONSUME_QA","FAIL_QA",
     "BLOCK","MERGE","SYNC_TARGET","HANDOFF","FINALIZE","RECONCILE","RESERVE_PATHS","RELEASE_PATHS","YIELD",
 }
 
@@ -83,6 +86,45 @@ def _validate_interactive_git_write_receipt(request: dict[str, object], *, execu
         raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
 
 
+
+def _session_reuse_requested(request: dict[str, object]) -> bool:
+    payload = request.get("session_reuse")
+    if payload is None:
+        return False
+    if not isinstance(payload, dict):
+        raise ProductionExecutorError("session_reuse must be an object")
+    if payload.get("schema") != SESSION_REUSE_SCHEMA:
+        raise ProductionExecutorError("unexpected session_reuse schema")
+    if payload.get("mode") != "LIVE_LEASE_CONTINUATION":
+        raise ProductionExecutorError("unsupported session_reuse mode")
+    kind = str(request.get("kind") or "")
+    if kind not in SESSION_REUSE_KINDS:
+        raise ProductionExecutorError(f"transaction kind {kind} requires fresh admission")
+    if "startup_evidence" in request:
+        raise ProductionExecutorError("session reuse must not carry startup_evidence")
+    return True
+
+
+def _validate_live_session_reuse(record, *, request: dict[str, object]) -> None:
+    invocation = str(request.get("invocation_identity") or "").strip()
+    lane_id = str(request.get("lane_id") or "").strip()
+    if record.state == "DONE":
+        raise ProductionExecutorError("session reuse cannot mutate DONE record")
+    if record.lease is None:
+        raise ProductionExecutorError("session reuse requires active live lease")
+    if record.lease.invocation_identity != invocation:
+        raise ControlTransactionConflict("session reuse live lease belongs to a different invocation")
+    try:
+        expires = datetime.fromisoformat(record.lease.expires_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ProductionExecutorError("session reuse lease expiry is invalid") from exc
+    if expires.tzinfo is None or expires.utcoffset() is None:
+        raise ProductionExecutorError("session reuse lease expiry must be timezone-aware")
+    if expires <= datetime.now(timezone.utc):
+        raise ControlTransactionConflict("session reuse lease expired; fresh ACQUIRE required")
+    if record.owner_kind != "SCHEDULER" or record.owner_id != lane_id or record.lane_id != lane_id:
+        raise ControlTransactionConflict("session reuse owner/lane identity mismatch")
+
 def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -100,19 +142,22 @@ def _load_request(path: Path) -> dict[str, object]:
         raise ProductionExecutorError("effect must be an object")
 
     if schema == REQUEST_SCHEMA:
-        if kind != "SEED" and "startup_evidence" not in payload:
-            raise ProductionExecutorError("request missing startup_evidence")
+        reuse = _session_reuse_requested(payload)
+        if kind != "SEED" and "startup_evidence" not in payload and not reuse:
+            raise ProductionExecutorError("request missing startup_evidence or valid session_reuse")
         return payload
 
     if kind == "SEED":
         raise ProductionExecutorError("semantic intent does not support SEED")
     if "startup_evidence" in payload:
         raise ProductionExecutorError("semantic intent must not supply startup_evidence")
-    for key in ("purpose", "work_root_gate_evidence"):
-        if key not in payload:
-            raise ProductionExecutorError(f"transaction intent missing {key}")
-    if not isinstance(payload["work_root_gate_evidence"], dict):
-        raise ProductionExecutorError("work_root_gate_evidence must be an object")
+    reuse = payload.get("reuse_admission_session") is True
+    if not reuse:
+        for key in ("purpose", "work_root_gate_evidence"):
+            if key not in payload:
+                raise ProductionExecutorError(f"transaction intent missing {key}")
+        if not isinstance(payload["work_root_gate_evidence"], dict):
+            raise ProductionExecutorError("work_root_gate_evidence must be an object")
     return payload
 
 
@@ -141,15 +186,17 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
         }
 
     execution_mode = _execution_mode_for_request(request)
-    try:
-        validate_startup_evidence(
-            request.get("startup_evidence"),
-            invocation_identity=str(request["invocation_identity"]),
-            execution_mode=execution_mode,
-            repository=repo,
-        )
-    except ValueError as exc:
-        raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
+    reuse_session = _session_reuse_requested(request)
+    if not reuse_session:
+        try:
+            validate_startup_evidence(
+                request.get("startup_evidence"),
+                invocation_identity=str(request["invocation_identity"]),
+                execution_mode=execution_mode,
+                repository=repo,
+            )
+        except ValueError as exc:
+            raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
 
     _validate_interactive_git_write_receipt(request, execution_mode=execution_mode)
 
@@ -169,6 +216,8 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
         raise ControlTransactionConflict(
             f"generation drift: expected {expected_generation}, observed {record.generation}"
         )
+    if reuse_session:
+        _validate_live_session_reuse(record, request=request)
 
     return execute_one(
         repo=repo,

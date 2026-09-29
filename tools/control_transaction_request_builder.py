@@ -17,6 +17,11 @@ from tools.execution_entry_contract import DEFAULT_REPOSITORY, build_startup_evi
 
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 INTENT_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1"
+SESSION_REUSE_SCHEMA = "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1"
+SESSION_REUSE_KINDS = frozenset({
+    "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA",
+    "FAIL_QA", "BLOCK", "MERGE", "FINALIZE", "YIELD", "RELEASE_PATHS",
+})
 
 INTENT_REQUIRED_FIELDS = (
     "request_id",
@@ -59,8 +64,9 @@ def build_control_transaction_request(
     expected_coord_head: str,
     expected_generation: int,
     effect: Mapping[str, object],
-    purpose: str,
-    work_root_gate_evidence: Mapping[str, object],
+    purpose: str | None = None,
+    work_root_gate_evidence: Mapping[str, object] | None = None,
+    reuse_admission_session: bool = False,
     repository: str = DEFAULT_REPOSITORY,
     issued_at: datetime | None = None,
 ) -> dict[str, object]:
@@ -84,8 +90,32 @@ def build_control_transaction_request(
         raise ValueError("expected_generation must be a positive integer")
     if not isinstance(effect, Mapping):
         raise ValueError("effect must be a mapping")
+    request = {
+        "schema": REQUEST_SCHEMA,
+        "request_id": request_id,
+        "issue": int(issue),
+        "kind": kind,
+        "lane_id": lane_id,
+        "invocation_identity": invocation_identity,
+        "expected_coord_head": expected_coord_head,
+        "expected_generation": int(expected_generation),
+        "effect": dict(effect),
+    }
+    if reuse_admission_session:
+        if kind not in SESSION_REUSE_KINDS:
+            raise ValueError(f"transaction kind {kind} requires fresh admission")
+        request["session_reuse"] = {
+            "schema": SESSION_REUSE_SCHEMA,
+            "mode": "LIVE_LEASE_CONTINUATION",
+        }
+        return request
+
+    if not purpose:
+        raise ValueError("purpose is required for fresh admission")
+    if not isinstance(work_root_gate_evidence, Mapping):
+        raise ValueError("work_root_gate_evidence is required for fresh admission")
     execution_mode = execution_mode_for_lane(lane_id)
-    startup = build_startup_evidence(
+    request["startup_evidence"] = build_startup_evidence(
         purpose=purpose,
         invocation_identity=invocation_identity,
         work_root_gate_evidence=work_root_gate_evidence,
@@ -93,18 +123,7 @@ def build_control_transaction_request(
         repository=repository,
         issued_at=issued_at,
     )
-    return {
-        "schema": REQUEST_SCHEMA,
-        "request_id": request_id,
-        "issue": int(issue),
-        "kind": kind,
-        "lane_id": lane_id,
-        "invocation_identity": invocation_identity,
-        "startup_evidence": startup,
-        "expected_coord_head": expected_coord_head,
-        "expected_generation": int(expected_generation),
-        "effect": dict(effect),
-    }
+    return request
 
 
 def build_control_transaction_request_from_intent(
@@ -125,11 +144,13 @@ def build_control_transaction_request_from_intent(
         raise ValueError("unexpected transaction intent schema")
     if "startup_evidence" in intent:
         raise ValueError("transaction intent must not supply startup_evidence")
-    missing = [field for field in INTENT_REQUIRED_FIELDS if field not in intent]
+    reuse = intent.get("reuse_admission_session") is True
+    required = tuple(field for field in INTENT_REQUIRED_FIELDS if not (reuse and field in {"purpose", "work_root_gate_evidence"}))
+    missing = [field for field in required if field not in intent]
     if missing:
         raise ValueError(f"transaction intent missing {missing[0]}")
-    root_evidence = intent["work_root_gate_evidence"]
-    if not isinstance(root_evidence, Mapping):
+    root_evidence = intent.get("work_root_gate_evidence")
+    if not reuse and not isinstance(root_evidence, Mapping):
         raise ValueError("work_root_gate_evidence must be a mapping")
     return build_control_transaction_request(
         request_id=str(intent["request_id"]),
@@ -140,8 +161,9 @@ def build_control_transaction_request_from_intent(
         expected_coord_head=str(intent["expected_coord_head"]),
         expected_generation=int(intent["expected_generation"]),
         effect=intent["effect"],
-        purpose=str(intent["purpose"]),
-        work_root_gate_evidence=root_evidence,
+        purpose=str(intent.get("purpose") or ""),
+        work_root_gate_evidence=root_evidence if isinstance(root_evidence, Mapping) else None,
+        reuse_admission_session=reuse,
         repository=repository,
         issued_at=issued_at,
     )
@@ -163,8 +185,9 @@ def main() -> int:
     parser.add_argument("--invocation-identity", required=True)
     parser.add_argument("--expected-coord-head", required=True)
     parser.add_argument("--expected-generation", type=int, required=True)
-    parser.add_argument("--purpose", required=True)
-    parser.add_argument("--work-root-evidence", type=Path, required=True)
+    parser.add_argument("--purpose")
+    parser.add_argument("--work-root-evidence", type=Path)
+    parser.add_argument("--reuse-admission-session", action="store_true")
     parser.add_argument("--effect", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repository", default=DEFAULT_REPOSITORY)
@@ -185,7 +208,8 @@ def main() -> int:
         expected_generation=args.expected_generation,
         effect=_load_json(args.effect),
         purpose=args.purpose,
-        work_root_gate_evidence=_load_json(args.work_root_evidence),
+        work_root_gate_evidence=_load_json(args.work_root_evidence) if args.work_root_evidence else None,
+        reuse_admission_session=args.reuse_admission_session,
         repository=args.repository,
         issued_at=issued_at,
     )
