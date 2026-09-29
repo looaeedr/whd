@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+  "issue": 1019,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1019",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "0115a68cc7e38ee1e36c4e99c74d6dd411f1eaeab65dfb33fed56b4b7759b4c5",
+      "authority_kind": "WORK_SLOT_ASSIGNMENT",
+      "authority_ref": "user-explicit:2026-09-29:terminal-tail-hardening",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+  "transaction": null,
+  "updated_at": "2026-09-29T13:10:28Z",
+  "version": 2,
+  "work_branch": "governance/issue1019-terminal-tail-drain-hardening"
+}
