@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "01e357e80776cea615d07813b174be8349461122",
   "issue": 1027,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
-    "expires_at": "2026-09-29T15:59:13Z",
-    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-    "token": "lease:1027:36592420842:1"
+    "expires_at": "2026-09-29T16:15:44Z",
+    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:merge-finalize",
+    "token": "lease:1027:36594510804:1"
   },
   "mutation_scope": {
     "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
@@ -68,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
   "transaction": {
-    "expected_fingerprint": "803e6bf5702eaf060945dce8cb7afb9acc0b669b8f9b96069710fe2025861c2c",
-    "id": "gha:36594283543:1027:ACCEPT_QA:10",
-    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-    "kind": "ACCEPT_QA",
+    "expected_fingerprint": "a0584304151151e6da4a61cd113485286947a0ab4251aa3e67c8d3dc36795ed9",
+    "id": "gha:36594510804:1027:ACQUIRE:11",
+    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:merge-finalize",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:58:56Z",
+  "updated_at": "2026-09-29T16:00:44Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
