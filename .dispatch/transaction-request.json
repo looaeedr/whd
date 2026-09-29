@@ -1,41 +1,40 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1023-start-branch-watchdog-disabled",
+  "request_id": "issue1023-apply-watchdog-schedule-disable",
   "issue": 1023,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1023:disable-watchdog-schedule:20260929-r2",
-  "expected_coord_head": "b11a4d881a9beb2d47c837244afd9f3120449246",
-  "expected_generation": 2,
+  "expected_coord_head": "d534f6de5723f5b70900a9e4d7e9cc649000737a",
+  "expected_generation": 3,
   "effect": {
-    "work_branch": "governance/issue1023-retire-scheduler-watchdog-20260929",
-    "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-    "semantic_state": "ROOT_TESTED_DIFF_READY",
+    "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
+    "semantic_state": "WATCHDOG_RECURRING_TRIGGER_DISABLED",
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
       "execution_mode": "INTERACTIVE",
       "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
       "diff_digest": "6bce977ed842f42befece1db4e08709625d1f9e72bfd6c4da70666afdac8d373",
       "issue": 1023,
-      "generation": 2,
+      "generation": 3,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         ".github/workflows/whd-scheduler-host-watchdog.yml"
       ],
       "delete_paths": [],
-      "record_fingerprint": "5e7d58e4b3ec143ad196c4f01f582d3549aead6c58e0c1d4d04cc225c0ce9653",
+      "record_fingerprint": "da13413262a3ce432254912813ad1c258195f5b7d916c9452a97262d58119f5a",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "6bce977ed842f42befece1db4e08709625d1f9e72bfd6c4da70666afdac8d373"
+        "workflow": "WHD Control Plane Regression"
       },
-      "display": "Apply exact tested watchdog schedule-disable diff"
+      "display": "Start exact-head QA for watchdog schedule retirement"
     }
   },
-  "purpose": "Start the exact tested Issue #1023 work branch after root validation proved the recurring watchdog schedule is disabled.",
+  "purpose": "Reconcile the exact root-tested watchdog schedule-disable commit for Issue #1023.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
