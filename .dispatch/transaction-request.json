@@ -1,68 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1032-start-branch-with-tested-diff-1",
+  "request_id": "issue1032-renew-expired-before-qa-1",
   "issue": 1032,
-  "kind": "START_BRANCH",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-  "expected_coord_head": "35fe77a9a113c699ad1ddd61ac42efe82a2af942",
-  "expected_generation": 4,
-  "effect": {
-    "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover",
-    "head_sha": "736f5c6d32fce42f9da567af4bcae04a86946c5e",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-      "diff_digest": "9d671d327cb8a9e48308da9439c5573d56925f4938229dce90e201545ed5d136",
-      "issue": 1032,
-      "generation": 4,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
-        ".agents/skills/engineering/wayfinder/SKILL.md",
-        ".agents/skills/engineering/執行開發任務/SKILL.md",
-        ".agents/skills/engineering/寫技能/SKILL.md",
-        "AGENTS.md",
-        "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-        "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
-        "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
-        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
-        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "50ddf59f8a3477b7ad72a4772310efb83c81c5abf5068dd94b6384342ac4ff51",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1032,
-      "generation": 4,
-      "record_fingerprint": "50ddf59f8a3477b7ad72a4772310efb83c81c5abf5068dd94b6384342ac4ff51",
-      "lease_token": "lease:1032:36599042783:1",
-      "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-      "expected_next_action": "START_BRANCH",
-      "expected_work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover",
-      "expected_work_head": "56399114eb544fa40f79befc78be279e7a4f2234",
-      "expected_target_head": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67"
-    },
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Run exact-head Control Plane Regression"
-    }
-  },
-  "purpose": "Issue #1032 reconcile exact tested branch and continue directly to QA",
+  "expected_coord_head": "1f586dbd3de26b673c0185805dab4252033cd99c",
+  "expected_generation": 5,
+  "effect": {},
+  "purpose": "Issue #1032 renew expired same-invocation lease for QA/merge/finalize",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
