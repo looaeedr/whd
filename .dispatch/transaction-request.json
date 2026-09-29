@@ -1,31 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-accept-qa-green",
+  "request_id": "issue1027-renew-for-merge-finalize",
   "issue": 1027,
-  "kind": "ACCEPT_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-  "expected_coord_head": "dd18fd28339d0b946453da38b98d36952e8a6421",
-  "expected_generation": 10,
-  "effect": {
-    "run_id": 36594051738,
-    "run_head_sha": "01e357e80776cea615d07813b174be8349461122",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "GREEN",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1030,
-        "head_sha": "01e357e80776cea615d07813b174be8349461122",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-        "revalidation_workflow": "WHD Control Plane Regression"
-      },
-      "display": "Merge PR #1030"
-    }
-  },
-  "purpose": "Accept exact-head GREEN QA for Issue #1027 and proceed directly to merge.",
+  "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:merge-finalize",
+  "expected_coord_head": "f75b7eb0e54387518a47ffc4c9775b703d4e3e93",
+  "expected_generation": 11,
+  "effect": {},
+  "purpose": "Renew Issue #1027 same-lane lease only to execute the already-authorized MERGE and FINALIZE tail.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
