@@ -109,3 +109,25 @@ def test_ai_skill_governance_has_active_runtime_capability_contract() -> None:
         "skill_catalog.json",
     ):
         assert phrase in text
+
+def test_catalog_active_classification_does_not_promote_mirror_skill_to_semantic_current() -> None:
+    policy = CATALOG["semantic_authority_policy"]
+    assert policy["classification_scope"] == "ACTIVE_INVOCATION_ROUTING_ONLY"
+    assert policy["canonical_classification_does_not_imply_doc_role_current"] is True
+    assert policy["active_mirror_skill_allowed"] is True
+
+    mirror_paths = {
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md",
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+        ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+    }
+    active = {row.path for row in inventory() if row.active}
+    for rel in mirror_paths:
+        assert rel in active
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        assert "whd_doc_role: MIRROR" in text
+        assert "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in text
+
