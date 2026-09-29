@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
-    "merged_sha": null,
-    "released_at": null
+    "issue_closed": true,
+    "merged_sha": "16010531b668899b50b5c582c53579c0886b8c1d",
+    "released_at": "2026-09-29T17:26:48Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
-  "head_sha": "59f10ff03d400027f7d6cd158d9ad053c8a864ed",
+  "generation": 8,
+  "head_sha": "95f64adad48ed42d5a4702bfedb119f26d500f04",
   "issue": 1032,
   "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-09-29T17:09:21Z",
-    "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-    "token": "lease:1032:36601074216:1"
-  },
+  "lease": null,
   "mutation_scope": {
     "base_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
@@ -45,42 +41,41 @@
       "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
     ]
   },
-  "next_action": {
-    "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
-    },
-    "display": "Run exact-head Control Plane Regression",
-    "kind": "START_QA"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "95f64adad48ed42d5a4702bfedb119f26d500f04",
+    "last_accepted_run": 36604683925
   },
   "recovery_history": [
     {
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user-chat:2026-09-30:semantic-doc-cutover",
       "kind": "INGRESS_AUTHORITY"
+    },
+    {
+      "kind": "EXTERNAL_MERGE_RECONCILIATION",
+      "authority_kind": "USER_CONTINUATION",
+      "authority_ref": "pr:1034@16010531b668899b50b5c582c53579c0886b8c1d"
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-  "state": "ACTIVE",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
+  "target_sha": "16010531b668899b50b5c582c53579c0886b8c1d",
   "transaction": {
     "expected_fingerprint": "ac95c83d0c548a8d6161380cafe60ca8bebbe1e36281cf079498da088ddc832d",
-    "id": "gha:36601267791:1032:RECONCILE:6",
-    "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-    "kind": "RECONCILE",
+    "id": "connector-reconcile:20260929T172648Z:1032:FINALIZE:8",
+    "invocation_identity": "interactive:work1:issue1032:terminal-tail-reconcile:20260930T012648+0800",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:56:02Z",
+  "updated_at": "2026-09-29T17:26:48Z",
   "version": 2,
   "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover"
 }
