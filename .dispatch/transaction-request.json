@@ -1,27 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-rereserve-current-target",
+  "request_id": "issue1027-reconcile-next-start-branch",
   "issue": 1027,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-  "expected_coord_head": "87162c198ca5ae77d3db35d3cbbd06c3b858b592",
-  "expected_generation": 5,
+  "expected_coord_head": "fdd7a0ea767a6b2b20e493f194c576c46a69131e",
+  "expected_generation": 6,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-    "write_paths": [
-      ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-      "AGENTS.md",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
-      "tests/process/test_flow_v2_execution_scheduler_view.py",
-      "tools/execution_invocation_exit.py",
-      "tools/execution_record.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED"
+    "observed_work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929",
+    "observed_head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "observed_target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+    "semantic_state": "ROOT_TESTED_DIFF_FROZEN",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested branch from current target"
+    }
   },
-  "purpose": "Refresh Issue #1027 exact path reservation onto current cleanup target b84f6fb1.",
+  "purpose": "Advance Issue #1027 from refreshed path reservation to START_BRANCH without changing tested content.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
