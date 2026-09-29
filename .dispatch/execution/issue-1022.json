@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
@@ -21,7 +21,23 @@
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
     "token": "lease:1022:36582239949:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+      ".agents/skills/engineering/寫排程/SKILL.md",
+      ".agents/skills/engineering/工作槽/SKILL.md",
+      ".agents/skills/engineering/排程模擬/SKILL.md",
+      ".github/workflows/whd-control-plane-regression.yml",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
+      "tests/process/test_issue1022_root_ci_parity.py",
+      "tools/change_test_profile.py",
+      "tools/control_plane_regression.py"
+    ]
+  },
   "next_action": {
     "args": {
       "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
@@ -57,7 +73,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
@@ -65,13 +81,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "transaction": {
-    "expected_fingerprint": "408b92651772d3565c69d6873f2203c7cac00e53e2296f4c4b09c48a7bd18844",
-    "id": "gha:36582239949:1022:ACQUIRE:1",
+    "expected_fingerprint": "8d05d626d9637d9f3591f2f6e55d70957ffb28d849ece0c74085e7f37515b491",
+    "id": "gha:36582599872:1022:RESERVE_PATHS:2",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:23:12Z",
+  "updated_at": "2026-09-29T14:26:32Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
