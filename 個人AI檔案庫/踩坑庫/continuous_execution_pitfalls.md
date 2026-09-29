@@ -197,3 +197,10 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - `tools/continuity_controller.py`、`execution_claim_guard.py`、Claim Activation / legacy Remote Guard 只保留歷史 migration/compatibility evidence，不得由 Entry Skill/prompt 重新升格成 competing CURRENT state machine。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+
+## TERMINAL_GREEN_IS_NOT_EXIT_AUTHORITY_V1
+
+CURRENT：QA/CI GREEN 只代表候選驗證成功，不代表 invocation 可以停止。exact-head GREEN 被 ACCEPT_QA / CONSUME_QA 接受且 continuation 進入 MERGE 後，立刻進 no-yield terminal tail；必須連續完成 MERGE → Issue close/readback → FINALIZE → RELEASED/DONE。PR merged 也只是 terminal tail 中段，不是 completion。
+
+防回長規則：不得因「GREEN 已經回報」「PR 已 merge」「本輪已有 substantive transaction」「host boundary 到了」而 YIELD。machine owner=`tools/execution_invocation_exit.py`；terminal tail 固定回 `CONTINUE_TERMINAL_TAIL`。
