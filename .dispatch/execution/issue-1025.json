@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
   "issue": 1025,
   "lane_id": "chatgpt.flowv2.work1",
@@ -36,15 +36,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-      "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
-      "pr_number": 1028,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge PR #1028 after exact-head QA acceptance",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -54,21 +48,21 @@
   },
   "recovery_history": [],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+  "target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
   "transaction": {
-    "expected_fingerprint": "7e0228e16d8b4cda03ad5e45c0e6f1bff70d23054838b7e0385a84d66cb6a738",
-    "id": "gha:36591785576:1025:ACQUIRE:15",
+    "expected_fingerprint": "0042ba839012edf5800eaa524f90fed7c6543a1b54befc1c7b2655f2f3b11696",
+    "id": "gha:36591909080:1025:MERGE:16",
     "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-    "kind": "ACQUIRE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:39:11Z",
+  "updated_at": "2026-09-29T15:40:19Z",
   "version": 2,
   "work_branch": "governance/issue1025-flow-v2-roundtrip-reduction"
 }
