@@ -997,6 +997,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 使用者更正後，所有 durable knowledge 中衝突的舊說法必須標示 **SUPERSEDED / REVOKED**；不能只在聊天中更正。
 
 ### M. 使用者更正／新規則的 Durable Knowledge 自動同步
+
 - **不得等使用者提醒「補技能／補 AI 庫」。** 只要使用者糾正了 AI、確認了新的產品語意、指出一個可重複踩坑，或本輪診斷得到會影響未來工作的永久規則，AI 必須在本輪主動判斷並同步 durable knowledge。
 - 最低同步面：
   1. 直接相關的 `.agents/skills/**/SKILL.md`；
