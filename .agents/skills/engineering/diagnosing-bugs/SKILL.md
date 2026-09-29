@@ -165,18 +165,19 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 - Keep transient run IDs, temporary measurements, and one-off progress out of durable knowledge unless they establish a reusable rule.
 - Re-read the remote file after writing so the update is proven durable.
 
-## Branch-first write gate
+## Root-local-first write gate
 
-Before the first write for any new bug-fix/modification task:
+For WHD interactive/default bug-fix work, diagnosis may use Git read-only evidence, but content mutation follows `root-local-first`:
 
-1. Resolve the latest authoritative target branch and HEAD SHA.
-2. Create a **new work branch** from that exact target HEAD.
-3. Re-read the remote branch and record its parent/base SHA.
-4. Only then write production, tests, docs, workflows, Skills, AI Library, Registry, or fixtures.
+1. Fresh-read canonical Drive root + Current Source Manifest and prove `ROOT_SOURCE_CURRENT`.
+2. Reproduce RED and modify production/tests/docs in the root workspace.
+3. Classify tests through `WHD_CHANGE_TEST_PROFILE_V1`; finish targeted + required full gate in root.
+4. Freeze the exact tested diff and fresh-read target/touched paths.
+5. Only after `GIT_WRITE_UNLOCKED`, create a fresh work branch from current target and apply `EXACT_TESTED_DIFF_ONLY`.
+6. Remote QA is post-push verification; remote failure returns to root for correction/retest/refreeze.
 
 Hard rules:
 - Never patch `cleanup/2d-3d-sync` / `main` directly.
-- The same task stays on the same work branch through RED → GREEN → durable-knowledge sync → QA cleanup.
-- A new independent modification task gets a new branch.
-- If target advances/diverges, resolve it on a work/integration branch and re-run acceptance; do not repair by writing straight to target.
-- Branch-first is required even for "small" or docs-only corrections.
+- Git branch creation is a Git-phase protection after root testing, not the starting point of interactive diagnosis.
+- If target drifts across touched paths, use `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`.
+- Small/docs-only bug corrections follow the same ordering.

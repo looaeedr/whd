@@ -58,6 +58,7 @@ def test_reference_ledgers_do_not_claim_current_dimension_semantics_authority() 
 def test_phase6_dimension_semantics_has_one_declared_current_owner() -> None:
     authority_metadata = _metadata(AUTHORITY_MAP)
     assert authority_metadata.role == "CURRENT"
+    assert authority_metadata.contract == "canonical-authority-map"
     assert authority_metadata.schema == "WHD_DOC_META_V1"
 
     owner = _current_owner(DIMENSION_CONTRACT)

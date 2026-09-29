@@ -44,6 +44,11 @@
       "reason": "misc external/tool-specific helper; not active WHD canonical unless explicitly overridden above"
     },
     {
+      "glob": ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+      "classification": "reference",
+      "reason": "Flow v2 compatibility MIRROR; canonical execution authority is flow-v2-execution"
+    },
+    {
       "glob": ".agents/skills/engineering/**/SKILL.md",
       "classification": "canonical",
       "reason": "stable WHD engineering skill bucket"

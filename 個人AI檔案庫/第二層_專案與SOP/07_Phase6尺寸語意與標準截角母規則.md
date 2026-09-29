@@ -3,6 +3,7 @@ whd_doc_role: CURRENT
 whd_contract: phase6-dimension-semantics
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-PHASE6-DIMENSION-SEMANTICS
 ---
 # Phase6 尺寸語意與標準截角母規則
 

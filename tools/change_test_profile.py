@@ -45,10 +45,10 @@ _UI_TOKENS = ("_ui", "ui_", "widget", "layout", "renderer", "view_adapter")
 _GEOMETRY_PREFIXES = ("ae_engine/", "基準檔/截角資料庫/")
 _GEOMETRY_TOKENS = ("geometry", "dxf", "relief", "corner", "final_scene", "manufacturing", "multipart")
 
-_GOVERNANCE_PREFIXES = (".agents/", ".github/workflows/", "coord/", "docs/governance/", "tests/process/")
+_GOVERNANCE_PREFIXES = (".agents/", ".github/workflows/", "coord/", "docs/governance/", "tests/process/", "tests/governance/", "tests/knowledge/")
 _GOVERNANCE_TOOL_PREFIXES = (
     "tools/control_", "tools/execution_", "tools/flow_v2_", "tools/scheduler_",
-    "tools/work_root_", "tools/governance_", "tools/continuity_",
+    "tools/work_root_", "tools/governance_", "tools/continuity_", "tools/root_local_", "tools/change_test_",
 )
 _DOC_PREFIXES = ("docs/", "個人AI檔案庫/", "修改日誌/")
 _DOC_SUFFIXES = (".md", ".txt", ".rst")
@@ -87,6 +87,18 @@ def _is_docs_metadata_path(path: str) -> bool:
     if path in {"README.md", "LICENSE", ".gitignore", ".gitattributes"}:
         return True
     return path.endswith(_DOC_SUFFIXES) and not _is_governance_path(path)
+
+
+def _is_governance_support_path(path: str) -> bool:
+    if _is_governance_path(path):
+        return True
+    if path == "AGENTS.md":
+        return True
+    if path.startswith("個人AI檔案庫/") and path.endswith(".md"):
+        return True
+    if path.startswith("tests/") and any(token in path.casefold() for token in ("skill", "preflight", "governance")):
+        return True
+    return False
 
 
 def _is_ui_path(path: str) -> bool:
@@ -137,6 +149,8 @@ def infer_change_type(task: str, changed_files: Iterable[str], *, explicit_type:
 def _final_full_gate(change_type: str, files: tuple[str, ...]) -> tuple[str, bool]:
     if change_type == "DOCS_METADATA" and all(_is_docs_metadata_path(path) for path in files):
         return "NONE", False
+    if change_type == "GOVERNANCE" and files and all(_is_governance_support_path(path) for path in files):
+        return "GOVERNANCE_FULL_SUITE", True
     if files and all(_is_governance_path(path) for path in files):
         return "GOVERNANCE_FULL_SUITE", True
     return "PRODUCT_FULL_REGRESSION", True

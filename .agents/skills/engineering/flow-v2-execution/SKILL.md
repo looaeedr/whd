@@ -17,6 +17,7 @@ whd_schema: WHD_DOC_META_V1
 Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocation（recurring scheduler、/排程A、/排程B、/工作0..3、互動執行、takeover、resume、recovery）在任何 substantive analysis、claim、Guard、repository mutation 或一般 workflow dispatch 前，固定依序：
 
 0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V1**：任何一般 file/repo discovery 前先讀 root gate。互動式/chat runtime 先 bootstrap-read Google Drive mount → exact `/Google Drive/WHD` → `/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json` → Current Source Manifest，產生 `WHD_WORK_ROOT_GATE_EVIDENCE_V1`（`read_mode=GOOGLE_DRIVE_CANONICAL`）。GitHub-only / `SCHEDULER_LANE` / trusted remote action 若沒有 Drive connector，先 fresh-read `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json` pointer-only mirror 並產生 `read_mode=GITHUB_MIRROR` evidence；mirror 不得把 GitHub checkout 改成預設 workspace root。
+0.5. **ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1**：`INTERACTIVE` / chat / default content work fresh-read `/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json` + `.agents/skills/engineering/root-local-first/SKILL.md`，先完成 `ROOT_SOURCE_CURRENT`；所有內容修改、test profile、root RED/GREEN/full gate 與 diff freeze 都在 `GIT_WRITE_UNLOCKED` 前完成。unlock 前 Git 只准 `READ/FETCH/COMPARE`；unlock 後才可建立 fresh Git work branch並套 `EXACT_TESTED_DIFF_ONLY`。`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 不直接套用此 workspace content gate，仍依本 Skill remote/control-plane authority；不得用 mode 偽裝繞過 interactive gate。
 1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
 2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
 3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。此時仍未取得 execution mutation authority。
@@ -65,7 +66,7 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - default root=`/Google Drive/WHD`；可在 workspace 完成的 source materialization、分析、編輯、測試、artifact 產生一律優先在 `/Google Drive/WHD/work/active/...` 執行。
 - canonical work path 由 `tools/work_root_gate.py::build_interactive_work_path(...)` 建立，並由 `validate_interactive_workspace_path(...)` fail closed；`/mnt/data`、Library `/WHD`、Windows 任意目錄與 GitHub checkout 都不得成為互動式預設施工根。
 - GitHub 仍是 source/code/PR/CI/scheduler/control-plane authority。只有 PR/CI、trusted remote QA、scheduler/GITHUB_ONLY/REMOTE_ACTION 或該動作本質上只能由 GitHub 完成時，才在 GitHub execution surface 執行；這不會重新綁定 interactive workspace root。
-- `WHD Current Source Manifest` 是 workspace materialization identity。開始 workspace mutation / local test 前，必須 fresh-read manifest 並與本工單選定的 source branch/HEAD 對齊；若 manifest stale，先 refresh source snapshot/work copy，再施工，不得在舊 snapshot 上改完後才補同步。
+- `WHD Current Source Manifest` 是 workspace materialization identity。開始 workspace mutation / local test 前，必須經 `root-local-first` 的 `ROOT_SOURCE_CURRENT` 驗 manifest 與 live source SHA/tree；durable snapshot stale 時只可作 bootstrap base，planned touched paths 必須 fresh-compare exact target blobs。未被 current identity 證明的 path 不得施工。
 - transient transport 可使用暫存檔，但暫存位置只屬搬運／轉碼，不能冒充 canonical work path、測試根或 durable completion evidence。
 
 ### CHANGE_TEST_PROFILE_GATE_V1
