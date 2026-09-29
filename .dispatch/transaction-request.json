@@ -1,34 +1,55 @@
 {
-  "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id":"issue1025-refreeze-reconcile-1",
-  "issue":1025,
-  "kind":"RECONCILE",
-  "lane_id":"chatgpt.flowv2.work1",
-  "invocation_identity":"interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-  "expected_coord_head":"ba9d22298898c431cf56390055f4d8cb100cb95f",
-  "expected_generation":8,
-  "effect":{
-    "observed_work_branch":"governance/issue1025-flow-v2-roundtrip-reduction",
-    "observed_head_sha":"3b8847991e805c224fd7aafb8072575e51d7d307",
-    "observed_target_sha":"96cb0730ed1b1eacb73b0242db07f9810a257c62",
-    "semantic_state":"ROOT_REFREEZE_CORRECTION_PENDING_APPLY",
-    "next_action":{
-      "kind":"APPLY_COMMIT",
-      "args":{},
-      "display":"Apply final-v3 exact tested correction to work branch"
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1025-apply-final-v3-head-1",
+  "issue": 1025,
+  "kind": "APPLY_COMMIT",
+  "lane_id": "chatgpt.flowv2.work1",
+  "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
+  "expected_coord_head": "ea559508dd538100ef62baa76af88d4889927fa7",
+  "expected_generation": 9,
+  "effect": {
+    "head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+      "diff_digest": "f609dc59ea4cf4c1bab266fab8a7ebe5325e3e99bd8c40bc5f1d0cd1469e4f88",
+      "issue": 1025,
+      "generation": 9,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "tests/process/test_issue1025_flow_v2_roundtrip_reduction.py",
+        "tools/control_transaction.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/control_transaction_request_builder.py",
+        "tools/control_transaction_request_ingress.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "577841bb4fff974f74f8f754c1762e7582ca99a64cc78bbfea7ef2483ab6c26f",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Run exact-head Control Plane Regression"
     }
   },
-  "purpose":"Issue #1025 reopen Git apply step for final-v3 exact root-tested correction",
-  "work_root_gate_evidence":{
-    "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status":"CURRENT",
-    "read_mode":"GOOGLE_DRIVE_CANONICAL",
-    "execution_mode":"INTERACTIVE",
-    "source":"/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider":"google_drive",
-    "library_path":"/Google Drive/WHD",
-    "drive_folder_id":"1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id":"1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  "purpose": "Issue #1025 reconcile final-v3 exact tested Git head and start exact-head QA",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
