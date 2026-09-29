@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-    "released_at": null
+    "released_at": "2026-09-29T14:20:53Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 17,
+  "generation": 18,
   "head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
   "issue": 1019,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-09-29T14:28:50Z",
-    "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "token": "lease:1019:36581031380:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -34,13 +30,9 @@
       "tools/execution_record.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
     "last_accepted_run": 36579604214
@@ -54,21 +46,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "transaction": {
-    "expected_fingerprint": "58f4d731f98748ce0983fe5534bb13c802e3a5de00b51cc2b7be070da9e117cf",
-    "id": "gha:36581767331:1019:MERGE:16",
+    "expected_fingerprint": "876df2e05c5c737f373eb4da963ecd92bd6c9d0082b6aa0119b934fca1cbd1df",
+    "id": "gha:36581950911:1019:FINALIZE:17",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:19:43Z",
+  "updated_at": "2026-09-29T14:20:52Z",
   "version": 2,
   "work_branch": "governance/issue1019-terminal-tail-drain-hardening"
 }
