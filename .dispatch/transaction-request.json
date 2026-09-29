@@ -1,38 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-reconcile-published-head-20260929T164129Z",
+  "request_id": "issue1022-consume-qa-36599337947-20260929T164300Z",
   "issue": 1022,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T163546Z",
-  "expected_coord_head": "dc8d92df53d966cf9da81c008f935073c22467fa",
-  "expected_generation": 17,
+  "expected_coord_head": "90027538442717f201d4e1beee0eef2747edc357",
+  "expected_generation": 18,
+  "reuse_admission_session": true,
   "effect": {
-    "observed_work_branch": "governance/issue1022-root-ci-parity-identity-reporting",
-    "observed_head_sha": "512629eecdb0ab6cdb72c80aa2aee940048a1da7",
-    "observed_target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-    "semantic_state": "GIT_DIFF_PUBLISHED_CI_GREEN",
+    "run_id": 36599337947,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED_PR1033",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml",
         "pr_number": 1033
       },
-      "display": "Consume exact-head successful PR #1033 control-plane QA"
+      "display": "Merge PR #1033 after exact-head QA acceptance"
     },
-    "updated_at": "2026-09-29T16:41:29Z"
-  },
-  "purpose": "Reconcile Issue #1022 Flow v2 record to the exact published PR #1033 head after 16-path scope readback and all three PR checks succeeded.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    "updated_at": "2026-09-29T16:43:00Z"
   }
 }
