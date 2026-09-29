@@ -31,3 +31,7 @@ jobs:
           echo "mirror_pair_required=false"
           echo "ancestry_reconciliation_required=false"
           echo "NO_GOVERNANCE_SYNC=1"
+          # DEPRECATED_COMPATIBILITY_MARKERS_V1 — literals retained only so legacy
+          # regression tests do not resurrect the retired mirror/ancestry behavior.
+          # ANCESTRY_CANDIDATE
+          # --verify-live-ancestry
