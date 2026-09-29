@@ -3,6 +3,7 @@ whd_doc_role: CURRENT
 whd_contract: phase6-assembly-shared-content-presentation
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-ASSEMBLY-SHARED-CONTENT
 ---
 
 # WHD 組合體／板件功能 shared-content 呈現規則

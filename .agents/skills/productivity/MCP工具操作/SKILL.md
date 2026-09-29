@@ -152,14 +152,14 @@ MCP 可能連到 GitHub、filesystem、database、SaaS 或內部服務。對會�
 - 不把 token、password、auth header 寫進 command example、log、Skill 或 durable evidence；
 - mutation 完成後依可用介面重新 read-back / fetch，不能只相信「request sent」。
 
-若任務本身另有專案級 branch-first、PR、approval、release 或 destructive-action gate，這些 gate 仍然有效；MCP 只是 transport，不是繞過治理的捷徑。
+若任務本身另有專案級 root-local-first、Git-phase branch、PR、approval、release 或 destructive-action gate，這些 gate 仍然有效；MCP 只是 transport，不是繞過治理的捷徑。
 
 ## 7. WHD 專案邊界
 
 - `MCP工具操作` 是外部工具操作 Skill，不是 WHD 機械 domain resolver。
 - MCP tool 回傳的尺寸、fixture、測試結果、probe、collision、AI 建議，不會因為透過 MCP 取得就自動成為 product authority。
 - 外部 Skill / server / connector 被發現，也不得自動寫進 WHD Registry 或 Skill tree；若要納入專案，仍走 `找技能` → 使用者明確同意 → `寫技能` 的治理流程。
-- MCP 呼叫若碰到 GitHub-backed WHD repository，仍遵守 `AGENTS.md`、Preflight、branch-first、remote QA、non-force integration 等既有規則。
+- MCP 呼叫若碰到 GitHub-backed WHD repository，仍遵守 `AGENTS.md`、root-local-first、Preflight、`GIT_WRITE_UNLOCKED` 後 Git-phase branch、remote QA、non-force integration 等既有規則。
 
 ## 8. 自我檢查
 

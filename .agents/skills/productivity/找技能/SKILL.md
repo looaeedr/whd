@@ -145,7 +145,7 @@ npx skills find <query> --owner <owner>
 - **不得自動納入 WHD** `.agents/skills/**`、Registry、README、Preflight 或 release policy。
 - 使用者若只是想在個人環境使用 Skill，到安裝層即可停止。
 - 使用者若明確要求「把這個 Skill 加進 WHD」，才轉交 `.agents/skills/engineering/寫技能/SKILL.md`。
-- 納入 WHD 必須重新遵守 `AGENTS.md`、Phase6 **Preflight**、branch-first、中文 identity、contract test、AI Library/Registry/release durable writeback。
+- 納入 WHD 必須重新遵守 `AGENTS.md`、Phase6 **Preflight**、root-local-first、Git-phase branch、中文 identity、contract test、AI Library/Registry/release durable writeback。
 - 外部 Skill 的內容是輸入來源，不自動凌駕 WHD 專案規則。
 
 例如：外部 `修改DXF` Skill 即使可被找到，也不代表它因此是 WHD Skill；除非使用者另外明確要求納入並通過專案治理。
@@ -188,4 +188,4 @@ npx skills find <query> --owner <owner>
 - [ ] 呈現候選包含來源、用途、可驗證品質資訊與風險。
 - [ ] 安裝前取得使用者明確同意。
 - [ ] 沒有把外部 Skill 自動納入 WHD。
-- [ ] 若要求納入 WHD，已轉 `寫技能` + Preflight + branch-first + durable writeback。
+- [ ] 若要求納入 WHD，已轉 `寫技能` + Preflight + root-local-first + Git-phase branch + durable writeback。
