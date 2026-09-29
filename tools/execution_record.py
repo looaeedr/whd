@@ -411,6 +411,12 @@ class ExecutionRecord:
                 raise ExecutionRecordError("DONE record must have next_action=null")
             if self.lease is not None:
                 raise ExecutionRecordError("DONE record must not hold a lease")
+            if self.active_run is not None:
+                raise ExecutionRecordError("DONE record must not retain active_run")
+            if self.owner_kind != "NONE" or self.owner_id != "NONE":
+                raise ExecutionRecordError("DONE record must clear owner identity")
+            if self.lane_id is not None:
+                raise ExecutionRecordError("DONE record must clear lane_id")
             if not self.closure.issue_closed or self.closure.released_at is None:
                 raise ExecutionRecordError("DONE record requires closed and released closure")
             if self.mutation_scope is not None and self.mutation_scope.reservation_state != "RELEASED":
