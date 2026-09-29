@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-    "released_at": null
+    "released_at": "2026-09-29T13:00:37Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "fdaf902380ba8018bc4c0a12bb715e7838fd20d0",
   "issue": 1016,
   "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-09-29T13:04:09Z",
-    "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
-    "token": "lease:1016:36570649902:1"
-  },
+  "lease": null,
   "mutation_scope": {
     "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -33,11 +29,7 @@
       "tools/execution_invocation_exit.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
+  "next_action": null,
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
@@ -53,21 +45,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "d40bad2d9e65d6233bcea8de4298d5f9d2a2769deee8b9b392244dffe1625fa5",
-    "id": "gha:36571719139:1016:MERGE:7",
+    "expected_fingerprint": "401fad34fa40207b50af06260a871a1f48be4374e78f6b1849632d24b91064b2",
+    "id": "gha:36571958880:1016:FINALIZE:8",
     "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T12:58:46Z",
+  "updated_at": "2026-09-29T13:00:36Z",
   "version": 2,
   "work_branch": "governance/issue1016-terminal-tail-drain-20260929"
 }
