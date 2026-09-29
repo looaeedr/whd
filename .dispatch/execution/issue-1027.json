@@ -1,32 +1,73 @@
 {
   "active_run": null,
   "blocker": null,
-  "chain": {"next_action": null, "next_issue": null, "parent_issue": null},
-  "closure": {"issue_closed": false, "merged_sha": null, "released_at": null},
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "issue": 1027,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
-  "next_action": {"args": {}, "display": "Acquire Issue #1027", "kind": "ACQUIRE"},
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
-  "qa": {"accepted_head_sha": null, "last_accepted_run": null},
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-29T15:28:04Z",
+    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929",
+    "token": "lease:1027:36588456808:1"
+  },
+  "mutation_scope": {
+    "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
+      "AGENTS.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tools/execution_invocation_exit.py",
+      "tools/execution_record.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create exact tested branch after durable terminal exit gate root tests",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
   "recovery_history": [
-    {"authority_kind":"USER_EXPLICIT","authority_ref":"user-chat:2026-09-29:durable-terminal-exit-hard-gate","kind":"INGRESS_AUTHORITY"}
+    {
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-29:durable-terminal-exit-hard-gate",
+      "kind": "INGRESS_AUTHORITY"
+    }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-  "transaction": null,
-  "updated_at": "2026-09-29T15:10:30Z",
+  "transaction": {
+    "expected_fingerprint": "6ca4664dc498ac3e4e7734a5afb771c534b499f04fcff64a3d694422daccf051",
+    "id": "gha:36588456808:1027:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-29T15:13:04Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
