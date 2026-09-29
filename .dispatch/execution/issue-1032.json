@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+  "generation": 5,
+  "head_sha": "736f5c6d32fce42f9da567af4bcae04a86946c5e",
   "issue": 1032,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -46,9 +46,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Apply exact tested semantic-doc cutover on current target",
-    "kind": "START_BRANCH"
+    "args": {
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+    },
+    "display": "Run exact-head Control Plane Regression",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -64,7 +66,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED_CURRENT_TARGET",
+  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
@@ -72,13 +74,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
   "transaction": {
-    "expected_fingerprint": "b3f1273db7dd1743052b47b09ac23c30d626a7db1a259449bbad23538e8b4a9e",
-    "id": "gha:36600457683:1032:RESERVE_PATHS:3",
+    "expected_fingerprint": "50ddf59f8a3477b7ad72a4772310efb83c81c5abf5068dd94b6384342ac4ff51",
+    "id": "gha:36600896612:1032:START_BRANCH:4",
     "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-    "kind": "RESERVE_PATHS",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:49:16Z",
+  "updated_at": "2026-09-29T16:53:04Z",
   "version": 2,
   "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover"
 }
