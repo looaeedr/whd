@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1032-renew-expired-before-qa-1",
+  "request_id": "issue1032-reconcile-red-fix-head-1",
   "issue": 1032,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-  "expected_coord_head": "1f586dbd3de26b673c0185805dab4252033cd99c",
-  "expected_generation": 5,
-  "effect": {},
-  "purpose": "Issue #1032 renew expired same-invocation lease for QA/merge/finalize",
+  "expected_coord_head": "1c1200a37c7073e9e54870a2b08d9d901525d5dc",
+  "expected_generation": 6,
+  "effect": {
+    "observed_work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover",
+    "observed_head_sha": "59f10ff03d400027f7d6cd158d9ad053c8a864ed",
+    "observed_target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Run exact-head Control Plane Regression"
+    }
+  },
+  "purpose": "Issue #1032 reconcile one-line contract fix after remote RED",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
