@@ -12,11 +12,15 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "lease": null,
+  "lease": {
+    "expires_at": "2026-09-29T10:49:23Z",
+    "invocation_identity": "scheduler-b:user-finalize-945:5888455879",
+    "token": "lease:945:36556369991:1"
+  },
   "next_action": {
     "args": {
       "blocker_kind": "EXTERNAL_DEPENDENCY"
@@ -47,13 +51,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
   "transaction": {
-    "expected_fingerprint": "e7f57dd477190d9395229f86fc9416171dcfefe586ee10ef7a2e3913638ec6a6",
-    "id": "gha:36495135554:945:YIELD:8",
-    "invocation_identity": "scheduler-b:interactive:issue945:20260929T065000+0800",
-    "kind": "YIELD",
+    "expected_fingerprint": "937d4a083b27f2a220cec19149a8eb899b2fcc2c930b7c988a58c570c6a891ce",
+    "id": "gha:36556369991:945:ACQUIRE:9",
+    "invocation_identity": "scheduler-b:user-finalize-945:5888455879",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T22:55:13Z",
+  "updated_at": "2026-09-29T10:34:23Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
