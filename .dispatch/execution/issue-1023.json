@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "issue": 1023,
   "lane_id": "chatgpt.flowv2.work0",
@@ -31,9 +31,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Create exact tested work branch after disabling recurring watchdog trigger",
-    "kind": "START_BRANCH"
+    "args": {
+      "diff_digest": "6bce977ed842f42befece1db4e08709625d1f9e72bfd6c4da70666afdac8d373"
+    },
+    "display": "Apply exact tested watchdog schedule-disable diff",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -49,7 +51,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "ROOT_TESTED_DIFF_READY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
@@ -57,13 +59,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "transaction": {
-    "expected_fingerprint": "53b83ecbd82acd8e9cca7520e60a22e6a3a3a44fe26f8c694c07eceffcf7f3e4",
-    "id": "gha:36583621060:1023:ACQUIRE:1",
+    "expected_fingerprint": "5e7d58e4b3ec143ad196c4f01f582d3549aead6c58e0c1d4d04cc225c0ce9653",
+    "id": "gha:36584063852:1023:START_BRANCH:2",
     "invocation_identity": "interactive:work0:issue1023:disable-watchdog-schedule:20260929-r2",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:34:15Z",
+  "updated_at": "2026-09-29T14:37:51Z",
   "version": 2,
   "work_branch": "governance/issue1023-retire-scheduler-watchdog-20260929"
 }
