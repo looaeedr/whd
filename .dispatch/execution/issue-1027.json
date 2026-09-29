@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
-  "head_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+  "generation": 9,
+  "head_sha": "01e357e80776cea615d07813b174be8349461122",
   "issue": 1027,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -37,10 +37,10 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "71dfc784f11eb87d498dab76e51ec6df8c398e6bc8a3cd5c007567f1746ecf68"
+      "workflow": "WHD Control Plane Regression"
     },
-    "display": "Apply exact tested durable-terminal hard gate diff",
-    "kind": "APPLY_COMMIT"
+    "display": "Start exact-head control-plane QA",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -56,7 +56,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING_ROOT_TESTED_DIFF",
+  "semantic_state": "DURABLE_TERMINAL_EXIT_GATE_APPLIED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
@@ -64,13 +64,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
   "transaction": {
-    "expected_fingerprint": "30b4bf78a0ee1a34c4167e7d4027200497a84783e97b29e80cec207ae7a77eb9",
-    "id": "gha:36592894319:1027:START_BRANCH:7",
+    "expected_fingerprint": "071ad585b6da9980d571e325103faa7c475d498478c6949ca8a58177bad8adf5",
+    "id": "gha:36593998128:1027:APPLY_COMMIT:8",
     "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:47:59Z",
+  "updated_at": "2026-09-29T15:56:43Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
