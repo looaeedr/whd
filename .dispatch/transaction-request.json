@@ -1,15 +1,40 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-trusted-merge-pr1033-20260929T164420Z",
-  "issue": 1022,
-  "kind": "MERGE",
+  "request_id": "issue1037-atomic-admission-1",
+  "issue": 1037,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T163546Z",
-  "expected_coord_head": "33c8fb7465ab259b12d63b969e871ab984c86cac",
-  "expected_generation": 19,
-  "reuse_admission_session": true,
+  "invocation_identity": "interactive:work0:issue1037:root-local-pointer:20260930T0646+0800",
+  "expected_coord_head": "842c519dd46bfdbf71cb40ed91fcd2bbc1e76778",
+  "expected_generation": 1,
   "effect": {
-    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-    "updated_at": "2026-09-29T16:44:20Z"
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+      "write_paths": [
+        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        "tests/process/test_root_local_first_entry_hard_gate.py"
+      ],
+      "delete_paths": []
+    },
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Apply exact tested root-local pointer fix"
+    }
+  },
+  "purpose": "Issue #1037 fix root-local CURRENT Drive pointer identity",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
