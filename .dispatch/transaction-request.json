@@ -1,14 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue945-acquire-5888455879",
+  "request_id": "issue945-reconcile-natural-schedule-5888455879",
   "issue": 945,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b:user-finalize-945:5888455879",
-  "expected_coord_head": "9a3def49b7beebab176a14559f574e1dbc22d523",
-  "expected_generation": 9,
-  "effect": {},
-  "purpose": "User explicitly requested completing Issue #945. Acquire the same-lane expired/missing lease and immediately continue the satisfied WAIT_EXTERNAL acceptance into canonical RECONCILE and FINALIZE.",
+  "expected_coord_head": "2c14014818853ee813bafde7dc9145cc6d504e70",
+  "expected_generation": 10,
+  "effect": {
+    "observed_work_branch": "governance/issue945-watchdog-registration-repair-20260929",
+    "observed_head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
+    "observed_target_sha": "fed49576989a5271c2da6744bda0584f4f10d22d",
+    "semantic_state": "MERGED",
+    "next_action": {
+      "kind": "FINALIZE",
+      "args": {},
+      "display": "Finalize Issue #945 after natural schedule acceptance"
+    }
+  },
+  "purpose": "Consume Issue #945 external acceptance condition using durable watchdog schedule run 36533504370 (event=schedule, completed success) and fresh ancestry proof; advance only WAIT_EXTERNAL to FINALIZE.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
