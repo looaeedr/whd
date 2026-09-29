@@ -1,12 +1,12 @@
 {
   "schema": "WHD_EXECUTION_RECORD_V2",
   "version": 2,
-  "generation": 2,
+  "generation": 3,
   "issue": 684,
   "execution_intent": "SCHEDULER_LANE",
-  "owner_kind": "SCHEDULER",
-  "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "owner_kind": "NONE",
+  "owner_id": "NONE",
+  "lane_id": null,
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8a3058e5472aec4793cd26a398ae4920185d8002",
@@ -54,5 +54,5 @@
       "product_evidence": "PRESERVED"
     }
   ],
-  "updated_at": "2026-09-28T05:09:01Z"
+  "updated_at": "2026-09-29T16:09:50Z"
 }

@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T13:37:44.686Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
   "issue": 928,
-  "lane_id": "chatgpt.flowv2.work0",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "5bdfba32decc4e44e9629d2215be9594e0c7cfb7",
     "last_accepted_run": 36428868073
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:38:02Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "work/issue928-windows-3d-blank-no-log-20260928"
 }

@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T13:57:01.675Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
   "issue": 933,
-  "lane_id": "chatgpt.flowv2.work0",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "a9281e9375e39a43d985553108b27200d4d0d341",
     "last_accepted_run": 36430810020
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T13:57:24Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "work/issue933-finalize-monitor-exit-20260928"
 }

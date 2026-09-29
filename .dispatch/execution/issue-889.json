@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T18:49:42Z"
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
   "issue": 889,
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "9e6462532b7adc554f1a53481960efc168a8c533",
     "last_accepted_run": 36461286593
@@ -61,7 +61,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T18:49:41Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "canary/issue889-scheduler-a-e2e-g2"
 }
