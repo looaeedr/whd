@@ -7,58 +7,56 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
-    "merged_sha": null,
-    "released_at": null
+    "merged_sha": "f90a0ae4666474ad2167466563ad59b3dcf2d514",
+    "issue_closed": true,
+    "released_at": "2026-09-29T22:51:47Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
-  "head_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "generation": 3,
+  "head_sha": "3205587421bf67cbc3923ebbd5d1954da8a185e7",
   "issue": 1037,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-09-29T23:03:33Z",
-    "invocation_identity": "interactive:work0:issue1037:root-local-pointer:20260930T0646+0800",
-    "token": "lease:1037:36641696646:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
       "tests/process/test_root_local_first_entry_hard_gate.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Apply exact tested root-local pointer fix",
-    "kind": "START_BRANCH"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "last_accepted_run": 36641928311,
+    "accepted_head_sha": "3205587421bf67cbc3923ebbd5d1954da8a185e7"
   },
-  "recovery_history": [],
+  "recovery_history": [
+    {
+      "kind": "EXTERNAL_MERGE_RECONCILIATION",
+      "authority_kind": "USER_CONTINUATION",
+      "authority_ref": "pr:1038@f90a0ae4666474ad2167466563ad59b3dcf2d514"
+    }
+  ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
-  "state": "ACTIVE",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "target_sha": "f90a0ae4666474ad2167466563ad59b3dcf2d514",
   "transaction": {
-    "expected_fingerprint": "ac07b8224282ee859e224681b600fc6b5510f894cc0c3babd2c1eae4a1eddbee",
-    "id": "gha:36641696646:1037:ACQUIRE:1",
+    "id": "connector-reconcile:20260929T225147Z:1037:FINALIZE:3",
+    "kind": "FINALIZE",
+    "status": "RECONCILED",
     "invocation_identity": "interactive:work0:issue1037:root-local-pointer:20260930T0646+0800",
-    "kind": "ACQUIRE",
-    "status": "RECONCILED"
+    "expected_fingerprint": "ac07b8224282ee859e224681b600fc6b5510f894cc0c3babd2c1eae4a1eddbee"
   },
-  "updated_at": "2026-09-29T22:48:33Z",
+  "updated_at": "2026-09-29T22:51:47Z",
   "version": 2,
   "work_branch": "governance/issue1037-root-local-pointer-identity"
 }
