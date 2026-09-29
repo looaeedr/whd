@@ -135,3 +135,10 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+
+## FLOW_V2_ROOT_LOCAL_FIRST_SCHEDULER_CONTENT_FENCE_V1
+
+CURRENT：排程A/B、GITHUB_ONLY、REMOTE_ACTION 的 remote authority只涵蓋 control-plane與 post-push integration。只要下一步需要產生新的 repository-content diff，就必須 HANDOFF 到 canonical Google Drive root workspace完成修改、分類測試、full gate、test receipt與 diff freeze；GitHub branch 不得成為 scheduler 的直接施工／熱修面。CI/remote QA 若發現內容錯誤，回 root 修正、重測、refreeze、再推候選。
+
+這條規則用來避免把「scheduler 有 GitHub write capability」誤解成「scheduler 可以跳過 root-local-first」。

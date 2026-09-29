@@ -49,7 +49,7 @@ machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest
 
 <!-- ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1 -->
 
-`WHD_WORK_ROOT_HARD_GATE_V1` 完成後，互動式／預設 development 在進入 Phase6 Preflight 與任何 repository content mutation 前，必須 fresh-read：
+`WHD_WORK_ROOT_HARD_GATE_V1` 完成後，任何 execution mode 只要本輪會進入 repository-content implementation，在 Phase6 Preflight 與任何 repository content mutation 前都必須 fresh-read：
 
 - `/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`；
 - `.agents/skills/engineering/root-local-first/SKILL.md`；
@@ -69,7 +69,7 @@ machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest
 6. tests terminal GREEN 後 freeze exact touched paths + diff digest + test evidence。fresh-read target；任何 touched/base drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。
 7. 只有 `GIT_WRITE_UNLOCKED` 後才建立 fresh Git work branch，fresh-read parent/base，再套 `EXACT_TESTED_DIFF_ONLY`。branch 上若需要改內容，回 root 修正、重測、refreeze；不得 Git-side 熱修。
 8. GitHub Actions / remote QA 是 post-push verification，不得取代 root 第一測試面。accepted integration 後必須刷新 Drive Current Source Manifest；full snapshot 尚未刷新時明確標 `STALE_BOOTSTRAP_BASE`。
-9. `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 屬 Flow v2 remote/control-plane scope exception，仍依其 GitHub canonical authority；不得把一般 interactive task 偽裝成 remote mode 來繞過本 gate。
+9. `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 的例外只限 **control-plane / post-push verification**。一旦 next action 要產生 repository-content diff，固定 HANDOFF 到 canonical root workspace，完成修改、分類測試、full gate、test receipt、diff freeze 與 `GIT_WRITE_UNLOCKED` 後才可送 Git 候選；remote lane 禁止 GitHub-side authoring/hotfix。
 
 缺少 gate evidence、source-current evidence、root tests GREEN 或 frozen diff，一律 fail closed。
 
