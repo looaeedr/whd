@@ -112,6 +112,14 @@ def classify_invocation_exit(
         if record.next_action.kind == "POLL_QA" and record.next_action.kind in OBSERVATION_ACTION_KINDS and run_status in REMOTE_ACTIVE_STATUSES:
             return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
 
+    if record.next_action is not None and record.next_action.kind == "FINALIZE":
+        return _decision(
+            record,
+            "CONTINUE_TERMINAL_TAIL",
+            may_return=False,
+            requires_yield=False,
+        )
+
     tx = record.transaction
     current_substantive = (
         tx is not None

@@ -78,6 +78,8 @@ def test_push_request_workflow_is_scheduler_compatible():
     assert "contents: write" in text
     assert "issues: write" in text
     assert "control_transaction_request_ingress.py" in text
+    assert "ref: cleanup/2d-3d-sync" in text
+    assert "ref: main" not in text
 
 
 def test_request_ingress_binds_coord_head_and_generation():
