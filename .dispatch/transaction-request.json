@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1023-apply-watchdog-schedule-disable",
+  "request_id": "issue1023-apply-watchdog-schedule-disable-r2",
   "issue": 1023,
   "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1023:disable-watchdog-schedule:20260929-r2",
-  "expected_coord_head": "d534f6de5723f5b70900a9e4d7e9cc649000737a",
+  "expected_coord_head": "7e9f42ce7531ddae2a8b12140e8414d41895a2b4",
   "expected_generation": 3,
   "effect": {
     "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
