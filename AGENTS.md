@@ -45,6 +45,31 @@ GitHub-only / `SCHEDULER_LANE` / trusted remote action 若 execution environment
 
 machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest 任一缺失或 identity mismatch 都 fail closed；不得用聊天記憶、`/mnt/data` 暫存路徑或前一 invocation evidence 代替。
 
+## -0.5. ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1：根目錄先改、先測，GREEN 後才准寫 Git
+
+<!-- ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1 -->
+
+完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1` 後、進入 Phase6 Preflight 與任何 task mutation 前，必須 fresh-read canonical entry gate：
+
+`/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`
+
+互動式與一般開發固定使用 `ROOT_LOCAL_FIRST`：`/Google Drive/WHD` 視同本機工作面。允許把 canonical root materialize 到 runtime filesystem 執行工具，但 materialization 只能是 execution surface，**不得**把 `/mnt/data`、Git checkout 或其他暫存路徑重新宣告成 canonical root。
+
+硬順序：
+
+1. `ROOT_SOURCE_CURRENT`：依 Current Source Manifest 建立／同步 root-backed working copy。
+2. `ROOT_MUTATIONS_COMPLETE`：所有 production / test / Skill / governance 修改先只在 root-backed workspace 完成。
+3. `ROOT_TEST_CLASSIFIED`：先依 `GOVERNANCE_OR_SKILL / BUGFIX / UPDATE_OR_FEATURE / CORE_OR_HIGH_RISK` 分類，再跑該類必要測試。
+4. `ROOT_TESTS_GREEN`：root-local contract / regression 必須 GREEN。remote CI 不能替代這一步。
+5. `ROOT_DIFF_FROZEN`：freeze exact changed files + diff SHA256；freeze 後內容改變即失效。
+6. 以上五項全部成立才進 `GIT_WRITE_UNLOCKED`，此時才可從 latest authoritative target HEAD 建 Git work branch，並套用 `EXACT_TESTED_DIFF_ONLY`。
+
+在 `GIT_WRITE_UNLOCKED` 前，Git write state 固定為 `LOCKED_UNTIL_ROOT_TESTS_GREEN`；Git 只允許 `READ / FETCH / COMPARE`，禁止 `CREATE_OR_UPDATE_FILE / CREATE_COMMIT / UPDATE_REF / PUSH / MERGE`。若 touched target path 在 root baseline 後 drift，固定 fail closed=`RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。GitHub Actions 屬 `POST_PUSH_VERIFICATION_NOT_FIRST_TEST_SURFACE`。
+
+canonical Skill：`.agents/skills/engineering/root-local-first/SKILL.md`；machine validator：`tools/root_local_first_gate.py`；repo mirror：`.agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`。
+
+GitHub-only / `SCHEDULER_LANE` 若無 Google Drive connector，可 fresh-read repo mirror 取得 contract pointer 與 machine-safe policy；但 scheduler/control-plane 的既有 GitHub-only mutation authority 不因此改綁 root。對 interactive/default development，entry gate 一律 local-first。
+
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
 ### 0.0.0 Skill 使用前 user-visible 公告硬閘門
