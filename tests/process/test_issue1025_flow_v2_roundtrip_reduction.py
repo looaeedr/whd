@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from tools.control_transaction import execute_transaction, prepare_transaction
+from tools.control_transaction import ControlTransactionConflict, execute_transaction, prepare_transaction
 from tools.control_transaction_request_builder import build_control_transaction_request
 from tools.execution_record import execution_record_from_payload
 
@@ -298,3 +299,117 @@ def test_flow_skill_documents_session_reuse_and_consume_qa():
     assert "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1" in text
     assert "CONSUME_QA" in text
     assert "START_QA → ACCEPT_QA" in text
+
+
+def test_unrelated_coord_cas_race_retries_without_caller_resubmit(monkeypatch):
+    import tools.control_transaction_production_executor as executor
+
+    record = _record()
+    written = {"attempts": 0}
+
+    def fake_write(repo, token, coord_branch, *, parent_sha, base_tree_sha, records, issue):
+        written["attempts"] += 1
+        if written["attempts"] == 1:
+            raise ControlTransactionConflict(
+                "coord/execution-v2 ref advanced during transaction"
+            )
+        written["record"] = records[issue]
+        return "1" * 40, "2" * 40
+
+    loads = {"count": 0}
+
+    def fake_load_with_post(*args, **kwargs):
+        loads["count"] += 1
+        if loads["count"] <= 2:
+            return "f" * 40, "e" * 40, {1025: record}
+        return "1" * 40, "9" * 40, {1025: written["record"]}
+
+    monkeypatch.setattr(executor, "_load_state", fake_load_with_post)
+    monkeypatch.setattr(executor, "_write_state", fake_write)
+    monkeypatch.setattr(
+        executor,
+        "_publish_transaction_progress",
+        lambda *args, **kwargs: ("3" * 40, {
+            "event": "PROGRESS",
+            "liveness_state": "LIVE",
+            "last_heartbeat_at": "2026-09-29T15:00:00Z",
+            "heartbeat_expires_at": "2026-09-29T15:05:00Z",
+        }),
+    )
+
+    result = executor._execute_one_attempt(
+        repo="looaeedr/whd",
+        token="token",
+        coord_branch="coord/execution-v2",
+        issue=1025,
+        kind="RECONCILE",
+        lane_id=LANE,
+        invocation_identity=INV,
+        supplied_effect={
+            "observed_work_branch": record.work_branch,
+            "observed_head_sha": record.head_sha,
+            "observed_target_sha": record.target_sha,
+            "next_action": {
+                "kind": "APPLY_COMMIT",
+                "args": {},
+                "display": "continue",
+            },
+        },
+    )
+    assert result["result"] == "APPLIED"
+    assert written["attempts"] == 2
+
+
+def test_unrelated_coord_retry_fails_closed_if_same_issue_changed(monkeypatch):
+    import tools.control_transaction_production_executor as executor
+
+    record = _record()
+    changed = replace(record, generation=record.generation + 1)
+    loads = {"count": 0}
+
+    def fake_load(*args, **kwargs):
+        loads["count"] += 1
+        if loads["count"] == 1:
+            return "f" * 40, "e" * 40, {1025: record}
+        return "a" * 40, "b" * 40, {1025: changed}
+
+    monkeypatch.setattr(executor, "_load_state", fake_load)
+    monkeypatch.setattr(
+        executor,
+        "_write_state",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            ControlTransactionConflict(
+                "coord/execution-v2 ref advanced during transaction"
+            )
+        ),
+    )
+
+    with pytest.raises(ControlTransactionConflict, match="current Issue changed"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd",
+            token="token",
+            coord_branch="coord/execution-v2",
+            issue=1025,
+            kind="RECONCILE",
+            lane_id=LANE,
+            invocation_identity=INV,
+            supplied_effect={
+                "observed_work_branch": record.work_branch,
+                "observed_head_sha": record.head_sha,
+                "observed_target_sha": record.target_sha,
+                "next_action": {
+                    "kind": "APPLY_COMMIT",
+                    "args": {},
+                    "display": "continue",
+                },
+            },
+        )
+
+
+def test_flow_skill_documents_unrelated_coord_cas_retry():
+    text = (
+        ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
+    ).read_text(encoding="utf-8")
+    assert "UNRELATED_COORD_CAS_RETRY_V1" in text
+    assert "current Issue fingerprint" in text
+    assert "cross-Issue path-conflict check" in text

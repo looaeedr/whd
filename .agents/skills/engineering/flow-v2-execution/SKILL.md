@@ -114,6 +114,10 @@ Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/contro
 
 這個 fast path 只消除「已經有 exact terminal GREEN 還要再綁一次再接受一次」的重複 round-trip，不降低 QA 證據要求。
 
+### UNRELATED_COORD_CAS_RETRY_V1
+
+共享 `coord/execution-v2` 被其他 Issue 推進時，不得把可證明無關的 CAS race 丟回 caller 人工重送。trusted executor 在 CAS 失敗後 fresh-read；只有 current Issue fingerprint 仍與本 transaction pre-state 完全一致時，才可在同一 workflow 內重建相同 semantic action。若 current Issue 已變則 fail closed。對 `RESERVE_PATHS` / atomic admission，任何 retry 都必須重新通過最新 cross-Issue path-conflict check。
+
 ### CHANGE_TEST_PROFILE_GATE_V1
 
 任何 implementation / QA 在第一次實質程式 mutation 前，必須先以 `.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json` + `tools/change_test_profile.py` 建立 machine-readable test profile。分類分成 **主要變更意圖**與 **domain overlay**：
