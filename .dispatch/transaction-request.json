@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1017-acquire-for-merge-20260929T1340Z",
+  "request_id": "issue1017-renew-lease-before-merge-retry-20260929T1341Z",
   "issue": 1017,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1340Z",
+  "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1341Z",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1340Z",
+    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1341Z",
     "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
@@ -22,12 +22,12 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Renew Issue #1017 same-lane lease to merge accepted exact PR #1020 and continue terminal tail.",
-    "issued_at": "2026-09-29T13:40:00Z",
-    "expires_at": "2026-09-29T13:45:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew Issue #1017 same-lane lease to merge accepted exact PR #1020 and continue terminal tail.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Renew Issue #1017 same-lane lease from fresh coordination head and immediately continue exact PR #1020 MERGE.",
+    "issued_at": "2026-09-29T13:41:00Z",
+    "expires_at": "2026-09-29T13:46:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew Issue #1017 same-lane lease from fresh coordination head and immediately continue exact PR #1020 MERGE.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "efe38f8e53f70f44b7f8a525a7f3de97ae536bba",
+  "expected_coord_head": "d4a40269f0e97511c1edb7704334c1a2e0301d94",
   "expected_generation": 13,
   "effect": {}
 }
