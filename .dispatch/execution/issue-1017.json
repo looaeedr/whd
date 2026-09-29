@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
-  "head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "generation": 10,
+  "head_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "issue": 1017,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -40,23 +40,10 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-      "delete_paths": [],
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-        ".agents/skills/engineering/root-local-first/SKILL.md",
-        ".github/workflows/whd-control-transaction-v2-request.yml",
-        "AGENTS.md",
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tests/process/test_root_local_first_entry_hard_gate.py",
-        "tools/control_transaction_request_ingress.py",
-        "tools/root_local_first_gate.py",
-        "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md"
-      ]
+      "diff_digest": "7bfa11d358ff808f088e49e73464ebe97375c4f5d37ced04780edf7e2f2bfcee"
     },
-    "display": "Re-reserve root-local-first hardening paths on current cleanup target",
-    "kind": "RESERVE_PATHS"
+    "display": "Apply exact root-tested diff only",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -73,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "IMPLEMENTING_ROOT_TESTED_DIFF",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
@@ -81,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "097ccb896e07c7462b1fb6e7d6d3002ce004e1407ea588ab52c99a8d6c0cbd9d",
-    "id": "gha:36574450468:1017:ACQUIRE:8",
+    "expected_fingerprint": "9cabb62a0afd0c00932f190fb861ad8a9eb40fdf723b7793e8fc72d3e21a9417",
+    "id": "gha:36574685552:1017:START_BRANCH:9",
     "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1320Z",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T13:21:34Z",
+  "updated_at": "2026-09-29T13:23:24Z",
   "version": 2,
   "work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929"
 }
