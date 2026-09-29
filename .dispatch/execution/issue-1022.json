@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
@@ -39,7 +39,8 @@
       "tests/process/test_issue724_report_handler_identity_prefix.py",
       "tools/change_test_profile.py",
       "tools/control_plane_regression.py",
-      "tools/root_local_first_gate.py"
+      "tools/root_local_first_gate.py",
+      "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
     ]
   },
   "next_action": {
@@ -85,7 +86,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED_ON_FRESH_TARGET",
+  "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
@@ -93,13 +94,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "6251c8eb0da76715741df9dc5541320c352b3d9a0b57e3839f593d3fcc61662f",
-    "id": "gha:36593671352:1022:ACQUIRE:10",
+    "expected_fingerprint": "66030c29db97c1803b00353bdd1ebad0813b982d5ff6f3d2bba9441e66fefdb8",
+    "id": "gha:36593843930:1022:RESERVE_PATHS:11",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:52:55Z",
+  "updated_at": "2026-09-29T15:54:41Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
