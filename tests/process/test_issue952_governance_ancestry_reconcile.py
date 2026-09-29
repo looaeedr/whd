@@ -69,11 +69,14 @@ def test_issue952_gate_requires_governance_parity_before_ancestry():
     assert result["reason"] == "GOVERNANCE_PARITY_REQUIRED_BEFORE_ANCESTRY_RECONCILE"
 
 
-def test_issue952_live_mirror_push_gate_requires_ancestry_acceptance():
+def test_issue952_legacy_required_check_is_no_sync_compatibility_only():
     text = MIRROR_WORKFLOW.read_text(encoding="utf-8")
-    assert "--verify-live-ancestry" in text
-    assert "refs/remotes/origin/main" in text
-    assert "refs/remotes/origin/cleanup/2d-3d-sync" in text
+    assert "Governance Mirror Hard Gate" in text
+    assert "GOVERNANCE_SINGLE_AUTHORITY_V1" in text
+    assert "NO_GOVERNANCE_SYNC=1" in text
+    assert "main_cleanup_parity_required=false" in text
+    assert "ancestry_reconciliation_required=false" in text
+    assert "--verify-live-ancestry" not in text
 
 
 def test_issue952_reconcile_workflow_preserves_cleanup_tree_and_never_force_pushes():

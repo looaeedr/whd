@@ -1,10 +1,8 @@
 name: WHD Scheduler Host Watchdog
 
 on:
-  schedule:
-    # Evaluate exactly two minutes after the five A/B scheduler entrypoints'
-    # expected occurrences: A00/B15/A20/A40/B45.
-    - cron: '2,17,22,42,47 * * * *'
+  # Recurring watchdog retired by explicit user request.
+  # Historical cadence (disabled): - cron: '2,17,22,42,47 * * * *'
   push:
     branches:
       - main

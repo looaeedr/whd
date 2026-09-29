@@ -348,10 +348,11 @@ def test_issue975_ancestry_workflow_gets_required_check_before_protected_push():
     )
     assert required_gate < protected_push
 
-    assert "ANCESTRY_CANDIDATE" in mirror
-    assert "Verify protected cleanup ancestry candidate" in mirror
-    assert "ANCESTRY_CANDIDATE_PARENT_MISMATCH" in mirror
-    assert "ANCESTRY_CANDIDATE_TREE_CHANGED" in mirror
+    assert "Governance Mirror Hard Gate" in mirror
+    assert "GOVERNANCE_SINGLE_AUTHORITY_V1" in mirror
+    assert "NO_GOVERNANCE_SYNC=1" in mirror
+    assert "ANCESTRY_CANDIDATE" not in mirror
+    assert "Verify protected cleanup ancestry candidate" not in mirror
 
 
 def test_issue975_flow_skill_makes_anchor_descendant_and_builder_rules_global():
