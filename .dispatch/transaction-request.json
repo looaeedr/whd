@@ -1,26 +1,36 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-expand-reservation-scheduler-view-test",
+  "request_id": "issue1027-reconcile-target-b84f6fb1",
   "issue": 1027,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929",
-  "expected_coord_head": "c9b04b34cb174dc2071db557adfcbed9f1f6011e",
-  "expected_generation": 2,
+  "expected_coord_head": "33e995d003738921c25581b9fe885b93f9a70ebe",
+  "expected_generation": 3,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-    "write_paths": [
-      ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-      "AGENTS.md",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
-      "tests/process/test_flow_v2_execution_scheduler_view.py",
-      "tools/execution_invocation_exit.py",
-      "tools/execution_record.py"
-    ],
-    "delete_paths": []
+    "observed_work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929",
+    "observed_head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "observed_target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+    "semantic_state": "TARGET_DRIFT_RECONCILED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+        "write_paths": [
+          ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
+          "AGENTS.md",
+          "tests/process/test_flow_v2_execution_invocation_exit.py",
+          "tests/process/test_flow_v2_execution_scheduler_view.py",
+          "tools/execution_invocation_exit.py",
+          "tools/execution_record.py"
+        ],
+        "delete_paths": []
+      },
+      "display": "Re-reserve durable terminal exit gate paths on current target"
+    }
   },
-  "purpose": "Expand Issue #1027 reservation to update the scheduler-view terminal fixture so DONE records satisfy the new durable-terminal invariant.",
+  "purpose": "Reconcile Issue #1027 to the current cleanup target after non-overlapping Issue #1025 merge.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
