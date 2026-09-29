@@ -1,6 +1,6 @@
 {
   "schema": "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1",
-  "version": 2,
+  "version": 3,
   "status": "CURRENT",
   "owner": "tools/root_local_first_gate.py",
   "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
@@ -41,7 +41,7 @@
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "drive_file_id": "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp",
-    "canonical_payload_sha256": "1325249c6912a12eec7f44adce8228acefd5467ec738dbf8d5ed635aeddd9a71"
+    "canonical_payload_sha256": "396fa3bf682e1d2ac3d737760698a6d1b72646aa14caa2ab05ff206130d240e7"
   },
   "path_reservation": {
     "schema": "WHD_PATH_RESERVATION_V1",
@@ -52,6 +52,25 @@
     "expansion_policy": "MONOTONIC_CAS",
     "release_policy": "FINALIZE_OR_EXPLICIT_RELEASE_PATHS",
     "workspace_isolation": "ISSUE_SCOPED"
+  },
+  "execution_mode_provenance": {
+    "schema": "WHD_EXECUTION_MODE_PROVENANCE_V1",
+    "remote_exception_requires": "TRUSTED_RUNTIME_PROVENANCE",
+    "scheduler_source": "FLOW_V2_LANE_ID",
+    "scheduler_lane_ids": [
+      "scheduler.6ab13fa557fc8191935c671214b865e2",
+      "scheduler.e58ea936e7d0b12bd0d475314709d6f1"
+    ],
+    "interactive_must_not_self_assert_remote_mode": true
+  },
+  "git_write_receipt": {
+    "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+    "required_for_interactive_actions": [
+      "START_BRANCH",
+      "APPLY_COMMIT"
+    ],
+    "ingress_owner": "tools/control_transaction_request_ingress.py",
+    "validation_order": "BEFORE_EXECUTION_RECORD_STATE_READ"
   },
   "test_execution_receipt": {
     "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
