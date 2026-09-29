@@ -50,12 +50,15 @@ def test_writing_skill_requires_snapshot_red_green_and_independent_validation():
         assert required in text
 
 
-def test_writing_skill_respects_repository_branch_and_preflight_rules():
+def test_writing_skill_respects_root_local_first_git_phase_and_preflight_rules():
     text = _text()
-    assert "branch-first" in text
+    assert "root-local-first" in text
+    assert "GIT_WRITE_UNLOCKED" in text
+    assert "EXACT_TESTED_DIFF_ONLY" in text
     assert "AGENTS.md" in text
     assert "Preflight" in text
     assert "專案規則優先" in text
+    assert "branch-first" not in text
 
 
 def test_writing_skill_never_requires_unavailable_viewer_or_background_wait():

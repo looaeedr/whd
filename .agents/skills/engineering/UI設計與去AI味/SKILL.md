@@ -40,7 +40,7 @@ Authority 依序是：
 1. 若目前 runtime 真的已安裝且可呼叫 UI UX Pro Max，先依任務使用最小查詢：New Design / 系統級方向用 `--design-system`；單一 UI 問題用明確 `--domain`；stack guidance 只在專案真的偵測到 upstream 支援的 stack 時使用。
 2. WHD 是 Tkinter/ttk desktop app，而 upstream 目前沒有 Tkinter stack；**不得假造 `--stack tkinter`**，也不得硬套 React / Tailwind / mobile-first / touch / GSAP / Web performance 建議。優先吸收與 WHD 相容的 accessibility、keyboard/focus、layout、spacing、typography、information density、forms/feedback 與 interaction hierarchy。
 3. 查詢結果只作 recommendation。先由本 Skill 與 WHD product/domain contract 過濾再施工；不得把外部搜尋結果、palette、spacing、font、fixture 或 design-system 輸出升格成 WHD product / geometry / manufacturing / persistence authority。
-4. 預設不使用 upstream `--persist` 建立第二套 design-system Source of Truth；只有使用者／WHD 明確要求且 branch-first scope 已納入時才可落盤，並標為 reference/input。
+4. 預設不使用 upstream `--persist` 建立第二套 design-system Source of Truth；只有使用者／WHD 明確要求且 root-local-first scope 已納入並完成 `GIT_WRITE_UNLOCKED`時才可落盤，並標為 reference/input。
 5. 若 runtime 沒有 UI UX Pro Max、search script 或相依能力，使用本 Skill 已固化規則做 **inline fallback**，並明確標記 `UI UX Pro Max runtime unavailable`；**不得假裝**已執行 upstream query、不得等待不存在的工具。
 6. 不把 private project data、未公開檔案內容或機密值塞進外部 query。
 

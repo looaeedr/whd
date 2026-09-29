@@ -1,8 +1,9 @@
 ---
 whd_doc_role: REFERENCE
 whd_contract: ai-library-reference
-whd_canonical: ".agents/skills/engineering/寫成規格書/SKILL.md"
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-SPEC-SKILL-GROUNDING
 ---
 
 # WHD 規格書 Skill 前置與 Grounding 規則
@@ -39,7 +40,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## Authority
 
-1. `AGENTS.md`：公告、Preflight、durable writeback、branch-first。
+1. `AGENTS.md`：公告、root-local-first、Preflight、durable writeback、`GIT_WRITE_UNLOCKED` 後 Git-phase branch。
 2. `.agents/skills/engineering/寫成規格書/SKILL.md`：grounded spec authoring canonical workflow。
 3. `.agents/skills/skill_registry.json` + `tools/phase6_skill_preflight.py`：machine route / required references。
 4. `docs/governance/WHD_規格書Skill前置與Grounding規則.md`：本條永久治理說明。

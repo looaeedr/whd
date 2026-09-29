@@ -66,16 +66,18 @@ whd_schema: WHD_DOC_META_V1
 | 「文字檔都上去了，所以 ZIP 應該也算上去了」 | 未遠端讀回或列檔驗證就不算。 |
 | 「remote 有內容就等於 local commits 都 push 了」 | 內容同步與 commit identity 是兩回事。 |
 
-## Branch-first before any remote write
+## Root-local-first before remote content write
 
-For WHD repository mutations, transport fallback never changes the branch policy:
+For WHD interactive/default repository mutations, transport fallback cannot change the root-local-first order:
 
-- A new modification task must first create a **new work branch from the latest authoritative target HEAD**.
-- Contents API / GitHub Connector writes must target that work branch, not `cleanup/2d-3d-sync` or `main`.
-- Record and re-read the new branch HEAD before the first content write.
-- Same-task follow-up commits stay on the same work branch; a separate modification task starts a new branch.
-- If a Connector limitation makes branch creation impossible, stop and report the blocker; do not substitute direct target writes.
-- Merge back only through a non-force integration path after acceptance.
+- before `GIT_WRITE_UNLOCKED`, GitHub/Contents/Connector is read-only for repository content (`READ / FETCH / COMPARE`);
+- root workspace owns mutation, tests and frozen exact diff;
+- after unlock, create/fresh-read a dedicated work branch from current target; Contents API / GitHub Connector writes must target that work branch, never `cleanup/2d-3d-sync` or `main`;
+- only `EXACT_TESTED_DIFF_ONLY` may be transported; connector limitations do not authorize branch-side edits;
+- if branch creation or exact diff transport is impossible, fail closed rather than write target directly;
+- merge back only through a non-force integration path after acceptance.
+
+`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` use Flow v2 remote authority and are not reclassified as interactive workspace work by this fallback Skill.
 
 ## Connector target-write hard gate
 

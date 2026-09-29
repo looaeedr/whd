@@ -59,7 +59,7 @@ whd_schema: WHD_DOC_META_V1
 2. 讀與當前主題直接相關的 ADR。
 3. 查 current code / tests / specs 中會影響 frontier 問題的事實。
 4. 若使用者提到「原本」「現在」「之前就有」，必要時查 Git history，不得直接以目前畫面推定歷史能力不存在。
-5. 若是 WHD repo 修改任務，仍先遵守 `AGENTS.md` / Knowledge Preflight / branch-first；本 Skill 不可繞過專案 gate。
+5. 若是 WHD repo 修改任務，仍先遵守 `AGENTS.md` / root-local-first / Knowledge Preflight / Git-phase branch；本 Skill 不可繞過專案 gate。
 
 沒有 `CONTEXT.md` 不代表先建立空檔；只有第一個 domain term 真正確認時才建立。
 
