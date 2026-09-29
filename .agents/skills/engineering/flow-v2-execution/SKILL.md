@@ -103,6 +103,22 @@ Startup/root identity 與 mutation admission 是 **invocation/session-level gate
 
 Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/control_transaction_production_executor.py`。
 
+### STALE_PLAN_MUST_DIE / ONE_ISSUE_ONE_MUTATION_WRITER
+
+同一 Issue 的 stale execution path 不得「補完舊計畫」。每次 `START_BRANCH` / `APPLY_COMMIT` Git mutation 前必須 fresh-read canonical ExecutionRecord 與 live work/target refs，建立 `WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1`，並把 guard 與 root-local-first receipt 一起交給 ingress。
+
+硬規則：
+
+1. guard 固定綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work_branch + work_head + target_head`。任一值改變，舊 plan **永久失效**；不得 retry 舊 semantic action。
+2. `START_BRANCH/APPLY_COMMIT` ingress 必須再次 fresh-read ExecutionRecord；guard 與 current record 不完全相同即 `STALE_PLAN_MUST_DIE`。
+3. ingress 必須 fresh-read live target ref；target 不等於 current `record.target_sha` 即拒絕。
+4. ingress 必須 fresh-read live work ref；它必須等於本次 mutation 宣告的 exact post-head。若另一 writer 已先推進 branch，立即 `ONE_ISSUE_ONE_MUTATION_WRITER` conflict，不得繼續後續 QA/merge。
+5. `ControlTransactionPlan` 額外綁 lease token 與 structured next_action；generation/fingerprint 相同之外，lease/next_action 也不得漂移。
+6. unrelated Issue 造成 `coord/execution-v2` ref churn 只有在本 Issue fingerprint 完全沒變時才可內部重試；本 Issue 任一 identity 改變必須丟棄 plan 並從最新 `next_action` replan。
+7. user-visible 執行不得把 guard 本身變成新工作步驟；它是每次 mutation 的 machine-internal precondition。
+
+Machine owners：`tools/control_transaction.py` + `tools/control_transaction_request_ingress.py`。
+
 ### TERMINAL_QA_CONSUME_FAST_PATH_V1
 
 已存在 GitHub Actions terminal run 且 trusted executor fresh-read 證明 `run_head_sha == current record.head_sha`、workflow path exact match、`status=completed`、`conclusion=success` 時，不再強迫原本 `START_QA → ACCEPT_QA` 的兩顆 durable transaction（中間另有 workflow round-trip）。
