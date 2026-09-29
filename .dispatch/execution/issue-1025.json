@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
-    "id": 36590603324,
-    "purpose": "WHD Control Plane Regression exact-head acceptance",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
+  "generation": 15,
   "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
   "issue": 1025,
   "lane_id": "chatgpt.flowv2.work1",
@@ -42,35 +37,38 @@
   },
   "next_action": {
     "args": {
+      "expected_target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
       "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
-      "run_id": 36590603324
+      "pr_number": 1028,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Accept exact-head Control Plane Regression success",
-    "kind": "ACCEPT_QA"
+    "display": "Merge PR #1028 after exact-head QA acceptance",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
-    "last_accepted_run": 36590194697
+    "accepted_head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
+    "last_accepted_run": 36590603324
   },
   "recovery_history": [],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA_TERMINAL_SUCCESS_OBSERVED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "790b837ff9f93cb286c4a648e1807a3f2fb28861d894e32addbaa3b11bd4205e",
-    "id": "gha:36591374264:1025:START_QA:13",
+    "expected_fingerprint": "81cea66f20cd5b1673dacea04c303b0288da52e8ffce14b4db4a4dce4bb94c3b",
+    "id": "gha:36591658599:1025:ACCEPT_QA:14",
     "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:36:02Z",
+  "updated_at": "2026-09-29T15:38:15Z",
   "version": 2,
   "work_branch": "governance/issue1025-flow-v2-roundtrip-reduction"
 }
