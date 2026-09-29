@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
-  "head_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+  "generation": 7,
+  "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -47,22 +47,30 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+      "base_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
       "delete_paths": [],
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
+        ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        ".agents/skills/engineering/root-local-first/SKILL.md",
+        ".agents/skills/engineering/寫排程/SKILL.md",
         ".agents/skills/engineering/工作槽/SKILL.md",
         ".agents/skills/engineering/排程模擬/SKILL.md",
-        ".agents/skills/engineering/寫排程/SKILL.md",
         ".github/workflows/whd-control-plane-regression.yml",
         ".github/workflows/whd-control-transaction-v2-request.yml",
+        "tests/process/test_flow_v2_execution_invocation_exit.py",
+        "tests/process/test_issue1022_root_ci_parity.py",
+        "tests/process/test_issue724_report_handler_identity_prefix.py",
+        "tests/process/test_issue899_push_transaction_ingress.py",
+        "tests/process/test_root_local_first_entry_hard_gate.py",
         "tools/change_test_profile.py",
-        ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
         "tools/control_plane_regression.py",
-        "tests/process/test_issue1022_root_ci_parity.py"
+        "tools/execution_invocation_exit.py",
+        "tools/root_local_first_gate.py"
       ]
     },
-    "display": "Reserve exact Issue #1022 root mutation paths",
+    "display": "Reserve Issue #1022 exact paths on fresh target 81fbe0a",
     "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -80,21 +88,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "TARGET_DRIFT_REBASING",
+  "semantic_state": "TARGET_RECONCILED_FOR_ROOT_RETEST",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+  "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "transaction": {
-    "expected_fingerprint": "27f198aea78c347883057e4e1640853922a8963e79e95ca2c3b5d6ffa53bd57b",
-    "id": "gha:36585194249:1022:RELEASE_PATHS:5",
+    "expected_fingerprint": "1b848bb85b4c4ffef0906cff74b57e76cd4dc1f88519bcb988b9f1aed7e46023",
+    "id": "gha:36585379733:1022:RECONCILE:6",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
-    "kind": "RELEASE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:46:51Z",
+  "updated_at": "2026-09-29T14:48:19Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
