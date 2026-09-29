@@ -266,6 +266,14 @@ def _require_current_invocation_lease(
         raise ControlTransactionConflict(
             "live lease belongs to a different invocation"
         )
+    try:
+        expires_at = datetime.fromisoformat(record.lease.expires_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ProductionExecutorError("trusted side effect lease expiry is invalid") from exc
+    if expires_at.tzinfo is None or expires_at.utcoffset() is None:
+        raise ProductionExecutorError("trusted side effect lease expiry must be timezone-aware")
+    if expires_at <= _now():
+        raise ControlTransactionConflict("current invocation lease expired before trusted side effect")
 
 
 def _read_branch_head(repo: str, token: str, branch: str) -> str:
@@ -744,6 +752,69 @@ def _write_state(
     return commit["sha"], record_blob["sha"]
 
 
+TRUSTED_EXTERNAL_SIDE_EFFECT_KINDS = frozenset({"MERGE", "SYNC_TARGET", "FINALIZE"})
+
+
+def _write_state_after_trusted_side_effect(
+    repo: str,
+    token: str,
+    coord_branch: str,
+    *,
+    parent_sha: str,
+    base_tree_sha: str,
+    records: dict[int, ExecutionRecord],
+    issue: int,
+    pre_record: ExecutionRecord,
+    post_record: ExecutionRecord,
+    max_attempts: int = 3,
+) -> tuple[str, str, int]:
+    """Durably reconcile an already-applied trusted external side effect.
+
+    A coord ref CAS can lose to an unrelated Issue after GitHub has already
+    merged/synced/closed external state.  Retrying the external side effect is
+    unnecessary and can be unsafe.  Instead, reload coord and retry only the
+    record/index commit while the exact Issue fingerprint is unchanged.
+    """
+    expected_fingerprint = execution_record_fingerprint(pre_record)
+    current_parent = parent_sha
+    current_tree = base_tree_sha
+    current_records = records
+
+    for attempt in range(max_attempts):
+        current_records[issue] = post_record
+        try:
+            commit_sha, record_blob_sha = _write_state(
+                repo,
+                token,
+                coord_branch,
+                parent_sha=current_parent,
+                base_tree_sha=current_tree,
+                records=current_records,
+                issue=issue,
+            )
+            return commit_sha, record_blob_sha, attempt
+        except ControlTransactionConflict as exc:
+            if "coord/execution-v2 ref advanced during transaction" not in str(exc):
+                raise
+            if attempt + 1 >= max_attempts:
+                raise
+            current_parent, current_tree, current_records = _load_state(
+                repo, token, coord_branch
+            )
+            observed = current_records.get(issue)
+            if observed is None:
+                raise ProductionExecutorError(
+                    "trusted side-effect reconciliation lost the Issue record"
+                ) from exc
+            observed_fingerprint = execution_record_fingerprint(observed)
+            if observed_fingerprint != expected_fingerprint:
+                raise ControlTransactionConflict(
+                    "Issue record advanced while reconciling an already-applied trusted side effect"
+                ) from exc
+
+    raise ProductionExecutorError("trusted side-effect coord reconciliation exhausted")
+
+
 def execute_one(
     *,
     repo: str,
@@ -788,6 +859,10 @@ def execute_one(
             invocation_identity=invocation_identity,
         )
     if kind == "FINALIZE":
+        # FINALIZE is a trusted external side effect and must remain fenced to
+        # the same live invocation that owns the terminal tail before closing
+        # the GitHub Issue.
+        _require_current_invocation_lease(record, invocation_identity)
         # FINALIZE does not trust caller-supplied closure booleans.  The trusted
         # writer owns the GitHub side effect and fresh readback, so an accepted
         # merge cannot become DONE while the Issue remains open.
@@ -812,15 +887,29 @@ def execute_one(
         except PathReservationError as exc:
             raise ControlTransactionConflict(str(exc)) from exc
     records[issue] = post
-    commit_sha, record_blob_sha = _write_state(
-        repo,
-        token,
-        coord_branch,
-        parent_sha=parent_sha,
-        base_tree_sha=tree_sha,
-        records=records,
-        issue=issue,
-    )
+    coord_retry_count = 0
+    if kind in TRUSTED_EXTERNAL_SIDE_EFFECT_KINDS:
+        commit_sha, record_blob_sha, coord_retry_count = _write_state_after_trusted_side_effect(
+            repo,
+            token,
+            coord_branch,
+            parent_sha=parent_sha,
+            base_tree_sha=tree_sha,
+            records=records,
+            issue=issue,
+            pre_record=record,
+            post_record=post,
+        )
+    else:
+        commit_sha, record_blob_sha = _write_state(
+            repo,
+            token,
+            coord_branch,
+            parent_sha=parent_sha,
+            base_tree_sha=tree_sha,
+            records=records,
+            issue=issue,
+        )
 
     fresh_parent, _, fresh_records = _load_state(repo, token, coord_branch)
     fresh = fresh_records.get(issue)
@@ -829,14 +918,22 @@ def execute_one(
     if execution_record_fingerprint(fresh) != execution_record_fingerprint(post):
         raise ProductionExecutorError("post-commit ExecutionRecord fingerprint mismatch")
 
-    monitor_commit_sha, observation = _publish_transaction_progress(
-        repo,
-        token,
-        record=fresh,
-        invocation_identity=invocation_identity,
-        runtime_owner=lane_id,
-        action=kind,
-    )
+    monitor_projection_status = "APPLIED"
+    monitor_projection_error = None
+    try:
+        monitor_commit_sha, observation = _publish_transaction_progress(
+            repo,
+            token,
+            record=fresh,
+            invocation_identity=invocation_identity,
+            runtime_owner=lane_id,
+            action=kind,
+        )
+    except Exception as exc:  # monitor-v2 is explicitly NON_AUTHORITY
+        monitor_commit_sha = None
+        observation = {}
+        monitor_projection_status = "DEGRADED"
+        monitor_projection_error = f"{type(exc).__name__}: {exc}"
 
     return {
         "schema": RESULT_SCHEMA,
@@ -850,11 +947,14 @@ def execute_one(
         "post_state": fresh.state,
         "post_next_action": fresh.next_action.kind if fresh.next_action else None,
         "lease_invocation_identity": fresh.lease.invocation_identity if fresh.lease else None,
+        "coord_retry_count": coord_retry_count,
+        "monitor_projection_status": monitor_projection_status,
+        "monitor_projection_error": monitor_projection_error,
         "runtime_observation_commit_sha": monitor_commit_sha,
-        "runtime_observation_event": observation["event"],
-        "runtime_liveness_state": observation["liveness_state"],
-        "runtime_last_heartbeat_at": observation["last_heartbeat_at"],
-        "runtime_heartbeat_expires_at": observation["heartbeat_expires_at"],
+        "runtime_observation_event": observation.get("event"),
+        "runtime_liveness_state": observation.get("liveness_state"),
+        "runtime_last_heartbeat_at": observation.get("last_heartbeat_at"),
+        "runtime_heartbeat_expires_at": observation.get("heartbeat_expires_at"),
     }
 
 
