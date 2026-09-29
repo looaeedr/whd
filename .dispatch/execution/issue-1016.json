@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1016,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "work_branch": "governance/issue1016-terminal-tail-drain-20260929",
+  "head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1016"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "e766f100f8a01540a28a17b1fa7544ac389b1cc9ee44edd45bdf3c62d25799f3",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user-chat:2026-09-29:terminal-tail-finalize-drain",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "updated_at": "2026-09-29T11:33:53Z"
+}
