@@ -75,6 +75,24 @@ def _execution_mode_for_request(request: dict[str, object]) -> str:
 INTERACTIVE_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
 
 
+def _prevalidate_interactive_git_write_receipt(
+    request: dict[str, object], *, execution_mode: str
+) -> None:
+    """Fail closed on the root-local-first receipt before any execution-state read."""
+    if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
+        return
+    effect = request.get("effect")
+    if not isinstance(effect, dict):
+        raise ProductionExecutorError("effect must be an object")
+    receipt = effect.get("root_local_first_git_write_receipt")
+    if receipt is None:
+        raise ProductionExecutorError("interactive Git write requires root-local-first Git write receipt")
+    try:
+        validate_git_unlock_receipt(receipt)
+    except ValueError as exc:
+        raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
+
+
 def _validate_interactive_git_write_receipt(
     request: dict[str, object],
     *,
@@ -236,6 +254,10 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
             )
         except ValueError as exc:
             raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
+
+    _prevalidate_interactive_git_write_receipt(
+        request, execution_mode=execution_mode
+    )
 
     parent_sha, _, records = _load_state(repo, token, coord_branch)
     expected_parent = str(request["expected_coord_head"])
