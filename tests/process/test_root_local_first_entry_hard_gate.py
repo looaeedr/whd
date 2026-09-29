@@ -202,9 +202,27 @@ def test_bare_tests_green_boolean_is_rejected():
             root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="f" * 64,
         )
 
-def test_root_local_mirror_points_to_current_drive_v3_identity():
+def test_root_local_mirror_points_to_current_drive_v4_identity():
     payload = _contract()
     source = payload["canonical_source"]
-    assert source["drive_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
-    assert source["canonical_payload_sha256"] == "396fa3bf682e1d2ac3d737760698a6d1b72646aa14caa2ab05ff206130d240e7"
+    assert source["drive_file_id"] == "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
+    assert source["canonical_payload_sha256"] == "b8f3a6b2a7d4fef7b3ff7dc3b4f72fed4ca91b84dfdf7001e205e743f8fa52ea"
     assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
+
+def test_interactive_orchestration_fast_path_is_machine_owned():
+    payload = _contract()
+    gate = payload["orchestration_fast_path"]
+    assert gate["schema"] == "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1"
+    assert gate["default"] == "SESSION_INTERNAL_ORCHESTRATION"
+    assert "PER_TRANSACTION_MANUAL_ORCHESTRATION" in gate["outer_forbidden"]
+    assert "MANUAL_LEASE_RENEW_BEFORE_EXPIRY" in gate["outer_forbidden"]
+    assert "START_QA_THEN_ACCEPT_QA_WHEN_CONSUME_QA_IS_ELIGIBLE" in gate["outer_forbidden"]
+    assert gate["stale_plan_policy"] == "STALE_PLAN_MUST_DIE"
+    assert gate["single_writer_policy"] == "ONE_ISSUE_ONE_MUTATION_WRITER"
+
+
+def test_root_local_skill_exposes_fast_path_hard_gate():
+    text = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
+    assert "INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1" in text
+    assert "不得由聊天層逐顆手動編排" in text
+    assert "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS" not in text or "phase outcome" in text

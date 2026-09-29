@@ -57,6 +57,31 @@ ROOT_SOURCE_CURRENT
 → GIT_WRITE_UNLOCKED
 ```
 
+### INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1
+
+互動式 repository-content work 的外層 orchestration 固定走 **session fast path**。底層 lease / reservation / CAS retry / session reuse / QA consume / terminal finalize drain 仍是 machine hard gates，但**必須由同一 execution session 內部吸收，不得由聊天層逐顆手動編排、逐顆等待、逐顆回報**。
+
+外層正常只允許看到：
+
+`FRESH_READ → ROOT_MUTATE → TARGETED_TEST → EXACT_DIFF → POST_PUSH_CI → MERGE_FINALIZE`
+
+明確禁止：
+
+- live session 內重跑 admission；
+- scope 未變卻重送 reservation；
+- lease 尚未到期就人工 renew；
+- 已有 exact-head terminal GREEN 且可 `CONSUME_QA` 時仍拆成 `START_QA → ACCEPT_QA`；
+- 為了回報而另外建立 contract 未要求的 evidence artifact；
+- 把 generation / lease / CAS / transaction kind 當成聊天層工作清單逐顆操作。
+
+只有下列條件才允許離開 fast path 升級完整治理：
+
+`PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / TEST_RED / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`
+
+任何升級前都先 fresh-read current Issue；若 generation / fingerprint / lease / next_action / work head / target head 已前進，舊 plan 依 `STALE_PLAN_MUST_DIE` 立即作廢，不准把舊流程補完。
+
+使用者回報只報 phase outcome / 真 blocker；不得把 control-plane internals 當成主要進度。
+
 ### 3.1 ROOT_SOURCE_CURRENT
 
 開始任何 root mutation 前：

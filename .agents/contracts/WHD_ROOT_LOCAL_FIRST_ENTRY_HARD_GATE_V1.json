@@ -40,8 +40,8 @@
   "canonical_source": {
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-    "drive_file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV",
-    "canonical_payload_sha256": "396fa3bf682e1d2ac3d737760698a6d1b72646aa14caa2ab05ff206130d240e7"
+    "drive_file_id": "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L",
+    "canonical_payload_sha256": "b8f3a6b2a7d4fef7b3ff7dc3b4f72fed4ca91b84dfdf7001e205e743f8fa52ea"
   },
   "path_reservation": {
     "schema": "WHD_PATH_RESERVATION_V1",
@@ -113,5 +113,44 @@
     ],
     "github_side_hotfix_forbidden": true,
     "qa_failure_action": "RETURN_TO_ROOT_RETEST_REFREEZE_REPUSH"
+  },
+  "orchestration_fast_path": {
+    "schema": "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1",
+    "default": "SESSION_INTERNAL_ORCHESTRATION",
+    "outer_visible_pipeline": [
+      "FRESH_READ",
+      "ROOT_MUTATE",
+      "TARGETED_TEST",
+      "EXACT_DIFF",
+      "POST_PUSH_CI",
+      "MERGE_FINALIZE"
+    ],
+    "outer_forbidden": [
+      "PER_TRANSACTION_MANUAL_ORCHESTRATION",
+      "REPEAT_ADMISSION_WITH_LIVE_SESSION",
+      "REPEAT_RESERVATION_WITH_UNCHANGED_SCOPE",
+      "MANUAL_LEASE_RENEW_BEFORE_EXPIRY",
+      "START_QA_THEN_ACCEPT_QA_WHEN_CONSUME_QA_IS_ELIGIBLE",
+      "REDUNDANT_EVIDENCE_ARTIFACTS_WITHOUT_CONTRACT_REQUIREMENT"
+    ],
+    "machine_internal_only": [
+      "LEASE",
+      "RESERVATION",
+      "CAS_RETRY",
+      "SESSION_REUSE",
+      "QA_CONSUME",
+      "FINALIZE_DRAIN"
+    ],
+    "escalate_only_on": [
+      "PATH_CONFLICT",
+      "SAME_ISSUE_OTHER_WRITER",
+      "SUBSTANTIVE_TARGET_OVERLAP",
+      "TEST_RED",
+      "MACHINE_FAIL_CLOSED",
+      "USER_INPUT_REQUIRED"
+    ],
+    "stale_plan_policy": "STALE_PLAN_MUST_DIE",
+    "single_writer_policy": "ONE_ISSUE_ONE_MUTATION_WRITER",
+    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS"
   }
 }
