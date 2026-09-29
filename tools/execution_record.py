@@ -415,8 +415,11 @@ class ExecutionRecord:
                 raise ExecutionRecordError("DONE record requires closed and released closure")
             if self.mutation_scope is not None and self.mutation_scope.reservation_state != "RELEASED":
                 raise ExecutionRecordError("DONE record cannot retain an ACTIVE mutation_scope reservation")
-        elif self.next_action is None and state not in {"VERIFYING", "INTEGRATING"}:
-            raise ExecutionRecordError(f"{state} record requires a next_action")
+        elif self.next_action is None:
+            if state == "INTEGRATING":
+                raise ExecutionRecordError("INTEGRATING record requires a next_action")
+            if state != "VERIFYING":
+                raise ExecutionRecordError(f"{state} record requires a next_action")
 
         if state == "BLOCKED" and self.blocker is None:
             raise ExecutionRecordError("BLOCKED record requires blocker evidence")
