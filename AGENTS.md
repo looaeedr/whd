@@ -195,6 +195,14 @@ CURRENT machine owners：
 5. 總控不得接受只有口頭進度、無 checkpoint path、無 journal/state、無角色標記的 Subagent / Worker 回報；此類回報必須退回補落盤，或標記為不可續跑並重建證據。
 6. **同步遠端 QA 必須啟動 `monitoring-remote-qa`**：只要建立 GitHub Actions / remote QA run，就必須記錄本輪 `run_id + head_sha` 並持續監控至 terminal state；`queued`、`in_progress`、部分 step GREEN、或「workflow 已觸發」都不是停工點。紅燈先抓 logs 分類；GREEN 後才清 temp workflow、寫 durable state/provenance、關單。
 
+### DURABLE_TERMINAL_EXIT_HARD_GATE_V1
+
+- **功能完成不是 terminal evidence**：QA GREEN、PR 已 merge、功能已生效、watchdog 已停、使用者可見問題已修好，都不得單獨授權「完成／可以停／turn exit」。
+- user-visible completion/terminal claim 與 normal task exit 前，必須以 `tools/execution_invocation_exit.py::assert_durable_terminal_exit(record)` 驗 `WHD_EXECUTION_RECORD_V2`。
+- 唯一 durable terminal tuple：`state=DONE`、`next_action=null`、`lease=null`、`active_run=null`、`owner_kind/owner_id=NONE`、`lane_id=null`、`closure.issue_closed=true`、`closure.released_at!=null`、`mutation_scope` 為 `RELEASED` 或不存在。
+- 任一條未成立即 `DURABLE_TERMINAL_EXIT_BLOCKED`；同一 invocation 必須繼續 exact `next_action` 到 DONE，或留下 genuine machine blocker。**進度回報、功能面成功、merge/QA 成功都不是停止點。**
+- static contract：`.agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json`。
+
 ### 0.0.2 超長 Log / Context-Safe Execution 硬閘門
 
 <!-- LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 -->

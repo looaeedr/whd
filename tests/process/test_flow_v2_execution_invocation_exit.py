@@ -1,6 +1,7 @@
+import pytest
 from dataclasses import replace
 
-from tools.execution_invocation_exit import classify_invocation_exit
+from tools.execution_invocation_exit import (InvocationExitError, assert_durable_terminal_exit, classify_invocation_exit)
 from tools.execution_record import (
     ActionSpec,
     BlockerState,
@@ -8,6 +9,7 @@ from tools.execution_record import (
     LeaseState,
     RunState,
     TransactionState,
+    ExecutionRecordError,
     execution_record_from_payload,
 )
 
@@ -206,3 +208,26 @@ def test_terminal_tail_finalize_cannot_yield_after_reconciled_merge_or_reconcile
         assert result.decision == "CONTINUE_TERMINAL_TAIL"
         assert result.may_return is False
         assert result.requires_yield is False
+
+
+def test_functional_success_cannot_claim_terminal_before_durable_done():
+    base = _record("ACTIVE")
+    merged_tail = replace(
+        base,
+        state="INTEGRATING",
+        semantic_state="MERGED",
+        next_action=ActionSpec(kind="FINALIZE", args={}, display="finish durable tail"),
+    )
+    with pytest.raises(InvocationExitError, match="DURABLE_TERMINAL_EXIT_BLOCKED"):
+        assert_durable_terminal_exit(merged_tail)
+
+
+def test_done_record_rejects_uncleared_owner_identity():
+    done = _record("DONE")
+    with pytest.raises(ExecutionRecordError, match="DONE record must clear owner identity"):
+        replace(
+            done,
+            owner_kind="SCHEDULER",
+            owner_id="scheduler.a",
+            lane_id="scheduler.a",
+        )

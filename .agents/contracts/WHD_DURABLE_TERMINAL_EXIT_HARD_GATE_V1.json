@@ -1,0 +1,33 @@
+{
+  "schema": "WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1",
+  "version": 1,
+  "status": "CURRENT",
+  "machine_owner": "tools/execution_invocation_exit.py",
+  "state_owner": "WHD_EXECUTION_RECORD_V2",
+  "record_validator": "tools/execution_record.py",
+  "normal_completion_requires": "DURABLE_DONE_TUPLE",
+  "functional_success_is_terminal": false,
+  "nonterminal_success_markers_not_terminal": [
+    "QA_GREEN",
+    "PR_MERGED",
+    "FUNCTION_FIXED",
+    "FEATURE_LIVE",
+    "WORKFLOW_DISABLED"
+  ],
+  "durable_done_tuple": {
+    "state": "DONE",
+    "next_action": null,
+    "lease": null,
+    "active_run": null,
+    "owner_kind": "NONE",
+    "owner_id": "NONE",
+    "lane_id": null,
+    "closure.issue_closed": true,
+    "closure.released_at": "NON_NULL",
+    "mutation_scope.reservation_state": "RELEASED_OR_ABSENT"
+  },
+  "nonterminal_policy": "CONTINUE_EXACT_NEXT_ACTION_OR_GENUINE_MACHINE_BLOCKER",
+  "progress_report_is_stop_authority": false,
+  "completion_claim_guard": "assert_durable_terminal_exit",
+  "physical_yield_note": "A legal YIELD/LANE_BUSY return is not a task-complete claim."
+}

@@ -64,6 +64,45 @@ def _decision(record: ExecutionRecord, name: str, *, may_return: bool, requires_
     )
 
 
+def durable_terminal_exit_blockers(record: ExecutionRecord) -> tuple[str, ...]:
+    """Return machine reasons that forbid a task-complete/terminal claim.
+
+    Functional success is deliberately irrelevant here. QA GREEN, a merged PR,
+    or a user-visible fix may all exist while the durable execution tail is still
+    nonterminal. Only the canonical DONE tuple authorizes a completion claim.
+    """
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+
+    blockers: list[str] = []
+    if record.state != "DONE":
+        blockers.append("STATE_NOT_DONE")
+    if record.next_action is not None:
+        blockers.append("NEXT_ACTION_PENDING")
+    if record.lease is not None:
+        blockers.append("LEASE_NOT_CLEARED")
+    if record.active_run is not None:
+        blockers.append("ACTIVE_RUN_NOT_CLEARED")
+    if record.owner_kind != "NONE" or record.owner_id != "NONE" or record.lane_id is not None:
+        blockers.append("OWNER_NOT_CLEARED")
+    if not record.closure.issue_closed:
+        blockers.append("ISSUE_NOT_CLOSED")
+    if record.closure.released_at is None:
+        blockers.append("RELEASE_NOT_RECORDED")
+    if record.mutation_scope is not None and record.mutation_scope.reservation_state != "RELEASED":
+        blockers.append("PATH_RESERVATION_NOT_RELEASED")
+    return tuple(blockers)
+
+
+def assert_durable_terminal_exit(record: ExecutionRecord) -> bool:
+    """Fail closed unless record proves the canonical durable terminal tuple."""
+    blockers = durable_terminal_exit_blockers(record)
+    if blockers:
+        raise InvocationExitError(
+            "DURABLE_TERMINAL_EXIT_BLOCKED: " + ",".join(blockers)
+        )
+    return True
+
 def classify_invocation_exit(
     record: ExecutionRecord,
     *,
@@ -83,6 +122,7 @@ def classify_invocation_exit(
     now_dt = _aware(now, "now")
 
     if record.state == "DONE":
+        assert_durable_terminal_exit(record)
         return _decision(record, "TASK_TERMINAL", may_return=True, requires_yield=False)
 
     if record.lease is None:
