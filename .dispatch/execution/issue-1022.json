@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+  "issue": 1022,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1022",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "2696371a85aa86782fdae7a558e224c3404d8926bf6923feaa9642fc82e1c1df",
+      "authority_kind": "WORK_SLOT_ASSIGNMENT",
+      "authority_ref": "user-explicit:2026-09-29:fix-root-ci-parity-and-identity-reporting",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+  "transaction": null,
+  "updated_at": "2026-09-29T14:19:00Z",
+  "version": 2,
+  "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
+}
