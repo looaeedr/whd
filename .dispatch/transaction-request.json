@@ -1,37 +1,20 @@
 {
-  "effect": {
-    "conclusion": "success",
-    "next_action": {
-      "args": {
-        "expected_target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
-        "head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
-        "pr_number": 1021,
-        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-        "target_branch": "cleanup/2d-3d-sync"
-      },
-      "display": "Merge PR #1021 after exact synced-head QA acceptance",
-      "kind": "MERGE"
-    },
-    "next_state": "INTEGRATING",
-    "run_head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
-    "run_id": 36579604214,
-    "semantic_state": "QA_ACCEPTED"
-  },
-  "expected_coord_head": "02f30afde79de56406afedad425d1ba5961ff027",
-  "expected_generation": 15,
+  "effect": {},
+  "expected_coord_head": "aca11698c0a0dd9ada616db887a935960d1a42bb",
+  "expected_generation": 16,
   "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
   "issue": 1019,
-  "kind": "ACCEPT_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1019-acceptqa-86370-1",
+  "request_id": "issue1019-merge-1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 accept exact synced-head Control Plane Regression and continue directly to MERGE\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 merge PR #1021 after exact synced-head QA acceptance and continue terminal tail\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-09-29T14:22:00Z",
+    "expires_at": "2026-09-29T14:24:00Z",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "issued_at": "2026-09-29T14:17:00Z",
-    "purpose": "Issue #1019 accept exact synced-head Control Plane Regression and continue directly to MERGE",
+    "issued_at": "2026-09-29T14:19:00Z",
+    "purpose": "Issue #1019 merge PR #1021 after exact synced-head QA acceptance and continue terminal tail",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
