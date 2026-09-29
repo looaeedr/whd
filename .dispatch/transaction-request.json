@@ -1,27 +1,46 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1025-refresh-reservation-base-96cb-2",
+  "request_id": "issue1025-start-branch-1",
   "issue": 1025,
-  "kind": "RESERVE_PATHS",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-  "expected_coord_head": "5892e41f03ab167caf7404e2f1873e7902c41060",
-  "expected_generation": 4,
+  "expected_coord_head": "f63376b48c50d0d2b169a0d65a418610dae40179",
+  "expected_generation": 5,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-    "write_paths": [
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-      "tests/process/test_issue1025_flow_v2_roundtrip_reduction.py",
-      "tools/control_transaction.py",
-      "tools/control_transaction_production_executor.py",
-      "tools/control_transaction_request_builder.py",
-      "tools/control_transaction_request_ingress.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED_AFTER_TARGET_RESYNC"
+    "work_branch": "governance/issue1025-flow-v2-roundtrip-reduction",
+    "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "semantic_state": "GIT_BRANCH_CREATED_FROM_FRESH_TARGET",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "candidate_commit_sha": "3b8847991e805c224fd7aafb8072575e51d7d307"
+      },
+      "display": "Apply exact tested frozen diff commit"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+      "diff_digest": "e311a9780b92ce085228f28c74a544ee2e668a290665f238e9996dfe6fdb960d",
+      "issue": 1025,
+      "generation": 5,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "tests/process/test_issue1025_flow_v2_roundtrip_reduction.py",
+        "tools/control_transaction.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/control_transaction_request_builder.py",
+        "tools/control_transaction_request_ingress.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "895e4ad0e0120115cf06c8db96987345f111bc039aa37d069db86f7bf012d19a",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    }
   },
-  "purpose": "Issue #1025 refresh exact path reservation base after non-overlapping target resync",
+  "purpose": "Issue #1025 bind fresh work branch and exact frozen candidate commit",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
