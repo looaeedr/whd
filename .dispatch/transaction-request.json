@@ -1,35 +1,37 @@
 {
-  "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id":"issue1025-accept-old-head-before-final-v3-1",
-  "issue":1025,
-  "kind":"ACCEPT_QA",
-  "lane_id":"chatgpt.flowv2.work1",
-  "invocation_identity":"interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-  "expected_coord_head":"c9b04b34cb174dc2071db557adfcbed9f1f6011e",
-  "expected_generation":11,
-  "effect":{
-    "run_id":36590194697,
-    "run_head_sha":"831e34b183b309085ea2e095c7c9b2b913e52b1f",
-    "conclusion":"success",
-    "next_state":"ACTIVE",
-    "semantic_state":"QA_ACCEPTED_BEFORE_FINAL_V3_CORRECTION",
-    "next_action":{
-      "kind":"APPLY_COMMIT",
-      "args":{},
-      "display":"Apply final-v3 exact tested correction"
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1025-accept-old-head-before-empty-advance-1",
+  "issue": 1025,
+  "kind": "ACCEPT_QA",
+  "lane_id": "chatgpt.flowv2.work1",
+  "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
+  "expected_coord_head": "f427adb4b903cf61aab0b67515cc2018a882a13f",
+  "expected_generation": 11,
+  "effect": {
+    "run_id": 36590194697,
+    "run_head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
+    "conclusion": "success",
+    "next_state": "ACTIVE",
+    "semantic_state": "QA_ACCEPTED_BEFORE_EMPTY_HEAD_ADVANCE",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb"
+      },
+      "display": "Advance durable head to tree-identical QA retrigger commit"
     }
   },
-  "purpose":"Issue #1025 accept exact old-head GREEN then apply final-v3 correction and invalidate QA by head advance",
-  "work_root_gate_evidence":{
-    "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status":"CURRENT",
-    "read_mode":"GOOGLE_DRIVE_CANONICAL",
-    "execution_mode":"INTERACTIVE",
-    "source":"/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider":"google_drive",
-    "library_path":"/Google Drive/WHD",
-    "drive_folder_id":"1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id":"1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  "purpose": "Issue #1025 consume old exact-head QA before durable empty-commit head advance",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
