@@ -32,6 +32,8 @@ from tools.execution_record import (
 
 
 TARGET_ADVANCE_PROOF_SCHEMA = "WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1"
+MUTATION_WRITER_GUARD_SCHEMA = "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1"
+
 
 
 TRANSACTION_KINDS = frozenset(
@@ -78,6 +80,8 @@ class ControlTransactionPlan:
     expected_work_branch: str
     expected_head_sha: str
     expected_target_sha: str
+    expected_lease_token: str | None = None
+    expected_next_action_kind: str | None = None
     invocation_identity: str | None = None
 
 
@@ -180,6 +184,8 @@ def prepare_transaction(
         expected_work_branch=record.work_branch,
         expected_head_sha=record.head_sha,
         expected_target_sha=record.target_sha,
+        expected_lease_token=(record.lease.token if record.lease is not None else None),
+        expected_next_action_kind=(record.next_action.kind if record.next_action is not None else None),
         invocation_identity=invocation,
     )
 
@@ -196,8 +202,20 @@ def _assert_plan_matches(record: ExecutionRecord, plan: ControlTransactionPlan) 
         )
     if record.generation != plan.expected_generation:
         raise ControlTransactionConflict(
-            "generation drift: "
+            "STALE_PLAN_MUST_DIE generation drift: "
             f"expected {plan.expected_generation}, observed {record.generation}"
+        )
+    current_lease_token = record.lease.token if record.lease is not None else None
+    if current_lease_token != plan.expected_lease_token:
+        raise ControlTransactionConflict(
+            "STALE_PLAN_MUST_DIE lease token drift: "
+            f"expected {plan.expected_lease_token}, observed {current_lease_token}"
+        )
+    current_next_action = record.next_action.kind if record.next_action is not None else None
+    if current_next_action != plan.expected_next_action_kind:
+        raise ControlTransactionConflict(
+            "STALE_PLAN_MUST_DIE next_action drift: "
+            f"expected {plan.expected_next_action_kind}, observed {current_next_action}"
         )
     current_fingerprint = execution_record_fingerprint(record)
     if current_fingerprint != plan.expected_fingerprint:
@@ -217,6 +235,65 @@ def _assert_plan_matches(record: ExecutionRecord, plan: ControlTransactionPlan) 
         raise ControlTransactionConflict(
             f"target drift: expected {plan.expected_target_sha}, observed {record.target_sha}"
         )
+
+
+def build_mutation_writer_guard(
+    record: ExecutionRecord,
+    *,
+    kind: str,
+    invocation_identity: str,
+) -> dict[str, object]:
+    """Bind one interactive Git mutation to the exact live Issue writer identity."""
+    mutation_kind = _text(kind, "mutation kind")
+    if mutation_kind not in {"START_BRANCH", "APPLY_COMMIT"}:
+        raise ControlTransactionError("mutation writer guard only supports START_BRANCH/APPLY_COMMIT")
+    invocation = _text(invocation_identity, "invocation_identity")
+    if record.lease is None:
+        raise ControlTransactionConflict("ONE_ISSUE_ONE_MUTATION_WRITER requires a live lease")
+    if record.lease.invocation_identity != invocation:
+        raise ControlTransactionConflict("ONE_ISSUE_ONE_MUTATION_WRITER invocation does not own live lease")
+    if record.next_action is None or record.next_action.kind != mutation_kind:
+        observed = record.next_action.kind if record.next_action is not None else None
+        raise ControlTransactionConflict(
+            "STALE_PLAN_MUST_DIE next_action drift before Git mutation: "
+            f"expected {mutation_kind}, observed {observed}"
+        )
+    return {
+        "schema": MUTATION_WRITER_GUARD_SCHEMA,
+        "issue": record.issue,
+        "generation": record.generation,
+        "record_fingerprint": execution_record_fingerprint(record),
+        "lease_token": record.lease.token,
+        "invocation_identity": invocation,
+        "expected_next_action": mutation_kind,
+        "expected_work_branch": record.work_branch,
+        "expected_work_head": record.head_sha,
+        "expected_target_head": record.target_sha,
+    }
+
+
+def assert_mutation_writer_guard(
+    record: ExecutionRecord,
+    guard: Mapping[str, object],
+    *,
+    kind: str,
+    invocation_identity: str,
+) -> None:
+    if not isinstance(guard, Mapping) or guard.get("schema") != MUTATION_WRITER_GUARD_SCHEMA:
+        raise ControlTransactionConflict("ONE_ISSUE_ONE_MUTATION_WRITER missing/invalid mutation guard")
+    expected = build_mutation_writer_guard(
+        record, kind=kind, invocation_identity=invocation_identity
+    )
+    for key in (
+        "issue", "generation", "record_fingerprint", "lease_token",
+        "invocation_identity", "expected_next_action", "expected_work_branch",
+        "expected_work_head", "expected_target_head",
+    ):
+        if guard.get(key) != expected.get(key):
+            raise ControlTransactionConflict(
+                f"STALE_PLAN_MUST_DIE mutation guard {key} drift: "
+                f"expected {expected.get(key)!r}, observed {guard.get(key)!r}"
+            )
 
 
 def _base_update(

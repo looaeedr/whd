@@ -13,7 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools.control_transaction import ControlTransactionConflict
+from tools.control_transaction import (
+    ControlTransactionConflict,
+    assert_mutation_writer_guard,
+)
 from tools.execution_entry_contract import validate_startup_evidence
 from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
@@ -30,6 +33,7 @@ from tools.control_transaction_request_builder import (
 from tools.control_transaction_production_executor import (
     ProductionExecutorError,
     _load_state,
+    _read_branch_head,
     execute_one,
 )
 
@@ -71,7 +75,14 @@ def _execution_mode_for_request(request: dict[str, object]) -> str:
 INTERACTIVE_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
 
 
-def _validate_interactive_git_write_receipt(request: dict[str, object], *, execution_mode: str) -> None:
+def _validate_interactive_git_write_receipt(
+    request: dict[str, object],
+    *,
+    execution_mode: str,
+    record,
+    repo: str,
+    token: str,
+) -> None:
     if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
         return
     effect = request.get("effect")
@@ -81,9 +92,37 @@ def _validate_interactive_git_write_receipt(request: dict[str, object], *, execu
     if receipt is None:
         raise ProductionExecutorError("interactive Git write requires root-local-first Git write receipt")
     try:
-        validate_git_unlock_receipt(receipt)
+        validated_receipt = validate_git_unlock_receipt(receipt)
     except ValueError as exc:
         raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
+
+    guard = effect.get("mutation_writer_guard")
+    kind = str(request.get("kind") or "")
+    invocation = str(request.get("invocation_identity") or "")
+    assert_mutation_writer_guard(record, guard, kind=kind, invocation_identity=invocation)
+
+    if int(validated_receipt.get("issue") or 0) != record.issue:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt issue drift")
+    if int(validated_receipt.get("generation") or 0) != record.generation:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt generation drift")
+    if str(validated_receipt.get("record_fingerprint") or "") != str(guard.get("record_fingerprint") or ""):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt fingerprint drift")
+
+    live_target = _read_branch_head(repo, token, record.target_branch)
+    if live_target != record.target_sha or live_target != str(guard.get("expected_target_head") or ""):
+        raise ControlTransactionConflict(
+            f"STALE_PLAN_MUST_DIE live target drift: expected {record.target_sha}, observed {live_target}"
+        )
+
+    expected_post_head = str(effect.get("head_sha") or "").strip()
+    if not expected_post_head:
+        raise ProductionExecutorError(f"{kind} effect requires head_sha for writer guard")
+    live_work = _read_branch_head(repo, token, record.work_branch)
+    if live_work != expected_post_head:
+        raise ControlTransactionConflict(
+            "ONE_ISSUE_ONE_MUTATION_WRITER live work head changed before ingress: "
+            f"expected {expected_post_head}, observed {live_work}"
+        )
 
 
 
@@ -198,8 +237,6 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
         except ValueError as exc:
             raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
 
-    _validate_interactive_git_write_receipt(request, execution_mode=execution_mode)
-
     parent_sha, _, records = _load_state(repo, token, coord_branch)
     expected_parent = str(request["expected_coord_head"])
     if parent_sha != expected_parent:
@@ -218,6 +255,14 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
         )
     if reuse_session:
         _validate_live_session_reuse(record, request=request)
+
+    _validate_interactive_git_write_receipt(
+        request,
+        execution_mode=execution_mode,
+        record=record,
+        repo=repo,
+        token=token,
+    )
 
     return execute_one(
         repo=repo,
