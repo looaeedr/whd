@@ -1,51 +1,84 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1032,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.1",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-  "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover",
-  "head_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1032"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+  "issue": 1032,
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": {
+    "expires_at": "2026-09-29T16:52:35Z",
+    "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
+    "token": "lease:1032:36599042783:1"
+  },
+  "mutation_scope": {
+    "base_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+      ".agents/skills/engineering/wayfinder/SKILL.md",
+      ".agents/skills/engineering/執行開發任務/SKILL.md",
+      ".agents/skills/engineering/寫技能/SKILL.md",
+      "AGENTS.md",
+      "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
+      "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+      "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
+      "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+      "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Apply exact tested semantic-doc cutover",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
       "authority_kind": "USER_EXPLICIT",
-      "authority_ref": "user-chat:2026-09-30:semantic-doc-cutover"
+      "authority_ref": "user-chat:2026-09-30:semantic-doc-cutover",
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-09-29T16:18:00Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+  "transaction": {
+    "expected_fingerprint": "90b1d2eeea09069ba94e5e12532409980f6b5df82e17a932b561a161b02913a9",
+    "id": "gha:36599042783:1032:ACQUIRE:1",
+    "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-29T16:37:35Z",
+  "version": 2,
+  "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover"
 }
