@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
   "issue": 1019,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
-    "expires_at": "2026-09-29T14:09:17Z",
+    "expires_at": "2026-09-29T14:28:50Z",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "token": "lease:1019:36578552288:1"
+    "token": "lease:1019:36581031380:1"
   },
   "mutation_scope": {
     "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
@@ -67,13 +67,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "transaction": {
-    "expected_fingerprint": "88c2b6ad9b2e299cd7998cb0870ed2d4677626cf8a00cd376cecb9c5b958cfba",
-    "id": "gha:36579749957:1019:RECONCILE:12",
+    "expected_fingerprint": "e8f06665e25ee3064318d2b4ba144ab7a64b9010e0c04360b16698048441b497",
+    "id": "gha:36581031380:1019:ACQUIRE:13",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "kind": "RECONCILE",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:03:35Z",
+  "updated_at": "2026-09-29T14:13:50Z",
   "version": 2,
   "work_branch": "governance/issue1019-terminal-tail-drain-hardening"
 }
