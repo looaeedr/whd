@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
@@ -28,14 +28,21 @@
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
       ".agents/skills/engineering/寫排程/SKILL.md",
       ".agents/skills/engineering/工作槽/SKILL.md",
       ".agents/skills/engineering/排程模擬/SKILL.md",
       ".github/workflows/whd-control-plane-regression.yml",
       ".github/workflows/whd-control-transaction-v2-request.yml",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
       "tests/process/test_issue1022_root_ci_parity.py",
+      "tests/process/test_issue724_report_handler_identity_prefix.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
       "tools/change_test_profile.py",
-      "tools/control_plane_regression.py"
+      "tools/control_plane_regression.py",
+      "tools/execution_invocation_exit.py",
+      "tools/root_local_first_gate.py"
     ]
   },
   "next_action": {
@@ -81,13 +88,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "transaction": {
-    "expected_fingerprint": "8d05d626d9637d9f3591f2f6e55d70957ffb28d849ece0c74085e7f37515b491",
-    "id": "gha:36582599872:1022:RESERVE_PATHS:2",
+    "expected_fingerprint": "35fbdc9079d2f2f2b9f76995fc96cfd8d1b15fcaf6a09bf0f6b3cd1d62b0d690",
+    "id": "gha:36583824938:1022:RESERVE_PATHS:3",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
     "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:26:32Z",
+  "updated_at": "2026-09-29T14:35:54Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
