@@ -1,45 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-apply-durable-terminal-gate",
+  "request_id": "issue1027-start-qa-existing-green",
   "issue": 1027,
-  "kind": "APPLY_COMMIT",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-  "expected_coord_head": "ef0b75b1d74ac62346c6eed5bed3f85b1d63aafe",
-  "expected_generation": 8,
+  "expected_coord_head": "bca0c9614077f71f11cfc13ff577cd3716bc1ccf",
+  "expected_generation": 9,
   "effect": {
-    "head_sha": "01e357e80776cea615d07813b174be8349461122",
-    "semantic_state": "DURABLE_TERMINAL_EXIT_GATE_APPLIED",
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-      "diff_digest": "8a86ad57b412f7f95b68b3733183887e714ef4b7b978909287fcb746d5283e86",
-      "issue": 1027,
-      "generation": 8,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-        "AGENTS.md",
-        "tests/process/test_flow_v2_execution_invocation_exit.py",
-        "tests/process/test_flow_v2_execution_scheduler_view.py",
-        "tools/execution_invocation_exit.py",
-        "tools/execution_record.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "071ad585b6da9980d571e325103faa7c475d498478c6949ca8a58177bad8adf5",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
+    "run_id": 36594051738,
+    "run_head_sha": "01e357e80776cea615d07813b174be8349461122",
+    "purpose": "WHD Control Plane Regression exact-head QA for durable terminal exit hard gate",
+    "run_status": "completed",
+    "semantic_state": "REMOTE_QA_GREEN_PENDING_ACCEPTANCE",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "ACCEPT_QA",
       "args": {
-        "workflow": "WHD Control Plane Regression"
+        "run_id": 36594051738,
+        "run_head_sha": "01e357e80776cea615d07813b174be8349461122"
       },
-      "display": "Start exact-head control-plane QA"
+      "display": "Accept exact-head GREEN QA"
     }
   },
-  "purpose": "Reconcile the exact Issue #1027 durable-terminal hard-gate branch head and proceed directly to exact-head QA.",
+  "purpose": "Attach the already completed exact-head SUCCESS run for Issue #1027.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
