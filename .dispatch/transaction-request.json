@@ -1,33 +1,37 @@
 {
   "effect": {
+    "conclusion": "success",
     "next_action": {
       "args": {
+        "expected_target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
         "head_sha": "917be202db00370e6385f7690c34f03d0d0bf706",
-        "run_id": 36576921682
+        "pr_number": 1021,
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+        "target_branch": "cleanup/2d-3d-sync"
       },
-      "display": "Consume exact successful Control Plane Regression run",
-      "kind": "POLL_QA"
+      "display": "Merge PR #1021 after exact-head QA acceptance",
+      "kind": "MERGE"
     },
-    "purpose": "WHD Control Plane Regression for Issue #1019 exact tested head",
+    "next_state": "INTEGRATING",
     "run_head_sha": "917be202db00370e6385f7690c34f03d0d0bf706",
     "run_id": 36576921682,
-    "run_status": "success"
+    "semantic_state": "QA_ACCEPTED"
   },
-  "expected_coord_head": "4c2c63452d1e5dfaaf0c07d508dd90479c37980d",
-  "expected_generation": 5,
+  "expected_coord_head": "13dd5b5d5cf72af6bb4206be983817d847d00cce",
+  "expected_generation": 6,
   "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
   "issue": 1019,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1019-startqa-retry-2",
+  "request_id": "issue1019-acceptqa-1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 retry same START_QA with fresh successful exact run readback\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 consume exact successful QA and advance to trusted merge\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-09-29T13:48:26Z",
+    "expires_at": "2026-09-29T13:49:49Z",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "issued_at": "2026-09-29T13:43:26Z",
-    "purpose": "Issue #1019 retry same START_QA with fresh successful exact run readback",
+    "issued_at": "2026-09-29T13:44:49Z",
+    "purpose": "Issue #1019 consume exact successful QA and advance to trusted merge",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
