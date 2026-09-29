@@ -25,7 +25,7 @@ whd_schema: WHD_DOC_META_V1
 - `GITHUB_ONLY`；
 - `REMOTE_ACTION`。
 
-上述 remote/control-plane mode 仍依 `flow-v2-execution` 的 GitHub-only authority 執行；不得為了繞過本 gate 把一般 interactive task 假冒成 remote mode。若 remote lane 把 repository-content implementation 明確 handoff 給 interactive workspace，handoff 後立刻回到本 Skill。
+上述 remote/control-plane mode 仍依 `flow-v2-execution` 的 GitHub-only authority 執行；不得為了繞過本 gate 把一般 interactive task 假冒成 remote mode。**execution mode 字串本身不是例外證據**：remote exception 必須攜帶 `WHD_EXECUTION_MODE_PROVENANCE_V1` trusted runtime provenance；`SCHEDULER_LANE` 固定綁 canonical Flow v2 lane identity。若 remote lane 把 repository-content implementation 明確 handoff 給 interactive workspace，handoff 後立刻回到本 Skill。
 
 ## 2. Canonical root
 
@@ -137,7 +137,8 @@ freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
 4. Git phase 不得順手改內容、補小修、整理格式或另改 docs；任何差異回 root 修改 → 測試 → refreeze；
 5. push 後跑 GitHub Actions / remote QA；
 6. remote QA fail 時回 root 修正，不在 Git branch 上直接熱修；
-7. final integration 仍走 non-force PR/merge 與既有 acceptance/drift gate。
+7. interactive `START_BRANCH` / `APPLY_COMMIT` 進 Flow v2 mutation ingress 前，必須帶 `ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1`；ingress 在讀 ExecutionRecord state **之前**先驗 receipt，缺失或不合法即 fail closed；
+8. final integration 仍走 non-force PR/merge 與既有 acceptance/drift gate。
 
 因此「Git phase 要用 work branch」仍是硬規則，但它位於 `GIT_WRITE_UNLOCKED` **之後**，不能再解讀成「root 開發前先建 branch」。
 

@@ -926,7 +926,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 > 本節來自 2026-09-06 Receiving 工單事故。屬永久 fail-closed 規則；優先級與 0.0.1 派工硬閘門相同。後續 AI 每次讀 AGENTS.md 都必須看到並遵守。
 
 ### A. GitHub 專案已指定 branch 時，ZIP / sandbox / 聊天 checkpoint 一律不得冒充施工 Source of Truth
-- 使用者已指定 GitHub repository / branch 時，分析、RED、修改、QA 的 execution base 必須先鎖定 remote branch HEAD SHA。
+- 使用者已指定 GitHub repository / branch 時，先鎖定 remote branch HEAD SHA 作為 **source identity / provenance anchor**；interactive/default 的實際修改與測試工作面仍是 `/Google Drive/WHD` canonical root，不得把 remote branch HEAD 誤解成 Git-first 施工面。
 - 上傳 ZIP 只能是 fixture / archive / 參考輸入；除非使用者明確指定「這個 ZIP 就是本輪施工基準」，否則禁止拿 ZIP 當 production baseline、A/B good version、checkpoint parent 或 regression oracle。
 - 若已在錯誤 tree 做過修改、PASS/FAIL、checkpoint，發現後必須整批宣告 evidence 作廢；禁止挑其中看起來有用的結果續工。
 - 每張工單 checkpoint / journal 必須寫明 repository、branch、parent HEAD SHA；branch HEAD 漂移時先重新 compare / rebase execution plan。
