@@ -1,14 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-renew-lease-before-rereserve",
+  "request_id": "issue1027-rereserve-current-target",
   "issue": 1027,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-  "expected_coord_head": "7a73452956a44a8cf7ce58f5a5613ddcef64a931",
-  "expected_generation": 4,
-  "effect": {},
-  "purpose": "Renew Issue #1027 lease after target-drift reconciliation so current-target path reservation can be refreshed.",
+  "expected_coord_head": "87162c198ca5ae77d3db35d3cbbd06c3b858b592",
+  "expected_generation": 5,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+    "write_paths": [
+      ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
+      "AGENTS.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_flow_v2_execution_scheduler_view.py",
+      "tools/execution_invocation_exit.py",
+      "tools/execution_record.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED"
+  },
+  "purpose": "Refresh Issue #1027 exact path reservation onto current cleanup target b84f6fb1.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
