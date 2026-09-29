@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
@@ -37,6 +37,7 @@
       ".github/workflows/whd-control-transaction-v2-request.yml",
       "tests/process/test_issue1022_root_ci_parity.py",
       "tests/process/test_issue724_report_handler_identity_prefix.py",
+      "tests/process/test_issue899_push_transaction_ingress.py",
       "tests/process/test_root_local_first_entry_hard_gate.py",
       "tools/change_test_profile.py",
       "tools/control_plane_regression.py",
@@ -85,7 +86,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED_CURRENT_TARGET_WITH_AI_LIBRARY_AND_RECEIPT_TEST",
+  "semantic_state": "PATHS_RESERVED_CURRENT_TARGET_WITH_CI_RECEIPT_HELPER",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
@@ -93,13 +94,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
   "transaction": {
-    "expected_fingerprint": "1893d61a52b7d0bdc422b562a6f194a81bfb5caf876e72d11c09124d47361466",
-    "id": "gha:36598965739:1022:ACQUIRE:15",
+    "expected_fingerprint": "6c5f2b2c0a74d0ecfe8b701d41cdbe9c75d01c860a8efb60094d74d1c356bd7e",
+    "id": "gha:36599224289:1022:RESERVE_PATHS:16",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T163546Z",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:35:46Z",
+  "updated_at": "2026-09-29T16:38:15Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
