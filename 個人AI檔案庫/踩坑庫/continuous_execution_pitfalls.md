@@ -7,6 +7,8 @@ whd_schema: WHD_DOC_META_V1
 
 # 長流程持續執行 / 停工點踩坑規則
 
+> **[REFERENCE — FLOW V2 CURRENT SEMANTICS ONLY]** 本檔保留大量 pre-Flow-v2 checkpoint / continuity-controller 事故敘述。凡出現 `tools/continuity_controller.py`、`RECOVERING checkpoint`、legacy work-order branch、claim/Guard/finalization 等 imperative wording，除非段落明確標 CURRENT Flow v2，均只作 historical evidence；不得覆蓋 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
+
 ## SCHEDULED_WAKEUP_STATUS_ONLY_PITFALL
 
 排程／automation 只是 wake-up trigger，不是 execution owner；canonical shorthand：`wake-up trigger != execution owner`。醒來後只做狀態回報再停止，等同把排程誤當 execution cadence，屬於 continuity regression。
@@ -16,16 +18,16 @@ whd_schema: WHD_DOC_META_V1
 - 沒有 concrete RUN 但 owning plan 需要 RUN：分類 `RUN_NOT_CREATED`，立即處理會建立 RUN 的 prerequisite/trigger/fix，禁止等待。
 - `status update != exit`；GREEN/RED 都不是自動停點。
 - 若平台被迫切斷，先留下完整 durable checkpoint，下一次 wake-up 從 exact next action 恢復。
-- 本段是 REFERENCE/pitfall；唯一 scheduled-wakeup execution authority 仍是 `.agents/skills/engineering/executable-continuity-controller/SKILL.md`。
+- 本段是 REFERENCE/pitfall；唯一 scheduled-wakeup execution authority 是 `flow-v2-execution` 的 ExecutionRecord + scheduler view + invocation-exit machine。`executable-continuity-controller` 只作 MIRROR/compatibility entry。
 
 ## Authority status
 
 本文件只保留歷史事故、操作提醒與相容性回歸背景，角色是 **REFERENCE**，不是 executable authority。
 
-- executable machine CURRENT：`tools/continuity_controller.py`
-- operations/semantic CURRENT：`.agents/skills/engineering/executable-continuity-controller/SKILL.md`
-- marker/string presence is **documentation compatibility evidence**, not executable enforcement.
-- 本文件若與上述 CURRENT authority 衝突，以上述 CURRENT 為準；不得從本文件的 marker、字串或舊 test 反推 machine state/finalization 行為。
+- executable semantic CURRENT：`WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + `tools/execution_invocation_exit.py`。
+- operational CURRENT：`.agents/skills/engineering/flow-v2-execution/SKILL.md`。
+- `executable-continuity-controller` Skill 與 `tools/continuity_controller.py` 只保留 MIRROR / historical compatibility；marker/string presence 不是 executable enforcement。
+- 本文件若與 Flow v2 CURRENT authority 衝突，以 Flow v2 為準；不得從舊 checkpoint marker、字串或舊 test 反推 machine state/finalization 行為。
 
 ## 事故模式：把派工完成當成停工點
 
@@ -41,7 +43,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 - 只有 COMPLETE、真正需要產品決策/權限/不可推導資料的 BLOCKED，或平台實際 Runtime/tool interruption，才允許離開目前工作鏈。
 - Runtime 被硬切時要留下 durable checkpoint；下一回合先驗 drift，再從 next exact action 續跑，不重新要求使用者交代已知上下文。
 
-以上是 reference guidance；真正 checkpoint schema、合法 state、transition 與 finalization 是否可通過，必須由 `tools/continuity_controller.py` 的實際 behavior 判定。
+以上是 reference guidance；CURRENT durable state、transition、resume 與 finalization 是否可通過，必須由 `WHD_EXECUTION_RECORD_V2`、atomic control transaction 與 `tools/execution_invocation_exit.py` 的實際 behavior 判定。legacy checkpoint 只作 migration evidence。
 
 ## CHECKPOINT 可見層事故
 
@@ -58,7 +60,7 @@ WHD 曾出現 durable checkpoint / resume contract 已存在，但只有內部�
 
 ## Remote QA 邊界
 
-Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 為唯一 authority；本規則不建立第二套 polling state machine。Durable WAITING/RECOVERING state 仍由 executable controller 判定。
+Remote QA 的入口由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` bridge 回 Flow v2；exact `active_run/run_id/head_sha` 與 `POLL_QA/ACCEPT_QA/FAIL_QA` 存在同一 ExecutionRecord。Durable wait/resume/finalization 不再由 legacy continuity controller 判定。
 
 ## 相容性／回歸參考（非 executable enforcement）
 
@@ -83,7 +85,7 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - exact tested HEAD / ancestry 未變時，既有 terminal QA 可繼續作 evidence；若 run identity / ancestry 改變才重新分類。
 - **使用者不是續跑 scheduler。** recovery identity 驗完且 next action 可自主執行時，要直接續做，不等使用者再說「繼續」。
 
-這些 recovery 提醒不建立第二套 state machine；實際 `RECOVERING` checkpoint 合法性與 transition 仍交給 `tools/continuity_controller.py`。
+這些 recovery 提醒不建立第二套 state machine；legacy `RECOVERING` checkpoint 名稱只作事故語彙。CURRENT recovery 由 ExecutionRecord 的 structured next_action / RECONCILE / generation fencing 表達。
 
 ## ISSUE188_STALE_WAIT_PITFALL
 
@@ -96,12 +98,12 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - exact run terminal 時立即退出 waiting；非 terminal 但找不到 matching active run 時，以連續 2 次 observation 排除短暫 API 延遲，之後強制進 `RECOVERING_STALE_WAIT`。
 - recovery 必須先 remote refetch、反讀 checkpoint、驗 work/production HEAD 與 exact run identity；無 drift 就接 next exact action，不重跑已完成證據。
 - global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
-- polling cadence 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 負責，不是使用者責任；durable state / resume / finalization 則由 `tools/continuity_controller.py` 負責。**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
+- polling cadence 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` bridge 到 Flow v2 active_run 負責，不是使用者責任；durable state / resume / finalization 由 ExecutionRecord + atomic transaction + invocation-exit 負責。**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
 - `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 remote-QA/documentation regression guards；它們不取代 executable checkpoint state/finalization authority。
 
-## WORK_ORDER_LINEAGE_PITFALL
+## WORK_ORDER_LINEAGE_PITFALL — HISTORICAL/SUPERSEDED BRANCH MECHANICS
 
-#185 暴露工單級 branch lineage 缺陷：T3 尚未整合回 production 時，T4 依「每張子票從 latest production 開 fresh branch」起跑，結果 **T4 吃到舊 T3 HEAD**，形成已驗收前序成果與後續子票分叉。
+#185 暴露工單級 lineage 缺陷。下方「工單主分支 / 子票 branch」具體 mechanics 已被 Flow v2 generation + canonical root workspace + mutation_scope/root-local-first 取代；只保留『後續工作不得遺失已接受前序成果』這個事故教訓。
 
 永久規則：
 
@@ -115,7 +117,7 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - 若歷史工單已發生 lineage divergence，先 classify accepted commits，建立/修復單一 work-order lineage，再續工；不得把舊 production branch 當作「比較乾淨」而丟掉前序 accepted lineage。
 - `.agents/skills/engineering/派工/SKILL.md::WORK_ORDER_LINEAGE_CONTRACT` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 workflow lineage regression guards；它們不建立另一套 executable continuity state machine。
 
-## REMOTE_TERMINAL_CLOSING_LOCK_GAP
+## REMOTE_TERMINAL_CLOSING_LOCK_GAP — HISTORICAL/SUPERSEDED
 
 ### 事故模式
 
@@ -124,11 +126,11 @@ Remote QA 在 `queued / in_progress` 時有 `REMOTE_QA_ACTIVE_LOCK`，所以 30 
 ### 根因與永久修正
 
 - 根因不是缺少 `NON_TERMINAL_CONTINUE` 文字，而是 enforcement scope 只覆蓋 workflow finalization，沒有覆蓋 assistant turn boundary。
-- Canonical fix 是 `tools/continuity_controller.py::assert_turn_exitable` / CLI `assert-turn-exitable`。
-- `RUNNING / WAITING_REMOTE / RECOVERING` 必須拒絕 turn exit並回傳 exact `next_action`；`BLOCKED` 可 turn-exit 但不可 finalizable；terminal states 可 turn-exit。
+- HISTORICAL fix 曾使用 `tools/continuity_controller.py::assert_turn_exitable`；CURRENT fix 是 `tools/execution_invocation_exit.py::classify_invocation_exit` + durable DONE tuple。
+- CURRENT turn-exit 只依 ExecutionRecord state + structured `next_action` + live lease/active_run/closure；terminal-tail `MERGE/FINALIZE` 固定 `CONTINUE_TERMINAL_TAIL`，只有 genuine machine blocker 可中斷。
 - Remote terminal 後若還有收尾，必須 `WAITING_REMOTE → RUNNING(next_acceptance_action)`，由 global turn-exit gate 無縫接手 remote lock。
 - progress / CHECKPOINT / PASS / integrated / process-incomplete 都只是 observation；只要 machine checkpoint 還有可自主 next action，使用者就不是續跑 scheduler。
-- Behavior authority：`tests/process/test_continuity_controller.py` 的 remote-success → closing-RUNNING regression。入口文字 marker 只作 routing compatibility guard。
+- CURRENT behavior authority：`tests/process/test_flow_v2_execution_invocation_exit.py` 與 Flow v2 transaction regressions；legacy continuity-controller tests只作 migration compatibility。
 
 ## SILENT_ACTIVE_WORK_PITFALL
 
@@ -145,7 +147,7 @@ Scheduled Resume 已能自行工作，但 active work 期間完全靜默。對�
 - 沒有 active work 才可靜默。
 - heartbeat 只是 visibility observation；**進度回報不是停工點**，回報後有自主 next action 就繼續。
 
-Canonical authority：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
+CURRENT authority：Flow v2 ExecutionRecord + NON_AUTHORITY runtime observation；`executable-continuity-controller` 只作 compatibility bridge。
 
 ## TERMINAL_EVIDENCE_DELAYED_REPORT_PITFALL
 
@@ -159,7 +161,7 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - 不得為了讓最終報告更完整而延後已經成立的 PASS / FAIL / COMPLETE 事實。
 - immediate report 只是一個 observation；回報後若仍有可自主 next action，仍必須繼續。
 - 只有 live terminal evidence 可觸發；不得猜測或提前宣告結果。
-- Canonical authority：executable-continuity-controller::IMMEDIATE_TERMINAL_PROGRESS_REPORT。
+- CURRENT authority：terminal fact可立即投影 user-visible progress，但 completion/exit 仍由 Flow v2 durable DONE / invocation-exit machine決定。
 
 ## POLLING_WITHOUT_PROGRESS_PRODUCER_PITFALL
 
@@ -174,7 +176,7 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - no producer / no active run / RUN_NOT_CREATED 時，立即停止假等，去執行 prerequisite / trigger / repair。
 - terminal producer 立即離開 waiting，接下一個真正執行動作。
 - status-only loop 是 continuity regression。
-- Canonical authority：executable-continuity-controller::POLLING_OBSERVATION_ONLY。
+- CURRENT authority：Flow v2 `active_run` + structured `POLL_QA`; observation不能產生進度或 execution authority。
 
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback
