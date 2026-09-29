@@ -257,12 +257,12 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
 7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
 
-### 0.0.3.1 Executable Continuity finalization bridge
+### 0.0.3.1 Flow v2 durable completion / resume bridge
 
-<!-- EXECUTABLE_CONTINUITY_BRIDGE_V1 -->
-當任務具有 durable checkpoint、remote QA、runtime cut / resume，或準備宣告完成／關單時，`AGENTS.md` 只負責導向 `executable-continuity-controller`，不得在此複製第二套 controller state machine。Canonical executable 是 `tools/continuity_controller.py`；操作語意以 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 為準。
+<!-- FLOW_V2_DURABLE_COMPLETION_BRIDGE_V1 -->
+當任務具有 remote QA、runtime cut / resume，或準備宣告完成／關單時，唯一 CURRENT durable execution truth 是 `WHD_EXECUTION_RECORD_V2`。續跑依 live lease + structured `next_action`；completion/turn exit 依 `tools/execution_invocation_exit.py`；closure 只由 atomic `FINALIZE` 寫成 durable `DONE`。
 
-正式 finalization 前必須對 authoritative checkpoint 實際執行 `python -m tools.continuity_controller assert-finalizable path/to/checkpoint.json`（`assert-finalizable`）。若 executable guard 尚未放行，就不得因文字進度、聊天結尾、部分 QA GREEN 或 runtime 視窗中斷而宣告完成；續工／remote polling 仍依 controller Skill 與對應領域 Skill 的既有權責執行。
+`tools/continuity_controller.py`、legacy checkpoint finalization 與 `assert-finalizable checkpoint.json` 只保留 historical/migration evidence，**不得作 CURRENT finalization prerequisite、execution authority 或停止判定**。exact-head QA GREEN 必須先 `ACCEPT_QA / CONSUME_QA`，進入 terminal tail 後持續 `MERGE → FINALIZE → DONE`；只有 fresh machine evidence 的 genuine blocker 可以中斷。
 
 ### 0.1 知識載入優先級
 
