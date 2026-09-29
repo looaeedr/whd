@@ -1,38 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-expand-ci-helper-16paths-retry2-20260929T163815Z",
+  "request_id": "issue1022-reconcile-published-head-20260929T164129Z",
   "issue": 1022,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T163546Z",
-  "expected_coord_head": "e8b0aaea07d045085a5155eb1c77e2e8d938f561",
-  "expected_generation": 16,
+  "expected_coord_head": "dc8d92df53d966cf9da81c008f935073c22467fa",
+  "expected_generation": 17,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-    "write_paths": [
-      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      ".agents/skills/engineering/寫排程/SKILL.md",
-      ".agents/skills/engineering/工作槽/SKILL.md",
-      ".agents/skills/engineering/排程模擬/SKILL.md",
-      ".github/workflows/whd-control-plane-regression.yml",
-      ".github/workflows/whd-control-transaction-v2-request.yml",
-      "tests/process/test_issue1022_root_ci_parity.py",
-      "tests/process/test_issue724_report_handler_identity_prefix.py",
-      "tests/process/test_issue899_push_transaction_ingress.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/change_test_profile.py",
-      "tools/control_plane_regression.py",
-      "tools/root_local_first_gate.py",
-      "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED_CURRENT_TARGET_WITH_CI_RECEIPT_HELPER",
-    "updated_at": "2026-09-29T16:38:15Z"
+    "observed_work_branch": "governance/issue1022-root-ci-parity-identity-reporting",
+    "observed_head_sha": "512629eecdb0ab6cdb72c80aa2aee940048a1da7",
+    "observed_target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+    "semantic_state": "GIT_DIFF_PUBLISHED_CI_GREEN",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml",
+        "pr_number": 1033
+      },
+      "display": "Consume exact-head successful PR #1033 control-plane QA"
+    },
+    "updated_at": "2026-09-29T16:41:29Z"
   },
-  "purpose": "Expand Issue #1022 exact scope by one regression helper exposed by PR #1033 CI so legacy root unlock receipt construction supplies WHD_TEST_EXECUTION_RECEIPT_V1.",
+  "purpose": "Reconcile Issue #1022 Flow v2 record to the exact published PR #1033 head after 16-path scope readback and all three PR checks succeeded.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
