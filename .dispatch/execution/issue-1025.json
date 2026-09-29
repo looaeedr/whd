@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 15,
+  "generation": 16,
   "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
   "issue": 1025,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
-    "expires_at": "2026-09-29T15:37:37Z",
+    "expires_at": "2026-09-29T15:54:11Z",
     "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-    "token": "lease:1025:36589655116:1"
+    "token": "lease:1025:36591785576:1"
   },
   "mutation_scope": {
     "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
@@ -62,13 +62,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "81cea66f20cd5b1673dacea04c303b0288da52e8ffce14b4db4a4dce4bb94c3b",
-    "id": "gha:36591658599:1025:ACCEPT_QA:14",
+    "expected_fingerprint": "7e0228e16d8b4cda03ad5e45c0e6f1bff70d23054838b7e0385a84d66cb6a738",
+    "id": "gha:36591785576:1025:ACQUIRE:15",
     "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-    "kind": "ACCEPT_QA",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:38:15Z",
+  "updated_at": "2026-09-29T15:39:11Z",
   "version": 2,
   "work_branch": "governance/issue1025-flow-v2-roundtrip-reduction"
 }
