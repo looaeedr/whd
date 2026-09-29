@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1016-reserve-terminal-tail-20260929T1138Z",
-  "issue": 1016,
-  "kind": "RESERVE_PATHS",
+  "request_id": "issue1017-acquire-root-local-first-20260929T1147Z",
+  "issue": 1017,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1016:terminal-tail-drain:20260929T113548Z",
+  "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1147Z",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work0:issue1016:terminal-tail-drain:20260929T113548Z",
+    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1147Z",
     "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
@@ -22,22 +22,12 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Fix Flow v2 terminal-tail exit behavior so next_action=FINALIZE cannot yield at a normal host boundary and must drain to DONE or a genuine blocker.",
-    "issued_at": "2026-09-29T11:36:11Z",
-    "expires_at": "2026-09-29T11:41:11Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Fix Flow v2 terminal-tail exit behavior so next_action=FINALIZE cannot yield at a normal host boundary and must drain to DONE or a genuine blocker.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Harden root-local-first entry against branch-first regression while preserving PATHS_RESERVED single-writer semantics.",
+    "issued_at": "2026-09-29T11:46:51Z",
+    "expires_at": "2026-09-29T11:51:51Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Harden root-local-first entry against branch-first regression while preserving PATHS_RESERVED single-writer semantics.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "80cacfa429e436266953c7b6edb4067693731c6e",
-  "expected_generation": 2,
-  "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-    "write_paths": [
-      "tools/execution_invocation_exit.py",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-      ".github/workflows/whd-control-plane-regression.yml"
-    ],
-    "delete_paths": []
-  }
+  "expected_coord_head": "1fe54f469f98087d80bde75348eb290259a0a962",
+  "expected_generation": 1,
+  "effect": {}
 }
