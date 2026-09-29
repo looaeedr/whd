@@ -16,7 +16,7 @@ from tools.execution_record import ExecutionRecord
 
 
 SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
-    "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "MERGE", "HANDOFF", "FINALIZE", "RECONCILE", "BLOCK"
+    "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA", "MERGE", "HANDOFF", "FINALIZE", "RECONCILE", "BLOCK"
 })
 REMOTE_ACTIVE_STATUSES = frozenset({"queued", "in_progress", "pending", "waiting", "requested"})
 
@@ -103,6 +103,21 @@ def assert_durable_terminal_exit(record: ExecutionRecord) -> bool:
         )
     return True
 
+
+def terminal_tail_active(record: ExecutionRecord) -> bool:
+    """Return whether the record crossed the no-yield terminal-tail boundary."""
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    if record.next_action is None:
+        return False
+    if record.next_action.kind == "FINALIZE":
+        return True
+    return (
+        record.next_action.kind == "MERGE"
+        and record.qa.last_accepted_run is not None
+        and record.qa.accepted_head_sha == record.head_sha
+    )
+
 def classify_invocation_exit(
     record: ExecutionRecord,
     *,
@@ -152,7 +167,7 @@ def classify_invocation_exit(
         if record.next_action.kind == "POLL_QA" and record.next_action.kind in OBSERVATION_ACTION_KINDS and run_status in REMOTE_ACTIVE_STATUSES:
             return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
 
-    if record.next_action is not None and record.next_action.kind == "FINALIZE":
+    if terminal_tail_active(record):
         return _decision(
             record,
             "CONTINUE_TERMINAL_TAIL",

@@ -255,7 +255,7 @@ def test_yield_trusted_writer_rejects_acquire_only_churn():
         invocation_identity=invocation,
     )
 
-    with pytest.raises(ControlTransactionError, match="SCHEDULER_EXECUTION_NO_PROGRESS"):
+    with pytest.raises(ControlTransactionError, match="CONTINUE_TERMINAL_TAIL"):
         execute_transaction(
             record,
             plan,

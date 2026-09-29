@@ -201,6 +201,9 @@ CURRENT machine owners：
 - user-visible completion/terminal claim 與 normal task exit 前，必須以 `tools/execution_invocation_exit.py::assert_durable_terminal_exit(record)` 驗 `WHD_EXECUTION_RECORD_V2`。
 - 唯一 durable terminal tuple：`state=DONE`、`next_action=null`、`lease=null`、`active_run=null`、`owner_kind/owner_id=NONE`、`lane_id=null`、`closure.issue_closed=true`、`closure.released_at!=null`、`mutation_scope` 為 `RELEASED` 或不存在。
 - 任一條未成立即 `DURABLE_TERMINAL_EXIT_BLOCKED`；同一 invocation 必須繼續 exact `next_action` 到 DONE，或留下 genuine machine blocker。**進度回報、功能面成功、merge/QA 成功都不是停止點。**
+- **GREEN consume hard gate**：exact-head QA/CI terminal GREEN 不得作為 turn exit。GREEN 必須先被 `ACCEPT_QA` / `CONSUME_QA` 寫入 canonical record；若 continuation=`MERGE`，立即進 no-yield terminal tail。
+- **terminal tail hard gate**：accepted exact-head QA + `next_action=MERGE`，以及 merged + `next_action=FINALIZE`，都固定由 `classify_invocation_exit` 回 `CONTINUE_TERMINAL_TAIL`；此時 host boundary / substantive progress 不得授權 YIELD。
+- terminal tail 唯一正常終點是 `MERGE → Issue close/readback → FINALIZE → RELEASED/DONE`。`PR_MERGED` 本身仍是 nonterminal；只有 genuine machine blocker 可中斷。
 - static contract：`.agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json`。
 
 ### 0.0.2 超長 Log / Context-Safe Execution 硬閘門

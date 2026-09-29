@@ -143,6 +143,19 @@ Machine owners：`tools/control_transaction.py` + `tools/control_transaction_req
 
 這個 fast path 只消除「已經有 exact terminal GREEN 還要再綁一次再接受一次」的重複 round-trip，不降低 QA 證據要求。
 
+### TERMINAL_GREEN_DRAIN_HARD_GATE_V1
+
+QA / CI GREEN 只是驗證 checkpoint，**不是 physical return authority，也不是 task terminal**。
+
+1. exact-head terminal GREEN 一旦被 `ACCEPT_QA` 或 `CONSUME_QA` 接受，若 structured continuation 是 `MERGE`，該 record 立即進入 **no-yield terminal tail**。
+2. no-yield terminal tail 固定涵蓋 `MERGE → FINALIZE → DONE`。`host_boundary`、進度回報、已完成 substantive transaction、PR 已 merged 都不得重新取得 YIELD 權限。
+3. machine owner=`tools/execution_invocation_exit.py::terminal_tail_active / classify_invocation_exit`；命中時固定 `CONTINUE_TERMINAL_TAIL / may_return=false / requires_yield=false`。
+4. `YIELD` trusted transaction 必須先通過 invocation-exit classifier；因此 GREEN→MERGE 或 MERGE→FINALIZE 中間的 YIELD request 必須 fail closed。
+5. trusted MERGE executor 已負責把 `MERGE → FINALIZE` 在同一 workflow 內 drain；FINALIZE 必須 close Issue + fresh readback + RELEASE reservation/lease/owner 後才可成為 `DONE`。
+6. 唯一可中斷 terminal tail 的是 fresh machine evidence 形成的 genuine blocker；不得把 host boundary、聊天回合結束、CI GREEN 或 PR merged 當 blocker。
+
+<!-- TERMINAL_GREEN_DRAIN_HARD_GATE_V1 -->
+
 ### UNRELATED_COORD_CAS_RETRY_V1
 
 共享 `coord/execution-v2` 被其他 Issue 推進時，不得把可證明無關的 CAS race 丟回 caller 人工重送。trusted executor 在 CAS 失敗後 fresh-read；只有 current Issue fingerprint 仍與本 transaction pre-state 完全一致時，才可在同一 workflow 內重建相同 semantic action。若 current Issue 已變則 fail closed。對 `RESERVE_PATHS` / atomic admission，任何 retry 都必須重新通過最新 cross-Issue path-conflict check。
@@ -259,7 +272,7 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 - `RESUME_CURRENT`：若 lease 缺失/expired，先 ACQUIRE；**ACQUIRE 成功只是續跑前置，不是本輪 progress，也不是停止點**。同一 invocation 必須立即 fresh-read，繼續執行 ACQUIRE 前保存的 exact `next_action`。
 - `READY_CANDIDATES`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue`（fresh ready-index 中最小 Issue）；scheduler 必須對該 Issue 送 ACQUIRE。若 CAS/claim race 輸掉，fresh-read 後重新投影與選擇，不得以「有多張可選」停止。
 - 本輪只有以下 evidence 可合法離開：`DONE`、`LANE_BUSY`、合法 `BLOCKED`、active remote QA wait，或本 invocation 已有至少一個 reconciled substantive transaction（`START_BRANCH/APPLY_COMMIT/START_QA/ACCEPT_QA/MERGE/HANDOFF/FINALIZE/RECONCILE/BLOCK`）後因 host boundary 執行 YIELD。
-- **terminal-tail exception**：fresh record 若 `next_action.kind=FINALIZE`，上一條的 substantive-transaction YIELD 權限立即失效；必須同 invocation drain FINALIZE 到 `DONE` 或 genuine blocker。
+- **terminal-tail exception**：fresh record 若已接受 exact-head QA 且 `next_action.kind=MERGE`，或 `next_action.kind=FINALIZE`，substantive-transaction / host-boundary YIELD 權限立即失效；必須同 invocation drain `MERGE → FINALIZE → DONE`，只有 genuine machine blocker 可中斷。
 - `WAKE`、讀取、文字回報、HEARTBEAT、單獨 ACQUIRE 都不是 substantive progress。
 - scheduler 在任何正常 return 前必須等價執行 `classify_invocation_exit(..., host_boundary=True)`。若結果為 `SCHEDULER_EXECUTION_NO_PROGRESS`、`CONTINUE_EXECUTION` 或 `ACQUIRE_REQUIRED`，本輪**不得結束**；必須繼續 exact `next_action`。若 runtime 被外部強制切斷，視為 execution failure，不得宣稱 IDLE/DONE。
 

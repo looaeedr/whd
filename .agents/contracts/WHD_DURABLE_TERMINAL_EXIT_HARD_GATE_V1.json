@@ -1,6 +1,6 @@
 {
   "schema": "WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1",
-  "version": 1,
+  "version": 2,
   "status": "CURRENT",
   "machine_owner": "tools/execution_invocation_exit.py",
   "state_owner": "WHD_EXECUTION_RECORD_V2",
@@ -29,5 +29,27 @@
   "nonterminal_policy": "CONTINUE_EXACT_NEXT_ACTION_OR_GENUINE_MACHINE_BLOCKER",
   "progress_report_is_stop_authority": false,
   "completion_claim_guard": "assert_durable_terminal_exit",
-  "physical_yield_note": "A legal YIELD/LANE_BUSY return is not a task-complete claim."
+  "physical_yield_note": "A legal YIELD/LANE_BUSY return is not a task-complete claim.",
+  "terminal_green_is_stop_authority": false,
+  "terminal_green_policy": "CONSUME_AND_CONTINUE_SAME_INVOCATION",
+  "terminal_tail_entry": {
+    "accepted_exact_head_qa": {
+      "requires": [
+        "qa.last_accepted_run=NON_NULL",
+        "qa.accepted_head_sha==head_sha"
+      ],
+      "next_action": "MERGE"
+    },
+    "merged_anchor": {
+      "next_action": "FINALIZE"
+    }
+  },
+  "terminal_tail_actions": [
+    "MERGE",
+    "FINALIZE"
+  ],
+  "host_boundary_yield_forbidden_in_terminal_tail": true,
+  "terminal_tail_exit_decision": "CONTINUE_TERMINAL_TAIL",
+  "terminal_tail_required_end": "DURABLE_DONE_TUPLE",
+  "genuine_machine_blocker_only_escape": true
 }

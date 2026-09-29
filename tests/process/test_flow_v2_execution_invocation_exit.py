@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import pytest
 from dataclasses import replace
 
@@ -17,6 +19,7 @@ from tools.execution_record import (
 INV = "scheduled:00:run-a"
 OTHER = "scheduled:20:run-b"
 NOW = "2026-09-28T02:00:00Z"
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _record(state="ACTIVE", *, lease_invocation=INV, lease_expires="2026-09-28T02:05:00Z"):
@@ -231,3 +234,52 @@ def test_done_record_rejects_uncleared_owner_identity():
             owner_id="scheduler.a",
             lane_id="scheduler.a",
         )
+
+
+def test_terminal_green_merge_tail_cannot_yield_at_host_boundary():
+    base = _record("ACTIVE")
+    merge_tail = replace(
+        base,
+        state="INTEGRATING",
+        semantic_state="QA_ACCEPTED",
+        next_action=ActionSpec(
+            kind="MERGE",
+            args={"pr_number": 1035},
+            display="merge accepted exact-head candidate",
+        ),
+        qa=replace(
+            base.qa,
+            last_accepted_run=36604683925,
+            accepted_head_sha=base.head_sha,
+        ),
+    )
+    for kind in ("ACCEPT_QA", "CONSUME_QA", "ACQUIRE"):
+        tx = TransactionState(
+            id=f"tx-{kind.lower()}",
+            kind=kind,
+            status="RECONCILED",
+            expected_fingerprint="a" * 64,
+            invocation_identity=INV,
+        )
+        result = classify_invocation_exit(
+            replace(merge_tail, transaction=tx),
+            invocation_identity=INV,
+            now=NOW,
+            host_boundary=True,
+        )
+        assert result.decision == "CONTINUE_TERMINAL_TAIL"
+        assert result.may_return is False
+        assert result.requires_yield is False
+
+
+def test_terminal_exit_contract_forbids_green_boundary_yield():
+    payload = json.loads(
+        (ROOT / ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert payload["terminal_green_is_stop_authority"] is False
+    assert payload["terminal_green_policy"] == "CONSUME_AND_CONTINUE_SAME_INVOCATION"
+    assert payload["terminal_tail_actions"] == ["MERGE", "FINALIZE"]
+    assert payload["host_boundary_yield_forbidden_in_terminal_tail"] is True
+    assert payload["terminal_tail_exit_decision"] == "CONTINUE_TERMINAL_TAIL"
