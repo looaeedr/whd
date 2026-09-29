@@ -1,14 +1,24 @@
 {
   "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id":"issue1025-renew-after-expiry-1",
+  "request_id":"issue1025-refreeze-reconcile-1",
   "issue":1025,
-  "kind":"ACQUIRE",
+  "kind":"RECONCILE",
   "lane_id":"chatgpt.flowv2.work1",
   "invocation_identity":"interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-  "expected_coord_head":"3089a37bc233ba78bfda018887c499e8ed2d9608",
-  "expected_generation":7,
-  "effect":{},
-  "purpose":"Issue #1025 reacquire expired same-invocation lease for exact-head QA and merge",
+  "expected_coord_head":"ba9d22298898c431cf56390055f4d8cb100cb95f",
+  "expected_generation":8,
+  "effect":{
+    "observed_work_branch":"governance/issue1025-flow-v2-roundtrip-reduction",
+    "observed_head_sha":"3b8847991e805c224fd7aafb8072575e51d7d307",
+    "observed_target_sha":"96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "semantic_state":"ROOT_REFREEZE_CORRECTION_PENDING_APPLY",
+    "next_action":{
+      "kind":"APPLY_COMMIT",
+      "args":{},
+      "display":"Apply final-v3 exact tested correction to work branch"
+    }
+  },
+  "purpose":"Issue #1025 reopen Git apply step for final-v3 exact root-tested correction",
   "work_root_gate_evidence":{
     "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
