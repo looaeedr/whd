@@ -3,6 +3,29 @@
   "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
+      "id": "root-local-first",
+      "keywords": [
+        "根目錄",
+        "工作根目錄",
+        "root local",
+        "local-first",
+        "先在根目錄",
+        "完成後才推",
+        "push 前測試",
+        "修改測試都在根目錄"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/root-local-first/**",
+        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        "tools/root_local_first_gate.py",
+        "tests/process/test_root_local_first_entry_gate.py"
+      ],
+      "required_skills": [
+        "root-local-first"
+      ],
+      "required_references": []
+    },
+    {
       "id": "flow-v2-execution",
       "keywords": [
         "Flow v2",
