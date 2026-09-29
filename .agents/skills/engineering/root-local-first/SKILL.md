@@ -25,7 +25,7 @@ whd_schema: WHD_DOC_META_V1
 - `GITHUB_ONLY`；
 - `REMOTE_ACTION`。
 
-上述 remote/control-plane mode 仍依 `flow-v2-execution` 的 GitHub-only authority 執行；不得為了繞過本 gate 把一般 interactive task 假冒成 remote mode。**execution mode 字串本身不是例外證據**：remote exception 必須攜帶 `WHD_EXECUTION_MODE_PROVENANCE_V1` trusted runtime provenance；`SCHEDULER_LANE` 固定綁 canonical Flow v2 lane identity。若 remote lane 把 repository-content implementation 明確 handoff 給 interactive workspace，handoff 後立刻回到本 Skill。
+上述 remote/control-plane mode 仍依 `flow-v2-execution` 的 GitHub-only authority 執行；不得為了繞過本 gate 把一般 interactive task 假冒成 remote mode。若 remote lane 把 repository-content implementation 明確 handoff 給 interactive workspace，handoff 後立刻回到本 Skill。
 
 ## 2. Canonical root
 
@@ -97,6 +97,10 @@ production / tests / docs / Skills / AI Library / Registry 等內容修改先在
 
 在 root workspace 先完成 profile 要求的 RED/GREEN、targeted、affected subsystem、integration 與 final full gate。GitHub Actions / remote QA 是 **post-push verification**，不是第一個測試面。
 
+### 3.5.1 TEST_EXECUTION_RECEIPT_HARD_GATE_V1
+
+`ROOT_TESTS_GREEN` 不接受裸 `tests_green=true`。必須攜帶 machine-readable `WHD_TEST_EXECUTION_RECEIPT_V1`，至少 exact 綁定 `source_sha / issue / generation / exact_commands / manifest_digest`，且 status=`GREEN`。receipt 與本輪 source/reservation/test command 任一 identity 不一致即 fail closed。
+
 ### 3.6 ROOT_DIFF_FROZEN
 
 root tests terminal GREEN 後 freeze：
@@ -137,10 +141,13 @@ freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
 4. Git phase 不得順手改內容、補小修、整理格式或另改 docs；任何差異回 root 修改 → 測試 → refreeze；
 5. push 後跑 GitHub Actions / remote QA；
 6. remote QA fail 時回 root 修正，不在 Git branch 上直接熱修；
-7. interactive `START_BRANCH` / `APPLY_COMMIT` 進 Flow v2 mutation ingress 前，必須帶 `ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1`；ingress 在讀 ExecutionRecord state **之前**先驗 receipt，缺失或不合法即 fail closed；
-8. final integration 仍走 non-force PR/merge 與既有 acceptance/drift gate。
+7. final integration 仍走 non-force PR/merge 與既有 acceptance/drift gate。
 
 因此「Git phase 要用 work branch」仍是硬規則，但它位於 `GIT_WRITE_UNLOCKED` **之後**，不能再解讀成「root 開發前先建 branch」。
+
+### CONNECTOR_MUTATION_REJECTION_CLASSIFICATION_V1
+
+Git phase 的單次 connector/runtime mutation rejection **不得直接升級**為 permanent capability blocker。先分類為 `RETRYABLE_UNCLASSIFIED`，fresh-read authenticated permission、base/target existence、branch existence、matching ruleset/branch protection 與 exact connector action contract；new branch 使用 `create_branch(base_sha)`，existing branch 才使用 `update_ref(force=false)`。只有所有合法 transport 都有 fresh durable evidence 證明 unavailable/forbidden，才可標 permanent capability blocker。
 
 ## 5. Source manifest / snapshot durability
 
