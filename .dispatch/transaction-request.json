@@ -1,6 +1,6 @@
 {
   "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id":"issue1025-renew-before-qa-1",
+  "request_id":"issue1025-renew-after-expiry-1",
   "issue":1025,
   "kind":"ACQUIRE",
   "lane_id":"chatgpt.flowv2.work1",
@@ -8,7 +8,7 @@
   "expected_coord_head":"3089a37bc233ba78bfda018887c499e8ed2d9608",
   "expected_generation":7,
   "effect":{},
-  "purpose":"Issue #1025 renew same-invocation lease before remote QA and merge",
+  "purpose":"Issue #1025 reacquire expired same-invocation lease for exact-head QA and merge",
   "work_root_gate_evidence":{
     "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
