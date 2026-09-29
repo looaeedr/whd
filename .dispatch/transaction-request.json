@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-reserve-current-target-r2",
+  "request_id": "issue1022-reserve-actual-diff-r1",
   "issue": 1022,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
@@ -19,20 +19,16 @@
       ".agents/skills/engineering/排程模擬/SKILL.md",
       ".github/workflows/whd-control-plane-regression.yml",
       ".github/workflows/whd-control-transaction-v2-request.yml",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
       "tests/process/test_issue1022_root_ci_parity.py",
       "tests/process/test_issue724_report_handler_identity_prefix.py",
-      "tests/process/test_issue899_push_transaction_ingress.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
       "tools/change_test_profile.py",
       "tools/control_plane_regression.py",
-      "tools/execution_invocation_exit.py",
       "tools/root_local_first_gate.py"
     ],
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED_ON_FRESH_TARGET"
   },
-  "purpose": "Reserve Issue #1022 mutation paths on the current cleanup target before the root retest.",
+  "purpose": "Reserve only the actual Issue #1022 changed paths on the current cleanup target; overlapping durable-terminal-exit files are owned by Issue #1027 and are excluded.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
