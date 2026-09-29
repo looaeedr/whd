@@ -243,12 +243,12 @@ Canonical owner：`tools/execution_claim_guard.py::_historical_claim_payload_fro
 - Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
-## 2026-09-27 — governance parity 有 evaluator 但沒有雙向 mirror hard gate
+## [HISTORICAL / SUPERSEDED 2026-09-29] 2026-09-27 — governance parity 有 evaluator 但沒有雙向 mirror hard gate
 
 ### 事故
 #692 已有 `tools/governance_parity_gate.py`，#736 也有 main→X batch-first contract，但它們仍可能留下三個洞：parity direction 被寫死成 main→X、main 可收到非治理主體、以及 evaluator 沒有常駐 workflow 對 branch tip fresh-read。
 
-### 永久防線：BIDIRECTIONAL_GOVERNANCE_MIRROR_HARD_GATE_V1
+### 歷史防線：BIDIRECTIONAL_GOVERNANCE_MIRROR_HARD_GATE_V1（已撤銷）
 - `main` 與 `cleanup/2d-3d-sync` 只在 governance manifest scope 形成雙向 mirror；產品 authority 固定 cleanup。
 - mirror evaluator 必須接受兩個方向，且 `UNKNOWN_DIVERGENCE` fail closed。
 - target=`main` 時，manifest 外任何 changed path 固定 `NON_GOVERNANCE_PATH_TO_MAIN`；禁止 full cleanup merge/cherry-pick 把產品碼帶入 main。

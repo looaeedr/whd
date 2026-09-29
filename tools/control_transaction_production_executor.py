@@ -313,6 +313,8 @@ def _required_checks_for_target(
         pass
 
     if target_branch in {"main", "cleanup/2d-3d-sync"}:
+        # Legacy branch-ruleset compatibility context. The workflow behind this
+        # context no longer performs main/cleanup mirroring or ancestry checks.
         contexts.add("Governance Mirror Hard Gate")
     return sorted(contexts)
 
