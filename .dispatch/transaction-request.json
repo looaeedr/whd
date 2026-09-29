@@ -1,20 +1,34 @@
 {
-  "effect": {},
-  "expected_coord_head": "c8bc20e97ac3805748e64a33d7351a142d791772",
-  "expected_generation": 13,
+  "effect": {
+    "next_action": {
+      "args": {
+        "head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
+        "run_id": 36579604214
+      },
+      "display": "Accept exact synced-head Control Plane Regression success",
+      "kind": "ACCEPT_QA"
+    },
+    "purpose": "WHD Control Plane Regression exact synced-head acceptance before merge",
+    "run_head_sha": "86370abdd60b01ec085c4e92c50e1fd69d1219b4",
+    "run_id": 36579604214,
+    "run_status": "completed",
+    "semantic_state": "REMOTE_QA_TERMINAL_SUCCESS_OBSERVED"
+  },
+  "expected_coord_head": "56291061f05065dd1f3e94e6433a5a8ec8529478",
+  "expected_generation": 14,
   "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
   "issue": 1019,
-  "kind": "ACQUIRE",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1019-renew-lease-2",
+  "request_id": "issue1019-startqa-86370-1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 renew same-invocation lease for exact synced-head QA/merge/finalize tail\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 bind completed exact synced-head Control Plane Regression run 36579604214\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-09-29T14:18:30Z",
+    "expires_at": "2026-09-29T14:21:00Z",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "issued_at": "2026-09-29T14:13:30Z",
-    "purpose": "Issue #1019 renew same-invocation lease for exact synced-head QA/merge/finalize tail",
+    "issued_at": "2026-09-29T14:16:00Z",
+    "purpose": "Issue #1019 bind completed exact synced-head Control Plane Regression run 36579604214",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
