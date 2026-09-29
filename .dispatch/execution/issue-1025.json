@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
-  "head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
+  "generation": 13,
+  "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb",
   "issue": 1025,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -37,10 +37,10 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb"
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Advance durable head to tree-identical QA retrigger commit",
-    "kind": "APPLY_COMMIT"
+    "display": "Bind exact-head QA for tree-identical retrigger commit",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -50,7 +50,7 @@
   },
   "recovery_history": [],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED_BEFORE_EMPTY_HEAD_ADVANCE",
+  "semantic_state": "QA_RETRIGGER_HEAD_APPLIED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
@@ -58,13 +58,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "ffce58153269382bf80ca8698b9f9356fea5ab9006690b59f629ae701b36d4ef",
-    "id": "gha:36591000542:1025:ACCEPT_QA:11",
+    "expected_fingerprint": "2a77273554146048d18d5957277f7f5c3cdfd9fec2f114f63f44f8b5cb6c8c76",
+    "id": "gha:36591214709:1025:APPLY_COMMIT:12",
     "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-    "kind": "ACCEPT_QA",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:33:06Z",
+  "updated_at": "2026-09-29T15:34:36Z",
   "version": 2,
   "work_branch": "governance/issue1025-flow-v2-roundtrip-reduction"
 }
