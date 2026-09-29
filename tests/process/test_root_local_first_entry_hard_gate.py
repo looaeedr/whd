@@ -201,3 +201,10 @@ def test_bare_tests_green_boolean_is_rejected():
             execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(),
             root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="f" * 64,
         )
+
+def test_root_local_mirror_points_to_current_drive_v3_identity():
+    payload = _contract()
+    source = payload["canonical_source"]
+    assert source["drive_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
+    assert source["canonical_payload_sha256"] == "396fa3bf682e1d2ac3d737760698a6d1b72646aa14caa2ab05ff206130d240e7"
+    assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
