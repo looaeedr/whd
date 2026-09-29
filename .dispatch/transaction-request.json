@@ -1,14 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1025-renew-after-resync-1",
+  "request_id": "issue1025-reconcile-target-96cb-1",
   "issue": 1025,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-  "expected_coord_head": "4f70e088df4f898c0d8f8544b79bbd3710adb4e4",
-  "expected_generation": 2,
-  "effect": {},
-  "purpose": "Issue #1025 renew expired same-invocation lease after root resync",
+  "expected_coord_head": "7658b6530396a47d7f0ffc3e87d453ec11f26475",
+  "expected_generation": 3,
+  "effect": {
+    "observed_work_branch": "governance/issue1025-flow-v2-roundtrip-reduction",
+    "observed_head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "observed_target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "semantic_state": "ROOT_RESYNCED_AFTER_TARGET_DRIFT",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested work branch after root freeze"
+    }
+  },
+  "purpose": "Issue #1025 reconcile non-overlapping target drift after root resync and retest",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
