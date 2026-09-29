@@ -1,0 +1,80 @@
+{
+  "schema": "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1",
+  "version": 1,
+  "status": "CURRENT",
+  "workspace": "WHD",
+  "depends_on": {
+    "schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "library_path": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "drive_file_id": "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH"
+  },
+  "canonical_root": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_"
+  },
+  "execution_policy": {
+    "mode": "ROOT_LOCAL_FIRST",
+    "treat_root_as_local_workspace": true,
+    "root_work_surface": "/Google Drive/WHD/work",
+    "runtime_materialization_policy": "MAY_MATERIALIZE_CANONICAL_ROOT_LOCALLY_IF_IDENTITY_AND_SOURCE_PROVENANCE_ARE_PRESERVED",
+    "source_bootstrap": "CURRENT_SOURCE_MANIFEST",
+    "pre_git_write_git_access": [
+      "READ",
+      "FETCH",
+      "COMPARE"
+    ],
+    "forbidden_before_root_green": [
+      "CREATE_OR_UPDATE_FILE",
+      "CREATE_COMMIT",
+      "UPDATE_REF",
+      "PUSH",
+      "MERGE"
+    ],
+    "required_before_git_write": [
+      "ROOT_SOURCE_CURRENT",
+      "ROOT_MUTATIONS_COMPLETE",
+      "ROOT_TEST_CLASSIFIED",
+      "ROOT_TESTS_GREEN",
+      "ROOT_DIFF_FROZEN"
+    ],
+    "git_write_unlock_state": "GIT_WRITE_UNLOCKED",
+    "push_payload_policy": "EXACT_TESTED_DIFF_ONLY",
+    "on_target_drift": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE",
+    "remote_ci_role": "POST_PUSH_VERIFICATION_NOT_FIRST_TEST_SURFACE"
+  },
+  "test_classification": {
+    "GOVERNANCE_OR_SKILL": [
+      "FOCUSED_CONTRACT",
+      "PREFLIGHT_REGISTRY",
+      "AFFECTED_PROCESS_REGRESSION"
+    ],
+    "BUGFIX": [
+      "REPRO_RED",
+      "FOCUSED_REGRESSION",
+      "AFFECTED_SUBSYSTEM"
+    ],
+    "UPDATE_OR_FEATURE": [
+      "NEW_CONTRACT",
+      "FOCUSED_UNIT",
+      "AFFECTED_INTEGRATION"
+    ],
+    "CORE_OR_HIGH_RISK": [
+      "FULL_RELEVANT_REGRESSION"
+    ]
+  },
+  "fail_closed": {
+    "on_root_not_current": "ROOT_LOCAL_SOURCE_NOT_CURRENT",
+    "on_pre_git_write_before_green": "ROOT_LOCAL_GIT_WRITE_LOCKED",
+    "on_target_drift": "ROOT_LOCAL_TARGET_DRIFT_REQUIRES_RETEST",
+    "action": "STOP_BEFORE_GIT_WRITE"
+  },
+  "role": "MIRROR",
+  "mirror_policy": "POINTER_ONLY",
+  "canonical_source": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+    "drive_file_id": "1qCu4ZHCHj8FNfLIhd2Ga8tgHp_STxlLYFo54889TGj8",
+    "canonical_payload_sha256": "fa243d8b0bb89b7dd9b9c93a699ece348de28f0a6623033a06a148d3d8236209"
+  }
+}
