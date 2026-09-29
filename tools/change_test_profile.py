@@ -22,6 +22,12 @@ BASE_STAGES = {
     "DOCS_METADATA": ("SCHEMA_LINT_LINK",),
 }
 
+FULL_GATE_COMMANDS = {
+    "GOVERNANCE_FULL_SUITE": ("python tools/control_plane_regression.py",),
+    "PRODUCT_FULL_REGRESSION": ("python -m pytest -q",),
+    "NONE": (),
+}
+
 OVERLAY_STAGES = {
     "UI": ("UI_CONTRACT_STATE", "TK_XVFB", "VISUAL_ACCEPTANCE"),
     "GEOMETRY": ("GEOMETRY_INVARIANTS", "DXF_ACCEPTANCE", "RENDERER_SYNC", "SAVE_RELOAD"),
@@ -176,6 +182,8 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
         "required_stages": stages,
         "full_gate_kind": full_gate_kind,
         "full_gate_required": full_gate_required,
+        "exact_commands": list(FULL_GATE_COMMANDS[full_gate_kind]),
+        "command_owner": "tools/control_plane_regression.py" if full_gate_kind == "GOVERNANCE_FULL_SUITE" else "pytest",
         "profile_id": "+".join([change_type, *domains, full_gate_kind]),
         "workspace_root": "/Google Drive/WHD",
         "workspace_work_prefix": "/Google Drive/WHD/work/active",
