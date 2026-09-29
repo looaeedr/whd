@@ -1,8 +1,8 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1017-reconcile-target-25406777-20260929T1304Z",
+  "request_id": "issue1017-reserve-current-target-20260929T1306Z",
   "issue": 1017,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T130207Z",
   "startup_evidence": {
@@ -22,37 +22,28 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Reconcile Issue #1017 to cleanup/2d-3d-sync@254067778b72dd4d9f7cc318bb0bf23cca1c7822 after #1016/#1018 terminal completion, then re-reserve exact paths before retest.",
-    "issued_at": "2026-09-29T13:04:00Z",
-    "expires_at": "2026-09-29T13:09:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reconcile Issue #1017 to cleanup/2d-3d-sync@254067778b72dd4d9f7cc318bb0bf23cca1c7822 after #1016/#1018 terminal completion, then re-reserve exact paths before retest.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Re-reserve Issue #1017 exact hardening paths on cleanup/2d-3d-sync@254067778b72dd4d9f7cc318bb0bf23cca1c7822 after target drift reconciliation.",
+    "issued_at": "2026-09-29T13:06:00Z",
+    "expires_at": "2026-09-29T13:11:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Re-reserve Issue #1017 exact hardening paths on cleanup/2d-3d-sync@254067778b72dd4d9f7cc318bb0bf23cca1c7822 after target drift reconciliation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "4ac974235e7d83a94d85846144775ac99ee60356",
-  "expected_generation": 4,
+  "expected_coord_head": "d4283a616ed96ddd35cbb8ceaf5ce69b025fbad4",
+  "expected_generation": 5,
   "effect": {
-    "observed_work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929",
-    "observed_head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-    "observed_target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-    "semantic_state": "TARGET_DRIFT_RECONCILED",
-    "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {
-        "target_branch": "cleanup/2d-3d-sync",
-        "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-        "write_paths": [
-          ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-          ".agents/skills/engineering/root-local-first/SKILL.md",
-          ".github/workflows/whd-control-transaction-v2-request.yml",
-          "AGENTS.md",
-          "tests/process/test_issue899_push_transaction_ingress.py",
-          "tests/process/test_root_local_first_entry_hard_gate.py",
-          "tools/control_transaction_request_ingress.py",
-          "tools/root_local_first_gate.py",
-          "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md"
-        ],
-        "delete_paths": []
-      },
-      "display": "Re-reserve root-local-first hardening paths on current cleanup target"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
+      "AGENTS.md",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/control_transaction_request_ingress.py",
+      "tools/root_local_first_gate.py",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED"
   }
 }
