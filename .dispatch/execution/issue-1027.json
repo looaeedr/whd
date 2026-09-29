@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "01e357e80776cea615d07813b174be8349461122",
+    "id": 36594051738,
+    "purpose": "WHD Control Plane Regression exact-head QA for durable terminal exit hard gate",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "01e357e80776cea615d07813b174be8349461122",
   "issue": 1027,
   "lane_id": "chatgpt.flowv2.work0",
@@ -37,10 +42,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": "WHD Control Plane Regression"
+      "run_head_sha": "01e357e80776cea615d07813b174be8349461122",
+      "run_id": 36594051738
     },
-    "display": "Start exact-head control-plane QA",
-    "kind": "START_QA"
+    "display": "Accept exact-head GREEN QA",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -56,21 +62,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "DURABLE_TERMINAL_EXIT_GATE_APPLIED",
+  "semantic_state": "REMOTE_QA_GREEN_PENDING_ACCEPTANCE",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
   "transaction": {
-    "expected_fingerprint": "071ad585b6da9980d571e325103faa7c475d498478c6949ca8a58177bad8adf5",
-    "id": "gha:36593998128:1027:APPLY_COMMIT:8",
+    "expected_fingerprint": "04a1d6b77c44e9a017ec0229c096a2552c9493bf7bcc575df0f8a99647189aba",
+    "id": "gha:36594161642:1027:START_QA:9",
     "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:56:43Z",
+  "updated_at": "2026-09-29T15:57:57Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
