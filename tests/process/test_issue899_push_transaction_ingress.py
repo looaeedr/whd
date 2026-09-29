@@ -683,7 +683,14 @@ def _root_unlock_receipt():
     }
     gate = build_gate_evidence(
         execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=reservation,
-        root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="c" * 64,
+        root_mutations_complete=True, test_classified=True, tests_green=True,
+        test_receipt={
+            "schema": "WHD_TEST_EXECUTION_RECEIPT_V1", "status": "GREEN",
+            "source_sha": "a" * 40, "issue": 940, "generation": 4,
+            "exact_commands": ["python tools/control_plane_regression.py"],
+            "manifest_digest": "e" * 64,
+        },
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     return build_git_unlock_receipt(gate)
 
