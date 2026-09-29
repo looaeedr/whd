@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
@@ -47,7 +47,7 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
+      "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
       "delete_paths": [],
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
@@ -70,7 +70,7 @@
         "tools/root_local_first_gate.py"
       ]
     },
-    "display": "Reserve Issue #1022 exact paths on fresh target 81fbe0a",
+    "display": "Reserve Issue #1022 exact paths on current target 96cb073",
     "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -94,15 +94,15 @@
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
+  "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "1b848bb85b4c4ffef0906cff74b57e76cd4dc1f88519bcb988b9f1aed7e46023",
-    "id": "gha:36585379733:1022:RECONCILE:6",
+    "expected_fingerprint": "0ce8f4c08ee404e6ab5cf5b5dba4f192cb71b4c59ad91a1df32d18d62962093f",
+    "id": "gha:36587499730:1022:RECONCILE:7",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
     "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:48:19Z",
+  "updated_at": "2026-09-29T15:05:37Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
