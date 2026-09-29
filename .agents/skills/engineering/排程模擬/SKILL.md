@@ -52,6 +52,21 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 
 GitHub independent watchdog `whd-scheduler-host-watchdog.yml` 每 5 分鐘獨立檢查 expected occurrence；120 秒 grace 後沒有 durable WAKE 即 fail-visible，並依 fresh host snapshot分類 `HOST_ENTRY_FAILURE / HOST_AUTO_PAUSE / HOST_STATE_UNKNOWN`。
 
+
+## REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+所有 `/排程A`、`/排程B`、A00/A20/A40/B15/B45 的 **user-visible** progress / CHECKPOINT / terminal / exit 回報，**第一行**固定為：
+
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+
+相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
+
+- handler 只可為 `排程A` 或 `排程B`（或 exact interactive work-slot handler），不得把 entrypoint、foreign lane 或其他 runtime 冒充處理者。
+- scheduler 回報必須 fresh-read `lane_owner`、`claim_issue`、`claim_worker`；owner 必須是 real claim owner，不得因目前由排程A/B喚醒就改寫 ownership。
+- 沒有 active Issue 時工單=`NONE`；有 bootstrap projection 但尚未 durable bind 時=`UNBOUND`。slot 沒有 exact binding 時=`NONE/UNBOUND`，不得猜。
+- foreign owner / foreign lane 只能明確標示 foreign，不得偽裝成本 lane owner。
+- 此 prefix 只提供 provenance，**不建立 execution authority**；ownership authority 仍是 canonical ExecutionRecord + lease。
+
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
 
 

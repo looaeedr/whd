@@ -7,6 +7,11 @@ on:
       - cleanup/2d-3d-sync
     paths:
       - '.agents/skills/engineering/排程模擬/SKILL.md'
+      - 'tests/process/test_root_local_first_entry_hard_gate.py'
+      - 'tests/process/test_issue1022_root_ci_parity.py'
+      - 'tests/process/test_issue724_report_handler_identity_prefix.py'
+      - 'tools/control_plane_regression.py'
+      - '.agents/skills/engineering/工作槽/SKILL.md'
       - '.agents/skills/engineering/寫排程/SKILL.md'
       - '.agents/skills/engineering/派工/SKILL.md'
       - '.agents/skills/engineering/flow-v2-execution/SKILL.md'
@@ -80,47 +85,5 @@ jobs:
           python-version: '3.12'
       - name: Install focused test dependency
         run: python -m pip install --disable-pip-version-check pytest
-      - name: Compile control-plane owners
-        run: |
-          python -m py_compile \
-            tools/continuity_controller.py \
-            tools/scheduler_runtime_liveness.py \
-            tools/scheduler_host_watchdog.py \
-            tools/scheduled_resume_executor.py \
-            tools/scheduled_resume_runtime.py \
-            tools/control_transaction.py \
-            tools/control_transaction_production_executor.py \
-            tools/control_transaction_request_ingress.py \
-            tools/control_transaction_request_builder.py \
-            tools/flow_v2_merge_precheck.py \
-            tools/execution_invocation_exit.py \
-            tools/execution_scheduler_view.py \
-            tools/execution_entry_contract.py \
-            tools/execution_path_reservation.py \
-            tools/work_root_gate.py \
-            tools/change_test_profile.py
-      - name: Run stop/closure focused regressions
-        run: |
-          python -m pytest -q \
-            tests/process/test_flow_v2_execution_invocation_exit.py \
-            tests/process/test_flow_v2_execution_scheduler_view.py \
-            tests/process/test_flow_v2_merge_precheck.py \
-            tests/process/test_flow_v2_sync_target.py \
-            tests/process/test_flow_v2_atomic_control_transaction.py \
-            tests/process/test_flow_v2_path_reservation.py \
-            tests/process/test_issue865_scheduler_stop_hardening.py \
-            tests/process/test_issue851_recurring_lifecycle_turn_exit.py \
-            tests/process/test_issue769_terminal_scheduler_census_exit_gate.py \
-            tests/process/test_issue787_turn_exit_blocker_authority.py \
-            tests/process/test_scheduler_no_work_census_contract.py \
-            tests/process/test_issue892_flow_v2_production_transaction.py \
-            tests/process/test_issue899_push_transaction_ingress.py \
-            tests/process/test_issue961_work_root_hard_gate.py \
-            tests/process/test_change_test_profile.py \
-            tests/process/test_issue945_scheduler_host_watchdog.py \
-            tests/process/test_issue696_startup_authorization_purpose.py \
-            tests/process/test_issue721_task_start_authority_declaration.py \
-            tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
-            tests/process/test_issue952_governance_ancestry_reconcile.py \
-            tests/process/test_issue975_flow_v2_closure_stability.py \
-            tests/process/test_governance_single_authority.py
+      - name: Run canonical root/CI control-plane regression
+        run: python tools/control_plane_regression.py

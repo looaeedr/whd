@@ -75,4 +75,19 @@ whd_schema: WHD_DOC_META_V1
 
 Flow v2 透過 `tools/flow_v2_runtime_observation.py` adapter 投影至 `coord/monitor-v2`。這些 observation 只供 whd-monitor/HA 顯示，絕對不能反向授權施工、claim、takeover、merge 或 closure。
 
+
+## REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+所有 `/工作0/1/2/3` 的 **user-visible** progress / CHECKPOINT / terminal / exit 回報，**第一行**固定使用 fresh durable binding；不得省略、不得猜：
+
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+
+相容核心模板仍為：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`，但 CURRENT 輸出必須追加 exact `slot`。
+
+- `<handler>` 對 interactive slot 固定為 `工作0` / `工作1` / `工作2` / `工作3`；`worker.slot.1`、`worker.slot.2`、`worker.slot.3` 皆依 fresh projection，不得由聊天上下文推測。
+- `owner` 必須取 canonical ExecutionRecord 的 `claim_owner`/owner_id；尚未 ACQUIRE 時用 `NONE`，不得先把 slot identity 冒充 ownership。
+- query-only / 裸槽查詢沒有綁定 Issue 時，工單=`UNBOUND`、slot 仍顯示被查詢的 exact slot；沒有 exact durable binding 就不得猜 Issue。
+- 若 fresh read 與 observation 不一致，先顯示 canonical owner/Issue/slot，liveness 另列 UNKNOWN；不得用 stale observation 改寫 owner。
+- 此 prefix 只做 provenance / UI identity，**不建立 execution authority**；ownership 仍只由 Flow v2 ExecutionRecord/lease/transaction 決定。
+
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。

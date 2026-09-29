@@ -7,6 +7,7 @@ WRITE_SCHED = ROOT / ".agents" / "skills" / "engineering" / "寫排程" / "SKILL
 
 MARKER = "REPORT_HANDLER_IDENTITY_PREFIX_V1"
 TEMPLATE = "【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】"
+SLOT_TEMPLATE = "slot=<worker.slot.N|NONE|UNBOUND>"
 
 
 def _read(path: Path) -> str:
@@ -18,6 +19,7 @@ def test_all_three_surfaces_require_same_report_prefix_contract() -> None:
         text = _read(path)
         assert MARKER in text, path
         assert TEMPLATE in text, path
+        assert SLOT_TEMPLATE in text, path
         assert "第一行" in text, path
         assert "user-visible" in text, path
 

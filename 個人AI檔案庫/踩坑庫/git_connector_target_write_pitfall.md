@@ -33,3 +33,12 @@ whd_schema: WHD_DOC_META_V1
 `STOP_PRODUCTION_WRITES → READ_CURRENT_TARGET → FRESH_REPAIR_BRANCH → RESTORE_VERIFIED_TREE → VERIFY_TREE_SHA → RUN_ACCEPTANCE → UPDATE_REF(force=false) → POST_MERGE_READBACK → CLEAN_TEMP_REFS`
 
 這條規則的目的不是讓事故看起來沒發生，而是確保事故之後仍保持 non-force、可追溯、可驗證，並阻止同類工具選擇錯誤再次直接落到 production。
+
+## 單次 mutation rejection 的分類規則
+
+- 單次 connector/runtime mutation rejection 先標 `RETRYABLE_UNCLASSIFIED`，不得直接寫成 permanent `CAPABILITY_BLOCKED`。
+- 升級 blocker 前必須 fresh-read：authenticated repo permission、base/target existence、branch existence、matching ruleset/branch protection、exact connector action contract。
+- 建新 branch 用 `create_branch(base_sha)`；`update_ref(force=false)` 只移動既有 branch。
+- 只有所有合法 transport 都有 fresh durable evidence 證明 unavailable/forbidden，才可宣告 permanent capability blocker。
+- recovery 不得把一次被拒的 mutation 當停止點；必須 fresh retry 或切換另一條仍合法的 executable leaf。
+

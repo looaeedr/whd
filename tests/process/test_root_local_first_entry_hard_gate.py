@@ -24,6 +24,17 @@ def _reservation(sha="a" * 40): return {
 }
 
 
+def _test_receipt(sha="a" * 40, issue=996, generation=4):
+    return {
+        "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
+        "status": "GREEN",
+        "source_sha": sha,
+        "issue": issue,
+        "generation": generation,
+        "exact_commands": ["python tools/control_plane_regression.py"],
+        "manifest_digest": "e" * 64,
+    }
+
 def test_contract_and_skill_are_current_and_single_owner():
     from tools.root_local_first_gate import validate_contract
     payload = validate_contract(_contract())
@@ -39,6 +50,7 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert payload["path_reservation"]["evaluator"] == "tools/execution_path_reservation.py"
     assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
+    assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
 
 
 def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
@@ -49,7 +61,7 @@ def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
     assert locked["next_action"] == "PATHS_RESERVED"
     reserved = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation())
     assert reserved["next_action"] == "ROOT_MUTATIONS_COMPLETE"
-    unlocked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="c" * 64)
+    unlocked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64)
     assert unlocked["git_write_unlocked"] is True
     assert unlocked["completed"][-1] == "GIT_WRITE_UNLOCKED"
     assert unlocked["next_action"] == "EXACT_TESTED_DIFF_ONLY"
@@ -66,7 +78,7 @@ def test_git_content_write_is_forbidden_before_unlock():
 def test_target_drift_forces_resync_and_retest_before_git_write():
     from tools.root_local_first_gate import build_gate_evidence, validate_source_current
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
-    evidence = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="d" * 64, target_drift=True)
+    evidence = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="d" * 64, target_drift=True)
     assert evidence["git_write_unlocked"] is False
     assert evidence["next_action"] == "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE"
 
@@ -150,7 +162,8 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
     evidence = build_gate_evidence(
         execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(),
-        root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="c" * 64,
+        root_mutations_complete=True, test_classified=True, tests_green=True,
+        test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     receipt = build_git_unlock_receipt(evidence)
     assert receipt["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
@@ -162,3 +175,13 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
     with pytest.raises(ValueError, match="GIT_WRITE_UNLOCKED"):
         validate_git_unlock_receipt(bad)
 
+
+
+def test_bare_tests_green_boolean_is_rejected():
+    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
+    source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
+    with pytest.raises(ValueError, match="WHD_TEST_EXECUTION_RECEIPT_V1"):
+        build_gate_evidence(
+            execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(),
+            root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="f" * 64,
+        )

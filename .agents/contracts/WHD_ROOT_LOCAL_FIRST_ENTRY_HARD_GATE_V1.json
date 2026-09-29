@@ -71,5 +71,18 @@
     ],
     "ingress_owner": "tools/control_transaction_request_ingress.py",
     "validation_order": "BEFORE_EXECUTION_RECORD_STATE_READ"
+  },
+  "test_execution_receipt": {
+    "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
+    "status_required": "GREEN",
+    "required_identity": [
+      "source_sha",
+      "issue",
+      "generation",
+      "exact_commands",
+      "manifest_digest"
+    ],
+    "bare_tests_green_boolean_sufficient": false,
+    "validator": "tools/root_local_first_gate.py::validate_test_execution_receipt"
   }
 }

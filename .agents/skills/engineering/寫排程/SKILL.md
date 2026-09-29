@@ -23,6 +23,20 @@ A/B prompt固定描述 lane owner、entrypoint、project startup hard gate、fre
 prompt 必須明寫：ACQUIRE 不是 progress/停止點；READY_CANDIDATES 使用 deterministic selected_issue；正常 return 前若 machine decision 為 `SCHEDULER_EXECUTION_NO_PROGRESS / CONTINUE_EXECUTION / ACQUIRE_REQUIRED`，同一 invocation 必須繼續 exact next_action，不得回報後停止。
 修改時保留 title/entrypoint/lane owner/cadence，除非使用者明確要求。update後 fresh-read exact automation。單輪 task terminal不代表 recurring automation terminal。
 
+
+## REPORT_HANDLER_IDENTITY_PREFIX_V1
+
+所有生成或修復的 recurring **scheduler prompt** 都必須保留以下 user-visible **第一行** contract，且 progress / CHECKPOINT / terminal / exit 全部適用：
+
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+
+相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
+
+- prompt 必須明寫從 fresh durable state 取得 lane owner、active Issue、claim owner 與 slot；不得把 prompt 內靜態文字當 runtime identity。
+- 每個 progress / CHECKPOINT 都要重用 fresh identity；handoff/ACQUIRE 後下一次回報必須立即反映新 owner。
+- 產生或更新 scheduler prompt 時不得刪除本 section / marker / template；contract test 會 fail closed。
+- 此 prefix 只做 provenance，**不建立 execution authority**；ownership 仍由 Flow v2 canonical state machine 決定。
+
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
 
 
