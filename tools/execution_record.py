@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from typing import Mapping
 
@@ -26,6 +26,7 @@ BLOCKER_KINDS = frozenset(
 TRANSACTION_STATUSES = frozenset(
     {"PREPARED", "AUTHORIZED", "APPLIED", "RECONCILED", "FAILED"}
 )
+MUTATION_RESERVATION_STATES = frozenset({"ACTIVE", "RELEASED"})
 _SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 _FP_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
@@ -106,6 +107,33 @@ def _timestamp(value: object, field_name: str, *, optional: bool = False) -> str
     except ValueError as exc:
         raise ExecutionRecordError(f"{field_name} must be an ISO-8601 timestamp") from exc
     return text
+
+
+def _repo_path(value: object, field_name: str) -> str:
+    text = _text(value, field_name)
+    assert text is not None
+    if "\\" in text:
+        raise ExecutionRecordError(f"{field_name} must use repository POSIX separators")
+    path = PurePosixPath(text)
+    if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
+        raise ExecutionRecordError(f"{field_name} must be a normalized repository-relative path")
+    normalized = path.as_posix()
+    if normalized != text:
+        raise ExecutionRecordError(f"{field_name} must be normalized")
+    return normalized
+
+
+def _repo_paths(value: object, field_name: str) -> tuple[str, ...]:
+    if value in (None, ""):
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise ExecutionRecordError(f"{field_name} must be an array")
+    rows = tuple(_repo_path(item, f"{field_name}[{index}]") for index, item in enumerate(value))
+    if len(rows) != len(set(rows)):
+        raise ExecutionRecordError(f"{field_name} must not contain duplicate paths")
+    if tuple(sorted(rows)) != rows:
+        raise ExecutionRecordError(f"{field_name} must be sorted")
+    return rows
 
 
 def _mapping(value: object, field_name: str, *, optional: bool = False) -> dict[str, object] | None:
@@ -208,6 +236,40 @@ class TransactionState:
 
 
 @dataclass(frozen=True)
+class MutationScopeState:
+    target_branch: str
+    base_sha: str
+    write_paths: tuple[str, ...] = ()
+    delete_paths: tuple[str, ...] = ()
+    reservation_state: str = "ACTIVE"
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "target_branch", _text(self.target_branch, "mutation_scope target_branch"))
+        object.__setattr__(self, "base_sha", _sha(self.base_sha, "mutation_scope base_sha"))
+        write_paths = _repo_paths(self.write_paths, "mutation_scope write_paths")
+        delete_paths = _repo_paths(self.delete_paths, "mutation_scope delete_paths")
+        overlap = sorted(set(write_paths) & set(delete_paths))
+        if overlap:
+            raise ExecutionRecordError(
+                f"mutation_scope path cannot be both write/delete: {overlap}"
+            )
+        if not write_paths and not delete_paths:
+            raise ExecutionRecordError("mutation_scope requires at least one reserved path")
+        state = _text(self.reservation_state, "mutation_scope reservation_state")
+        if state not in MUTATION_RESERVATION_STATES:
+            raise ExecutionRecordError(
+                f"mutation_scope reservation_state must be one of {sorted(MUTATION_RESERVATION_STATES)}"
+            )
+        object.__setattr__(self, "write_paths", write_paths)
+        object.__setattr__(self, "delete_paths", delete_paths)
+        object.__setattr__(self, "reservation_state", state)
+
+    @property
+    def paths(self) -> tuple[str, ...]:
+        return tuple(sorted((*self.write_paths, *self.delete_paths)))
+
+
+@dataclass(frozen=True)
 class QAState:
     last_accepted_run: int | None = None
     accepted_head_sha: str | None = None
@@ -294,6 +356,7 @@ class ExecutionRecord:
     lease: LeaseState | None = None
     active_run: RunState | None = None
     transaction: TransactionState | None = None
+    mutation_scope: MutationScopeState | None = None
     qa: QAState = field(default_factory=QAState)
     blocker: BlockerState | None = None
     closure: ClosureState = field(default_factory=ClosureState)
@@ -328,6 +391,8 @@ class ExecutionRecord:
             raise ExecutionRecordError("active_run must be a RunState")
         if self.transaction is not None and not isinstance(self.transaction, TransactionState):
             raise ExecutionRecordError("transaction must be a TransactionState")
+        if self.mutation_scope is not None and not isinstance(self.mutation_scope, MutationScopeState):
+            raise ExecutionRecordError("mutation_scope must be a MutationScopeState")
         if not isinstance(self.qa, QAState):
             raise ExecutionRecordError("qa must be a QAState")
         if self.blocker is not None and not isinstance(self.blocker, BlockerState):
@@ -348,6 +413,8 @@ class ExecutionRecord:
                 raise ExecutionRecordError("DONE record must not hold a lease")
             if not self.closure.issue_closed or self.closure.released_at is None:
                 raise ExecutionRecordError("DONE record requires closed and released closure")
+            if self.mutation_scope is not None and self.mutation_scope.reservation_state != "RELEASED":
+                raise ExecutionRecordError("DONE record cannot retain an ACTIVE mutation_scope reservation")
         elif self.next_action is None and state not in {"VERIFYING", "INTEGRATING"}:
             raise ExecutionRecordError(f"{state} record requires a next_action")
 
@@ -432,6 +499,25 @@ def _transaction_from_payload(value: object) -> TransactionState | None:
     )
 
 
+def _mutation_scope_from_payload(value: object) -> MutationScopeState | None:
+    if value is None:
+        return None
+    if isinstance(value, MutationScopeState):
+        return value
+    payload = _mapping(value, "mutation_scope")
+    assert payload is not None
+    return MutationScopeState(
+        target_branch=_text(payload.get("target_branch"), "mutation_scope target_branch"),
+        base_sha=_text(payload.get("base_sha"), "mutation_scope base_sha"),
+        write_paths=tuple(payload.get("write_paths") or ()),
+        delete_paths=tuple(payload.get("delete_paths") or ()),
+        reservation_state=_text(
+            payload.get("reservation_state") or "ACTIVE",
+            "mutation_scope reservation_state",
+        ),
+    )
+
+
 def _qa_from_payload(value: object) -> QAState:
     payload = _mapping(value if value is not None else {}, "qa")
     assert payload is not None
@@ -503,6 +589,7 @@ def execution_record_from_payload(payload: Mapping[str, object]) -> ExecutionRec
         lease=_lease_from_payload(payload.get("lease")),
         active_run=_run_from_payload(payload.get("active_run")),
         transaction=_transaction_from_payload(payload.get("transaction")),
+        mutation_scope=_mutation_scope_from_payload(payload.get("mutation_scope")),
         qa=_qa_from_payload(payload.get("qa")),
         blocker=_blocker_from_payload(payload.get("blocker")),
         closure=_closure_from_payload(payload.get("closure")),
@@ -766,6 +853,10 @@ def execution_record_to_payload(record: ExecutionRecord) -> dict[str, object]:
     if not isinstance(record, ExecutionRecord):
         raise ExecutionRecordError("record must be an ExecutionRecord")
     data = asdict(record)
+    scope = data.get("mutation_scope")
+    if isinstance(scope, dict):
+        scope["write_paths"] = list(scope.get("write_paths") or [])
+        scope["delete_paths"] = list(scope.get("delete_paths") or [])
     return {
         "schema": SCHEMA,
         "version": VERSION,

@@ -43,6 +43,7 @@ Runtime materialization 可以存在，但只能當 execution machinery；必須
 
 ```text
 ROOT_SOURCE_CURRENT
+→ PATHS_RESERVED
 → ROOT_MUTATIONS_COMPLETE
 → ROOT_TEST_CLASSIFIED
 → ROOT_TESTS_GREEN
@@ -62,11 +63,28 @@ ROOT_SOURCE_CURRENT
 
 不得把 stale snapshot、聊天記憶、舊 branch 或「內容看起來差不多」當 `ROOT_SOURCE_CURRENT`。
 
-### 3.2 ROOT_MUTATIONS_COMPLETE
+### 3.2 PATHS_RESERVED
+
+第一次 root content write 前，exact owning Issue 必須先透過 Flow v2 atomic `RESERVE_PATHS` transaction，把 planned `write_paths / delete_paths` 存入該 Issue 的 `WHD_EXECUTION_RECORD_V2.mutation_scope`。
+
+硬規則：
+
+- state owner 只有 ExecutionRecord；不得另建 lock database / lock file。
+- 同一 `target_branch` 的 nonterminal ACTIVE reservation 以 exact repository path 做 `WRITE/WRITE`、`WRITE/DELETE`、`DELETE/WRITE` overlap check。
+- 第一個 CAS 成功者取得 single-writer reservation；第二個固定 `PATH_RESERVATION_CONFLICT`，不得進 root mutation。
+- scope 擴張必須再送 atomic `RESERVE_PATHS`；只允許 monotonic superset，不得偷偷縮 scope。
+- handoff/takeover 只換 owner/lease；reservation 綁 Issue，不隨聊天/runtime 消失。
+- reservation 只在 `FINALIZE` terminal 或 explicit atomic `RELEASE_PATHS` 後釋放。
+- workspace 必須使用 `build_interactive_work_path(issue=<N>, source_sha=<base>)`，不同 Issue 不得共享同一 `/work/active` 實體工作目錄。
+- 第一張 Issue 整合後，其他等待同 path 的 Issue 必須重新 `ROOT_SOURCE_CURRENT → RESERVE_PATHS → retest/refreeze`，不得沿用舊 base 的成果。
+
+Static contract：`.agents/contracts/WHD_PATH_RESERVATION_V1.json`；Machine evaluator：`tools/execution_path_reservation.py`。
+
+### 3.3 ROOT_MUTATIONS_COMPLETE
 
 production / tests / docs / Skills / AI Library / Registry 等內容修改先在 canonical root workspace 完成。此階段 Git repository content plane 固定 read-only。
 
-### 3.3 ROOT_TEST_CLASSIFIED
+### 3.4 ROOT_TEST_CLASSIFIED
 
 測試分類只有一個 owner：
 
@@ -75,11 +93,11 @@ production / tests / docs / Skills / AI Library / Registry 等內容修改先在
 
 本 Skill 不建立第二套 BUGFIX/FEATURE/UPDATE/REFACTOR/GOVERNANCE/DOCS_METADATA parser。changed files 擴張時依 owner 規則重算 profile。
 
-### 3.4 ROOT_TESTS_GREEN
+### 3.5 ROOT_TESTS_GREEN
 
 在 root workspace 先完成 profile 要求的 RED/GREEN、targeted、affected subsystem、integration 與 final full gate。GitHub Actions / remote QA 是 **post-push verification**，不是第一個測試面。
 
-### 3.5 ROOT_DIFF_FROZEN
+### 3.6 ROOT_DIFF_FROZEN
 
 root tests terminal GREEN 後 freeze：
 
@@ -93,7 +111,7 @@ root tests terminal GREEN 後 freeze：
 
 freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
 
-### 3.6 GIT_WRITE_UNLOCKED
+### 3.7 GIT_WRITE_UNLOCKED
 
 只有前五步都成立才可解鎖 Git content write。
 
@@ -150,6 +168,7 @@ accepted integration 後，interactive task 完成前必須：
 
 - contract mirror: `.agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`
 - machine gate: `tools/root_local_first_gate.py`
+- path reservation contract: `.agents/contracts/WHD_PATH_RESERVATION_V1.json`；evaluator=`tools/execution_path_reservation.py`；state owner=`WHD_EXECUTION_RECORD_V2.mutation_scope`
 - source/test profile owner: `tools/change_test_profile.py`
 - startup owner: `AGENTS.md`
 - execution/control-plane owner: `.agents/skills/engineering/flow-v2-execution/SKILL.md`

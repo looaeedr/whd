@@ -57,17 +57,19 @@ machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest
 
 唯一順序：
 
-`ROOT_SOURCE_CURRENT → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`
+`ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`
 
 硬規則：
 
 1. `ROOT_SOURCE_CURRENT` 必須 fresh-read Current Source Manifest 並與 authoritative target SHA/tree exact 對齊；durable snapshot 落後時只可作 bootstrap base，planned touched existing paths 必須逐一 fresh-compare target blob。
-2. `GIT_WRITE_UNLOCKED` 前 Git repository content plane 只准 `READ / FETCH / COMPARE`；禁止 content write、commit、create/update ref、push、merge。
-3. root workspace 內先完成實際修改與 `WHD_CHANGE_TEST_PROFILE_V1` 要求的 RED/GREEN/final full gate；test-profile owner 唯一是 `tools/change_test_profile.py`，不得另造第二套分類。
-4. tests terminal GREEN 後 freeze exact touched paths + diff digest + test evidence。fresh-read target；任何 touched/base drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。
-5. 只有 `GIT_WRITE_UNLOCKED` 後才建立 fresh Git work branch，fresh-read parent/base，再套 `EXACT_TESTED_DIFF_ONLY`。branch 上若需要改內容，回 root 修正、重測、refreeze；不得 Git-side 熱修。
-6. GitHub Actions / remote QA 是 post-push verification，不得取代 root 第一測試面。accepted integration 後必須刷新 Drive Current Source Manifest；full snapshot 尚未刷新時明確標 `STALE_BOOTSTRAP_BASE`。
-7. `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 屬 Flow v2 remote/control-plane scope exception，仍依其 GitHub canonical authority；不得把一般 interactive task 偽裝成 remote mode 來繞過本 gate。
+2. 第一次 root/content write 前必須完成 `PATHS_RESERVED`：planned `write_paths/delete_paths` 以 atomic `RESERVE_PATHS` 寫入 owning `WHD_EXECUTION_RECORD_V2.mutation_scope`；同 target 同 path 只允許一張 nonterminal Issue 持有 ACTIVE reservation。overlap 固定 `PATH_RESERVATION_CONFLICT`，不得施工。state owner 是 ExecutionRecord，static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`，evaluator=`tools/execution_path_reservation.py`，禁止另建 lock database。
+3. 每張 Issue 使用 `build_interactive_work_path(issue=<N>, source_sha=<base>)` 的獨立 workspace；handoff/takeover 不釋放 reservation。scope 擴張必須先 atomic reserve；`FINALIZE` 或 explicit `RELEASE_PATHS` 才釋放。
+4. `GIT_WRITE_UNLOCKED` 前 Git repository content plane 只准 `READ / FETCH / COMPARE`；禁止 content write、commit、create/update ref、push、merge。
+5. root workspace 內先完成實際修改與 `WHD_CHANGE_TEST_PROFILE_V1` 要求的 RED/GREEN/final full gate；test-profile owner 唯一是 `tools/change_test_profile.py`，不得另造第二套分類。
+6. tests terminal GREEN 後 freeze exact touched paths + diff digest + test evidence。fresh-read target；任何 touched/base drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。
+7. 只有 `GIT_WRITE_UNLOCKED` 後才建立 fresh Git work branch，fresh-read parent/base，再套 `EXACT_TESTED_DIFF_ONLY`。branch 上若需要改內容，回 root 修正、重測、refreeze；不得 Git-side 熱修。
+8. GitHub Actions / remote QA 是 post-push verification，不得取代 root 第一測試面。accepted integration 後必須刷新 Drive Current Source Manifest；full snapshot 尚未刷新時明確標 `STALE_BOOTSTRAP_BASE`。
+9. `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 屬 Flow v2 remote/control-plane scope exception，仍依其 GitHub canonical authority；不得把一般 interactive task 偽裝成 remote mode 來繞過本 gate。
 
 缺少 gate evidence、source-current evidence、root tests GREEN 或 frozen diff，一律 fail closed。
 

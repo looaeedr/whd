@@ -1,6 +1,6 @@
 {
   "schema": "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1",
-  "version": 1,
+  "version": 2,
   "status": "CURRENT",
   "owner": "tools/root_local_first_gate.py",
   "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
@@ -12,6 +12,7 @@
   },
   "required_order": [
     "ROOT_SOURCE_CURRENT",
+    "PATHS_RESERVED",
     "ROOT_MUTATIONS_COMPLETE",
     "ROOT_TEST_CLASSIFIED",
     "ROOT_TESTS_GREEN",
@@ -40,6 +41,16 @@
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "drive_file_id": "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp",
-    "canonical_payload_sha256": "ba5f3c5f59951bafbe93ce8ba36637637073bd7d01fcba65c38da4eb6fef64d5"
+    "canonical_payload_sha256": "1325249c6912a12eec7f44adce8228acefd5467ec738dbf8d5ed635aeddd9a71"
+  },
+  "path_reservation": {
+    "schema": "WHD_PATH_RESERVATION_V1",
+    "evidence_schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
+    "state_owner": "WHD_EXECUTION_RECORD_V2.mutation_scope",
+    "evaluator": "tools/execution_path_reservation.py",
+    "conflict_policy": "SAME_TARGET_EXACT_PATH_SINGLE_WRITER",
+    "expansion_policy": "MONOTONIC_CAS",
+    "release_policy": "FINALIZE_OR_EXPLICIT_RELEASE_PATHS",
+    "workspace_isolation": "ISSUE_SCOPED"
   }
 }

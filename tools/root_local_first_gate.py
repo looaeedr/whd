@@ -7,6 +7,8 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 
+from tools.execution_path_reservation import validate_path_reservation_evidence
+
 SCHEMA = "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1"
 EVIDENCE_SCHEMA = "WHD_ROOT_LOCAL_FIRST_GATE_EVIDENCE_V1"
 DEFAULT_ROOT = "/Google Drive/WHD"
@@ -15,6 +17,7 @@ TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
 REQUIRED_ORDER = (
     "ROOT_SOURCE_CURRENT",
+    "PATHS_RESERVED",
     "ROOT_MUTATIONS_COMPLETE",
     "ROOT_TEST_CLASSIFIED",
     "ROOT_TESTS_GREEN",
@@ -62,6 +65,17 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("Git write mode must be EXACT_TESTED_DIFF_ONLY")
     if contract.get("target_drift_action") != "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE":
         raise ValueError("target drift action mismatch")
+    reservation = _mapping(contract.get("path_reservation"), "path_reservation")
+    if reservation.get("schema") != "WHD_PATH_RESERVATION_V1":
+        raise ValueError("path reservation schema mismatch")
+    if reservation.get("state_owner") != "WHD_EXECUTION_RECORD_V2.mutation_scope":
+        raise ValueError("path reservation state owner mismatch")
+    if reservation.get("evaluator") != "tools/execution_path_reservation.py":
+        raise ValueError("path reservation evaluator mismatch")
+    if reservation.get("conflict_policy") != "SAME_TARGET_EXACT_PATH_SINGLE_WRITER":
+        raise ValueError("path reservation conflict policy mismatch")
+    if reservation.get("release_policy") != "FINALIZE_OR_EXPLICIT_RELEASE_PATHS":
+        raise ValueError("path reservation release policy mismatch")
     modes = _mapping(contract.get("execution_modes"), "execution_modes")
     if modes.get("INTERACTIVE") != "ROOT_LOCAL_FIRST_REQUIRED":
         raise ValueError("interactive execution mode must require root-local-first")
@@ -105,7 +119,17 @@ def frozen_diff_digest(entries: Iterable[Mapping[str, object]]) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
-def build_gate_evidence(*, execution_mode: str, source_evidence: Mapping[str, object] | None = None, root_mutations_complete: bool = False, test_classified: bool = False, tests_green: bool = False, diff_digest: str | None = None, target_drift: bool = False) -> dict[str, object]:
+def build_gate_evidence(
+    *,
+    execution_mode: str,
+    source_evidence: Mapping[str, object] | None = None,
+    path_reservation_evidence: Mapping[str, object] | None = None,
+    root_mutations_complete: bool = False,
+    test_classified: bool = False,
+    tests_green: bool = False,
+    diff_digest: str | None = None,
+    target_drift: bool = False,
+) -> dict[str, object]:
     mode = str(execution_mode or "INTERACTIVE").strip().upper()
     if mode in REMOTE_MODES:
         return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
@@ -119,29 +143,44 @@ def build_gate_evidence(*, execution_mode: str, source_evidence: Mapping[str, ob
         if status not in {"EXACT_SOURCE_CURRENT", "SCOPED_CURRENT_RECOVERY"}:
             raise ValueError("invalid ROOT_SOURCE_CURRENT evidence")
         completed.append("ROOT_SOURCE_CURRENT")
-        if not root_mutations_complete:
-            next_action = "ROOT_MUTATIONS_COMPLETE"
+        if not path_reservation_evidence:
+            next_action = "PATHS_RESERVED"
         else:
-            completed.append("ROOT_MUTATIONS_COMPLETE")
-            if not test_classified:
-                next_action = "ROOT_TEST_CLASSIFIED"
+            try:
+                reservation = validate_path_reservation_evidence(path_reservation_evidence)
+            except ValueError as exc:
+                raise ValueError(f"invalid PATHS_RESERVED evidence: {exc}") from exc
+            if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
+                raise ValueError("PATHS_RESERVED base_sha must match ROOT_SOURCE_CURRENT source_sha")
+            completed.append("PATHS_RESERVED")
+            if not root_mutations_complete:
+                next_action = "ROOT_MUTATIONS_COMPLETE"
             else:
-                completed.append("ROOT_TEST_CLASSIFIED")
-                if not tests_green:
-                    next_action = "ROOT_TESTS_GREEN"
+                completed.append("ROOT_MUTATIONS_COMPLETE")
+                if not test_classified:
+                    next_action = "ROOT_TEST_CLASSIFIED"
                 else:
-                    completed.append("ROOT_TESTS_GREEN")
-                    if not diff_digest:
-                        next_action = "ROOT_DIFF_FROZEN"
+                    completed.append("ROOT_TEST_CLASSIFIED")
+                    if not tests_green:
+                        next_action = "ROOT_TESTS_GREEN"
                     else:
-                        if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
-                            raise ValueError("diff_digest must be SHA256")
-                        completed.append("ROOT_DIFF_FROZEN")
-                        if target_drift:
-                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest}
-                        completed.append("GIT_WRITE_UNLOCKED")
-                        next_action = "EXACT_TESTED_DIFF_ONLY"
-    return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": "GIT_WRITE_UNLOCKED" in completed, "next_action": next_action, **({"diff_digest": diff_digest} if diff_digest else {})}
+                        completed.append("ROOT_TESTS_GREEN")
+                        if not diff_digest:
+                            next_action = "ROOT_DIFF_FROZEN"
+                        else:
+                            if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
+                                raise ValueError("diff_digest must be SHA256")
+                            completed.append("ROOT_DIFF_FROZEN")
+                            if target_drift:
+                                return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation}
+                            completed.append("GIT_WRITE_UNLOCKED")
+                            next_action = "EXACT_TESTED_DIFF_ONLY"
+    result = {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": "GIT_WRITE_UNLOCKED" in completed, "next_action": next_action}
+    if diff_digest:
+        result["diff_digest"] = diff_digest
+    if path_reservation_evidence:
+        result["path_reservation"] = dict(path_reservation_evidence)
+    return result
 
 
 def assert_git_content_write_allowed(evidence: object, *, action: str) -> None:
