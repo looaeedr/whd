@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-renew-work0-lease-r1",
+  "request_id": "issue1022-renew-work0-lease-r2",
   "issue": 1022,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
-  "expected_coord_head": "4f70e088df4f898c0d8f8544b79bbd3710adb4e4",
+  "expected_coord_head": "d8fb1b6a9c80cf5147f1810f1288a481a1312ad9",
   "expected_generation": 8,
   "effect": {},
-  "purpose": "Renew the expired work0 lease for Issue #1022 without changing owner, slot, semantic state, or next_action, then continue exact RESERVE_PATHS.",
+  "purpose": "Retry the same Issue #1022 work0 lease renewal after a stale coordination-head conflict.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
