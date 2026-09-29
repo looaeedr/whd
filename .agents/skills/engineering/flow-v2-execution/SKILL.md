@@ -200,6 +200,7 @@ B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 - `RESUME_CURRENT`：若 lease 缺失/expired，先 ACQUIRE；**ACQUIRE 成功只是續跑前置，不是本輪 progress，也不是停止點**。同一 invocation 必須立即 fresh-read，繼續執行 ACQUIRE 前保存的 exact `next_action`。
 - `READY_CANDIDATES`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue`（fresh ready-index 中最小 Issue）；scheduler 必須對該 Issue 送 ACQUIRE。若 CAS/claim race 輸掉，fresh-read 後重新投影與選擇，不得以「有多張可選」停止。
 - 本輪只有以下 evidence 可合法離開：`DONE`、`LANE_BUSY`、合法 `BLOCKED`、active remote QA wait，或本 invocation 已有至少一個 reconciled substantive transaction（`START_BRANCH/APPLY_COMMIT/START_QA/ACCEPT_QA/MERGE/HANDOFF/FINALIZE/RECONCILE/BLOCK`）後因 host boundary 執行 YIELD。
+- **terminal-tail exception**：fresh record 若 `next_action.kind=FINALIZE`，上一條的 substantive-transaction YIELD 權限立即失效；必須同 invocation drain FINALIZE 到 `DONE` 或 genuine blocker。
 - `WAKE`、讀取、文字回報、HEARTBEAT、單獨 ACQUIRE 都不是 substantive progress。
 - scheduler 在任何正常 return 前必須等價執行 `classify_invocation_exit(..., host_boundary=True)`。若結果為 `SCHEDULER_EXECUTION_NO_PROGRESS`、`CONTINUE_EXECUTION` 或 `ACQUIRE_REQUIRED`，本輪**不得結束**；必須繼續 exact `next_action`。若 runtime 被外部強制切斷，視為 execution failure，不得宣稱 IDLE/DONE。
 
@@ -315,6 +316,16 @@ START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA �
 只有 `EXTERNAL_DEPENDENCY / MISSING_CAPABILITY / AUTHORITY_DENIED / PLATFORM_FAILURE` 可進 BLOCKED。一般 poll/readback/reconcile/retry不是 blocker。
 
 ## Finalization
+
+### TERMINAL_TAIL_DRAIN_HARD_GATE_V1
+
+當 current record 已有 live same-invocation lease 且 `next_action.kind=FINALIZE`，此狀態是 **terminal tail**，不是一般可延後工作。`tools/execution_invocation_exit.py::classify_invocation_exit(..., host_boundary=True)` 必須回 `CONTINUE_TERMINAL_TAIL`（`may_return=false / requires_yield=false`）。
+
+硬規則：
+- `MERGE` / `RECONCILE` / `ACQUIRE` 後只要 fresh record 的 exact next action 是 `FINALIZE`，同一 invocation 必須立即執行 FINALIZE；不得因「本輪已有 substantive progress」改走 YIELD。
+- `YIELD_REQUIRED_HOST_BOUNDARY` 不得覆蓋 terminal tail。
+- FINALIZE request 必須鎖 exact run 到 terminal，success 後 fresh-read record；只有 `DONE` 才可正常 return。
+- genuine BLOCKED、active remote wait 或外部平台硬中斷仍依既有 fail-closed/recovery contract；聊天室 progress/status 不是停止理由。
 
 <!-- FLOW_V2_FINALIZE_ISSUE_CLOSE_HARD_GATE_V1 -->
 

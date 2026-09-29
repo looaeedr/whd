@@ -179,3 +179,30 @@ def test_host_boundary_rejects_acquire_only_as_no_progress():
     assert result.decision == "SCHEDULER_EXECUTION_NO_PROGRESS"
     assert result.may_return is False
     assert result.requires_yield is False
+
+
+def test_terminal_tail_finalize_cannot_yield_after_reconciled_merge_or_reconcile():
+    base = _record("ACTIVE")
+    terminal_tail = replace(
+        base,
+        state="INTEGRATING",
+        semantic_state="MERGED",
+        next_action=ActionSpec(kind="FINALIZE", args={}, display="finalize terminal tail"),
+    )
+    for kind in ("MERGE", "RECONCILE"):
+        tx = TransactionState(
+            id=f"tx-{kind.lower()}",
+            kind=kind,
+            status="RECONCILED",
+            expected_fingerprint="f" * 64,
+            invocation_identity=INV,
+        )
+        result = classify_invocation_exit(
+            replace(terminal_tail, transaction=tx),
+            invocation_identity=INV,
+            now=NOW,
+            host_boundary=True,
+        )
+        assert result.decision == "CONTINUE_TERMINAL_TAIL"
+        assert result.may_return is False
+        assert result.requires_yield is False
