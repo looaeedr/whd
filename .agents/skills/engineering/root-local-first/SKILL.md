@@ -1,64 +1,158 @@
 ---
 name: root-local-first
-description: WHD 互動式與一般開發的 root-first 入口流程。修改、除蟲、更新、新增、測試或推 Git 時，先把 canonical Google Drive `/Google Drive/WHD` 視同本機工作面；所有修改與測試先在 root-backed workspace 完成，只有 exact tested diff GREEN 後才允許 Git write/push。
+description: WHD 互動式／預設開發的入口硬閘門。當任務要修改 repository 內容時，先在 canonical Google Drive root 完成 source-current 驗證、修改、測試與 diff freeze；只有 GIT_WRITE_UNLOCKED 後才建立 Git work branch 並套用 exact tested diff。
 whd_doc_role: CURRENT
-whd_contract: root-local-first-entry
+whd_contract: root-local-first-workflow
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
+
 # root-local-first
 
-## 目的
+本 Skill 是 WHD **互動式／預設開發**的 repository-content 入口 contract。它不取代 `WHD_WORK_ROOT_HARD_GATE_V1`、Phase6 Knowledge Preflight、`WHD_CHANGE_TEST_PROFILE_V1`、Flow v2 control-plane 或 release/final acceptance；它只決定「內容修改在哪裡先發生、何時才允許 Git write」。
 
-這個 Skill 把 `/Google Drive/WHD` 的 canonical work root 變成 WHD 一般開發的 **local-first 工作面**。GitHub 仍是 code/PR/CI/control-plane authority，但不是第一個修改或第一個測試面。
+## 1. Scope
 
-canonical entry gate：`/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`。
-repo mirror：`.agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`。
-machine validator：`tools/root_local_first_gate.py`。
+### 必須套用
 
-## 固定流程
+- `INTERACTIVE` / chat / default development；
+- 使用者要求修改 production、tests、docs、workflow、Skill、AI Library、Registry、fixtures 或其他 repository content；
+- 互動式 bugfix / feature / update / refactor / governance / docs-metadata change。
 
-1. **Root identity**：先完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1`，確認 `/Google Drive/WHD`、folder id 與 Current Source Manifest。
-2. **Root source current**：以 Current Source Manifest 做 bootstrap；必要時可把 canonical root materialize 到 runtime filesystem，但 provenance 必須仍指回 `/Google Drive/WHD`，不得把 `/mnt/data` 或 Git checkout 重新命名成 canonical root。
-3. **Git write lock**：root 完成前，Git 只准 `READ / FETCH / COMPARE`。`CREATE_OR_UPDATE_FILE / CREATE_COMMIT / UPDATE_REF / PUSH / MERGE` 全部鎖住，狀態為 `LOCKED_UNTIL_ROOT_TESTS_GREEN`。
-4. **只在 root 修改**：production、tests、Skill、Registry、治理文件與驗證腳本的施工都先發生在 root-backed work surface；不要先 patch GitHub 再下載回 root 補測。
-5. **測試分類**：修改前先分類，並依分類選測試；測試只驗證，不得回灌 production authority。
-6. **RED → GREEN**：可客觀驗證的新流程先建立會失敗的 contract，再最小修改到 GREEN。Bugfix 要先有 repro RED；新增/更新至少有新 contract/unit + affected integration。
-7. **Root completion evidence**：至少具備 `ROOT_SOURCE_CURRENT → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN`，記錄 source SHA、changed files、test class、root diff SHA256。
-8. **Git unlock**：只有 completion evidence VALID 才進 `GIT_WRITE_UNLOCKED`。此時才從最新 authoritative target HEAD 建 Git work branch，並只套用 `EXACT_TESTED_DIFF_ONLY`。
-9. **Drift fail closed**：若 touched target path 在 root baseline 後有變動，停止 Git write，回 root 同步並重測；固定 action=`RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。
-10. **Remote verification**：push 後才跑 PR/CI/GitHub Actions。GitHub Actions 是 post-push verification，**不是第一個測試面**，也不能替代 root GREEN。
+### 不直接套用
 
-## 測試分類
+- `SCHEDULER_LANE`；
+- `GITHUB_ONLY`；
+- `REMOTE_ACTION`。
 
-- `GOVERNANCE_OR_SKILL`：focused contract + Preflight/Registry + affected process regression。
-- `BUGFIX`：repro RED + focused regression + affected subsystem。
-- `UPDATE_OR_FEATURE`：new contract/unit + affected integration。
-- `CORE_OR_HIGH_RISK`：full relevant regression；若 release/final acceptance 另有更強 gate，仍要照做。
+上述 remote/control-plane mode 仍依 `flow-v2-execution` 的 GitHub-only authority 執行；不得為了繞過本 gate 把一般 interactive task 假冒成 remote mode。若 remote lane 把 repository-content implementation 明確 handoff 給 interactive workspace，handoff 後立刻回到本 Skill。
 
-不要用「每次都跑全部」取代分類，也不要因 focused GREEN 就宣告 release acceptance。分類決定第一輪與必要 regression；高風險或 release 才升級完整矩陣。
+## 2. Canonical root
 
-## Git 寫入前硬條件
+本 gate 在 `WHD_WORK_ROOT_HARD_GATE_V1` 之後執行。固定 canonical root：
 
-以下五個狀態缺一不可：
+`/Google Drive/WHD`
 
-- `ROOT_SOURCE_CURRENT`
-- `ROOT_MUTATIONS_COMPLETE`
-- `ROOT_TEST_CLASSIFIED`
-- `ROOT_TESTS_GREEN`
-- `ROOT_DIFF_FROZEN`
+固定 interactive work prefix：
 
-完成後才可建立 Git work branch。這裡的 branch-first 指的是 **Git integration phase first**：禁止直接寫 target branch，但不再要求在 root-local 第一筆檔案修改前先建 Git branch。
+`/Google Drive/WHD/work/active`
 
-## 禁止
+Runtime materialization 可以存在，但只能當 execution machinery；必須保留 canonical-root identity、source SHA/tree 與 touched-path provenance。`/mnt/data`、host temp、GitHub checkout 都不能因此升格成 workspace authority。
 
-- root GREEN 前用 GitHub Contents API、commit/ref API、push 或 merge 當施工面。
-- 把 Git checkout 當未指定時的預設根目錄。
-- 把 runtime materialization path 當 canonical root identity。
-- root 測完後再偷偷改內容但沿用舊 evidence；任何 diff 改動都要重算 diff hash 並重跑受影響測試。
-- target drift 後直接套 patch 或以「只是治理文字」跳過重測。
-- 把 remote CI GREEN 冒充 root-local testing evidence。
+## 3. 唯一順序
 
-## 完成定義
+```text
+ROOT_SOURCE_CURRENT
+→ ROOT_MUTATIONS_COMPLETE
+→ ROOT_TEST_CLASSIFIED
+→ ROOT_TESTS_GREEN
+→ ROOT_DIFF_FROZEN
+→ GIT_WRITE_UNLOCKED
+```
 
-完成不是「GitHub 已有 commit」，而是：root source current、root diff 可追溯、分類測試 GREEN、diff frozen、Git write unlock、exact tested diff 已推到 work branch，並完成該任務要求的 remote verification / PR gate。
+### 3.1 ROOT_SOURCE_CURRENT
+
+開始任何 root mutation 前：
+
+1. fresh-read `/Google Drive/WHD/source/manifests/WHD Current Source Manifest`；
+2. fresh-read authoritative target branch/head/tree；
+3. manifest `source_sha/tree_sha` 與 live target exact match 時，可進 root mutation；
+4. durable snapshot 若落後，只能當 bootstrap base；planned touched existing paths 必須逐一 fresh-compare exact target blob；
+5. 新增 touched path 或依賴未被 current identity 證明時，先補 current materialization／comparison，否則 fail closed。
+
+不得把 stale snapshot、聊天記憶、舊 branch 或「內容看起來差不多」當 `ROOT_SOURCE_CURRENT`。
+
+### 3.2 ROOT_MUTATIONS_COMPLETE
+
+production / tests / docs / Skills / AI Library / Registry 等內容修改先在 canonical root workspace 完成。此階段 Git repository content plane 固定 read-only。
+
+### 3.3 ROOT_TEST_CLASSIFIED
+
+測試分類只有一個 owner：
+
+- schema=`WHD_CHANGE_TEST_PROFILE_V1`
+- machine owner=`tools/change_test_profile.py`
+
+本 Skill 不建立第二套 BUGFIX/FEATURE/UPDATE/REFACTOR/GOVERNANCE/DOCS_METADATA parser。changed files 擴張時依 owner 規則重算 profile。
+
+### 3.4 ROOT_TESTS_GREEN
+
+在 root workspace 先完成 profile 要求的 RED/GREEN、targeted、affected subsystem、integration 與 final full gate。GitHub Actions / remote QA 是 **post-push verification**，不是第一個測試面。
+
+### 3.5 ROOT_DIFF_FROZEN
+
+root tests terminal GREEN 後 freeze：
+
+- exact source SHA / tree SHA；
+- touched paths；
+- each final file SHA256；
+- exact diff digest；
+- test profile；
+- test commands / terminal results；
+- frozen timestamp / task identity。
+
+freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
+
+### 3.6 GIT_WRITE_UNLOCKED
+
+只有前五步都成立才可解鎖 Git content write。
+
+解鎖前 Git 只允許：
+
+`READ / FETCH / COMPARE`
+
+禁止：content write、commit、create/update ref、push、merge。
+
+解鎖時先 fresh-read target。若 target base 或任何 touched target path drift：
+
+`RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`
+
+不得把未重測的 stale root diff 直接套到 Git。
+
+## 4. Git phase
+
+`GIT_WRITE_UNLOCKED` 後：
+
+1. 從 fresh authoritative target HEAD 建立新的 work branch；
+2. fresh-read branch parent/base SHA；
+3. 只允許 `EXACT_TESTED_DIFF_ONLY`；
+4. Git phase 不得順手改內容、補小修、整理格式或另改 docs；任何差異回 root 修改 → 測試 → refreeze；
+5. push 後跑 GitHub Actions / remote QA；
+6. remote QA fail 時回 root 修正，不在 Git branch 上直接熱修；
+7. final integration 仍走 non-force PR/merge 與既有 acceptance/drift gate。
+
+因此「Git phase 要用 work branch」仍是硬規則，但它位於 `GIT_WRITE_UNLOCKED` **之後**，不能再解讀成「root 開發前先建 branch」。
+
+## 5. Source manifest / snapshot durability
+
+accepted integration 後，interactive task 完成前必須：
+
+1. fresh-read accepted target SHA/tree；
+2. 更新 Drive Current Source Manifest 到 accepted target；
+3. 若 durable full snapshot 尚未更新，明確標記 `STALE_BOOTSTRAP_BASE`，不得標 current；
+4. 將 post-integration snapshot/export evidence 留在 `/Google Drive/WHD/source` 或 GitHub export artifact；
+5. 下一個 task 的 `ROOT_SOURCE_CURRENT` 必須能 machine 判斷 exact-current 或 scoped-current recovery。
+
+不得讓 manifest 長期留在舊 SHA 卻仍標 CURRENT。
+
+## 6. Durable correction / anti-regrowth
+
+以下 wording 在 CURRENT active governance 中視為 regression：
+
+- 「第一個 repository write 前先建立 Git branch」作為 interactive content 開發起點；
+- 「建立 branch 後才可開始 Skill/tests/docs/production 修改」；
+- 用 GitHub checkout 取代 `/Google Drive/WHD` default root；
+- focused/root test 尚未完成就先 push，再把 remote QA 當第一測試面。
+
+歷史 incident 可保留舊 wording，但必須清楚標 `HISTORICAL / SUPERSEDED`，不得再作 CURRENT instruction。
+
+## 7. Machine owners
+
+- contract mirror: `.agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`
+- machine gate: `tools/root_local_first_gate.py`
+- source/test profile owner: `tools/change_test_profile.py`
+- startup owner: `AGENTS.md`
+- execution/control-plane owner: `.agents/skills/engineering/flow-v2-execution/SKILL.md`
+- authority map: `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md`
+
+完成狀態只能由 machine evidence + tested frozen diff 支撐；「我已經在 root 改過」或「branch 已存在」都不是完成證據。

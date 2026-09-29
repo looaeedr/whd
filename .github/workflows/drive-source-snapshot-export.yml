@@ -1,0 +1,86 @@
+name: WHD Drive 來源快照匯出
+run-name: "WHD Drive 來源快照｜${{ github.ref_name }}｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - cleanup/2d-3d-sync
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-drive-source-snapshot-export-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  export-source:
+    name: 產生 exact-head 來源快照與 manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出 exact cleanup HEAD
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 驗證來源 branch 與 commit identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "cleanup/2d-3d-sync" || {
+            echo "SOURCE_EXPORT_WRONG_BRANCH=${GITHUB_REF_NAME}" >&2
+            exit 1
+          }
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}" || {
+            echo "SOURCE_EXPORT_HEAD_MISMATCH" >&2
+            exit 1
+          }
+
+      - name: 建立可重現 source snapshot 與 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          TREE="$(git rev-parse HEAD^{tree})"
+          SHORT="${SHA:0:16}"
+          SNAPSHOT="whd-cleanup-2d-3d-sync-${SHORT}.zip"
+          git archive --format=zip --output="$SNAPSHOT" HEAD
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          snapshot = f"whd-cleanup-2d-3d-sync-{sha[:16]}.zip"
+          payload = {
+              "schema": "WHD_DRIVE_SOURCE_EXPORT_V1",
+              "repository": "looaeedr/whd",
+              "source_branch": "cleanup/2d-3d-sync",
+              "source_sha": sha,
+              "tree_sha": tree,
+              "snapshot_name": snapshot,
+              "drive_destination_root": "/Google Drive/WHD/source",
+              "drive_writeback_owner": "interactive root-local-first finalization",
+              "github_run_id": os.environ.get("GITHUB_RUN_ID"),
+          }
+          Path("WHD_DRIVE_SOURCE_EXPORT_V1.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          sha256sum "$SNAPSHOT" > WHD_DRIVE_SOURCE_EXPORT_V1.sha256
+
+      - name: 上傳 durable export artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-drive-source-${{ github.sha }}
+          path: |
+            whd-cleanup-2d-3d-sync-*.zip
+            WHD_DRIVE_SOURCE_EXPORT_V1.json
+            WHD_DRIVE_SOURCE_EXPORT_V1.sha256
+          if-no-files-found: error
+          retention-days: 14

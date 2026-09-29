@@ -3,6 +3,7 @@ whd_doc_role: MIRROR
 whd_contract: whd-chatgpt-scheduled-resume
 whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-SCHEDULED-RESUME
 ---
 
 # WHD Scheduled Resume / ChatGPT 自動續跑規則

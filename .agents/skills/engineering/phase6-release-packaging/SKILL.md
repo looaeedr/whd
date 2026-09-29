@@ -152,14 +152,16 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 
 正確順序：ZIP CRC/entry policy → pristine FULL extraction → pristine baseline + UPDATE overlay → cleanup policy → 逐檔 missing/extra/SHA256。測試 gate 另用其他 extraction 執行，不污染封包完整性比較目錄。
 
-## Branch-first modification gate
+## Root-local-first release / integration gate
 
-All WHD changes must enter release/integration through a dedicated Git work branch, but `ROOT_LOCAL_FIRST` now owns the pre-Git construction/test phase.
+WHD interactive/default changes enter release only after root-local qualification:
 
-- For interactive/default development, do **not** create the Git work branch before root-local modification. Complete `ROOT_SOURCE_CURRENT → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN` first.
-- Only after root completion evidence reaches `GIT_WRITE_UNLOCKED` may the Git work branch be created from the latest authoritative target HEAD. The branch receives `EXACT_TESTED_DIFF_ONLY`.
-- No direct writes to `cleanup/2d-3d-sync` or `main`, including docs, tests, QA workflows, Skills, AI Library, Registry, or "tiny fixes".
-- If a touched target path moved after the root baseline, use `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`; do not reconcile by silently changing the tested payload on Git.
-- Keep all task changes and temporary QA workflow cleanup on the same work branch after Git write is unlocked.
-- Final target update must be a normal non-force PR/merge whose head SHA is locked to the accepted closing head.
-- Root GREEN or a green work branch is not permission to bypass final acceptance or drift audit. GitHub Actions remain post-push verification, not the first test surface.
+- root workspace first: current source → mutation → classified tests → terminal GREEN → frozen exact diff;
+- Git content plane stays read-only until `GIT_WRITE_UNLOCKED`;
+- after unlock, create a fresh work branch from fresh authoritative target HEAD and re-read parent/base;
+- the work branch may receive `EXACT_TESTED_DIFF_ONLY`; no branch-side hotfixes or cleanup edits that were not root-tested;
+- if target moved across touched/base identity, return to root and `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`;
+- push/Actions/remote QA are post-push verification; failure returns to root for a new tested freeze;
+- final target update remains normal non-force PR/merge whose closing head is accepted by final acceptance and drift audit.
+
+A work branch is still mandatory in Git phase, but it does not precede root development/testing.

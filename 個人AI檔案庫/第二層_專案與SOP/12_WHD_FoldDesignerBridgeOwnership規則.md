@@ -3,6 +3,7 @@ whd_doc_role: CURRENT
 whd_contract: fold-designer-bridge-ownership
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-FOLD-DESIGNER-BRIDGE-OWNERSHIP
 ---
 
 # WHD Fold Designer Bridge Ownership 規則
@@ -201,7 +202,7 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 
 1. 先讀 Canonical Authority Map 與本文件；
 2. 若是新 extraction / new owner / new composition boundary，必須先有 accepted spec；
-3. 保持 branch-first、single execution claim、non-force integration；
+3. 保持 root-local-first、`GIT_WRITE_UNLOCKED` 後 Git-phase branch、single execution claim、non-force integration；
 4. owner 搬移必須同一變更完成新 owner、舊 owner降級/刪除、reverse-import guard 與直接回歸；
 5. 不得用「bridge 太長」本身作 extraction authority；
 6. focused GREEN 不等於 final acceptance；若改動影響實體板件、2D/3D、DXF、persistence，仍須走對應 final acceptance。

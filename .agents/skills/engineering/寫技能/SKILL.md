@@ -40,7 +40,7 @@ WHD 的 user-visible Skill 使用公告由 `AGENTS.md` 擁有全域硬閘門。�
 3. 目前要建立或修改的 Skill baseline。
 4. 通用 Skill 撰寫慣例。
 
-**專案規則優先**。通用「寫技能」不能取代專案自己的 branch-first、Preflight、TDD、QA、AI 庫回寫或 release gate。
+**專案規則優先**。通用「寫技能」不能取代專案自己的 root-local-first、Git-phase branch gate、Preflight、TDD、QA、AI 庫回寫或 release gate。
 
 若專案規定修改前必須執行 Preflight，先執行；若已知 changed files，再依專案規則帶 changed files 重跑。不能先改完再補做資格檢查。
 
@@ -143,16 +143,18 @@ skill-name/
 - **使用者明確要求改名**：使用者指示優先。同步處理 frontmatter、目錄/路徑（若需要）、Registry、測試、文件、其他 Skill **引用**，不得只改一處造成 split identity。
 - 使用者只要求修內容而未要求改名時，不擅自改 identity。
 
-### 4.2 Branch-first
+### 4.2 Root-local-first → Git phase
 
-若 Skill 位於 Git repository，且專案有 **branch-first** 規則：
+WHD interactive/default Skill 修改固定：
 
-1. 反讀 authoritative target branch 與最新 HEAD。
-2. 從該 HEAD 建立新的 work branch。
-3. 反讀 work branch base/parent。
-4. 之後才寫 Skill、tests、AI Library、Registry 或 docs。
+1. 先完成 `WHD_WORK_ROOT_HARD_GATE_V1` + `ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1`。
+2. 在 `/Google Drive/WHD/work/active/...` 以 current source baseline 修改 Skill、tests、AI Library、Registry/docs。
+3. 在 root workspace 完成 RED→GREEN、required regression/final gate。
+4. freeze exact tested diff；fresh-read target 做 touched-path/base drift audit。
+5. 只有 `GIT_WRITE_UNLOCKED` 後才從 fresh target HEAD 建立 Git work branch並 fresh-read parent/base。
+6. branch 只可接收 `EXACT_TESTED_DIFF_ONLY`；若要補修，回 root 修改、重測、refreeze。
 
-獨立修改任務使用獨立新分支；不得直接 patch production target。
+不得直接 patch production target；也不得把「需要 work branch」誤讀成「root 修改／測試前先建 branch」。
 
 ### 4.3 先找真正問題，不要只換句話
 
@@ -256,7 +258,7 @@ skill-name/
 - [ ] 沒有硬依賴本環境不存在的工具。
 - [ ] 沒有假裝背景 subagent / viewer / package / CI 已存在。
 - [ ] 沒有要求等待不存在的第三方工作。
-- [ ] repo 任務已遵守 `AGENTS.md` / Preflight / branch-first。
+- [ ] repo 任務已遵守 `AGENTS.md` / root-local-first / Preflight / `GIT_WRITE_UNLOCKED` 後的 Git-phase branch gate。
 - [ ] baseline snapshot 可追溯。
 - [ ] RED-capable contract 已建立；能執行時已實跑 RED → GREEN。
 - [ ] 使用者明確改名時，frontmatter / tests / Registry / references 已同步。

@@ -3,6 +3,7 @@ whd_doc_role: REFERENCE
 whd_contract: ai-library-reference
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-SKILL-DISCOVERY-DEEP-SCAN
 ---
 # WHD 技能發現與「掃描深模組」規則
 

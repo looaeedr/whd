@@ -45,30 +45,31 @@ GitHub-only / `SCHEDULER_LANE` / trusted remote action 若 execution environment
 
 machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest 任一缺失或 identity mismatch 都 fail closed；不得用聊天記憶、`/mnt/data` 暫存路徑或前一 invocation evidence 代替。
 
-## -0.5. ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1：根目錄先改、先測，GREEN 後才准寫 Git
+## -0.5. ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1：互動式修改先在根目錄完成並測綠
 
 <!-- ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1 -->
 
-完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1` 後、進入 Phase6 Preflight 與任何 task mutation 前，必須 fresh-read canonical entry gate：
+`WHD_WORK_ROOT_HARD_GATE_V1` 完成後，互動式／預設 development 在進入 Phase6 Preflight 與任何 repository content mutation 前，必須 fresh-read：
 
-`/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`
+- `/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`；
+- `.agents/skills/engineering/root-local-first/SKILL.md`；
+- machine owner `tools/root_local_first_gate.py`。
 
-互動式與一般開發固定使用 `ROOT_LOCAL_FIRST`：`/Google Drive/WHD` 視同本機工作面。允許把 canonical root materialize 到 runtime filesystem 執行工具，但 materialization 只能是 execution surface，**不得**把 `/mnt/data`、Git checkout 或其他暫存路徑重新宣告成 canonical root。
+唯一順序：
 
-硬順序：
+`ROOT_SOURCE_CURRENT → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`
 
-1. `ROOT_SOURCE_CURRENT`：依 Current Source Manifest 建立／同步 root-backed working copy。
-2. `ROOT_MUTATIONS_COMPLETE`：所有 production / test / Skill / governance 修改先只在 root-backed workspace 完成。
-3. `ROOT_TEST_CLASSIFIED`：先依 `GOVERNANCE_OR_SKILL / BUGFIX / UPDATE_OR_FEATURE / CORE_OR_HIGH_RISK` 分類，再跑該類必要測試。
-4. `ROOT_TESTS_GREEN`：root-local contract / regression 必須 GREEN。remote CI 不能替代這一步。
-5. `ROOT_DIFF_FROZEN`：freeze exact changed files + diff SHA256；freeze 後內容改變即失效。
-6. 以上五項全部成立才進 `GIT_WRITE_UNLOCKED`，此時才可從 latest authoritative target HEAD 建 Git work branch，並套用 `EXACT_TESTED_DIFF_ONLY`。
+硬規則：
 
-在 `GIT_WRITE_UNLOCKED` 前，Git write state 固定為 `LOCKED_UNTIL_ROOT_TESTS_GREEN`；Git 只允許 `READ / FETCH / COMPARE`，禁止 `CREATE_OR_UPDATE_FILE / CREATE_COMMIT / UPDATE_REF / PUSH / MERGE`。若 touched target path 在 root baseline 後 drift，固定 fail closed=`RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。GitHub Actions 屬 `POST_PUSH_VERIFICATION_NOT_FIRST_TEST_SURFACE`。
+1. `ROOT_SOURCE_CURRENT` 必須 fresh-read Current Source Manifest 並與 authoritative target SHA/tree exact 對齊；durable snapshot 落後時只可作 bootstrap base，planned touched existing paths 必須逐一 fresh-compare target blob。
+2. `GIT_WRITE_UNLOCKED` 前 Git repository content plane 只准 `READ / FETCH / COMPARE`；禁止 content write、commit、create/update ref、push、merge。
+3. root workspace 內先完成實際修改與 `WHD_CHANGE_TEST_PROFILE_V1` 要求的 RED/GREEN/final full gate；test-profile owner 唯一是 `tools/change_test_profile.py`，不得另造第二套分類。
+4. tests terminal GREEN 後 freeze exact touched paths + diff digest + test evidence。fresh-read target；任何 touched/base drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。
+5. 只有 `GIT_WRITE_UNLOCKED` 後才建立 fresh Git work branch，fresh-read parent/base，再套 `EXACT_TESTED_DIFF_ONLY`。branch 上若需要改內容，回 root 修正、重測、refreeze；不得 Git-side 熱修。
+6. GitHub Actions / remote QA 是 post-push verification，不得取代 root 第一測試面。accepted integration 後必須刷新 Drive Current Source Manifest；full snapshot 尚未刷新時明確標 `STALE_BOOTSTRAP_BASE`。
+7. `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 屬 Flow v2 remote/control-plane scope exception，仍依其 GitHub canonical authority；不得把一般 interactive task 偽裝成 remote mode 來繞過本 gate。
 
-canonical Skill：`.agents/skills/engineering/root-local-first/SKILL.md`；machine validator：`tools/root_local_first_gate.py`；repo mirror：`.agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`。
-
-GitHub-only / `SCHEDULER_LANE` 若無 Google Drive connector，可 fresh-read repo mirror 取得 contract pointer 與 machine-safe policy；但 scheduler/control-plane 的既有 GitHub-only mutation authority 不因此改綁 root。對 interactive/default development，entry gate 一律 local-first。
+缺少 gate evidence、source-current evidence、root tests GREEN 或 frozen diff，一律 fail closed。
 
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
@@ -1006,16 +1007,16 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 完成後必須遠端反讀確認 marker/內容真的存在；不能只口頭宣稱「已補」。
 - 若不確定這次更正是否屬永久知識，**先問使用者是否要固化**；但對明確的產品規則、AI 行為規則、踩坑防線，不應再等使用者第二次提醒。
 
-### N. 任何修改前先開新分支（BRANCH-FIRST HARD GATE）
+### N. Git phase branch gate（只在 `GIT_WRITE_UNLOCKED` 後）
 
-- **每一個新的修改任務，在第一個 repository write 發生前，必須先從最新 authoritative target HEAD 建立一支新的 work branch，並遠端反讀確認 branch parent SHA。**
-- 「修改」包含：production code、tests、DXF/fixture、workflow、docs/spec、Skill、AI Library、Registry、Issue-owned durable files；**docs-only / AI-only 也不能直接寫 target**。
-- 禁止直接修改 `cleanup/2d-3d-sync`、`main` 或其他 production target。target 只能接受完成驗收後的正常 non-force merge / PR。
-- 同一工作項目建立 branch 後，後續 RED/GREEN、修正、文件同步、QA cleanup 都留在該 branch；**不是每改一個檔就再開一支 branch**。新的獨立修改需求／工單才重新從當時最新 target 開新 branch。
-- 若施工期間 target 前進，先 compare ancestry。若 work branch behind/diverged，必須在 integration/work branch 解衝突並重新驗收；禁止為了省事直接 patch target。
-- 若發現已經直接寫到 target：立即停止後續寫入，反讀實際 side effects，建立新的修正／recovery branch，留下 provenance；不得假裝 branch-first 已遵守。
-- merge 前仍需遵守對應 final acceptance、config invariant、workflow cleanup、tested-head→closing-head drift audit。branch existence **不能取代驗收**。
-- branch-first 是所有其他工程 Skill 的前置硬閘門；任何 Skill 若準備修改檔案，先驗 branch name + parent/base SHA。
+- interactive/default content work 的前置 owner 是 `ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1`；root mutation / RED→GREEN / full gate / diff freeze 都發生在 canonical root，**不是先建 Git branch 再開工**。
+- `GIT_WRITE_UNLOCKED` 前 Git 只准 `READ / FETCH / COMPARE`。
+- unlock 後第一個 Git content step 才是：fresh-read authoritative target HEAD → 建立新的 work branch → fresh-read parent/base SHA。
+- 禁止直接修改 `cleanup/2d-3d-sync`、`main` 或其他 production target；target 只接受完成驗收後的正常 non-force merge / PR。
+- Git work branch 只能接收 `EXACT_TESTED_DIFF_ONLY`。若 branch 上發現要補任何實質內容，回 root workspace 修改、重測、refreeze，再重新做 drift audit。
+- target 在 freeze 後前進時，先 compare touched/base drift；命中 drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`，不得把 stale tested diff 硬套進新 base。
+- branch existence 不能取代 final acceptance、config invariant、workflow cleanup、tested-head→closing-head drift audit。
+- remote scheduler/control-plane scope 依 Flow v2 自己的 authority；本節不得用來把 interactive root-local-first 改回 Git-first。
 
 ### 0.0.4 Authoritative View freshness 硬閘門
 

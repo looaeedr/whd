@@ -2,79 +2,44 @@
   "schema": "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1",
   "version": 1,
   "status": "CURRENT",
-  "workspace": "WHD",
-  "depends_on": {
-    "schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "library_path": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "drive_file_id": "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH"
-  },
+  "owner": "tools/root_local_first_gate.py",
+  "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
   "canonical_root": {
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_"
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "interactive_work_prefix": "/Google Drive/WHD/work/active"
   },
-  "execution_policy": {
-    "mode": "ROOT_LOCAL_FIRST",
-    "treat_root_as_local_workspace": true,
-    "root_work_surface": "/Google Drive/WHD/work",
-    "runtime_materialization_policy": "MAY_MATERIALIZE_CANONICAL_ROOT_LOCALLY_IF_IDENTITY_AND_SOURCE_PROVENANCE_ARE_PRESERVED",
-    "source_bootstrap": "CURRENT_SOURCE_MANIFEST",
-    "pre_git_write_git_access": [
-      "READ",
-      "FETCH",
-      "COMPARE"
-    ],
-    "forbidden_before_root_green": [
-      "CREATE_OR_UPDATE_FILE",
-      "CREATE_COMMIT",
-      "UPDATE_REF",
-      "PUSH",
-      "MERGE"
-    ],
-    "required_before_git_write": [
-      "ROOT_SOURCE_CURRENT",
-      "ROOT_MUTATIONS_COMPLETE",
-      "ROOT_TEST_CLASSIFIED",
-      "ROOT_TESTS_GREEN",
-      "ROOT_DIFF_FROZEN"
-    ],
-    "git_write_unlock_state": "GIT_WRITE_UNLOCKED",
-    "push_payload_policy": "EXACT_TESTED_DIFF_ONLY",
-    "on_target_drift": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE",
-    "remote_ci_role": "POST_PUSH_VERIFICATION_NOT_FIRST_TEST_SURFACE"
-  },
-  "test_classification": {
-    "GOVERNANCE_OR_SKILL": [
-      "FOCUSED_CONTRACT",
-      "PREFLIGHT_REGISTRY",
-      "AFFECTED_PROCESS_REGRESSION"
-    ],
-    "BUGFIX": [
-      "REPRO_RED",
-      "FOCUSED_REGRESSION",
-      "AFFECTED_SUBSYSTEM"
-    ],
-    "UPDATE_OR_FEATURE": [
-      "NEW_CONTRACT",
-      "FOCUSED_UNIT",
-      "AFFECTED_INTEGRATION"
-    ],
-    "CORE_OR_HIGH_RISK": [
-      "FULL_RELEVANT_REGRESSION"
-    ]
-  },
-  "fail_closed": {
-    "on_root_not_current": "ROOT_LOCAL_SOURCE_NOT_CURRENT",
-    "on_pre_git_write_before_green": "ROOT_LOCAL_GIT_WRITE_LOCKED",
-    "on_target_drift": "ROOT_LOCAL_TARGET_DRIFT_REQUIRES_RETEST",
-    "action": "STOP_BEFORE_GIT_WRITE"
+  "required_order": [
+    "ROOT_SOURCE_CURRENT",
+    "ROOT_MUTATIONS_COMPLETE",
+    "ROOT_TEST_CLASSIFIED",
+    "ROOT_TESTS_GREEN",
+    "ROOT_DIFF_FROZEN",
+    "GIT_WRITE_UNLOCKED"
+  ],
+  "git_before_unlock": [
+    "READ",
+    "FETCH",
+    "COMPARE"
+  ],
+  "git_write_mode": "EXACT_TESTED_DIFF_ONLY",
+  "target_drift_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE",
+  "github_actions_role": "POST_PUSH_VERIFICATION",
+  "test_profile_owner": "tools/change_test_profile.py",
+  "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
+  "execution_modes": {
+    "INTERACTIVE": "ROOT_LOCAL_FIRST_REQUIRED",
+    "SCHEDULER_LANE": "GITHUB_CONTROL_PLANE_ONLY_UNLESS_CONTENT_WORK_IS_DELEGATED_TO_ROOT_WORKSPACE",
+    "GITHUB_ONLY": "REMOTE_TRANSPORT_EXCEPTION",
+    "REMOTE_ACTION": "REMOTE_TRANSPORT_EXCEPTION"
   },
   "role": "MIRROR",
   "mirror_policy": "POINTER_ONLY",
   "canonical_source": {
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-    "drive_file_id": "1qCu4ZHCHj8FNfLIhd2Ga8tgHp_STxlLYFo54889TGj8",
-    "canonical_payload_sha256": "fa243d8b0bb89b7dd9b9c93a699ece348de28f0a6623033a06a148d3d8236209"
+    "drive_file_id": "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp",
+    "canonical_payload_sha256": "ba5f3c5f59951bafbe93ce8ba36637637073bd7d01fcba65c38da4eb6fef64d5"
   }
 }

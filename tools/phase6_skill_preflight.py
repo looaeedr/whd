@@ -35,11 +35,13 @@ def _norm(value: str | Path) -> str:
 
 def _keyword_matches_task(keyword: str, task_text: str) -> bool:
     keyword_text = keyword.lower()
-    is_ascii_token = keyword.isascii() and keyword.isalnum()
-    if is_ascii_token:
-        # Match standalone ASCII routing tokens.  Substring matching turns `lease`
-        # into a false positive for `release`, which can incorrectly require the
-        # Flow-v2 skill for unrelated release tasks.
+    is_short_ascii_acronym = (
+        len(keyword) <= 3
+        and keyword.isascii()
+        and keyword.isalnum()
+        and any(char.isupper() or char.isdigit() for char in keyword)
+    )
+    if is_short_ascii_acronym:
         pattern = rf"(?<![A-Za-z0-9_]){re.escape(keyword_text)}(?![A-Za-z0-9_])"
         return re.search(pattern, task_text) is not None
     return keyword_text in task_text
