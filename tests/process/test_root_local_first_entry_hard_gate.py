@@ -24,8 +24,6 @@ def _reservation(sha="a" * 40): return {
 }
 
 
-
-
 def _test_receipt(sha="a" * 40, issue=996, generation=4):
     return {
         "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
@@ -50,6 +48,9 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert payload["required_order"][:3] == ["ROOT_SOURCE_CURRENT", "PATHS_RESERVED", "ROOT_MUTATIONS_COMPLETE"]
     assert payload["path_reservation"]["state_owner"] == "WHD_EXECUTION_RECORD_V2.mutation_scope"
     assert payload["path_reservation"]["evaluator"] == "tools/execution_path_reservation.py"
+    assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
+    assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
+    assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
 
 
 def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
@@ -90,9 +91,19 @@ def test_stale_manifest_requires_exact_touched_path_proofs():
     assert recovered["status"] == "SCOPED_CURRENT_RECOVERY"
 
 
-def test_remote_execution_modes_are_explicit_scope_exception_not_unlock_token():
+def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_tokens():
     from tools.root_local_first_gate import assert_git_content_write_allowed, build_gate_evidence
-    evidence = build_gate_evidence(execution_mode="SCHEDULER_LANE")
+    with pytest.raises(ValueError, match="provenance"):
+        build_gate_evidence(execution_mode="SCHEDULER_LANE")
+    evidence = build_gate_evidence(
+        execution_mode="SCHEDULER_LANE",
+        execution_mode_provenance={
+            "schema": "WHD_EXECUTION_MODE_PROVENANCE_V1",
+            "execution_mode": "SCHEDULER_LANE",
+            "source": "FLOW_V2_LANE_ID",
+            "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        },
+    )
     assert evidence["applicable"] is False
     assert evidence["next_action"] == "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"
     with pytest.raises(ValueError, match="does not authorize"):
@@ -117,16 +128,60 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
 
 
 def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():
-    active = ["AGENTS.md", ".agents/skills/engineering/diagnosing-bugs/SKILL.md", ".agents/skills/engineering/phase6-release-packaging/SKILL.md", ".agents/skills/engineering/寫技能/SKILL.md", ".agents/skills/misc/git-remote-sync-fallback/SKILL.md", ".agents/skills/productivity/MCP工具操作/SKILL.md", ".agents/skills/productivity/找技能/SKILL.md", ".agents/skills/engineering/拷問邊建立文件/SKILL.md", ".agents/skills/engineering/UI設計與去AI味/SKILL.md", "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md", "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md", "個人AI檔案庫/第二層_專案與SOP/12_WHD規格書Skill前置與Grounding規則.md"]
-    forbidden = ("branch-first", "BRANCH-FIRST", "第一個 repository write 之前先開新 work branch", "Before the first write of a new modification task, create a fresh branch")
-    for rel in active:
+    from tools.skill_catalog import inventory
+
+    registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
+    active = {row.path for row in inventory() if row.active}
+    required_refs = {
+        ref
+        for route in registry["routes"]
+        for ref in route.get("required_references", [])
+        if (ROOT / ref).exists() and (ROOT / ref).is_file()
+    }
+    scan = {"AGENTS.md", *active, *required_refs}
+    # The canonical root-local-first Skill deliberately quotes forbidden legacy
+    # wording in its anti-regrowth section; other active routes must not carry it.
+    scan.discard(".agents/skills/engineering/root-local-first/SKILL.md")
+    forbidden = (
+        "每次修改先從最新 target 開新分支",
+        "第一個 repository write 之前先開新 work branch",
+        "Before the first write of a new modification task, create a fresh branch",
+        "建立 branch 後才可開始 Skill/tests/docs/production 修改",
+    )
+    offenders = []
+    for rel in sorted(scan):
         text = (ROOT / rel).read_text(encoding="utf-8")
         for phrase in forbidden:
-            assert phrase not in text, (rel, phrase)
+            if phrase in text:
+                offenders.append((rel, phrase))
+    assert offenders == []
+
+
+def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
+    from tools.root_local_first_gate import build_gate_evidence, build_git_unlock_receipt, validate_git_unlock_receipt, validate_source_current
+    source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
+    evidence = build_gate_evidence(
+        execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(),
+        root_mutations_complete=True, test_classified=True, tests_green=True,
+        test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+    )
+    receipt = build_git_unlock_receipt(evidence)
+    assert receipt["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
+    assert receipt["source_sha"] == "a" * 40
+    assert receipt["diff_digest"] == "c" * 64
+    assert receipt["write_mode"] == "EXACT_TESTED_DIFF_ONLY"
+    assert validate_git_unlock_receipt(receipt)["git_write_unlocked"] is True
+    bad = dict(receipt, git_write_unlocked=False)
+    with pytest.raises(ValueError, match="GIT_WRITE_UNLOCKED"):
+        validate_git_unlock_receipt(bad)
+
 
 
 def test_bare_tests_green_boolean_is_rejected():
     from tools.root_local_first_gate import build_gate_evidence, validate_source_current
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
     with pytest.raises(ValueError, match="WHD_TEST_EXECUTION_RECEIPT_V1"):
-        build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="f" * 64)
+        build_gate_evidence(
+            execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(),
+            root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="f" * 64,
+        )
