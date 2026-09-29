@@ -1,7 +1,7 @@
 ---
 whd_doc_role: REFERENCE
 whd_contract: ai-library-reference
-whd_canonical: ".agents/skills/engineering/寫成規格書/SKILL.md"
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 whd_doc_id: WHD-SOP-SPEC-SKILL-GROUNDING
 ---
