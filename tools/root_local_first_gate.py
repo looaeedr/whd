@@ -15,6 +15,7 @@ DEFAULT_ROOT = "/Google Drive/WHD"
 DEFAULT_WORK_PREFIX = "/Google Drive/WHD/work/active"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
+TEST_EXECUTION_RECEIPT_SCHEMA = "WHD_TEST_EXECUTION_RECEIPT_V1"
 REQUIRED_ORDER = (
     "ROOT_SOURCE_CURRENT",
     "PATHS_RESERVED",
@@ -49,6 +50,33 @@ def _sha(value: object, label: str) -> str:
 
 
 
+
+def validate_test_execution_receipt(
+    receipt: object,
+    *,
+    expected_source_sha: str,
+    expected_issue: int,
+    expected_generation: int,
+    expected_commands: Iterable[str],
+) -> dict[str, object]:
+    item = _mapping(receipt, "test execution receipt")
+    if item.get("schema") != TEST_EXECUTION_RECEIPT_SCHEMA:
+        raise ValueError("unexpected WHD_TEST_EXECUTION_RECEIPT_V1 schema")
+    if str(item.get("status") or "").strip().upper() != "GREEN":
+        raise ValueError("WHD_TEST_EXECUTION_RECEIPT_V1 status must be GREEN")
+    if _sha(item.get("source_sha"), "test receipt source_sha") != _sha(expected_source_sha, "expected source_sha"):
+        raise ValueError("test receipt source_sha mismatch")
+    if isinstance(item.get("issue"), bool) or int(item.get("issue") or 0) != int(expected_issue):
+        raise ValueError("test receipt issue mismatch")
+    if isinstance(item.get("generation"), bool) or int(item.get("generation") or 0) != int(expected_generation):
+        raise ValueError("test receipt generation mismatch")
+    commands = item.get("exact_commands")
+    if not isinstance(commands, list) or tuple(str(x) for x in commands) != tuple(str(x) for x in expected_commands):
+        raise ValueError("test receipt exact_commands mismatch")
+    digest = str(item.get("manifest_digest") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("test receipt manifest_digest must be SHA256")
+    return {str(k): v for k, v in item.items()}
 
 def validate_execution_mode_provenance(*, execution_mode: str, provenance: object) -> dict[str, object]:
     """Prove that a remote/control-plane exception comes from a trusted runtime identity.
@@ -177,6 +205,11 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("execution mode provenance schema mismatch")
     if provenance.get("remote_exception_requires") != "TRUSTED_RUNTIME_PROVENANCE":
         raise ValueError("remote execution exception must require trusted provenance")
+    test_execution_receipt = _mapping(contract.get("test_execution_receipt"), "test_execution_receipt")
+    if test_execution_receipt.get("schema") != TEST_EXECUTION_RECEIPT_SCHEMA:
+        raise ValueError("test execution receipt schema mismatch")
+    if test_execution_receipt.get("bare_tests_green_boolean_sufficient") is not False:
+        raise ValueError("bare tests_green boolean must not unlock Git writes")
     receipt = _mapping(contract.get("git_write_receipt"), "git_write_receipt")
     if receipt.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
         raise ValueError("Git write receipt schema mismatch")
@@ -228,6 +261,8 @@ def build_gate_evidence(
     root_mutations_complete: bool = False,
     test_classified: bool = False,
     tests_green: bool = False,
+    test_receipt: Mapping[str, object] | None = None,
+    expected_test_commands: Iterable[str] = (),
     diff_digest: str | None = None,
     target_drift: bool = False,
 ) -> dict[str, object]:
@@ -267,7 +302,16 @@ def build_gate_evidence(
                     completed.append("ROOT_TEST_CLASSIFIED")
                     if not tests_green:
                         next_action = "ROOT_TESTS_GREEN"
+                    elif not test_receipt:
+                        raise ValueError("ROOT_TESTS_GREEN requires WHD_TEST_EXECUTION_RECEIPT_V1")
                     else:
+                        validate_test_execution_receipt(
+                            test_receipt,
+                            expected_source_sha=str(source_evidence.get("source_sha") or ""),
+                            expected_issue=int(reservation.get("issue") or 0),
+                            expected_generation=int(reservation.get("generation") or 0),
+                            expected_commands=expected_test_commands,
+                        )
                         completed.append("ROOT_TESTS_GREEN")
                         if not diff_digest:
                             next_action = "ROOT_DIFF_FROZEN"
