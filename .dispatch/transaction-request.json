@@ -1,36 +1,45 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-expand-ai-library-20260929T155441Z",
-  "issue": 1022,
-  "kind": "RESERVE_PATHS",
+  "request_id": "issue1027-apply-durable-terminal-gate",
+  "issue": 1027,
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
-  "expected_coord_head": "acc440a7e535b667815247c124e505291a11d49a",
-  "expected_generation": 11,
+  "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
+  "expected_coord_head": "ef0b75b1d74ac62346c6eed5bed3f85b1d63aafe",
+  "expected_generation": 8,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-    "write_paths": [
-      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      ".agents/skills/engineering/寫排程/SKILL.md",
-      ".agents/skills/engineering/工作槽/SKILL.md",
-      ".agents/skills/engineering/排程模擬/SKILL.md",
-      ".github/workflows/whd-control-plane-regression.yml",
-      ".github/workflows/whd-control-transaction-v2-request.yml",
-      "tests/process/test_issue1022_root_ci_parity.py",
-      "tests/process/test_issue724_report_handler_identity_prefix.py",
-      "tools/change_test_profile.py",
-      "tools/control_plane_regression.py",
-      "tools/root_local_first_gate.py",
-      "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY",
-    "updated_at": "2026-09-29T15:54:41Z"
+    "head_sha": "01e357e80776cea615d07813b174be8349461122",
+    "semantic_state": "DURABLE_TERMINAL_EXIT_GATE_APPLIED",
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+      "diff_digest": "8a86ad57b412f7f95b68b3733183887e714ef4b7b978909287fcb746d5283e86",
+      "issue": 1027,
+      "generation": 8,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
+        "AGENTS.md",
+        "tests/process/test_flow_v2_execution_invocation_exit.py",
+        "tests/process/test_flow_v2_execution_scheduler_view.py",
+        "tools/execution_invocation_exit.py",
+        "tools/execution_record.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "071ad585b6da9980d571e325103faa7c475d498478c6949ca8a58177bad8adf5",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": "WHD Control Plane Regression"
+      },
+      "display": "Start exact-head control-plane QA"
+    }
   },
-  "purpose": "Expand Issue #1022 same-ticket reservation to include the existing AI Library connector-write pitfall document requested by the owner; no helper and no out-of-scope write.",
+  "purpose": "Reconcile the exact Issue #1027 durable-terminal hard-gate branch head and proceed directly to exact-head QA.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
