@@ -1,45 +1,55 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1023-acquire-admission-retire-watchdog-retry-sorted",
-  "issue": 1023,
-  "kind": "ACQUIRE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
+  "request_id": "issue1022-expand-reservation-20260929T1427Z",
+  "issue": 1022,
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1023:retire-watchdog:20260929",
-  "expected_coord_head": "5c3496e932bd2c93ced50d06ef88986d51fde8c8",
-  "expected_generation": 1,
-  "effect": {
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/排程模擬/SKILL.md",
-        ".github/workflows/whd-control-plane-regression.yml",
-        "tests/process/test_issue1023_scheduler_watchdog_retirement.py"
-      ],
-      "delete_paths": [
-        ".github/workflows/whd-scheduler-host-watchdog.yml",
-        "tests/process/test_issue945_scheduler_host_watchdog.py",
-        "tools/scheduler_host_watchdog.py"
-      ]
-    },
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested work branch after root mutation/test/freeze"
-    }
-  },
-  "purpose": "Retire the standalone scheduler watchdog while preserving only the five-entrypoint A/B self-recovery micro-bootstrap.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
+  "startup_evidence": {
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
     "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    "work_root_gate": {
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+      "gate_status": "CURRENT",
+      "read_mode": "GOOGLE_DRIVE_CANONICAL",
+      "execution_mode": "INTERACTIVE",
+      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+      "provider": "google_drive",
+      "library_path": "/Google Drive/WHD",
+      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    },
+    "purpose": "Expand Issue #1022 exact path reservation to include report-identity exit contracts and concrete root/CI test receipt enforcement before root mutation.",
+    "issued_at": "2026-09-29T14:27:00Z",
+    "expires_at": "2026-09-29T14:32:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Expand Issue #1022 exact path reservation to include report-identity exit contracts and concrete root/CI test receipt enforcement before root mutation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+  },
+  "expected_coord_head": "5c3496e932bd2c93ced50d06ef88986d51fde8c8",
+  "expected_generation": 3,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+    "write_paths": [
+      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".agents/skills/engineering/寫排程/SKILL.md",
+      ".agents/skills/engineering/工作槽/SKILL.md",
+      ".agents/skills/engineering/排程模擬/SKILL.md",
+      ".github/workflows/whd-control-plane-regression.yml",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_issue724_report_handler_identity_prefix.py",
+      "tests/process/test_issue1022_root_ci_parity.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/change_test_profile.py",
+      "tools/control_plane_regression.py",
+      "tools/execution_invocation_exit.py",
+      "tools/root_local_first_gate.py"
+    ],
+    "delete_paths": []
   }
 }
