@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
-    "id": 36590194697,
-    "purpose": "WHD Control Plane Regression exact-head acceptance",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
   "issue": 1025,
   "lane_id": "chatgpt.flowv2.work1",
@@ -42,35 +37,34 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
-      "run_id": 36590194697
+      "head_sha": "7957fcafdeb876df8afbaca111aaddd0891a70eb"
     },
-    "display": "Accept exact-head Control Plane Regression success",
-    "kind": "ACCEPT_QA"
+    "display": "Advance durable head to tree-identical QA retrigger commit",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "831e34b183b309085ea2e095c7c9b2b913e52b1f",
+    "last_accepted_run": 36590194697
   },
   "recovery_history": [],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA_TERMINAL_SUCCESS_OBSERVED",
+  "semantic_state": "QA_ACCEPTED_BEFORE_EMPTY_HEAD_ADVANCE",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-  "state": "VERIFYING",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "e15def623f998faa2f299b8d8f4648df5579954ca6d5f5542f9b066fbda7026b",
-    "id": "gha:36590651627:1025:START_QA:10",
+    "expected_fingerprint": "ffce58153269382bf80ca8698b9f9356fea5ab9006690b59f629ae701b36d4ef",
+    "id": "gha:36591000542:1025:ACCEPT_QA:11",
     "invocation_identity": "interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:30:25Z",
+  "updated_at": "2026-09-29T15:33:06Z",
   "version": 2,
   "work_branch": "governance/issue1025-flow-v2-roundtrip-reduction"
 }
