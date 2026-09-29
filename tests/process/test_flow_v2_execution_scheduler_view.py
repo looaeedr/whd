@@ -23,9 +23,9 @@ def _record(
     execution_intent: str = "SCHEDULER_LANE",
 ):
     if owner_kind is None:
-        owner_kind = "UNCLAIMED" if state == "READY" else "SCHEDULER"
+        owner_kind = "NONE" if state == "DONE" else "UNCLAIMED" if state == "READY" else "SCHEDULER"
     if owner_id is None:
-        owner_id = "NONE" if state == "READY" else (lane or LANE_A)
+        owner_id = "NONE" if state in {"READY", "DONE"} else (lane or LANE_A)
     if state == "DONE":
         next_action = None
     elif state == "READY":
@@ -59,7 +59,7 @@ def _record(
         "execution_intent": execution_intent,
         "owner_kind": owner_kind,
         "owner_id": owner_id,
-        "lane_id": None if state == "READY" else lane,
+        "lane_id": None if state in {"READY", "DONE"} else lane,
         "slot_id": None,
         "source_branch": "cleanup/2d-3d-sync",
         "source_sha": "a" * 40,
