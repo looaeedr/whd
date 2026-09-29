@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1017-finalize-stable-window-20260929T1400Z",
-  "issue": 1017,
-  "kind": "FINALIZE",
+  "request_id": "issue1022-acquire-20260929T1421Z",
+  "issue": 1022,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1341Z",
+  "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work0:issue1017:root-local-first-hardening:20260929T1341Z",
+    "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
     "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
@@ -22,12 +22,34 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Finalize merged Issue #1017 in a stable coordination window; close Issue, release reservation, and transition ExecutionRecord to DONE.",
-    "issued_at": "2026-09-29T14:00:00Z",
-    "expires_at": "2026-09-29T14:05:00Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Finalize merged Issue #1017 in a stable coordination window; close Issue, release reservation, and transition ExecutionRecord to DONE.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Acquire Issue #1022 on work0 and immediately reserve exact root-local-first mutation paths for CI parity, retryable conflict status, and identity reporting repair.",
+    "issued_at": "2026-09-29T14:21:10Z",
+    "expires_at": "2026-09-29T14:26:10Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Acquire Issue #1022 on work0 and immediately reserve exact root-local-first mutation paths for CI parity, retryable conflict status, and identity reporting repair.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
-  "expected_coord_head": "bdff8b0dcbfa488d6563c290c5d289e197bc57ec",
-  "expected_generation": 15,
-  "effect": {}
+  "expected_coord_head": "adbc5362ce5955bb8ac59f3393d5df4349bb5e3b",
+  "expected_generation": 1,
+  "effect": {
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
+        "write_paths": [
+          ".agents/skills/engineering/工作槽/SKILL.md",
+          ".agents/skills/engineering/排程模擬/SKILL.md",
+          ".agents/skills/engineering/寫排程/SKILL.md",
+          ".github/workflows/whd-control-plane-regression.yml",
+          ".github/workflows/whd-control-transaction-v2-request.yml",
+          "tools/change_test_profile.py",
+          ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+          "tools/control_plane_regression.py",
+          "tests/process/test_issue1022_root_ci_parity.py"
+        ],
+        "delete_paths": []
+      },
+      "display": "Reserve exact Issue #1022 root mutation paths"
+    }
+  }
 }
