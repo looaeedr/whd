@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from tools.control_transaction import ControlTransactionConflict
 from tools.execution_entry_contract import validate_startup_evidence
+from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
     INTENT_SCHEMA,
     REQUEST_SCHEMA,
@@ -60,6 +61,26 @@ def _execution_mode_for_request(request: dict[str, object]) -> str:
         return execution_mode_for_lane(str(request.get("lane_id") or ""))
     except ValueError as exc:
         raise ProductionExecutorError(str(exc)) from exc
+
+
+
+
+INTERACTIVE_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
+
+
+def _validate_interactive_git_write_receipt(request: dict[str, object], *, execution_mode: str) -> None:
+    if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
+        return
+    effect = request.get("effect")
+    if not isinstance(effect, dict):
+        raise ProductionExecutorError("effect must be an object")
+    receipt = effect.get("root_local_first_git_write_receipt")
+    if receipt is None:
+        raise ProductionExecutorError("interactive Git write requires root-local-first Git write receipt")
+    try:
+        validate_git_unlock_receipt(receipt)
+    except ValueError as exc:
+        raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
 
 
 def _load_request(path: Path) -> dict[str, object]:
@@ -119,15 +140,18 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
             "transaction": {"status": "RECONCILED", "kind": "SEED"},
         }
 
+    execution_mode = _execution_mode_for_request(request)
     try:
         validate_startup_evidence(
             request.get("startup_evidence"),
             invocation_identity=str(request["invocation_identity"]),
-            execution_mode=_execution_mode_for_request(request),
+            execution_mode=execution_mode,
             repository=repo,
         )
     except ValueError as exc:
         raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
+
+    _validate_interactive_git_write_receipt(request, execution_mode=execution_mode)
 
     parent_sha, _, records = _load_state(repo, token, coord_branch)
     expected_parent = str(request["expected_coord_head"])
