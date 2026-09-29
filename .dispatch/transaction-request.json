@@ -1,31 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-work0-reacquire-after-terminal-migration-20260929T161151Z",
+  "request_id": "issue1022-reconcile-target-56399114-20260929T161423Z",
   "issue": 1022,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T161151Z",
-  "expected_coord_head": "e184077be6f4b15912f346c9d18b6a24e1536845",
-  "expected_generation": 12,
+  "expected_coord_head": "1dd9bd2a25909a134fae54a012b6b310f8728273",
+  "expected_generation": 13,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.0",
-    "observed_at": "2026-09-29T16:11:51Z",
-    "updated_at": "2026-09-29T16:11:51Z",
-    "lease": {
-      "token": "lease:1022:work0:20260929T161151Z",
-      "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T161151Z",
-      "expires_at": "2026-09-29T16:26:51Z"
-    },
-    "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY",
+    "observed_work_branch": "governance/issue1022-root-ci-parity-identity-reporting",
+    "observed_head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "observed_target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+    "semantic_state": "TARGET_RECONCILED_SCOPE_UNCHANGED",
     "next_action": {
       "kind": "RESERVE_PATHS",
       "args": {
-        "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-        "delete_paths": [],
         "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
         "write_paths": [
           ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
           ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
@@ -35,21 +26,21 @@
           ".agents/skills/engineering/排程模擬/SKILL.md",
           ".github/workflows/whd-control-plane-regression.yml",
           ".github/workflows/whd-control-transaction-v2-request.yml",
-          "tests/process/test_flow_v2_execution_invocation_exit.py",
           "tests/process/test_issue1022_root_ci_parity.py",
           "tests/process/test_issue724_report_handler_identity_prefix.py",
-          "tests/process/test_issue899_push_transaction_ingress.py",
           "tests/process/test_root_local_first_entry_hard_gate.py",
           "tools/change_test_profile.py",
           "tools/control_plane_regression.py",
-          "tools/execution_invocation_exit.py",
-          "tools/root_local_first_gate.py"
-        ]
+          "tools/root_local_first_gate.py",
+          "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
+        ],
+        "delete_paths": []
       },
-      "display": "Reserve Issue #1022 exact paths on current target 96cb073"
-    }
+      "display": "Rebind Issue #1022 exact paths to current target 56399114"
+    },
+    "updated_at": "2026-09-29T16:14:23Z"
   },
-  "purpose": "Resume Issue #1022 after migrating legacy DONE owner identity so Flow v2 transactions are readable again.",
+  "purpose": "Reconcile Issue #1022 to current production target after proving none of its 15 intended write paths drifted since 96cb073.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
