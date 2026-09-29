@@ -86,9 +86,11 @@ def test_ai_library_execution_authority_is_flow_v2():
         assert token not in resume
 
 
-def test_governance_manifest_includes_flow_v2_canonical_skill_prefix():
-    manifest = json.loads(text(ROOT / "docs/governance/governance_mirror_manifest.json"))
-    assert ".agents/skills/engineering/flow-v2-execution" in manifest["governance_prefixes"]
+def test_flow_v2_declares_cleanup_as_single_governance_authority():
+    body = text(CANONICAL)
+    assert "GOVERNANCE_SINGLE_AUTHORITY_V1" in body
+    assert "唯一 production authority 固定為 `cleanup/2d-3d-sync`" in body
+    assert "governance mirror、paired PR、parity" in body
 
 
 def _ingress(**overrides):

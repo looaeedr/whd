@@ -51,6 +51,8 @@ def test_governance_only_uses_governance_full_suite_not_product_full():
     profile = build_test_profile(task="更新 Flow v2 治理", changed_files=[".agents/skills/engineering/flow-v2-execution/SKILL.md", "tools/execution_scheduler_view.py", "tests/process/test_flow_v2_execution_scheduler_view.py"], explicit_type="GOVERNANCE")
     assert profile["domains"] == []
     assert "CONTROL_PLANE_REGRESSION" in profile["required_stages"]
+    assert "AUTHORITY_CONSISTENCY" in profile["required_stages"]
+    assert "GOVERNANCE_MIRROR_HARD_GATE" not in profile["required_stages"]
     assert profile["full_gate_kind"] == "GOVERNANCE_FULL_SUITE"
     assert profile["required_stages"][-1] == "GOVERNANCE_FULL_SUITE"
 

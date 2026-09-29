@@ -329,32 +329,20 @@ def test_issue975_ingress_classifies_races_for_fresh_read_retry():
     assert '"semantic_effect_applied": False' in text
 
 
-def test_issue975_ancestry_workflow_gets_required_check_before_protected_push():
-    ancestry = (
-        ROOT / ".github/workflows/whd-governance-ancestry-reconcile.yml"
+def test_issue975_governance_sync_transports_are_retired_but_legacy_check_is_no_sync():
+    assert not (ROOT / ".github/workflows/whd-governance-ancestry-reconcile.yml").exists()
+    assert not (ROOT / "tools/governance_parity_gate.py").exists()
+    assert not (ROOT / "docs/governance/governance_mirror_manifest.json").exists()
+
+    compat = (
+        ROOT / ".github/workflows/whd-governance-single-authority-gate.yml"
     ).read_text(encoding="utf-8")
-    mirror = (
-        ROOT / ".github/workflows/whd-governance-mirror-gate.yml"
-    ).read_text(encoding="utf-8")
-
-    assert "actions: write" in ancestry
-    assert "ANCESTRY_CANDIDATE_BRANCH" in ancestry
-    assert "gh workflow run whd-governance-mirror-gate.yml" in ancestry
-    assert "-f mode=ANCESTRY_CANDIDATE" in ancestry
-    assert 'gh run watch "$RUN_ID" --exit-status' in ancestry
-    required_gate = ancestry.index("Run required gate on exact ancestry candidate")
-    protected_push = ancestry.index(
-        "git push origin HEAD:refs/heads/cleanup/2d-3d-sync"
-    )
-    assert required_gate < protected_push
-
-    assert "ANCESTRY_CANDIDATE" in mirror
-    assert "Verify protected cleanup ancestry candidate" in mirror
-    assert "ANCESTRY_CANDIDATE_PARENT_MISMATCH" in mirror
-    assert "ANCESTRY_CANDIDATE_TREE_CHANGED" in mirror
+    assert "NO_SYNC_COMPATIBILITY_V1" in compat
+    assert "verify-live-parity" not in compat
+    assert "ANCESTRY_CANDIDATE" not in compat
 
 
-def test_issue975_flow_skill_makes_anchor_descendant_and_builder_rules_global():
+def test_issue975_flow_skill_keeps_anchor_descendant_and_builder_rules_global():
     text = (
         ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
     ).read_text(encoding="utf-8")
@@ -363,10 +351,11 @@ def test_issue975_flow_skill_makes_anchor_descendant_and_builder_rules_global():
         "MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1",
         "accepted merge SHA is an anchor",
         "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION",
-        "ANCESTRY_CANDIDATE",
+        "GOVERNANCE_SINGLE_AUTHORITY_V1",
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"missing Flow v2 systemic closure contract tokens: {missing}"
+
 
 
 def test_issue975_trusted_finalize_derives_released_at_from_issue_closed_at(monkeypatch):

@@ -77,7 +77,7 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - `FEATURE`：feature acceptance → unit/component → affected subsystem → integration。
 - `UPDATE`：compatibility → migration/config → affected subsystem → integration。
 - `REFACTOR`：behavioral equivalence → unit → integration。
-- `GOVERNANCE`：contract → Control Plane Regression → Governance Mirror Hard Gate。
+- `GOVERNANCE`：contract → Control Plane Regression → Authority Consistency。
 - `DOCS_METADATA`：schema/lint/link；只有 machine proof 為純 docs/metadata 時才可免重型 product full。
 - UI domain 追加 `UI_CONTRACT_STATE / TK_XVFB / VISUAL_ACCEPTANCE`。
 - Geometry/DXF/2D/3D/manufacturing domain 追加 `GEOMETRY_INVARIANTS / DXF_ACCEPTANCE / RENDERER_SYNC / SAVE_RELOAD`。
@@ -151,21 +151,19 @@ FINALIZE trusted executor 必須 fresh-read `record.target_branch`：
 
 descendant proof 只能由 trusted `tools/control_transaction_production_executor.py` fresh-read GitHub ref/compare 後產生 `WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1`；caller-supplied prose/boolean 不構成 authority。
 
-## Governance ancestry reconciliation
+## Governance single authority
 
-<!-- GOVERNANCE_ANCESTRY_RECONCILIATION_V1 -->
+<!-- GOVERNANCE_SINGLE_AUTHORITY_V1 -->
 
-Paired governance deployment不得只停在 main / cleanup 兩個獨立 mirror merge。**cleanup/2d-3d-sync owns the final ancestry reconciliation**；main 只提供已接受的治理 history input，cleanup 仍是 product authority。
+Repository governance 的唯一 production authority 固定為 `cleanup/2d-3d-sync`。`main` 不再參與 governance mirror、paired PR、parity、second-parent ancestry reconciliation 或 terminal acceptance。
 
-Future governance ticket 固定順序：
-1. **merge the paired main governance PR first**，fresh-read accepted main SHA 與 cleanup SHA，並確認 governed content parity 已 GREEN。
-2. 以 `.github/workflows/whd-governance-ancestry-reconcile.yml` 傳入 exact `expected_main_sha + expected_cleanup_sha`。workflow 僅允許 **history-only second-parent merge**：在 cleanup exact head 上建立 two-parent `ours` candidate，candidate tree 必須與 merge 前 cleanup tree 完全相同。
-3. 若 ancestry 尚未存在，candidate 固定先推到非保護 `governance/ancestry-reconcile-*` branch，並以 `mode=ANCESTRY_CANDIDATE` dispatch `Governance Mirror Hard Gate`；只有 exact candidate SHA required check GREEN 後，才可 non-force fast-forward protected `cleanup/2d-3d-sync`。禁止先 direct-push protected cleanup 再期待 required check。
-4. reconciliation 禁止 force-push / history rewrite；任何 input SHA drift、tree drift、parent identity drift、candidate-check failure 一律 fail closed。
-5. workflow 成功後 fresh-read `WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1` 並再次執行 live ancestry gate，證明 accepted main SHA 已是 cleanup ancestor。receipt 的 cleanup SHA 是 ancestry anchor；後續合法 descendant target advance 不使 receipt 失效。
-6. paired governance ticket 的 `FINALIZE` 前必須有 result receipt + live ancestry GREEN；若 current cleanup 已前進，套用 `MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1`，不得無條件重跑 ancestry。
+永久規則：
+1. governance change 只需要 authoritative cleanup work branch → PR/QA → non-force integration；不得為了「同步 main」新增第二張治理 PR。
+2. `docs/governance/governance_mirror_manifest.json`、`tools/governance_parity_gate.py` 與 ancestry reconciliation transport 已 retired；不得重建等價同步 state machine。
+3. governance final gate 使用 `WHD Control Plane Regression` + authority/Registry/semantic-doc consistency；main/cleanup blob equality 或 ancestry 不再是 completion condition。
+4. `main` 視為非治理 authority 的歷史/封存 branch；其內容差異不得阻塞 cleanup 的正常治理與產品交付。
+5. GitHub ruleset 若仍保留 legacy check context `Governance Mirror Hard Gate`，該 workflow 只可作 **no-sync compatibility check**，不得讀取/比較/修改 main，也不得生成 mirror/ancestry candidate。
 
-此 contract 的 machine owner 仍是 `tools/governance_parity_gate.py` + governance mirror/reconciliation workflows；不得新增第二套 ancestry state database。
 
 ## Lease / YIELD
 
