@@ -663,3 +663,96 @@ def test_scheduler_host_recovery_bootstrap_remains_non_authoritative():
     assert "CYCLE_END — KEEP_SCHEDULE_ENABLED" in flow
     assert "CYCLE_END — KEEP_SCHEDULE_ENABLED" in scheduler
     assert "不授權 ACQUIRE" in flow
+
+
+def _root_unlock_receipt():
+    from tools.root_local_first_gate import (
+        build_gate_evidence, build_git_unlock_receipt, validate_source_current,
+    )
+    source = validate_source_current(
+        manifest={"source_sha": "a" * 40, "tree_sha": "b" * 40},
+        live_source_sha="a" * 40, live_tree_sha="b" * 40,
+    )
+    reservation = {
+        "schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
+        "issue": 940, "generation": 4, "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "a" * 40, "write_paths": ["AGENTS.md"], "delete_paths": [],
+        "reservation_state": "ACTIVE",
+        "workspace_path": "/Google Drive/WHD/work/active/issue-940/aaaaaaaaaaaa",
+        "record_fingerprint": "f" * 64,
+    }
+    gate = build_gate_evidence(
+        execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=reservation,
+        root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="c" * 64,
+    )
+    return build_git_unlock_receipt(gate)
+
+
+def test_interactive_start_branch_requires_root_unlock_receipt_before_state_read(monkeypatch):
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    def _unexpected_state_read(*args, **kwargs):
+        raise AssertionError("execution state must not be read before root-local-first Git receipt")
+
+    monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
+    invocation = "interactive:work0:issue940:branch"
+    request = {
+        "schema": ingress.REQUEST_SCHEMA, "request_id": "branch-no-root-receipt", "issue": 940,
+        "kind": "START_BRANCH", "lane_id": "chatgpt.flowv2.work0",
+        "invocation_identity": invocation, "expected_coord_head": "a" * 40, "expected_generation": 1,
+        "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
+        "startup_evidence": _build_startup_evidence(purpose="Issue #940 branch", invocation_identity=invocation),
+    }
+    with pytest.raises(Exception, match="root-local-first Git write receipt"):
+        ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
+
+
+def test_interactive_start_branch_accepts_root_unlock_receipt_before_state_read(monkeypatch):
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    def _state_read(*args, **kwargs):
+        raise RuntimeError("STATE_READ_REACHED")
+
+    monkeypatch.setattr(ingress, "_load_state", _state_read)
+    invocation = "interactive:work0:issue940:branch"
+    request = {
+        "schema": ingress.REQUEST_SCHEMA, "request_id": "branch-with-root-receipt", "issue": 940,
+        "kind": "START_BRANCH", "lane_id": "chatgpt.flowv2.work0",
+        "invocation_identity": invocation, "expected_coord_head": "a" * 40, "expected_generation": 1,
+        "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40,
+                   "root_local_first_git_write_receipt": _root_unlock_receipt()},
+        "startup_evidence": _build_startup_evidence(purpose="Issue #940 branch", invocation_identity=invocation),
+    }
+    with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
+        ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
+
+
+def test_scheduler_start_branch_is_not_misclassified_as_interactive_root_write(monkeypatch):
+    import pytest
+    import tools.control_transaction_request_ingress as ingress
+
+    def _state_read(*args, **kwargs):
+        raise RuntimeError("STATE_READ_REACHED")
+
+    monkeypatch.setattr(ingress, "_load_state", _state_read)
+    lane = "scheduler.6ab13fa557fc8191935c671214b865e2"
+    invocation = "scheduler:a:issue940:branch"
+    request = {
+        "schema": ingress.REQUEST_SCHEMA, "request_id": "scheduler-branch", "issue": 940,
+        "kind": "START_BRANCH", "lane_id": lane, "invocation_identity": invocation,
+        "expected_coord_head": "a" * 40, "expected_generation": 1,
+        "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
+        "startup_evidence": _build_startup_evidence(
+            purpose="Issue #940 scheduler branch", invocation_identity=invocation, execution_mode="SCHEDULER_LANE"
+        ),
+    }
+    with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
+        ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
+
+
+def test_push_request_workflow_reads_cleanup_single_production_authority():
+    text = (ROOT / ".github/workflows/whd-control-transaction-v2-request.yml").read_text(encoding="utf-8")
+    assert "ref: cleanup/2d-3d-sync" in text
+    assert "ref: main" not in text

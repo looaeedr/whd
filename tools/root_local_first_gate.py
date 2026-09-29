@@ -27,6 +27,12 @@ REQUIRED_ORDER = (
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
 REMOTE_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
 READ_ONLY_GIT_ACTIONS = {"READ", "FETCH", "COMPARE"}
+EXECUTION_MODE_PROVENANCE_SCHEMA = "WHD_EXECUTION_MODE_PROVENANCE_V1"
+GIT_UNLOCK_RECEIPT_SCHEMA = "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
+SCHEDULER_LANE_IDS = {
+    "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+}
 
 
 def _mapping(value: object, label: str) -> Mapping[str, object]:
@@ -40,6 +46,90 @@ def _sha(value: object, label: str) -> str:
     if not re.fullmatch(r"[0-9a-f]{40}", text):
         raise ValueError(f"{label} must be a 40-character hex SHA")
     return text
+
+
+
+
+def validate_execution_mode_provenance(*, execution_mode: str, provenance: object) -> dict[str, object]:
+    """Prove that a remote/control-plane exception comes from a trusted runtime identity.
+
+    A caller-controlled execution_mode string is never sufficient to bypass the
+    interactive root-local-first gate.  Scheduler mode is bound to the canonical
+    Flow v2 durable lane IDs; other remote modes require an explicit trusted
+    runtime source marker.
+    """
+    mode = str(execution_mode or "").strip().upper()
+    item = _mapping(provenance, "execution mode provenance")
+    if item.get("schema") != EXECUTION_MODE_PROVENANCE_SCHEMA:
+        raise ValueError("unexpected execution mode provenance schema")
+    if str(item.get("execution_mode") or "").strip().upper() != mode:
+        raise ValueError("execution mode provenance mismatch")
+    source = str(item.get("source") or "").strip()
+    if mode == "SCHEDULER_LANE":
+        lane_id = str(item.get("lane_id") or "").strip()
+        if source != "FLOW_V2_LANE_ID" or lane_id not in SCHEDULER_LANE_IDS:
+            raise ValueError("SCHEDULER_LANE requires canonical Flow v2 lane provenance")
+    elif mode in {"GITHUB_ONLY", "REMOTE_ACTION"}:
+        if source != "TRUSTED_REMOTE_RUNTIME":
+            raise ValueError(f"{mode} requires trusted remote runtime provenance")
+        if not str(item.get("invocation_identity") or "").strip():
+            raise ValueError(f"{mode} provenance requires invocation_identity")
+    else:
+        raise ValueError(f"execution mode provenance is not valid for {mode}")
+    return {str(k): v for k, v in item.items()}
+
+
+def build_git_unlock_receipt(evidence: object) -> dict[str, object]:
+    """Create the exact receipt required by interactive START_BRANCH/APPLY_COMMIT ingress."""
+    item = _mapping(evidence, "root-local-first evidence")
+    assert_git_content_write_allowed(item, action="COMMIT")
+    if str(item.get("execution_mode") or "").strip().upper() not in INTERACTIVE_MODES:
+        raise ValueError("Git unlock receipt is only valid for interactive root-local-first work")
+    reservation = validate_path_reservation_evidence(item.get("path_reservation"))
+    return {
+        "schema": GIT_UNLOCK_RECEIPT_SCHEMA,
+        "execution_mode": "INTERACTIVE",
+        "source_sha": str(reservation["base_sha"]),
+        "diff_digest": str(item["diff_digest"]),
+        "issue": int(reservation["issue"]),
+        "generation": int(reservation["generation"]),
+        "target_branch": str(reservation["target_branch"]),
+        "write_paths": list(reservation["write_paths"]),
+        "delete_paths": list(reservation["delete_paths"]),
+        "record_fingerprint": str(reservation["record_fingerprint"]),
+        "git_write_unlocked": True,
+        "write_mode": "EXACT_TESTED_DIFF_ONLY",
+    }
+
+
+def validate_git_unlock_receipt(receipt: object) -> dict[str, object]:
+    item = _mapping(receipt, "root-local-first Git write receipt")
+    if item.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
+        raise ValueError("unexpected root-local-first Git write receipt schema")
+    if str(item.get("execution_mode") or "").strip().upper() != "INTERACTIVE":
+        raise ValueError("root-local-first Git write receipt must be INTERACTIVE")
+    _sha(item.get("source_sha"), "receipt source_sha")
+    digest = str(item.get("diff_digest") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("receipt diff_digest must be SHA256")
+    if item.get("git_write_unlocked") is not True:
+        raise ValueError("receipt does not prove GIT_WRITE_UNLOCKED")
+    if item.get("write_mode") != "EXACT_TESTED_DIFF_ONLY":
+        raise ValueError("receipt write_mode must be EXACT_TESTED_DIFF_ONLY")
+    if isinstance(item.get("issue"), bool) or int(item.get("issue") or 0) <= 0:
+        raise ValueError("receipt issue must be positive")
+    if isinstance(item.get("generation"), bool) or int(item.get("generation") or 0) <= 0:
+        raise ValueError("receipt generation must be positive")
+    if not str(item.get("target_branch") or "").strip():
+        raise ValueError("receipt target_branch must be nonblank")
+    write_paths = item.get("write_paths")
+    delete_paths = item.get("delete_paths")
+    if not isinstance(write_paths, list) or not isinstance(delete_paths, list):
+        raise ValueError("receipt paths must be arrays")
+    fingerprint = str(item.get("record_fingerprint") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+        raise ValueError("receipt record_fingerprint must be SHA256")
+    return {str(k): v for k, v in item.items()}
 
 
 def validate_contract(payload: object) -> dict[str, object]:
@@ -82,6 +172,16 @@ def validate_contract(payload: object) -> dict[str, object]:
     for mode in REMOTE_MODES:
         if mode not in modes:
             raise ValueError(f"missing execution mode policy: {mode}")
+    provenance = _mapping(contract.get("execution_mode_provenance"), "execution_mode_provenance")
+    if provenance.get("schema") != EXECUTION_MODE_PROVENANCE_SCHEMA:
+        raise ValueError("execution mode provenance schema mismatch")
+    if provenance.get("remote_exception_requires") != "TRUSTED_RUNTIME_PROVENANCE":
+        raise ValueError("remote execution exception must require trusted provenance")
+    receipt = _mapping(contract.get("git_write_receipt"), "git_write_receipt")
+    if receipt.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
+        raise ValueError("Git write receipt schema mismatch")
+    if set(receipt.get("required_for_interactive_actions") or ()) != {"START_BRANCH", "APPLY_COMMIT"}:
+        raise ValueError("Git write receipt action policy mismatch")
     return {str(k): v for k, v in contract.items()}
 
 
@@ -122,6 +222,7 @@ def frozen_diff_digest(entries: Iterable[Mapping[str, object]]) -> str:
 def build_gate_evidence(
     *,
     execution_mode: str,
+    execution_mode_provenance: Mapping[str, object] | None = None,
     source_evidence: Mapping[str, object] | None = None,
     path_reservation_evidence: Mapping[str, object] | None = None,
     root_mutations_complete: bool = False,
@@ -132,7 +233,10 @@ def build_gate_evidence(
 ) -> dict[str, object]:
     mode = str(execution_mode or "INTERACTIVE").strip().upper()
     if mode in REMOTE_MODES:
-        return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
+        provenance = validate_execution_mode_provenance(
+            execution_mode=mode, provenance=execution_mode_provenance
+        )
+        return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
     if mode not in INTERACTIVE_MODES:
         raise ValueError(f"unsupported execution mode: {mode}")
     completed: list[str] = []

@@ -41,7 +41,7 @@ Canonical durable contract 固定為：
 
 ## 開發/驗收規則
 
-- 每次修改先從最新 target 開新分支。
+- 每次修改先以最新 target SHA/tree 完成 `ROOT_SOURCE_CURRENT → PATHS_RESERVED`；實際修改與測試先在 canonical root 完成，只有 `GIT_WRITE_UNLOCKED` 後才從 fresh target 建立 Git work branch。
 - 先跑 Phase6 preflight 並讀完 REQUIRED SKILLS / REQUIRED REFERENCES。
 - Contract/Adapter RED-first，之後最小 production change。
 - 最終要有 headless、Tk/Xvfb、Save→Reload、DXF/physical-part acceptance 與 config.ini invariant。
