@@ -1,38 +1,32 @@
 {
   "effect": {
-    "next_action": {
-      "args": {
-        "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-        "delete_paths": [],
-        "target_branch": "cleanup/2d-3d-sync",
-        "write_paths": [
-          ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-          "tests/process/test_issue1019_terminal_tail_drain.py",
-          "tools/control_transaction.py",
-          "tools/control_transaction_production_executor.py",
-          "tools/execution_record.py"
-        ]
-      },
-      "display": "Reserve Issue #1019 terminal-tail hardening paths",
-      "kind": "RESERVE_PATHS"
-    },
-    "semantic_state": "CLAIMED_ROOT_LOCAL_FIRST"
+    "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "tests/process/test_issue1019_terminal_tail_drain.py",
+      "tools/control_transaction.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/execution_record.py"
+    ]
   },
-  "expected_coord_head": "861c8dfeb843a8f434be2f35139afa9d79e25b65",
-  "expected_generation": 1,
+  "expected_coord_head": "76140e89ab9e8914e8dd64b22469e8cae378b081",
+  "expected_generation": 2,
   "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
   "issue": 1019,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1019-acquire-1",
+  "request_id": "issue1019-reserve-1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 acquire /工作1 for terminal-tail drain hardening\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Issue #1019 reserve terminal-tail hardening paths on /工作1\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-09-29T13:21:53Z",
+    "expires_at": "2026-09-29T13:23:29Z",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "issued_at": "2026-09-29T13:16:53Z",
-    "purpose": "Issue #1019 acquire /工作1 for terminal-tail drain hardening",
+    "issued_at": "2026-09-29T13:18:29Z",
+    "purpose": "Issue #1019 reserve terminal-tail hardening paths on /工作1",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
