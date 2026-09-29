@@ -1,55 +1,36 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-work0-reacquire-20260929T155255Z",
+  "request_id": "issue1022-expand-ai-library-20260929T155441Z",
   "issue": 1022,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
-  "expected_coord_head": "6ccf07559dc096e8607372aeba771caadd9ee23b",
-  "expected_generation": 10,
+  "expected_coord_head": "acc440a7e535b667815247c124e505291a11d49a",
+  "expected_generation": 11,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.0",
-    "observed_at": "2026-09-29T15:52:55Z",
-    "updated_at": "2026-09-29T15:52:55Z",
-    "lease": {
-      "token": "lease:1022:work0:20260929T155255Z",
-      "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T155255Z",
-      "expires_at": "2026-09-29T15:57:55Z"
-    },
-    "semantic_state": "PATHS_RESERVED_ON_FRESH_TARGET",
-    "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {
-        "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-        "delete_paths": [],
-        "target_branch": "cleanup/2d-3d-sync",
-        "write_paths": [
-          ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
-          ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-          ".agents/skills/engineering/root-local-first/SKILL.md",
-          ".agents/skills/engineering/寫排程/SKILL.md",
-          ".agents/skills/engineering/工作槽/SKILL.md",
-          ".agents/skills/engineering/排程模擬/SKILL.md",
-          ".github/workflows/whd-control-plane-regression.yml",
-          ".github/workflows/whd-control-transaction-v2-request.yml",
-          "tests/process/test_flow_v2_execution_invocation_exit.py",
-          "tests/process/test_issue1022_root_ci_parity.py",
-          "tests/process/test_issue724_report_handler_identity_prefix.py",
-          "tests/process/test_issue899_push_transaction_ingress.py",
-          "tests/process/test_root_local_first_entry_hard_gate.py",
-          "tools/change_test_profile.py",
-          "tools/control_plane_regression.py",
-          "tools/execution_invocation_exit.py",
-          "tools/root_local_first_gate.py"
-        ]
-      },
-      "display": "Reserve Issue #1022 exact paths on current target 96cb073"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+    "write_paths": [
+      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".agents/skills/engineering/寫排程/SKILL.md",
+      ".agents/skills/engineering/工作槽/SKILL.md",
+      ".agents/skills/engineering/排程模擬/SKILL.md",
+      ".github/workflows/whd-control-plane-regression.yml",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
+      "tests/process/test_issue1022_root_ci_parity.py",
+      "tests/process/test_issue724_report_handler_identity_prefix.py",
+      "tools/change_test_profile.py",
+      "tools/control_plane_regression.py",
+      "tools/root_local_first_gate.py",
+      "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY",
+    "updated_at": "2026-09-29T15:54:41Z"
   },
-  "purpose": "Resume Issue #1022 under /工作0 and repair stale reservation continuation before rebuilding the exact tested diff.",
+  "purpose": "Expand Issue #1022 same-ticket reservation to include the existing AI Library connector-write pitfall document requested by the owner; no helper and no out-of-scope write.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
