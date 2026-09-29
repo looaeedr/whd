@@ -12,10 +12,10 @@
     "released_at": "2026-09-29T14:01:48Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
   "issue": 1017,
-  "lane_id": "chatgpt.flowv2.work0",
+  "lane_id": null,
   "lease": null,
   "mutation_scope": {
     "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
@@ -35,8 +35,8 @@
     ]
   },
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "950ae1c8b4de081b7b968b051efc85f5737028b2",
     "last_accepted_run": 36576164681
@@ -64,7 +64,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T14:01:47Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue1017-root-local-first-regression-hardening-20260929"
 }

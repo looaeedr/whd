@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T18:04:42Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 25,
+  "generation": 26,
   "head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
   "issue": 952,
-  "lane_id": "chatgpt.flowv2.work0",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "f2542d20a3a05ff64081ed7f9c9440efb0971872",
     "last_accepted_run": 36459698995
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T18:05:22Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue952-mirror-ancestry-reconciliation"
 }

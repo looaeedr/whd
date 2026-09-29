@@ -12,10 +12,10 @@
     "released_at": "2026-09-29T13:00:37Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "fdaf902380ba8018bc4c0a12bb715e7838fd20d0",
   "issue": 1016,
-  "lane_id": "chatgpt.flowv2.work0",
+  "lane_id": null,
   "lease": null,
   "mutation_scope": {
     "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
@@ -30,8 +30,8 @@
     ]
   },
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "fdaf902380ba8018bc4c0a12bb715e7838fd20d0",
     "last_accepted_run": 36564266679
@@ -59,7 +59,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T13:00:36Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue1016-terminal-tail-drain-20260929"
 }

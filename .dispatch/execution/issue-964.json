@@ -12,14 +12,14 @@
     "released_at": "2026-09-29T10:29:36Z"
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
   "issue": 964,
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
     "last_accepted_run": 36453762011
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T10:29:34Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue964-reqa-integrating-20260929"
 }

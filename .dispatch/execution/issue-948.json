@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T16:16:08Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
+  "generation": 15,
   "head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
   "issue": 948,
-  "lane_id": "chatgpt.flowv2.work3",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work3",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "998edaec44712683c518d7470d54e6fddbff3bb6",
     "last_accepted_run": 36448088932
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T16:16:46Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue948-scheduler-startup-bootstrap"
 }
