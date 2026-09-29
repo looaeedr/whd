@@ -1,10 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issueundefined-atomic-admission-1",
+  "request_id": "issue1032-atomic-admission-1",
+  "issue": 1032,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "interactive:work1:issueundefined:semantic-doc-cutover:20260930T0018+0800",
-  "expected_coord_head": "40ee7a4d51a6a836f706d59a50fb7a1dd7693c1d",
+  "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
+  "expected_coord_head": "60386350edabb3beab199603ec523e69e5683350",
   "expected_generation": 1,
   "effect": {
     "admission_reservation": {
@@ -26,7 +27,7 @@
         "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
         "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
         "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
-        "tests/process/test_issueundefined_flow_v2_semantic_doc_cutover.py"
+        "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py"
       ],
       "delete_paths": []
     },
@@ -37,7 +38,7 @@
       "display": "Apply exact tested semantic-doc cutover"
     }
   },
-  "purpose": "Issue #undefined semantic-doc cutover",
+  "purpose": "Issue #1032 semantic-doc cutover",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
