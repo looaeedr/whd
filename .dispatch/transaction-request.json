@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1016-acquire-terminal-tail-20260929T113611Z",
+  "request_id": "issue1016-acquire-terminal-tail-retry-20260929T1137Z",
   "issue": 1016,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -29,5 +29,22 @@
   },
   "expected_coord_head": "69646f0b91a434ce4b54060b0d09472d4dd5f082",
   "expected_generation": 1,
-  "effect": {}
+  "effect": {
+    "semantic_state": "PATH_RESERVATION_PENDING",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+        "write_paths": [
+          "tools/execution_invocation_exit.py",
+          "tests/process/test_flow_v2_execution_invocation_exit.py",
+          ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+          ".github/workflows/whd-control-plane-regression.yml"
+        ],
+        "delete_paths": []
+      },
+      "display": "Reserve terminal-tail governance paths before root mutation"
+    }
+  }
 }
