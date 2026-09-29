@@ -1,24 +1,46 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-reconcile-next-start-branch",
+  "request_id": "issue1027-start-branch-durable-terminal-gate",
   "issue": 1027,
-  "kind": "RECONCILE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-  "expected_coord_head": "fdd7a0ea767a6b2b20e493f194c576c46a69131e",
-  "expected_generation": 6,
+  "expected_coord_head": "bbf10ea65dcf91b0870236d7307a6570e8378db1",
+  "expected_generation": 7,
   "effect": {
-    "observed_work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929",
-    "observed_head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
-    "observed_target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-    "semantic_state": "ROOT_TESTED_DIFF_FROZEN",
+    "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929",
+    "head_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+    "semantic_state": "IMPLEMENTING_ROOT_TESTED_DIFF",
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
+      "diff_digest": "71dfc784f11eb87d498dab76e51ec6df8c398e6bc8a3cd5c007567f1746ecf68",
+      "issue": 1027,
+      "generation": 7,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
+        "AGENTS.md",
+        "tests/process/test_flow_v2_execution_invocation_exit.py",
+        "tests/process/test_flow_v2_execution_scheduler_view.py",
+        "tools/execution_invocation_exit.py",
+        "tools/execution_record.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "30b4bf78a0ee1a34c4167e7d4027200497a84783e97b29e80cec207ae7a77eb9",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested branch from current target"
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "diff_digest": "71dfc784f11eb87d498dab76e51ec6df8c398e6bc8a3cd5c007567f1746ecf68"
+      },
+      "display": "Apply exact tested durable-terminal hard gate diff"
     }
   },
-  "purpose": "Advance Issue #1027 from refreshed path reservation to START_BRANCH without changing tested content.",
+  "purpose": "Create Issue #1027 work branch only after current-target reservation, root tests, and durable unlock receipt.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
