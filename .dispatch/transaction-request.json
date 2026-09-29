@@ -1,25 +1,14 @@
 {
   "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id":"issue1025-bind-final-v3-qa-1",
+  "request_id":"issue1025-renew-before-terminal-tail-1",
   "issue":1025,
-  "kind":"START_QA",
+  "kind":"ACQUIRE",
   "lane_id":"chatgpt.flowv2.work1",
   "invocation_identity":"interactive:work1:issue1025:roundtrip-reduction:20260929T1438Z",
-  "expected_coord_head":"fe28c67f7de055927f6ea822bfc87bbbe7363057",
-  "expected_generation":13,
-  "effect":{
-    "run_id":36590603324,
-    "run_head_sha":"7957fcafdeb876df8afbaca111aaddd0891a70eb",
-    "run_status":"completed",
-    "purpose":"WHD Control Plane Regression exact-head final-v3 acceptance",
-    "semantic_state":"REMOTE_QA_TERMINAL_SUCCESS_OBSERVED",
-    "next_action":{
-      "kind":"ACCEPT_QA",
-      "args":{"run_id":36590603324,"head_sha":"7957fcafdeb876df8afbaca111aaddd0891a70eb"},
-      "display":"Accept final-v3 exact-head Control Plane Regression success"
-    }
-  },
-  "purpose":"Issue #1025 bind existing final-v3 exact-head Control Plane Regression GREEN",
+  "expected_coord_head":"969a85a014b3cdf84e3f9f91f78132540888cdc5",
+  "expected_generation":14,
+  "effect":{},
+  "purpose":"Issue #1025 renew same-invocation lease before ACCEPT_QA/MERGE/FINALIZE",
   "work_root_gate_evidence":{
     "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
