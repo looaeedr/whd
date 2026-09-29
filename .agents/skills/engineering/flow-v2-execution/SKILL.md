@@ -88,6 +88,21 @@ Static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`。Canonical sta
 
 `RESERVE_PATHS` / `RELEASE_PATHS` 是 coordination transaction，不算 substantive engineering progress；執行器不得「拿到檔案鎖」就停止本輪。
 
+### INVOCATION_ADMISSION_SESSION_V1
+
+Startup/root identity 與 mutation admission 是 **invocation/session-level gate**，不是每顆 transaction 都重新從零跑一次的人工檢查。
+
+固定規則：
+
+1. 同一 `invocation_identity` 在已完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 + ROOT_SOURCE_CURRENT + Preflight` 後，若 `source_sha / target_sha / root identity / requested scope` 未變，後續 transaction envelope 可沿用同一份 fresh admission evidence；不得為每個 APPLY/QA/MERGE/FINALIZE 再做一次 Drive mount/root/manifest discovery。
+2. 新 READY work 的 canonical 快速入口是 **atomic ACQUIRE + admission reservation**：`ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`。trusted executor 必須在同一 coord CAS 前做既有 cross-Issue path-conflict check；成功後 record 直接成為 `ACTIVE + live lease + mutation_scope=ACTIVE`，不再要求第二顆 `RESERVE_PATHS` workflow round-trip。
+3. 舊的分離式 `ACQUIRE → RESERVE_PATHS` 保留 compatibility；但新 interactive execution 不應主動製造兩次等待。
+4. admission 只有在下列條件才失效並要求 fresh re-admission：`invocation_identity/lease` 改變、target/source SHA drift、scope 擴張、root identity/gate status 改變、startup evidence TTL 失效。一般 transaction generation 前進不是重新讀 Drive root 的理由。
+5. scope 擴張仍必須走 atomic `RESERVE_PATHS` monotonic superset；不得把 session reuse 解讀成可越過 reservation conflict。
+6. terminal tail 不建立新 admission session；同一 live invocation 直接沿用既有 lease/evidence drain 到 DONE。
+
+Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/control_transaction_production_executor.py`。
+
 ### CHANGE_TEST_PROFILE_GATE_V1
 
 任何 implementation / QA 在第一次實質程式 mutation 前，必須先以 `.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json` + `tools/change_test_profile.py` 建立 machine-readable test profile。分類分成 **主要變更意圖**與 **domain overlay**：
