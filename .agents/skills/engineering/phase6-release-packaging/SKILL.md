@@ -154,11 +154,12 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 
 ## Branch-first modification gate
 
-All WHD changes must enter release/integration through a dedicated work branch.
+All WHD changes must enter release/integration through a dedicated Git work branch, but `ROOT_LOCAL_FIRST` now owns the pre-Git construction/test phase.
 
-- Before the first write of a new modification task, create a fresh branch from the latest authoritative target HEAD and re-read its SHA.
+- For interactive/default development, do **not** create the Git work branch before root-local modification. Complete `ROOT_SOURCE_CURRENT → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN` first.
+- Only after root completion evidence reaches `GIT_WRITE_UNLOCKED` may the Git work branch be created from the latest authoritative target HEAD. The branch receives `EXACT_TESTED_DIFF_ONLY`.
 - No direct writes to `cleanup/2d-3d-sync` or `main`, including docs, tests, QA workflows, Skills, AI Library, Registry, or "tiny fixes".
-- Keep all task changes and temporary QA workflow cleanup on the same work branch.
-- If target moved while the branch was under test, integrate/reconcile on a branch, then run combined/final acceptance again.
+- If a touched target path moved after the root baseline, use `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`; do not reconcile by silently changing the tested payload on Git.
+- Keep all task changes and temporary QA workflow cleanup on the same work branch after Git write is unlocked.
 - Final target update must be a normal non-force PR/merge whose head SHA is locked to the accepted closing head.
-- A green work branch is not permission to bypass final acceptance or drift audit.
+- Root GREEN or a green work branch is not permission to bypass final acceptance or drift audit. GitHub Actions remain post-push verification, not the first test surface.
