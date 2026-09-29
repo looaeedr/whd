@@ -1,0 +1,45 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1037,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "work_branch": "governance/issue1037-root-local-pointer-identity",
+  "head_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1037"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [],
+  "updated_at": "2026-09-29T22:46:00Z"
+}
