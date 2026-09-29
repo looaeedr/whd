@@ -1,14 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1023-renew-for-terminal-tail",
+  "request_id": "issue1023-start-qa-existing-green-20260929T1459Z",
   "issue": 1023,
-  "kind": "ACQUIRE",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1023:disable-watchdog-finalize:20260929",
-  "expected_coord_head": "64cf94f02e2d32ec943ce8b5d246286436b01b32",
-  "expected_generation": 4,
-  "effect": {},
-  "purpose": "Renew Issue #1023 same-lane lease to reconcile existing exact-head QA, merged PR #1026, and release the watchdog reservation.",
+  "expected_coord_head": "5626b281c8975a979cfdae81a87b3bda648ca321",
+  "expected_generation": 5,
+  "effect": {
+    "run_id": 36584677419,
+    "run_head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
+    "purpose": "WHD Control Plane Regression exact-head QA for watchdog schedule retirement",
+    "run_status": "completed",
+    "semantic_state": "REMOTE_QA_GREEN_PENDING_ACCEPTANCE",
+    "next_action": {
+      "kind": "ACCEPT_QA",
+      "args": {
+        "run_id": 36584677419,
+        "run_head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1"
+      },
+      "display": "Accept exact-head GREEN QA"
+    }
+  },
+  "purpose": "Attach the already completed exact-head SUCCESS run 36584677419 to Issue #1023 before acceptance and terminal tail.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
