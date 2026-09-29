@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "issue": 1027,
   "lane_id": "chatgpt.flowv2.work0",
@@ -30,6 +30,7 @@
       ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
       "AGENTS.md",
       "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_flow_v2_execution_scheduler_view.py",
       "tools/execution_invocation_exit.py",
       "tools/execution_record.py"
     ]
@@ -53,7 +54,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
@@ -61,13 +62,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "6ca4664dc498ac3e4e7734a5afb771c534b499f04fcff64a3d694422daccf051",
-    "id": "gha:36588456808:1027:ACQUIRE:1",
+    "expected_fingerprint": "79241ef410cabe07f10faa7a379746f04e1447fdea0ea5e3e504c1b3390b81f4",
+    "id": "gha:36590903279:1027:RESERVE_PATHS:2",
     "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:13:04Z",
+  "updated_at": "2026-09-29T15:32:14Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
