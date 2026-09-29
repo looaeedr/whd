@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1027-acquire-durable-terminal-exit-hard-gate",
+  "request_id": "issue1027-acquire-durable-terminal-exit-hard-gate-split",
   "issue": 1027,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929",
-  "expected_coord_head": "5892e41f03ab167caf7404e2f1873e7902c41060",
+  "expected_coord_head": "cb604780fbff6eafacb4f1f2668f0b34fd5f2f9f",
   "expected_generation": 1,
   "effect": {
     "admission_reservation": {
@@ -13,7 +13,6 @@
       "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
       "write_paths": [
         ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
         "AGENTS.md",
         "tests/process/test_flow_v2_execution_invocation_exit.py",
         "tools/execution_invocation_exit.py",
@@ -27,7 +26,7 @@
       "display": "Create exact tested branch after durable terminal exit gate root tests"
     }
   },
-  "purpose": "Add a machine-enforced durable terminal exit hard gate so functional completion cannot be mistaken for task termination.",
+  "purpose": "Add the machine-enforced durable terminal exit hard gate now; expand reservation to Flow v2 Skill after Issue #1025 releases that path.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
