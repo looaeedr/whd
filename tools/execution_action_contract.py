@@ -20,6 +20,8 @@ ACTION_TRANSACTION_KIND = {
     "FINALIZE": "FINALIZE",
     "YIELD": "YIELD",
     "RECONCILE": "RECONCILE",
+    "RESERVE_PATHS": "RESERVE_PATHS",
+    "RELEASE_PATHS": "RELEASE_PATHS",
 }
 OBSERVATION_ACTION_KINDS = frozenset({"POLL_QA", "WAIT_EXTERNAL"})
 
@@ -37,6 +39,8 @@ EXECUTABLE_ACTION_KINDS = frozenset(
         "FINALIZE",
         "YIELD",
         "RECONCILE",
+        "RESERVE_PATHS",
+        "RELEASE_PATHS",
         "WAIT_EXTERNAL",
     }
 )
@@ -107,6 +111,19 @@ def validate_execution_action(action: ActionSpec) -> bool:
         _text(args, "to_owner_kind")
         _text(args, "to_owner_id")
     elif action.kind == "RECONCILE":
+        _text(args, "reason")
+    elif action.kind == "RESERVE_PATHS":
+        _text(args, "target_branch")
+        _sha(args, "base_sha")
+        write_paths = args.get("write_paths", [])
+        delete_paths = args.get("delete_paths", [])
+        if not isinstance(write_paths, list) or not isinstance(delete_paths, list):
+            raise ActionContractError("RESERVE_PATHS write_paths/delete_paths must be arrays")
+        if not write_paths and not delete_paths:
+            raise ActionContractError("RESERVE_PATHS requires at least one path")
+        if any(not str(path).strip() for path in [*write_paths, *delete_paths]):
+            raise ActionContractError("RESERVE_PATHS paths must be nonblank")
+    elif action.kind == "RELEASE_PATHS":
         _text(args, "reason")
     elif action.kind == "WAIT_EXTERNAL":
         blocker = _text(args, "blocker_kind")

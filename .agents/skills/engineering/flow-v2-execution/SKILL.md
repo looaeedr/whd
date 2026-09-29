@@ -69,6 +69,25 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - `WHD Current Source Manifest` 是 workspace materialization identity。開始 workspace mutation / local test 前，必須經 `root-local-first` 的 `ROOT_SOURCE_CURRENT` 驗 manifest 與 live source SHA/tree；durable snapshot stale 時只可作 bootstrap base，planned touched paths 必須 fresh-compare exact target blobs。未被 current identity 證明的 path 不得施工。
 - transient transport 可使用暫存檔，但暫存位置只屬搬運／轉碼，不能冒充 canonical work path、測試根或 durable completion evidence。
 
+### FILE_PATH_RESERVATION_HARD_GATE_V1
+
+不同 Issue／工作槽／scheduler lane 可以平行工作，但**同一 target branch 的同一 repository path 同時間只允許一個 authoritative writer**。
+
+Static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`。Canonical state 直接存在 `WHD_EXECUTION_RECORD_V2.mutation_scope`；不得新增第二套 lock database。Machine evaluator=`tools/execution_path_reservation.py`。
+
+固定流程：
+
+1. exact Issue 已 ACQUIRE 且有 live lease 後，在第一次 root/content write 前送 `RESERVE_PATHS`，內容包含 `target_branch + base_sha + write_paths + delete_paths`。
+2. trusted production executor 必須 fresh-read `coord/execution-v2` 全部 nonterminal records；同 target 的 ACTIVE reservation 若有 exact path overlap，固定回 `PATH_RESERVATION_CONFLICT`，並保留 `conflicting_issue + paths`，不得寫 coord。
+3. coord ref CAS 是 cross-Issue atomic fence：兩個 runtime 即使同時從無衝突快照起跑，也只有第一個 non-force coord update 可成功；另一個 fresh-read 後必須看到 reservation conflict。
+4. scope 擴張只可 atomic monotonic superset `RESERVE_PATHS`；不得先改新檔再補 reservation，也不得用 scope shrink 釋放局部 path。
+5. `HANDOFF` / takeover / YIELD 只改 owner/lease/runtime，不釋放 mutation scope；reservation 綁 Issue。
+6. explicit 放棄 mutation scope 走 `RELEASE_PATHS`；正常 terminal `FINALIZE` 自動把 ACTIVE scope 標 `RELEASED`。
+7. interactive workspace 依 `build_interactive_work_path(issue, source_sha)` 做 Issue 隔離；兩個 Issue 不得共用同一實體 `/work/active` 施工目錄。
+8. 等待衝突 path 的 Issue 在前一 Issue 整合／release 後，必須 fresh `ROOT_SOURCE_CURRENT`、重新 reserve、重跑受影響 tests 與 refreeze；舊 base 的 GREEN/freeze 不可直接沿用。
+
+`RESERVE_PATHS` / `RELEASE_PATHS` 是 coordination transaction，不算 substantive engineering progress；執行器不得「拿到檔案鎖」就停止本輪。
+
 ### CHANGE_TEST_PROFILE_GATE_V1
 
 任何 implementation / QA 在第一次實質程式 mutation 前，必須先以 `.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json` + `tools/change_test_profile.py` 建立 machine-readable test profile。分類分成 **主要變更意圖**與 **domain overlay**：
@@ -100,7 +119,7 @@ QA evidence 至少要保存 `change_type / domains / required_stages / full_gate
 
 ## Structured next_action
 
-machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / FAIL_QA / MERGE / SYNC_TARGET / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
+machine logic 只能讀 `next_action.kind + args`，不得解析 prose。主要 action：`ACQUIRE / RESERVE_PATHS / RELEASE_PATHS / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / FAIL_QA / MERGE / SYNC_TARGET / HANDOFF / FINALIZE / YIELD / RECONCILE / BLOCK / WAIT_EXTERNAL`。
 
 ### MERGE_PRECHECK_AND_TARGET_SYNC_V1
 
@@ -338,7 +357,7 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 - trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
-每次需要 ACQUIRE/ACCEPT_QA/FAIL_QA/MERGE/FINALIZE/YIELD 等 transaction：
+每次需要 ACQUIRE/RESERVE_PATHS/RELEASE_PATHS/ACCEPT_QA/FAIL_QA/MERGE/FINALIZE/YIELD 等 transaction：
 1. fresh-read `coord/execution-v2` exact HEAD 與 native record generation。
 2. 本 lane request branch 必須已存在 `.dispatch/transaction-request.json` bootstrap seed；fresh-read 其 blob SHA，scheduler 只允許 CAS update，禁止在 runtime 走首次 `create_file`。若 seed 缺失，fail closed 並交由治理/bootstrap 修復。
 3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：

@@ -10,6 +10,18 @@ SKILL = ROOT / ".agents/skills/engineering/root-local-first/SKILL.md"
 
 def _contract(): return json.loads(CONTRACT.read_text(encoding="utf-8"))
 def _manifest(sha="a" * 40, tree="b" * 40): return {"source_sha": sha, "tree_sha": tree, "durable_snapshot_status": "STALE_BOOTSTRAP_BASE"}
+def _reservation(sha="a" * 40): return {
+    "schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
+    "issue": 996,
+    "generation": 4,
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": sha,
+    "write_paths": ["AGENTS.md"],
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "workspace_path": f"/Google Drive/WHD/work/active/issue-996/{sha[:12]}",
+    "record_fingerprint": "f" * 64,
+}
 
 
 def test_contract_and_skill_are_current_and_single_owner():
@@ -22,6 +34,9 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert "WHD_CHANGE_TEST_PROFILE_V1" in text
     assert "tools/change_test_profile.py" in text
     assert "EXACT_TESTED_DIFF_ONLY" in text
+    assert payload["required_order"][:3] == ["ROOT_SOURCE_CURRENT", "PATHS_RESERVED", "ROOT_MUTATIONS_COMPLETE"]
+    assert payload["path_reservation"]["state_owner"] == "WHD_EXECUTION_RECORD_V2.mutation_scope"
+    assert payload["path_reservation"]["evaluator"] == "tools/execution_path_reservation.py"
 
 
 def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
@@ -29,8 +44,10 @@ def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
     locked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source)
     assert locked["git_write_unlocked"] is False
-    assert locked["next_action"] == "ROOT_MUTATIONS_COMPLETE"
-    unlocked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="c" * 64)
+    assert locked["next_action"] == "PATHS_RESERVED"
+    reserved = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation())
+    assert reserved["next_action"] == "ROOT_MUTATIONS_COMPLETE"
+    unlocked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="c" * 64)
     assert unlocked["git_write_unlocked"] is True
     assert unlocked["completed"][-1] == "GIT_WRITE_UNLOCKED"
     assert unlocked["next_action"] == "EXACT_TESTED_DIFF_ONLY"
@@ -47,7 +64,7 @@ def test_git_content_write_is_forbidden_before_unlock():
 def test_target_drift_forces_resync_and_retest_before_git_write():
     from tools.root_local_first_gate import build_gate_evidence, validate_source_current
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
-    evidence = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="d" * 64, target_drift=True)
+    evidence = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=_reservation(), root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="d" * 64, target_drift=True)
     assert evidence["git_write_unlocked"] is False
     assert evidence["next_action"] == "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE"
 
@@ -83,6 +100,7 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
     assert "whd_contract: canonical-authority-map" in authority
     assert "contract=root-local-first-entry-gate role=CURRENT path=tools/root_local_first_gate.py" in authority
     assert "contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md" in authority
+    assert "contract=flow-v2-path-reservation role=CURRENT path=tools/execution_path_reservation.py" in authority
 
 
 def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():

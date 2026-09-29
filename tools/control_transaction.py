@@ -23,6 +23,7 @@ from tools.execution_record import (
     ClosureState,
     ExecutionRecord,
     LeaseState,
+    MutationScopeState,
     QAState,
     RunState,
     TransactionState,
@@ -47,6 +48,8 @@ TRANSACTION_KINDS = frozenset(
         "HANDOFF",
         "FINALIZE",
         "RECONCILE",
+        "RESERVE_PATHS",
+        "RELEASE_PATHS",
         "YIELD",
     }
 )
@@ -285,6 +288,90 @@ def _execute_acquire(
             raise ControlTransactionConflict("ACQUIRE cannot replace a live lease")
 
     return _base_update(record, plan, effect, lease=lease)
+
+
+def _require_reservation_lease(record: ExecutionRecord, plan: ControlTransactionPlan) -> None:
+    if record.lease is None:
+        raise ControlTransactionError("path reservation transaction requires an active lease")
+    if plan.invocation_identity is None:
+        raise ControlTransactionError("path reservation transaction requires invocation_identity")
+    if record.lease.invocation_identity != plan.invocation_identity:
+        raise ControlTransactionError("path reservation lease invocation mismatch")
+
+
+def _scope_from_effect(effect: Mapping[str, object]) -> MutationScopeState:
+    write_paths = effect.get("write_paths", ())
+    delete_paths = effect.get("delete_paths", ())
+    if not isinstance(write_paths, (list, tuple)) or not isinstance(delete_paths, (list, tuple)):
+        raise ControlTransactionError("write_paths/delete_paths must be arrays")
+    try:
+        return MutationScopeState(
+            target_branch=_text(effect.get("target_branch"), "target_branch"),
+            base_sha=_text(effect.get("base_sha"), "base_sha"),
+            write_paths=tuple(str(path) for path in write_paths),
+            delete_paths=tuple(str(path) for path in delete_paths),
+            reservation_state="ACTIVE",
+        )
+    except ValueError as exc:
+        raise ControlTransactionError(str(exc)) from exc
+
+
+def _execute_reserve_paths(
+    record: ExecutionRecord,
+    plan: ControlTransactionPlan,
+    effect: Mapping[str, object],
+) -> ExecutionRecord:
+    if record.state not in {"ACTIVE", "INTEGRATING"}:
+        raise ControlTransactionError("RESERVE_PATHS requires ACTIVE or INTEGRATING state")
+    _require_reservation_lease(record, plan)
+    scope = _scope_from_effect(effect)
+    if scope.target_branch != record.target_branch:
+        raise ControlTransactionError("RESERVE_PATHS target_branch must match record target_branch")
+    if scope.base_sha != record.target_sha:
+        raise ControlTransactionError("RESERVE_PATHS base_sha must match record target_sha")
+    existing = record.mutation_scope
+    if existing is not None and existing.reservation_state == "ACTIVE":
+        if existing.target_branch != scope.target_branch:
+            raise ControlTransactionError("RESERVE_PATHS cannot change active target_branch")
+        if not set(existing.write_paths).issubset(scope.write_paths):
+            raise ControlTransactionError("RESERVE_PATHS cannot shrink active write_paths")
+        if not set(existing.delete_paths).issubset(scope.delete_paths):
+            raise ControlTransactionError("RESERVE_PATHS cannot shrink active delete_paths")
+    return _base_update(
+        record,
+        plan,
+        effect,
+        mutation_scope=scope,
+        semantic_state=str(effect.get("semantic_state") or "PATHS_RESERVED"),
+    )
+
+
+def _execute_release_paths(
+    record: ExecutionRecord,
+    plan: ControlTransactionPlan,
+    effect: Mapping[str, object],
+) -> ExecutionRecord:
+    if record.state == "DONE":
+        raise ControlTransactionError("RELEASE_PATHS cannot mutate DONE record")
+    _require_reservation_lease(record, plan)
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "ACTIVE":
+        raise ControlTransactionError("RELEASE_PATHS requires an ACTIVE mutation_scope")
+    _text(effect.get("reason"), "reason")
+    released = MutationScopeState(
+        target_branch=scope.target_branch,
+        base_sha=scope.base_sha,
+        write_paths=scope.write_paths,
+        delete_paths=scope.delete_paths,
+        reservation_state="RELEASED",
+    )
+    return _base_update(
+        record,
+        plan,
+        effect,
+        mutation_scope=released,
+        semantic_state=str(effect.get("semantic_state") or "PATH_RESERVATION_RELEASED"),
+    )
 
 
 def _execute_start_branch(
@@ -653,6 +740,15 @@ def _execute_finalize(
             next_issue=next_issue,
             next_action=_action(effect.get("chain_next_action"), "chain_next_action", optional=True),
         )
+    mutation_scope = record.mutation_scope
+    if mutation_scope is not None and mutation_scope.reservation_state == "ACTIVE":
+        mutation_scope = MutationScopeState(
+            target_branch=mutation_scope.target_branch,
+            base_sha=mutation_scope.base_sha,
+            write_paths=mutation_scope.write_paths,
+            delete_paths=mutation_scope.delete_paths,
+            reservation_state="RELEASED",
+        )
     return _base_update(
         record,
         plan,
@@ -663,6 +759,7 @@ def _execute_finalize(
         lease=None,
         active_run=None,
         blocker=None,
+        mutation_scope=mutation_scope,
         closure=closure,
         chain=chain,
         target_sha=final_target_sha,
@@ -817,6 +914,8 @@ _EXECUTORS = {
     "HANDOFF": _execute_handoff,
     "FINALIZE": _execute_finalize,
     "RECONCILE": _execute_reconcile,
+    "RESERVE_PATHS": _execute_reserve_paths,
+    "RELEASE_PATHS": _execute_release_paths,
     "YIELD": _execute_yield,
 }
 

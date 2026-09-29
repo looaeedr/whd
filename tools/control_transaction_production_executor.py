@@ -33,6 +33,10 @@ from tools.control_transaction import (
     prepare_transaction,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
+from tools.execution_path_reservation import (
+    PathReservationError,
+    require_no_path_reservation_conflict,
+)
 from tools.flow_v2_runtime_observation import (
     project_terminal_record_exit,
     project_transaction_progress,
@@ -796,6 +800,17 @@ def execute_one(
             )
         )
     post = execute_transaction(record, plan, effect=effect)
+    if kind == "RESERVE_PATHS":
+        if post.mutation_scope is None:
+            raise ProductionExecutorError("RESERVE_PATHS produced no mutation_scope")
+        try:
+            require_no_path_reservation_conflict(
+                records.values(),
+                candidate_issue=issue,
+                candidate_scope=post.mutation_scope,
+            )
+        except PathReservationError as exc:
+            raise ControlTransactionConflict(str(exc)) from exc
     records[issue] = post
     commit_sha, record_blob_sha = _write_state(
         repo,

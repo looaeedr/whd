@@ -32,6 +32,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=flow-v2-scheduler-view role=CURRENT path=tools/execution_scheduler_view.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-invocation-exit role=CURRENT path=tools/execution_invocation_exit.py -->
 <!-- WHD_AUTHORITY contract=flow-v2-authority-policy role=CURRENT path=tools/execution_authority_policy.py -->
+<!-- WHD_AUTHORITY contract=flow-v2-path-reservation role=CURRENT path=tools/execution_path_reservation.py -->
 
 <!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
 <!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=CURRENT path=tools/root_local_first_gate.py -->
