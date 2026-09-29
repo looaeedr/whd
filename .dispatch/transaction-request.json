@@ -19,9 +19,9 @@
       "tools/control_transaction_request_ingress.py"
     ],
     "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED"
+    "semantic_state": "PATHS_RESERVED_AFTER_TARGET_RESYNC"
   },
-  "purpose": "Issue #1025 retry reservation base refresh after unrelated coord race",
+  "purpose": "Issue #1025 refresh exact path reservation base after non-overlapping target resync",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
