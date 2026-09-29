@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
+  "generation": 5,
+  "head_sha": "917be202db00370e6385f7690c34f03d0d0bf706",
   "issue": 1019,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -36,19 +36,10 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
-      "delete_paths": [],
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        "tests/process/test_issue1019_terminal_tail_drain.py",
-        "tools/control_transaction.py",
-        "tools/control_transaction_production_executor.py",
-        "tools/execution_record.py"
-      ]
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Reserve Issue #1019 terminal-tail hardening paths",
-    "kind": "RESERVE_PATHS"
+    "display": "Run post-push Control Plane Regression for exact tested head",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -65,7 +56,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
@@ -73,13 +64,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "19ea043e294a243a6de127548b5247bd80f74d6cace799f7748efac0eb77f703",
-    "id": "gha:36576366769:1019:ACQUIRE:3",
+    "expected_fingerprint": "bab795fde3e522620cf3c5499c0e5c64d24c1d99da8dab262eb18f03dbb7d326",
+    "id": "gha:36576801699:1019:APPLY_COMMIT:4",
     "invocation_identity": "interactive:work1:issue1019:terminal-tail-hardening:20260929T1316Z",
-    "kind": "ACQUIRE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T13:36:57Z",
+  "updated_at": "2026-09-29T13:40:31Z",
   "version": 2,
   "work_branch": "governance/issue1019-terminal-tail-drain-hardening"
 }
