@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-reserve-actual-diff-r1",
+  "request_id": "issue1022-reserve-disjoint-scope-r1",
   "issue": 1022,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,12 +23,13 @@
       "tests/process/test_issue724_report_handler_identity_prefix.py",
       "tools/change_test_profile.py",
       "tools/control_plane_regression.py",
+      "tools/report_handler_identity.py",
       "tools/root_local_first_gate.py"
     ],
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED_ON_FRESH_TARGET"
   },
-  "purpose": "Reserve only the actual Issue #1022 changed paths on the current cleanup target; overlapping durable-terminal-exit files are owned by Issue #1027 and are excluded.",
+  "purpose": "Reserve the disjoint Issue #1022 root-local-first scope after moving report identity validation away from Issue #1027 owned paths.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
