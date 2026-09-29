@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
-    "expires_at": "2026-09-29T14:59:37Z",
+    "expires_at": "2026-09-29T15:23:36Z",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
-    "token": "lease:1022:36584908139:1"
+    "token": "lease:1022:36587879015:1"
   },
   "mutation_scope": {
     "base_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
@@ -96,13 +96,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "0ce8f4c08ee404e6ab5cf5b5dba4f192cb71b4c59ad91a1df32d18d62962093f",
-    "id": "gha:36587499730:1022:RECONCILE:7",
+    "expected_fingerprint": "43d83c5e7e04a071f7caac581fa4dd25e6bdff111218b13421c12d342a98d0d3",
+    "id": "gha:36587879015:1022:ACQUIRE:8",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T1421Z",
-    "kind": "RECONCILE",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:05:37Z",
+  "updated_at": "2026-09-29T15:08:36Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
