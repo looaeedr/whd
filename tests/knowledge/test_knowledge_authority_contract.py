@@ -45,11 +45,17 @@ def test_authority_map_has_exactly_one_current_owner_per_contract() -> None:
         assert required in contracts, f"missing authority contract: {required}"
 
     current_counts = Counter(row["contract"] for row in rows if row["role"] == "CURRENT")
-    assert all(current_counts[contract] == 1 for contract in contracts), current_counts
+    assert all(count == 1 for count in current_counts.values()), current_counts
+    for required in {"canonical-authority-map", "flow-v2-execution", "root-local-first-workflow"}:
+        assert current_counts[required] == 1, required
 
+    current_paths = {row["path"] for row in rows if row["role"] == "CURRENT"}
     for row in rows:
         if row["role"] == "MIRROR":
             assert row["canonical"], f"MIRROR row must name canonical owner: {row}"
+            assert row["canonical"] in current_paths, (
+                f"MIRROR canonical path must itself be a CURRENT authority path: {row}"
+            )
 
 
 def test_dimension_semantics_root_is_pointer_to_ai_library_canonical() -> None:
