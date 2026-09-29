@@ -1,34 +1,53 @@
 {
-  "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id":"issue1029-reconcile-exact-head-1",
-  "issue":1029,
-  "kind":"RECONCILE",
-  "lane_id":"chatgpt.flowv2.work1",
-  "invocation_identity":"interactive:work1:issue1029:stale-plan-writer-guard:20260929T1550Z",
-  "expected_coord_head":"21738c261666d5ef3554169faa034b67e9b48ada",
-  "expected_generation":2,
-  "effect":{
-    "observed_work_branch":"governance/issue1029-stale-plan-writer-guard",
-    "observed_head_sha":"56f6c1c4b6227a549e90212308d5f6ff55b60c10",
-    "observed_target_sha":"fe5546a010ab24fc3745e5366ffeb85f7307bfb5",
-    "semantic_state":"ROOT_TESTED_DIFF_APPLIED",
-    "next_action":{
-      "kind":"START_QA",
-      "args":{"workflow":".github/workflows/whd-control-plane-regression.yml"},
-      "display":"Run exact-head Control Plane Regression"
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issueundefined-atomic-admission-1",
+  "kind": "ACQUIRE",
+  "lane_id": "chatgpt.flowv2.work1",
+  "invocation_identity": "interactive:work1:issueundefined:semantic-doc-cutover:20260930T0018+0800",
+  "expected_coord_head": "40ee7a4d51a6a836f706d59a50fb7a1dd7693c1d",
+  "expected_generation": 1,
+  "effect": {
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+      "write_paths": [
+        "AGENTS.md",
+        ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/寫技能/SKILL.md",
+        ".agents/skills/engineering/執行開發任務/SKILL.md",
+        ".agents/skills/engineering/wayfinder/SKILL.md",
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+        "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
+        "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+        "tests/process/test_issueundefined_flow_v2_semantic_doc_cutover.py"
+      ],
+      "delete_paths": []
+    },
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Apply exact tested semantic-doc cutover"
     }
   },
-  "purpose":"Issue #1029 reconcile exact tested Git head and latest target after zero-overlap target advance",
-  "work_root_gate_evidence":{
-    "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status":"CURRENT",
-    "read_mode":"GOOGLE_DRIVE_CANONICAL",
-    "execution_mode":"INTERACTIVE",
-    "source":"/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider":"google_drive",
-    "library_path":"/Google Drive/WHD",
-    "drive_folder_id":"1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id":"1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  "purpose": "Issue #undefined semantic-doc cutover",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
