@@ -1,8 +1,9 @@
 ---
 whd_doc_role: CURRENT
-whd_contract: pitfall-ledger
+whd_contract: canonical-authority-map
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 ---
 
 # WHD Canonical Authority Map
@@ -33,6 +34,8 @@ whd_schema: WHD_DOC_META_V1
 <!-- WHD_AUTHORITY contract=flow-v2-authority-policy role=CURRENT path=tools/execution_authority_policy.py -->
 
 <!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
+<!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=CURRENT path=tools/root_local_first_gate.py -->
+<!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=knowledge-preflight role=CURRENT path=AGENTS.md -->
 

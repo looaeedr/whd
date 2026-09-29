@@ -152,13 +152,16 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 
 正確順序：ZIP CRC/entry policy → pristine FULL extraction → pristine baseline + UPDATE overlay → cleanup policy → 逐檔 missing/extra/SHA256。測試 gate 另用其他 extraction 執行，不污染封包完整性比較目錄。
 
-## Branch-first modification gate
+## Root-local-first release / integration gate
 
-All WHD changes must enter release/integration through a dedicated work branch.
+WHD interactive/default changes enter release only after root-local qualification:
 
-- Before the first write of a new modification task, create a fresh branch from the latest authoritative target HEAD and re-read its SHA.
-- No direct writes to `cleanup/2d-3d-sync` or `main`, including docs, tests, QA workflows, Skills, AI Library, Registry, or "tiny fixes".
-- Keep all task changes and temporary QA workflow cleanup on the same work branch.
-- If target moved while the branch was under test, integrate/reconcile on a branch, then run combined/final acceptance again.
-- Final target update must be a normal non-force PR/merge whose head SHA is locked to the accepted closing head.
-- A green work branch is not permission to bypass final acceptance or drift audit.
+- root workspace first: current source → mutation → classified tests → terminal GREEN → frozen exact diff;
+- Git content plane stays read-only until `GIT_WRITE_UNLOCKED`;
+- after unlock, create a fresh work branch from fresh authoritative target HEAD and re-read parent/base;
+- the work branch may receive `EXACT_TESTED_DIFF_ONLY`; no branch-side hotfixes or cleanup edits that were not root-tested;
+- if target moved across touched/base identity, return to root and `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`;
+- push/Actions/remote QA are post-push verification; failure returns to root for a new tested freeze;
+- final target update remains normal non-force PR/merge whose closing head is accepted by final acceptance and drift audit.
+
+A work branch is still mandatory in Git phase, but it does not precede root development/testing.

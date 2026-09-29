@@ -5,6 +5,7 @@
     {
       "id": "flow-v2-execution",
       "keywords": [
+        "flow-v2-execution",
         "Flow v2",
         "ExecutionRecord",
         "coord/execution-v2",
@@ -28,6 +29,26 @@
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ]
+    },
+    {
+      "id": "root-local-first",
+      "keywords": [
+        "root-local-first",
+        "根目錄先做",
+        "根目錄修改",
+        "GIT_WRITE_UNLOCKED",
+        "ROOT_DIFF_FROZEN",
+        "EXACT_TESTED_DIFF_ONLY"
+      ],
+      "file_globs": [
+        "**"
+      ],
+      "required_skills": [
+        "root-local-first"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
       ]
     },
     {

@@ -3,6 +3,7 @@ whd_doc_role: REFERENCE
 whd_contract: ai-library-reference
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
+whd_doc_id: WHD-SOP-SKILL-AUTHORING
 ---
 # WHD 技能建立與修改規則
 
@@ -44,7 +45,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 必守規則
 
-- 修改 Skill 前先反讀 target HEAD，依 WHD `branch-first` 建新 branch；不得直接改 `cleanup/2d-3d-sync` / `main`。
+- 修改 Skill 前先完成 WHD root-local-first：current root source → root 修改／RED-GREEN/full gate → freeze → drift audit；只有 `GIT_WRITE_UNLOCKED` 後才從 fresh target 建 Git work branch，且不得直接改 `cleanup/2d-3d-sync` / `main`。
 - 依 `AGENTS.md` 跑 Preflight；changed files 已知後重新帶 `--changed-file` 驗一次。
 - 既有 Skill 修改先保留可追溯 baseline snapshot（原始 SHA/commit/ref/內容）。
 - 客觀流程型 Skill 要有 RED-capable contract，再最小修改到 GREEN。
@@ -138,7 +139,7 @@ WHD canonical discovery Skill：`.agents/skills/productivity/找技能/SKILL.md`
 - 外部 Skill 的 installs、GitHub stars、來源信譽等是推薦 evidence；來源檔的 1K+/100 installs/100 stars 為 heuristic，不是硬式安全閘門。取不到的資料標 unknown，不腦補。
 - **不得自動安裝**外部 Skill。使用者要先看到候選、來源與可驗證品質資訊，再明確選定。
 - **不得自動納入 WHD**。外部 Skill 被找到或已裝到個人環境，都不代表它是 `.agents/skills/**` 的 canonical project Skill。
-- 若使用者明確要求把外部 Skill 加進 WHD，必須轉 `寫技能`，重新走 `AGENTS.md` / Preflight / branch-first / 中文 identity / contract / Registry / AI Library / release durable writeback。
+- 若使用者明確要求把外部 Skill 加進 WHD，必須轉 `寫技能`，重新走 `AGENTS.md` / root-local-first / Preflight / Git-phase branch / 中文 identity / contract / Registry / AI Library / release durable writeback。
 - 這條邊界同時保護 `修改DXF`：即使 `找技能` 找到外部 DXF 編輯 Skill，也不得因此把它誤掛成 WHD Skill。
 - machine guard：`tests/test_find_skill_contract.py`。
 
@@ -163,7 +164,7 @@ WHD canonical path：`.agents/skills/productivity/MCP工具操作/SKILL.md`。
 - 流程固定為 Discover → Explore → Inspect schema → Execute。不得猜 server、tool、schema 或參數。
 - 「已發現／已呼叫／已成功／已寫入」必須有本回合實際 tool result 支撐。
 - CLI route 保留 `mcp-cli` 的 exit-code contract；原生 connector 則保留自己的 structured error，不硬套 CLI code。
-- MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過 branch-first、Preflight、remote QA 或其他專案 gate。
+- MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過 root-local-first、Preflight、`GIT_WRITE_UNLOCKED` 後 Git-phase branch、remote QA 或其他專案 gate。
 - machine guard：`tests/test_second_batch_skills_contract.py`。
 
 ## 2026-09-11 第三批：Python 測試實務

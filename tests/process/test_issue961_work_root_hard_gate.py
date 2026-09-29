@@ -87,6 +87,7 @@ def test_agents_places_work_root_bootstrap_before_phase6_preflight():
     assert "/Google Drive/WHD" in text
     assert "WHD_WORK_ROOT_HARD_GATE_V1.json" in text
     assert "CURRENT_SOURCE_MANIFEST_READ" in text
+    assert "ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1" in text
 
 
 def test_flow_v2_project_startup_reads_root_gate_before_ai_library_and_preflight():
@@ -184,7 +185,7 @@ def test_repository_mirror_tracks_stable_drive_gate_payload_hash():
     payload = _mirror_payload()
     assert (
         payload["canonical_source"]["canonical_payload_sha256"]
-        == "6c5fb106798b593df723b8d4ff4ed99e1ab14f7ca4dc20c20ce6f8580a46ea4e"
+        == "cf4a99581fe749a10aba1b9df8497d81046ed7cde3bc79e10db633d042d6356d"
     )
 
 
@@ -211,4 +212,4 @@ def test_flow_v2_requires_workspace_first_execution_not_only_root_identity():
     assert "/Google Drive/WHD/work/active/..." in text
     assert "build_interactive_work_path" in text
     assert "GitHub checkout" in text
-    assert "manifest stale" in text
+    assert "ROOT_SOURCE_CURRENT" in text

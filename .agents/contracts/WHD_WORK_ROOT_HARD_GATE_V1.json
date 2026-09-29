@@ -8,7 +8,7 @@
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
     "drive_file_id": "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH",
-    "canonical_payload_sha256": "6c5fb106798b593df723b8d4ff4ed99e1ab14f7ca4dc20c20ce6f8580a46ea4e"
+    "canonical_payload_sha256": "cf4a99581fe749a10aba1b9df8497d81046ed7cde3bc79e10db633d042d6356d"
   },
   "default_work_root": {
     "provider": "google_drive",
@@ -44,5 +44,22 @@
     "state": "/Google Drive/WHD/state",
     "work": "/Google Drive/WHD/work",
     "artifacts": "/Google Drive/WHD/artifacts"
+  },
+  "required_sequence": [
+    "CLOUD_DRIVE_MOUNT_DISCOVERED",
+    "WHD_ROOT_RESOLVED",
+    "ROOT_IDENTITY_VERIFIED",
+    "CURRENT_SOURCE_MANIFEST_READ",
+    "ROOT_LOCAL_FIRST_GATE_READ",
+    "REQUESTED_OPERATION"
+  ],
+  "next_gate": {
+    "schema": "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1",
+    "drive_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+    "repository_contract": ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+    "required_for": [
+      "INTERACTIVE"
+    ],
+    "git_write_locked_until": "GIT_WRITE_UNLOCKED"
   }
 }
