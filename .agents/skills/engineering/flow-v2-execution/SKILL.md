@@ -77,7 +77,7 @@ Static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`。Canonical sta
 
 固定流程：
 
-1. exact Issue 已 ACQUIRE 且有 live lease 後，在第一次 root/content write 前送 `RESERVE_PATHS`，內容包含 `target_branch + base_sha + write_paths + delete_paths`。
+1. **新 READY Issue** 在第一次 root/content write 前固定用 atomic `ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`，同一 coord CAS 一次取得 live lease + ACTIVE reservation。只有 legacy compatibility 或既有 ACTIVE scope 的 monotonic 擴張才送 `RESERVE_PATHS`；不得把 `ACQUIRE → RESERVE_PATHS` 當新 interactive work 的 normal path。
 2. trusted production executor 必須 fresh-read `coord/execution-v2` 全部 nonterminal records；同 target 的 ACTIVE reservation 若有 exact path overlap，固定回 `PATH_RESERVATION_CONFLICT`，並保留 `conflicting_issue + paths`，不得寫 coord。
 3. coord ref CAS 是 cross-Issue atomic fence：兩個 runtime 即使同時從無衝突快照起跑，也只有第一個 non-force coord update 可成功；另一個 fresh-read 後必須看到 reservation conflict。
 4. scope 擴張只可 atomic monotonic superset `RESERVE_PATHS`；不得先改新檔再補 reservation，也不得用 scope shrink 釋放局部 path。
@@ -414,24 +414,16 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 - trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
-每次需要 ACQUIRE/RESERVE_PATHS/RELEASE_PATHS/ACCEPT_QA/FAIL_QA/MERGE/FINALIZE/YIELD 等 transaction：
-1. fresh-read `coord/execution-v2` exact HEAD 與 native record generation。
-2. 本 lane request branch 必須已存在 `.dispatch/transaction-request.json` bootstrap seed；fresh-read 其 blob SHA，scheduler 只允許 CAS update，禁止在 runtime 走首次 `create_file`。若 seed 缺失，fail closed 並交由治理/bootstrap 修復。
-3. 寫 `WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1`：
-   - request_id：本 invocation/action 唯一值
-   - issue / kind / lane_id / invocation_identity
-   - startup_evidence：由 canonical `tools/execution_entry_contract.py::build_startup_evidence(...)` 產生，exact 綁定本 invocation_identity / repository / execution_mode / purpose / issued_at / expires_at / canonical declaration，並內嵌 fresh `WHD_WORK_ROOT_GATE_EVIDENCE_V1`；非 SEED request 必填。
-   - expected_coord_head：步驟1 fresh HEAD
-   - expected_generation：步驟1 record.generation
-   - effect：fresh external readback payload
-4. 記住 request commit SHA；push 會自動觸發 request workflow。
-5. 只接受 event=push、workflow=`whd-control-transaction-v2-request.yml`、head_sha=request commit SHA 的 exact run。
-6. 鎖 exact run 到 terminal；success 後 fresh-read `coord/execution-v2`，必須看到 generation+1、transaction.status=RECONCILED 與 expected post state。
-7. trusted ingress 在任何 ExecutionRecord state read/mutation 前，先用 `validate_startup_evidence(...)` 驗 startup_evidence；缺失、過期（TTL>300 秒或已到期）、repository / execution_mode 不符、declaration 被改、invocation_identity 不符、root-gate evidence 缺失或 root identity/read_mode 不符，一律 FAILED/fail closed。
-8. CONFLICT/FAILED 時 fresh-read重算；不得 replay 舊 request/effect。fresh runtime 必須重建 startup evidence；前一 invocation evidence 不得重放。
+建立／續送 control transaction 時固定遵守 **session-first**：
+1. fresh-read `coord/execution-v2` exact HEAD、native record、generation 與 structured `next_action`；本 Issue identity 若已前進，舊 plan 立即 `STALE_PLAN_MUST_DIE`，不得補完舊 action。
+2. 本 lane request branch 必須已有 `.dispatch/transaction-request.json` seed，所有 request 以 existing-file CAS 更新。
+3. **只有新 invocation、沒有可重用 live lease、或 action 明確使 admission 失效時**才建立 fresh `startup_evidence`。同一 live `invocation_identity`、lease、root/source/target/scope 未變時，continuation transaction 必須用 `WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1 / LIVE_LEASE_CONTINUATION`；不得每顆 transaction 重做 5 分鐘 startup envelope。
+4. request 永遠綁 `expected_coord_head + expected_generation + invocation_identity`；interactive `START_BRANCH/APPLY_COMMIT` 另綁 root-local-first receipt + `WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1`。
+5. 只接受 exact request commit 觸發的 exact push workflow run；terminal success 後 fresh-read record 驗 generation/post-state。
+6. unrelated Issue 的 coord CAS churn 只有在本 Issue fingerprint 未變時可由 trusted executor內部 retry；本 Issue generation/fingerprint/lease/next_action/head/target 任一 drift 都必須丟棄舊 plan，從最新 `next_action` replan。
 
 `coord/transaction-requests-a` / `coord/transaction-requests-b` / `coord/transaction-requests-work0~3` 的 seed 使用同一 request schema、`kind=SEED`、`issue=0`；trusted ingress 必須先驗 request branch 與 `lane_id` exact match，再回 `APPLIED / SEED_NOOP`，且不得讀寫 `coord/execution-v2`。seed 只負責確保後續 mutation 永遠走 existing-file CAS。\n\n`lease=null` 的 same-lane nonterminal record必須先送 ACQUIRE request（effect=`{}`），成功後同一 invocation 立即續原 structured next_action。
 
-POLL_QA 是 observation。exact QA terminal success後，先 fresh-read run/head，再送 ACCEPT_QA request；terminal non-success 後先 fresh-read exact run/head/conclusion，再送 FAIL_QA request 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue，並由 fresh `closed_at` 產生 authoritative `released_at`；caller 的 FINALIZE effect 不得必填或授權 `released_at`。request workflow固定具有 `issues: write`。
+POLL_QA 是 observation。若 fresh-read 已存在 **exact-head + exact-workflow + completed/success** 的 terminal run，且 record 是 `START_QA` continuation、沒有 `active_run`，**優先送單顆 `CONSUME_QA`**，不得先做 `START_QA → ACCEPT_QA`。只有真的需要啟動新 run 時才走 `START_QA → POLL_QA → ACCEPT_QA`；terminal non-success 送 `FAIL_QA` 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue，並由 fresh `closed_at` 產生 authoritative `released_at`；caller 的 FINALIZE effect 不得必填或授權 `released_at`。request workflow固定具有 `issues: write`。
 
 手動 `whd-control-transaction-v2.yml` 只保留管理/診斷用途；scheduler不得依賴 connector 未提供的 workflow_dispatch。

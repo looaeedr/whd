@@ -48,13 +48,13 @@ WHD 的 user-visible Skill 使用公告由 `AGENTS.md` 擁有全域硬閘門。�
 
 ### SKILL_PREWRITE_PREFLIGHT_HARD_GATE
 
-修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成；然後每次 Skill file write/commit 緊接著執行 `tools/execution_claim_guard.py`，同時傳入實際 `--changed-file "<Skill path>"` 與 `--preflight-evidence "<evidence>"`。
+修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成；repository mutation authority 則只服從 CURRENT Flow v2：live `WHD_EXECUTION_RECORD_V2` + lease + ACTIVE mutation scope，以及 interactive Git write 的 root-local-first receipt + `WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1`。
 
 - `write/commit` 沒有 changed-file identity → fail closed。
 - target 是 `.agents/skills/**/SKILL.md` 但沒有 Preflight evidence、evidence 缺 `寫技能`、required Skill 或 required reference → fail closed。
-- atomic execution claim 只能證明 owner，**不能取代** Skill-authoring Preflight。
-- task scope / planned changed files 擴大時，先重跑 Preflight 再寫；不得拿舊 evidence 掩蓋新增 requirements。
-- canonical evidence 判讀由 `phase6_skill_preflight.py` + `execution_claim_guard.py` 擁有，本 Skill 不複製第二套 parser。
+- Issue comment、assignee、legacy execution claim 或 retired Remote Guard **都不是 CURRENT Skill write authority**。
+- task scope / planned changed files 擴大時，先重跑 Preflight並先 atomic 擴張 reservation；不得拿舊 evidence 掩蓋新增 requirements。
+- canonical knowledge evidence owner=`tools/phase6_skill_preflight.py`；canonical execution/write fencing owner=`flow-v2-execution` + `tools/control_transaction.py` + `tools/control_transaction_request_ingress.py`。不得重新啟用 `tools/execution_claim_guard.py` 作 CURRENT write gate。
 
 ## 2. 能力偵測：先看環境能做什麼
 

@@ -1,6 +1,6 @@
 {
   "schema": "WHD_PATH_RESERVATION_V1",
-  "version": 1,
+  "version": 2,
   "status": "CURRENT",
   "state_owner": "WHD_EXECUTION_RECORD_V2.mutation_scope",
   "record_owner": "tools/execution_record.py",
@@ -25,5 +25,12 @@
   "workspace_policy": "ISSUE_SCOPED_INTERACTIVE_WORKSPACE",
   "reservation_required_before": "FIRST_ROOT_OR_CONTENT_WRITE",
   "reservation_counts_as_substantive_progress": false,
-  "second_database_forbidden": true
+  "second_database_forbidden": true,
+  "canonical_new_work_admission": {
+    "transaction": "ACQUIRE",
+    "effect_field": "admission_reservation",
+    "result": "ACTIVE_LEASE_PLUS_ACTIVE_MUTATION_SCOPE_IN_ONE_COORD_CAS"
+  },
+  "separate_reserve_policy": "COMPATIBILITY_OR_MONOTONIC_SCOPE_EXPANSION_ONLY",
+  "execution_authority": "WHD_EXECUTION_RECORD_V2_LEASE_PLUS_MUTATION_SCOPE"
 }

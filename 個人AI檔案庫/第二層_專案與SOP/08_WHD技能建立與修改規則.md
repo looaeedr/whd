@@ -228,28 +228,18 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 - Audit mode 是 read-only；already-good UI 可以 `keep / 不修改`。成功不是改得多，而是只修改有產品、層級或操作理由的地方。
 - machine guard：`tests/test_ui_design_de_ai_skill_contract.py`。
 
-## 2026-09-13 — 多 AI 派工：一票一個 execution claim owner + 進度共享
+## 2026-09-30 — Flow v2 多 AI 單一 writer / durable progress CURRENT 規則
 
-<!-- ISSUE172_MULTI_AI_CLAIM_PROGRESS -->
+<!-- FLOW_V2_MULTI_AI_SINGLE_WRITER_CURRENT_V1 -->
 
-當兩個以上 AI / Worker 共用同一 GitHub tracker 時，`GitHub owning Issue` 只證明「這張票存在」，不等於已分配唯一施工權。正式施工前必須另有 execution claim coordination。
+GitHub owning Issue、assignee、comment、label、舊 shared claim 都不提供 CURRENT 施工權。唯一 execution authority 是 `coord/execution-v2` 的 native `WHD_EXECUTION_RECORD_V2`。
 
-- **NO WORK WITHOUT CLAIM**：一張 GitHub owning Issue 同時間只能有一個 execution claim owner。任何 `production / test / Skill / AI Library` 第一筆 write 前，Worker 必須先成功取得 claim。
-- **互斥 authority 必須 shared + atomic**：claim 必須位於所有 Worker 共用的 coordination namespace/ref，並以 atomic create、compare-and-swap 或等價互斥 primitive 取得。不同 implementation branch 各自建立同名 lock 屬 branch-local lock，不能作為全域 claim authority。
-- **Comment / label 只作 mirror**：Issue comment、label、聊天宣告、branch 名稱、checkpoint 可供人閱讀，但不是 execution claim authority。
-- **claim fail closed**：shared authority 已有其他 owner、CAS 衝突或環境沒有 shared+atomic claim 能力時，禁止施工該 Issue；若另有未認領工單則依 `NON_TERMINAL_CONTINUE` 繼續下一張。
-
-### CLAIM_PROGRESS_STATE
-
-claim 同時是跨 AI durable progress state，至少保存 `phase/state`、`last_update`、work `branch`、current `HEAD`、`remote QA run/status`、`next_action`、`blocker` 與必要 checkpoint/journal pointer。RED、重要 write、GREEN、remote QA、cleanup、drift audit、AI Library writeback、Issue closing/release 等重大 transition 都要即時更新。
-
-列未完成工單固定分成 `我持有`、`其他 AI 已鎖定`、`尚未認領`；前兩類必須顯示 phase、最後更新、branch/HEAD、QA、next_action、blocker，不能只列 owner。
-
-### STALE_CLAIM_RECOVERY
-
-claim 久未更新不能直接搶。接管前先核對 owning branch、HEAD、checkpoint/journal、`last_update`、remote QA、Issue 最新活動；只在舊 revision/owner 仍未改變時以 compare-and-swap 原子轉移，並留下 recovery evidence。無法證明 stale 或無安全 CAS 時保持 blocked。
-
-只有 Issue terminal evidence、必要 workflow cleanup、durable writeback、tested-head→closing-head drift audit 都完成後才能 release claim。
+- **ONE ISSUE / ONE MUTATION WRITER**：substantive repository work 必須持有 exact Issue 的 live lease 與 ACTIVE `mutation_scope`。新 READY work 用 atomic `ACQUIRE.effect.admission_reservation` 一次取得；不得主動拆成 `ACQUIRE → RESERVE_PATHS`。
+- **STALE PLAN MUST DIE**：每次 interactive Git mutation 綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work/target HEAD`。任一 identity 已前進，舊 plan 永久失效並從最新 structured `next_action` replan。
+- **Durable progress owner**：state / branch / HEAD / QA / next_action / blocker / closure 全部由 ExecutionRecord 表達；`coord/monitor-v2` 只做 NON_AUTHORITY observation。
+- **Scope expansion**：只可對既有 ACTIVE scope 走 monotonic `RESERVE_PATHS`；不得先改新檔再補 reservation。
+- **Terminal**：唯一正常完成是 durable DONE tuple（Issue closed、lease/owner cleared、reservation RELEASED）；merge/QA GREEN 本身不是完成。
+- **Legacy history**：`execution_claim_guard.py`、Remote Guard、claim/checkpoint coordination 只可作 migration/audit historical evidence，不得作 CURRENT execution/write authority。
 
 ## 2026-09-13 — Canonical Authority Roles / Mirror Contract
 
