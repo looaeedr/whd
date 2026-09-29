@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1022-expand-ci-helper-16paths-20260929T163715Z",
+  "request_id": "issue1022-expand-ci-helper-16paths-retry2-20260929T163815Z",
   "issue": 1022,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T163546Z",
-  "expected_coord_head": "2ea39bd865bc73a6a794ace346943950a12b1066",
+  "expected_coord_head": "e8b0aaea07d045085a5155eb1c77e2e8d938f561",
   "expected_generation": 16,
   "effect": {
     "target_branch": "cleanup/2d-3d-sync",
@@ -30,7 +30,7 @@
     ],
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED_CURRENT_TARGET_WITH_CI_RECEIPT_HELPER",
-    "updated_at": "2026-09-29T16:37:15Z"
+    "updated_at": "2026-09-29T16:38:15Z"
   },
   "purpose": "Expand Issue #1022 exact scope by one regression helper exposed by PR #1033 CI so legacy root unlock receipt construction supplies WHD_TEST_EXECUTION_RECEIPT_V1.",
   "work_root_gate_evidence": {
