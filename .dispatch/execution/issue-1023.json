@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
-    "id": 36584677419,
-    "purpose": "WHD Control Plane Regression exact-head QA for watchdog schedule retirement",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
   "issue": 1023,
   "lane_id": "chatgpt.flowv2.work0",
@@ -37,17 +32,20 @@
   },
   "next_action": {
     "args": {
-      "run_head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
-      "run_id": 36584677419
+      "expected_target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
+      "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
+      "pr_number": 1026,
+      "revalidation_workflow": "WHD Control Plane Regression",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Accept exact-head GREEN QA",
-    "kind": "ACCEPT_QA"
+    "display": "Merge/read back PR #1026",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
+    "last_accepted_run": 36584677419
   },
   "recovery_history": [
     {
@@ -57,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA_GREEN_PENDING_ACCEPTANCE",
+  "semantic_state": "GREEN",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "transaction": {
-    "expected_fingerprint": "ef9201a6e5239c5873d2d1545992ed26dedfcfe69f4d4f36d4cf686af18d578c",
-    "id": "gha:36586874490:1023:START_QA:5",
+    "expected_fingerprint": "eea98f3ea858112285f62b8b90fffb4028e65f4fcbf244145506b9af3a3a97a2",
+    "id": "gha:36587045110:1023:ACCEPT_QA:6",
     "invocation_identity": "interactive:work0:issue1023:disable-watchdog-finalize:20260929",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:00:50Z",
+  "updated_at": "2026-09-29T15:02:07Z",
   "version": 2,
   "work_branch": "governance/issue1023-retire-scheduler-watchdog-20260929"
 }
