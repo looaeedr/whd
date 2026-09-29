@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1017-reserve-root-local-first-20260929T1150Z",
+  "request_id": "issue1017-reserve-root-local-first-transport-repair-20260929T1152Z",
   "issue": 1017,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
@@ -22,10 +22,10 @@
       "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
       "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
     },
-    "purpose": "Reserve exact root-local-first regression hardening paths for Issue #1017 before root mutation.",
-    "issued_at": "2026-09-29T11:49:30Z",
-    "expires_at": "2026-09-29T11:54:30Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reserve exact root-local-first regression hardening paths for Issue #1017 before root mutation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "purpose": "Reserve Issue #1017 exact root-local-first hardening paths, including the stale main-bound push transport, before root mutation.",
+    "issued_at": "2026-09-29T11:52:00Z",
+    "expires_at": "2026-09-29T11:57:00Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reserve Issue #1017 exact root-local-first hardening paths, including the stale main-bound push transport, before root mutation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
   },
   "expected_coord_head": "2bb6c3a5e0b41f3ca397c44747a50da817d65734",
   "expected_generation": 2,
@@ -35,6 +35,7 @@
     "write_paths": [
       ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
       ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
       "AGENTS.md",
       "tests/process/test_issue899_push_transaction_ingress.py",
       "tests/process/test_root_local_first_entry_hard_gate.py",
