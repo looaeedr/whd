@@ -1,44 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1032-atomic-admission-2",
+  "request_id": "issue1032-reconcile-target-e756-1",
   "issue": 1032,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-  "expected_coord_head": "2ea39bd865bc73a6a794ace346943950a12b1066",
-  "expected_generation": 1,
+  "expected_coord_head": "4bfca0c9a0f5cd75906bb9a770a608962ae1c52a",
+  "expected_generation": 2,
   "effect": {
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
-      "write_paths": [
-        ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
-        ".agents/skills/engineering/wayfinder/SKILL.md",
-        ".agents/skills/engineering/執行開發任務/SKILL.md",
-        ".agents/skills/engineering/寫技能/SKILL.md",
-        "AGENTS.md",
-        "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-        "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
-        "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
-        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
-        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
-      ],
-      "delete_paths": []
-    },
-    "semantic_state": "PATHS_RESERVED",
+    "observed_work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover",
+    "observed_head_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
+    "observed_target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
+    "semantic_state": "TARGET_ADVANCED_ZERO_OVERLAP",
     "next_action": {
       "kind": "START_BRANCH",
       "args": {},
-      "display": "Apply exact tested semantic-doc cutover"
+      "display": "Apply exact tested semantic-doc cutover on current target"
     }
   },
-  "purpose": "Issue #1032 semantic-doc cutover",
+  "purpose": "Issue #1032 reconcile zero-overlap target advance before Git mutation",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
