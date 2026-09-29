@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "issue": 1027,
   "lane_id": "chatgpt.flowv2.work0",
@@ -36,21 +36,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-      "delete_paths": [],
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-        "AGENTS.md",
-        "tests/process/test_flow_v2_execution_invocation_exit.py",
-        "tests/process/test_flow_v2_execution_scheduler_view.py",
-        "tools/execution_invocation_exit.py",
-        "tools/execution_record.py"
-      ]
-    },
-    "display": "Re-reserve durable terminal exit gate paths on current target",
-    "kind": "RESERVE_PATHS"
+    "args": {},
+    "display": "Create exact tested branch from current target",
+    "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -66,7 +54,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "ROOT_TESTED_DIFF_FROZEN",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
@@ -74,13 +62,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
   "transaction": {
-    "expected_fingerprint": "40a53ed2de364de2f7f8882c49b23d2e2afa71bfe685db4cc983452309343041",
-    "id": "gha:36592550728:1027:RESERVE_PATHS:5",
+    "expected_fingerprint": "ed6105740919922ea201fc4b7aa4feed8dca300b5dc0c1c42ea4c9622de504b9",
+    "id": "gha:36592720539:1027:RECONCILE:6",
     "invocation_identity": "interactive:work0:issue1027:durable-terminal-exit-hard-gate:20260929-r2",
-    "kind": "RESERVE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:45:18Z",
+  "updated_at": "2026-09-29T15:46:34Z",
   "version": 2,
   "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
 }
