@@ -12,19 +12,31 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "issue": 1023,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-29T14:49:15Z",
+    "invocation_identity": "interactive:work0:issue1023:disable-watchdog-schedule:20260929-r2",
+    "token": "lease:1023:36583621060:1"
+  },
+  "mutation_scope": {
+    "base_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".github/workflows/whd-scheduler-host-watchdog.yml"
+    ]
+  },
   "next_action": {
     "args": {},
-    "display": "Acquire Issue #1023",
-    "kind": "ACQUIRE"
+    "display": "Create exact tested work branch after disabling recurring watchdog trigger",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -37,15 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-  "transaction": null,
-  "updated_at": "2026-09-29T14:23:00Z",
+  "transaction": {
+    "expected_fingerprint": "53b83ecbd82acd8e9cca7520e60a22e6a3a3a44fe26f8c694c07eceffcf7f3e4",
+    "id": "gha:36583621060:1023:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:issue1023:disable-watchdog-schedule:20260929-r2",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-29T14:34:15Z",
   "version": 2,
   "work_branch": "governance/issue1023-retire-scheduler-watchdog-20260929"
 }
