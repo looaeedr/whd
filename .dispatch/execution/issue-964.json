@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "15cc03a5da3b0b7345ee1d919f4702c69e84df15",
   "issue": 964,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "lease": {
-    "expires_at": "2026-09-28T23:07:47Z",
-    "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
-    "token": "lease:964:36494902737:1"
+    "expires_at": "2026-09-29T10:43:41Z",
+    "invocation_identity": "scheduler-a:user-finalize-964:5888362405",
+    "token": "lease:964:36555780050:1"
   },
   "next_action": {
     "args": {},
@@ -49,13 +49,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
   "transaction": {
-    "expected_fingerprint": "f0dcce641e40ed805ecfcb59fce528c55990aed15c444149e42533c90ffe81fe",
-    "id": "gha:36495257943:964:MERGE:6",
-    "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
-    "kind": "MERGE",
+    "expected_fingerprint": "c4c5ac2e265cb94ba1b71d05f6c3d35acde5185663ca0bc8fea89955f0fa37bd",
+    "id": "gha:36555780050:964:ACQUIRE:7",
+    "invocation_identity": "scheduler-a:user-finalize-964:5888362405",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T22:56:29Z",
+  "updated_at": "2026-09-29T10:28:41Z",
   "version": 2,
   "work_branch": "governance/issue964-reqa-integrating-20260929"
 }
