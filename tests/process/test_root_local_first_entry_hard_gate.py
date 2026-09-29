@@ -161,3 +161,4 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
     bad = dict(receipt, git_write_unlocked=False)
     with pytest.raises(ValueError, match="GIT_WRITE_UNLOCKED"):
         validate_git_unlock_receipt(bad)
+
