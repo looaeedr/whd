@@ -1,42 +1,24 @@
 {
-  "effect": {
-    "merged_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40",
-    "next_action": {
-      "args": {},
-      "display": "Finalize Issue #964",
-      "kind": "FINALIZE"
-    },
-    "semantic_state": "MERGED",
-    "target_sha": "f4b6ec9e5efffbe250c312cd292d7dcc0668fe40"
-  },
-  "expected_coord_head": "343524fe047fbe25ec220b40cc652fc5aa3a33d7",
-  "expected_generation": 6,
-  "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue964-acquire-5888362405",
   "issue": 964,
-  "kind": "MERGE",
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "request_id": "issue964-a-merge-20260928T225553Z",
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：以排程A續接 Issue #964，先續租同 lane lease，再依 durable next_action 消費已合併 PR #967 的 MERGE readback，並在同一 invocation 續做 FINALIZE。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+  "invocation_identity": "scheduler-a:user-finalize-964:5888362405",
+  "expected_coord_head": "90d4dbdc82c67a89dc76a097fdf3fb2bcedbfe56",
+  "expected_generation": 7,
+  "effect": {},
+  "purpose": "User explicitly requested completing Issue #964. Acquire the expired same-lane lease and immediately continue the existing FINALIZE next_action without changing implementation, QA, merge, or unrelated Issues.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GITHUB_MIRROR",
     "execution_mode": "SCHEDULER_LANE",
-    "expires_at": "2026-09-28T23:00:53Z",
-    "invocation_identity": "scheduler-a:issue964:20260928T225144Z",
-    "issued_at": "2026-09-28T22:55:53Z",
-    "purpose": "以排程A續接 Issue #964，先續租同 lane lease，再依 durable next_action 消費已合併 PR #967 的 MERGE readback，並在同一 invocation 續做 FINALIZE。",
-    "repository": "looaeedr/whd",
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "work_root_gate": {
-      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U",
-      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-      "execution_mode": "SCHEDULER_LANE",
-      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-      "gate_status": "CURRENT",
-      "library_path": "/Google Drive/WHD",
-      "provider": "google_drive",
-      "read_mode": "GITHUB_MIRROR",
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json"
-    }
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
