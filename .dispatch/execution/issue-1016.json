@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "generation": 5,
+  "head_sha": "fdaf902380ba8018bc4c0a12bb715e7838fd20d0",
   "issue": 1016,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -35,18 +35,11 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
-      "delete_paths": [],
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tools/execution_invocation_exit.py",
-        "tests/process/test_flow_v2_execution_invocation_exit.py",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".github/workflows/whd-control-plane-regression.yml"
-      ]
+      "pr_number": 1018,
+      "workflow": "WHD Control Plane Regression"
     },
-    "display": "Reserve terminal-tail governance paths before root mutation",
-    "kind": "RESERVE_PATHS"
+    "display": "Start exact-head QA for reconciled terminal-tail implementation",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -63,21 +56,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "OUT_OF_BAND_IMPLEMENTATION_RECONCILED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+  "target_sha": "254067778b72dd4d9f7cc318bb0bf23cca1c7822",
   "transaction": {
-    "expected_fingerprint": "590531ab0ed7a2d5cbf7ce6c6eb51dfd5a326996a1c7302d91a3612792048023",
-    "id": "gha:36570915735:1016:RESERVE_PATHS:3",
+    "expected_fingerprint": "159b71abd188de44a5a828ee6a535ea55c7d4b096ae78047ab30fed8c15cab61",
+    "id": "gha:36571119583:1016:RECONCILE:4",
     "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
-    "kind": "RESERVE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T12:50:52Z",
+  "updated_at": "2026-09-29T12:52:36Z",
   "version": 2,
   "work_branch": "governance/issue1016-terminal-tail-drain-20260929"
 }
