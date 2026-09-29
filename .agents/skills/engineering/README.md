@@ -13,6 +13,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 ## User-invoked navigation
 
 - **[flow-v2-execution](./flow-v2-execution/SKILL.md)**: WHD execution/control-plane 唯一 CURRENT runtime contract；ExecutionRecord、atomic transaction、lease/YIELD、scheduler、handoff、recovery 與 closure 都以此為準。
+- **[root-local-first](./root-local-first/SKILL.md)**: WHD interactive/default development 入口；canonical Google Drive root 先修改、分類測試與 freeze exact diff，GREEN 後才解鎖 Git work branch/push。
 
 - **[ask-matt](./ask-matt/SKILL.md)**: Router over engineering/productivity flows.
 - **[拷問邊建立文件](./拷問邊建立文件/SKILL.md)**: 深度質詢並同步維護 `CONTEXT.md` / ADR。
