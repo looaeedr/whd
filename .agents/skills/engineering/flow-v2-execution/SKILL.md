@@ -325,6 +325,11 @@ START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA �
 - `MERGE` / `RECONCILE` / `ACQUIRE` 後只要 fresh record 的 exact next action 是 `FINALIZE`，同一 invocation 必須立即執行 FINALIZE；不得因「本輪已有 substantive progress」改走 YIELD。
 - `YIELD_REQUIRED_HOST_BOUNDARY` 不得覆蓋 terminal tail。
 - FINALIZE request 必須鎖 exact run 到 terminal，success 後 fresh-read record；只有 `DONE` 才可正常 return。
+- trusted `FINALIZE` 在任何 Issue close/readback side effect 前，必須持有 **同一 invocation 且尚未過期**的 live lease；lease 缺失、屬於其他 invocation 或已過期，一律不得碰 GitHub Issue。
+- `MERGE / SYNC_TARGET / FINALIZE` 若 trusted external side effect 已完成、但 `coord/execution-v2` non-force CAS 被其他 Issue 的合法 commit 搶先，trusted writer 必須 fresh-read coord；只有 exact Issue pre-record fingerprint 未變時，才可**只重試 record + ready-index reconciliation，不重播 external side effect**。同 Issue record 已變或 retry exhausted 就 fail closed。
+- `INTEGRATING` record 永遠必須保有 executable `next_action`；`INTEGRATING + next_action=null` 是 zombie tail，schema load 即 fail closed。
+- `FINALIZE → DONE` 必須清 `owner_kind / owner_id / lane_id / lease / next_action`；`slot_id` 可保留作歷史 provenance，但不得再代表 occupancy。
+- `coord/monitor-v2` 是 NON_AUTHORITY；ExecutionRecord 已 APPLIED 後，monitor projection 失敗只能回 `monitor_projection_status=DEGRADED`，不得把 authoritative transaction 反轉成 FAILED。
 - genuine BLOCKED、active remote wait 或外部平台硬中斷仍依既有 fail-closed/recovery contract；聊天室 progress/status 不是停止理由。
 
 <!-- FLOW_V2_FINALIZE_ISSUE_CLOSE_HARD_GATE_V1 -->
