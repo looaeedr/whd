@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
   "issue": 1016,
   "lane_id": "chatgpt.flowv2.work0",
@@ -21,7 +21,18 @@
     "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
     "token": "lease:1016:36570649902:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".github/workflows/whd-control-plane-regression.yml",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tools/execution_invocation_exit.py"
+    ]
+  },
   "next_action": {
     "args": {
       "base_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
@@ -52,7 +63,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_PENDING",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
@@ -60,13 +71,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "551ef4e831079a4ca73c56ac24fa9a270e1177fc",
   "transaction": {
-    "expected_fingerprint": "411e9fafc23f51f78572f821954ca177413b02976050c6a399c41488b8f31130",
-    "id": "gha:36570649902:1016:ACQUIRE:2",
+    "expected_fingerprint": "590531ab0ed7a2d5cbf7ce6c6eb51dfd5a326996a1c7302d91a3612792048023",
+    "id": "gha:36570915735:1016:RESERVE_PATHS:3",
     "invocation_identity": "interactive:work0:issue1016:terminal-tail-reconcile:20260929T124818Z",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T12:48:18Z",
+  "updated_at": "2026-09-29T12:50:52Z",
   "version": 2,
   "work_branch": "governance/issue1016-terminal-tail-drain-20260929"
 }
