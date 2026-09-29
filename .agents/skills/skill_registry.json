@@ -98,7 +98,7 @@
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
         "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
     {
@@ -121,7 +121,7 @@
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
         "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
     {
@@ -381,12 +381,6 @@
         "remote execution guard",
         "WHD_REMOTE_GUARD_REQUEST_V1",
         "WHD_REMOTE_GUARD_RECEIPT_V1",
-        "repository command execution",
-        "scheduler no shell",
-        "排程沒有 shell",
-        "排程無 shell",
-        "execution_claim_guard.py 無法執行",
-        "GUARD_EXECUTION_CAPABILITY_BLOCKER",
         "remote-execution-guard"
       ],
       "file_globs": [
@@ -394,12 +388,10 @@
         ".agents/skills/engineering/remote-execution-guard/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
-        "遠端執行守門"
+        "flow-v2-execution"
       ],
       "required_references": [
-        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
     {
@@ -423,8 +415,7 @@
         "issue-closure-gate"
       ],
       "required_references": [
-        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
     {
@@ -635,26 +626,11 @@
     {
       "id": "executable-continuity-controller",
       "keywords": [
-        "不停工",
-        "持續執行",
-        "continuous execution",
         "continuity controller",
-        "runtime cut",
-        "runtime interruption",
-        "checkpoint resume",
-        "nonterminal",
-        "non-terminal",
-        "finalization gate",
-        "使用者不是 scheduler",
-        "accepted spec",
-        "accepted specification",
-        "specification required",
-        "新 Phase",
-        "新階段",
-        "ownership boundary",
-        "task chain",
-        "繼續拆",
-        "implement spec"
+        "executable-continuity-controller",
+        "legacy checkpoint resume",
+        "legacy finalization gate",
+        "tools/continuity_controller.py"
       ],
       "file_globs": [
         "tools/continuity_controller.py",
@@ -667,7 +643,7 @@
         "executable-continuity-controller"
       ],
       "required_references": [
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
     {
@@ -694,7 +670,7 @@
       ],
       "required_references": [
         "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
     {
@@ -1280,9 +1256,7 @@
         "WHD_USER_DIRECTED_TAKEOVER_V1"
       ],
       "file_globs": [
-        ".agents/skills/engineering/強制接手/**",
-        "tools/stale_claim_takeover.py",
-        ".github/workflows/whd-remote-execution-guard.yml"
+        ".agents/skills/engineering/強制接手/**"
       ],
       "required_skills": [
         "flow-v2-execution",
@@ -1290,8 +1264,7 @@
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
-        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     }
   ]

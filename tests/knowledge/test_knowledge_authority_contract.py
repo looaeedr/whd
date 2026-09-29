@@ -45,11 +45,17 @@ def test_authority_map_has_exactly_one_current_owner_per_contract() -> None:
         assert required in contracts, f"missing authority contract: {required}"
 
     current_counts = Counter(row["contract"] for row in rows if row["role"] == "CURRENT")
-    assert all(current_counts[contract] == 1 for contract in contracts), current_counts
+    assert all(count == 1 for count in current_counts.values()), current_counts
+    for required in {"canonical-authority-map", "flow-v2-execution", "root-local-first-workflow"}:
+        assert current_counts[required] == 1, required
 
+    current_paths = {row["path"] for row in rows if row["role"] == "CURRENT"}
     for row in rows:
         if row["role"] == "MIRROR":
             assert row["canonical"], f"MIRROR row must name canonical owner: {row}"
+            assert row["canonical"] in current_paths, (
+                f"MIRROR canonical path must itself be a CURRENT authority path: {row}"
+            )
 
 
 def test_dimension_semantics_root_is_pointer_to_ai_library_canonical() -> None:
@@ -74,3 +80,23 @@ def test_skill_policy_defines_authority_roles_and_forbids_dual_current() -> None
     assert "同一 contract" in text
     assert "只能有一個" in text
     assert "POINTER_ONLY" in text
+
+def test_skill_authority_rows_match_skill_frontmatter_roles_and_canonical_pointer() -> None:
+    text = _read(AUTHORITY_MAP)
+    rows = [match.groupdict() for match in AUTHORITY_RE.finditer(text)]
+    skill_rows = [
+        row for row in rows
+        if row["path"].startswith(".agents/skills/") and row["path"].endswith("/SKILL.md")
+    ]
+    assert skill_rows
+    for row in skill_rows:
+        skill_text = _read(ROOT / row["path"])
+        role_match = re.search(r"^whd_doc_role:\s*(CURRENT|REFERENCE|MIRROR|HISTORICAL)\s*$", skill_text, re.MULTILINE)
+        assert role_match is not None, row
+        assert role_match.group(1) == row["role"], row
+        if row["role"] == "MIRROR":
+            canonical_match = re.search(r"^whd_canonical:\s*(.+?)\s*$", skill_text, re.MULTILINE)
+            assert row["canonical"], row
+            assert canonical_match is not None, row
+            assert canonical_match.group(1).strip() == row["canonical"], row
+

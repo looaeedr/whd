@@ -286,7 +286,7 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 - Permanent guard：`tests/knowledge/test_active_skill_runtime_contract.py`。
 
 ### CI_SHARDING_SKILL_OWNERSHIP_V1
-CI sharding 的 pytest isolation / deterministic ownership / concurrency budget / timing / tested-vs-orchestration identity 規則由 `Python測試實務` 擁有；remote polling/no-RUN recovery 仍由 `monitoring-remote-qa` + `executable-continuity-controller` 擁有；長 log classifier 語意由 `long-log-context-safe-execution` 擁有。不得再建立第二套 competing Skill authority。
+CI sharding 的 pytest isolation / deterministic ownership / concurrency budget / timing / tested-vs-orchestration identity 規則由 `Python測試實務` 擁有；remote polling 入口由 `monitoring-remote-qa` bridge 回 Flow v2 `active_run / POLL_QA / ACCEPT_QA|FAIL_QA`，runtime resume/turn-exit 也只服從 Flow v2 ExecutionRecord + `execution_invocation_exit.py`；`executable-continuity-controller` 只保留相容入口/歷史 reference。長 log classifier 語意由 `long-log-context-safe-execution` 擁有。不得再建立第二套 competing execution authority。
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
 ## Mutating toolcall crash-recovery canonical invariant
@@ -295,7 +295,7 @@ CI sharding 的 pytest isolation / deterministic ownership / concurrency budget 
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
 - `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
 - `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
-- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
-- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- **HISTORICAL mapping only**：#702 當時的 `tools/continuity_controller.py`、`tools/execution_claim_guard.py`、`tools/claim_activation_recovery.py` 與 legacy scheduler reconciliation 只保留 crash-boundary / migration evidence，不再是 CURRENT semantic owners。
+- CURRENT generic mutation continuity、readback/reconcile、owner transfer、scheduler resume 與 closure 全部由 `WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + structured `next_action` + `tools/execution_invocation_exit.py` 單一擁有；Entry Skills/prompts只能 bridge，不得把 historical owner重新升格。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 

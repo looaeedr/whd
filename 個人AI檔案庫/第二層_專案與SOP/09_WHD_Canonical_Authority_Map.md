@@ -60,12 +60,12 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
 <!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
 
-<!-- WHD_AUTHORITY contract=continuous-execution-operations role=MIRROR path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
+<!-- WHD_AUTHORITY contract=continuous-execution-operations role=MIRROR path=.agents/skills/engineering/executable-continuity-controller/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
 
-<!-- WHD_AUTHORITY contract=remote-qa-monitoring role=CURRENT path=.agents/skills/engineering/monitoring-remote-qa/SKILL.md -->
+<!-- WHD_AUTHORITY contract=remote-qa-monitoring role=MIRROR path=.agents/skills/engineering/monitoring-remote-qa/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
 
-<!-- WHD_AUTHORITY contract=issue-closure role=MIRROR path=.agents/skills/engineering/issue-closure-gate/SKILL.md -->
+<!-- WHD_AUTHORITY contract=issue-closure role=MIRROR path=.agents/skills/engineering/issue-closure-gate/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
 <!-- WHD_AUTHORITY contract=issue-closure role=REFERENCE path=個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md -->
 
 <!-- WHD_AUTHORITY contract=skill-routing role=CURRENT path=.agents/skills/skill_registry.json -->
@@ -143,7 +143,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 ### whd-chatgpt-scheduled-resume / execution control plane
 
-- AI Library CURRENT reference: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
+- AI Library MIRROR/reference: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
 - operational CURRENT owner: `.agents/skills/engineering/flow-v2-execution/SKILL.md`
 - native semantic state: `coord/execution-v2:.dispatch/execution/issue-<N>.json`
 - record/store: `tools/execution_record.py` + `tools/execution_record_store.py`
