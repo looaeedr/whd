@@ -1,31 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1023-accept-qa-36584677419",
+  "request_id": "issue1023-merge-readback-pr1026",
   "issue": 1023,
-  "kind": "ACCEPT_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "interactive:work0:issue1023:disable-watchdog-finalize:20260929",
-  "expected_coord_head": "4b04272e91428d569558243d9d668c2c12a79d2b",
-  "expected_generation": 6,
-  "effect": {
-    "run_id": 36584677419,
-    "run_head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "GREEN",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1026,
-        "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-        "revalidation_workflow": "WHD Control Plane Regression"
-      },
-      "display": "Merge/read back PR #1026"
-    }
-  },
-  "purpose": "Accept exact-head GREEN QA for Issue #1023 and proceed to trusted merge readback for already-merged PR #1026.",
+  "expected_coord_head": "6216a271d1d5c680a497a6e7123a74e7b973cafb",
+  "expected_generation": 7,
+  "effect": {},
+  "purpose": "Perform trusted merge readback for already-merged PR #1026 and advance Issue #1023 to FINALIZE.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
