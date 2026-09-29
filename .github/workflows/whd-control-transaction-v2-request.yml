@@ -37,7 +37,7 @@ jobs:
       - name: 讀取 production Flow v2 implementation
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: cleanup/2d-3d-sync
           path: prod
           fetch-depth: 1
 
