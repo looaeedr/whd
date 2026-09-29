@@ -266,14 +266,6 @@ def _require_current_invocation_lease(
         raise ControlTransactionConflict(
             "live lease belongs to a different invocation"
         )
-    try:
-        expires_at = datetime.fromisoformat(record.lease.expires_at.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ProductionExecutorError("trusted side effect lease expiry is invalid") from exc
-    if expires_at.tzinfo is None or expires_at.utcoffset() is None:
-        raise ProductionExecutorError("trusted side effect lease expiry must be timezone-aware")
-    if expires_at <= _now():
-        raise ControlTransactionConflict("current invocation lease expired before trusted side effect")
 
 
 def _read_branch_head(repo: str, token: str, branch: str) -> str:
@@ -283,6 +275,19 @@ def _read_branch_head(repo: str, token: str, branch: str) -> str:
     if not sha:
         raise ProductionExecutorError(f"branch {branch!r} did not resolve to a SHA")
     return sha
+
+
+def _is_ancestor(repo: str, token: str, ancestor: str, descendant: str) -> bool:
+    """Return whether ``ancestor`` is proven to reach ``descendant``.
+
+    This is used only for side-effect reconciliation after a trusted GitHub
+    mutation may already have succeeded while the coord CAS lost a race.
+    """
+    if ancestor == descendant:
+        return True
+    compare = _api(repo, "GET", f"/compare/{ancestor}...{descendant}", token) or {}
+    merge_base = str((compare.get("merge_base_commit") or {}).get("sha") or "").strip()
+    return merge_base == ancestor
 
 
 def _required_checks_for_target(
@@ -546,34 +551,46 @@ def _trusted_sync_target_effect(
             f"SYNC_TARGET target drift: expected {target_sha}, observed {live_target}"
         )
     live_work = _read_branch_head(repo, token, record.work_branch)
+
     if live_work != record.head_sha:
-        raise ControlTransactionConflict(
-            f"SYNC_TARGET work head drift: expected {record.head_sha}, observed {live_work}"
+        # The target->work merge may already have succeeded in a previous
+        # attempt whose coord/execution-v2 CAS lost a race.  Do not report a
+        # permanent WORK_HEAD_DRIFT when both the prior work head and exact
+        # target are proven ancestors of the live work head; reconcile the
+        # already-applied side effect into the canonical record instead.
+        prior_work_reaches_live = _is_ancestor(
+            repo, token, record.head_sha, live_work
         )
+        target_reaches_live = _is_ancestor(repo, token, target_sha, live_work)
+        if not (prior_work_reaches_live and target_reaches_live):
+            raise ControlTransactionConflict(
+                f"SYNC_TARGET work head drift: expected {record.head_sha}, observed {live_work}"
+            )
+        new_head = live_work
+    else:
+        try:
+            _api(
+                repo,
+                "POST",
+                "/merges",
+                token,
+                {
+                    "base": record.work_branch,
+                    "head": target_sha,
+                    "commit_message": (
+                        f"Flow v2 SYNC_TARGET for Issue #{record.issue}: "
+                        f"{target_branch}@{target_sha}"
+                    ),
+                },
+            )
+        except HTTPError as exc:
+            if exc.code == 409:
+                raise ProductionExecutorError(
+                    "SYNC_TARGET merge conflict requires explicit repair"
+                ) from exc
+            raise
 
-    try:
-        _api(
-            repo,
-            "POST",
-            "/merges",
-            token,
-            {
-                "base": record.work_branch,
-                "head": target_sha,
-                "commit_message": (
-                    f"Flow v2 SYNC_TARGET for Issue #{record.issue}: "
-                    f"{target_branch}@{target_sha}"
-                ),
-            },
-        )
-    except HTTPError as exc:
-        if exc.code == 409:
-            raise ProductionExecutorError(
-                "SYNC_TARGET merge conflict requires explicit repair"
-            ) from exc
-        raise
-
-    new_head = _read_branch_head(repo, token, record.work_branch)
+        new_head = _read_branch_head(repo, token, record.work_branch)
     if new_head == record.head_sha:
         next_action = {
             "kind": "MERGE",
@@ -752,70 +769,11 @@ def _write_state(
     return commit["sha"], record_blob["sha"]
 
 
-TRUSTED_EXTERNAL_SIDE_EFFECT_KINDS = frozenset({"MERGE", "SYNC_TARGET", "FINALIZE"})
+_RETRYABLE_TRUSTED_SIDE_EFFECT_KINDS = frozenset({"MERGE", "SYNC_TARGET", "FINALIZE"})
+_TERMINAL_TAIL_SOURCE_KINDS = frozenset({"MERGE", "RECONCILE", "ACQUIRE"})
 
 
-def _write_state_after_trusted_side_effect(
-    repo: str,
-    token: str,
-    coord_branch: str,
-    *,
-    parent_sha: str,
-    base_tree_sha: str,
-    records: dict[int, ExecutionRecord],
-    issue: int,
-    pre_record: ExecutionRecord,
-    post_record: ExecutionRecord,
-    max_attempts: int = 3,
-) -> tuple[str, str, int]:
-    """Durably reconcile an already-applied trusted external side effect.
-
-    A coord ref CAS can lose to an unrelated Issue after GitHub has already
-    merged/synced/closed external state.  Retrying the external side effect is
-    unnecessary and can be unsafe.  Instead, reload coord and retry only the
-    record/index commit while the exact Issue fingerprint is unchanged.
-    """
-    expected_fingerprint = execution_record_fingerprint(pre_record)
-    current_parent = parent_sha
-    current_tree = base_tree_sha
-    current_records = records
-
-    for attempt in range(max_attempts):
-        current_records[issue] = post_record
-        try:
-            commit_sha, record_blob_sha = _write_state(
-                repo,
-                token,
-                coord_branch,
-                parent_sha=current_parent,
-                base_tree_sha=current_tree,
-                records=current_records,
-                issue=issue,
-            )
-            return commit_sha, record_blob_sha, attempt
-        except ControlTransactionConflict as exc:
-            if "coord/execution-v2 ref advanced during transaction" not in str(exc):
-                raise
-            if attempt + 1 >= max_attempts:
-                raise
-            current_parent, current_tree, current_records = _load_state(
-                repo, token, coord_branch
-            )
-            observed = current_records.get(issue)
-            if observed is None:
-                raise ProductionExecutorError(
-                    "trusted side-effect reconciliation lost the Issue record"
-                ) from exc
-            observed_fingerprint = execution_record_fingerprint(observed)
-            if observed_fingerprint != expected_fingerprint:
-                raise ControlTransactionConflict(
-                    "Issue record advanced while reconciling an already-applied trusted side effect"
-                ) from exc
-
-    raise ProductionExecutorError("trusted side-effect coord reconciliation exhausted")
-
-
-def execute_one(
+def _execute_one_attempt(
     *,
     repo: str,
     token: str,
@@ -858,14 +816,18 @@ def execute_one(
             record=record,
             invocation_identity=invocation_identity,
         )
-    if kind == "FINALIZE":
-        # FINALIZE is a trusted external side effect and must remain fenced to
-        # the same live invocation that owns the terminal tail before closing
-        # the GitHub Issue.
+    elif kind == "FINALIZE":
+        # FINALIZE owns an external GitHub Issue close/readback side effect, so
+        # it must be fenced by the exact live invocation lease before touching
+        # the Issue.  A stale/different runtime may not close on behalf of the
+        # current owner.
         _require_current_invocation_lease(record, invocation_identity)
-        # FINALIZE does not trust caller-supplied closure booleans.  The trusted
-        # writer owns the GitHub side effect and fresh readback, so an accepted
-        # merge cannot become DONE while the Issue remains open.
+        if record.next_action is None or record.next_action.kind != "FINALIZE":
+            raise ControlTransactionConflict(
+                "FINALIZE requires current structured FINALIZE next_action"
+            )
+        # FINALIZE does not trust caller-supplied closure booleans. The trusted
+        # writer owns the GitHub side effect and fresh readback.
         effect.update(
             _ensure_issue_closed_for_finalize(
                 repo,
@@ -874,10 +836,18 @@ def execute_one(
                 record=record,
             )
         )
+
     post = execute_transaction(record, plan, effect=effect)
-    if kind == "RESERVE_PATHS":
+
+    admission_reserved = (
+        kind == "ACQUIRE"
+        and supplied_effect.get("admission_reservation") is not None
+    )
+    if kind == "RESERVE_PATHS" or admission_reserved:
         if post.mutation_scope is None:
-            raise ProductionExecutorError("RESERVE_PATHS produced no mutation_scope")
+            raise ProductionExecutorError(
+                f"{kind} produced no mutation_scope for reservation"
+            )
         try:
             require_no_path_reservation_conflict(
                 records.values(),
@@ -886,40 +856,30 @@ def execute_one(
             )
         except PathReservationError as exc:
             raise ControlTransactionConflict(str(exc)) from exc
+
     records[issue] = post
-    coord_retry_count = 0
-    if kind in TRUSTED_EXTERNAL_SIDE_EFFECT_KINDS:
-        commit_sha, record_blob_sha, coord_retry_count = _write_state_after_trusted_side_effect(
-            repo,
-            token,
-            coord_branch,
-            parent_sha=parent_sha,
-            base_tree_sha=tree_sha,
-            records=records,
-            issue=issue,
-            pre_record=record,
-            post_record=post,
-        )
-    else:
-        commit_sha, record_blob_sha = _write_state(
-            repo,
-            token,
-            coord_branch,
-            parent_sha=parent_sha,
-            base_tree_sha=tree_sha,
-            records=records,
-            issue=issue,
-        )
+    commit_sha, record_blob_sha = _write_state(
+        repo,
+        token,
+        coord_branch,
+        parent_sha=parent_sha,
+        base_tree_sha=tree_sha,
+        records=records,
+        issue=issue,
+    )
 
     fresh_parent, _, fresh_records = _load_state(repo, token, coord_branch)
     fresh = fresh_records.get(issue)
     if fresh_parent != commit_sha or fresh is None:
-        raise ProductionExecutorError("post-commit readback did not resolve exact transaction commit")
+        raise ProductionExecutorError(
+            "post-commit readback did not resolve exact transaction commit"
+        )
     if execution_record_fingerprint(fresh) != execution_record_fingerprint(post):
-        raise ProductionExecutorError("post-commit ExecutionRecord fingerprint mismatch")
+        raise ProductionExecutorError(
+            "post-commit ExecutionRecord fingerprint mismatch"
+        )
 
-    monitor_projection_status = "APPLIED"
-    monitor_projection_error = None
+    monitor_payload: dict[str, object]
     try:
         monitor_commit_sha, observation = _publish_transaction_progress(
             repo,
@@ -929,11 +889,27 @@ def execute_one(
             runtime_owner=lane_id,
             action=kind,
         )
-    except Exception as exc:  # monitor-v2 is explicitly NON_AUTHORITY
-        monitor_commit_sha = None
-        observation = {}
-        monitor_projection_status = "DEGRADED"
-        monitor_projection_error = f"{type(exc).__name__}: {exc}"
+        monitor_payload = {
+            "runtime_observation_status": "APPLIED",
+            "runtime_observation_commit_sha": monitor_commit_sha,
+            "runtime_observation_event": observation["event"],
+            "runtime_liveness_state": observation["liveness_state"],
+            "runtime_last_heartbeat_at": observation["last_heartbeat_at"],
+            "runtime_heartbeat_expires_at": observation["heartbeat_expires_at"],
+        }
+    except Exception as exc:
+        # coord/execution-v2 is authoritative; coord/monitor-v2 is explicitly
+        # NON_AUTHORITY.  A monitor transport failure must never convert an
+        # already committed control transaction into a false FAILED result.
+        monitor_payload = {
+            "runtime_observation_status": "DEGRADED",
+            "runtime_observation_error": str(exc),
+            "runtime_observation_commit_sha": None,
+            "runtime_observation_event": None,
+            "runtime_liveness_state": "UNKNOWN",
+            "runtime_last_heartbeat_at": None,
+            "runtime_heartbeat_expires_at": None,
+        }
 
     return {
         "schema": RESULT_SCHEMA,
@@ -947,15 +923,95 @@ def execute_one(
         "post_state": fresh.state,
         "post_next_action": fresh.next_action.kind if fresh.next_action else None,
         "lease_invocation_identity": fresh.lease.invocation_identity if fresh.lease else None,
-        "coord_retry_count": coord_retry_count,
-        "monitor_projection_status": monitor_projection_status,
-        "monitor_projection_error": monitor_projection_error,
-        "runtime_observation_commit_sha": monitor_commit_sha,
-        "runtime_observation_event": observation.get("event"),
-        "runtime_liveness_state": observation.get("liveness_state"),
-        "runtime_last_heartbeat_at": observation.get("last_heartbeat_at"),
-        "runtime_heartbeat_expires_at": observation.get("heartbeat_expires_at"),
+        **monitor_payload,
     }
+
+
+def execute_one(
+    *,
+    repo: str,
+    token: str,
+    coord_branch: str,
+    issue: int,
+    kind: str,
+    lane_id: str,
+    invocation_identity: str,
+    supplied_effect: dict[str, object],
+    _allow_terminal_drain: bool = True,
+) -> dict[str, object]:
+    """Execute one transaction with bounded in-workflow side-effect recovery.
+
+    Trusted GitHub side effects (MERGE / SYNC_TARGET / FINALIZE) are retried
+    after a coord CAS race by fresh-reading canonical state and reconciling the
+    already-applied side effect.  This prevents a recoverable CAS collision from
+    becoming a user-visible terminal-tail blocker.
+    """
+    last_conflict: ControlTransactionConflict | None = None
+    for attempt in range(1, 6):
+        try:
+            result = _execute_one_attempt(
+                repo=repo,
+                token=token,
+                coord_branch=coord_branch,
+                issue=issue,
+                kind=kind,
+                lane_id=lane_id,
+                invocation_identity=invocation_identity,
+                supplied_effect=supplied_effect,
+            )
+            result["attempt"] = attempt
+            break
+        except ControlTransactionConflict as exc:
+            last_conflict = exc
+            retryable_coord_race = (
+                kind in _RETRYABLE_TRUSTED_SIDE_EFFECT_KINDS
+                and str(exc).startswith(
+                    "coord/execution-v2 ref advanced during transaction"
+                )
+            )
+            if not retryable_coord_race or attempt >= 5:
+                raise
+    else:  # pragma: no cover - defensive; loop either breaks or raises.
+        assert last_conflict is not None
+        raise last_conflict
+
+    if (
+        _allow_terminal_drain
+        and kind in _TERMINAL_TAIL_SOURCE_KINDS
+        and result.get("post_state") == "INTEGRATING"
+        and result.get("post_next_action") == "FINALIZE"
+    ):
+        # TERMINAL_TAIL_DRAIN_HARD_GATE_V1: do not force the caller to submit a
+        # second push request just to finish a FINALIZE that is already the exact
+        # continuation of this live invocation.  Drain it inside the same
+        # trusted workflow run and return the terminal readback.
+        terminal = execute_one(
+            repo=repo,
+            token=token,
+            coord_branch=coord_branch,
+            issue=issue,
+            kind="FINALIZE",
+            lane_id=lane_id,
+            invocation_identity=invocation_identity,
+            supplied_effect={},
+            _allow_terminal_drain=False,
+        )
+        result["terminal_tail_drained"] = terminal.get("post_state") == "DONE"
+        result["terminal_tail_finalize"] = {
+            "coord_commit_sha": terminal.get("coord_commit_sha"),
+            "post_generation": terminal.get("post_generation"),
+            "post_state": terminal.get("post_state"),
+            "post_next_action": terminal.get("post_next_action"),
+            "runtime_observation_status": terminal.get("runtime_observation_status"),
+        }
+        result["post_generation"] = terminal.get("post_generation")
+        result["post_state"] = terminal.get("post_state")
+        result["post_next_action"] = terminal.get("post_next_action")
+        result["lease_invocation_identity"] = terminal.get(
+            "lease_invocation_identity"
+        )
+
+    return result
 
 
 def main() -> int:

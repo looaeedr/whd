@@ -256,6 +256,25 @@ def _execute_acquire(
     next_action = _action(effect.get("next_action"))
 
     if record.state == "READY":
+        # INVOCATION_ADMISSION_SESSION_V1: a new READY record may acquire its
+        # lease and reserve its exact mutation scope in one atomic transition.
+        # This removes the old ACQUIRE -> workflow wait -> RESERVE_PATHS ->
+        # second workflow wait sequence while keeping the same path-conflict
+        # fence in the trusted production executor.
+        mutation_scope = record.mutation_scope
+        admission_reservation = effect.get("admission_reservation")
+        if admission_reservation is not None:
+            if not isinstance(admission_reservation, Mapping):
+                raise ControlTransactionError("admission_reservation must be an object")
+            mutation_scope = _scope_from_effect(admission_reservation)
+            if mutation_scope.target_branch != record.target_branch:
+                raise ControlTransactionError(
+                    "ACQUIRE admission reservation target_branch must match record target_branch"
+                )
+            if mutation_scope.base_sha != record.target_sha:
+                raise ControlTransactionError(
+                    "ACQUIRE admission reservation base_sha must match record target_sha"
+                )
         return _base_update(
             record,
             plan,
@@ -266,13 +285,21 @@ def _execute_acquire(
             slot_id=slot_id,
             lease=lease,
             state="ACTIVE",
-            semantic_state=str(effect.get("semantic_state") or "CLAIMED"),
+            semantic_state=str(
+                effect.get("semantic_state")
+                or ("PATHS_RESERVED" if mutation_scope is not None else "CLAIMED")
+            ),
             next_action=next_action,
+            mutation_scope=mutation_scope,
             blocker=None,
         )
 
     # Non-terminal resume is lease renewal only. Ownership, lane, slot, state,
     # blocker/run identity and exact continuation meaning cannot change here.
+    if effect.get("admission_reservation") is not None:
+        raise ControlTransactionError(
+            "ACQUIRE admission_reservation is only valid for READY admission"
+        )
     if (owner_kind, owner_id, lane_id, slot_id) != (
         record.owner_kind, record.owner_id, record.lane_id, record.slot_id
     ):

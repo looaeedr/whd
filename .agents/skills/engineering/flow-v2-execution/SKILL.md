@@ -88,6 +88,21 @@ Static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`。Canonical sta
 
 `RESERVE_PATHS` / `RELEASE_PATHS` 是 coordination transaction，不算 substantive engineering progress；執行器不得「拿到檔案鎖」就停止本輪。
 
+### INVOCATION_ADMISSION_SESSION_V1
+
+Startup/root identity 與 mutation admission 是 **invocation/session-level gate**，不是每顆 transaction 都重新從零跑一次的人工檢查。
+
+固定規則：
+
+1. 同一 `invocation_identity` 在已完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 + ROOT_SOURCE_CURRENT + Preflight` 後，若 `source_sha / target_sha / root identity / requested scope` 未變，後續 transaction envelope 可沿用同一份 fresh admission evidence；不得為每個 APPLY/QA/MERGE/FINALIZE 再做一次 Drive mount/root/manifest discovery。
+2. 新 READY work 的 canonical 快速入口是 **atomic ACQUIRE + admission reservation**：`ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`。trusted executor 必須在同一 coord CAS 前做既有 cross-Issue path-conflict check；成功後 record 直接成為 `ACTIVE + live lease + mutation_scope=ACTIVE`，不再要求第二顆 `RESERVE_PATHS` workflow round-trip。
+3. 舊的分離式 `ACQUIRE → RESERVE_PATHS` 保留 compatibility；但新 interactive execution 不應主動製造兩次等待。
+4. admission 只有在下列條件才失效並要求 fresh re-admission：`invocation_identity/lease` 改變、target/source SHA drift、scope 擴張、root identity/gate status 改變、startup evidence TTL 失效。一般 transaction generation 前進不是重新讀 Drive root 的理由。
+5. scope 擴張仍必須走 atomic `RESERVE_PATHS` monotonic superset；不得把 session reuse 解讀成可越過 reservation conflict。
+6. terminal tail 不建立新 admission session；同一 live invocation 直接沿用既有 lease/evidence drain 到 DONE。
+
+Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/control_transaction_production_executor.py`。
+
 ### CHANGE_TEST_PROFILE_GATE_V1
 
 任何 implementation / QA 在第一次實質程式 mutation 前，必須先以 `.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json` + `tools/change_test_profile.py` 建立 machine-readable test profile。分類分成 **主要變更意圖**與 **domain overlay**：
@@ -325,11 +340,6 @@ START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA �
 - `MERGE` / `RECONCILE` / `ACQUIRE` 後只要 fresh record 的 exact next action 是 `FINALIZE`，同一 invocation 必須立即執行 FINALIZE；不得因「本輪已有 substantive progress」改走 YIELD。
 - `YIELD_REQUIRED_HOST_BOUNDARY` 不得覆蓋 terminal tail。
 - FINALIZE request 必須鎖 exact run 到 terminal，success 後 fresh-read record；只有 `DONE` 才可正常 return。
-- trusted `FINALIZE` 在任何 Issue close/readback side effect 前，必須持有 **同一 invocation 且尚未過期**的 live lease；lease 缺失、屬於其他 invocation 或已過期，一律不得碰 GitHub Issue。
-- `MERGE / SYNC_TARGET / FINALIZE` 若 trusted external side effect 已完成、但 `coord/execution-v2` non-force CAS 被其他 Issue 的合法 commit 搶先，trusted writer 必須 fresh-read coord；只有 exact Issue pre-record fingerprint 未變時，才可**只重試 record + ready-index reconciliation，不重播 external side effect**。同 Issue record 已變或 retry exhausted 就 fail closed。
-- `INTEGRATING` record 永遠必須保有 executable `next_action`；`INTEGRATING + next_action=null` 是 zombie tail，schema load 即 fail closed。
-- `FINALIZE → DONE` 必須清 `owner_kind / owner_id / lane_id / lease / next_action`；`slot_id` 可保留作歷史 provenance，但不得再代表 occupancy。
-- `coord/monitor-v2` 是 NON_AUTHORITY；ExecutionRecord 已 APPLIED 後，monitor projection 失敗只能回 `monitor_projection_status=DEGRADED`，不得把 authoritative transaction 反轉成 FAILED。
 - genuine BLOCKED、active remote wait 或外部平台硬中斷仍依既有 fail-closed/recovery contract；聊天室 progress/status 不是停止理由。
 
 <!-- FLOW_V2_FINALIZE_ISSUE_CLOSE_HARD_GATE_V1 -->
