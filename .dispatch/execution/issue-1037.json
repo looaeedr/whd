@@ -1,45 +1,64 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1037,
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
   "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
+  "generation": 2,
+  "head_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "issue": 1037,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-29T23:03:33Z",
+    "invocation_identity": "interactive:work0:issue1037:root-local-pointer:20260930T0646+0800",
+    "token": "lease:1037:36641696646:1"
+  },
+  "mutation_scope": {
+    "base_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      "tests/process/test_root_local_first_entry_hard_gate.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Apply exact tested root-local pointer fix",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
-  "work_branch": "governance/issue1037-root-local-pointer-identity",
-  "head_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b7e6de7fe9f3abd24b903d5d4e050294e988383b",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
+  "transaction": {
+    "expected_fingerprint": "ac07b8224282ee859e224681b600fc6b5510f894cc0c3babd2c1eae4a1eddbee",
+    "id": "gha:36641696646:1037:ACQUIRE:1",
+    "invocation_identity": "interactive:work0:issue1037:root-local-pointer:20260930T0646+0800",
     "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1037"
+    "status": "RECONCILED"
   },
-  "lease": null,
-  "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
-  "blocker": null,
-  "closure": {
-    "merged_sha": null,
-    "issue_closed": false,
-    "released_at": null
-  },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
-  },
-  "recovery_history": [],
-  "updated_at": "2026-09-29T22:46:00Z"
+  "updated_at": "2026-09-29T22:48:33Z",
+  "version": 2,
+  "work_branch": "governance/issue1037-root-local-pointer-identity"
 }
