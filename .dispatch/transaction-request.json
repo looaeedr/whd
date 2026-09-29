@@ -1,42 +1,34 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1029-atomic-admission-2",
-  "issue": 1029,
-  "kind": "ACQUIRE",
-  "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "interactive:work1:issue1029:stale-plan-writer-guard:20260929T1550Z",
-  "expected_coord_head": "9a624b1417d0edc21c59f0106e16e727600a4d99",
-  "expected_generation": 1,
-  "effect": {
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "b84f6fb15bbe7a82d6c596a58fe6b10c56cba84f",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        "tests/process/test_issue1029_stale_plan_writer_guard.py",
-        "tools/control_transaction.py",
-        "tools/control_transaction_request_ingress.py"
-      ],
-      "delete_paths": []
-    },
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested work branch after stale-plan guard root tests"
+  "schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id":"issue1029-reconcile-exact-head-1",
+  "issue":1029,
+  "kind":"RECONCILE",
+  "lane_id":"chatgpt.flowv2.work1",
+  "invocation_identity":"interactive:work1:issue1029:stale-plan-writer-guard:20260929T1550Z",
+  "expected_coord_head":"21738c261666d5ef3554169faa034b67e9b48ada",
+  "expected_generation":2,
+  "effect":{
+    "observed_work_branch":"governance/issue1029-stale-plan-writer-guard",
+    "observed_head_sha":"56f6c1c4b6227a549e90212308d5f6ff55b60c10",
+    "observed_target_sha":"fe5546a010ab24fc3745e5366ffeb85f7307bfb5",
+    "semantic_state":"ROOT_TESTED_DIFF_APPLIED",
+    "next_action":{
+      "kind":"START_QA",
+      "args":{"workflow":".github/workflows/whd-control-plane-regression.yml"},
+      "display":"Run exact-head Control Plane Regression"
     }
   },
-  "purpose": "Issue #1029 atomically acquire work1 and reserve stale-plan writer-guard paths without overlapping #1022",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  "purpose":"Issue #1029 reconcile exact tested Git head and latest target after zero-overlap target advance",
+  "work_root_gate_evidence":{
+    "schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status":"CURRENT",
+    "read_mode":"GOOGLE_DRIVE_CANONICAL",
+    "execution_mode":"INTERACTIVE",
+    "source":"/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider":"google_drive",
+    "library_path":"/Google Drive/WHD",
+    "drive_folder_id":"1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id":"1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
