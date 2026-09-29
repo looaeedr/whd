@@ -193,7 +193,7 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
 - `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
 - `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
-- Canonical semantic owners remain single-source: generic operation continuity = `tools/continuity_controller.py`; Guard transaction semantics = `tools/execution_claim_guard.py`; scheduler host-state identity/readback = `tools/scheduler_state_reconciliation.py`; Claim Activation readback = `tools/claim_activation_recovery.py`.
-- Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
+- Canonical CURRENT execution continuity is single-source in Flow v2: durable semantic state=`WHD_EXECUTION_RECORD_V2`; atomic transition=`tools/control_transaction.py`; trusted side-effect/reconcile=`tools/control_transaction_production_executor.py`; invocation exit=`tools/execution_invocation_exit.py`; scheduler projection=`tools/execution_scheduler_view.py`。
+- `tools/continuity_controller.py`、`execution_claim_guard.py`、Claim Activation / legacy Remote Guard 只保留歷史 migration/compatibility evidence，不得由 Entry Skill/prompt 重新升格成 competing CURRENT state machine。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 

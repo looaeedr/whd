@@ -51,6 +51,8 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
     assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
+    assert payload["execution_modes"]["SCHEDULER_LANE"].endswith("ROOT_WORKSPACE_HANDOFF")
+    assert payload["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
 
 
 def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
@@ -108,6 +110,20 @@ def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_to
     assert evidence["next_action"] == "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"
     with pytest.raises(ValueError, match="does not authorize"):
         assert_git_content_write_allowed(evidence, action="COMMIT")
+
+    handoff = build_gate_evidence(
+        execution_mode="SCHEDULER_LANE",
+        execution_mode_provenance={
+            "schema": "WHD_EXECUTION_MODE_PROVENANCE_V1",
+            "execution_mode": "SCHEDULER_LANE",
+            "source": "FLOW_V2_LANE_ID",
+            "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        },
+        repository_content_implementation=True,
+    )
+    assert handoff["scope"] == "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF"
+    assert handoff["next_action"] == "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION"
+    assert handoff["git_write_unlocked"] is False
 
 
 def test_agents_registry_authority_map_and_root_gate_wire_forward():

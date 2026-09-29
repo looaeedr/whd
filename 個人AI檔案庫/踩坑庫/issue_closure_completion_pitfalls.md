@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # GitHub Issue Closure / Completion 踩坑規則
 
+> **[HISTORICAL / SUPERSEDED EXECUTION MECHANICS — FLOW_V2_LEGACY_EXECUTION_HISTORY_FENCE_V1]**  
+> 本檔保留事故、migration 與舊治理機制做 reference。凡下文出現 `execution claim`、`coord/dispatch-claims`、`execution_claim_guard.py`、Remote Guard、Claim Activation、checkpoint closure、main↔X mirror 等 imperative wording，**都不是 CURRENT 執行指令**。CURRENT authority 固定為 `.agents/skills/engineering/flow-v2-execution/SKILL.md` + native `WHD_EXECUTION_RECORD_V2` + live lease/mutation_scope + atomic control transaction + `STALE_PLAN_MUST_DIE / ONE_ISSUE_ONE_MUTATION_WRITER`。若歷史敘述與 CURRENT contract 衝突，以 Flow v2 為準。
+
+
 ## 事故模式：把 code integrated 誤報成 process completed
 
 WHD 曾發生以下錯誤流程：

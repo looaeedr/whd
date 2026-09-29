@@ -1,6 +1,6 @@
 ---
 name: root-local-first
-description: WHD 互動式／預設開發的入口硬閘門。當任務要修改 repository 內容時，先在 canonical Google Drive root 完成 source-current 驗證、修改、測試與 diff freeze；只有 GIT_WRITE_UNLOCKED 後才建立 Git work branch 並套用 exact tested diff。
+description: WHD repository-content implementation 的入口硬閘門。任何執行來源只要要修改 repository 內容，都先在 canonical Google Drive root 完成 source-current 驗證、修改、測試與 diff freeze；只有 GIT_WRITE_UNLOCKED 後才把 exact tested diff 送進 Git/GitHub。
 whd_doc_role: CURRENT
 whd_contract: root-local-first-workflow
 whd_canonical: null
@@ -9,23 +9,29 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first
 
-本 Skill 是 WHD **互動式／預設開發**的 repository-content 入口 contract。它不取代 `WHD_WORK_ROOT_HARD_GATE_V1`、Phase6 Knowledge Preflight、`WHD_CHANGE_TEST_PROFILE_V1`、Flow v2 control-plane 或 release/final acceptance；它只決定「內容修改在哪裡先發生、何時才允許 Git write」。
+本 Skill 是 WHD **所有 repository-content implementation** 的入口 contract。它不取代 `WHD_WORK_ROOT_HARD_GATE_V1`、Phase6 Knowledge Preflight、`WHD_CHANGE_TEST_PROFILE_V1`、Flow v2 control-plane 或 release/final acceptance；它只決定「內容修改在哪裡先發生、何時才允許 Git write」。執行來源可以是 interactive、工作槽、scheduler 或 trusted remote runtime，但 execution mode **不能改變內容施工面**。
 
 ## 1. Scope
 
 ### 必須套用
 
 - `INTERACTIVE` / chat / default development；
+- `SCHEDULER_LANE` / `GITHUB_ONLY` / `REMOTE_ACTION` **只要下一步包含 repository-content implementation**；
 - 使用者要求修改 production、tests、docs、workflow、Skill、AI Library、Registry、fixtures 或其他 repository content；
-- 互動式 bugfix / feature / update / refactor / governance / docs-metadata change。
+- bugfix / feature / update / refactor / governance / docs-metadata change，不因喚醒來源不同而例外。
 
 ### 不直接套用
 
-- `SCHEDULER_LANE`；
-- `GITHUB_ONLY`；
-- `REMOTE_ACTION`。
+只有**純 control-plane / post-push verification** 可以不進 root content workspace，例如：
 
-上述 remote/control-plane mode 仍依 `flow-v2-execution` 的 GitHub-only authority 執行；不得為了繞過本 gate 把一般 interactive task 假冒成 remote mode。**execution mode 字串本身不是例外證據**：remote exception 必須攜帶 `WHD_EXECUTION_MODE_PROVENANCE_V1` trusted runtime provenance；`SCHEDULER_LANE` 固定綁 canonical Flow v2 lane identity。若 remote lane 把 repository-content implementation 明確 handoff 給 interactive workspace，handoff 後立刻回到本 Skill。
+- read-only discovery、WAKE / HEARTBEAT / ownership / lease / reservation coordination；
+- trusted Phase6 Preflight；
+- 已有 root-tested frozen diff 之後的 Git transport、PR/CI、remote QA、merge、finalization/readback；
+- 不產生 repository-content diff 的 observation / reconciliation。
+
+`SCHEDULER_LANE` / `GITHUB_ONLY` / `REMOTE_ACTION` 若發現下一個 executable action 需要新增、修改或刪除 repository content，固定先 `HANDOFF` 到 canonical root workspace implementation；在 root 完成 `ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED` 前，remote lane **不得在 GitHub branch 直接施工或熱修**。完成 root-tested handoff 後，remote lane 才可恢復 GitHub post-push verification / merge / finalization。
+
+不得為了繞過本 gate 把一般 content work 假冒成 remote mode。**execution mode 字串本身不是例外證據**；它只決定 control-plane transport，不決定 repository-content implementation surface。
 
 ## 2. Canonical root
 
@@ -65,14 +71,14 @@ ROOT_SOURCE_CURRENT
 
 ### 3.2 PATHS_RESERVED
 
-第一次 root content write 前，exact owning Issue 必須先透過 Flow v2 atomic `RESERVE_PATHS` transaction，把 planned `write_paths / delete_paths` 存入該 Issue 的 `WHD_EXECUTION_RECORD_V2.mutation_scope`。
+第一次 root content write 前，exact owning Issue 必須先取得 Flow v2 ACTIVE mutation scope。新 READY work 固定使用 atomic `ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`，在同一 coord CAS 內取得 live lease + reservation；`RESERVE_PATHS` 只保留 compatibility 或既有 ACTIVE scope 的 monotonic 擴張。
 
 硬規則：
 
 - state owner 只有 ExecutionRecord；不得另建 lock database / lock file。
 - 同一 `target_branch` 的 nonterminal ACTIVE reservation 以 exact repository path 做 `WRITE/WRITE`、`WRITE/DELETE`、`DELETE/WRITE` overlap check。
 - 第一個 CAS 成功者取得 single-writer reservation；第二個固定 `PATH_RESERVATION_CONFLICT`，不得進 root mutation。
-- scope 擴張必須再送 atomic `RESERVE_PATHS`；只允許 monotonic superset，不得偷偷縮 scope。
+- 新 work 不得主動拆成 `ACQUIRE → RESERVE_PATHS` 兩次等待；scope 擴張才送 atomic `RESERVE_PATHS`，只允許 monotonic superset，不得偷偷縮 scope。
 - handoff/takeover 只換 owner/lease；reservation 綁 Issue，不隨聊天/runtime 消失。
 - reservation 只在 `FINALIZE` terminal 或 explicit atomic `RELEASE_PATHS` 後釋放。
 - workspace 必須使用 `build_interactive_work_path(issue=<N>, source_sha=<base>)`，不同 Issue 不得共享同一 `/work/active` 實體工作目錄。

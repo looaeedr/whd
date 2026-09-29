@@ -36,6 +36,18 @@ Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟�
 
 正常 return 前必須通過 canonical `SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1`：WAKE/讀取/回報/HEARTBEAT/單獨 ACQUIRE 都不算 substantive progress。只有 DONE、LANE_BUSY、合法 BLOCKED、active remote QA wait，或本 invocation 已完成 substantive transaction 後的合法 YIELD 可離開；`SCHEDULER_EXECUTION_NO_PROGRESS` 必須繼續施工，不得停止。
 
+## REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1
+
+排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但**不能因此取得 GitHub-first 內容施工權**。
+
+- 若 exact next_action 只需要 read/discovery、lease/coordination、trusted preflight、既有候選的 QA/merge/finalization，排程可直接執行。
+- 若 next_action 需要新增、修改或刪除 repository content，固定先走 `HANDOFF` 到 canonical `/Google Drive/WHD/work/active/...` root workspace；不得在 GitHub branch 直接 author / patch / hotfix。
+- root workspace 必須先完成 change-test classification、targeted/affected/integration/final full gate、`WHD_TEST_EXECUTION_RECEIPT_V1=GREEN` 與 `ROOT_DIFF_FROZEN`；之後才把 exact tested diff push 成候選。
+- GitHub 在此之後只負責 PR/CI/remote QA/merge verification。若 verification 揭露內容錯誤，回 root 重修重測，不在 branch 上補。
+- 這個 handoff 不等於停止：scheduler 必須把 structured next_action 留成可恢復狀態；root-tested candidate 出現後，lane 立即接回 post-push integration tail。
+
+<!-- REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1 -->
+
 ## Lifecycle
 
 <!-- SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1 -->

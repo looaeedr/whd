@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Scheduler Prompt Authoring / 排程「有醒但沒施工」踩坑
 
+> **[HISTORICAL / SUPERSEDED EXECUTION MECHANICS — FLOW_V2_LEGACY_EXECUTION_HISTORY_FENCE_V1]**  
+> 本檔保留事故、migration 與舊治理機制做 reference。凡下文出現 `execution claim`、`coord/dispatch-claims`、`execution_claim_guard.py`、Remote Guard、Claim Activation、checkpoint closure、main↔X mirror 等 imperative wording，**都不是 CURRENT 執行指令**。CURRENT authority 固定為 `.agents/skills/engineering/flow-v2-execution/SKILL.md` + native `WHD_EXECUTION_RECORD_V2` + live lease/mutation_scope + atomic control transaction + `STALE_PLAN_MUST_DIE / ONE_ISSUE_ONE_MUTATION_WRITER`。若歷史敘述與 CURRENT contract 衝突，以 Flow v2 為準。
+
+
 ## SCHEDULER_PROMPT_AUTHORING_PITFALL_V1
 
 ### 事故
@@ -131,3 +135,10 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - Entry Skills/prompts route into those owners; they must not implement competing continuity, Guard, scheduler-state, or claim-activation state machines.
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+
+## FLOW_V2_ROOT_LOCAL_FIRST_SCHEDULER_CONTENT_FENCE_V1
+
+CURRENT：排程A/B、GITHUB_ONLY、REMOTE_ACTION 的 remote authority只涵蓋 control-plane與 post-push integration。只要下一步需要產生新的 repository-content diff，就必須 HANDOFF 到 canonical Google Drive root workspace完成修改、分類測試、full gate、test receipt與 diff freeze；GitHub branch 不得成為 scheduler 的直接施工／熱修面。CI/remote QA 若發現內容錯誤，回 root 修正、重測、refreeze、再推候選。
+
+這條規則用來避免把「scheduler 有 GitHub write capability」誤解成「scheduler 可以跳過 root-local-first」。

@@ -103,7 +103,8 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 - Executable CURRENT owner：`tools/interactive_runtime_liveness.py`。
 - Interactive markers 固定為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1` / `WHD_INTERACTIVE_RUNTIME_END_V1`。
-- Heartbeat / END 必須綁 exact `issue + slot_id + worker + invocation_identity + conversation_identity + claim_blob_sha + branch + head_sha + executor_source=chat`；END identity drift fail closed。
+- Heartbeat / END 目前仍維持 #679 parser 的相容欄位 `issue + slot_id + worker + invocation_identity + conversation_identity + claim_blob_sha + branch + head_sha + executor_source=chat`；END identity drift fail closed。
+- **`claim_blob_sha` 在此只屬 liveness compatibility identity，不是 CURRENT execution/write authority。** Flow v2 的施工 authority 固定來自 native ExecutionRecord 的 generation/fingerprint + live lease + mutation_scope；liveness projection 不得反向授權 claim、mutation、merge 或 closure。
 - `conversation_identity=UNAVAILABLE` 不構成有效 interactive liveness evidence；generic `executor_source=chat` 也不能取代 exact provenance。
 - Scheduler 的 `WHD_SCHEDULER_RUNTIME_*` 仍由 `tools/scheduler_runtime_liveness.py` 獨立擁有；兩者不得互相冒充。
 

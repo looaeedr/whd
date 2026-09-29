@@ -1,4 +1,4 @@
-"""Machine gate for WHD interactive root-local-first repository content work."""
+"""Machine gate for WHD root-local-first repository content work and remote handoff classification."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ REQUIRED_ORDER = (
 )
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
 REMOTE_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
+REMOTE_CONTENT_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
 READ_ONLY_GIT_ACTIONS = {"READ", "FETCH", "COMPARE"}
 EXECUTION_MODE_PROVENANCE_SCHEMA = "WHD_EXECUTION_MODE_PROVENANCE_V1"
 GIT_UNLOCK_RECEIPT_SCHEMA = "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
@@ -198,8 +199,15 @@ def validate_contract(payload: object) -> dict[str, object]:
     if modes.get("INTERACTIVE") != "ROOT_LOCAL_FIRST_REQUIRED":
         raise ValueError("interactive execution mode must require root-local-first")
     for mode in REMOTE_MODES:
-        if mode not in modes:
-            raise ValueError(f"missing execution mode policy: {mode}")
+        if modes.get(mode) != REMOTE_CONTENT_POLICY:
+            raise ValueError(f"remote execution mode must require root-workspace handoff for content: {mode}")
+    remote_content = _mapping(contract.get("remote_content_implementation"), "remote_content_implementation")
+    if remote_content.get("policy") != "ROOT_WORKSPACE_HANDOFF_REQUIRED":
+        raise ValueError("remote repository-content implementation must require root workspace handoff")
+    if remote_content.get("github_side_hotfix_forbidden") is not True:
+        raise ValueError("GitHub-side hotfix must be forbidden for remote content implementation")
+    if remote_content.get("qa_failure_action") != "RETURN_TO_ROOT_RETEST_REFREEZE_REPUSH":
+        raise ValueError("remote QA failure must return to root and retest/refreeze")
     provenance = _mapping(contract.get("execution_mode_provenance"), "execution_mode_provenance")
     if provenance.get("schema") != EXECUTION_MODE_PROVENANCE_SCHEMA:
         raise ValueError("execution mode provenance schema mismatch")
@@ -256,6 +264,7 @@ def build_gate_evidence(
     *,
     execution_mode: str,
     execution_mode_provenance: Mapping[str, object] | None = None,
+    repository_content_implementation: bool = False,
     source_evidence: Mapping[str, object] | None = None,
     path_reservation_evidence: Mapping[str, object] | None = None,
     root_mutations_complete: bool = False,
@@ -271,6 +280,8 @@ def build_gate_evidence(
         provenance = validate_execution_mode_provenance(
             execution_mode=mode, provenance=execution_mode_provenance
         )
+        if repository_content_implementation:
+            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF", "applicable": False, "git_write_unlocked": False, "next_action": "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION"}
         return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
     if mode not in INTERACTIVE_MODES:
         raise ValueError(f"unsupported execution mode: {mode}")
