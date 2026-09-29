@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
-  "head_sha": "736f5c6d32fce42f9da567af4bcae04a86946c5e",
+  "generation": 7,
+  "head_sha": "59f10ff03d400027f7d6cd158d9ad053c8a864ed",
   "issue": 1032,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -74,13 +74,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
   "transaction": {
-    "expected_fingerprint": "cd9f1b7c823879e5e0b9f7b9da7b12091ec7693c3cff400ef87623a91309a75c",
-    "id": "gha:36601074216:1032:ACQUIRE:5",
+    "expected_fingerprint": "ac95c83d0c548a8d6161380cafe60ca8bebbe1e36281cf079498da088ddc832d",
+    "id": "gha:36601267791:1032:RECONCILE:6",
     "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:54:21Z",
+  "updated_at": "2026-09-29T16:56:02Z",
   "version": 2,
   "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover"
 }
