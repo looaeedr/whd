@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T15:31:29Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "52108252f9788356a959b5cbf7cd529c97390468",
   "issue": 946,
-  "lane_id": "chatgpt.flowv2.work2",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work2",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "52108252f9788356a959b5cbf7cd529c97390468",
     "last_accepted_run": 36443690034
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T18:47:09Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue946-fail-qa-repair"
 }

@@ -12,14 +12,14 @@
     "released_at": "2026-09-28T15:47:25Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
+  "generation": 15,
   "head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
   "issue": 944,
-  "lane_id": "chatgpt.flowv2.work0",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "e1232d6b2bc9b9dbc55f50107c82c31277261b7f",
     "last_accepted_run": 36443646900
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-28T15:48:11Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "work/issue944-restore-parameter-panel-port-20260928"
 }

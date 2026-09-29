@@ -12,14 +12,14 @@
     "released_at": "2026-09-29T10:36:38Z"
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
   "issue": 945,
-  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "lane_id": null,
   "lease": null,
   "next_action": null,
-  "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "305d15dd37cd05335493a2187c9525412ff74e05",
     "last_accepted_run": 36486734271
@@ -47,7 +47,7 @@
     "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T10:36:36Z",
+  "updated_at": "2026-09-29T16:09:50Z",
   "version": 2,
   "work_branch": "governance/issue945-watchdog-registration-repair-20260929"
 }
