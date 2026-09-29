@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "736f5c6d32fce42f9da567af4bcae04a86946c5e",
   "issue": 1032,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
-    "expires_at": "2026-09-29T16:52:35Z",
+    "expires_at": "2026-09-29T17:09:21Z",
     "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-    "token": "lease:1032:36599042783:1"
+    "token": "lease:1032:36601074216:1"
   },
   "mutation_scope": {
     "base_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
@@ -74,13 +74,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
   "transaction": {
-    "expected_fingerprint": "50ddf59f8a3477b7ad72a4772310efb83c81c5abf5068dd94b6384342ac4ff51",
-    "id": "gha:36600896612:1032:START_BRANCH:4",
+    "expected_fingerprint": "cd9f1b7c823879e5e0b9f7b9da7b12091ec7693c3cff400ef87623a91309a75c",
+    "id": "gha:36601074216:1032:ACQUIRE:5",
     "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-    "kind": "START_BRANCH",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:53:04Z",
+  "updated_at": "2026-09-29T16:54:21Z",
   "version": 2,
   "work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover"
 }
