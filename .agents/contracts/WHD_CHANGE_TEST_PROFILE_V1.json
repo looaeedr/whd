@@ -75,9 +75,22 @@
       "required_stages",
       "full_gate_kind",
       "full_gate_required",
-      "profile_id"
+      "profile_id",
+      "exact_commands",
+      "command_owner"
     ],
     "recompute_on_changed_files_expansion": true,
     "focused_tests_can_replace_full_gate": false
+  },
+  "execution_commands": {
+    "owner": "tools/change_test_profile.py",
+    "governance_full_suite": [
+      "python tools/control_plane_regression.py"
+    ],
+    "product_full_regression": [
+      "python -m pytest -q"
+    ],
+    "github_actions_policy": "WORKFLOW_MUST_CALL_PROFILE_COMMAND_OWNER_NOT_DUPLICATE_TEST_LIST",
+    "root_policy": "ROOT_MUST_RUN_EXACT_PROFILE_COMMANDS_BEFORE_DIFF_FREEZE"
   }
 }
