@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
-  "head_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
+  "generation": 14,
+  "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "issue": 1022,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -45,7 +45,7 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+      "base_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
       "delete_paths": [],
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
@@ -57,18 +57,16 @@
         ".agents/skills/engineering/排程模擬/SKILL.md",
         ".github/workflows/whd-control-plane-regression.yml",
         ".github/workflows/whd-control-transaction-v2-request.yml",
-        "tests/process/test_flow_v2_execution_invocation_exit.py",
         "tests/process/test_issue1022_root_ci_parity.py",
         "tests/process/test_issue724_report_handler_identity_prefix.py",
-        "tests/process/test_issue899_push_transaction_ingress.py",
         "tests/process/test_root_local_first_entry_hard_gate.py",
         "tools/change_test_profile.py",
         "tools/control_plane_regression.py",
-        "tools/execution_invocation_exit.py",
-        "tools/root_local_first_gate.py"
+        "tools/root_local_first_gate.py",
+        "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md"
       ]
     },
-    "display": "Reserve Issue #1022 exact paths on current target 96cb073",
+    "display": "Rebind Issue #1022 exact paths to current target 56399114",
     "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -86,21 +84,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED_WITH_AI_LIBRARY",
+  "semantic_state": "TARGET_RECONCILED_SCOPE_UNCHANGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "36bca3ed2fe39b7e2396a1e101b7c4512c4a514b",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+  "target_sha": "56399114eb544fa40f79befc78be279e7a4f2234",
   "transaction": {
-    "expected_fingerprint": "68d690ec9672dff3683ebdf7da029eb6d343944540ba90298e71ebaf074543f6",
-    "id": "gha:36596017741:1022:ACQUIRE:12",
+    "expected_fingerprint": "20833d2c7c13d6bf5915e00c6e011017223fe4e093191922010e0f2fccc7456a",
+    "id": "gha:36596305883:1022:RECONCILE:13",
     "invocation_identity": "interactive:work0:issue1022:root-ci-parity-identity:20260929T161151Z",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T16:11:51Z",
+  "updated_at": "2026-09-29T16:14:23Z",
   "version": 2,
   "work_branch": "governance/issue1022-root-ci-parity-identity-reporting"
 }
