@@ -1,0 +1,32 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {"next_action": null, "next_issue": null, "parent_issue": null},
+  "closure": {"issue_closed": false, "merged_sha": null, "released_at": null},
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+  "issue": 1027,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {"args": {}, "display": "Acquire Issue #1027", "kind": "ACQUIRE"},
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {"accepted_head_sha": null, "last_accepted_run": null},
+  "recovery_history": [
+    {"authority_kind":"USER_EXPLICIT","authority_ref":"user-chat:2026-09-29:durable-terminal-exit-hard-gate","kind":"INGRESS_AUTHORITY"}
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
+  "transaction": null,
+  "updated_at": "2026-09-29T15:10:30Z",
+  "version": 2,
+  "work_branch": "governance/issue1027-durable-terminal-exit-hard-gate-20260929"
+}
