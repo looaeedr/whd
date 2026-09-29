@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
   "issue": 1023,
   "lane_id": "chatgpt.flowv2.work0",
@@ -31,15 +31,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
-      "head_sha": "6b4627a4dc7219e2d0268871f542b0131ae801b1",
-      "pr_number": 1026,
-      "revalidation_workflow": "WHD Control Plane Regression",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge/read back PR #1026",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -55,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "GREEN",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "81fbe0aa672deb12ae358f2c4d1bf4579b156091",
+  "target_sha": "96cb0730ed1b1eacb73b0242db07f9810a257c62",
   "transaction": {
-    "expected_fingerprint": "eea98f3ea858112285f62b8b90fffb4028e65f4fcbf244145506b9af3a3a97a2",
-    "id": "gha:36587045110:1023:ACCEPT_QA:6",
+    "expected_fingerprint": "bec4fbf470cfb8d550cccab656b250eef7cab91db7503bb47365a2ff433cadbb",
+    "id": "gha:36587218009:1023:MERGE:7",
     "invocation_identity": "interactive:work0:issue1023:disable-watchdog-finalize:20260929",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-29T15:02:07Z",
+  "updated_at": "2026-09-29T15:03:37Z",
   "version": 2,
   "work_branch": "governance/issue1023-retire-scheduler-watchdog-20260929"
 }
