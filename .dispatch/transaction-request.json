@@ -1,31 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-expand-reservation-11b",
+  "request_id": "issue1066-reacquire-root-repair-12",
   "issue": 1066,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1352Z",
-  "expected_coord_head": "ab49eb71aa457dc56464e45f30de39b53ff1a501",
-  "expected_generation": 10,
-  "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-    "write_paths": [
-      ".github/workflows/whd-control-plane-regression.yml",
-      ".github/workflows/whd-product-regression.yml",
-      "fold_designer_bridge.py",
-      "tests/process/test_issue1063_actions_workflow_cleanup.py",
-      "tools/product_ci_regression.py"
-    ],
-    "delete_paths": [
-      ".github/workflows/phase6-bridge-anti-regrowth.yml",
-      ".github/workflows/receiving-divider-broader-acceptance.yml",
-      ".github/workflows/receiving-fw-formed-occupation-red.yml",
-      ".github/workflows/receiving-ui-regression.yml"
-    ],
-    "semantic_state": "PATHS_RESERVED"
-  },
-  "purpose": "Expand Issue #1066 reservation after root diagnosis of config.ini persistence bug exposed by canonical Product CI. No Git content mutation; root-only repair follows.",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1421Z",
+  "expected_coord_head": "57e55bdd4e38c5c640cfbfaf0d1f2a0b3857f485",
+  "expected_generation": 11,
+  "effect": {},
+  "purpose": "Renew Issue #1066 work1 lease before root-only production repair after 9-path reservation expansion.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
