@@ -1,24 +1,60 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reacquire-git-phase-2",
+  "request_id": "issue1066-start-branch-3",
   "issue": 1066,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
-  "expected_coord_head": "3ba781ca7dcc5f1f139f3783e6c4b0eea0c4b795",
-  "expected_generation": 2,
-  "effect": {},
-  "purpose": "Resume Issue #1066 exact-tested Git phase after lease expiry; preserve START_BRANCH continuation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "expected_coord_head": "8d37f87dede6f16c923cfd575b6431234761a861",
+  "expected_generation": 3,
+  "effect": {
+    "work_branch": "governance/issue1066-actions-minimal-ci-surface",
+    "head_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+    "semantic_state": "IMPLEMENTING",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "candidate_commit_sha": "7d1034f536d2897bd9768a14333738627940a3ab"
+      },
+      "display": "Apply exact tested Issue #1066 candidate commit"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+      "diff_digest": "3bf59a2f548d19afb4242c3a3c15598d87e79b72ad9c0be8a204ccad3c083893",
+      "issue": 1066,
+      "generation": 3,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".github/workflows/whd-control-plane-regression.yml",
+        ".github/workflows/whd-product-regression.yml",
+        "tests/process/test_issue1063_actions_workflow_cleanup.py",
+        "tools/product_ci_regression.py"
+      ],
+      "delete_paths": [
+        ".github/workflows/phase6-bridge-anti-regrowth.yml",
+        ".github/workflows/receiving-divider-broader-acceptance.yml",
+        ".github/workflows/receiving-fw-formed-occupation-red.yml",
+        ".github/workflows/receiving-ui-regression.yml"
+      ],
+      "record_fingerprint": "6b6f10528d6baab6d511f2ea9942e3b98a579331cf7e9f2987403582b5de5268",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1066,
+      "generation": 3,
+      "record_fingerprint": "6b6f10528d6baab6d511f2ea9942e3b98a579331cf7e9f2987403582b5de5268",
+      "lease_token": "lease:1066:36722525244:1",
+      "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "governance/issue1066-actions-minimal-ci-surface",
+      "expected_work_head": "1d3fc00d3bb3c586709836e872690516879b8875",
+      "expected_target_head": "1d3fc00d3bb3c586709836e872690516879b8875"
+    }
+  },
+  "purpose": "Issue #1066 create exact-tested work branch after Drive root freeze.",
+  "reuse_admission_session": true
 }
