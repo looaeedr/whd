@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1069,
   "lane_id": "chatgpt.flowv2.work2",
@@ -32,9 +32,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Create exact tested Issue #1069 work branch after Drive root freeze",
-    "kind": "START_BRANCH"
+    "args": {
+      "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991"
+    },
+    "display": "Apply exact Drive-tested Issue #1069 diff",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -51,7 +53,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "ROOT_DIFF_FROZEN",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
@@ -59,13 +61,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "d26dd7a79171d71b5f3f6d09f316c1ba64cf4c9c76bac1fcb2bf08933776fbde",
-    "id": "gha:36747576879:1069:ACQUIRE:2",
+    "expected_fingerprint": "8614070bf3cfd60a5a5ed694de5d6d2c06cc7497ce9801d844da4ce2ca6bf2eb",
+    "id": "gha:36748030760:1069:START_BRANCH:3",
     "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T16:54:35Z",
+  "updated_at": "2026-09-30T16:58:29Z",
   "version": 2,
   "work_branch": "governance/issue1069-consume-qa-updated-at"
 }
