@@ -2,5 +2,5 @@
   "schema": "WHD_SOURCE_EXPORT_REQUEST_V1",
   "version": 1,
   "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "872d95000539883636eeed86908882a6020da7f7"
+  "source_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051"
 }
