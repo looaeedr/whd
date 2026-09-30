@@ -1,54 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-start-branch-3b",
+  "request_id": "issue1069-block-on-exact-source-snapshot-5",
   "issue": 1069,
-  "kind": "START_BRANCH",
+  "kind": "BLOCK",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-  "expected_coord_head": "fd3f0de8c5255f4ad45ac5880a683238dcbdf847",
-  "expected_generation": 3,
+  "expected_coord_head": "a374a89d72d616d40919c6ee42dc1f1c9aef0ba3",
+  "expected_generation": 4,
   "effect": {
-    "work_branch": "governance/issue1069-consume-qa-updated-at",
-    "head_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "semantic_state": "ROOT_DIFF_FROZEN",
+    "blocker_kind": "EXACT_SOURCE_SNAPSHOT_NOT_DURABLE",
+    "blocker_evidence": "Drive Current Source Manifest is still 95531ac98be0f66f9917db9d2b2e347c053cc304; Issue #1068 owns recovery of exact merged cleanup SHA 872d95000539883636eeed86908882a6020da7f7 through drive-source-snapshot-export request transport and verified Drive writeback. Issue #1069 work branch is still exactly base 872d95000539883636eeed86908882a6020da7f7 with no content mutation.",
+    "semantic_state": "BLOCKED_ON_EXACT_SOURCE_SNAPSHOT",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "WAIT_EXTERNAL",
       "args": {
-        "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991"
+        "blocker_kind": "EXACT_SOURCE_SNAPSHOT_NOT_DURABLE",
+        "dependency_issue": 1068,
+        "required_source_sha": "872d95000539883636eeed86908882a6020da7f7",
+        "required_drive_manifest_source_sha": "872d95000539883636eeed86908882a6020da7f7"
       },
-      "display": "Apply exact Drive-tested Issue #1069 diff"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991",
-      "issue": 1069,
-      "generation": 3,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tools/control_transaction_production_executor.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "8614070bf3cfd60a5a5ed694de5d6d2c06cc7497ce9801d844da4ce2ca6bf2eb",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1069,
-      "generation": 3,
-      "record_fingerprint": "8614070bf3cfd60a5a5ed694de5d6d2c06cc7497ce9801d844da4ce2ca6bf2eb",
-      "lease_token": "lease:1069:36747576879:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-      "expected_next_action": "START_BRANCH",
-      "expected_work_branch": "governance/issue1069-consume-qa-updated-at",
-      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
-      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
+      "display": "Wait for Issue #1068 exact source snapshot/writeback before root mutation"
     }
   },
-  "purpose": "Bind exact root-tested Issue #1069 work branch after lease-only generation renewal.",
+  "purpose": "Fail closed before APPLY_COMMIT because Drive canonical source snapshot/manifest is stale; do not use reconstructed source as root authority.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
