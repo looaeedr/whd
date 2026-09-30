@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
-  "head_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
+  "generation": 8,
+  "head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
   "issue": 1063,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -128,10 +128,10 @@
   },
   "next_action": {
     "args": {
-      "candidate_commit_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee"
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Apply exact tested Issue #1063 candidate commit",
-    "kind": "APPLY_COMMIT"
+    "display": "Run exact-head PR CI for Issue #1063",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -148,7 +148,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "GIT_DIFF_PUBLISHED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
@@ -156,13 +156,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
   "transaction": {
-    "expected_fingerprint": "d08e4ae0a8e50cb99c9dc370266d08d4377b1c908f2d85667d4783e1731b39f0",
-    "id": "gha:36713177655:1063:START_BRANCH:6",
+    "expected_fingerprint": "eb536323b26d5e21352cdecc21d7a4c4ae5dd6cd31082b0e5e2ceec4e55faccc",
+    "id": "gha:36713343423:1063:APPLY_COMMIT:7",
     "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1205Z",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T12:11:35Z",
+  "updated_at": "2026-09-30T12:13:09Z",
   "version": 2,
   "work_branch": "governance/issue1063-actions-workflow-cleanup"
 }
