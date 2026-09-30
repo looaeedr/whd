@@ -1,32 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reserve-current-base-20260930T1409Z",
+  "request_id": "issue1050-acquire-20261001T0030TPE",
   "issue": 1050,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T140451Z",
-  "expected_coord_head": "ab49eb71aa457dc56464e45f30de39b53ff1a501",
-  "expected_generation": 10,
-  "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-    "write_paths": [
-      "ae_engine/joint_marking_policy.py",
-      "ae_engine/receiving_joint_marking.py",
-      "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
-      "phase6_final_scene_renderer.py",
-      "phase6_manufacturing_service.py",
-      "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
-      "tests/test_issue1050_receiving_mother_plate_marking.py",
-      "tests/test_issue471_t6_receiving_marking_activation.py",
-      "tests/test_issue509_receiving_horizontal_marking.py",
-      "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED"
-  },
-  "purpose": "Rebind Issue #1050 active reservation to current non-overlapping production base after target reconciliation; preserve the existing monotonic 12-path reservation.",
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1630Z",
+  "expected_coord_head": "01d577ee830c72e2298a3a5319251d9740c025d8",
+  "expected_generation": 11,
+  "effect": {},
+  "purpose": "Continue Issue #1050 after non-overlapping production drift; renew the work0 lease before current-target reconciliation and exact tested diff application.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
