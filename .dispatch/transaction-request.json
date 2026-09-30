@@ -1,33 +1,40 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue946-stale-finalize-v2",
-  "issue": 946,
-  "kind": "FINALIZE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1069-atomic-admission-1",
+  "issue": 1069,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "interactive:work2:issue946:stale-repair:20260929T024632+0800",
-  "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work2:issue946:stale-repair:20260929T024632+0800",
-    "execution_mode": "INTERACTIVE",
-    "work_root_gate": {
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-      "gate_status": "CURRENT",
-      "read_mode": "GOOGLE_DRIVE_CANONICAL",
-      "execution_mode": "INTERACTIVE",
-      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-      "provider": "google_drive",
-      "library_path": "/Google Drive/WHD",
-      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1637Z",
+  "expected_coord_head": "b202f1571a2d3171329abe42d238fbbee2a00de0",
+  "expected_generation": 1,
+  "effect": {
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "872d95000539883636eeed86908882a6020da7f7",
+      "write_paths": [
+        "tests/process/test_issue899_push_transaction_ingress.py",
+        "tools/control_transaction_production_executor.py"
+      ],
+      "delete_paths": []
     },
-    "purpose": "Repair legacy Issue #946 stale durable state by applying trusted FINALIZE to the already-merged, already-QA-accepted record without repeating semantic work.",
-    "issued_at": "2026-09-28T18:46:32Z",
-    "expires_at": "2026-09-28T18:51:32Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Repair legacy Issue #946 stale durable state by applying trusted FINALIZE to the already-merged, already-QA-accepted record without repeating semantic work.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1069 work branch after Drive root freeze"
+    }
   },
-  "expected_coord_head": "45b23df354d70fc5e7f32d53ad4bbf502881721f",
-  "expected_generation": 7,
-  "effect": {}
+  "purpose": "Fix trusted CONSUME_QA dropping normalized effect.updated_at. Reserve exact two-path root-only repair scope.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
