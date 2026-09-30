@@ -1,23 +1,48 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue948-finalize-20260928T161608Z",
-  "issue": 948,
-  "kind": "FINALIZE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1062-atomic-admission-1",
+  "issue": 1062,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-  "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "interactive:work3:issue948:bootstrap-repair:20260928T155041Z",
-    "purpose": "Repair Issue #948 scheduler startup bootstrap ordering deadlock.",
-    "issued_at": "2026-09-28T16:16:08Z",
-    "expires_at": "2026-09-28T16:21:08Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Repair Issue #948 scheduler startup bootstrap ordering deadlock.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。"
-  },
-  "expected_coord_head": "a4b13193a73e83f0786e0094023bfc538b59adda",
-  "expected_generation": 13,
+  "invocation_identity": "chatgpt.flowv2.work3.issue1062.20260930T1651Z",
+  "expected_coord_head": "ed579f35130e1ac4fab88713cf2147c171ca804e",
+  "expected_generation": 1,
   "effect": {
-    "released_at": "2026-09-28T16:16:08Z",
-    "semantic_state": "TERMINAL_SUCCESS"
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "872d95000539883636eeed86908882a6020da7f7",
+      "write_paths": [
+        "tests/test_issue124_structure_tree.py",
+        "tests/test_issue163_unfold_workspace_layout.py",
+        "tests/test_issue186_sheetmetal_selector_visibility.py",
+        "tests/test_issue335_top_toolbar.py",
+        "tests/test_issue343_t8_visual_remediation.py",
+        "tests/test_issue367_t3_project_persistence_owner.py",
+        "tests/test_issue430_single_host_red.py",
+        "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
+        "tests/test_issue96_corner_data_selection_lifecycle.py",
+        "tests/test_issue98_existing_2d_capability_migration.py"
+      ],
+      "delete_paths": []
+    },
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1062 work branch after Drive root freeze"
+    }
+  },
+  "purpose": "Continue Issue #1062 product full-regression recovery. Reserve the first successor-proven historical UI/ownership/fixture test batch only; do not overlap Issue #1050 MARKING scope.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
