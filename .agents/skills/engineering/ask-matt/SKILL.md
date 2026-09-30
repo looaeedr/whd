@@ -24,7 +24,7 @@ whd_schema: WHD_DOC_META_V1
    - **執行開發任務** → 每票依 TDD/派工/QA gate 施工。
 4. **小而已明確的 build**：可直接進 **執行開發任務**，但仍服從專案 Preflight/branch/QA 規則。
 
-WHD ticketed work 的 PM → Implementer → QA 狀態機由 **派工** 擁有；不能因 router 判定「下一步是實作」就繞過 owning Issue、checkpoint、remote QA。
+WHD ticketed work 的 durable execution state 唯一由 **Flow v2 / WHD_EXECUTION_RECORD_V2** 擁有；**派工** 只做 PM / Implementer / QA routing projection。不能因 router 判定「下一步是實作」就繞過 owning Issue、Flow v2 admission/reservation、remote QA 或 durable terminal exit gate。
 
 ## On-ramps
 
@@ -68,7 +68,7 @@ WHD ticketed work 的 PM → Implementer → QA 狀態機由 **派工** 擁有�
 
 - 有真正 Subagent Runtime 才委派 isolated task。
 - 沒有就由同一執行者 inline 完成，不宣稱「已派出去」。
-- 跨回合必要狀態落到 file/Issue/checkpoint/journal，不只靠聊天記憶。
+- 跨回合的 execution authority 必須落在 `WHD_EXECUTION_RECORD_V2` / owning Issue / exact Git evidence；領域型 file/journal/checkpoint 只可作 evidence，不得建立第二套 execution state machine。
 
 ## Canonical Chinese Skill map
 
