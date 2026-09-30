@@ -1,25 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1068-consume-qa-g10",
+  "request_id": "issue1068-reacquire-before-consume-qa",
   "issue": 1068,
-  "kind": "CONSUME_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2239Z",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2255Z",
   "expected_coord_head": "ab87077e832b1e7e61c5331921d210bcfeed73e8",
   "expected_generation": 10,
-  "reuse_admission_session": true,
-  "effect": {
-    "run_id": 36788133770,
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1073,
-        "head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
-        "target_branch": "cleanup/2d-3d-sync"
-      },
-      "display": "Merge exact accepted PR #1073"
-    }
+  "effect": {},
+  "purpose": "Renew Issue #1068 live lease to consume already-terminal exact-head QA and drain merge/finalization.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
