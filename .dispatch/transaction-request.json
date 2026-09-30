@@ -1,13 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-reconcile-already-applied-diff-8",
+  "request_id": "issue1069-reconcile-already-applied-diff-8b",
   "issue": 1069,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-  "expected_coord_head": "622cb361e2a602351b3acf75da361fd0888d5533",
+  "expected_coord_head": "f304f839e5278377c24f7a0d8422b03c2bc36a27",
   "expected_generation": 7,
-  "reuse_admission_session": true,
   "effect": {
     "observed_work_branch": "governance/issue1069-consume-qa-updated-at",
     "observed_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
@@ -21,5 +20,17 @@
       "display": "Run exact-head WHD Control Plane Regression for Issue #1069"
     }
   },
-  "purpose": "Reconcile already-applied exact Drive-frozen Git side effect. Live work-branch blobs exactly match frozen Drive candidate; do not repeat APPLY_COMMIT."
+  "purpose": "Reconcile already-applied exact Drive-frozen Git side effect after live readback proved both work-branch blobs exactly match the frozen candidate; advance control state to exact-head QA without repeating repository mutation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
