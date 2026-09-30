@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reacquire-git-write-15",
+  "request_id": "issue1066-reacquire-final-apply-14",
   "issue": 1066,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-  "expected_coord_head": "f2e902ccd9b2b1ef98d8cd3c3f14620db0eefa35",
-  "expected_generation": 13,
+  "expected_coord_head": "dd5b26ff2f8603a114a6d41211c6a68a48d94c19",
+  "expected_generation": 14,
   "effect": {},
-  "purpose": "Renew Issue #1066 live writer lease before exact Drive-frozen APPLY_COMMIT receipt/guard retry.",
+  "purpose": "Renew Issue #1066 lease after queue delay; preserve exact final APPLY_COMMIT continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
