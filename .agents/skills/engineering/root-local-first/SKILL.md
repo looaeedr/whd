@@ -201,6 +201,7 @@ Flow v2 `DONE` 只代表 execution / merge / issue closure / reservation 已 ter
 6. workspace 只有在 `state=DONE + lease=null + reservation=RELEASED + next_action=null + issue_closed=true` 才可由 `/work/active` 搬到 `/work/done`；
 7. nonterminal/live work 永遠不可 auto-archive；
 8. `DONE` 後若 export 還 pending，machine action 固定 `CONSUME_SOURCE_EXPORT`；export complete 但 workspace 還在 active，固定 `ARCHIVE_WORKSPACE_TO_DONE`；兩者都完成才是 `DURABLE_CLEANUP_COMPLETE`。
+9. source-export transport 必須同時覆蓋 direct `push` 與 `pull_request closed + merged`。Connector/API merge 若沒有 push-triggered run，必須由 merged-PR event 以 exact `merge_commit_sha` 產生 export；不得讓 `DONE` 因 transport event 缺口留下 orphan durability tail。
 
 下一個 task 的 `ROOT_SOURCE_CURRENT` 必須能 machine 判斷 exact-current 或 scoped-current recovery；不得讓 manifest 長期留在舊 SHA 卻仍標 CURRENT，也不得讓 closed/DONE workspace 長期留在 `/work/active`。
 
