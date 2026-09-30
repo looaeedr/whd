@@ -519,9 +519,9 @@ def _phase6_settings_application_project_ui_values(
             if hasattr(self, "_ui_text_controller")
             else 1.0
         )
-        var = getattr(self, "ui_text_size_var", None)
-        if var is not None and var.get() != ui_text_size_label(key):
-            var.set(ui_text_size_label(key))
+        # Widget projection happens in the guarded block below.  Updating the
+        # Tk variable here would emit a synthetic user-change callback during
+        # model/family projection and persist config.ini unintentionally.
 
     self._phase6_settings_guard = True
     try:
