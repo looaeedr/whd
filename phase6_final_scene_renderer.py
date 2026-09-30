@@ -331,6 +331,62 @@ class Phase6FinalSceneRenderer:
                     zorder=(20 if layer == "MARKING" else 8),
                 )
 
+    @staticmethod
+    def _marking_line_signature(p1, p2):
+        a = (round(float(p1[0]), 9), round(float(p1[1]), 9))
+        b = (round(float(p2[0]), 9), round(float(p2[1]), 9))
+        return tuple(sorted((a, b)))
+
+    def _joint_marking_flat_signatures(self, render_data):
+        metadata = dict(getattr(render_data, "metadata", {}) or {})
+        signatures = set()
+        for row in tuple(metadata.get("joint_markings") or ()):
+            if not isinstance(row, dict):
+                try:
+                    row = dict(row)
+                except Exception:
+                    continue
+            if str(row.get("source") or "") != "JOINT_PLACEMENT_MARKING":
+                continue
+            if row.get("p1") is None or row.get("p2") is None:
+                continue
+            signatures.add(self._marking_line_signature(row["p1"], row["p2"]))
+        return signatures
+
+    def _draw_joint_marking_world_rows(self, render_data):
+        """Draw contact-derived joint MARKING in canonical assembly world space.
+
+        The manufacturing solver stores both the flat primitive and the exact
+        world contact boundary in the same metadata row.  Assembly 3D consumes
+        that row instead of re-deriving placement from renderer coordinates, so
+        composite pieces and EndCaps preserve the manufacturing geometry owner.
+        """
+        if not callable(getattr(self.renderer.ax3d, "plot", None)):
+            return
+        metadata = dict(getattr(render_data, "metadata", {}) or {})
+        for raw in tuple(metadata.get("joint_markings") or ()):
+            if not isinstance(raw, dict):
+                try:
+                    raw = dict(raw)
+                except Exception:
+                    continue
+            if str(raw.get("source") or "") != "JOINT_PLACEMENT_MARKING":
+                continue
+            a = raw.get("world_p1")
+            b = raw.get("world_p2")
+            if a is None or b is None or len(a) != 3 or len(b) != 3:
+                continue
+            self.renderer.ax3d.plot(
+                [float(a[0]), float(b[0])],
+                [float(a[1]), float(b[1])],
+                [float(a[2]), float(b[2])],
+                color="#f59e0b",
+                linewidth=2.2,
+                linestyle="-",
+                alpha=1.0,
+                zorder=20,
+            )
+
     def _draw_assembly_scene_markings(
         self,
         scene,
@@ -341,18 +397,24 @@ class Phase6FinalSceneRenderer:
         placement,
         dimensions,
         offset,
+        joint_marking_signatures=(),
     ):
-        """Project canonical flat MARKING through the same assembly placement as the part."""
+        """Project non-contact flat MARKING through the ordinary assembly placement.
+
+        Contact-derived JOINT_PLACEMENT_MARKING is drawn from the exact world
+        boundary stored by the manufacturing solver and is skipped here.
+        """
         from ae_engine.assembly_geometry import place_assembly_points
         from ae_engine.sheetmetal_drawing import LinePrimitive
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
         placement_key = str(placement or "offset").lower()
+        joint_marking_signatures = set(joint_marking_signatures or ())
         if placement_key in {"top", "head", "bottom", "tail"}:
-            # EndCaps use the dedicated box-body mating transform. Do not guess a
-            # second point transform here; current Receiving frame markings never
-            # use these placements.
+            # EndCaps use a dedicated mating transform. Their contact-derived
+            # joint marks are rendered from canonical world metadata above;
+            # do not guess a second flat-point transform for other marks here.
             return
 
         for primitive in getattr(scene, "primitives", ()):
@@ -360,6 +422,12 @@ class Phase6FinalSceneRenderer:
                 not isinstance(primitive, LinePrimitive)
                 or str(getattr(primitive, "layer", "") or "").upper() != "MARKING"
             ):
+                continue
+            signature = self._marking_line_signature(
+                (primitive.p1.x, primitive.p1.y),
+                (primitive.p2.x, primitive.p2.y),
+            )
+            if signature in joint_marking_signatures:
                 continue
             local_points = (
                 self._map_xy(
@@ -633,6 +701,7 @@ class Phase6FinalSceneRenderer:
                                 )
                                 ax.add_collection3d(poly)
                                 self._add_mesh_boundary_lines(piece_placed, edge)
+                                self._draw_joint_marking_world_rows(piece.render_data)
                                 triangles.extend(piece_placed)
                             if visible_rows:
                                 materials.append(tuple(piece.render_data.material for piece in visible_rows))
@@ -693,6 +762,7 @@ class Phase6FinalSceneRenderer:
                         interference_points.extend(diagnostic.intersection_points)
                         interference_segments.extend(diagnostic.intersection_segments)
                         interference_pairs += int(diagnostic.pair_count)
+                self._draw_joint_marking_world_rows(part_data)
                 self._draw_assembly_scene_markings(
                     part_data.scene,
                     tuple(dict(seg) for seg in part.x_profile),
@@ -702,6 +772,7 @@ class Phase6FinalSceneRenderer:
                     placement,
                     request.finished_dimensions,
                     offset,
+                    joint_marking_signatures=self._joint_marking_flat_signatures(part_data),
                 )
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
                 poly = Poly3DCollection(

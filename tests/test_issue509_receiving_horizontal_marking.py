@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import ezdxf
-import pytest
 
 from ae_engine.assembly_placement import resolve_assembly_placement
 from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+from ae_engine.contracts import (
+    FoldProfileSegment,
+    ResolvedManufacturingGeometry,
+    ResolvedManufacturingPart,
+)
 from ae_engine.door_dividers import derive_box_body_dividers
 from ae_engine.inner_door_frames import derive_all_inner_door_frames
 from ae_engine.manufacturing_api import (
@@ -55,6 +58,10 @@ def _build_geometry(snapshot):
         parts.append(ResolvedManufacturingPart(
             part_key=divider.stable_id,
             render_data=build_box_body_divider_render_data(divider),
+            x_profile=tuple(divider.fold_profile),
+            y_profile=(FoldProfileSegment(
+                length=float(divider.span), angle=None, phase6_key="divider_span"
+            ),),
             placement=placement.placement_kind,
             offset=tuple(placement.world_offset),
         ))
@@ -63,6 +70,10 @@ def _build_geometry(snapshot):
         parts.append(ResolvedManufacturingPart(
             part_key=frame.stable_id,
             render_data=build_inner_door_frame_render_data(frame),
+            x_profile=tuple(frame.fold_profile),
+            y_profile=(FoldProfileSegment(
+                length=float(frame.span), angle=None, phase6_key="frame_span"
+            ),),
             placement=placement.placement_kind,
             offset=tuple(placement.world_offset),
         ))
@@ -79,51 +90,56 @@ def _joint_marks(geometry, part_id):
     ]
 
 
-def test_receiving_top_left_right_frames_each_own_upper_horizontal_marking(tmp_path):
+def test_issue509_frame_owned_upper_horizontal_rule_is_superseded_by_receiver_contact(tmp_path):
     from ae_engine import receiving_joint_marking as marking
 
     snapshot = _snapshot()
-    original = _build_geometry(snapshot)
     resolution = marking.resolve_receiving_joint_markings(
         snapshot,
-        original,
+        _build_geometry(snapshot),
         dimensions=(800.0, 1600.0, 350.0),
         sheet_thickness=2.0,
         cabinet_family="受電箱",
     )
 
-    expected = (
+    frame_ids = (
         "inner_door:upper:top_frame",
         "inner_door:upper:left_frame",
         "inner_door:upper:right_frame",
     )
-    for part_id in expected:
-        data, marks = _joint_marks(resolution.geometry, part_id)
-        assert len(marks) == 1, (part_id, marks)
-        line = marks[0]
-        assert float(line.p1.y) == pytest.approx(float(line.p2.y))
-        assert abs(float(line.p2.x) - float(line.p1.x)) > 0.0
-
-        rows = tuple(data.metadata.get("joint_markings") or ())
-        assert len(rows) == 1
-        assert rows[0]["boundary_role"] == "UPPER_HORIZONTAL"
-        assert rows[0]["locator_part_id"] == part_id
+    for part_id in frame_ids:
+        _data, marks = _joint_marks(resolution.geometry, part_id)
+        assert marks == [], "#509 frame-owned marking must not regrow"
 
     divider_id = "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
-    _divider, divider_marks = _joint_marks(resolution.geometry, divider_id)
-    assert divider_marks == []
+    data, divider_marks = _joint_marks(resolution.geometry, divider_id)
+    assert len(divider_marks) == 2
+    rows = tuple(data.metadata.get("joint_markings") or ())
+    assert len(rows) == 2
+    assert {row["locator_part_id"] for row in rows} == {divider_id}
+    assert {row["attached_part_id"] for row in rows} == {
+        "inner_door:upper:left_frame",
+        "inner_door:upper:right_frame",
+    }
+    assert all(row["geometry_source"] == "RECEIVER_MATING_CONTACT_BACKPROJECTION" for row in rows)
+
+    emitted = [row for row in resolution.results if row.status == "EMITTED"]
+    assert len(emitted) == 2
+    assert {row.locator_part_id for row in emitted} == {divider_id}
+    # This deliberately sparse fixture has no shell mother plates. Their absence
+    # must fail closed rather than pushing marks back onto the frames.
+    missing = [row for row in resolution.results if row.status != "EMITTED"]
+    assert {row.locator_part_id for row in missing} == {
+        "box_body:left_side", "box_body:right_side", "head"
+    }
+    assert all(row.diagnostic_code == "LOCATOR_MISSING" for row in missing)
 
     outputs = save_resolved_manufacturing_geometry_dxf(
         resolution.geometry, tmp_path, overwrite=True
     )
-    for part_id in expected:
-        doc = ezdxf.readfile(outputs[part_id])
-        saved = [
-            entity for entity in doc.modelspace()
-            if entity.dxftype() == "LINE"
-            and str(entity.dxf.layer) == "MARKING"
-        ]
-        assert len(saved) == 1
-        start = saved[0].dxf.start
-        end = saved[0].dxf.end
-        assert float(start.y) == pytest.approx(float(end.y))
+    doc = ezdxf.readfile(outputs[divider_id])
+    saved = [
+        entity for entity in doc.modelspace()
+        if entity.dxftype() == "LINE" and str(entity.dxf.layer) == "MARKING"
+    ]
+    assert len(saved) == 2
