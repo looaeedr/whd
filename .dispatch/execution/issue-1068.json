@@ -7,24 +7,20 @@
     "parent_issue": 1066
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
-    "released_at": null
+    "released_at": "2026-09-30T22:59:04Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
   "issue": 1068,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-09-30T23:10:58Z",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2255Z",
-    "token": "lease:1068:36788314845:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
@@ -36,13 +32,9 @@
       "tools/post_integration_durability.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
     "last_accepted_run": 36788133770
@@ -56,21 +48,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
   "transaction": {
-    "expected_fingerprint": "8c4db0c3cefd167c354795beddb7bf2984df75a97d94879d87fa825a5b7a6b5b",
-    "id": "gha:36788573292:1068:MERGE:12",
+    "expected_fingerprint": "f32bacd3d573e3098ec9e3fab83b3390f3554b4ff8a884375ad7a733d68d6e15",
+    "id": "gha:36788573292:1068:FINALIZE:13",
     "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2255Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T22:58:47Z",
+  "updated_at": "2026-09-30T22:59:03Z",
   "version": 2,
   "work_branch": "governance/issue1068-durable-source-export-request"
 }
