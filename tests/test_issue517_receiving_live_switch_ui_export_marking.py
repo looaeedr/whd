@@ -269,7 +269,7 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         _close(tk, root, designer)
 
 
-def test_receiving_assembly_view_visibly_projects_three_frame_markings():
+def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings():
     tk, root, _app, designer = _open_vault_designer()
     try:
         designer.baseline_model_var.set("受電箱")
@@ -285,35 +285,55 @@ def test_receiving_assembly_view_visibly_projects_three_frame_markings():
 
         from ae_engine.sheetmetal_drawing import LinePrimitive
         resolved = designer._phase6_resolve_manufacturing_geometry()
-        source_marks = []
-        for part_id in (
+
+        def marking_lines(render_data):
+            return [
+                primitive
+                for primitive in tuple(render_data.scene.primitives)
+                if isinstance(primitive, LinePrimitive)
+                and str(primitive.layer).upper() == "MARKING"
+            ]
+
+        box = resolved.part("box_body").render_data
+        pieces = {str(piece.role): piece.render_data for piece in tuple(box.pieces or ())}
+        receiver_sources = {
+            "left_side": marking_lines(pieces["left_side"]),
+            "right_side": marking_lines(pieces["right_side"]),
+            "head": marking_lines(resolved.part("head").render_data),
+        }
+        divider_marks = []
+        for part in tuple(resolved.parts or ()):
+            if str(part.part_key).startswith("box_body:divider:"):
+                divider_marks.extend(marking_lines(part.render_data))
+
+        assert len(receiver_sources["left_side"]) == 1
+        assert len(receiver_sources["right_side"]) == 1
+        assert len(receiver_sources["head"]) == 1
+        assert len(divider_marks) == 2
+        assert sum(len(rows) for rows in receiver_sources.values()) + len(divider_marks) == 5
+
+        for frame_id in (
             "inner_door:upper:top_frame",
             "inner_door:upper:left_frame",
             "inner_door:upper:right_frame",
         ):
-            source_marks.extend(
-                primitive
-                for primitive in tuple(resolved.part(part_id).render_data.scene.primitives)
-                if isinstance(primitive, LinePrimitive)
-                and str(primitive.layer).upper() == "MARKING"
+            assert marking_lines(resolved.part(frame_id).render_data) == [], (
+                "#1050 supersedes frame-owned #509 MARKING; the receiver mother "
+                f"plate must own the contact line instead: {frame_id}"
             )
-        assert len(source_marks) == 3, "canonical #509 frame MARKING source must exist"
 
         scene_renderer = designer.final_scene_view
         assert scene_renderer is not None
         ax = scene_renderer.renderer.ax3d
-        marking_lines = [
+        visible_marks = [
             line for line in tuple(ax.lines)
             if str(line.get_color()).lower() == "#f59e0b"
         ]
-        assert len(marking_lines) >= 3, (
-            "Canonical MARKING exists in frame FinalScenes but is not visibly "
-            "projected in Receiving assembly 3D"
+        assert len(visible_marks) >= 5, (
+            "All five canonical receiver-owned contact MARKING lines exist in "
+            "FinalScene/DXF but are not visibly projected in Receiving assembly 3D"
         )
-        assert all(float(line.get_zorder()) >= 10.0 for line in marking_lines), (
-            "Receiving MARKING must be drawn as a foreground overlay; default 3D "
-            "artist depth can hide a coplanar marking behind the sheet surface"
-        )
-        assert all(float(line.get_linewidth()) >= 1.8 for line in marking_lines)
+        assert all(float(line.get_zorder()) >= 10.0 for line in visible_marks)
+        assert all(float(line.get_linewidth()) >= 1.8 for line in visible_marks)
     finally:
         _close(tk, root, designer)

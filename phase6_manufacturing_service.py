@@ -41,6 +41,7 @@ from phase6_manufacturing_contracts import (
 )
 from phase6_manufacturing_geometry import (
     _phase6_assembly_placement_for_part,
+    _phase6_build_joint_world_geometry,
     _phase6_joint_registry_diagnostic_info,
     _phase6_relief_polygon_coords,
     _phase6_request_part,
@@ -509,12 +510,16 @@ def resolve(request):
     joint_marking_status = resolve_joint_marking_production_status()
     joint_marking_results = ()
     if _cabinet_family(request) == "受電箱":
+        marking_world_geometry = _phase6_build_joint_world_geometry(
+            tuple(resolved.parts or ()), dims, thickness
+        )
         marking_resolution = resolve_receiving_joint_markings(
             snapshot,
             resolved,
             dimensions=dims,
             sheet_thickness=thickness,
             cabinet_family="受電箱",
+            world_geometry=marking_world_geometry,
         )
         resolved = marking_resolution.geometry
         joint_marking_status = marking_resolution.status
