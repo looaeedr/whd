@@ -1,51 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-apply-frozen-gen6-7",
+  "request_id": "issue1069-reacquire-after-coord-race-7",
   "issue": 1069,
-  "kind": "APPLY_COMMIT",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-  "expected_coord_head": "7bc927073db1f702552bd5121ff3ac5b16425a5f",
+  "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
+  "expected_coord_head": "5794c7646c60309c8696b4e38ec5e153d01e1a15",
   "expected_generation": 6,
-  "reuse_admission_session": true,
-  "effect": {
-    "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Run exact-head WHD Control Plane Regression for Issue #1069"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "diff_digest": "cdc0ab39b5e9c34b3a75d9d9b5fc4fc1c8689f6df13125dffa29f0a33dca5c91",
-      "issue": 1069,
-      "generation": 6,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tools/control_transaction_production_executor.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "c90e2667ad2a4691c9c43fc601a7f44d534ca1f65bf4b2c037041facecf1b339",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1069,
-      "generation": 6,
-      "record_fingerprint": "c90e2667ad2a4691c9c43fc601a7f44d534ca1f65bf4b2c037041facecf1b339",
-      "lease_token": "lease:1069:36747576879:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1069-consume-qa-updated-at",
-      "expected_work_head": "a33d8d9428026de71fe649ef25111f586e2fa445",
-      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
-    }
+  "effect": {},
+  "purpose": "Renew Issue #1069 work2 lease after unrelated Issue #1050 coord CAS advance; preserve exact frozen candidate and APPLY_COMMIT continuation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
