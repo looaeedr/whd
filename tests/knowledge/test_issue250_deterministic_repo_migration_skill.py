@@ -72,3 +72,21 @@ def test_issue250_preflight_route_discovers_skill():
         changed_files=(),
     )
     assert 'deterministic-repo-migration' in routed
+
+
+def test_issue250_whd_repository_mutation_requires_flow_v2_and_root_local_first():
+    text = _text(SKILL)
+    assert 'WHD_REPOSITORY_MUTATION_GATE_V1' in text
+    assert 'WHD_EXECUTION_RECORD_V2' in text
+    assert 'ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED' in text
+    assert 'WHD_TEST_EXECUTION_RECEIPT_V1' in text
+    assert 'HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION' in text
+
+
+def test_issue250_preflight_routes_load_execution_owners_before_migration_skill():
+    import json
+    registry = json.loads(Path('.agents/skills/skill_registry.json').read_text(encoding='utf-8'))
+    by_id = {route['id']: route for route in registry['routes']}
+    expected = ['flow-v2-execution', 'root-local-first', 'deterministic-repo-migration']
+    assert by_id['deterministic-repo-migration']['required_skills'] == expected
+    assert by_id['explicit-skill-deterministic-repo-migration']['required_skills'] == expected

@@ -37,6 +37,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
 <!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=CURRENT path=tools/root_local_first_gate.py -->
 <!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
+<!-- WHD_AUTHORITY contract=deterministic-repo-migration role=CURRENT path=.agents/skills/engineering/deterministic-repo-migration/SKILL.md -->
 <!-- WHD_AUTHORITY contract=post-integration-durability role=CURRENT path=tools/post_integration_durability.py -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->
@@ -168,7 +169,8 @@ Generation fencing：只有 current generation + canonical branch + expected fin
 - domain: `authority_map`
 - accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
 - integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
-- retained invariant: Production/trusted governance parity is machine-readable and unknown divergence fails closed.
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 下列 #693 parity 文字只記錄當時 acceptance provenance；自 governance single-authority cutover 後已 superseded，不得作 CURRENT main↔cleanup parity / ancestry / mirror requirement。
+- historical retained invariant at #693 acceptance time: production/trusted governance parity was machine-readable and unknown divergence failed closed.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 

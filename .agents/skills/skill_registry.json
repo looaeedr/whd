@@ -164,6 +164,8 @@
         ".agents/skills/engineering/deterministic-repo-migration/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
+        "root-local-first",
         "deterministic-repo-migration"
       ],
       "required_references": [
@@ -1050,6 +1052,8 @@
         ".agents/skills/engineering/deterministic-repo-migration/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
+        "root-local-first",
         "deterministic-repo-migration"
       ],
       "required_references": []

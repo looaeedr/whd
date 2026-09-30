@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Deterministic repo migration 踩坑庫
 
+## Deterministic 不等於可以旁路 root-local-first
+
+`zero diff`、strict validator、authority SHA 與 deterministic mapping 只證明 migration 本身可重複，不授權 repository write。WHD repository-content mutation 仍必須先完成 Flow v2 + root-local-first：`ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`，並保留 `WHD_TEST_EXECUTION_RECEIPT_V1`。remote lane 需要 content diff 時固定 handoff 回 root workspace。
+
 ## Validator 不是 authority
 
 Migration 的 desired state 必須來自已釘住 SHA 的 authoritative matrix/registry。Validator 只能判定結果是否符合 authority；不得把 validator 的 expected value、錯誤訊息、snapshot 或測試資料反向灌回 migration，否則 validation 會偷變成第二套 authority。

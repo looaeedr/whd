@@ -65,6 +65,7 @@ PYTEST_PATHS = (
     "tests/process/test_continuous_execution_durable_contract.py",
     "tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py",
     "tests/process/test_issue1049_flow_v2_anti_regrowth_v3.py",
+    "tests/process/test_issue1056_flow_v2_anti_regrowth_v4.py",
     "tests/process/test_issue1045_post_integration_durability.py",
     "tests/knowledge",
 )

@@ -43,7 +43,7 @@ whd_doc_id: WHD-SOP-SPEC-SKILL-GROUNDING
 1. `AGENTS.md`：公告、root-local-first、Preflight、durable writeback、`GIT_WRITE_UNLOCKED` 後 Git-phase branch。
 2. `.agents/skills/engineering/寫成規格書/SKILL.md`：grounded spec authoring canonical workflow。
 3. `.agents/skills/skill_registry.json` + `tools/phase6_skill_preflight.py`：machine route / required references。
-4. `docs/governance/WHD_規格書Skill前置與Grounding規則.md`：本條永久治理說明。
+4. `docs/governance/WHD_規格書Skill前置與Grounding規則.md`：`MIRROR` 治理／導覽說明；不得覆蓋 `寫成規格書` Skill 或 root-local-first execution order。
 5. 本 AI Library 文件：讓後續 Agent 在知識預載階段能直接命中此踩坑。
 
 ## 禁止

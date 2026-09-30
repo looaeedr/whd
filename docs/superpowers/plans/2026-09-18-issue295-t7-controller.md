@@ -5,6 +5,9 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本 plan 的 `assert-finalizable` / `authorize-finalization` / `verify-finalization-proof` 舊 closure 指令只作 historical ticket evidence；CURRENT completion/closure 唯一服從 `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + Flow v2 `MERGE → FINALIZE → DONE`，不得直接照抄舊指令執行。
+
+
 # Issue #295 T7 — implementation plan
 
 ## Identity
