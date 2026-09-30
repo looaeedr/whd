@@ -74,9 +74,13 @@ ROOT_SOURCE_CURRENT
 - 為了回報而另外建立 contract 未要求的 evidence artifact；
 - 把 generation / lease / CAS / transaction kind 當成聊天層工作清單逐顆操作。
 
-只有下列條件才允許離開 fast path 升級完整治理：
+`TEST_RED` **不是離開 fast path 的理由**。interactive repository-content session 遇到 targeted / post-push QA RED 時，外層固定直接回到同一 canonical root workspace 的 `ROOT_MUTATE`（`RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION`），修正後重新 targeted/full test、refreeze、repush。需要把 terminal failure 寫回 ExecutionRecord 時，`FAIL_QA` / failure consume 只能由同一 execution session 的 trusted machine path 內部吸收；聊天層不得因此逐顆送 `FAIL_QA / RECONCILE / START_QA / ACCEPT_QA / lease renew / reservation`。
 
-`PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / TEST_RED / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`
+只有下列條件才允許離開 fast path 升級 machine governance：
+
+`PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`
+
+即使命中上述 escalation，`PER_TRANSACTION_MANUAL_ORCHESTRATION` 仍永久禁止；escalation 只改變 machine classifier / blocker 處理，不會把 generation / lease / CAS / transaction kind 重新暴露成聊天層工作清單。
 
 任何升級前都先 fresh-read current Issue；若 generation / fingerprint / lease / next_action / work head / target head 已前進，舊 plan 依 `STALE_PLAN_MUST_DIE` 立即作廢，不准把舊流程補完。
 
