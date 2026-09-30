@@ -852,6 +852,7 @@ def resolve_receiving_joint_markings(
     from .door_dividers import derive_box_body_dividers
 
     snapshot_map = dict(snapshot or {})
+    dimensions = tuple(dimensions or ())
     dividers = derive_box_body_dividers(
         snapshot_map.get("door_layout_columns") or (),
         depth=float(snapshot_map.get("d", dimensions[2] if len(dimensions) > 2 else 0.0)),
