@@ -1,0 +1,32 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1066,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+  "work_branch": "governance/issue1066-actions-minimal-ci-surface",
+  "head_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {"kind":"ACQUIRE","args":{},"display":"Acquire Issue #1066"},
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {"last_accepted_run":null,"accepted_head_sha":null},
+  "blocker": null,
+  "closure": {"merged_sha":null,"issue_closed":false,"released_at":null},
+  "chain": {"parent_issue":null,"next_issue":null,"next_action":null},
+  "recovery_history": [
+    {"authority_fingerprint":"c22b1289d14a3bd6a33d8c18ff385e391b69cb4b368f9b45c8dbb6389abb2e2d","authority_kind":"USER_EXPLICIT","authority_ref":"issuecomment:5911695742","kind":"INGRESS_AUTHORITY"}
+  ],
+  "updated_at": "2026-09-30T12:55:00Z"
+}
