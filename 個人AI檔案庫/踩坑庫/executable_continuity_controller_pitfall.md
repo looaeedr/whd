@@ -19,6 +19,7 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 根因不是再少一句提醒，而是舊 machine guard 多數只做：讀 Skill / AI Library 文字，再 `assert` 某些 marker 字串存在。這只能證明**文件寫了規則**，不能證明 runtime state 可保存、可恢復，也不能真的拒絕 non-terminal finalization。
 
 ### 永久判定
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 1. **Documentation != enforcement.** `final 禁止`、`使用者不是 scheduler`、`STALE_WAIT_WATCHDOG` 等 marker 只能當文件相容性 guard，不能再被描述為「已鎖死停頓路徑」。
 2. 長流程 durable state 的 executable authority 是 `tools/continuity_controller.py`，操作/語意 authority 是 `.agents/skills/engineering/executable-continuity-controller/SKILL.md`。
@@ -48,6 +49,7 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 - 「平台切掉就沒辦法，所以 checkpoint 沒意義。」——錯；無法控制平台不代表可以接受 state loss 或把 remote scheduler 交給使用者。
 
 ## TURN_EXIT_ENFORCEMENT_V2
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 `assert_finalizable` 只能拒絕「把 non-terminal workflow 宣告完成」，不能單獨拒絕「assistant 在 non-terminal progress 回報後結束目前 turn」。這兩個 boundary 必須分離：
 
@@ -70,6 +72,7 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 舊 `assert_turn_exitable` 只看單一 checkpoint 的 `RUNNING / WAITING_REMOTE / RECOVERING / BLOCKED / TERMINAL_*`。它不知道 terminal checkpoint 是 leaf/child 還是 Master，因此 `TERMINAL_SUCCESS` 會直接放行 turn exit，無法表示「這張 child 完成，但 Master 還有可自主執行的 next child」。
 
 ### 永久硬閘門
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 - Canonical executable owner：`tools/continuity_controller.py`。
 - terminal child 若屬 Master/work-order chain，checkpoint 必須結構化保存 `master_issue + chain_state + next_issue + chain_next_action/chain_reason`。
@@ -96,6 +99,7 @@ Primary regression：`tests/process/test_issue473_master_chain_turn_exit_gate.py
 acceptance terminal 與 process closure 被拆成不同 transaction，但舊 `assert_turn_exitable` 只看 continuity state / Master handoff，沒有 machine-readable closure lifecycle。
 
 ### 永久防線
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 `tools/continuity_controller.py` 的 canonical closure progression 是：
 
 ```text
@@ -116,7 +120,8 @@ terminal 但 `closure_state != CLOSED` 一律拒絕 turn exit，並由 `closure_
 即使 child CLOSED，`NEXT_CHILD_EXECUTABLE` 仍由 Master chain gate 阻擋 turn exit並直接續下一票。
 
 
-## ISSUE633_FINALIZATION_PROOF_ORDER_PITFALL — proof 前先進 ISSUE_CLOSE_PENDING
+## ISSUE633_FINALIZATION_PROOF_ORDER_PITFALL> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
+ — proof 前先進 ISSUE_CLOSE_PENDING
 
 2026-09-25 在 #632 整合後 fresh-read closure contract 發現：若流程採「`FINALIZATION_PENDING` 先 authorize/verify proof → 再把 checkpoint 改成 `ISSUE_CLOSE_PENDING` → close Issue」，第二步會改變 checkpoint fingerprint，導致剛取得的 proof 在真正 close 前立即 stale。
 
@@ -136,7 +141,8 @@ FINALIZATION_PENDING
 Machine 防線：`tools/continuity_controller.py::authorize_finalization` 必須拒絕任何 `closure_state != ISSUE_CLOSE_PENDING`。proof 產生後若 checkpoint evidence、closure state 或任何 serialized field 被改動，舊 proof 一律 stale；不得用舊 proof 關單。
 
 
-## ACTIVE_DELEGATED_WORK_FALSE_STALE_PITFALL_V1
+## ACTIVE_DELEGATED_WORK_FALSE_STALE_PITFALL_V1> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
+
 #631 → #636 證明 parent 可安靜但 delegated helper 仍在合法工作。
 
 1. stale evaluator 先解析 parent structured delegated pointers。
@@ -149,7 +155,8 @@ Machine 防線：`tools/continuity_controller.py::authorize_finalization` 必須
 Canonical machine owner：`tools/stale_claim_takeover.py`。
 
 
-## EQUIVALENT_DUPLICATE_GREEN_PITFALL_V1
+## EQUIVALENT_DUPLICATE_GREEN_PITFALL_V1> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
+
 
 2026-09-25 #648 收尾時，同一個 `pr-write` mutation identity 被重複送出 Remote Guard，產生兩張仍有效且完全等價的 GREEN（runs `36095688419` / `36095692365`）。舊 classifier 只要看到兩張 matching GREEN 就一律 `AMBIGUOUS → FAIL_CLOSED`，導致合法收尾只能等 TTL 全數過期。
 
@@ -275,6 +282,7 @@ Primary machine regression：`tests/process/test_issue787_turn_exit_blocker_auth
 scheduler child 已 `TERMINAL_SUCCESS / CLOSED / RELEASED` 時，舊 canonical turn-exit 只驗 child closure、claim release、active run/delegated work；因此即使 lane 還有 scheduler-authorized ready leaf，也可能先產生 `TURN_EXIT_PERMITTED`，再由 scheduler END 合法收工。若 `READY_WORK_CENSUS_V1` 只存在 prompt/Skill，仍只是 documentation，不是 executable stop gate。
 
 ### 永久防線
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 - scheduler lane normal exit 另需 machine-readable `READY_WORK_CENSUS_V1` proof。
 - proof exact 綁 lane、invocation、claim/checkpoint blobs、checkpoint fingerprint 與本次 turn-exit request identity；舊 proof / replay / durable observation drift 一律 fail closed。
 - `MUST_CLAIM` 或 `executable_leaf_count > 0` 固定 `EXECUTABLE_LEAF_EXISTS` 並暴露 exact continuation；不能先 END 再等下一 wake。
@@ -285,7 +293,8 @@ scheduler child 已 `TERMINAL_SUCCESS / CLOSED / RELEASED` 時，舊 canonical t
 Primary owner：`tools/continuity_controller.py`；trusted transport：`.github/workflows/whd-turn-exit-gate.yml`；regression：`tests/process/test_issue769_terminal_scheduler_census_exit_gate.py`。
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
-## Mutating toolcall crash-recovery canonical invariant
+## Mutating toolcall crash-recovery canonical invariant> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
+
 
 - Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
