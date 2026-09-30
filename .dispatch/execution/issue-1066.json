@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -40,10 +40,9 @@
   },
   "next_action": {
     "args": {
-      "required_companion_workflow": ".github/workflows/whd-control-plane-regression.yml",
       "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Re-run exact-head Product + Control Plane CI after Issue #1066 repair",
+    "display": "Run exact-head Product Regression for repaired Issue #1066",
     "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
@@ -69,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "56e52bd9a521906125db66b2b341ce967f612ad9e9966b640487dad4172a0549",
-    "id": "gha:36725575624:1066:RECONCILE:8",
+    "expected_fingerprint": "425c2ffe9d58e6b5c8a3965801caea727fcea4ea554544fbbb62083d34177975",
+    "id": "gha:36725780785:1066:RECONCILE:9",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1352Z",
     "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T13:58:55Z",
+  "updated_at": "2026-09-30T14:00:32Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
