@@ -1,14 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reacquire-repair-6",
+  "request_id": "issue1066-reconcile-pr-red-repair-8",
   "issue": 1066,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1355Z",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1352Z",
   "expected_coord_head": "2204a4c842b2028bddb9bbc7efe7be56770642a0",
-  "expected_generation": 5,
-  "effect": {},
-  "purpose": "Resume Issue #1066 after exact-head product CI failure; repair only the root-tested workflow checkout history wiring.",
+  "expected_generation": 8,
+  "effect": {
+    "observed_work_branch": "governance/issue1066-actions-minimal-ci-surface",
+    "observed_head_sha": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
+    "observed_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml",
+        "required_companion_workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Re-run exact-head Product + Control Plane CI after Issue #1066 repair"
+    }
+  },
+  "purpose": "Issue #1066 PR #1067 repair: new head 04e4ad0 adds fetch-depth:0 for historical bridge guard. Invalidate old QA acceptance by moving record head and require exact-head Product Regression; merge is additionally gated on exact-head Control Plane Regression GREEN.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
