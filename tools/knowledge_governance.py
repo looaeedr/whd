@@ -216,6 +216,7 @@ def is_governed_markdown(path: str | Path) -> bool:
             ".agents/skills/",
             "docs/",
             "handoff/",
+            "UPDATE/",
         )
     )
 
@@ -368,6 +369,7 @@ def build_inventory(root: Path, *, source_head: str) -> dict[str, object]:
             ".agents/skills/**/*.md",
             "docs/**/*.md",
             "handoff/**/*.md",
+            "UPDATE/**/*.md",
         ],
         "rows": rows,
     }
