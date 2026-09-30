@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1068,
   "lane_id": "chatgpt.flowv2.work1",
@@ -37,9 +37,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Create exact tested Issue #1068 work branch after Drive root freeze",
-    "kind": "START_BRANCH"
+    "args": {
+      "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051"
+    },
+    "display": "Rebind Issue #1068 reservation to fresh target",
+    "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -56,21 +58,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "TARGET_RECONCILED_ROOT_RETESTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
   "transaction": {
-    "expected_fingerprint": "536f8a659dd9e96fdffcd9a063017ed9aa1e3ed21c1c825de82e84d6abb736f2",
-    "id": "gha:36750025301:1068:ACQUIRE:2",
+    "expected_fingerprint": "5ac30e7f506aedad2a8eb13e810f8c7c7f3869ca57ab38e8ea0aabdc819adcb7",
+    "id": "gha:36753268345:1068:RECONCILE:3",
     "invocation_identity": "chatgpt.flowv2.work1.issue1068.20261001T0116Z",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T17:15:27Z",
+  "updated_at": "2026-09-30T17:42:30Z",
   "version": 2,
   "work_branch": "governance/issue1068-durable-source-export-request"
 }
