@@ -30,3 +30,20 @@ def test_root_local_first_requires_post_integration_drive_refresh():
     assert "ARCHIVE_WORKSPACE_TO_DONE" in text
     assert "DURABLE_CLEANUP_COMPLETE" in text
     assert "Current Source Manifest" in text
+
+
+def test_trusted_merge_gap_has_durable_request_branch_transport():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "coord/source-export-requests" in text
+    assert ".dispatch/source-export-request.json" in text
+    assert "WHD_SOURCE_EXPORT_REQUEST_V1" in text
+    assert "git merge-base --is-ancestor" in text
+    assert "steps.resolve_source.outputs.source_sha" in text
+    assert "name: whd-drive-source-${{ steps.resolve_source.outputs.source_sha }}" in text
+
+
+def test_request_transport_never_exports_request_branch_head_as_source():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "SOURCE_EXPORT_REQUEST_BRANCH_INVALID" in text
+    assert 'ref: ${{ steps.resolve_source.outputs.source_sha }}' in text
+    assert 'test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"' in text

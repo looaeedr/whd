@@ -201,7 +201,7 @@ Flow v2 `DONE` 只代表 execution / merge / issue closure / reservation 已 ter
 6. workspace 只有在 `state=DONE + lease=null + reservation=RELEASED + next_action=null + issue_closed=true` 才可由 `/work/active` 搬到 `/work/done`；
 7. nonterminal/live work 永遠不可 auto-archive；
 8. `DONE` 後若 export 還 pending，machine action 固定 `CONSUME_SOURCE_EXPORT`；export complete 但 workspace 還在 active，固定 `ARCHIVE_WORKSPACE_TO_DONE`；兩者都完成才是 `DURABLE_CLEANUP_COMPLETE`。
-9. source-export transport 必須同時覆蓋 direct `push` 與 `pull_request closed + merged`。Connector/API merge 若沒有 push-triggered run，必須由 merged-PR event 以 exact `merge_commit_sha` 產生 export；不得讓 `DONE` 因 transport event 缺口留下 orphan durability tail。
+9. source-export transport 必須覆蓋 direct `push`、`pull_request closed + merged`，以及 trusted Flow v2 merge 不會自觸發後續 workflow 的情境。若 accepted merged SHA 尚無 exact export run，`CONSUME_SOURCE_EXPORT` 必須經既有 `.github/workflows/drive-source-snapshot-export.yml` 的 durable request transport：branch=`coord/source-export-requests`、path=`.dispatch/source-export-request.json`、schema=`WHD_SOURCE_EXPORT_REQUEST_V1`，request 明確綁 `source_branch=cleanup/2d-3d-sync + source_sha=<accepted merged SHA>`。workflow 必須證明 requested SHA reachable from current cleanup history，並以 requested SHA 而非 request-branch HEAD 產生 snapshot/artifact；不得新增第二顆 export workflow，也不得讓 `DONE` 因 transport event 缺口留下 orphan durability tail。
 
 下一個 task 的 `ROOT_SOURCE_CURRENT` 必須能 machine 判斷 exact-current 或 scoped-current recovery；不得讓 manifest 長期留在舊 SHA 卻仍標 CURRENT，也不得讓 closed/DONE workspace 長期留在 `/work/active`。
 

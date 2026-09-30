@@ -101,3 +101,12 @@ def test_remote_guard_registry_route_does_not_restore_deleted_workflow() -> None
     registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
     route = next(r for r in registry["routes"] if r["id"] == "remote-execution-guard")
     assert ".github/workflows/whd-remote-execution-guard.yml" not in route["file_globs"]
+
+
+def test_source_export_request_transport_reuses_existing_workflow_without_surface_growth() -> None:
+    assert len(EXPECTED) == 8
+    assert "drive-source-snapshot-export.yml" in EXPECTED
+    text = (WORKFLOWS / "drive-source-snapshot-export.yml").read_text(encoding="utf-8")
+    assert "coord/source-export-requests" in text
+    assert "WHD_SOURCE_EXPORT_REQUEST_V1" in text
+    assert ".dispatch/source-export-request.json" in text

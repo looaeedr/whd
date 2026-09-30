@@ -11,6 +11,10 @@ from collections.abc import Mapping
 
 CONTRACT_SCHEMA = "WHD_POST_INTEGRATION_DURABILITY_V1"
 EXPORT_SCHEMA = "WHD_DRIVE_SOURCE_EXPORT_V1"
+SOURCE_EXPORT_REQUEST_SCHEMA = "WHD_SOURCE_EXPORT_REQUEST_V1"
+SOURCE_EXPORT_REQUEST_BRANCH = "coord/source-export-requests"
+SOURCE_EXPORT_REQUEST_PATH = ".dispatch/source-export-request.json"
+SOURCE_EXPORT_BRANCH = "cleanup/2d-3d-sync"
 SNAPSHOT_RECEIPT_SCHEMA = "WHD_SOURCE_SNAPSHOT_WRITEBACK_RECEIPT_V1"
 WORKSPACE_ARCHIVE_RECEIPT_SCHEMA = "WHD_WORKSPACE_ARCHIVE_RECEIPT_V1"
 ACTIVE_PREFIX = "/Google Drive/WHD/work/active"
@@ -74,7 +78,50 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("physical cycle completion guard mismatch")
     if item.get("artifact_source_identity_policy") != "TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME; WORKFLOW_RUN_HEAD_SHA_IS_TRANSPORT_TRIGGER_IDENTITY":
         raise ValueError("artifact source identity policy mismatch")
+    if item.get("source_export_request_schema") != SOURCE_EXPORT_REQUEST_SCHEMA:
+        raise ValueError("source export request schema mismatch")
+    if item.get("source_export_request_branch") != SOURCE_EXPORT_REQUEST_BRANCH:
+        raise ValueError("source export request branch mismatch")
+    if item.get("source_export_request_path") != SOURCE_EXPORT_REQUEST_PATH:
+        raise ValueError("source export request path mismatch")
+    if item.get("source_export_request_source_branch") != SOURCE_EXPORT_BRANCH:
+        raise ValueError("source export request source branch mismatch")
     return {str(k): v for k, v in item.items()}
+
+
+def build_source_export_request(*, source_sha: str) -> dict[str, object]:
+    return {
+        "schema": SOURCE_EXPORT_REQUEST_SCHEMA,
+        "version": 1,
+        "source_branch": SOURCE_EXPORT_BRANCH,
+        "source_sha": _sha(source_sha, "source export request source_sha"),
+    }
+
+
+def validate_source_export_request(payload: object) -> dict[str, object]:
+    item = _mapping(payload, "source export request")
+    if item.get("schema") != SOURCE_EXPORT_REQUEST_SCHEMA:
+        raise ValueError("unexpected source export request schema")
+    if item.get("version") != 1:
+        raise ValueError("source export request version must be 1")
+    if str(item.get("source_branch") or "").strip() != SOURCE_EXPORT_BRANCH:
+        raise ValueError("source export request source_branch must be cleanup/2d-3d-sync")
+    source_sha = _sha(item.get("source_sha"), "source export request source_sha")
+    return {
+        "schema": SOURCE_EXPORT_REQUEST_SCHEMA,
+        "version": 1,
+        "source_branch": SOURCE_EXPORT_BRANCH,
+        "source_sha": source_sha,
+    }
+
+
+def source_export_request_transport() -> dict[str, str]:
+    return {
+        "schema": SOURCE_EXPORT_REQUEST_SCHEMA,
+        "branch": SOURCE_EXPORT_REQUEST_BRANCH,
+        "path": SOURCE_EXPORT_REQUEST_PATH,
+        "source_branch": SOURCE_EXPORT_BRANCH,
+    }
 
 
 def build_snapshot_writeback_receipt(
@@ -235,6 +282,7 @@ def classify_post_integration_durability(
             "next_action": "CONSUME_SOURCE_EXPORT",
             "reason": str(exc),
             "issue": archive["issue"],
+            "request_transport": source_export_request_transport(),
         }
 
     location = str(workspace_location or "").strip().upper()

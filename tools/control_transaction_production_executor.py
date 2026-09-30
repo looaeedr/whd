@@ -767,6 +767,7 @@ def _trusted_consume_qa_effect(
             "run_status": observed_status,
             "conclusion": observed_conclusion,
             "purpose": str(run.get("name") or expected_workflow),
+            "updated_at": _iso(_now()),
         }
     )
     return effect
