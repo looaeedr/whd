@@ -1,36 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-reconcile-already-applied-diff-8b",
+  "request_id": "issue1069-start-qa-9",
   "issue": 1069,
-  "kind": "RECONCILE",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-  "expected_coord_head": "f304f839e5278377c24f7a0d8422b03c2bc36a27",
-  "expected_generation": 7,
+  "expected_coord_head": "be3d4d26a25d82823dd1e00b3371ac7dc522139d",
+  "expected_generation": 8,
+  "reuse_admission_session": true,
   "effect": {
-    "observed_work_branch": "governance/issue1069-consume-qa-updated-at",
-    "observed_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-    "observed_target_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "run_id": 36750347976,
+    "run_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "purpose": "WHD Control Plane Regression",
+    "run_status": "completed",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "POLL_QA",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "run_id": 36750347976,
+        "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445"
       },
-      "display": "Run exact-head WHD Control Plane Regression for Issue #1069"
+      "display": "Verify exact QA result"
     }
-  },
-  "purpose": "Reconcile already-applied exact Drive-frozen Git side effect after live readback proved both work-branch blobs exactly match the frozen candidate; advance control state to exact-head QA without repeating repository mutation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
