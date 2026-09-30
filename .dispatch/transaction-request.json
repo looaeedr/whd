@@ -1,29 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1063-accept-ci-11",
+  "request_id": "issue1063-merge-finalize-11",
   "issue": 1063,
-  "kind": "ACCEPT_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1205Z",
-  "expected_coord_head": "04fd06ea1b5ab0722655947f2be82a99b05c8468",
-  "expected_generation": 9,
+  "expected_coord_head": "65c568b5631e7dd1410bf36ff840c5e342f0eabe",
+  "expected_generation": 10,
   "effect": {
-    "run_id": 36713438789,
-    "run_head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1065,
-        "head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
-        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Merge PR #1065 and finalize Issue #1063"
-    }
+    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
   },
   "reuse_admission_session": true
 }
