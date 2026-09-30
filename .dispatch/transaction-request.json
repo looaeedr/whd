@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reconcile-target-4",
+  "request_id": "issue1050-reconcile-target-5",
   "issue": 1050,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -18,5 +18,17 @@
       "display": "Create exact tested Issue #1050 work branch after root freeze"
     }
   },
-  "purpose": "Reconcile Issue #1050 stale pre-branch source/target identity to fresh cleanup production after #1056 target advance."
+  "purpose": "Reconcile Issue #1050 stale pre-branch source/target identity to fresh cleanup production after #1056 target advance.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
