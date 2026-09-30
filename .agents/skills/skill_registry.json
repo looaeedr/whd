@@ -732,6 +732,7 @@
         "phase6_project_*.py"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "驗證板件與DXF",
         "monitoring-remote-qa"
       ],

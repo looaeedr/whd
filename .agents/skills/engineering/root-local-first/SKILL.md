@@ -179,7 +179,7 @@ freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
 
 ### CONNECTOR_MUTATION_REJECTION_CLASSIFICATION_V1
 
-Git phase 的單次 connector/runtime mutation rejection **不得直接升級**為 permanent capability blocker。先分類為 `RETRYABLE_UNCLASSIFIED`，fresh-read authenticated permission、base/target existence、branch existence、matching ruleset/branch protection 與 exact connector action contract；new branch 使用 `create_branch(base_sha)`，existing branch 才使用 `update_ref(force=false)`。只有所有合法 transport 都有 fresh durable evidence 證明 unavailable/forbidden，才可標 permanent capability blocker。
+Git phase 的單次 connector/runtime mutation rejection **不得直接升級**為 permanent capability blocker。先分類為 `RETRYABLE_UNCLASSIFIED`，fresh-read authenticated permission、base/target existence、branch existence、matching ruleset/branch protection 與 exact connector action contract；new branch 使用 `create_branch(base_sha)`；只有**非 authoritative 的 dedicated work branch** 才可在 transport recovery 中使用 `update_ref(force=false)`。`cleanup/2d-3d-sync` / `main` 等 production target 的 ref advancement 一律交回 Flow v2 trusted `MERGE` / `SYNC_TARGET` transport，chat/runtime Connector `update_ref` 固定禁止。只有所有合法 transport 都有 fresh durable evidence 證明 unavailable/forbidden，才可標 permanent capability blocker。
 
 ## 5. Source manifest / snapshot durability
 

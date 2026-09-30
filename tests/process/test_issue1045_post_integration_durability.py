@@ -64,6 +64,8 @@ def _complete_manifest():
         "post_integration_export_artifact_digest": "sha256:" + "d" * 64,
         "durable_snapshot_sha256": "c" * 64,
         "durable_snapshot_readback": "VERIFIED",
+        "root_local_gate_json_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        "root_local_gate_json_file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV",
     }
 
 
@@ -85,6 +87,8 @@ def test_export_receipt_binds_run_artifact_snapshot_and_drive_readback():
     assert patch["export_writeback_status"] == "COMPLETE"
     assert patch["durable_snapshot_status"] == "CURRENT_EXACT_HEAD"
     assert patch["durable_snapshot_readback"] == "VERIFIED"
+    assert patch["root_local_gate_json_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
+    assert patch["root_local_gate_json_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
 
 
 def test_drive_digest_mismatch_fails_closed_before_manifest_complete():

@@ -40,5 +40,10 @@
     "source_export_pending": "CONSUME_SOURCE_EXPORT",
     "workspace_active_after_complete_export": "ARCHIVE_WORKSPACE_TO_DONE",
     "nonterminal_execution": "WAIT_EXECUTION_DONE"
-  }
+  },
+  "root_local_gate_pointer": {
+    "path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+    "file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
+  },
+  "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete"
 }

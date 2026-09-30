@@ -208,6 +208,7 @@ CURRENT machine owners：
 - **terminal tail hard gate**：accepted exact-head QA + `next_action=MERGE`，以及 merged + `next_action=FINALIZE`，都固定由 `classify_invocation_exit` 回 `CONTINUE_TERMINAL_TAIL`；此時 host boundary / substantive progress 不得授權 YIELD。
 - terminal tail 唯一正常終點是 `MERGE → Issue close/readback → FINALIZE → RELEASED/DONE`。`PR_MERGED` 本身仍是 nonterminal；只有 genuine machine blocker 可中斷。
 - static contract：`.agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json`。
+- **repository-content physical-cycle completion**：上述 `DONE` tuple 只代表 Flow v2 execution terminal。若本票產生 repository-content diff，user-visible「完成」與 normal cycle return 還必須呼叫 `tools.execution_invocation_exit.py::assert_repository_content_cycle_complete(record, source_manifest, workspace_location)`；若結果是 `CONSUME_SOURCE_EXPORT` 或 `ARCHIVE_WORKSPACE_TO_DONE`，同一 cycle 繼續 post-integration durability tail，直到 `DURABLE_CLEANUP_COMPLETE`。
 
 ### 0.0.2 超長 Log / Context-Safe Execution 硬閘門
 

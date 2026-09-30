@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from tools.execution_action_contract import OBSERVATION_ACTION_KINDS
-from tools.execution_record import ExecutionRecord
+from tools.execution_record import ExecutionRecord, execution_record_to_payload
 
 
 SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
@@ -101,6 +101,33 @@ def assert_durable_terminal_exit(record: ExecutionRecord) -> bool:
         raise InvocationExitError(
             "DURABLE_TERMINAL_EXIT_BLOCKED: " + ",".join(blockers)
         )
+    return True
+
+
+def assert_repository_content_cycle_complete(
+    record: ExecutionRecord,
+    *,
+    source_manifest: object,
+    workspace_location: str,
+) -> bool:
+    """Fail closed until execution DONE is followed by durable root cleanup.
+
+    ``assert_durable_terminal_exit`` proves only the Flow v2 execution tuple.
+    Repository-content work is not user-visible/physical-cycle complete until
+    the exact source export has been written/read back and the issue workspace
+    has left ``/work/active``.
+    """
+    assert_durable_terminal_exit(record)
+    from tools.post_integration_durability import classify_post_integration_durability
+
+    result = classify_post_integration_durability(
+        execution_record=execution_record_to_payload(record),
+        source_manifest=source_manifest,
+        workspace_location=workspace_location,
+    )
+    if result.get("state") != "DURABLE_CLEANUP_COMPLETE":
+        next_action = str(result.get("next_action") or "UNKNOWN")
+        raise InvocationExitError(f"POST_INTEGRATION_DURABILITY_PENDING:{next_action}")
     return True
 
 

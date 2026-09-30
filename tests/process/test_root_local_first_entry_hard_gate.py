@@ -209,7 +209,7 @@ def test_root_local_mirror_points_to_current_drive_v4_identity():
     assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["canonical_filename"] == "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["versioned_aliases_must_not_be_current"] is True
-    assert source["canonical_payload_sha256"] == "b8f3a6b2a7d4fef7b3ff7dc3b4f72fed4ca91b84dfdf7001e205e743f8fa52ea"
+    assert source["canonical_payload_sha256"] == "9cc61608a1e6135f4e1b271df5f4c495738a39965dca3ee82b216959483ce112"
     assert source["drive_file_id"] != "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
     assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
 

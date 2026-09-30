@@ -51,5 +51,8 @@
   "host_boundary_yield_forbidden_in_terminal_tail": true,
   "terminal_tail_exit_decision": "CONTINUE_TERMINAL_TAIL",
   "terminal_tail_required_end": "DURABLE_DONE_TUPLE",
-  "genuine_machine_blocker_only_escape": true
+  "genuine_machine_blocker_only_escape": true,
+  "execution_terminal_scope": "FLOW_V2_EXECUTION_ONLY",
+  "repository_content_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
+  "repository_content_completion_requires": "DURABLE_CLEANUP_COMPLETE"
 }

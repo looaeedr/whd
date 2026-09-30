@@ -75,7 +75,7 @@ For WHD interactive/default repository mutations, transport fallback cannot chan
 - after unlock, create/fresh-read a dedicated work branch from current target; Contents API / GitHub Connector writes must target that work branch, never `cleanup/2d-3d-sync` or `main`;
 - only `EXACT_TESTED_DIFF_ONLY` may be transported; connector limitations do not authorize branch-side edits;
 - if branch creation or exact diff transport is impossible, fail closed rather than write target directly;
-- merge back only through a non-force integration path after acceptance.
+- merge back only through Flow v2 trusted non-force `MERGE` / `SYNC_TARGET` after acceptance; chat/runtime Connector `update_ref` is never the WHD production integration path.
 
 `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` use Flow v2 remote authority and are not reclassified as interactive workspace work by this fallback Skill.
 
@@ -85,9 +85,9 @@ Before every GitHub Connector write, bind the **intent** to the exact action and
 
 - `create_branch` is for creating a branch. Never substitute `create_file` / `update_file` because the desired branch does not yet exist.
 - `create_file` / `update_file` / `delete_file` are content mutations and must **fail closed** if their `branch` is an authoritative target such as `cleanup/2d-3d-sync` or `main`.
-- Integrating an already accepted candidate into production must use `update_ref(force=false)` or an equivalent non-force merge path. **Contents API is forbidden for production integration.**
-- Immediately before `update_ref`, re-read both target HEAD and candidate HEAD. Require the candidate to have the expected target ancestry; if the target moved, stop and re-qualify.
-- Immediately after `update_ref`, re-read production and verify exact HEAD plus expected tree SHA.
+- **WHD production integration is not a Connector fallback surface.** `cleanup/2d-3d-sync` / `main` may not be advanced by chat/runtime `update_ref`, even with `force=false`. Accepted integration must return to Flow v2 `MERGE` / `SYNC_TARGET` trusted transport (`WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1` + trusted executor).
+- Connector `create_file` / `update_file` / `delete_file` / `update_ref` after `GIT_WRITE_UNLOCKED` are limited to the exact dedicated work branch and exact tested diff. They never authorize production-target advancement.
+- If live target moved, stop and let Flow v2 classify target drift and perform trusted `SYNC_TARGET`; do not re-qualify by manually moving the target ref.
 
 If a direct target write happens accidentally:
 
@@ -97,6 +97,6 @@ If a direct target write happens accidentally:
 4. On that repair branch, remove accidental files and restore the previously verified content/tree.
 5. Prove the repair tree SHA equals the intended verified tree whenever an accepted tree already exists.
 6. Re-run acceptance needed for the repaired state.
-7. Advance production only with `update_ref(force=false)`.
+7. Advance production only through Flow v2 trusted `MERGE` / `SYNC_TARGET`; chat/runtime Connector `update_ref` remains forbidden on authoritative targets.
 8. Run post-merge production readback/invariants and clean temporary refs.
 9. Record the failure mode in `個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md` so future workers do not repeat it.

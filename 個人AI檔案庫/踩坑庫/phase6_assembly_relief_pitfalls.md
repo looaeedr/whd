@@ -258,13 +258,14 @@ whd_schema: WHD_DOC_META_V1
 - **永久防線**：Receiving Divider collision 前先驗 `fw_left/fw_right world formed occupation == physical_contract.fw_physical_face.outside_dimension`；不一致立即 fail closed。不得再以 material `len`、skin proxy 或 test expected 補差值。
 
 
-## 2026-09-09 — Remote QA 有 30 秒規則仍會漏輪詢：缺少 Active Lock
+## 2026-09-09 — [HISTORICAL/SUPERSEDED — FLOW V2] Remote QA 30 秒規則曾缺少互斥
 
-- **症狀**：Skill 已明寫「約每 30 秒 active polling」，但 assistant 仍會在 run `in_progress` 時轉去讀 code、改檔或做別的診斷，導致使用者看起來像「又沒輪詢」。
-- **根因**：只有 cadence 規則，沒有排程互斥；remote run 非 terminal 時，其他工具工作仍能插隊。這不是 cadence 文案不足，而是缺少 execution lock。
-- **永久防線**：取得 `run_id + head_sha` 後進 `REMOTE_QA_ACTIVE_LOCK`。直到 terminal 前，只允許 poll run/jobs/steps、terminal failure log、30 秒回報。任何其他工具動作都屬流程違規。
-- **恢復規則**：Runtime 切斷不解除遠端任務；下一 Runtime 第一動作恢復同一 locked run。replacement run 建立後立即把 lock 移交到新 `run_id + head_sha`。
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** `REMOTE_QA_ACTIVE_LOCK` 是舊事故修法，只保留歷史證據；不得再建立第二套 waiting/lock state machine。CURRENT authority 是 `WHD_EXECUTION_RECORD_V2.active_run + structured next_action`。
 
+- **症狀**：舊 Skill 只有「約每 30 秒 active polling」，run `in_progress` 時其他工作仍會插隊。
+- **CURRENT 防線**：`START_QA` 綁 exact `run_id + head_sha + workflow` 到同一 ExecutionRecord；active run 只允許 `POLL_QA` observation。terminal success 走 `ACCEPT_QA`，若 fresh-read 已有 exact-head terminal GREEN 且符合條件則優先 `CONSUME_QA`。
+- **runtime cut / resume**：fresh-read 同一 ExecutionRecord；active exact run 繼續 `POLL_QA`，不得靠聊天記憶或 legacy lock 重建 ownership。
+- **禁止回歸**：required-reference retrieval 即使單獨擷取本節，也不得把 `REMOTE_QA_ACTIVE_LOCK`、checkpoint wait 或另一份 remote-run lock schema 升格成 CURRENT authority。
 
 ## 2026-09-09 — 只鎖 collision metadata 仍會假綠：必須鎖 final CUTTING 輪廓
 
