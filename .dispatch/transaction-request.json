@@ -1,20 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-start-branch-872d9500-gen15",
+  "request_id": "issue1050-apply-commit-55a3c82c-gen16",
   "issue": 1050,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-  "expected_coord_head": "7d50bd1dbe50f24bafe1ae2c65b2a5068002f1d9",
-  "expected_generation": 15,
+  "expected_coord_head": "39d29e16cb8739ff70dd7739693c136b67b6d3db",
+  "expected_generation": 16,
   "effect": {
-    "work_branch": "work/receiving-ui-regression-issue1050",
-    "head_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "semantic_state": "ROOT_TESTED_BRANCH_READY",
+    "head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {},
-      "display": "Apply exact tested Issue #1050 7-file receiver marking diff"
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Run exact-head Product Regression for Issue #1050"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -22,7 +23,7 @@
       "source_sha": "872d95000539883636eeed86908882a6020da7f7",
       "diff_digest": "5dbc731b27d9070ac7da663c77ea669b0da4b5493add77a5d78b68a7440bc87e",
       "issue": 1050,
-      "generation": 15,
+      "generation": 16,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         "ae_engine/joint_marking_policy.py",
@@ -39,20 +40,20 @@
         "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
       ],
       "delete_paths": [],
-      "record_fingerprint": "22cdeff160f8df57f8322c06bde80ed4ba4550e602a16f4472c71aceb8f3a02a",
+      "record_fingerprint": "bd05528b5a6c86d7dee3d05642689fca4d85268dfbe40752c1ffe44abc434d9e",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1050,
-      "generation": 15,
-      "record_fingerprint": "22cdeff160f8df57f8322c06bde80ed4ba4550e602a16f4472c71aceb8f3a02a",
+      "generation": 16,
+      "record_fingerprint": "bd05528b5a6c86d7dee3d05642689fca4d85268dfbe40752c1ffe44abc434d9e",
       "lease_token": "lease:1050:36747382824:1",
       "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "work/receiving-ui-regression-issue1050",
-      "expected_work_head": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
       "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
     }
   },
