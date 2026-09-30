@@ -132,6 +132,17 @@ Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/contro
 
 Machine owners：`tools/control_transaction.py` + `tools/control_transaction_request_ingress.py`。
 
+### INTERACTIVE_TEST_RED_ROOT_REPAIR_HARD_GATE_V1
+
+interactive repository-content session 的 `TEST_RED` 是 **root repair continuation**，不是「切回聊天層手動 Flow v2」的授權。
+
+- exact-head targeted / post-push QA terminal non-success 時，外層 continuation 固定為 `RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION → ROOT_MUTATE`；修正仍發生在 canonical `/Google Drive/WHD` root workspace。
+- `FAIL_QA` 仍可作 canonical ExecutionRecord transition，但對 interactive repository-content session 它是 **machine-internal consume**；trusted session/executor 可在內部原子吸收，聊天層不得逐顆送 request、逐顆等待 workflow、逐顆回報 generation/lease/CAS。
+- RED 後不得為了「回治理狀態」重跑 admission、重送 unchanged reservation、人工 renew live lease、或插入額外 `RECONCILE` round-trip；除非 machine classifier 另有真實 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`。
+- 即使真的 escalation，`PER_TRANSACTION_MANUAL_ORCHESTRATION` 仍為 forbidden；escalation 只交給 machine governance owner，不會把 `START_QA / FAIL_QA / ACCEPT_QA / RECONCILE` 變成聊天層工作清單。
+
+<!-- INTERACTIVE_TEST_RED_ROOT_REPAIR_HARD_GATE_V1 -->
+
 ### TERMINAL_QA_CONSUME_FAST_PATH_V1
 
 已存在 GitHub Actions terminal run 且 trusted executor fresh-read 證明 `run_head_sha == current record.head_sha`、workflow path exact match、`status=completed`、`conclusion=success` 時，不再強迫原本 `START_QA → ACCEPT_QA` 的兩顆 durable transaction（中間另有 workflow round-trip）。
@@ -382,7 +393,7 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 
 ## Remote QA
 
-START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA 可從 ACTIVE / VERIFYING / INTEGRATING 進入 VERIFYING：INTEGRATING 只用於「原 accepted head 後續因合法 APPLY_COMMIT / target reconciliation 前進而需要重新 exact-head QA」；不得把這條路徑當成跳過既有 acceptance。active只 POLL_QA；success→ACCEPT_QA；若來源是 integration revalidation，ACCEPT_QA 必須以 next_state=INTEGRATING 回到 merge gate，且 MERGE 仍強制 qa.accepted_head_sha == current head。terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
+START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA 可從 ACTIVE / VERIFYING / INTEGRATING 進入 VERIFYING：INTEGRATING 只用於「原 accepted head 後續因合法 APPLY_COMMIT / target reconciliation 前進而需要重新 exact-head QA」；不得把這條路徑當成跳過既有 acceptance。active只 POLL_QA；success→ACCEPT_QA；若來源是 integration revalidation，ACCEPT_QA 必須以 next_state=INTEGRATING 回到 merge gate，且 MERGE 仍強制 qa.accepted_head_sha == current head。terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。對 interactive repository-content session，這個 FAIL_QA 是 machine-internal consume；外層直接 `RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION → ROOT_MUTATE`，不得由聊天層逐顆編排 transaction。
 
 ## Blocker
 
