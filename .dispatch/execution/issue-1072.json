@@ -1,32 +1,73 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1072,
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": 1068
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
   "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
+  "generation": 2,
+  "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+  "issue": 1072,
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": {
+    "expires_at": "2026-09-30T23:07:05Z",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2252Z",
+    "token": "lease:1072:36787949683:1"
+  },
+  "mutation_scope": {
+    "base_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tools/control_transaction_request_ingress.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create Issue #1072 branch after Drive root freeze",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work2",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "issue1072-user-fix-generation-coupling",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "issuecomment:5921051366",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-  "work_branch": "governance/issue1072-decouple-root-evidence-generation",
-  "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {"kind":"ACQUIRE","args":{},"display":"Acquire Issue #1072"},
-  "lease": null,
-  "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {"last_accepted_run":null,"accepted_head_sha":null},
-  "blocker": null,
-  "closure": {"merged_sha":null,"issue_closed":false,"released_at":null},
-  "chain": {"parent_issue":1068,"next_issue":null,"next_action":null},
-  "recovery_history": [
-    {"authority_fingerprint":"issue1072-user-fix-generation-coupling","authority_kind":"USER_EXPLICIT","authority_ref":"issuecomment:5921051366","kind":"INGRESS_AUTHORITY"}
-  ],
-  "updated_at": "2026-09-30T22:49:10Z"
+  "transaction": {
+    "expected_fingerprint": "348223d17d51c2edd7ec71946f99a95e510a6b080b99a570ad54001b4184952f",
+    "id": "gha:36787949683:1072:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2252Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-30T22:52:05Z",
+  "version": 2,
+  "work_branch": "governance/issue1072-decouple-root-evidence-generation"
 }
