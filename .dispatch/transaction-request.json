@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1068-reacquire-root-3",
+  "request_id": "issue1068-reconcile-target-4",
   "issue": 1068,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1068.20261001T0116Z",
-  "expected_coord_head": "622cb361e2a602351b3acf75da361fd0888d5533",
-  "expected_generation": 2,
-  "effect": {},
-  "purpose": "Resume Issue #1068 root-only durable source-export repair using exact live target scoped recovery; do not use stale snapshot as current.",
+  "expected_coord_head": "ce3bccd8717e18823ef4e12716a786413a513ea4",
+  "expected_generation": 3,
+  "effect": {
+    "observed_work_branch": "governance/issue1068-durable-source-export-request",
+    "observed_head_sha": "872d95000539883636eeed86908882a6020da7f7",
+    "observed_target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "semantic_state": "TARGET_RECONCILED_ROOT_RETESTED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051"
+      },
+      "display": "Rebind Issue #1068 reservation to fresh target"
+    }
+  },
+  "purpose": "Reconcile non-overlapping target advance after Issue #1069 merge; #1068 root materialization was resynced and retested 23 targeted + 519 governance GREEN before Git write.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
