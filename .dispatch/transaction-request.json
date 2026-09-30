@@ -1,27 +1,34 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-consume-product-regression-red-22",
+  "request_id": "issue1050-renew-repair-session-23",
   "issue": 1050,
-  "kind": "FAIL_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "b3c01f39fb016c13fff3d9067b06a12b1e715787",
-  "expected_generation": 21,
+  "expected_coord_head": "a9fd334b11c670ab038a04aff2dfa5fb051a7696",
+  "expected_generation": 22,
   "effect": {
-    "run_id": 36787223232,
-    "run_head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
-    "conclusion": "failure",
+    "lease": {
+      "token": "lease:1050:repair:23",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
+      "expires_at": "2026-09-30T23:48:00Z"
+    },
+    "observed_at": "2026-09-30T23:08:00Z",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
     "next_action": {
       "kind": "RECONCILE",
       "args": {
-        "reason": "PRODUCT_REGRESSION_RED",
-        "failed_test": "tests/test_issue510_receiving_back_panel_modes.py::test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_canonical_state"
+        "failed_test": "tests/test_issue510_receiving_back_panel_modes.py::test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_canonical_state",
+        "reason": "PRODUCT_REGRESSION_RED"
       },
       "display": "Return Issue #1050 to canonical root repair for dimensions=None regression"
     },
     "semantic_state": "QA_FAILED_REPAIR"
   },
-  "purpose": "Consume exact-head Product Regression failure and return Issue #1050 to canonical root repair without GitHub-side hotfix.",
+  "purpose": "Renew expired Issue #1050 interactive repair session without changing continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
