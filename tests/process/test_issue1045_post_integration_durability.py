@@ -104,6 +104,7 @@ def test_pull_request_transport_head_may_differ_from_exported_merge_source():
     assert patch["durable_snapshot_base_sha"] == "a" * 40
     assert patch["post_integration_export_trigger_head_sha"] == "f" * 40
 
+
 def test_drive_digest_mismatch_fails_closed_before_manifest_complete():
     from tools.post_integration_durability import build_snapshot_writeback_receipt
     bad = dict(_drive(), sha256="e" * 64)
