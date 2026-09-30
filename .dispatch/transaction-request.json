@@ -1,37 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-atomic-admission-1",
+  "request_id": "issue1066-reacquire-git-phase-2",
   "issue": 1066,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1257Z",
-  "expected_coord_head": "358da806ea73e4ea2f926a79e2657becd8b3c397",
-  "expected_generation": 1,
-  "effect": {
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-      "write_paths": [
-        ".github/workflows/whd-control-plane-regression.yml",
-        ".github/workflows/whd-product-regression.yml",
-        "tests/process/test_issue1063_actions_workflow_cleanup.py",
-        "tools/product_ci_regression.py"
-      ],
-      "delete_paths": [
-        ".github/workflows/phase6-bridge-anti-regrowth.yml",
-        ".github/workflows/receiving-divider-broader-acceptance.yml",
-        ".github/workflows/receiving-fw-formed-occupation-red.yml",
-        ".github/workflows/receiving-ui-regression.yml"
-      ]
-    },
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1066 work branch after root freeze"
-    }
-  },
-  "purpose": "Issue #1066 second-stage Actions convergence: replace four branch/development-specific product workflows with one canonical root/PR product regression while preserving coverage.",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
+  "expected_coord_head": "3ba781ca7dcc5f1f139f3783e6c4b0eea0c4b795",
+  "expected_generation": 2,
+  "effect": {},
+  "purpose": "Resume Issue #1066 exact-tested Git phase after lease expiry; preserve START_BRANCH continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
