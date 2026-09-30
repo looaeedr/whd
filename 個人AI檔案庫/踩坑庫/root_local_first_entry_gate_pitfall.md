@@ -24,4 +24,3 @@ whd_schema: WHD_DOC_META_V1
 - **machine-only transition**：FAIL_QA 是 machine-internal consume。需要保存 terminal failure 時，`FAIL_QA` / failure consume 由 trusted session/executor 內部吸收，不是 user-visible / chat-issued action。
 - **anti-regrowth**：任何 escalation 都不得授權 `PER_TRANSACTION_MANUAL_ORCHESTRATION`；真正 escalation 只剩 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`。
 - **machine owner**：`tools/root_local_first_gate.py::classify_interactive_fast_path_event` + `tests/process/test_root_local_first_entry_hard_gate.py`。
-
