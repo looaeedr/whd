@@ -1,33 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-consume-product-green-16b",
+  "request_id": "issue1066-merge-pr1067-17",
   "issue": 1066,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-  "expected_coord_head": "9eb80d388f688d1872811a29eed1e85009517b81",
-  "expected_generation": 15,
+  "expected_coord_head": "d5fd52881bc4e5f3a358b962570f8550d71622fa",
+  "expected_generation": 16,
   "effect": {
-    "updated_at": "2026-09-30T14:55:45Z",
-    "run_id": 36731738806,
-    "run_head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
-    "run_status": "completed",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1067,
-        "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-        "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d"
-      },
-      "display": "Merge PR #1067 exact accepted Issue #1066 candidate"
-    }
+    "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
   },
-  "purpose": "Consume existing exact-head terminal GREEN Product Regression for Issue #1066; no duplicate QA dispatch.",
+  "purpose": "Trusted Flow v2 merge of PR #1067 for exact accepted Issue #1066 head.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
