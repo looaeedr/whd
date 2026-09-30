@@ -1,26 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-reconcile-target-a6851",
+  "request_id": "issue1072-rebind-a6851",
   "issue": 1072,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2318Z",
-  "expected_coord_head": "cc3813b2b47745730df05f009cae97c068bcd7e7",
-  "expected_generation": 5,
+  "expected_coord_head": "e8888838298af82ac704f75836fa28e8fe2f4261",
+  "expected_generation": 6,
   "effect": {
-    "observed_work_branch": "governance/issue1072-decouple-root-evidence-generation",
-    "observed_head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-    "observed_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-    "semantic_state": "TARGET_RECONCILED",
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/control_transaction_request_ingress.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED",
     "next_action": {
-      "kind": "RESERVE_PATHS",
+      "kind": "ROOT_MUTATE",
       "args": {
-        "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2"
+        "workspace": "/Google Drive/WHD/work/active/issue-1072/a6851caa132c"
       },
-      "display": "Rebind Issue #1072 reservation to latest non-overlapping target"
+      "display": "Verify unchanged Issue #1072 Drive candidate on latest target"
     }
   },
-  "purpose": "Reconcile non-overlapping #1050 target advance; preserve #1072 Drive candidate unchanged and rebind only target/base identity.",
+  "purpose": "Rebind unchanged five-path Issue #1072 candidate to latest non-overlapping cleanup target.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
