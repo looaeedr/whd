@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
   "issue": 1068,
   "lane_id": "chatgpt.flowv2.work1",
@@ -38,16 +38,18 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
+      "pr_number": 1073,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Run exact-head control-plane regression for Issue #1068",
-    "kind": "START_QA"
+    "display": "Merge exact accepted PR #1073",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
+    "last_accepted_run": 36788133770
   },
   "recovery_history": [
     {
@@ -58,21 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
   "transaction": {
-    "expected_fingerprint": "d9465a725676d544f633a6cf47d7c150e1fa5d25f6f48e3e70cd56b21a78343c",
-    "id": "gha:36788314845:1068:ACQUIRE:10",
+    "expected_fingerprint": "cf4879222ec77dae012f466fef412dcd7d22d92fe6a294ad8035a3aed51d8069",
+    "id": "gha:36788398548:1068:CONSUME_QA:11",
     "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2255Z",
-    "kind": "ACQUIRE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T22:55:58Z",
+  "updated_at": "2026-09-30T22:56:57Z",
   "version": 2,
   "work_branch": "governance/issue1068-durable-source-export-request"
 }
