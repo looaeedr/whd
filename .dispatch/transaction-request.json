@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reacquire-root-repair-12",
+  "request_id": "issue1066-reconcile-final-root-freeze-13",
   "issue": 1066,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1421Z",
-  "expected_coord_head": "57e55bdd4e38c5c640cfbfaf0d1f2a0b3857f485",
-  "expected_generation": 11,
-  "effect": {},
-  "purpose": "Renew Issue #1066 work1 lease before root-only production repair after 9-path reservation expansion.",
+  "expected_coord_head": "f0168c04710799f63e6690a2c8d55b90d04f3626",
+  "expected_generation": 12,
+  "effect": {
+    "observed_work_branch": "governance/issue1066-actions-minimal-ci-surface",
+    "observed_head_sha": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
+    "observed_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+    "semantic_state": "ROOT_DIFF_FROZEN",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d"
+      },
+      "display": "Apply final Drive-root tested Issue #1066 diff"
+    }
+  },
+  "purpose": "Bind Issue #1066 to the final Drive-root tested frozen diff before the only remaining Git content write.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
