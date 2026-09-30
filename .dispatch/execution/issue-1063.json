@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
   "issue": 1063,
   "lane_id": "chatgpt.flowv2.work0",
@@ -127,15 +127,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
-      "head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
-      "pr_number": 1065,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge PR #1065 and finalize Issue #1063",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -152,21 +146,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
+  "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "45a69720cecf59394c8001b1949c7253f6cef0ae1205bc405ae589ed079c0ebb",
-    "id": "gha:36715881962:1063:ACQUIRE:10",
+    "expected_fingerprint": "d7f8ca64e5094f97f7890e7386ba5e358bf8165dde255b9db55b7f4d8693307e",
+    "id": "gha:36715958532:1063:MERGE:11",
     "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1237Z",
-    "kind": "ACQUIRE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T12:37:04Z",
+  "updated_at": "2026-09-30T12:38:03Z",
   "version": 2,
   "work_branch": "governance/issue1063-actions-workflow-cleanup"
 }
