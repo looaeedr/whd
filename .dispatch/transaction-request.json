@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1068-merge-g12",
+  "request_id": "issue1068-merge-12",
   "issue": 1068,
   "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -8,5 +8,7 @@
   "expected_coord_head": "ac746036b57e2fcea6fbadb2e45cd021bc56cb87",
   "expected_generation": 12,
   "reuse_admission_session": true,
-  "effect": {}
+  "effect": {
+    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
+  }
 }
