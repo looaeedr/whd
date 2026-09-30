@@ -1,26 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-reconcile-current-target-3",
+  "request_id": "issue1072-reacquire-rescope-4",
   "issue": 1072,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2252Z",
-  "expected_coord_head": "445599e508062c18f58fd8581fb1988cbfdc100c",
-  "expected_generation": 2,
-  "effect": {
-    "observed_work_branch": "governance/issue1072-decouple-root-evidence-generation",
-    "observed_head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-    "observed_target_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
-    "semantic_state": "TARGET_RECONCILED",
-    "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {
-        "target_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b"
-      },
-      "display": "Expand Issue #1072 reservation on current target"
-    }
-  },
-  "purpose": "Reconcile Issue #1072 to current cleanup target after Issue #1068 merge before first root mutation.",
+  "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2318Z",
+  "expected_coord_head": "edd0f16654571e212417639f8f65bd8f3745b0a1",
+  "expected_generation": 3,
+  "effect": {},
+  "purpose": "Renew same-lane Issue #1072 writer lease only; content evidence remains keyed to immutable root identity, not lease generation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
