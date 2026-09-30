@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-acquire-20260930T1650Z",
+  "request_id": "issue1050-acquire-20260930T1650Z-retry2",
   "issue": 1050,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-  "expected_coord_head": "58f06472c3441c8acfe5c6e34e976b8ca00ed213",
+  "expected_coord_head": "ed579f35130e1ac4fab88713cf2147c171ca804e",
   "expected_generation": 14,
   "effect": {},
-  "purpose": "Renew Issue #1050 work0 lease after current-target root tests completed; preserve START_BRANCH continuation and current 872d9500 reservation.",
+  "purpose": "Renew Issue #1050 work0 lease after current-target root tests; retry same semantic ACQUIRE after retryable STALE_COORD_HEAD.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
