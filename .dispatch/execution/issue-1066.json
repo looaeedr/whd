@@ -7,20 +7,16 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "released_at": null
+    "released_at": "2026-09-30T14:59:21Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 17,
+  "generation": 18,
   "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
   "issue": 1066,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-09-30T15:05:11Z",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-    "token": "lease:1066:36732032478:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
     "delete_paths": [
@@ -29,7 +25,7 @@
       ".github/workflows/receiving-fw-formed-occupation-red.yml",
       ".github/workflows/receiving-ui-regression.yml"
     ],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".github/workflows/whd-control-plane-regression.yml",
@@ -39,13 +35,9 @@
       "tools/product_ci_regression.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
     "last_accepted_run": 36731738806
@@ -59,21 +51,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "71b8b376690f285f08b0d2d86fd782e77932137088b2feb1d01de08f960a0f03",
-    "id": "gha:36733174494:1066:MERGE:16",
+    "expected_fingerprint": "7e5f8f03ee586a73ca519db5b6a9a2f0c1dfe70a61b2c77d86f6176730a28fd2",
+    "id": "gha:36733174494:1066:FINALIZE:17",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T14:58:59Z",
+  "updated_at": "2026-09-30T14:59:21Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
