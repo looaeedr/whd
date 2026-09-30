@@ -130,6 +130,7 @@ def assert_repository_content_cycle_complete(
         raise InvocationExitError(f"POST_INTEGRATION_DURABILITY_PENDING:{next_action}")
     return True
 
+
 def terminal_tail_active(record: ExecutionRecord) -> bool:
     """Return whether the record crossed the no-yield terminal-tail boundary."""
     if not isinstance(record, ExecutionRecord):
