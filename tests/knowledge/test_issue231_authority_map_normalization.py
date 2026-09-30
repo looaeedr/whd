@@ -35,7 +35,7 @@ def test_authority_map_has_current_structured_metadata_and_no_legacy_row_format(
     text = _text()
     assert text.startswith("---\n")
     assert "whd_doc_role: CURRENT" in text
-    assert "whd_contract: pitfall-ledger" in text
+    assert "whd_contract: canonical-authority-map" in text
     assert "WHD_AUTHORITY_MAP_V1" in text
     assert "WHD_AUTHORITY_ROW" not in text
 
