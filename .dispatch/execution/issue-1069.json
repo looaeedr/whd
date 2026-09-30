@@ -1,10 +1,6 @@
 {
   "active_run": null,
-  "blocker": {
-    "evidence": "Dependency Issue #1068 must first produce and verify exact Drive source snapshot/manifest for cleanup SHA 872d95000539883636eeed86908882a6020da7f7. Current Drive manifest remains 95531ac98be0f66f9917db9d2b2e347c053cc304. Issue #1069 work branch still equals base 872d95000539883636eeed86908882a6020da7f7 with no content mutation.",
-    "kind": "EXTERNAL_DEPENDENCY",
-    "recheck_after": null
-  },
+  "blocker": null,
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -16,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
-  "head_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "generation": 6,
+  "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
   "issue": 1069,
   "lane_id": "chatgpt.flowv2.work2",
   "lease": {
@@ -37,13 +33,10 @@
   },
   "next_action": {
     "args": {
-      "blocker_kind": "EXTERNAL_DEPENDENCY",
-      "dependency_issue": 1068,
-      "dependency_reason": "EXACT_SOURCE_SNAPSHOT_NOT_DURABLE",
-      "required_source_sha": "872d95000539883636eeed86908882a6020da7f7"
+      "diff_digest": "cdc0ab39b5e9c34b3a75d9d9b5fc4fc1c8689f6df13125dffa29f0a33dca5c91"
     },
-    "display": "Wait for Issue #1068 exact source snapshot/writeback before root mutation",
-    "kind": "WAIT_EXTERNAL"
+    "display": "Apply exact Drive-tested Issue #1069 diff",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -60,21 +53,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "BLOCKED_ON_EXACT_SOURCE_SNAPSHOT",
+  "semantic_state": "ROOT_DIFF_FROZEN",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "state": "BLOCKED",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "93903283d9afe70b6f68f3fb17b439b22ac5ccda68fe3a25baf3afb9515ad372",
-    "id": "gha:36748323492:1069:BLOCK:4",
+    "expected_fingerprint": "d3fca0304da80502520cf6b8b3aea02c84dd54e11cac393ed9a56e7642ea5239",
+    "id": "gha:36748576468:1069:RECONCILE:5",
     "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-    "kind": "BLOCK",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T17:00:52Z",
+  "updated_at": "2026-09-30T17:03:00Z",
   "version": 2,
   "work_branch": "governance/issue1069-consume-qa-updated-at"
 }
