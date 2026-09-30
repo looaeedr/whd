@@ -1,27 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reconcile-repair-target-24",
+  "request_id": "issue1050-rebind-repair-base-25",
   "issue": 1050,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "d29496d4ee2a087893a01370b0fe02c78dfc2e26",
-  "expected_generation": 23,
+  "expected_coord_head": "7b1e06cf5e21c3085e273bb23587a8221f52c389",
+  "expected_generation": 24,
   "effect": {
-    "observed_work_branch": "work/receiving-ui-regression-issue1050",
-    "observed_head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
-    "observed_target_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
-    "semantic_state": "ROOT_REPAIR_TESTED_TARGET_RECONCILED",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "reason": "ROOT_REPAIR_TESTED",
-        "repair_path": "ae_engine/receiving_joint_marking.py"
-      },
-      "display": "Apply exact root-tested dimensions=None repair to Issue #1050 work branch"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
+    "write_paths": [
+      "ae_engine/joint_marking_policy.py",
+      "ae_engine/receiving_joint_marking.py",
+      "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+      "phase6_final_scene_renderer.py",
+      "phase6_manufacturing_service.py",
+      "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
+      "tests/test_issue1050_receiving_mother_plate_marking.py",
+      "tests/test_issue471_t6_receiving_marking_activation.py",
+      "tests/test_issue509_receiving_horizontal_marking.py",
+      "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "ROOT_REPAIR_TESTED_TARGET_RECONCILED"
   },
-  "purpose": "Reconcile non-overlapping production drift after root-tested Issue #1050 repair.",
+  "purpose": "Rebind Issue #1050 active reservation to current non-overlapping production base before exact tested repair Git write.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
