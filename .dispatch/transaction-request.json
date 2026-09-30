@@ -1,60 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-apply-final-root-diff-14",
+  "request_id": "issue1066-reacquire-git-write-15",
   "issue": 1066,
-  "kind": "APPLY_COMMIT",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1421Z",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
   "expected_coord_head": "f2e902ccd9b2b1ef98d8cd3c3f14620db0eefa35",
   "expected_generation": 13,
-  "effect": {
-    "head_sha": "8fd11a2462f7ef40f6ba396922248360343fe4ad",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Run exact-head canonical PR CI for final Issue #1066 candidate"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-      "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d",
-      "issue": 1066,
-      "generation": 13,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".github/workflows/whd-control-plane-regression.yml",
-        ".github/workflows/whd-product-regression.yml",
-        "fold_designer_bridge.py",
-        "tests/process/test_issue1063_actions_workflow_cleanup.py",
-        "tools/product_ci_regression.py"
-      ],
-      "delete_paths": [
-        ".github/workflows/phase6-bridge-anti-regrowth.yml",
-        ".github/workflows/receiving-divider-broader-acceptance.yml",
-        ".github/workflows/receiving-fw-formed-occupation-red.yml",
-        ".github/workflows/receiving-ui-regression.yml"
-      ],
-      "record_fingerprint": "6ec2aa2305fe03f9e706cea9a69102156f5e4b6454fd2bf1ba35a56d83916cd3",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1066,
-      "generation": 13,
-      "record_fingerprint": "6ec2aa2305fe03f9e706cea9a69102156f5e4b6454fd2bf1ba35a56d83916cd3",
-      "lease_token": "lease:1066:36729531277:1",
-      "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1421Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1066-actions-minimal-ci-surface",
-      "expected_work_head": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
-      "expected_target_head": "1d3fc00d3bb3c586709836e872690516879b8875"
-    }
-  },
-  "purpose": "Issue #1066 consume final Drive-tested frozen candidate 8fd11a2462f7ef40f6ba396922248360343fe4ad.",
-  "reuse_admission_session": true
+  "effect": {},
+  "purpose": "Renew Issue #1066 live writer lease before exact Drive-frozen APPLY_COMMIT receipt/guard retry.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
