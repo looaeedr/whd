@@ -763,3 +763,105 @@ def test_push_request_workflow_reads_cleanup_single_production_authority():
     text = (ROOT / ".github/workflows/whd-control-transaction-v2-request.yml").read_text(encoding="utf-8")
     assert "ref: cleanup/2d-3d-sync" in text
     assert "ref: main" not in text
+
+
+def test_trusted_consume_qa_generates_updated_at_when_caller_omits_it(monkeypatch):
+    from tools.control_transaction import execute_transaction, prepare_transaction
+    import tools.control_transaction_production_executor as executor
+    from tools.execution_record import execution_record_from_payload
+
+    invocation = "chatgpt.flowv2.work2.issue1069.test"
+    head = "b" * 40
+    target = "c" * 40
+    run_id = 36731738806
+    workflow = ".github/workflows/whd-control-plane-regression.yml"
+    record = execution_record_from_payload({
+        "schema": "WHD_EXECUTION_RECORD_V2",
+        "version": 2,
+        "generation": 5,
+        "issue": 1069,
+        "execution_intent": "EXECUTE_TICKET",
+        "owner_kind": "SCHEDULER",
+        "owner_id": "chatgpt.flowv2.work2",
+        "lane_id": "chatgpt.flowv2.work2",
+        "slot_id": "worker.slot.2",
+        "source_branch": "cleanup/2d-3d-sync",
+        "source_sha": target,
+        "work_branch": "governance/issue1069-consume-qa-updated-at",
+        "head_sha": head,
+        "target_branch": "cleanup/2d-3d-sync",
+        "target_sha": target,
+        "state": "ACTIVE",
+        "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+        "next_action": {
+            "kind": "START_QA",
+            "args": {"workflow": workflow},
+            "display": "consume existing exact-head QA",
+        },
+        "lease": {
+            "token": "lease-1069",
+            "invocation_identity": invocation,
+            "expires_at": "2099-10-01T00:00:00Z",
+        },
+        "active_run": None,
+        "transaction": None,
+        "mutation_scope": {
+            "target_branch": "cleanup/2d-3d-sync",
+            "base_sha": target,
+            "write_paths": ["tools/control_transaction_production_executor.py"],
+            "delete_paths": [],
+            "reservation_state": "ACTIVE",
+        },
+        "qa": {"last_accepted_run": None, "accepted_head_sha": None},
+        "blocker": None,
+        "closure": {"merged_sha": None, "issue_closed": False, "released_at": None},
+        "chain": {"parent_issue": None, "next_issue": None, "next_action": None},
+        "recovery_history": [],
+        "updated_at": "2026-09-30T16:30:00Z",
+    })
+
+    def fake_api(repo, method, path, token, payload=None):
+        assert repo == "looaeedr/whd"
+        assert method == "GET"
+        assert path == f"/actions/runs/{run_id}"
+        return {
+            "id": run_id,
+            "head_sha": head,
+            "path": workflow,
+            "status": "completed",
+            "conclusion": "success",
+            "name": "WHD Control Plane Regression",
+        }
+
+    monkeypatch.setattr(executor, "_api", fake_api)
+    effect = executor._trusted_consume_qa_effect(
+        "looaeedr/whd",
+        "token",
+        record=record,
+        invocation_identity=invocation,
+        supplied={
+            "run_id": run_id,
+            "next_state": "INTEGRATING",
+            "semantic_state": "QA_ACCEPTED",
+            "next_action": {
+                "kind": "MERGE",
+                "args": {"pr_number": 1070, "head_sha": head, "target_branch": record.target_branch},
+                "display": "merge exact accepted head",
+            },
+        },
+    )
+    updated = execute_transaction(
+        record,
+        prepare_transaction(
+            record,
+            kind="CONSUME_QA",
+            transaction_id="tx-issue1069-consume-qa",
+            invocation_identity=invocation,
+        ),
+        effect=effect,
+    )
+
+    assert effect["updated_at"]
+    assert updated.qa.last_accepted_run == run_id
+    assert updated.qa.accepted_head_sha == head
+    assert updated.next_action.kind == "MERGE"
