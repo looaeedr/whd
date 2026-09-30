@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-    "released_at": null
+    "released_at": "2026-09-30T23:20:15Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 28,
+  "generation": 29,
   "head_sha": "ac5845d8e51393e54997d9be1302066638037b6f",
   "issue": 1050,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-09-30T23:24:40Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-    "token": "lease:1050:36789577890:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "ae_engine/joint_marking_policy.py",
@@ -41,13 +37,9 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "ac5845d8e51393e54997d9be1302066638037b6f",
     "last_accepted_run": 36790237083
@@ -61,21 +53,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
   "transaction": {
-    "expected_fingerprint": "db733a494d225651f31f3379e49e8b7fb691da3f76b5391367ee0fc0d2e5d632",
-    "id": "gha:36790848407:1050:MERGE:27",
+    "expected_fingerprint": "0356ff29f343e77622a6fb148be0e64d02c991860299c6a31a8c45db8cf500ab",
+    "id": "gha:36790848407:1050:FINALIZE:28",
     "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T23:24:05Z",
+  "updated_at": "2026-09-30T23:24:25Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-issue1050"
 }
