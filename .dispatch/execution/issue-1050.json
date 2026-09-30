@@ -1,44 +1,52 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1050,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-  "work_branch": "work/receiving-ui-regression-issue1050",
-  "head_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1050"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
+  "issue": 1050,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-09-30T05:15:00Z",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T0455Z",
+    "token": "lease:1050:36671359256:1"
+  },
+  "mutation_scope": {
+    "base_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "ae_engine/receiving_joint_marking.py",
+      "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+      "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
+      "tests/test_issue471_t6_receiving_marking_activation.py",
+      "tests/test_issue509_receiving_horizontal_marking.py",
+      "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create exact tested Issue #1050 work branch after root freeze",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
@@ -48,5 +56,22 @@
       "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-09-30T04:55:00Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
+  "transaction": {
+    "expected_fingerprint": "ed7a3eaf466cb1a60063998dd8655518823c68f8f89c817242b2e0eb645854b6",
+    "id": "gha:36671359256:1050:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T0455Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-30T05:00:00Z",
+  "version": 2,
+  "work_branch": "work/receiving-ui-regression-issue1050"
 }
