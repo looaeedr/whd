@@ -1,59 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-apply-commit-4",
+  "request_id": "issue1066-start-qa-existing-run-5",
   "issue": 1066,
-  "kind": "APPLY_COMMIT",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
-  "expected_coord_head": "48ec481e1045bbcf966e0c9c78437203ebd85862",
-  "expected_generation": 4,
+  "expected_coord_head": "04c0ba805eb8f9a2b782af0e61f288eee11ce987",
+  "expected_generation": 5,
   "effect": {
-    "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "run_id": 36723964834,
+    "run_head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
+    "purpose": "WHD Control Plane Regression",
+    "run_status": "completed",
+    "semantic_state": "REMOTE_QA",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "ACCEPT_QA",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "run_id": 36723964834,
+        "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab"
       },
-      "display": "Run exact-head PR CI for Issue #1066"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-      "diff_digest": "3bf59a2f548d19afb4242c3a3c15598d87e79b72ad9c0be8a204ccad3c083893",
-      "issue": 1066,
-      "generation": 4,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".github/workflows/whd-control-plane-regression.yml",
-        ".github/workflows/whd-product-regression.yml",
-        "tests/process/test_issue1063_actions_workflow_cleanup.py",
-        "tools/product_ci_regression.py"
-      ],
-      "delete_paths": [
-        ".github/workflows/phase6-bridge-anti-regrowth.yml",
-        ".github/workflows/receiving-divider-broader-acceptance.yml",
-        ".github/workflows/receiving-fw-formed-occupation-red.yml",
-        ".github/workflows/receiving-ui-regression.yml"
-      ],
-      "record_fingerprint": "18fed88e4d9d98191b2a9304206fbca9924cd304ac7976d5b14554c2097fce7b",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1066,
-      "generation": 4,
-      "record_fingerprint": "18fed88e4d9d98191b2a9304206fbca9924cd304ac7976d5b14554c2097fce7b",
-      "lease_token": "lease:1066:36722525244:1",
-      "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1066-actions-minimal-ci-surface",
-      "expected_work_head": "1d3fc00d3bb3c586709836e872690516879b8875",
-      "expected_target_head": "1d3fc00d3bb3c586709836e872690516879b8875"
+      "display": "Accept exact-head successful PR CI for Issue #1066"
     }
   },
-  "purpose": "Issue #1066 apply exact Drive-tested candidate commit 7d1034f536d2897bd9768a14333738627940a3ab.",
   "reuse_admission_session": true
 }
