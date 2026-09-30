@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reconcile-pr-red-repair-8",
+  "request_id": "issue1066-reconcile-repair-head-9",
   "issue": 1066,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -15,23 +15,10 @@
     "next_action": {
       "kind": "START_QA",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml",
-        "required_companion_workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Re-run exact-head Product + Control Plane CI after Issue #1066 repair"
+      "display": "Run exact-head Product Regression for repaired Issue #1066"
     }
   },
-  "purpose": "Issue #1066 PR #1067 repair: new head 04e4ad0 adds fetch-depth:0 for historical bridge guard. Invalidate old QA acceptance by moving record head and require exact-head Product Regression; merge is additionally gated on exact-head Control Plane Regression GREEN.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "purpose": "Reconcile exact root-tested repair commit after product CI exposed missing full-history checkout; invalidate stale accepted head before merge."
 }
