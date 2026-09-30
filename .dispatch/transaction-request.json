@@ -1,19 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reacquire-scope-expand-20260930T1143Z",
+  "request_id": "issue1050-reacquire-scope-expand-retry-20260930T1144Z",
   "issue": 1050,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1143Z",
-  "expected_coord_head": "eced8b51cc6ce89cc2c62d112ca8589bc88bb435",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1144Z",
+  "expected_coord_head": "6d39667870b10256655806e487385b74ec38070a",
   "expected_generation": 6,
   "effect": {
     "lease": {
-      "token": "lease:1050:chatgpt.flowv2.work0:20260930T1143Z",
-      "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1143Z",
-      "expires_at": "2026-09-30T12:23:35Z"
+      "token": "lease:1050:chatgpt.flowv2.work0:20260930T1144Z",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1144Z",
+      "expires_at": "2026-09-30T12:24:53Z"
     },
-    "observed_at": "2026-09-30T11:43:35Z",
+    "observed_at": "2026-09-30T11:44:53Z",
     "owner_kind": "SCHEDULER",
     "owner_id": "chatgpt.flowv2.work0",
     "lane_id": "chatgpt.flowv2.work0",
@@ -24,9 +24,9 @@
       "args": {},
       "display": "Create exact tested Issue #1050 work branch after root freeze"
     },
-    "updated_at": "2026-09-30T11:43:35Z"
+    "updated_at": "2026-09-30T11:44:53Z"
   },
-  "purpose": "Issue #1050: renew the expired interactive lease so the already-active root-local reservation can be monotonically expanded for the stable marking-role contract and receiver FinalScene 3D renderer paths discovered by the live production implementation.",
+  "purpose": "Issue #1050: renew the expired interactive lease so the already-active root-local reservation can be monotonically expanded for the stable marking-role contract and receiver FinalScene 3D renderer paths discovered by live production implementation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
