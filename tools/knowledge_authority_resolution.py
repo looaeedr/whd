@@ -201,7 +201,7 @@ def resolve_registry_current_skill(
     else:
         ids = [str(route.get("id")) for route in candidates]
         raise AuthorityResolutionError(
-            f"{path}: explicit registry route must resolve to one domain route; candidates={ids!r}"
+            f"{path}: explicit registry route must resolve to one unique domain route; candidates={ids!r}"
         )
 
     route_id = candidates[0]["id"]
