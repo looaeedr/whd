@@ -35,6 +35,15 @@ SCHEDULER_LANE_IDS = {
     "scheduler.6ab13fa557fc8191935c671214b865e2",
     "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
 }
+FAST_PATH_ROOT_REPAIR_EVENTS = {"TEST_RED"}
+FAST_PATH_ESCALATION_EVENTS = {
+    "PATH_CONFLICT",
+    "SAME_ISSUE_OTHER_WRITER",
+    "SUBSTANTIVE_TARGET_OVERLAP",
+    "MACHINE_FAIL_CLOSED",
+    "USER_INPUT_REQUIRED",
+}
+
 
 
 def _mapping(value: object, label: str) -> Mapping[str, object]:
@@ -161,6 +170,41 @@ def validate_git_unlock_receipt(receipt: object) -> dict[str, object]:
     return {str(k): v for k, v in item.items()}
 
 
+def classify_interactive_fast_path_event(event: object) -> dict[str, object]:
+    """Classify one outer interactive event without exposing Flow v2 choreography.
+
+    TEST_RED is deliberately *not* a governance escalation.  It returns directly
+    to canonical root repair while any FAIL_QA/lease/CAS bookkeeping remains
+    machine-internal.  No event in this classifier may authorize chat-layer
+    per-transaction orchestration.
+    """
+    name = str(event or "").strip().upper()
+    if not name:
+        raise ValueError("interactive fast-path event must be nonblank")
+    if name in FAST_PATH_ROOT_REPAIR_EVENTS:
+        return {
+            "event": name,
+            "classification": "ROOT_REPAIR_CONTINUATION",
+            "outer_action": "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION",
+            "outer_pipeline_step": "ROOT_MUTATE",
+            "chat_transaction_orchestration_allowed": False,
+            "machine_internal_transitions": ["FAIL_QA", "LEASE", "CAS_RETRY", "SESSION_REUSE"],
+        }
+    if name in FAST_PATH_ESCALATION_EVENTS:
+        return {
+            "event": name,
+            "classification": "MACHINE_GOVERNANCE_ESCALATION",
+            "outer_action": "ESCALATE_MACHINE_GOVERNANCE",
+            "chat_transaction_orchestration_allowed": False,
+        }
+    return {
+        "event": name,
+        "classification": "SESSION_FAST_PATH_CONTINUATION",
+        "outer_action": "CONTINUE_SESSION_FAST_PATH",
+        "chat_transaction_orchestration_allowed": False,
+    }
+
+
 def validate_contract(payload: object) -> dict[str, object]:
     contract = _mapping(payload, "root-local-first contract")
     if contract.get("schema") != SCHEMA:
@@ -218,6 +262,19 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("test execution receipt schema mismatch")
     if test_execution_receipt.get("bare_tests_green_boolean_sufficient") is not False:
         raise ValueError("bare tests_green boolean must not unlock Git writes")
+    fast_path = _mapping(contract.get("orchestration_fast_path"), "orchestration_fast_path")
+    if fast_path.get("schema") != "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1":
+        raise ValueError("interactive orchestration fast-path schema mismatch")
+    if fast_path.get("manual_transaction_orchestration_after_escalation_allowed") is not False:
+        raise ValueError("chat-layer per-transaction orchestration must remain forbidden after escalation")
+    if set(fast_path.get("root_repair_events") or ()) != FAST_PATH_ROOT_REPAIR_EVENTS:
+        raise ValueError("TEST_RED must be the exact root-repair event set")
+    if "TEST_RED" in set(fast_path.get("escalate_only_on") or ()):
+        raise ValueError("TEST_RED must not escalate out of the interactive session fast path")
+    if set(fast_path.get("escalate_only_on") or ()) != FAST_PATH_ESCALATION_EVENTS:
+        raise ValueError("interactive fast-path escalation set mismatch")
+    if fast_path.get("test_red_outer_action") != "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION":
+        raise ValueError("TEST_RED must return directly to root repair")
     receipt = _mapping(contract.get("git_write_receipt"), "git_write_receipt")
     if receipt.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
         raise ValueError("Git write receipt schema mismatch")
