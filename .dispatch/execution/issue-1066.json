@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "872d95000539883636eeed86908882a6020da7f7",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -40,15 +40,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d",
-      "expected_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-      "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
-      "pr_number": 1067,
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge PR #1067 exact accepted Issue #1066 candidate",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -65,21 +59,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+  "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "af65741128b1c0ec0654b5d775c44127a1e4c7594c68b27b2a61c264edd4915b",
-    "id": "gha:36732928854:1066:CONSUME_QA:15",
+    "expected_fingerprint": "71b8b376690f285f08b0d2d86fd782e77932137088b2feb1d01de08f960a0f03",
+    "id": "gha:36733174494:1066:MERGE:16",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T14:55:45Z",
+  "updated_at": "2026-09-30T14:58:59Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
