@@ -4,28 +4,21 @@ whd_contract: agent-startup-process
 whd_canonical: cleanup/2d-3d-sync:AGENTS.md
 whd_schema: WHD_DOC_META_V1
 ---
-<!-- MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1 -->
+<!-- MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V2 -->
 
 # main default-branch fail-closed tombstone
 
-This branch is **not** WHD production execution, governance, Skill, or process authority.
+`main` is not WHD production execution, governance, Skill, documentation, or process authority.
 
-Canonical production authority is `cleanup/2d-3d-sync`. Any WHD runtime that reached this file because GitHub/default-branch lookup omitted an explicit ref **must stop before substantive analysis, routing, claim/ExecutionRecord reads, repository mutation, workflow dispatch, or completion judgment**.
+Any runtime that reached this file through an omitted ref, default-branch fetch, repository landing page, default code search, or stale index **must stop before substantive analysis, Skill routing, claim/ExecutionRecord reads, mutation, workflow dispatch, QA, merge, finalization, or completion judgment**.
 
 Required recovery:
 
 1. Resolve the live `cleanup/2d-3d-sync` HEAD explicitly.
 2. Re-read `cleanup/2d-3d-sync:AGENTS.md`.
-3. Re-read `cleanup/2d-3d-sync:.agents/skills/engineering/flow-v2-execution/SKILL.md` when execution semantics are needed.
-4. Treat all remaining `main` docs, Skills, contracts, tests, and search/index results as historical/default-navigation material only unless the CURRENT cleanup authority explicitly cites them.
+3. Re-read any required Skill/Registry/Authority Map from that same explicit production ref.
+4. Fail closed if the caller cannot bind reads/actions to live `cleanup/2d-3d-sync`.
 
-Forbidden:
+No main↔cleanup mirror, parity, ancestry reconciliation, production write, or fallback execution is authorized here.
 
-- using default-branch code search as CURRENT WHD process authority;
-- treating stale `main` Flow v2 / legacy checkpoint / Remote Guard / ancestry text as executable semantics;
-- mutating `main` to repair production work;
-- inferring that GitHub default branch equals WHD production authority.
-
-The archived pre-tombstone main history remains preserved under existing `archive/main-*` branches.
-
-<!-- /MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1 -->
+<!-- /MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V2 -->

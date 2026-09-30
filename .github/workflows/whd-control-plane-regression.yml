@@ -2,171 +2,42 @@ name: WHD Control Plane Regression
 
 on:
   pull_request:
-    branches:
-      - main
-      - cleanup/2d-3d-sync
-    paths:
-      - '.agents/skills/engineering/排程模擬/SKILL.md'
-      - '.agents/skills/engineering/寫排程/SKILL.md'
-      - '.agents/skills/engineering/派工/SKILL.md'
-      - '.agents/skills/engineering/flow-v2-execution/SKILL.md'
-      - '.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json'
-      - '.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json'
-      - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
-      - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
-      - '.agents/skills/engineering/remote-execution-guard/SKILL.md'
-      - '.github/workflows/whd-turn-exit-gate.yml'
-      - '.github/workflows/whd-phase6-preflight.yml'
-      - '.github/workflows/whd-control-plane-regression.yml'
-      - '.github/workflows/whd-governance-mirror-gate.yml'
-      - '.github/workflows/whd-governance-ancestry-reconcile.yml'
-      - 'docs/governance/governance_mirror_manifest.json'
-      - 'tools/governance_parity_gate.py'
-      - 'tests/process/test_issue952_governance_ancestry_reconcile.py'
-      - 'tests/process/test_issue975_flow_v2_closure_stability.py'
-
-
-      - '.github/workflows/whd-scheduler-host-watchdog.yml'
-      - '.github/workflows/whd-control-transaction-v2-request.yml'
-      - 'AGENTS.md'
-      - 'tools/continuity_controller.py'
-      - 'tools/scheduler_runtime_liveness.py'
-      - 'tools/scheduler_host_watchdog.py'
-      - 'tools/scheduled_resume_executor.py'
-      - 'tools/scheduled_resume_runtime.py'
-      - 'tools/control_transaction.py'
-      - 'tools/control_transaction_production_executor.py'
-      - 'tools/execution_invocation_exit.py'
-      - 'tools/execution_scheduler_view.py'
-      - 'tools/control_transaction_request_ingress.py'
-      - 'tools/control_transaction_request_builder.py'
-      - 'tools/flow_v2_merge_precheck.py'
-      - 'tools/execution_entry_contract.py'
-      - 'tools/work_root_gate.py'
-      - 'tools/change_test_profile.py'
-      - 'tests/process/test_change_test_profile.py'
-      - 'tests/process/test_flow_v2_execution_invocation_exit.py'
-      - 'tests/process/test_flow_v2_execution_scheduler_view.py'
-      - 'tests/process/test_flow_v2_merge_precheck.py'
-      - 'tests/process/test_flow_v2_sync_target.py'
-      - 'tests/process/test_flow_v2_atomic_control_transaction.py'
-      - 'tests/process/test_issue865_scheduler_stop_hardening.py'
-      - 'tests/process/test_issue851_recurring_lifecycle_turn_exit.py'
-      - 'tests/process/test_issue769_terminal_scheduler_census_exit_gate.py'
-      - 'tests/process/test_issue787_turn_exit_blocker_authority.py'
-      - 'tests/process/test_scheduler_no_work_census_contract.py'
-      - 'tests/process/test_issue892_flow_v2_production_transaction.py'
-      - 'tests/process/test_issue899_push_transaction_ingress.py'
-      - 'tests/process/test_issue961_work_root_hard_gate.py'
-      - 'tests/process/test_issue945_scheduler_host_watchdog.py'
-      - 'tests/process/test_issue696_startup_authorization_purpose.py'
-      - 'tests/process/test_issue721_task_start_authority_declaration.py'
-      - 'tests/process/test_issue886_flow_v2_entrypoint_cutover.py'
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  focused-control-plane:
+  main-default-tombstone:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: Checkout proposed tree
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Detect main default-branch tombstone
-        id: branch-mode
+      - uses: actions/checkout@v4
+      - name: Validate minimal fail-closed main tree
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          agents = Path("AGENTS.md").read_text(encoding="utf-8")
-          flow = Path(".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
-          tombstone = "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1" in agents or "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1" in flow
-
-          if tombstone:
-              required_agents = (
-                  "whd_doc_role: HISTORICAL",
-                  "whd_canonical: cleanup/2d-3d-sync:AGENTS.md",
-                  "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1",
-                  "must stop before substantive analysis",
-              )
-              required_flow = (
-                  "whd_doc_role: HISTORICAL",
-                  "whd_canonical: cleanup/2d-3d-sync:.agents/skills/engineering/flow-v2-execution/SKILL.md",
-                  "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1",
-                  "do not execute any instructions from main",
-              )
-              for token in required_agents:
-                  if token not in agents:
-                      raise SystemExit(f"MAIN_TOMBSTONE_AGENTS_INVALID:{token}")
-              for token in required_flow:
-                  if token not in flow:
-                      raise SystemExit(f"MAIN_TOMBSTONE_FLOW_INVALID:{token}")
-              forbidden = (
-                  "tools/continuity_controller.py::assert",
-                  "GOVERNANCE_ANCESTRY_RECONCILIATION_V1",
-                  "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1",
-              )
-              for token in forbidden:
-                  if token in agents or token in flow:
-                      raise SystemExit(f"MAIN_TOMBSTONE_REGREW_LEGACY_AUTHORITY:{token}")
-              with open("/tmp/main-tombstone", "w", encoding="utf-8") as h:
-                  h.write("1\n")
+          marker = "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V2"
+          allowed = {
+              "README.md",
+              "AGENTS.md",
+              ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+              ".agents/skills/skill_registry.json",
+              "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+              "tools/phase6_skill_preflight.py",
+              ".github/workflows/whd-control-plane-regression.yml",
+              ".github/workflows/whd-governance-mirror-gate.yml",
+          }
+          actual = {p.as_posix() for p in Path(".").rglob("*") if p.is_file() and ".git" not in p.parts}
+          if actual != allowed:
+              raise SystemExit(f"MAIN_TOMBSTONE_TREE_MISMATCH missing={sorted(allowed-actual)} extra={sorted(actual-allowed)}")
+          for rel in ("README.md","AGENTS.md",".agents/skills/engineering/flow-v2-execution/SKILL.md","個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"):
+              if marker not in Path(rel).read_text(encoding="utf-8"):
+                  raise SystemExit(f"MAIN_TOMBSTONE_MARKER_MISSING:{rel}")
+          registry = Path(".agents/skills/skill_registry.json").read_text(encoding="utf-8")
+          if '"routes": []' not in registry:
+              raise SystemExit("MAIN_REGISTRY_NOT_EMPTY")
           PY
-          if test -f /tmp/main-tombstone; then
-            echo "main_tombstone=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "main_tombstone=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Install focused test dependency
-        if: steps.branch-mode.outputs.main_tombstone != 'true'
-        run: python -m pip install --disable-pip-version-check pytest
-      - name: Compile control-plane owners
-        if: steps.branch-mode.outputs.main_tombstone != 'true'
-        run: |
-          python -m py_compile \
-            tools/continuity_controller.py \
-            tools/scheduler_runtime_liveness.py \
-            tools/scheduler_host_watchdog.py \
-            tools/scheduled_resume_executor.py \
-            tools/scheduled_resume_runtime.py \
-            tools/control_transaction.py \
-            tools/control_transaction_production_executor.py \
-            tools/control_transaction_request_ingress.py \
-            tools/control_transaction_request_builder.py \
-            tools/flow_v2_merge_precheck.py \
-            tools/execution_invocation_exit.py \
-            tools/execution_scheduler_view.py \
-            tools/execution_entry_contract.py \
-            tools/work_root_gate.py \
-            tools/change_test_profile.py \
-            tools/governance_parity_gate.py
-      - name: Run stop/closure focused regressions
-        if: steps.branch-mode.outputs.main_tombstone != 'true'
-        run: |
-          python -m pytest -q \
-            tests/process/test_flow_v2_execution_invocation_exit.py \
-            tests/process/test_flow_v2_execution_scheduler_view.py \
-            tests/process/test_flow_v2_merge_precheck.py \
-            tests/process/test_flow_v2_sync_target.py \
-            tests/process/test_flow_v2_atomic_control_transaction.py \
-            tests/process/test_issue865_scheduler_stop_hardening.py \
-            tests/process/test_issue851_recurring_lifecycle_turn_exit.py \
-            tests/process/test_issue769_terminal_scheduler_census_exit_gate.py \
-            tests/process/test_issue787_turn_exit_blocker_authority.py \
-            tests/process/test_scheduler_no_work_census_contract.py \
-            tests/process/test_issue892_flow_v2_production_transaction.py \
-            tests/process/test_issue899_push_transaction_ingress.py \
-            tests/process/test_issue961_work_root_hard_gate.py \
-            tests/process/test_change_test_profile.py \
-            tests/process/test_issue945_scheduler_host_watchdog.py \
-            tests/process/test_issue696_startup_authorization_purpose.py \
-            tests/process/test_issue721_task_start_authority_declaration.py \
-            tests/process/test_issue886_flow_v2_entrypoint_cutover.py \
-            tests/process/test_issue952_governance_ancestry_reconcile.py \
-            tests/process/test_issue975_flow_v2_closure_stability.py

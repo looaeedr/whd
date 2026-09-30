@@ -2,28 +2,31 @@ name: Governance Mirror Hard Gate
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
-    branches:
-      - main
-      - cleanup/2d-3d-sync
+    branches: [main]
   push:
-    branches:
-      - main
-      - cleanup/2d-3d-sync
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  governance-mirror:
+  governance-mirror-hard-gate:
     name: Governance Mirror Hard Gate
     runs-on: ubuntu-latest
-    timeout-minutes: 2
     steps:
-      - name: Legacy required-check compatibility only
+      - uses: actions/checkout@v4
+      - name: No-sync compatibility context
+        shell: bash
         run: |
-          set -euo pipefail
+          test -f AGENTS.md
+          grep -q 'MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V2' AGENTS.md
+          grep -q 'whd_doc_role: HISTORICAL' AGENTS.md
+          test "$(python - <<'PY'
+          import json
+          print(len(json.load(open(".agents/skills/skill_registry.json", encoding="utf-8"))["routes"]))
+          PY
+          )" = "0"
           echo "GOVERNANCE_SINGLE_AUTHORITY_V1"
           echo "production_authority=cleanup/2d-3d-sync"
           echo "main_governance_authority=false"

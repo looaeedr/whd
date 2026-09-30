@@ -1,1 +1,0 @@
-"""Project action adapters."""
