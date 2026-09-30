@@ -1,16 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-merge-pr1067-17",
-  "issue": 1066,
-  "kind": "MERGE",
+  "request_id": "issue1068-atomic-admission-1",
+  "issue": 1068,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-  "expected_coord_head": "d5fd52881bc4e5f3a358b962570f8550d71622fa",
-  "expected_generation": 16,
+  "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T1510Z",
+  "expected_coord_head": "3cae56777b7e11735a17dae8f9383e28dfbecce9",
+  "expected_generation": 1,
   "effect": {
-    "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "872d95000539883636eeed86908882a6020da7f7",
+      "write_paths": [
+        ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
+        ".agents/skills/engineering/root-local-first/SKILL.md",
+        ".github/workflows/drive-source-snapshot-export.yml",
+        "tests/process/test_drive_source_snapshot_export_contract.py",
+        "tests/process/test_issue1045_post_integration_durability.py",
+        "tests/process/test_issue1063_actions_workflow_cleanup.py",
+        "tools/post_integration_durability.py"
+      ],
+      "delete_paths": []
+    },
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1068 work branch after Drive root freeze"
+    }
   },
-  "purpose": "Trusted Flow v2 merge of PR #1067 for exact accepted Issue #1066 head.",
+  "purpose": "Reserve Issue #1068 exact 7-path durability transport scope before any Drive root mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
