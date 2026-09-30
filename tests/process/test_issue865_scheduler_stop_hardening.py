@@ -139,17 +139,8 @@ def test_validated_end_identity_drift_fails_closed() -> None:
         )
 
 
-def test_turn_exit_workflow_passes_full_end_identity_and_census_to_validator() -> None:
-    text = (ROOT / ".github/workflows/whd-turn-exit-gate.yml").read_text(encoding="utf-8")
-    for token in (
-        '"claim_blob_sha": values["claim_blob_sha"]',
-        '"branch": values["branch"]',
-        '"head_sha": values["head_sha"]',
-        '"executor_source": values["executor_source"]',
-        '"ended_at": values["ended_at"]',
-        '"ready_work_census_fingerprint": values["ready_work_census_fingerprint"]',
-    ):
-        assert token in text
+def test_legacy_turn_exit_workflow_is_removed_after_flow_v2_cutover() -> None:
+    assert not (ROOT / ".github/workflows/whd-turn-exit-gate.yml").exists()
 
 
 def test_remote_phase6_preflight_is_read_only_fixed_schema_transport() -> None:
@@ -185,7 +176,7 @@ def test_agents_has_github_only_remote_phase6_preflight_bridge() -> None:
     assert "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1" in text
     assert "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1" in text
 
-def test_flow_v2_cutover_retires_all_legacy_control_plane_transports() -> None:
+def test_flow_v2_cutover_removes_all_legacy_control_plane_transports() -> None:
     workflows = (
         ".github/workflows/whd-remote-claim-activation.yml",
         ".github/workflows/whd-remote-execution-guard.yml",
@@ -194,9 +185,4 @@ def test_flow_v2_cutover_retires_all_legacy_control_plane_transports() -> None:
         ".github/workflows/whd-turn-exit-gate.yml",
     )
     for relative in workflows:
-        text = (ROOT / relative).read_text(encoding="utf-8")
-        jobs = text.count("    steps:\n")
-        assert jobs >= 1, relative
-        assert text.count("FLOW_V2_LEGACY_TRANSPORT_RETIRED_V1") == jobs, relative
-        assert text.count("FLOW_V2_CUTOVER_ACTIVE") == jobs, relative
-        assert "use coord/execution-v2" in text, relative
+        assert not (ROOT / relative).exists(), relative

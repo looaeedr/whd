@@ -3,7 +3,6 @@ name: WHD Control Plane Regression
 on:
   pull_request:
     branches:
-      - main
       - cleanup/2d-3d-sync
     paths:
       - '.agents/skills/skill_registry.json'
@@ -36,6 +35,7 @@ on:
       - 'tests/process/test_issue1022_root_ci_parity.py'
       - 'tests/process/test_issue724_report_handler_identity_prefix.py'
       - 'tools/control_plane_regression.py'
+      - 'tests/process/test_issue1063_actions_workflow_cleanup.py'
       - '.agents/skills/engineering/工作槽/SKILL.md'
       - '.agents/skills/engineering/寫排程/SKILL.md'
       - '.agents/skills/engineering/派工/SKILL.md'
@@ -46,7 +46,6 @@ on:
       - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
       - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
       - '.agents/skills/engineering/remote-execution-guard/SKILL.md'
-      - '.github/workflows/whd-turn-exit-gate.yml'
       - '.github/workflows/whd-phase6-preflight.yml'
       - '.github/workflows/whd-control-plane-regression.yml'
       - '.github/workflows/whd-governance-single-authority-gate.yml'
@@ -55,7 +54,6 @@ on:
       - 'tests/process/test_governance_single_authority.py'
 
 
-      - '.github/workflows/whd-scheduler-host-watchdog.yml'
       - '.github/workflows/whd-control-transaction-v2-request.yml'
       - 'AGENTS.md'
       - 'tools/continuity_controller.py'
@@ -82,14 +80,11 @@ on:
       - 'tests/process/test_flow_v2_atomic_control_transaction.py'
       - 'tests/process/test_flow_v2_path_reservation.py'
       - 'tests/process/test_issue865_scheduler_stop_hardening.py'
-      - 'tests/process/test_issue851_recurring_lifecycle_turn_exit.py'
-      - 'tests/process/test_issue769_terminal_scheduler_census_exit_gate.py'
       - 'tests/process/test_issue787_turn_exit_blocker_authority.py'
       - 'tests/process/test_scheduler_no_work_census_contract.py'
       - 'tests/process/test_issue892_flow_v2_production_transaction.py'
       - 'tests/process/test_issue899_push_transaction_ingress.py'
       - 'tests/process/test_issue961_work_root_hard_gate.py'
-      - 'tests/process/test_issue945_scheduler_host_watchdog.py'
       - 'tests/process/test_issue696_startup_authorization_purpose.py'
       - 'tests/process/test_issue721_task_start_authority_declaration.py'
       - 'tests/process/test_issue886_flow_v2_entrypoint_cutover.py'

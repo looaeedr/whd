@@ -173,7 +173,7 @@ Flow v2 CURRENT hard gate 固定為：
 4. 寫入只能發生在 receipt 綁定的 branch。GitHub contents mutation 必須逐 target 使用 fresh blob SHA 做 CAS。若 branch HEAD 自 receipt HEAD 往後的新增 commits **全部由同一 invocation、且全部只修改 receipt.changed_files 內路徑**，可作為同一 authorized mutation chain 連續施工；任一 foreign/intervening commit、target blob 非預期 drift、branch rewrite 或 owner/invocation 不可證明時立即 fail closed，重新跑 Preflight。
 5. mutation scope 不得超出 receipt 的 `changed_files`。途中新增 target 必須回到第 2 步重跑；不得用同一 receipt 擴張 scope。
 6. Skill/governance mutation 只在 authoritative `cleanup/2d-3d-sync` 上走單一治理驗收：`WHD Control Plane Regression` + authority/Registry/semantic-doc consistency tests。**不再建立 main mirror PR、parity transaction 或 ancestry reconciliation。** Control Plane Regression 必須包含 startup hard-gate contract tests。
-7. `.github/workflows/whd-remote-execution-guard.yml` 已由 Flow v2 cutover 明確標記 `FLOW_V2_LEGACY_TRANSPORT_RETIRED_V1`，**不得把已退役 legacy Remote Guard 當 CURRENT Skill write gate**。不得為了滿足舊文字而重新啟用 legacy claim/Guard authority。
+7. legacy Remote Guard / Claim Activation / Remote Finalization / Turn Exit workflow transports 已自 `.github/workflows` 移除；**不得把已退役 legacy Remote Guard 當 CURRENT Skill write gate，也不得重新新增相容 workflow 檔**。CURRENT write authority 只來自 Flow v2 ExecutionRecord + atomic transaction + root-local-first receipt。
 
 CURRENT machine owners：
 - startup provenance/intent：`tools/execution_entry_contract.py`
