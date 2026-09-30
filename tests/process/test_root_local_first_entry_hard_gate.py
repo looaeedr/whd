@@ -205,8 +205,12 @@ def test_bare_tests_green_boolean_is_rejected():
 def test_root_local_mirror_points_to_current_drive_v4_identity():
     payload = _contract()
     source = payload["canonical_source"]
-    assert source["drive_file_id"] == "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
+    assert source["drive_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
+    assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
+    assert source["canonical_filename"] == "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
+    assert source["versioned_aliases_must_not_be_current"] is True
     assert source["canonical_payload_sha256"] == "b8f3a6b2a7d4fef7b3ff7dc3b4f72fed4ca91b84dfdf7001e205e743f8fa52ea"
+    assert source["drive_file_id"] != "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
     assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
 
 def test_interactive_orchestration_fast_path_is_machine_owned():
