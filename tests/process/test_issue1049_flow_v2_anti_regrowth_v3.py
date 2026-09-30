@@ -48,7 +48,7 @@ def test_root_local_drive_canonical_projection_validates_and_hashes_to_pointer()
 
 def test_work_root_pointer_tracks_current_drive_canonical_hash_and_next_gate() -> None:
     mirror = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json")
-    assert mirror["canonical_source"]["canonical_payload_sha256"] == "269cfb0d61363a902bcf551a63650be70cf832e0572fd5953cd68f48ef7a3ac0"
+    assert mirror["canonical_source"]["canonical_payload_sha256"] == "f9623bc6364c856f9c09851232348930dda4a17231f1fd470390535c371cc512"
     assert mirror["required_sequence"][-2] == "ROOT_LOCAL_FIRST_GATE_READ"
     assert mirror["next_gate"]["drive_path"] == ROOT_GATE_PATH
     assert mirror["override_policy"]["allowed_only_when"][-2] == "execution_mode is GITHUB_ONLY or REMOTE_ACTION"
