@@ -1,3 +1,0 @@
-interface:
-  display_name: "Monitoring Remote QA"
-  short_description: "Monitor remote QA runs to verified terminal state"
