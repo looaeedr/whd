@@ -27,6 +27,7 @@
     "durable_snapshot CURRENT_EXACT_HEAD",
     "Drive snapshot digest readback VERIFIED",
     "GitHub run/artifact identity",
+    "export transport trigger head SHA",
     "export_writeback_status COMPLETE"
   ],
   "archive_eligibility": [
@@ -45,5 +46,6 @@
     "path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
   },
-  "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete"
+  "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
+  "artifact_source_identity_policy": "TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME; WORKFLOW_RUN_HEAD_SHA_IS_TRANSPORT_TRIGGER_IDENTITY"
 }

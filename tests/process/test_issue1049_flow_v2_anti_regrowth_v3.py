@@ -154,6 +154,7 @@ def _manifest(*, complete: bool) -> dict[str, object]:
             "durable_snapshot_status": "CURRENT_EXACT_HEAD",
             "export_writeback_status": "COMPLETE",
             "post_integration_export_run_id": 1,
+            "post_integration_export_trigger_head_sha": "c" * 40,
             "post_integration_export_artifact_id": 2,
             "post_integration_export_artifact_digest": "sha256:" + "e" * 64,
             "durable_snapshot_sha256": "f" * 64,
@@ -196,3 +197,12 @@ def test_connector_merge_has_post_integration_export_trigger() -> None:
     assert "types: [closed]" in workflow
     assert "github.event.pull_request.merged == true" in workflow
     assert "github.event.pull_request.merge_commit_sha" in workflow
+
+
+def test_pr_transport_head_is_not_reinterpreted_as_export_source_identity() -> None:
+    contract = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json")
+    assert contract["artifact_source_identity_policy"].startswith("TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME")
+    tool = _read("tools/post_integration_durability.py")
+    assert 'trigger_head_sha = _sha(run.get("head_sha"), "artifact head_sha")' in tool
+    assert 'artifact head_sha mismatch' not in tool
+    assert '"trigger_head_sha": trigger_head_sha' in tool
