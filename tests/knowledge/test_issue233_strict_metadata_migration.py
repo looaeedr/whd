@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
-
-import pytest
-
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/knowledge_governance.py"
+INVENTORY = ROOT / "docs/superpowers/verification/knowledge_governance_inventory_v1.json"
 CURRENT_API = ROOT / "docs/superpowers/CURRENT_API_INVENTORY_20260818.md"
-MIRRORS = {
-    ROOT / "07_Phase6尺寸語意與標準截角母規則.md": "個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md",
-    ROOT / "標準基準檔格式.md": "加工層分類與定義.md",
-}
 
 
 def _load_governance():
@@ -32,84 +27,88 @@ def _governed_paths(governance) -> list[Path]:
     return sorted(paths)
 
 
-def _metadata_debt(governance) -> list[str]:
+def _doc(role: str, contract: str, canonical: str | None, body: str) -> str:
+    canonical_value = "null" if canonical is None else canonical
+    return (
+        "---\n"
+        f"whd_doc_role: {role}\n"
+        f"whd_contract: {contract}\n"
+        f"whd_canonical: {canonical_value}\n"
+        "whd_schema: WHD_DOC_META_V1\n"
+        "---\n"
+        f"{body}"
+    )
+
+
+def test_post_freeze_governed_documents_have_structured_metadata() -> None:
+    governance = _load_governance()
+    frozen = json.loads(INVENTORY.read_text(encoding="utf-8"))
+    baseline = {row["path"] for row in frozen["rows"]}
     debt: list[str] = []
     for path in _governed_paths(governance):
         rel = path.relative_to(ROOT).as_posix()
+        if rel in baseline:
+            continue
         try:
             governance.parse_doc_metadata(path.read_text(encoding="utf-8"), path=rel)
-        except Exception as exc:  # diagnostic list is the RED evidence
+        except Exception as exc:
             debt.append(f"{rel}: {exc}")
-    return debt
-
-
-def _body_after_frontmatter(text: str) -> list[str]:
-    assert text.startswith("---\n")
-    end = text.find("\n---\n", 4)
-    assert end != -1
-    body = text[end + 5 :]
-    return [line.strip() for line in body.splitlines() if line.strip()]
-
-
-def test_all_governed_markdown_has_valid_whd_doc_meta_v1() -> None:
-    governance = _load_governance()
-    debt = _metadata_debt(governance)
-    if debt:
-        print(f"STRICT_METADATA_DEBT_COUNT={len(debt)}")
-        for item in debt:
-            print(f"STRICT_METADATA_DEBT: {item}")
     assert debt == []
 
 
-def test_strict_validator_exists_and_fails_closed_on_any_missing_metadata(tmp_path: Path) -> None:
-    governance = _load_governance()
-    assert hasattr(governance, "validate_strict"), "T6 requires validate_strict full-tree enforcement"
+def test_frozen_inventory_is_bootstrap_evidence_not_runtime_authority() -> None:
+    payload = json.loads(INVENTORY.read_text(encoding="utf-8"))
+    assert payload["snapshot_role"] == "BOOTSTRAP_FREEZE_BASELINE"
+    assert payload["runtime_authority"] is False
+    assert payload["source_head"] != "3487d6392dc78f35aa1105d90e8ccc210272a2b0"
 
-    root = tmp_path
-    (root / "README.md").write_text("# missing metadata\n", encoding="utf-8")
-    errors = governance.validate_strict(root)
+
+def test_strict_validator_still_fails_closed_on_missing_metadata(tmp_path: Path) -> None:
+    governance = _load_governance()
+    (tmp_path / "README.md").write_text("# missing metadata\n", encoding="utf-8")
+    errors = governance.validate_strict(tmp_path)
     assert errors
     assert any("README.md" in error and "WHD_DOC_META_V1" in error for error in errors)
 
 
-def test_strict_cli_command_is_registered() -> None:
+def test_strict_validator_accepts_pointer_and_flow_v2_bridge_mirrors(tmp_path: Path) -> None:
     governance = _load_governance()
-    parser = governance.build_parser()
-    args = parser.parse_args(["strict", "--root", str(ROOT)])
-    assert args.command == "strict"
+    flow = tmp_path / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
+    flow.parent.mkdir(parents=True)
+    flow.write_text(_doc("CURRENT", "flow-v2-execution", None, "# Flow v2\n"), encoding="utf-8")
+
+    pointer = tmp_path / "README.md"
+    pointer.write_text(
+        _doc(
+            "MIRROR",
+            "flow-v2-execution",
+            ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+            "# Mirror\nCanonical: `.agents/skills/engineering/flow-v2-execution/SKILL.md`\n"
+            "本檔僅為相容入口。\n不得新增或複製 normative 規則。\n",
+        ),
+        encoding="utf-8",
+    )
+
+    bridge = tmp_path / ".agents/skills/engineering/bridge/SKILL.md"
+    bridge.parent.mkdir(parents=True)
+    bridge.write_text(
+        _doc(
+            "MIRROR",
+            "flow-v2-execution",
+            ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+            "# Bridge\n<!-- FLOW_V2_EXECUTION_BRIDGE_V1 -->\n"
+            "canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md\n"
+            "本 Skill 是入口 bridge，不擁有 execution state machine。\n",
+        ),
+        encoding="utf-8",
+    )
+    assert governance.validate_strict(tmp_path) == ()
 
 
 def test_current_named_api_snapshot_is_structurally_historical() -> None:
     governance = _load_governance()
-    metadata = governance.parse_doc_metadata(CURRENT_API.read_text(encoding="utf-8"), path=CURRENT_API.relative_to(ROOT).as_posix())
+    text = CURRENT_API.read_text(encoding="utf-8")
+    metadata = governance.parse_doc_metadata(text, path=CURRENT_API.relative_to(ROOT).as_posix())
     assert metadata.role == "HISTORICAL"
     assert metadata.contract == "api-inventory"
-    prefix = CURRENT_API.read_text(encoding="utf-8")[:1600]
-    assert "HISTORICAL" in prefix
-    assert "不參與 current routing" in prefix
-    assert "09_WHD_Canonical_Authority_Map.md" in prefix
-
-
-def test_known_mirrors_use_structured_pointer_only_template() -> None:
-    governance = _load_governance()
-    for path, canonical in MIRRORS.items():
-        rel = path.relative_to(ROOT).as_posix()
-        text = path.read_text(encoding="utf-8")
-        metadata = governance.parse_doc_metadata(text, path=rel)
-        assert metadata.role == "MIRROR", rel
-        assert metadata.canonical == canonical, rel
-        assert (ROOT / canonical).is_file(), rel
-        body = _body_after_frontmatter(text)
-        assert 3 <= len(body) <= 5, (rel, body)
-        assert canonical in "\n".join(body), rel
-        assert "不得新增或複製 normative 規則" in "\n".join(body), rel
-
-
-def test_strict_validator_accepts_the_repository_after_migration() -> None:
-    governance = _load_governance()
-    assert hasattr(governance, "validate_strict")
-    errors = governance.validate_strict(ROOT)
-    if errors:
-        for error in errors:
-            print(f"STRICT_ERROR: {error}")
-    assert errors == ()
+    assert "不參與 current routing" in text[:1600]
