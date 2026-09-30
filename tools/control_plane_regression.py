@@ -30,6 +30,7 @@ COMPILE_PATHS = (
     "tools/execution_path_reservation.py",
     "tools/work_root_gate.py",
     "tools/change_test_profile.py",
+    "tools/post_integration_durability.py",
     "tools/control_plane_regression.py",
 )
 
@@ -63,6 +64,7 @@ PYTEST_PATHS = (
     "tests/process/test_checkpoint_resume_contract.py",
     "tests/process/test_continuous_execution_durable_contract.py",
     "tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py",
+    "tests/process/test_issue1045_post_integration_durability.py",
     "tests/knowledge",
 )
 

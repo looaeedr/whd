@@ -183,15 +183,26 @@ Git phase 的單次 connector/runtime mutation rejection **不得直接升級**�
 
 ## 5. Source manifest / snapshot durability
 
-accepted integration 後，interactive task 完成前必須：
+<!-- POST_INTEGRATION_DURABILITY_HARD_GATE_V1 -->
 
-1. fresh-read accepted target SHA/tree；
-2. 更新 Drive Current Source Manifest 到 accepted target；
-3. 若 durable full snapshot 尚未更新，明確標記 `STALE_BOOTSTRAP_BASE`，不得標 current；
-4. 將 post-integration snapshot/export evidence 留在 `/Google Drive/WHD/source` 或 GitHub export artifact；
-5. 下一個 task 的 `ROOT_SOURCE_CURRENT` 必須能 machine 判斷 exact-current 或 scoped-current recovery。
+Flow v2 `DONE` 只代表 execution / merge / issue closure / reservation 已 terminal；**不代表 root-local durable cleanup 已完成**。accepted integration 後固定進入獨立 cleanup tail：
 
-不得讓 manifest 長期留在舊 SHA 卻仍標 CURRENT。
+`FLOW_V2_DONE → EXPORT_RUN_GREEN → ARTIFACT_IDENTITY_BOUND → DRIVE_SNAPSHOT_WRITTEN → DRIVE_SNAPSHOT_READBACK_VERIFIED → MANIFEST_WRITEBACK_COMPLETE → WORKSPACE_ARCHIVE_ELIGIBLE → WORKSPACE_ARCHIVED → DURABLE_CLEANUP_COMPLETE`
+
+唯一 machine owner 是 `tools/post_integration_durability.py`，static contract=`.agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json`。它不得改寫 ExecutionRecord、lease、mutation、merge 或 closure，只判斷 DONE 後 cleanup 下一步。
+
+硬規則：
+
+1. source export 必須 exact 綁 accepted/current cleanup `source_sha + tree_sha + GitHub run_id + artifact_id + artifact digest`；
+2. workflow export manifest 必須自帶 `snapshot_name + snapshot_sha256 + artifact_name`；
+3. snapshot 必須先寫入 `/Google Drive/WHD/source/snapshots`，再由 Drive readback 重新計算 SHA256；readback 不一致不得更新 manifest；
+4. 只有 `WHD_SOURCE_SNAPSHOT_WRITEBACK_RECEIPT_V1.status=VERIFIED` 才可把 Current Source Manifest 寫成 `durable_snapshot_status=CURRENT_EXACT_HEAD` 與 `export_writeback_status=COMPLETE`；
+5. stale snapshot 只能是 `STALE_BOOTSTRAP_BASE`，永遠不得冒充 current；
+6. workspace 只有在 `state=DONE + lease=null + reservation=RELEASED + next_action=null + issue_closed=true` 才可由 `/work/active` 搬到 `/work/done`；
+7. nonterminal/live work 永遠不可 auto-archive；
+8. `DONE` 後若 export 還 pending，machine action 固定 `CONSUME_SOURCE_EXPORT`；export complete 但 workspace 還在 active，固定 `ARCHIVE_WORKSPACE_TO_DONE`；兩者都完成才是 `DURABLE_CLEANUP_COMPLETE`。
+
+下一個 task 的 `ROOT_SOURCE_CURRENT` 必須能 machine 判斷 exact-current 或 scoped-current recovery；不得讓 manifest 長期留在舊 SHA 卻仍標 CURRENT，也不得讓 closed/DONE workspace 長期留在 `/work/active`。
 
 ## 6. Durable correction / anti-regrowth
 
@@ -208,6 +219,7 @@ accepted integration 後，interactive task 完成前必須：
 
 - contract mirror: `.agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`
 - machine gate: `tools/root_local_first_gate.py`
+- post-integration durability owner: `tools/post_integration_durability.py`；contract=`.agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json`
 - path reservation contract: `.agents/contracts/WHD_PATH_RESERVATION_V1.json`；evaluator=`tools/execution_path_reservation.py`；state owner=`WHD_EXECUTION_RECORD_V2.mutation_scope`
 - source/test profile owner: `tools/change_test_profile.py`
 - startup owner: `AGENTS.md`
