@@ -1,11 +1,16 @@
 ---
-whd_doc_role: REFERENCE
+whd_doc_role: HISTORICAL
 whd_contract: scheduler-takeover-operations
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
 # WHD 排程停滯接手使用手冊
+
+> **[HISTORICAL / SUPERSEDED EXECUTION PROCEDURE — FLOW V2]**
+> 本檔只保留 pre-Flow-v2 scheduler takeover 事故與操作證據。下文任何 `coord/dispatch-claims`、claim/checkpoint、Remote Guard、GREEN consume、stale takeover 或 CAS 指令都**不得作 CURRENT 執行流程**。CURRENT scheduler authority 固定為 `.agents/skills/engineering/flow-v2-execution/SKILL.md`、`.agents/skills/engineering/排程模擬/SKILL.md` 與 native `WHD_EXECUTION_RECORD_V2`。
+> **Chunk-local rule**：任何只截取本檔中段的 retrieval chunk，也必須把 legacy imperative 視為 historical evidence；不得因看不到檔頭而升格。
+
 
 本文件說明 recurring WHD scheduler 如何在無人互動時偵測停滯、接手既有 execution claim、消耗 Remote Guard authority，並在同一 execution cycle 繼續真正施工。它是操作手冊；ownership、closure、continuity 的 canonical authority 仍由對應 Skill 與 executable guard 擁有。
 
