@@ -190,10 +190,18 @@ def resolve_registry_current_skill(
         for route in routes
         if isinstance(route, dict) and _route_matches_skill(route, path=path, skill_name=skill_name)
     ]
-    if len(candidates) != 1:
+    domain_candidates = [
+        route for route in candidates
+        if not str(route.get("id") or "").startswith("explicit-skill-")
+    ]
+    if len(domain_candidates) == 1:
+        candidates = domain_candidates
+    elif len(domain_candidates) == 0 and len(candidates) == 1:
+        candidates = candidates
+    else:
         ids = [str(route.get("id")) for route in candidates]
         raise AuthorityResolutionError(
-            f"{path}: explicit registry route must be unique; candidates={ids!r}"
+            f"{path}: explicit registry route must resolve to one domain route; candidates={ids!r}"
         )
 
     route_id = candidates[0]["id"]
