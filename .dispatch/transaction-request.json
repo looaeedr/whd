@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-apply-commit-55a3c82c-gen16",
+  "request_id": "issue1050-apply-commit-55a3c82c-gen16-retry2",
   "issue": 1050,
   "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-  "expected_coord_head": "39d29e16cb8739ff70dd7739693c136b67b6d3db",
+  "expected_coord_head": "7bc927073db1f702552bd5121ff3ac5b16425a5f",
   "expected_generation": 16,
   "effect": {
     "head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
