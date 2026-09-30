@@ -1,61 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-apply-commit-55a3c82c-gen16-retry2",
+  "request_id": "issue1050-reacquire-18",
   "issue": 1050,
-  "kind": "APPLY_COMMIT",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-  "expected_coord_head": "7bc927073db1f702552bd5121ff3ac5b16425a5f",
-  "expected_generation": 16,
-  "effect": {
-    "head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Run exact-head Product Regression for Issue #1050"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "diff_digest": "5dbc731b27d9070ac7da663c77ea669b0da4b5493add77a5d78b68a7440bc87e",
-      "issue": 1050,
-      "generation": 16,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "ae_engine/joint_marking_policy.py",
-        "ae_engine/receiving_joint_marking.py",
-        "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
-        "phase6_final_scene_renderer.py",
-        "phase6_manufacturing_service.py",
-        "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
-        "tests/test_issue1050_receiving_mother_plate_marking.py",
-        "tests/test_issue471_t6_receiving_marking_activation.py",
-        "tests/test_issue509_receiving_horizontal_marking.py",
-        "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "bd05528b5a6c86d7dee3d05642689fca4d85268dfbe40752c1ffe44abc434d9e",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1050,
-      "generation": 16,
-      "record_fingerprint": "bd05528b5a6c86d7dee3d05642689fca4d85268dfbe40752c1ffe44abc434d9e",
-      "lease_token": "lease:1050:36747382824:1",
-      "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "work/receiving-ui-regression-issue1050",
-      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
-      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
-    }
-  },
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
+  "expected_coord_head": "119fe0a1d7e2e55f3a95229e9e2a96b2a7579858",
+  "expected_generation": 17,
+  "effect": {},
+  "purpose": "Resume Issue #1050 after expired lease; preserve ROOT_TESTED_DIFF_APPLIED continuation before non-overlapping target reconcile.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
