@@ -1,0 +1,32 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1063,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+  "work_branch": "governance/issue1063-actions-workflow-cleanup",
+  "head_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {"kind":"ACQUIRE","args":{},"display":"Acquire Issue #1063"},
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {"last_accepted_run":null,"accepted_head_sha":null},
+  "blocker": null,
+  "closure": {"merged_sha":null,"issue_closed":false,"released_at":null},
+  "chain": {"parent_issue":null,"next_issue":null,"next_action":null},
+  "recovery_history": [
+    {"authority_fingerprint":"96d9c2deab871af1f7f26c7fb29b40083399dc20e12ef1ed996f4d92b0d99c75","authority_kind":"USER_EXPLICIT","authority_ref":"issuecomment:5910000453","kind":"INGRESS_AUTHORITY"}
+  ],
+  "updated_at": "2026-09-30T11:13:00Z"
+}
