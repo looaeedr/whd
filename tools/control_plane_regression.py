@@ -62,6 +62,10 @@ PYTEST_PATHS = (
     "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py",
     "tests/knowledge/test_knowledge_authority_contract.py",
     "tests/knowledge/test_active_skill_runtime_contract.py",
+    "tests/knowledge/test_executable_continuity_routing_alignment.py",
+    "tests/knowledge/test_continuous_execution_authority_normalization.py",
+    "tests/knowledge/test_issue231_authority_map_normalization.py",
+    "tests/knowledge/test_knowledge_governance_bootstrap.py",
 )
 
 
