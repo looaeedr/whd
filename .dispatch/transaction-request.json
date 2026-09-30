@@ -1,26 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reconcile-external-merge-head-26",
+  "request_id": "issue1050-consume-exact-green-27",
   "issue": 1050,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "cc3813b2b47745730df05f009cae97c068bcd7e7",
-  "expected_generation": 25,
+  "expected_coord_head": "e8888838298af82ac704f75836fa28e8fe2f4261",
+  "expected_generation": 26,
   "effect": {
-    "observed_work_branch": "work/receiving-ui-regression-issue1050",
-    "observed_head_sha": "ac5845d8e51393e54997d9be1302066638037b6f",
-    "observed_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-    "semantic_state": "EXTERNAL_MERGE_PROGRESS_RECONCILED",
+    "run_id": 36790237083,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
+        "pr_number": 1071,
+        "target_branch": "cleanup/2d-3d-sync",
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Consume exact-head Product Regression for merged Issue #1050 candidate"
+      "display": "Consume already-merged PR #1071 and finalize Issue #1050"
     }
   },
-  "purpose": "Reconcile Issue #1050 Flow v2 record to the already-merged exact work head and live target without rewriting product content.",
+  "purpose": "Consume exact-head terminal GREEN Product Regression for Issue #1050 and enter no-yield terminal tail.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
