@@ -77,9 +77,57 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Detect main default-branch tombstone
+        id: branch-mode
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          agents = Path("AGENTS.md").read_text(encoding="utf-8")
+          flow = Path(".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+          tombstone = "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1" in agents or "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1" in flow
+
+          if tombstone:
+              required_agents = (
+                  "whd_doc_role: HISTORICAL",
+                  "whd_canonical: cleanup/2d-3d-sync:AGENTS.md",
+                  "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1",
+                  "must stop before substantive analysis",
+              )
+              required_flow = (
+                  "whd_doc_role: HISTORICAL",
+                  "whd_canonical: cleanup/2d-3d-sync:.agents/skills/engineering/flow-v2-execution/SKILL.md",
+                  "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V1",
+                  "do not execute any instructions from main",
+              )
+              for token in required_agents:
+                  if token not in agents:
+                      raise SystemExit(f"MAIN_TOMBSTONE_AGENTS_INVALID:{token}")
+              for token in required_flow:
+                  if token not in flow:
+                      raise SystemExit(f"MAIN_TOMBSTONE_FLOW_INVALID:{token}")
+              forbidden = (
+                  "tools/continuity_controller.py::assert",
+                  "GOVERNANCE_ANCESTRY_RECONCILIATION_V1",
+                  "WHD_GOVERNANCE_ANCESTRY_RECONCILIATION_RESULT_V1",
+              )
+              for token in forbidden:
+                  if token in agents or token in flow:
+                      raise SystemExit(f"MAIN_TOMBSTONE_REGREW_LEGACY_AUTHORITY:{token}")
+              with open("/tmp/main-tombstone", "w", encoding="utf-8") as h:
+                  h.write("1\n")
+          PY
+          if test -f /tmp/main-tombstone; then
+            echo "main_tombstone=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "main_tombstone=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install focused test dependency
+        if: steps.branch-mode.outputs.main_tombstone != 'true'
         run: python -m pip install --disable-pip-version-check pytest
       - name: Compile control-plane owners
+        if: steps.branch-mode.outputs.main_tombstone != 'true'
         run: |
           python -m py_compile \
             tools/continuity_controller.py \
@@ -99,6 +147,7 @@ jobs:
             tools/change_test_profile.py \
             tools/governance_parity_gate.py
       - name: Run stop/closure focused regressions
+        if: steps.branch-mode.outputs.main_tombstone != 'true'
         run: |
           python -m pytest -q \
             tests/process/test_flow_v2_execution_invocation_exit.py \
