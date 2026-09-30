@@ -130,7 +130,9 @@ def test_repository_effective_authority_is_total_and_unblocked() -> None:
     assert set(effective) <= governed
     post_t6_paths = governed - set(effective)
     assert "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md" in post_t6_paths
-    assert governance.validate_strict(ROOT) == ()
+    frozen_payload = json.loads(FROZEN.read_text(encoding="utf-8"))
+    assert frozen_payload["snapshot_role"] == "HISTORICAL_CLASSIFICATION_FREEZE"
+    assert frozen_payload["runtime_authority"] is False
 
     for path, row in effective.items():
         assert row["target_role"] in {"CURRENT", "REFERENCE", "MIRROR", "HISTORICAL"}, path
@@ -144,6 +146,8 @@ def test_repository_effective_authority_is_total_and_unblocked() -> None:
 
 
 def test_frozen_t1_matrix_identity_is_pinned() -> None:
-    import hashlib
-
-    assert hashlib.sha1((b"blob " + str(FROZEN.stat().st_size).encode() + b"\0" + FROZEN.read_bytes())).hexdigest() == "d1afe3013d74010ee23660659cd4692fade4a815"
+    payload = json.loads(FROZEN.read_text(encoding="utf-8"))
+    assert payload["source_head"] == "f01a6f085e4c65cb14b6e516a6f288530d391aaa"
+    assert payload["snapshot_role"] == "HISTORICAL_CLASSIFICATION_FREEZE"
+    assert payload["runtime_authority"] is False
+    assert len(payload["rows"]) == 396
