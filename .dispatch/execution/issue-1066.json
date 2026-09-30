@@ -1,32 +1,78 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1066,
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
   "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
+  "generation": 2,
+  "head_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+  "issue": 1066,
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": {
+    "expires_at": "2026-09-30T13:13:40Z",
+    "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1257Z",
+    "token": "lease:1066:36718287379:1"
+  },
+  "mutation_scope": {
+    "base_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+    "delete_paths": [
+      ".github/workflows/phase6-bridge-anti-regrowth.yml",
+      ".github/workflows/receiving-divider-broader-acceptance.yml",
+      ".github/workflows/receiving-fw-formed-occupation-red.yml",
+      ".github/workflows/receiving-ui-regression.yml"
+    ],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".github/workflows/whd-control-plane-regression.yml",
+      ".github/workflows/whd-product-regression.yml",
+      "tests/process/test_issue1063_actions_workflow_cleanup.py",
+      "tools/product_ci_regression.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create exact tested Issue #1066 work branch after root freeze",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "c22b1289d14a3bd6a33d8c18ff385e391b69cb4b368f9b45c8dbb6389abb2e2d",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "issuecomment:5911695742",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-  "work_branch": "governance/issue1066-actions-minimal-ci-surface",
-  "head_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {"kind":"ACQUIRE","args":{},"display":"Acquire Issue #1066"},
-  "lease": null,
-  "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {"last_accepted_run":null,"accepted_head_sha":null},
-  "blocker": null,
-  "closure": {"merged_sha":null,"issue_closed":false,"released_at":null},
-  "chain": {"parent_issue":null,"next_issue":null,"next_action":null},
-  "recovery_history": [
-    {"authority_fingerprint":"c22b1289d14a3bd6a33d8c18ff385e391b69cb4b368f9b45c8dbb6389abb2e2d","authority_kind":"USER_EXPLICIT","authority_ref":"issuecomment:5911695742","kind":"INGRESS_AUTHORITY"}
-  ],
-  "updated_at": "2026-09-30T12:55:00Z"
+  "transaction": {
+    "expected_fingerprint": "d2d806897a02bc19579f52fd7418e13ee57a6fcbf10806f5486c68cf1dd5b808",
+    "id": "gha:36718287379:1066:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1257Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-30T12:58:40Z",
+  "version": 2,
+  "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
