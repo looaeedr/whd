@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1068-reacquire-g7-20260930T2237Z",
+  "request_id": "issue1068-reacquire-g7-fixed-20260930T2239Z",
   "issue": 1068,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2237Z",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2239Z",
   "expected_coord_head": "6a55f5fb884244c95551dd60dd404eabe561628d",
   "expected_generation": 7,
   "effect": {},
-  "purpose": "Resume Issue #1068 from ROOT_DIFF_FROZEN generation 7 after fresh 75417ee Phase6 Preflight; renew same-lane lease only, then transport exact tested diff.",
+  "purpose": "Resume Issue #1068 from ROOT_DIFF_FROZEN generation 7; renew same-lane lease only, then transport exact tested diff.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
@@ -20,36 +20,5 @@
     "library_path": "/Google Drive/WHD",
     "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
     "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  },
-  "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2237Z",
-    "execution_mode": "INTERACTIVE",
-    "work_root_gate": {
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-      "gate_status": "CURRENT",
-      "read_mode": "GOOGLE_DRIVE_CANONICAL",
-      "execution_mode": "INTERACTIVE",
-      "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-      "provider": "google_drive",
-      "library_path": "/Google Drive/WHD",
-      "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-      "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-    },
-    "purpose": "Resume Issue #1068 from ROOT_DIFF_FROZEN generation 7 after fresh 75417ee Phase6 Preflight; renew same-lane lease only, then transport exact tested diff.",
-    "issued_at": "2026-09-30T22:37:20Z",
-    "expires_at": "2026-09-30T22:42:20Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Resume Issue #1068 from ROOT_DIFF_FROZEN generation 7 after fresh 75417ee Phase6 Preflight; renew same-lane lease only, then transport exact tested diff.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1",
-    "run_id": 36786581302,
-    "request_comment_id": 5920920695,
-    "result_comment_id": 5920923458,
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-    "result": "GREEN"
   }
 }
