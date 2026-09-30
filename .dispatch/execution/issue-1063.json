@@ -7,20 +7,16 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-    "released_at": null
+    "released_at": "2026-09-30T12:38:26Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
   "issue": 1063,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-09-30T12:52:04Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1237Z",
-    "token": "lease:1063:36715881962:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
     "delete_paths": [
@@ -112,7 +108,7 @@
       "tests/process/test_issue851_recurring_lifecycle_turn_exit.py",
       "tests/process/test_issue945_scheduler_host_watchdog.py"
     ],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -126,13 +122,9 @@
       "tools/control_plane_regression.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
     "last_accepted_run": 36713438789
@@ -146,21 +138,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "d7f8ca64e5094f97f7890e7386ba5e358bf8165dde255b9db55b7f4d8693307e",
-    "id": "gha:36715958532:1063:MERGE:11",
+    "expected_fingerprint": "d1f8abb3f04b00c39c7cd2cf828b4cf868b855a02c453284e304f594b12089ba",
+    "id": "gha:36715958532:1063:FINALIZE:12",
     "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1237Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T12:38:03Z",
+  "updated_at": "2026-09-30T12:38:25Z",
   "version": 2,
   "work_branch": "governance/issue1063-actions-workflow-cleanup"
 }
