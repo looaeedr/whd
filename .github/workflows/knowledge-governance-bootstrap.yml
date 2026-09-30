@@ -10,6 +10,7 @@ on:
       - '.agents/skills/**/*.md'
       - 'docs/**/*.md'
       - 'handoff/**/*.md'
+      - 'UPDATE/**/*.md'
       - 'tools/knowledge_governance.py'
       - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
       - '.github/workflows/knowledge-governance-bootstrap.yml'
