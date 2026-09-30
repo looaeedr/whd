@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-consume-product-green-16",
+  "request_id": "issue1066-consume-product-green-16b",
   "issue": 1066,
   "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
@@ -8,6 +8,7 @@
   "expected_coord_head": "9eb80d388f688d1872811a29eed1e85009517b81",
   "expected_generation": 15,
   "effect": {
+    "updated_at": "2026-09-30T14:55:45Z",
     "run_id": 36731738806,
     "run_head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
     "run_status": "completed",
@@ -26,7 +27,7 @@
       "display": "Merge PR #1067 exact accepted Issue #1066 candidate"
     }
   },
-  "purpose": "Consume existing exact-head terminal GREEN Product Regression for Issue #1066; do not dispatch duplicate QA.",
+  "purpose": "Consume existing exact-head terminal GREEN Product Regression for Issue #1066; no duplicate QA dispatch.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
