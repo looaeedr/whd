@@ -1,20 +1,30 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1068-start-branch-g8",
+  "request_id": "issue1068-apply-frozen-g9",
   "issue": 1068,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2239Z",
-  "expected_coord_head": "f9bce5e8011c6072b11bb618822c9639930b0b5c",
-  "expected_generation": 8,
+  "expected_coord_head": "020676cdbd776acad7fdad2f0550d627d7af447e",
+  "expected_generation": 9,
+  "reuse_admission_session": true,
   "effect": {
+    "head_sha": "9483284e462232e5b202fb3daa44e5eb8fa592d5",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Run exact-head control-plane regression for Issue #1068"
+    },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
       "execution_mode": "INTERACTIVE",
       "source_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
       "diff_digest": "91c865135859d32e094e8e53663819b0ad3f9c04023c510fd4442408cd3ba791",
       "issue": 1068,
-      "generation": 8,
+      "generation": 9,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
@@ -26,32 +36,21 @@
         "tools/post_integration_durability.py"
       ],
       "delete_paths": [],
-      "record_fingerprint": "cb1a48df729aba19098ac93423bf229958d5412b56d3ef4308b5644ce6ad23b0",
+      "record_fingerprint": "00381c287b5dded2f69f52217e77325901747889aaa6583347279b6a766604d5",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1068,
-      "generation": 8,
-      "record_fingerprint": "cb1a48df729aba19098ac93423bf229958d5412b56d3ef4308b5644ce6ad23b0",
+      "generation": 9,
+      "record_fingerprint": "00381c287b5dded2f69f52217e77325901747889aaa6583347279b6a766604d5",
       "lease_token": "lease:1068:36786769289:1",
       "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2239Z",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "governance/issue1068-durable-source-export-request",
-      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
+      "expected_work_head": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
       "expected_target_head": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051"
-    },
-    "work_branch": "governance/issue1068-durable-source-export-request",
-    "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-    "semantic_state": "WORK_BRANCH_READY_FOR_EXACT_TESTED_DIFF",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "diff_digest": "91c865135859d32e094e8e53663819b0ad3f9c04023c510fd4442408cd3ba791"
-      },
-      "display": "Apply exact seven-path root-tested Issue #1068 diff"
     }
-  },
-  "reuse_admission_session": true
+  }
 }
