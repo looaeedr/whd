@@ -1,54 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-start-branch-2",
+  "request_id": "issue1069-reacquire-start-branch-3",
   "issue": 1069,
-  "kind": "START_BRANCH",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1637Z",
-  "expected_coord_head": "ed579f35130e1ac4fab88713cf2147c171ca804e",
+  "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
+  "expected_coord_head": "e590106f17dd931cf014dc80fd027c17d99ff0a0",
   "expected_generation": 2,
-  "effect": {
-    "work_branch": "governance/issue1069-consume-qa-updated-at",
-    "head_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "semantic_state": "ROOT_DIFF_FROZEN",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991"
-      },
-      "display": "Apply exact Drive-tested Issue #1069 diff"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991",
-      "issue": 1069,
-      "generation": 2,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tools/control_transaction_production_executor.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "d26dd7a79171d71b5f3f6d09f316c1ba64cf4c9c76bac1fcb2bf08933776fbde",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1069,
-      "generation": 2,
-      "record_fingerprint": "d26dd7a79171d71b5f3f6d09f316c1ba64cf4c9c76bac1fcb2bf08933776fbde",
-      "lease_token": "lease:1069:36745513027:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1637Z",
-      "expected_next_action": "START_BRANCH",
-      "expected_work_branch": "governance/issue1069-consume-qa-updated-at",
-      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
-      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
-    }
-  },
-  "purpose": "Bind the exact root-tested Issue #1069 work branch before applying the frozen two-file diff.",
+  "effect": {},
+  "purpose": "Renew Issue #1069 work2 lease after stale shared coord-head conflict; preserve exact START_BRANCH continuation and frozen Drive diff.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
