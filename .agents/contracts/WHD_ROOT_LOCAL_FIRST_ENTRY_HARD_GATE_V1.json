@@ -41,7 +41,7 @@
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "drive_file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV",
-    "canonical_payload_sha256": "9cc61608a1e6135f4e1b271df5f4c495738a39965dca3ee82b216959483ce112",
+    "canonical_payload_sha256": "efd2df7447f2791cf89f84e50abffad51848fc438ff9d101a86e6293df0d4a12",
     "canonical_filename": "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "versioned_aliases_must_not_be_current": true
   },
@@ -141,18 +141,31 @@
       "CAS_RETRY",
       "SESSION_REUSE",
       "QA_CONSUME",
-      "FINALIZE_DRAIN"
+      "FINALIZE_DRAIN",
+      "QA_FAILURE_CONSUME"
     ],
     "escalate_only_on": [
       "PATH_CONFLICT",
       "SAME_ISSUE_OTHER_WRITER",
       "SUBSTANTIVE_TARGET_OVERLAP",
-      "TEST_RED",
       "MACHINE_FAIL_CLOSED",
       "USER_INPUT_REQUIRED"
     ],
     "stale_plan_policy": "STALE_PLAN_MUST_DIE",
     "single_writer_policy": "ONE_ISSUE_ONE_MUTATION_WRITER",
-    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS"
+    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS",
+    "root_repair_events": [
+      "TEST_RED"
+    ],
+    "test_red_outer_action": "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION",
+    "manual_transaction_orchestration_after_escalation_allowed": false,
+    "root_repair_forbidden_outer_transactions": [
+      "FAIL_QA",
+      "RECONCILE",
+      "START_QA",
+      "ACCEPT_QA",
+      "ACQUIRE",
+      "RESERVE_PATHS"
+    ]
   }
 }
