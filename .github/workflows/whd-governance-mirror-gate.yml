@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  Governance-Mirror-Hard-Gate:
+  governance-mirror-hard-gate:
+    name: Governance Mirror Hard Gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
