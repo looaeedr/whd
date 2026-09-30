@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
   "issue": 1050,
   "lane_id": "chatgpt.flowv2.work0",
@@ -29,7 +29,9 @@
     "write_paths": [
       "ae_engine/receiving_joint_marking.py",
       "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+      "phase6_manufacturing_service.py",
       "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
+      "tests/test_issue1050_receiving_mother_plate_marking.py",
       "tests/test_issue471_t6_receiving_marking_activation.py",
       "tests/test_issue509_receiving_horizontal_marking.py",
       "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
@@ -65,13 +67,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
   "transaction": {
-    "expected_fingerprint": "78c103054513c11c48b0f941b2662aef3e3c2a523fd356c17907416d61e47d20",
-    "id": "gha:36700874309:1050:RESERVE_PATHS:4",
+    "expected_fingerprint": "dbd94473976439bedb7317f78f74b5884e8d699b054582877ee7d225f1e43876",
+    "id": "gha:36703415855:1050:RESERVE_PATHS:5",
     "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1004Z",
     "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T10:11:45Z",
+  "updated_at": "2026-09-30T10:36:38Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-issue1050"
 }
