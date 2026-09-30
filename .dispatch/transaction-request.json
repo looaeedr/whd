@@ -1,22 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1063-start-branch-7",
+  "request_id": "issue1063-apply-tested-diff-8",
   "issue": 1063,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1205Z",
-  "expected_coord_head": "931e5525d44db01e4b697be4cfb0ee4593164a85",
-  "expected_generation": 6,
+  "expected_coord_head": "151e3b7c7c79e71466760ba279835f4ece1d2155",
+  "expected_generation": 7,
   "effect": {
-    "work_branch": "governance/issue1063-actions-workflow-cleanup",
-    "head_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
-    "semantic_state": "IMPLEMENTING",
+    "head_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee",
+    "semantic_state": "GIT_DIFF_PUBLISHED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "candidate_commit_sha": "dd692c084c61d1f261187f6ad31371f66eaeafee"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Apply exact tested Issue #1063 candidate commit"
+      "display": "Run exact-head PR CI for Issue #1063"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -24,7 +23,7 @@
       "source_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
       "diff_digest": "c7f7d0709603ad8a5f87d5b59038455433d94e601ac1c8dab8110d2427a6e6da",
       "issue": 1063,
-      "generation": 6,
+      "generation": 7,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -126,20 +125,20 @@
         "tests/process/test_issue851_recurring_lifecycle_turn_exit.py",
         "tests/process/test_issue945_scheduler_host_watchdog.py"
       ],
-      "record_fingerprint": "d08e4ae0a8e50cb99c9dc370266d08d4377b1c908f2d85667d4783e1731b39f0",
+      "record_fingerprint": "eb536323b26d5e21352cdecc21d7a4c4ae5dd6cd31082b0e5e2ceec4e55faccc",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1063,
-      "generation": 6,
-      "record_fingerprint": "d08e4ae0a8e50cb99c9dc370266d08d4377b1c908f2d85667d4783e1731b39f0",
+      "generation": 7,
+      "record_fingerprint": "eb536323b26d5e21352cdecc21d7a4c4ae5dd6cd31082b0e5e2ceec4e55faccc",
       "lease_token": "lease:1063:36713002263:1",
       "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1205Z",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "governance/issue1063-actions-workflow-cleanup",
-      "expected_work_head": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+      "expected_work_head": "95531ac98be0f66f9917db9d2b2e347c053cc304",
       "expected_target_head": "95531ac98be0f66f9917db9d2b2e347c053cc304"
     }
   },
