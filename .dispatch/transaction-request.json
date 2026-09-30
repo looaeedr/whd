@@ -1,53 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-apply-frozen-4",
+  "request_id": "issue1069-clear-stale-snapshot-blocker-6",
   "issue": 1069,
-  "kind": "APPLY_COMMIT",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-  "expected_coord_head": "a374a89d72d616d40919c6ee42dc1f1c9aef0ba3",
-  "expected_generation": 4,
+  "expected_coord_head": "39d29e16cb8739ff70dd7739693c136b67b6d3db",
+  "expected_generation": 5,
   "effect": {
-    "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "observed_work_branch": "governance/issue1069-consume-qa-updated-at",
+    "observed_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "observed_target_sha": "872d95000539883636eeed86908882a6020da7f7",
+    "state": "ACTIVE",
+    "clear_blocker": true,
+    "semantic_state": "ROOT_DIFF_FROZEN",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "diff_digest": "cdc0ab39b5e9c34b3a75d9d9b5fc4fc1c8689f6df13125dffa29f0a33dca5c91"
       },
-      "display": "Run exact-head control-plane CI for Issue #1069"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991",
-      "issue": 1069,
-      "generation": 4,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tools/control_transaction_production_executor.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "93903283d9afe70b6f68f3fb17b439b22ac5ccda68fe3a25baf3afb9515ad372",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1069,
-      "generation": 4,
-      "record_fingerprint": "93903283d9afe70b6f68f3fb17b439b22ac5ccda68fe3a25baf3afb9515ad372",
-      "lease_token": "lease:1069:36747576879:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1069-consume-qa-updated-at",
-      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
-      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
+      "display": "Apply exact Drive-tested Issue #1069 diff"
     }
   },
-  "purpose": "Apply exact two-file Drive-frozen Issue #1069 candidate after blob readback verification.",
+  "purpose": "Clear stale full-snapshot blocker using CURRENT stale-bootstrap recovery: exact two touched paths fresh-compared to live target, Drive root tests GREEN (1 targeted + 29 affected + 516 canonical), and live work-branch blobs exactly match the frozen Drive candidate.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
