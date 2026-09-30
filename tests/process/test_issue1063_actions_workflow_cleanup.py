@@ -50,6 +50,7 @@ def test_product_ci_is_pr_verification_not_development_branch_automation() -> No
     assert "work/receiving" not in text
     assert "fix/receiving" not in text
     assert "python tools/product_ci_regression.py" in text
+    assert "fetch-depth: 0" in text
     assert "run: pytest" not in text
     assert "xvfb-run -a pytest" not in text
     control = (WORKFLOWS / "whd-control-plane-regression.yml").read_text(encoding="utf-8")
