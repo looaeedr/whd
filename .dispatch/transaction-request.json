@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reserve-current-base-20260930T1408Z",
+  "request_id": "issue1050-reserve-current-base-20260930T1409Z",
   "issue": 1050,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T140451Z",
-  "expected_coord_head": "766f035d66bc15c35cdc76af7db8730a4e41efa8",
+  "expected_coord_head": "ab49eb71aa457dc56464e45f30de39b53ff1a501",
   "expected_generation": 10,
   "effect": {
     "target_branch": "cleanup/2d-3d-sync",
@@ -27,17 +27,6 @@
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED"
   },
-  "purpose": "Rebind Issue #1050 active mutation reservation to the reconciled live production base 1d3fc00d while preserving the existing monotonic reserved path superset.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "purpose": "Rebind Issue #1050 active reservation to current non-overlapping production base after target reconciliation; preserve the existing monotonic 12-path reservation.",
+  "reuse_admission_session": true
 }
