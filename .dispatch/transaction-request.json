@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reacquire-18",
+  "request_id": "issue1050-reconcile-qa-target-19",
   "issue": 1050,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "119fe0a1d7e2e55f3a95229e9e2a96b2a7579858",
-  "expected_generation": 17,
-  "effect": {},
-  "purpose": "Resume Issue #1050 after expired lease; preserve ROOT_TESTED_DIFF_APPLIED continuation before non-overlapping target reconcile.",
+  "expected_coord_head": "6a55f5fb884244c95551dd60dd404eabe561628d",
+  "expected_generation": 18,
+  "effect": {
+    "observed_work_branch": "work/receiving-ui-regression-issue1050",
+    "observed_head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
+    "observed_target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "semantic_state": "TARGET_DRIFT_RECONCILED_BEFORE_QA",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Run exact-head Product Regression for Issue #1050"
+    }
+  },
+  "purpose": "Reconcile non-overlapping cleanup target drift before exact-head Product Regression for Issue #1050.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
