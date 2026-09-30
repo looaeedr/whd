@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-atomic-admission-1",
+  "request_id": "issue1062-atomic-admission-3",
   "issue": 1062,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "chatgpt.flowv2.work3.issue1062.20260930T1651Z",
-  "expected_coord_head": "ed579f35130e1ac4fab88713cf2147c171ca804e",
+  "invocation_identity": "chatgpt.flowv2.work3.issue1062.20261001T0055Z",
+  "expected_coord_head": "7d50bd1dbe50f24bafe1ae2c65b2a5068002f1d9",
   "expected_generation": 1,
   "effect": {
     "admission_reservation": {
@@ -32,7 +32,7 @@
       "display": "Create exact tested Issue #1062 work branch after Drive root freeze"
     }
   },
-  "purpose": "Continue Issue #1062 product full-regression recovery. Reserve the first successor-proven historical UI/ownership/fixture test batch only; do not overlap Issue #1050 MARKING scope.",
+  "purpose": "Continue Issue #1062 product full-regression recovery. Reserve first successor-proven historical UI/ownership/fixture test batch only; do not overlap Issue #1050 MARKING scope.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
