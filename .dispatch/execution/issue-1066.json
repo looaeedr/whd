@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
+    "id": 36723964834,
+    "purpose": "WHD Control Plane Regression",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -40,10 +45,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
+      "run_id": 36723964834
     },
-    "display": "Run exact-head PR CI for Issue #1066",
-    "kind": "START_QA"
+    "display": "Accept exact-head successful PR CI for Issue #1066",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -60,21 +66,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "18fed88e4d9d98191b2a9304206fbca9924cd304ac7976d5b14554c2097fce7b",
-    "id": "gha:36723835405:1066:APPLY_COMMIT:4",
+    "expected_fingerprint": "bca1873be7308e2c90c1a5f1a0b593175a118a2dc1dbdfa6feacfebaa78b9a58",
+    "id": "gha:36724148345:1066:START_QA:5",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T13:44:41Z",
+  "updated_at": "2026-09-30T13:47:23Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
