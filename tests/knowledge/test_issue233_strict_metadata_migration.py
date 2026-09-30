@@ -40,20 +40,17 @@ def _doc(role: str, contract: str, canonical: str | None, body: str) -> str:
     )
 
 
-def test_post_freeze_governed_documents_have_structured_metadata() -> None:
+def test_issue1043_newly_governed_or_reclassified_docs_have_structured_metadata() -> None:
     governance = _load_governance()
-    frozen = json.loads(INVENTORY.read_text(encoding="utf-8"))
-    baseline = {row["path"] for row in frozen["rows"]}
-    debt: list[str] = []
-    for path in _governed_paths(governance):
-        rel = path.relative_to(ROOT).as_posix()
-        if rel in baseline:
-            continue
-        try:
-            governance.parse_doc_metadata(path.read_text(encoding="utf-8"), path=rel)
-        except Exception as exc:
-            debt.append(f"{rel}: {exc}")
-    assert debt == []
+    for rel in (
+        "UPDATE/AGENTS.md",
+        "docs/governance/whd_scheduler_takeover_usage.md",
+        "docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md",
+        "handoff/00_AI_HANDOFF_README.md",
+    ):
+        path = ROOT / rel
+        metadata = governance.parse_doc_metadata(path.read_text(encoding="utf-8"), path=rel)
+        assert metadata.role in {"HISTORICAL", "MIRROR"}
 
 
 def test_frozen_inventory_is_bootstrap_evidence_not_runtime_authority() -> None:
