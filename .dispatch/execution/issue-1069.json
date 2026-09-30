@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "id": 36750347976,
+    "purpose": "WHD Control Plane Regression",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
   "issue": 1069,
   "lane_id": "chatgpt.flowv2.work2",
@@ -33,10 +38,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+      "run_id": 36750347976
     },
-    "display": "Run exact-head WHD Control Plane Regression for Issue #1069",
-    "kind": "START_QA"
+    "display": "Verify exact QA result",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -53,21 +59,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "2368a8d189cb0d75751072b5c4ef75074fa018ddae7b5c523be37e045ca2f2a2",
-    "id": "gha:36750208983:1069:RECONCILE:7",
+    "expected_fingerprint": "b593fee44c181e8c97cd95a31dbbd0ea8ecf74d22cae6d3b671749f55f539da6",
+    "id": "gha:36750563162:1069:START_QA:8",
     "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-    "kind": "RECONCILE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T17:16:51Z",
+  "updated_at": "2026-09-30T17:20:03Z",
   "version": 2,
   "work_branch": "governance/issue1069-consume-qa-updated-at"
 }
