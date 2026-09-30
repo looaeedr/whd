@@ -1,14 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-acquire-20260930T140451Z",
+  "request_id": "issue1050-reconcile-target-20260930T1407Z",
   "issue": 1050,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T140451Z",
-  "expected_coord_head": "2d604506c8b3aae649c0fe13b1228bd52ab6b830",
-  "expected_generation": 8,
-  "effect": {},
-  "purpose": "Resume Issue #1050 on current production after fresh Phase6 preflight; renew the work0 Flow v2 lease before target/base reconciliation.",
+  "expected_coord_head": "61bab65920b88eb22ea21b684075798af939bad7",
+  "expected_generation": 9,
+  "effect": {
+    "observed_work_branch": "work/receiving-ui-regression-issue1050",
+    "observed_head_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+    "observed_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1050 work branch after root freeze"
+    }
+  },
+  "purpose": "Reconcile Issue #1050 non-overlapping production target drift to 1d3fc00d after fresh root retest while preserving the START_BRANCH continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
