@@ -209,7 +209,7 @@ def test_root_local_mirror_points_to_current_drive_v4_identity():
     assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["canonical_filename"] == "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["versioned_aliases_must_not_be_current"] is True
-    assert source["canonical_payload_sha256"] == "9cc61608a1e6135f4e1b271df5f4c495738a39965dca3ee82b216959483ce112"
+    assert source["canonical_payload_sha256"] == "efd2df7447f2791cf89f84e50abffad51848fc438ff9d101a86e6293df0d4a12"
     assert source["drive_file_id"] != "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
     assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
 
@@ -221,12 +221,42 @@ def test_interactive_orchestration_fast_path_is_machine_owned():
     assert "PER_TRANSACTION_MANUAL_ORCHESTRATION" in gate["outer_forbidden"]
     assert "MANUAL_LEASE_RENEW_BEFORE_EXPIRY" in gate["outer_forbidden"]
     assert "START_QA_THEN_ACCEPT_QA_WHEN_CONSUME_QA_IS_ELIGIBLE" in gate["outer_forbidden"]
+    assert gate["manual_transaction_orchestration_after_escalation_allowed"] is False
+    assert gate["root_repair_events"] == ["TEST_RED"]
+    assert gate["test_red_outer_action"] == "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION"
+    assert "TEST_RED" not in gate["escalate_only_on"]
+    assert "QA_FAILURE_CONSUME" in gate["machine_internal_only"]
     assert gate["stale_plan_policy"] == "STALE_PLAN_MUST_DIE"
     assert gate["single_writer_policy"] == "ONE_ISSUE_ONE_MUTATION_WRITER"
 
 
+def test_test_red_returns_to_root_repair_without_chat_transaction_choreography():
+    from tools.root_local_first_gate import classify_interactive_fast_path_event
+
+    red = classify_interactive_fast_path_event("TEST_RED")
+    assert red["classification"] == "ROOT_REPAIR_CONTINUATION"
+    assert red["outer_action"] == "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION"
+    assert red["outer_pipeline_step"] == "ROOT_MUTATE"
+    assert red["chat_transaction_orchestration_allowed"] is False
+    assert "FAIL_QA" in red["machine_internal_transitions"]
+
+    for event in ("PATH_CONFLICT", "MACHINE_FAIL_CLOSED", "USER_INPUT_REQUIRED"):
+        escalated = classify_interactive_fast_path_event(event)
+        assert escalated["classification"] == "MACHINE_GOVERNANCE_ESCALATION"
+        assert escalated["chat_transaction_orchestration_allowed"] is False
+
+
 def test_root_local_skill_exposes_fast_path_hard_gate():
     text = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
+    flow = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    pitfall = (ROOT / "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md").read_text(encoding="utf-8")
+    global_pitfall = (ROOT / "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md").read_text(encoding="utf-8")
     assert "INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1" in text
+    assert "TEST_RED` **不是離開 fast path 的理由**" in text
+    assert "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION" in text
     assert "不得由聊天層逐顆手動編排" in text
+    assert "INTERACTIVE_TEST_RED_ROOT_REPAIR_HARD_GATE_V1" in flow
+    assert "FAIL_QA 是 machine-internal consume" in pitfall
+    assert "INTERACTIVE_TEST_RED_ROOT_REPAIR_HARD_GATE_V1" in global_pitfall
+    assert "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION" in global_pitfall
     assert "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS" not in text or "phase outcome" in text
