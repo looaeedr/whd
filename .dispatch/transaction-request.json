@@ -1,26 +1,37 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1032-reconcile-red-fix-head-1",
-  "issue": 1032,
-  "kind": "RECONCILE",
+  "request_id": "issue1066-atomic-admission-1",
+  "issue": 1066,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "interactive:work1:issue1032:semantic-doc-cutover:20260930T0018+0800",
-  "expected_coord_head": "1c1200a37c7073e9e54870a2b08d9d901525d5dc",
-  "expected_generation": 6,
+  "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1257Z",
+  "expected_coord_head": "358da806ea73e4ea2f926a79e2657becd8b3c397",
+  "expected_generation": 1,
   "effect": {
-    "observed_work_branch": "governance/issue1032-flow-v2-semantic-doc-cutover",
-    "observed_head_sha": "59f10ff03d400027f7d6cd158d9ad053c8a864ed",
-    "observed_target_sha": "e756506f9c2f75bbb88cec4ad17f37225b6f5b67",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+      "write_paths": [
+        ".github/workflows/whd-control-plane-regression.yml",
+        ".github/workflows/whd-product-regression.yml",
+        "tests/process/test_issue1063_actions_workflow_cleanup.py",
+        "tools/product_ci_regression.py"
+      ],
+      "delete_paths": [
+        ".github/workflows/phase6-bridge-anti-regrowth.yml",
+        ".github/workflows/receiving-divider-broader-acceptance.yml",
+        ".github/workflows/receiving-fw-formed-occupation-red.yml",
+        ".github/workflows/receiving-ui-regression.yml"
+      ]
+    },
+    "semantic_state": "PATHS_RESERVED",
     "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Run exact-head Control Plane Regression"
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1066 work branch after root freeze"
     }
   },
-  "purpose": "Issue #1032 reconcile one-line contract fix after remote RED",
+  "purpose": "Issue #1066 second-stage Actions convergence: replace four branch/development-specific product workflows with one canonical root/PR product regression while preserving coverage.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
