@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
-    "id": 36723964834,
-    "purpose": "WHD Control Plane Regression",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -45,17 +40,20 @@
   },
   "next_action": {
     "args": {
+      "expected_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
       "head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
-      "run_id": 36723964834
+      "pr_number": 1067,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Accept exact-head successful PR CI for Issue #1066",
-    "kind": "ACCEPT_QA"
+    "display": "Merge PR #1067 and finalize Issue #1066",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
+    "last_accepted_run": 36723964834
   },
   "recovery_history": [
     {
@@ -66,21 +64,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "bca1873be7308e2c90c1a5f1a0b593175a118a2dc1dbdfa6feacfebaa78b9a58",
-    "id": "gha:36724148345:1066:START_QA:5",
+    "expected_fingerprint": "2be009bc5003bee4177188d73a7fdbc5a47f5a0b931b249568d4330d290bda78",
+    "id": "gha:36724330165:1066:ACCEPT_QA:6",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T13:47:23Z",
+  "updated_at": "2026-09-30T13:48:46Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
