@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
-  "head_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "generation": 17,
+  "head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
   "issue": 1050,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -42,9 +42,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Apply exact tested Issue #1050 7-file receiver marking diff",
-    "kind": "APPLY_COMMIT"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "Run exact-head Product Regression for Issue #1050",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -61,7 +63,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_BRANCH_READY",
+  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
@@ -69,13 +71,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "22cdeff160f8df57f8322c06bde80ed4ba4550e602a16f4472c71aceb8f3a02a",
-    "id": "gha:36747862896:1050:START_BRANCH:15",
+    "expected_fingerprint": "bd05528b5a6c86d7dee3d05642689fca4d85268dfbe40752c1ffe44abc434d9e",
+    "id": "gha:36748835080:1050:APPLY_COMMIT:16",
     "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T16:57:00Z",
+  "updated_at": "2026-09-30T17:05:11Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-issue1050"
 }
