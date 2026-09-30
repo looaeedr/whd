@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -34,6 +34,7 @@
     "write_paths": [
       ".github/workflows/whd-control-plane-regression.yml",
       ".github/workflows/whd-product-regression.yml",
+      "fold_designer_bridge.py",
       "tests/process/test_issue1063_actions_workflow_cleanup.py",
       "tools/product_ci_regression.py"
     ]
@@ -60,7 +61,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
@@ -68,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "425c2ffe9d58e6b5c8a3965801caea727fcea4ea554544fbbb62083d34177975",
-    "id": "gha:36725780785:1066:RECONCILE:9",
+    "expected_fingerprint": "077dbea94afe4064aabe8c49f3e97e76380db89b5f76b4448e031af080b328e6",
+    "id": "gha:36728335595:1066:RESERVE_PATHS:10",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1352Z",
-    "kind": "RECONCILE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T14:00:32Z",
+  "updated_at": "2026-09-30T14:20:34Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
