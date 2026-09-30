@@ -60,6 +60,7 @@ def _complete_manifest():
         "durable_snapshot_status": "CURRENT_EXACT_HEAD",
         "export_writeback_status": "COMPLETE",
         "post_integration_export_run_id": 123,
+        "post_integration_export_trigger_head_sha": "a" * 40,
         "post_integration_export_artifact_id": 456,
         "post_integration_export_artifact_digest": "sha256:" + "d" * 64,
         "durable_snapshot_sha256": "c" * 64,
@@ -82,6 +83,7 @@ def test_export_receipt_binds_run_artifact_snapshot_and_drive_readback():
     receipt = build_snapshot_writeback_receipt(export_manifest=_export(), artifact=_artifact(), drive_snapshot=_drive())
     assert receipt["status"] == "VERIFIED"
     assert receipt["artifact_id"] == 456
+    assert receipt["trigger_head_sha"] == "a" * 40
     assert receipt["drive_file_id"] == "drive-file-1"
     patch = build_manifest_complete_patch(receipt)
     assert patch["export_writeback_status"] == "COMPLETE"
@@ -90,6 +92,17 @@ def test_export_receipt_binds_run_artifact_snapshot_and_drive_readback():
     assert patch["root_local_gate_json_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert patch["root_local_gate_json_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
 
+
+def test_pull_request_transport_head_may_differ_from_exported_merge_source():
+    from tools.post_integration_durability import build_manifest_complete_patch, build_snapshot_writeback_receipt
+    artifact = _artifact()
+    artifact["workflow_run"] = {"id": 123, "head_sha": "f" * 40}
+    receipt = build_snapshot_writeback_receipt(export_manifest=_export(), artifact=artifact, drive_snapshot=_drive())
+    assert receipt["source_sha"] == "a" * 40
+    assert receipt["trigger_head_sha"] == "f" * 40
+    patch = build_manifest_complete_patch(receipt)
+    assert patch["durable_snapshot_base_sha"] == "a" * 40
+    assert patch["post_integration_export_trigger_head_sha"] == "f" * 40
 
 def test_drive_digest_mismatch_fails_closed_before_manifest_complete():
     from tools.post_integration_durability import build_snapshot_writeback_receipt
