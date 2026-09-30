@@ -160,3 +160,24 @@ def test_root_local_skill_requires_cleanup_tail_and_authority_map_points_to_mach
     assert "DURABLE_CLEANUP_COMPLETE" in skill
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
     assert "contract=post-integration-durability role=CURRENT path=tools/post_integration_durability.py" in authority
+
+
+def test_source_export_request_schema_is_owned_by_existing_durability_machine():
+    from tools.post_integration_durability import build_source_export_request, validate_source_export_request
+    request = build_source_export_request(source_sha="a" * 40)
+    validated = validate_source_export_request(request)
+    assert validated["schema"] == "WHD_SOURCE_EXPORT_REQUEST_V1"
+    assert validated["source_branch"] == "cleanup/2d-3d-sync"
+    assert validated["source_sha"] == "a" * 40
+
+
+def test_source_export_request_rejects_non_cleanup_branch():
+    from tools.post_integration_durability import validate_source_export_request
+    bad = {
+        "schema": "WHD_SOURCE_EXPORT_REQUEST_V1",
+        "version": 1,
+        "source_branch": "main",
+        "source_sha": "a" * 40,
+    }
+    with pytest.raises(ValueError, match="source_branch"):
+        validate_source_export_request(bad)

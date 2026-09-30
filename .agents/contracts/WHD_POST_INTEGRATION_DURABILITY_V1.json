@@ -47,5 +47,10 @@
     "file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
   },
   "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
-  "artifact_source_identity_policy": "TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME; WORKFLOW_RUN_HEAD_SHA_IS_TRANSPORT_TRIGGER_IDENTITY"
+  "artifact_source_identity_policy": "TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME; WORKFLOW_RUN_HEAD_SHA_IS_TRANSPORT_TRIGGER_IDENTITY",
+  "source_export_request_schema": "WHD_SOURCE_EXPORT_REQUEST_V1",
+  "source_export_request_branch": "coord/source-export-requests",
+  "source_export_request_path": ".dispatch/source-export-request.json",
+  "source_export_request_source_branch": "cleanup/2d-3d-sync",
+  "source_export_request_policy": "REQUESTED_SHA_MUST_BE_REACHABLE_FROM_CURRENT_CLEANUP_HISTORY; REQUEST_TRIGGER_HEAD_IS_NOT_SOURCE_IDENTITY"
 }
