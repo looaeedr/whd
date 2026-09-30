@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1063-atomic-admission-1",
+  "request_id": "issue1063-atomic-admission-2",
   "issue": 1063,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -12,15 +12,15 @@
       "target_branch": "cleanup/2d-3d-sync",
       "base_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
       "write_paths": [
-        "AGENTS.md",
         ".agents/skills/engineering/flow-v2-execution/SKILL.md",
         ".agents/skills/engineering/排程模擬/SKILL.md",
         ".agents/skills/skill_registry.json",
         ".github/workflows/whd-control-plane-regression.yml",
-        "tools/control_plane_regression.py",
+        "AGENTS.md",
+        "tests/process/test_issue1063_actions_workflow_cleanup.py",
         "tests/process/test_issue865_scheduler_stop_hardening.py",
         "tests/process/test_remote_execution_guard_skill_contract.py",
-        "tests/process/test_issue1063_actions_workflow_cleanup.py"
+        "tools/control_plane_regression.py"
       ],
       "delete_paths": [
         ".github/workflows/issue229-t3-preflight.yml",
