@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 15,
+  "generation": 16,
   "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -42,16 +42,19 @@
   "next_action": {
     "args": {
       "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d",
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
+      "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
+      "pr_number": 1067,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Run exact-head Product Regression for Issue #1066",
-    "kind": "START_QA"
+    "display": "Merge PR #1067 exact accepted Issue #1066 candidate",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "7d1034f536d2897bd9768a14333738627940a3ab",
-    "last_accepted_run": 36723964834
+    "accepted_head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
+    "last_accepted_run": 36731738806
   },
   "recovery_history": [
     {
@@ -62,7 +65,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
@@ -70,13 +73,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "5380b0f3b516ede0899f2835f6e6c9445e244a68b18124ac93fbf7ca69205baf",
-    "id": "gha:36732519854:1066:APPLY_COMMIT:14",
+    "expected_fingerprint": "af65741128b1c0ec0654b5d775c44127a1e4c7594c68b27b2a61c264edd4915b",
+    "id": "gha:36732928854:1066:CONSUME_QA:15",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-    "kind": "APPLY_COMMIT",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T14:53:58Z",
+  "updated_at": "2026-09-30T14:55:45Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
