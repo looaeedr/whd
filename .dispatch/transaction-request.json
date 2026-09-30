@@ -1,12 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reconcile-repair-head-9",
+  "request_id": "issue1066-reconcile-repair-head-9b",
   "issue": 1066,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1352Z",
-  "expected_coord_head": "2204a4c842b2028bddb9bbc7efe7be56770642a0",
-  "expected_generation": 8,
+  "expected_coord_head": "9cdb201533a58ad2258b6cf444547f9d7242a8fe",
+  "expected_generation": 9,
   "effect": {
     "observed_work_branch": "governance/issue1066-actions-minimal-ci-surface",
     "observed_head_sha": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
@@ -20,5 +20,17 @@
       "display": "Run exact-head Product Regression for repaired Issue #1066"
     }
   },
-  "purpose": "Reconcile exact root-tested repair commit after product CI exposed missing full-history checkout; invalidate stale accepted head before merge."
+  "purpose": "Reconcile exact root-tested repair commit after product CI exposed missing full-history checkout; invalidate stale accepted head before merge.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
