@@ -7,18 +7,7 @@
   "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2239Z",
   "expected_coord_head": "f9bce5e8011c6072b11bb618822c9639930b0b5c",
   "expected_generation": 8,
-  "reuse_admission_session": true,
   "effect": {
-    "work_branch": "governance/issue1068-durable-source-export-request",
-    "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-    "semantic_state": "BRANCH_STARTED",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "diff_digest": "91c865135859d32e094e8e53663819b0ad3f9c04023c510fd4442408cd3ba791"
-      },
-      "display": "Apply exact Drive-frozen Issue #1068 diff"
-    },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
       "execution_mode": "INTERACTIVE",
@@ -37,7 +26,7 @@
         "tools/post_integration_durability.py"
       ],
       "delete_paths": [],
-      "record_fingerprint": "4de66803fac448dba28a33bef982f1664781f2debd17f09998432acdd495b232",
+      "record_fingerprint": "cb1a48df729aba19098ac93423bf229958d5412b56d3ef4308b5644ce6ad23b0",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
@@ -45,13 +34,24 @@
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1068,
       "generation": 8,
-      "record_fingerprint": "4de66803fac448dba28a33bef982f1664781f2debd17f09998432acdd495b232",
+      "record_fingerprint": "cb1a48df729aba19098ac93423bf229958d5412b56d3ef4308b5644ce6ad23b0",
       "lease_token": "lease:1068:36786769289:1",
       "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T2239Z",
       "expected_next_action": "START_BRANCH",
       "expected_work_branch": "governance/issue1068-durable-source-export-request",
       "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
       "expected_target_head": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051"
+    },
+    "work_branch": "governance/issue1068-durable-source-export-request",
+    "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "semantic_state": "WORK_BRANCH_READY_FOR_EXACT_TESTED_DIFF",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "diff_digest": "91c865135859d32e094e8e53663819b0ad3f9c04023c510fd4442408cd3ba791"
+      },
+      "display": "Apply exact seven-path root-tested Issue #1068 diff"
     }
-  }
+  },
+  "reuse_admission_session": true
 }
