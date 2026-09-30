@@ -72,6 +72,8 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("root-local gate pointer mismatch")
     if item.get("physical_cycle_completion_guard") != "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete":
         raise ValueError("physical cycle completion guard mismatch")
+    if item.get("artifact_source_identity_policy") != "TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME; WORKFLOW_RUN_HEAD_SHA_IS_TRANSPORT_TRIGGER_IDENTITY":
+        raise ValueError("artifact source identity policy mismatch")
     return {str(k): v for k, v in item.items()}
 
 
@@ -103,8 +105,7 @@ def build_snapshot_writeback_receipt(
     run = _mapping(art.get("workflow_run"), "artifact workflow_run")
     if _positive_int(run.get("id"), "artifact workflow run id") != run_id:
         raise ValueError("artifact workflow run mismatch")
-    if _sha(run.get("head_sha"), "artifact head_sha") != source_sha:
-        raise ValueError("artifact head_sha mismatch")
+    trigger_head_sha = _sha(run.get("head_sha"), "artifact head_sha")
 
     drive = _mapping(drive_snapshot, "Drive snapshot readback")
     drive_file_id = str(drive.get("file_id") or "").strip()
@@ -122,6 +123,7 @@ def build_snapshot_writeback_receipt(
         "source_sha": source_sha,
         "tree_sha": tree_sha,
         "github_run_id": run_id,
+        "trigger_head_sha": trigger_head_sha,
         "artifact_id": artifact_id,
         "artifact_name": artifact_name,
         "artifact_digest": artifact_digest,
@@ -148,6 +150,7 @@ def build_manifest_complete_patch(receipt: object) -> dict[str, object]:
         "durable_snapshot_status": "CURRENT_EXACT_HEAD",
         "export_writeback_status": "COMPLETE",
         "post_integration_export_run_id": _positive_int(item.get("github_run_id"), "receipt github_run_id"),
+        "post_integration_export_trigger_head_sha": _sha(item.get("trigger_head_sha"), "receipt trigger_head_sha"),
         "post_integration_export_artifact_id": _positive_int(item.get("artifact_id"), "receipt artifact_id"),
         "post_integration_export_artifact_digest": artifact_digest,
         "durable_snapshot_sha256": snapshot_sha256,
@@ -199,6 +202,7 @@ def validate_completed_source_manifest(manifest: object) -> dict[str, object]:
     _sha256(item.get("durable_snapshot_sha256"), "manifest snapshot sha256")
     _sha256(item.get("post_integration_export_artifact_digest"), "manifest artifact digest", prefixed=True)
     _positive_int(item.get("post_integration_export_run_id"), "manifest export run id")
+    _sha(item.get("post_integration_export_trigger_head_sha"), "manifest export trigger head sha")
     _positive_int(item.get("post_integration_export_artifact_id"), "manifest artifact id")
     if not str(item.get("durable_snapshot_file_id") or "").strip():
         raise ValueError("manifest durable snapshot file_id missing")
