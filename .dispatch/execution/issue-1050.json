@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 26,
+  "generation": 27,
   "head_sha": "ac5845d8e51393e54997d9be1302066638037b6f",
   "issue": 1050,
   "lane_id": "chatgpt.flowv2.work0",
@@ -43,16 +43,18 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "pr_number": 1071,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume exact-head Product Regression for merged Issue #1050 candidate",
-    "kind": "START_QA"
+    "display": "Consume already-merged PR #1071 and finalize Issue #1050",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "ac5845d8e51393e54997d9be1302066638037b6f",
+    "last_accepted_run": 36790237083
   },
   "recovery_history": [
     {
@@ -63,21 +65,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "EXTERNAL_MERGE_PROGRESS_RECONCILED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
   "transaction": {
-    "expected_fingerprint": "942f89a53e350d4af1c6edf37115efca4a2d820b9d3675c190a162ea2eff8a57",
-    "id": "gha:36790673486:1050:RECONCILE:25",
+    "expected_fingerprint": "b81913e85dab643e31d7ee5b2cccb4c77911cca47f18279d83a0ea978a61eb7e",
+    "id": "gha:36790752481:1050:CONSUME_QA:26",
     "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-    "kind": "RECONCILE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T23:21:59Z",
+  "updated_at": "2026-09-30T23:22:55Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-issue1050"
 }
