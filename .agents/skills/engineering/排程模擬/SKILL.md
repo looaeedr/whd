@@ -62,7 +62,7 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 
 每個 entrypoint 必須把自己的 WAKE/HEARTBEAT/PROGRESS/EXIT 同步 mirror 到 exact entrypoint observation file，使用 canonical `WHD_SCHEDULER_ENTRYPOINT_OBSERVATION_V1`。host snapshot 與 entrypoint mirror 都只是 observability，不可當 claim/lease/transaction authority。
 
-GitHub independent watchdog `whd-scheduler-host-watchdog.yml` 每 5 分鐘獨立檢查 expected occurrence；120 秒 grace 後沒有 durable WAKE 即 fail-visible，並依 fresh host snapshot分類 `HOST_ENTRY_FAILURE / HOST_AUTO_PAUSE / HOST_STATE_UNKNOWN`。
+獨立 GitHub watchdog workflow 已退役並移除。需要判讀 host occurrence 時，由當次 scheduler invocation 或 explicit diagnostic 直接呼叫 canonical `tools/scheduler_host_watchdog.py` 讀 NON_AUTHORITY snapshot；不得另建 recurring GitHub Actions watchdog。120 秒 grace 的 `HOST_ENTRY_FAILURE / HOST_AUTO_PAUSE / HOST_STATE_UNKNOWN` 分類語意仍由 evaluator 擁有。
 
 
 ## REPORT_HANDLER_IDENTITY_PREFIX_V1

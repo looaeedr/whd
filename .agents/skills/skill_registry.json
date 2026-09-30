@@ -386,7 +386,6 @@
         "remote-execution-guard"
       ],
       "file_globs": [
-        ".github/workflows/whd-remote-execution-guard.yml",
         ".agents/skills/engineering/remote-execution-guard/**"
       ],
       "required_skills": [

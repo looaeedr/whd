@@ -309,9 +309,9 @@ A/B 的 host recovery 是 **Flow v2 外層、NON_AUTHORITY、固定 allowlist �
 
 Host lifecycle observation is NON_AUTHORITY and must remain separate from Flow v2 execution state.
 
-- independent durable watchdog workflow: `.github/workflows/whd-scheduler-host-watchdog.yml`
-- evaluator: `tools/scheduler_host_watchdog.py`
-- watchdog output: `coord/monitor-v2:.dispatch/monitor/host/watchdog.json`
+- independent GitHub watchdog workflow: **RETIRED / ABSENT**；不得重新建立 `.github/workflows/whd-scheduler-host-watchdog.yml`。
+- evaluator: `tools/scheduler_host_watchdog.py`（只由 scheduler invocation / explicit diagnostic 讀取，NON_AUTHORITY）
+- optional evaluator output: `coord/monitor-v2:.dispatch/monitor/host/watchdog.json`
 - optional ChatGPT host snapshot: `coord/monitor-v2:.dispatch/monitor/host/chatgpt-automations.json`
 - exact entrypoint mirrors:
   - A00 → `.dispatch/monitor/host/entrypoints/a00.json`
