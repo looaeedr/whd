@@ -130,6 +130,10 @@ def test_nonterminal_or_live_work_is_never_auto_archived():
 
 def test_export_workflow_emits_self_contained_exact_head_digest_identity():
     text = (ROOT / ".github/workflows/drive-source-snapshot-export.yml").read_text(encoding="utf-8")
+    assert "pull_request:" in text
+    assert "types: [closed]" in text
+    assert "github.event.pull_request.merged == true" in text
+    assert "github.event.pull_request.merge_commit_sha" in text
     assert '"snapshot_sha256": snapshot_sha256' in text
     assert '"artifact_name": artifact_name' in text
     assert '"github_run_id": os.environ.get("GITHUB_RUN_ID")' in text
