@@ -1,28 +1,53 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-block-on-exact-source-snapshot-5b",
+  "request_id": "issue1069-apply-frozen-4",
   "issue": 1069,
-  "kind": "BLOCK",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
   "expected_coord_head": "a374a89d72d616d40919c6ee42dc1f1c9aef0ba3",
   "expected_generation": 4,
   "effect": {
-    "blocker_kind": "EXTERNAL_DEPENDENCY",
-    "blocker_evidence": "Dependency Issue #1068 must first produce and verify exact Drive source snapshot/manifest for cleanup SHA 872d95000539883636eeed86908882a6020da7f7. Current Drive manifest remains 95531ac98be0f66f9917db9d2b2e347c053cc304. Issue #1069 work branch still equals base 872d95000539883636eeed86908882a6020da7f7 with no content mutation.",
-    "semantic_state": "BLOCKED_ON_EXACT_SOURCE_SNAPSHOT",
+    "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
     "next_action": {
-      "kind": "WAIT_EXTERNAL",
+      "kind": "START_QA",
       "args": {
-        "blocker_kind": "EXTERNAL_DEPENDENCY",
-        "dependency_issue": 1068,
-        "dependency_reason": "EXACT_SOURCE_SNAPSHOT_NOT_DURABLE",
-        "required_source_sha": "872d95000539883636eeed86908882a6020da7f7"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Wait for Issue #1068 exact source snapshot/writeback before root mutation"
+      "display": "Run exact-head control-plane CI for Issue #1069"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
+      "diff_digest": "158d6c1870b0fcdc51989c6cc4f3da9744be64a480fe0d9a7eec3e0cbef96991",
+      "issue": 1069,
+      "generation": 4,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "tests/process/test_issue899_push_transaction_ingress.py",
+        "tools/control_transaction_production_executor.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "93903283d9afe70b6f68f3fb17b439b22ac5ccda68fe3a25baf3afb9515ad372",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1069,
+      "generation": 4,
+      "record_fingerprint": "93903283d9afe70b6f68f3fb17b439b22ac5ccda68fe3a25baf3afb9515ad372",
+      "lease_token": "lease:1069:36747576879:1",
+      "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1654Z",
+      "expected_next_action": "APPLY_COMMIT",
+      "expected_work_branch": "governance/issue1069-consume-qa-updated-at",
+      "expected_work_head": "872d95000539883636eeed86908882a6020da7f7",
+      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
     }
   },
-  "purpose": "Fail closed before APPLY_COMMIT because Drive canonical source snapshot/manifest is stale; do not use reconstructed source as root authority.",
+  "purpose": "Apply exact two-file Drive-frozen Issue #1069 candidate after blob readback verification.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
