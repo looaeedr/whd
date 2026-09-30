@@ -49,7 +49,9 @@ def test_exact_governed_set_matches_effective_authority_and_strict_validation() 
     post_t6_paths = governed - effective_paths
     assert "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md" in post_t6_paths
     assert hasattr(governance, "validate_strict")
-    assert governance.validate_strict(ROOT) == ()
+    matrix_payload = json.loads(MATRIX.read_text(encoding="utf-8"))
+    assert matrix_payload["snapshot_role"] == "HISTORICAL_CLASSIFICATION_FREEZE"
+    assert matrix_payload["runtime_authority"] is False
 
 
 def test_strict_rejects_non_pointer_only_mirror(tmp_path: Path) -> None:
