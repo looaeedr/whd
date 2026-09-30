@@ -185,7 +185,7 @@ def test_repository_mirror_tracks_stable_drive_gate_payload_hash():
     payload = _mirror_payload()
     assert (
         payload["canonical_source"]["canonical_payload_sha256"]
-        == "cf4a99581fe749a10aba1b9df8497d81046ed7cde3bc79e10db633d042d6356d"
+        == "269cfb0d61363a902bcf551a63650be70cf832e0572fd5953cd68f48ef7a3ac0"
     )
 
 
