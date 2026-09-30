@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-atomic-admission-1",
+  "request_id": "issue1050-atomic-admission-2",
   "issue": 1050,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -13,13 +13,13 @@
       "base_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
       "write_paths": [
         "ae_engine/receiving_joint_marking.py",
+        "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
         "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
         "tests/test_issue471_t6_receiving_marking_activation.py",
         "tests/test_issue509_receiving_horizontal_marking.py",
         "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
-        "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
-        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
       ],
       "delete_paths": []
     },
