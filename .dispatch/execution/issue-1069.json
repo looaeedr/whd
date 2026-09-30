@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-    "id": 36750347976,
-    "purpose": "WHD Control Plane Regression",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
   "issue": 1069,
   "lane_id": "chatgpt.flowv2.work2",
@@ -38,17 +33,20 @@
   },
   "next_action": {
     "args": {
+      "expected_target_sha": "872d95000539883636eeed86908882a6020da7f7",
       "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-      "run_id": 36750347976
+      "pr_number": 1070,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Verify exact QA result",
-    "kind": "POLL_QA"
+    "display": "Merge exact PR #1070",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "last_accepted_run": 36750347976
   },
   "recovery_history": [
     {
@@ -59,21 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "b593fee44c181e8c97cd95a31dbbd0ea8ecf74d22cae6d3b671749f55f539da6",
-    "id": "gha:36750563162:1069:START_QA:8",
+    "expected_fingerprint": "39914a66cbeab65e134123f99ae0ed7242b2a93ba338048b61d74395229dbb11",
+    "id": "gha:36750771731:1069:ACCEPT_QA:9",
     "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T17:20:03Z",
+  "updated_at": "2026-09-30T17:21:44Z",
   "version": 2,
   "work_branch": "governance/issue1069-consume-qa-updated-at"
 }
