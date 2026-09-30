@@ -188,3 +188,11 @@ def test_control_plane_regression_owns_v3_guard() -> None:
     rel = "tests/process/test_issue1049_flow_v2_anti_regrowth_v3.py"
     assert rel in runner
     assert rel in workflow
+
+
+def test_connector_merge_has_post_integration_export_trigger() -> None:
+    workflow = _read(".github/workflows/drive-source-snapshot-export.yml")
+    assert "pull_request:" in workflow
+    assert "types: [closed]" in workflow
+    assert "github.event.pull_request.merged == true" in workflow
+    assert "github.event.pull_request.merge_commit_sha" in workflow
