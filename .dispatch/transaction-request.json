@@ -1,25 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reconcile-target-95531ac9-20260930T1153Z",
-  "issue": 1050,
-  "kind": "RECONCILE",
+  "request_id": "issue1063-reacquire-git-phase-6",
+  "issue": 1063,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1144Z",
-  "expected_coord_head": "15b59d89916cf5ba19d550045a1ca26cac294429",
-  "expected_generation": 8,
-  "effect": {
-    "observed_work_branch": "work/receiving-ui-regression-issue1050",
-    "observed_head_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
-    "observed_target_sha": "95531ac98be0f66f9917db9d2b2e347c053cc304",
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1050 work branch after root freeze"
-    },
-    "updated_at": "2026-09-30T11:53:13Z"
-  },
-  "purpose": "Issue #1050: reconcile unrelated target advancement from 450a131b to 95531ac9 after fresh compare proved zero overlap with all twelve reserved Issue #1050 paths; preserve the frozen local implementation as untrusted until resynced/retested on the new target.",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1063.20260930T1205Z",
+  "expected_coord_head": "f95d2d27ad97123a999ed1100414d8fcd9e2090e",
+  "expected_generation": 5,
+  "effect": {},
+  "purpose": "Resume Issue #1063 exact-tested Git phase after lease expiry; preserve START_BRANCH continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
