@@ -249,14 +249,14 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 - `CURRENT`：該 contract 唯一可作現行 Source of Truth 的 owner。
 - `REFERENCE`：背景／方法／evidence；可輔助，但不得覆蓋 CURRENT。
-- `MIRROR`：只作入口相容或導覽；必須標記 `POINTER_ONLY`，內容只能指回 canonical owner，不能複製完整 current prose 後自行演化。
+- `MIRROR`：預設只作入口相容或導覽，必須指回 canonical owner。純 pointer mirror 必須標記 `POINTER_ONLY`；若檔內明確含 `FLOW_V2_EXECUTION_BRIDGE_V1`，可保留**狹窄的入口專屬 routing / projection / user-visible contract**，但不得定義第二套 execution state、lease、mutation transaction、QA acceptance、merge、finalization 或 closure state machine，且所有這些語意必須明確 defer 到 canonical `flow-v2-execution`。
 - `HISTORICAL`：日期化／已被取代的 evidence；不得參與 current routing，也不得繼續使用「CURRENT／最高優先級／下一個主要任務」等現行語氣。
 
 ### 單一 CURRENT 硬規則
 
 - **同一 contract 只能有一個 `CURRENT` owner。** 兩份文件即使內容暫時相同，只要都自稱 current/最高優先級，就屬 authority conflict。
 - 搬移或升格 canonical owner 時，舊 owner 必須在**同一變更**降級為 `REFERENCE`、`MIRROR` 或 `HISTORICAL`；禁止先留下雙 CURRENT 再靠閱讀順序猜哪份新。
-- 保留舊路徑時優先採 `MIRROR + POINTER_ONLY`。Mirror 不得以全文 copy 維持相容；全文 copy 會形成可漂移的第二 SSOT。
+- 保留舊路徑時優先採 `MIRROR + POINTER_ONLY`；只有 `FLOW_V2_EXECUTION_BRIDGE_V1` 可使用 narrow bridge 例外。Bridge 只能擁有入口專屬 routing/projection，不得複製 canonical state machine；全文 copy 仍視為第二 SSOT。
 - 發現 exact duplicate 但檔名／語意角色不同時，先決定真正 owner；非 owner 要刪除、改 pointer 或明確 historical，不能讓 duplicate SHA 掩蓋 identity 衝突。
 - 新規則推翻舊規則時，舊規則在原位置標 `SUPERSEDED / REVOKED / HISTORICAL`，不得只在另一份文件後面補一段新說法。
 
