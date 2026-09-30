@@ -1,10 +1,10 @@
 ---
-whd_doc_role: HISTORICAL
-whd_contract: handoff-provenance
-whd_canonical: null
+whd_doc_role: MIRROR
+whd_contract: agent-startup-process
+whd_canonical: AGENTS.md
 whd_schema: WHD_DOC_META_V1
 ---
-<!-- WHD_DOC_ROLE role=MIRROR contract=handoff-entry POINTER_ONLY -->
+<!-- WHD_DOC_ROLE role=MIRROR contract=agent-startup-process POINTER_ONLY -->
 # 00 — Handoff Compatibility Entry
 
 > **[MIRROR / POINTER_ONLY]** 此路徑只保留舊入口相容性，不複製 current authority。
