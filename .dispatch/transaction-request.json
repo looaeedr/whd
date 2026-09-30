@@ -1,26 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reconcile-qa-target-19",
+  "request_id": "issue1050-rebind-current-base-20",
   "issue": 1050,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "6a55f5fb884244c95551dd60dd404eabe561628d",
-  "expected_generation": 18,
+  "expected_coord_head": "412e6ea742d715d2cacb6794f003246b9bf4d21c",
+  "expected_generation": 19,
   "effect": {
-    "observed_work_branch": "work/receiving-ui-regression-issue1050",
-    "observed_head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
-    "observed_target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-    "semantic_state": "TARGET_DRIFT_RECONCILED_BEFORE_QA",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Run exact-head Product Regression for Issue #1050"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "write_paths": [
+      "ae_engine/joint_marking_policy.py",
+      "ae_engine/receiving_joint_marking.py",
+      "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+      "phase6_final_scene_renderer.py",
+      "phase6_manufacturing_service.py",
+      "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
+      "tests/test_issue1050_receiving_mother_plate_marking.py",
+      "tests/test_issue471_t6_receiving_marking_activation.py",
+      "tests/test_issue509_receiving_horizontal_marking.py",
+      "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "TARGET_DRIFT_RECONCILED_BEFORE_QA"
   },
-  "purpose": "Reconcile non-overlapping cleanup target drift before exact-head Product Regression for Issue #1050.",
+  "purpose": "Rebind Issue #1050 reserved scope to current non-overlapping cleanup target before exact-head QA.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
