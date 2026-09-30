@@ -8,7 +8,7 @@
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
     "drive_file_id": "1eTePIN97fHAu-RPDtVRfqrAHP2zRTPmH",
-    "canonical_payload_sha256": "269cfb0d61363a902bcf551a63650be70cf832e0572fd5953cd68f48ef7a3ac0"
+    "canonical_payload_sha256": "f9623bc6364c856f9c09851232348930dda4a17231f1fd470390535c371cc512"
   },
   "default_work_root": {
     "provider": "google_drive",
@@ -58,7 +58,10 @@
     "drive_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "repository_contract": ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
     "required_for": [
-      "INTERACTIVE"
+      "INTERACTIVE",
+      "SCHEDULER_LANE:REPOSITORY_CONTENT",
+      "GITHUB_ONLY:REPOSITORY_CONTENT",
+      "REMOTE_ACTION:REPOSITORY_CONTENT"
     ],
     "git_write_locked_until": "GIT_WRITE_UNLOCKED"
   }

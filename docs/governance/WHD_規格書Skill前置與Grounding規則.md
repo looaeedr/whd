@@ -1,9 +1,13 @@
 ---
-whd_doc_role: CURRENT
+whd_doc_role: MIRROR
 whd_contract: spec-authoring-skill-gate
-whd_canonical: ".agents/skills/engineering/寫成規格書/SKILL.md"
+whd_canonical: .agents/skills/engineering/寫成規格書/SKILL.md
 whd_schema: WHD_DOC_META_V1
 ---
+<!-- ROOT_LOCAL_FIRST_SPEC_GOVERNANCE_BRIDGE_V1 -->
+
+> 本文件是 `寫成規格書` 的治理／導覽 MIRROR，不擁有 repository execution order。任何需要寫回 repository 的規格／文件修改，一律先服從 `AGENTS.md` + `root-local-first`：root mutation / tests / diff freeze 完成且 `GIT_WRITE_UNLOCKED` 後，才進 Git work-branch transport。
+
 
 # WHD 規格書 Skill 前置與 Grounding 規則
 
@@ -33,7 +37,7 @@ WHD 已有 `AGENTS.md`、Phase6 Knowledge Preflight、`寫成規格書` Skill �
 ### Existing authority
 
 - `AGENTS.md` 已要求 Skill invocation announcement 為第一個 user-visible 內容。
-- `AGENTS.md` 已要求 Phase6 Knowledge Preflight、required Skills、required references 與 branch-first。
+- `AGENTS.md` 已要求 Work Root / root-local-first、Phase6 Knowledge Preflight、required Skills 與 required references；repository-content 修改必須先在 canonical root 完成測試與 diff freeze，`GIT_WRITE_UNLOCKED` 後才進 Git work branch。
 - `.agents/skills/engineering/寫成規格書/SKILL.md` 已要求 mandatory pre-spec gate：owning production code、AI Library/SOP、既有 spec/design note、tests，以及存在時的 fixture/baseline/certified data。
 - `tools/phase6_skill_preflight.py` 會把全域踩坑庫列為永久 required reference。
 - `.agents/skills/skill_registry.json` 已有 `explicit-skill-寫成規格書` route。
@@ -134,7 +138,7 @@ WHD 已有 `AGENTS.md`、Phase6 Knowledge Preflight、`寫成規格書` Skill �
 ## Implementation Decisions
 
 1. canonical execution authority 仍是 `.agents/skills/engineering/寫成規格書/SKILL.md`；本文件不建立第二套 Skill。
-2. 全域 bootstrap / announcement / branch-first authority 仍由 `AGENTS.md` 擁有。
+2. 全域 bootstrap / announcement / Work Root / root-local-first authority 仍由 `AGENTS.md` 與其 canonical gate 擁有；本 MIRROR 不可建立 branch-first authority。
 3. machine routing 仍由 `.agents/skills/skill_registry.json` 與 `tools/phase6_skill_preflight.py` 擁有。
 4. 本文件只補 durable process invariant：**per-invocation fresh-read 不可由聊天記憶取代**。
 5. AI Library companion：`個人AI檔案庫/第二層_專案與SOP/12_WHD規格書Skill前置與Grounding規則.md`。
@@ -153,7 +157,7 @@ WHD 已有 `AGENTS.md`、Phase6 Knowledge Preflight、`寫成規格書` Skill �
 ## Out of Scope / Open Items
 
 - 不修改 `寫成規格書/SKILL.md` 本體；其現有內容已明確要求 mandatory pre-spec gate。
-- 不修改 `AGENTS.md`；目前全域 announcement、Preflight、durable writeback、branch-first 已存在。
+- 不修改 `AGENTS.md`；目前全域 announcement、Preflight、durable writeback、root-local-first + Git-phase boundary 已存在。
 - 不在本文件定義 marking、contact、L/C frame、tolerance 或 DXF 的產品規則。
 - runtime 是否要新增「本輪 Skill fresh-read receipt」機器證據，留待獨立工程任務。
 
@@ -172,7 +176,7 @@ WHD 已有 `AGENTS.md`、Phase6 Knowledge Preflight、`寫成規格書` Skill �
 - `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
 - `個人AI檔案庫/第二層_專案與SOP/WHD_拷問前先讀程式_SourceFirst_20260911.md`
 
-本輪 branch-first：
+本輪 Git-phase（root mutation/tests/freeze + `GIT_WRITE_UNLOCKED` 之後）：
 
 - target：`cleanup/2d-3d-sync`
 - target HEAD：`26250add1a7c17e27cfce2f13f141ad44bf0f873`

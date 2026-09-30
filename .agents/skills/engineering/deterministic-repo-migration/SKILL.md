@@ -28,6 +28,21 @@ Out of scope:
 - replacing domain authorities with test fixtures, snapshots, or validator expectations;
 - opportunistic cleanup outside the governed migration scope.
 
+
+## WHD repository mutation boundary
+
+<!-- WHD_REPOSITORY_MUTATION_GATE_V1 -->
+
+本 Skill 只擁有 deterministic mapping / idempotence / drift-audit 語意，**不擁有 WHD execution transport 或 repository write authority**。只要任務會改 WHD repository content，mutation 前固定同時服從：
+
+1. `.agents/skills/engineering/flow-v2-execution/SKILL.md` 的 `WHD_EXECUTION_RECORD_V2` / single-writer / structured `next_action`；
+2. `.agents/skills/engineering/root-local-first/SKILL.md` 與 Drive canonical gate 的 `ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`；
+3. `WHD_TEST_EXECUTION_RECEIPT_V1` + exact tested diff；bare validator PASS / second-pass zero diff 都不能自行解鎖 Git write；
+4. remote/scheduler/GITHUB_ONLY 遇到 repository-content implementation 必須 `HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION`，不得在 GitHub branch 直接 author/hotfix；
+5. Git phase 只可把 `EXACT_TESTED_DIFF_ONLY` 搬到 dedicated work branch；production target advancement 仍只走 Flow v2 trusted `MERGE / SYNC_TARGET`。
+
+若 root-local-first / Flow v2 evidence 缺任一項，deterministic migration 必須 fail closed；不得以「migration 是機械式／可重複」為理由旁路 execution gate。
+
 ## Mandatory execution contract
 
 ### 1. Pin authority
