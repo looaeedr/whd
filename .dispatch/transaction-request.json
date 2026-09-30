@@ -1,14 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1068-reacquire-after-target-reconcile-5",
+  "request_id": "issue1068-rebind-reservation-6",
   "issue": 1068,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1068.20260930T1743Z",
-  "expected_coord_head": "df69bbe93b19c15761c26521c4978b760cf3ba5e",
-  "expected_generation": 4,
-  "effect": {},
-  "purpose": "Renew Issue #1068 same-lane lease after root target resync; preserve exact RESERVE_PATHS continuation.",
+  "expected_coord_head": "79d96809388e9b9f93c2c5b6c73187ce3ae3165b",
+  "expected_generation": 5,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "write_paths": [
+      ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".github/workflows/drive-source-snapshot-export.yml",
+      "tests/process/test_drive_source_snapshot_export_contract.py",
+      "tests/process/test_issue1045_post_integration_durability.py",
+      "tests/process/test_issue1063_actions_workflow_cleanup.py",
+      "tools/post_integration_durability.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED_ROOT_RETESTED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1068 work branch after refreshed root freeze"
+    }
+  },
+  "purpose": "Rebind unchanged seven-path reservation to fresh cleanup target after non-overlapping Issue #1069 merge; root candidate already resynced and retested GREEN.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
