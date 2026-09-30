@@ -1,25 +1,29 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-start-qa-9",
+  "request_id": "issue1069-accept-qa-10",
   "issue": 1069,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-  "expected_coord_head": "be3d4d26a25d82823dd1e00b3371ac7dc522139d",
-  "expected_generation": 8,
+  "expected_coord_head": "88dd33741bc8efc2a9e85b8c235490134c478d44",
+  "expected_generation": 9,
   "reuse_admission_session": true,
   "effect": {
     "run_id": 36750347976,
     "run_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-    "purpose": "WHD Control Plane Regression",
-    "run_status": "completed",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "MERGE",
       "args": {
-        "run_id": 36750347976,
-        "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445"
+        "pr_number": 1070,
+        "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "872d95000539883636eeed86908882a6020da7f7",
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Verify exact QA result"
+      "display": "Merge exact PR #1070"
     }
   }
 }
