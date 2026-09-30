@@ -1,62 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-apply-drive-freeze-14b",
+  "request_id": "issue1066-consume-product-green-16",
   "issue": 1066,
-  "kind": "APPLY_COMMIT",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-  "expected_coord_head": "dd5b26ff2f8603a114a6d41211c6a68a48d94c19",
-  "expected_generation": 14,
+  "expected_coord_head": "9eb80d388f688d1872811a29eed1e85009517b81",
+  "expected_generation": 15,
   "effect": {
-    "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "run_id": 36731738806,
+    "run_head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
+    "run_status": "completed",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml",
+        "pr_number": 1067,
+        "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
         "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d"
       },
-      "display": "Run exact-head Product Regression for Issue #1066"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-      "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d",
-      "issue": 1066,
-      "generation": 14,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".github/workflows/whd-control-plane-regression.yml",
-        ".github/workflows/whd-product-regression.yml",
-        "fold_designer_bridge.py",
-        "tests/process/test_issue1063_actions_workflow_cleanup.py",
-        "tools/product_ci_regression.py"
-      ],
-      "delete_paths": [
-        ".github/workflows/phase6-bridge-anti-regrowth.yml",
-        ".github/workflows/receiving-divider-broader-acceptance.yml",
-        ".github/workflows/receiving-fw-formed-occupation-red.yml",
-        ".github/workflows/receiving-ui-regression.yml"
-      ],
-      "record_fingerprint": "5380b0f3b516ede0899f2835f6e6c9445e244a68b18124ac93fbf7ca69205baf",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1066,
-      "generation": 14,
-      "record_fingerprint": "5380b0f3b516ede0899f2835f6e6c9445e244a68b18124ac93fbf7ca69205baf",
-      "lease_token": "lease:1066:36732032478:1",
-      "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1450Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1066-actions-minimal-ci-surface",
-      "expected_work_head": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
-      "expected_target_head": "1d3fc00d3bb3c586709836e872690516879b8875"
+      "display": "Merge PR #1067 exact accepted Issue #1066 candidate"
     }
   },
-  "purpose": "Reconcile exact Drive-root tested/frozen Issue #1066 Git candidate after verified readback.",
+  "purpose": "Consume existing exact-head terminal GREEN Product Regression for Issue #1066; do not dispatch duplicate QA.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
