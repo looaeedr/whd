@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "issue": 1066,
   "lane_id": "chatgpt.flowv2.work1",
@@ -39,9 +39,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Create exact tested Issue #1066 work branch after root freeze",
-    "kind": "START_BRANCH"
+    "args": {
+      "candidate_commit_sha": "7d1034f536d2897bd9768a14333738627940a3ab"
+    },
+    "display": "Apply exact tested Issue #1066 candidate commit",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -58,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
@@ -66,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
   "transaction": {
-    "expected_fingerprint": "e94fb8fc658f08202e4abc69c948ce9aa8c58ccd12db4450445f25facb2ec149",
-    "id": "gha:36722525244:1066:ACQUIRE:2",
+    "expected_fingerprint": "6b6f10528d6baab6d511f2ea9942e3b98a579331cf7e9f2987403582b5de5268",
+    "id": "gha:36723613165:1066:START_BRANCH:3",
     "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1333Z",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T13:34:03Z",
+  "updated_at": "2026-09-30T13:42:54Z",
   "version": 2,
   "work_branch": "governance/issue1066-actions-minimal-ci-surface"
 }
