@@ -1,44 +1,46 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1069,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.2",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "work_branch": "governance/issue1069-consume-qa-updated-at",
-  "head_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "872d95000539883636eeed86908882a6020da7f7",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1069"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "issue": 1069,
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": {
+    "expires_at": "2026-09-30T16:52:27Z",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1637Z",
+    "token": "lease:1069:36745513027:1"
+  },
+  "mutation_scope": {
+    "base_sha": "872d95000539883636eeed86908882a6020da7f7",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tools/control_transaction_production_executor.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create exact tested Issue #1069 work branch after Drive root freeze",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work2",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
@@ -48,5 +50,22 @@
       "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-09-30T16:36:30Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
+  "slot_id": "worker.slot.2",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "transaction": {
+    "expected_fingerprint": "7967aa49e8f89e7ca429d467873f6df10ed04fe9c53f6735657a1887f968e1b0",
+    "id": "gha:36745513027:1069:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1637Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-09-30T16:37:27Z",
+  "version": 2,
+  "work_branch": "governance/issue1069-consume-qa-updated-at"
 }
