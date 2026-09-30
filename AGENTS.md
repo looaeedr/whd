@@ -184,16 +184,19 @@ CURRENT machine owners：
 
 這不是降低防線，而是把 cutover 後不可達的 legacy Guard 要求改綁到 CURRENT 可執行且可 machine-readback 的 owners。缺任一 gate 即 `FAIL_CLOSED`。
 
-### 0.0.1 派工 Skill 實際執行硬閘門
+### 0.0.1 派工 / Subagent projection bridge
 
-當任務明確要求「派工」、使用 `.agents/skills/engineering/派工/SKILL.md`，或總控自行拆成 PM / Worker / QA 工單時，不能只在文字上宣稱已派工。總控必須驗收以下外顯證據，任一缺失即視為**未實際執行派工 Skill**：
+<!-- FLOW_V2_DISPATCH_PROJECTION_ONLY_V1 -->
 
-1. 回覆或 checkpoint 中明確出現派工狀態機標記：`[轉移至：實作者]`、`[當前角色：Tn 實作者]`、`[轉移至：總控審查]`、`[當前角色：總控審查]`。
-2. 每個工單有實體 checkpoint path；長任務另需 journal/state path，且 checkpoint 內容可讓下一回合不靠聊天記憶續工。
-3. checkpoint / journal 至少記錄 task id、工單 id、目前角色、已完成項、pending 項、failed/blocked 項、相關檔案、驗證命令與下一步 resume command。
-4. 若環境沒有真正背景 Subagent Runtime，執行者必須依派工 Skill 在同一工作上下文自動完成 PM → Worker → QA 角色切換，禁止回報「已派給其他人等待」。
-5. 總控不得接受只有口頭進度、無 checkpoint path、無 journal/state、無角色標記的 Subagent / Worker 回報；此類回報必須退回補落盤，或標記為不可續跑並重建證據。
-6. **同步遠端 QA 必須啟動 `monitoring-remote-qa`**：只要建立 GitHub Actions / remote QA run，就必須記錄本輪 `run_id + head_sha` 並持續監控至 terminal state；`queued`、`in_progress`、部分 step GREEN、或「workflow 已觸發」都不是停工點。紅燈先抓 logs 分類；GREEN 後才清 temp workflow、寫 durable state/provenance、關單。
+當任務明確要求「派工」、使用 `.agents/skills/engineering/派工/SKILL.md`，或將工作拆成 PM / Implementer / QA 視角時，**派工只擁有入口 routing 與 user-visible projection，不擁有第二套 execution state machine**。
+
+1. durable execution truth 唯一是 `WHD_EXECUTION_RECORD_V2`；owner、lease、generation、active_run、mutation_scope、next_action、closure 與 resume 都必須由 Flow v2 atomic transaction / readback 決定。
+2. GitHub-backed ticketed work 仍必須有真實 owning Issue；Issue 是工作實體/provenance，不是另一份 claim/checkpoint state machine。
+3. `[轉移至：實作者]`、PM / Implementer / QA、CHECKPOINT 等文字若需要顯示，只能是 observation/projection；缺少這些文字不得推翻有效 ExecutionRecord，也不得成為 ACQUIRE / QA / FINALIZE 的額外 prerequisite。
+4. 禁止再要求每票建立 execution-authority checkpoint path、journal/state 或 `RUNNING / WAITING_REMOTE / RECOVERING` 第二套狀態。領域測試、長 log、批次 runner 若本身需要 journal/checkpoint，可保留為**領域 evidence**，但不得授權 execution transition、turn exit 或 closure。
+5. 沒有真正背景 Subagent Runtime 時，由同一執行者依 Flow v2 structured `next_action` 繼續施工；不得回報「已派給其他人等待」。
+6. remote QA 由同一 ExecutionRecord 的 `active_run + qa` 欄位與 `monitoring-remote-qa` bridge 投影；已有 exact-head terminal GREEN 且符合 fast path 時優先 `CONSUME_QA`，不得恢復 legacy `REMOTE_QA_ACTIVE_LOCK` / checkpoint waiting machine。
+7. 派工、工作槽、排程模擬、issue closure 等入口只可 bridge 到 `.agents/skills/engineering/flow-v2-execution/SKILL.md`；任何新增 CURRENT 規則若重新指定 `派工`、checkpoint/journal、Remote Guard 或 `tools/continuity_controller.py` 為 execution owner，固定視為 anti-regrowth regression。
 
 ### DURABLE_TERMINAL_EXIT_HARD_GATE_V1
 

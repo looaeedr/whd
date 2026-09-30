@@ -775,6 +775,7 @@
         ".agents/skills/engineering/執行開發任務/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "執行開發任務"
       ],
       "required_references": []
@@ -1074,6 +1075,7 @@
         ".agents/skills/engineering/executable-continuity-controller/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "executable-continuity-controller"
       ],
       "required_references": []
@@ -1087,6 +1089,7 @@
         ".agents/skills/engineering/issue-closure-gate/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "issue-closure-gate"
       ],
       "required_references": []
@@ -1113,6 +1116,7 @@
         ".agents/skills/engineering/monitoring-remote-qa/**"
       ],
       "required_skills": [
+        "flow-v2-execution",
         "monitoring-remote-qa"
       ],
       "required_references": []

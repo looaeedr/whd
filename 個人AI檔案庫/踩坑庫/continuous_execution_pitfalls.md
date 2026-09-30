@@ -45,33 +45,19 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 
 以上是 reference guidance；CURRENT durable state、transition、resume 與 finalization 是否可通過，必須由 `WHD_EXECUTION_RECORD_V2`、atomic control transaction 與 `tools/execution_invocation_exit.py` 的實際 behavior 判定。legacy checkpoint 只作 migration evidence。
 
-## CHECKPOINT 可見層事故
+## Flow v2 可見進度 / recovery projection — CURRENT
 
-WHD 曾出現 durable checkpoint / resume contract 已存在，但只有內部流程責任、沒有 user-visible gate；結果長流程中的一般進度回報逐漸取代 CHECKPOINT，使用者長時間看不到可恢復狀態。這不是「checkpoint 不需要了」，而是可見層漏規則。
+過去曾用 `USER_VISIBLE_CHECKPOINT_GATE`、`CHECKPOINT_RESUME_CONTRACT`、`RUNNING / WAITING_REMOTE / RECOVERING` 等文件 marker 補 user-visible recovery。這些 marker 現在只屬歷史事故語彙，**不得再作 CURRENT execution contract**。
 
-永久規則：
+CURRENT 規則：
 
-- durable checkpoint 與 user-visible CHECKPOINT 是同一狀態的兩個責任層；只做內部 durable state 不算完成 checkpoint 呈現責任。
-- system hard-cut 前與重要 execution state transition 必須刷新固定標題 `CHECKPOINT`；一般 progress update 不得冒充或取代它。
-- 可見 CHECKPOINT 仍是 non-terminal observation / recovery surface；只要 next action 可自主執行，就必須在顯示 CHECKPOINT 後繼續，不得把 CHECKPOINT 變成停工點。
-- `.agents/skills/engineering/執行開發任務/SKILL.md` 的 `USER_VISIBLE_CHECKPOINT_GATE` 是唯一 canonical CHECKPOINT 呈現 authority；不得在其他 Skill 建第二套欄位、refresh 或 execution state machine。
-- 所有可獨立進入長流程的入口目前至少包含 `.agents/skills/engineering/派工/SKILL.md`、`.agents/skills/engineering/monitoring-remote-qa/SKILL.md`、`.agents/skills/engineering/issue-closure-gate/SKILL.md`，都必須以 `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE` 強制 bridge 回 canonical gate；入口 Skill 的 progress/polling/closure domain responsibility 不取代 CHECKPOINT 呈現責任。
-- `USER_VISIBLE_CHECKPOINT_GATE`、各 bridge 與 `tests/process/test_checkpoint_resume_contract.py` 只負責 presentation/routing regression coverage；它們不是 executable durable-state/finalization authority。
+- durable state 唯一來自 `WHD_EXECUTION_RECORD_V2`；visible progress / CHECKPOINT 只是 observation/projection，不能建立 lease、owner、resume、turn-exit 或 closure authority。
+- system/runtime 被切斷後，先 fresh-read ExecutionRecord、generation、lease、structured `next_action`、exact branch/HEAD 與 active_run；無 drift 直接續 exact action。
+- `派工`、`執行開發任務`、`monitoring-remote-qa`、`issue-closure-gate` 都是 `FLOW_V2_EXECUTION_BRIDGE_V1` MIRROR，不得互相指定對方為第二套 checkpoint/state owner。
+- remote QA exact `active_run/run_id/head_sha` 與 `POLL_QA / ACCEPT_QA / CONSUME_QA / FAIL_QA` 都存在同一 ExecutionRecord；已有可消費 terminal GREEN 時走 `CONSUME_QA` fast path。
+- `tests/process/test_checkpoint_resume_contract.py` 與 `tests/process/test_continuous_execution_durable_contract.py` 現在是**反向 anti-regrowth tests**：它們保證 legacy marker 不會被重新塞回 CURRENT/MIRROR entry skills。
 
-## Remote QA 邊界
-
-Remote QA 的入口由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` bridge 回 Flow v2；exact `active_run/run_id/head_sha` 與 `POLL_QA/ACCEPT_QA/FAIL_QA` 存在同一 ExecutionRecord。Durable wait/resume/finalization 不再由 legacy continuity controller 判定。
-
-## 相容性／回歸參考（非 executable enforcement）
-
-- `.agents/skills/engineering/執行開發任務/SKILL.md` → `NONTERMINAL_NEXT_ACTION_GATE` + canonical `USER_VISIBLE_CHECKPOINT_GATE`
-- `.agents/skills/engineering/派工/SKILL.md` → PM → Implementer 同工作流程轉移規則 + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
-- `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` → `REMOTE_QA_ACTIVE_LOCK` + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
-- `.agents/skills/engineering/issue-closure-gate/SKILL.md` → closure gate + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
-- `tests/process/test_checkpoint_resume_contract.py`
-- `tests/process/test_continuous_execution_durable_contract.py`
-
-上述 marker/string/tests 可證明文件與 routing 沒 drift；不能證明 runtime state 已保存、resume identity 正確或 non-terminal finalization 已被 machine 拒絕。
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 下游事故段若仍出現 legacy checkpoint / continuity-controller / WAITING_REMOTE_QA 名稱，只作 historical evidence；CURRENT machine behavior 以 Flow v2 ExecutionRecord + atomic control transaction + invocation-exit machine 為準。
 
 ## ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL
 
