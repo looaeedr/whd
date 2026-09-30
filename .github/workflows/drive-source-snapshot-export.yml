@@ -48,6 +48,7 @@ jobs:
           SNAPSHOT="whd-cleanup-2d-3d-sync-${SHORT}.zip"
           git archive --format=zip --output="$SNAPSHOT" HEAD
           python - <<'PY'
+          import hashlib
           import json
           import os
           import subprocess
@@ -56,6 +57,8 @@ jobs:
           sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
           tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
           snapshot = f"whd-cleanup-2d-3d-sync-{sha[:16]}.zip"
+          snapshot_sha256 = hashlib.sha256(Path(snapshot).read_bytes()).hexdigest()
+          artifact_name = f"whd-drive-source-{sha}"
           payload = {
               "schema": "WHD_DRIVE_SOURCE_EXPORT_V1",
               "repository": "looaeedr/whd",
@@ -63,9 +66,12 @@ jobs:
               "source_sha": sha,
               "tree_sha": tree,
               "snapshot_name": snapshot,
+              "snapshot_sha256": snapshot_sha256,
+              "artifact_name": artifact_name,
               "drive_destination_root": "/Google Drive/WHD/source",
               "drive_writeback_owner": "interactive root-local-first finalization",
               "github_run_id": os.environ.get("GITHUB_RUN_ID"),
+              "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
           }
           Path("WHD_DRIVE_SOURCE_EXPORT_V1.json").write_text(
               json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
