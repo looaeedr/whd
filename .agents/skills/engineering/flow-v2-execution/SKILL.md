@@ -153,6 +153,7 @@ QA / CI GREEN 只是驗證 checkpoint，**不是 physical return authority，也
 4. `YIELD` trusted transaction 必須先通過 invocation-exit classifier；因此 GREEN→MERGE 或 MERGE→FINALIZE 中間的 YIELD request 必須 fail closed。
 5. trusted MERGE executor 已負責把 `MERGE → FINALIZE` 在同一 workflow 內 drain；FINALIZE 必須 close Issue + fresh readback + RELEASE reservation/lease/owner 後才可成為 `DONE`。
 6. 唯一可中斷 terminal tail 的是 fresh machine evidence 形成的 genuine blocker；不得把 host boundary、聊天回合結束、CI GREEN 或 PR merged 當 blocker。
+7. `DONE` 是 execution terminal，不是 repository-content physical-cycle terminal。只要本票有 root workspace/diff，`FINALIZE → DONE` 後立刻交給 `assert_repository_content_cycle_complete`；`CONSUME_SOURCE_EXPORT → ARCHIVE_WORKSPACE_TO_DONE → DURABLE_CLEANUP_COMPLETE` 尚未完成時，不得對使用者宣稱整個施工 cycle 已完成。
 
 <!-- TERMINAL_GREEN_DRAIN_HARD_GATE_V1 -->
 
