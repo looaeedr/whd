@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
   "issue": 1069,
   "lane_id": "chatgpt.flowv2.work2",
@@ -32,15 +32,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
-      "pr_number": 1070,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge exact PR #1070",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -57,21 +51,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "872d95000539883636eeed86908882a6020da7f7",
+  "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
   "transaction": {
-    "expected_fingerprint": "39914a66cbeab65e134123f99ae0ed7242b2a93ba338048b61d74395229dbb11",
-    "id": "gha:36750771731:1069:ACCEPT_QA:9",
+    "expected_fingerprint": "50ffe702edc63970472e694f8974930c9464e98b24c4a35825490bbe897b0747",
+    "id": "gha:36750908077:1069:MERGE:10",
     "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T17:21:44Z",
+  "updated_at": "2026-09-30T17:23:03Z",
   "version": 2,
   "work_branch": "governance/issue1069-consume-qa-updated-at"
 }
