@@ -1,24 +1,29 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-reconcile-target-5",
+  "request_id": "issue1050-reserve-current-base-6",
   "issue": 1050,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1004Z",
-  "expected_coord_head": "6dc4bd09872af98a77e83514e789c1c1d424c6a0",
-  "expected_generation": 3,
+  "expected_coord_head": "ca71ecb908547fde77bf75752d3633274592b988",
+  "expected_generation": 4,
   "effect": {
-    "observed_work_branch": "work/receiving-ui-regression-issue1050",
-    "observed_head_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
-    "observed_target_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
-    "semantic_state": "TARGET_DRIFT_RECONCILED_BEFORE_BRANCH",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1050 work branch after root freeze"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+    "write_paths": [
+      "ae_engine/receiving_joint_marking.py",
+      "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+      "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
+      "tests/test_issue471_t6_receiving_marking_activation.py",
+      "tests/test_issue509_receiving_horizontal_marking.py",
+      "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED"
   },
-  "purpose": "Reconcile Issue #1050 stale pre-branch source/target identity to fresh cleanup production after #1056 target advance.",
+  "purpose": "Rebind Issue #1050 exact mutation scope to reconciled current production base.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
