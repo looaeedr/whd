@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-expand-reservation-11",
+  "request_id": "issue1066-expand-reservation-11b",
   "issue": 1066,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
@@ -13,9 +13,9 @@
     "write_paths": [
       ".github/workflows/whd-control-plane-regression.yml",
       ".github/workflows/whd-product-regression.yml",
+      "fold_designer_bridge.py",
       "tests/process/test_issue1063_actions_workflow_cleanup.py",
-      "tools/product_ci_regression.py",
-      "fold_designer_bridge.py"
+      "tools/product_ci_regression.py"
     ],
     "delete_paths": [
       ".github/workflows/phase6-bridge-anti-regrowth.yml",
