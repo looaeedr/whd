@@ -1,33 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-reserve-current-5",
+  "request_id": "issue1072-reconcile-target-a6851",
   "issue": 1072,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2318Z",
-  "expected_coord_head": "aa7addf25eb736f6b228d356615a0ab10f516922",
-  "expected_generation": 4,
+  "expected_coord_head": "cc3813b2b47745730df05f009cae97c068bcd7e7",
+  "expected_generation": 5,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
-    "write_paths": [
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-      "tests/process/test_issue899_push_transaction_ingress.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/control_transaction_request_ingress.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED",
+    "observed_work_branch": "governance/issue1072-decouple-root-evidence-generation",
+    "observed_head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "observed_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
+    "semantic_state": "TARGET_RECONCILED",
     "next_action": {
-      "kind": "ROOT_MUTATE",
+      "kind": "RESERVE_PATHS",
       "args": {
-        "workspace": "/Google Drive/WHD/work/active/issue-1072/6d76de59c06f"
+        "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2"
       },
-      "display": "Complete Issue #1072 Drive-root contract/test update"
+      "display": "Rebind Issue #1072 reservation to latest non-overlapping target"
     }
   },
-  "purpose": "Rebind Issue #1072 unchanged generation-decoupling candidate to current target and add the one stale root-gate identity test discovered by root full gate.",
+  "purpose": "Reconcile non-overlapping #1050 target advance; preserve #1072 Drive candidate unchanged and rebind only target/base identity.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
