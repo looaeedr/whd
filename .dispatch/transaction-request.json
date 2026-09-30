@@ -1,36 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-atomic-admission-2",
+  "request_id": "issue1050-reacquire-3",
   "issue": 1050,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T0455Z",
-  "expected_coord_head": "a1372495c946a99bfe4c5d4ae868e80b81349d40",
-  "expected_generation": 1,
-  "effect": {
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-      "write_paths": [
-        "ae_engine/receiving_joint_marking.py",
-        "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
-        "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
-        "tests/test_issue471_t6_receiving_marking_activation.py",
-        "tests/test_issue509_receiving_horizontal_marking.py",
-        "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
-      ],
-      "delete_paths": []
-    },
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1050 work branch after root freeze"
-    }
-  },
-  "purpose": "Issue #1050: fix Receiving Divider ↔ inner-door-frame upper-horizontal MARKING from canonical root-tested geometry.",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1004Z",
+  "expected_coord_head": "8005214cfe25ac985995181723db967f46940c68",
+  "expected_generation": 2,
+  "effect": {},
+  "purpose": "Resume Issue #1050 after expired lease; preserve current structured START_BRANCH continuation before target/scope reconciliation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
