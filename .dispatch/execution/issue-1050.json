@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
-    "id": 36787223232,
-    "purpose": "ISSUE1050_PRODUCT_REGRESSION",
-    "status": "queued"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 21,
+  "generation": 22,
   "head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
   "issue": 1050,
   "lane_id": "chatgpt.flowv2.work0",
@@ -48,11 +43,11 @@
   },
   "next_action": {
     "args": {
-      "run_id": 36787223232,
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "failed_test": "tests/test_issue510_receiving_back_panel_modes.py::test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_canonical_state",
+      "reason": "PRODUCT_REGRESSION_RED"
     },
-    "display": "Poll exact-head Product Regression for Issue #1050",
-    "kind": "POLL_RUN"
+    "display": "Return Issue #1050 to canonical root repair for dimensions=None regression",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -69,21 +64,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PRODUCT_REGRESSION_QA",
+  "semantic_state": "QA_FAILED_REPAIR",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "00942e01506943b2fa5417d4d027fdd9f33e193f",
-  "state": "VERIFYING",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
   "transaction": {
-    "expected_fingerprint": "c4de259243e90b7180835a3bb7c9a8e78d3b67016c1126b4f9073d79731f25b0",
-    "id": "gha:36787265864:1050:START_QA:20",
+    "expected_fingerprint": "885b0d4c9afe0750c1a819e3041d09468d3b5ce7757922a345eb00d381a614e4",
+    "id": "gha:36787832545:1050:FAIL_QA:21",
     "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-    "kind": "START_QA",
+    "kind": "FAIL_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T22:44:36Z",
+  "updated_at": "2026-09-30T22:50:40Z",
   "version": 2,
   "work_branch": "work/receiving-ui-regression-issue1050"
 }
