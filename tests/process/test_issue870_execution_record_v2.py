@@ -253,7 +253,11 @@ def test_terminal_successor_projects_exact_next_issue_and_chain_action():
     )
 
     assert record.state == "INTEGRATING"
-    assert record.next_action is None
+    assert record.next_action == ActionSpec(
+        kind="LEGACY_TEXT",
+        args={},
+        display="claim exact successor #845",
+    )
     assert record.chain == ChainState(
         parent_issue=842,
         next_issue=845,
@@ -325,6 +329,9 @@ def test_done_record_requires_closed_and_released_closure():
         state="DONE",
         next_action=None,
         lease=None,
+        owner_kind="NONE",
+        owner_id="NONE",
+        lane_id=None,
         closure={
             "merged_sha": "e" * 40,
             "issue_closed": True,

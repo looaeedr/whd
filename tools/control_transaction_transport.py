@@ -75,6 +75,8 @@ class ControlTransactionTransportRequest:
     expected_work_branch: str
     expected_head_sha: str
     expected_target_sha: str
+    expected_lease_token: str | None
+    expected_next_action_kind: str | None
     invocation_identity: str | None
     candidate_effect_digest: str
 
@@ -122,6 +124,8 @@ def build_transport_request(
         expected_work_branch=_text(plan.expected_work_branch, "expected_work_branch"),
         expected_head_sha=_sha(plan.expected_head_sha, "expected_head_sha"),
         expected_target_sha=_sha(plan.expected_target_sha, "expected_target_sha"),
+        expected_lease_token=_text(plan.expected_lease_token, "expected_lease_token", optional=True),
+        expected_next_action_kind=_text(plan.expected_next_action_kind, "expected_next_action_kind", optional=True),
         invocation_identity=_text(
             plan.invocation_identity, "invocation_identity", optional=True
         ),
@@ -173,6 +177,12 @@ def transport_request_from_payload(payload: object) -> ControlTransactionTranspo
         expected_head_sha=_sha(payload.get("expected_head_sha"), "expected_head_sha"),
         expected_target_sha=_sha(
             payload.get("expected_target_sha"), "expected_target_sha"
+        ),
+        expected_lease_token=_text(
+            payload.get("expected_lease_token"), "expected_lease_token", optional=True
+        ),
+        expected_next_action_kind=_text(
+            payload.get("expected_next_action_kind"), "expected_next_action_kind", optional=True
         ),
         invocation_identity=_text(
             payload.get("invocation_identity"), "invocation_identity", optional=True

@@ -55,7 +55,7 @@ def test_runtime_observability_is_non_authoritative():
     text = _skill()
     canonical = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
     assert "WHD_RUNTIME_OBSERVABILITY_V1" in canonical
-    assert "WAKE / PROGRESS / EXIT" in text
+    assert "WAKE / HEARTBEAT / PROGRESS / EXIT" in text
     assert "絕對不能反向授權施工" in text
 
 

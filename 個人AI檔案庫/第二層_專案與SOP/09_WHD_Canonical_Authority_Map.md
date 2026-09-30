@@ -38,6 +38,8 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=CURRENT path=tools/root_local_first_gate.py -->
 <!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=deterministic-repo-migration role=CURRENT path=.agents/skills/engineering/deterministic-repo-migration/SKILL.md -->
+<!-- WHD_AUTHORITY contract=process-test-classification role=CURRENT path=tests/process/WHD_PROCESS_TEST_CLASSIFICATION_V1.json -->
+<!-- WHD_AUTHORITY contract=x-independent-task-chain-governance role=HISTORICAL path=個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md -->
 <!-- WHD_AUTHORITY contract=post-integration-durability role=CURRENT path=tools/post_integration_durability.py -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->

@@ -68,6 +68,8 @@ def _plan_from_request(request: ControlTransactionTransportRequest) -> ControlTr
         expected_work_branch=request.expected_work_branch,
         expected_head_sha=request.expected_head_sha,
         expected_target_sha=request.expected_target_sha,
+        expected_lease_token=request.expected_lease_token,
+        expected_next_action_kind=request.expected_next_action_kind,
         invocation_identity=request.invocation_identity,
     )
 

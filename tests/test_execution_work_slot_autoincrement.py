@@ -58,10 +58,22 @@ def test_default_work0_routing_auto_increments_to_first_empty_slot():
 
 
 def test_done_record_does_not_block_its_slot():
+    base = _record(1001, "worker.slot.0")
     done = replace(
-        _record(1001, "worker.slot.0"),
+        base,
         state="DONE",
         semantic_state="DONE",
+        next_action=None,
+        owner_kind="NONE",
+        owner_id="NONE",
+        lane_id=None,
+        lease=None,
+        active_run=None,
+        closure=replace(
+            base.closure,
+            issue_closed=True,
+            released_at="2026-09-30T00:00:00Z",
+        ),
     )
     assert select_first_available_work_slot((done,)) == "worker.slot.0"
 

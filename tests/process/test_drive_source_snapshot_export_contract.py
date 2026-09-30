@@ -26,5 +26,7 @@ def test_export_workflow_does_not_claim_direct_drive_write_authority():
 def test_root_local_first_requires_post_integration_drive_refresh():
     text = SKILL.read_text(encoding="utf-8")
     assert "accepted integration" in text
-    assert "更新 Drive Current Source Manifest" in text
-    assert "STALE_BOOTSTRAP_BASE" in text
+    assert "CONSUME_SOURCE_EXPORT" in text
+    assert "ARCHIVE_WORKSPACE_TO_DONE" in text
+    assert "DURABLE_CLEANUP_COMPLETE" in text
+    assert "Current Source Manifest" in text

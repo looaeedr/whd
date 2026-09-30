@@ -247,5 +247,8 @@
       ],
       "subject": "remote Guard request, single-use receipt and readback bridge prose"
     }
-  ]
+  ],
+  "runtime_authority": false,
+  "snapshot_role": "HISTORICAL_PRE_FLOW_V2_CONTROL_PLANE_MATRIX",
+  "superseded_by": ".agents/skills/engineering/flow-v2-execution/SKILL.md"
 }

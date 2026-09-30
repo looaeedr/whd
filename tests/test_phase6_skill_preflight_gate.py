@@ -187,6 +187,7 @@ def test_skill_preflight_passes_only_with_skills_and_required_reference_evidence
                 "驗證板件與DXF",
                 "monitoring-remote-qa",
                 "root-local-first",
+                "flow-v2-execution",
                 "READ_REFERENCE: 個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
                 "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
                 "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",

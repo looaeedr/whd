@@ -291,10 +291,8 @@ def test_authority_map_routes_local_and_interactive_owners_uniquely():
     assert authority.count(
         "contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py"
     ) == 1
-    assert (
-        "Interactive heartbeat/liveness + exact provenance 已由 "
-        "`tools/interactive_runtime_liveness.py` 擁有"
-    ) in authority
+    assert "Executable CURRENT owner：`tools/interactive_runtime_liveness.py`" in authority
+    assert "claim_blob_sha` 在此只屬 liveness compatibility identity" in authority
 
 
 def test_scheduled_resume_keeps_scheduler_and_interactive_namespaces_distinct():
@@ -305,8 +303,11 @@ def test_scheduled_resume_keeps_scheduler_and_interactive_namespaces_distinct():
         / "第二層_專案與SOP"
         / "11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md"
     ).read_text(encoding="utf-8")
-    assert "`tools/scheduler_runtime_liveness.py`" in scheduled
-    assert "`tools/interactive_runtime_liveness.py`" in scheduled
-    assert "兩個獨立 namespace" in scheduled
-    assert "WHD_INTERACTIVE_RUNTIME_LIVENESS_V1" in scheduled
-    assert "WHD_INTERACTIVE_RUNTIME_END_V1" in scheduled
+    authority = (
+        root / "個人AI檔案庫" / "第二層_專案與SOP" / "09_WHD_Canonical_Authority_Map.md"
+    ).read_text(encoding="utf-8")
+    assert "tools/scheduler_runtime_liveness.py` 獨立擁有" in authority
+    assert "WHD_INTERACTIVE_RUNTIME_LIVENESS_V1" in authority
+    assert "WHD_INTERACTIVE_RUNTIME_END_V1" in authority
+    assert "Durable state是 `coord/execution-v2`" in scheduled
+    assert "Remote QA只追 record.active_run exact run/head" in scheduled
