@@ -1,24 +1,60 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-acquire-20260930T1650Z-retry2",
+  "request_id": "issue1050-start-branch-872d9500-gen15",
   "issue": 1050,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
-  "expected_coord_head": "ed579f35130e1ac4fab88713cf2147c171ca804e",
-  "expected_generation": 14,
-  "effect": {},
-  "purpose": "Renew Issue #1050 work0 lease after current-target root tests; retry same semantic ACQUIRE after retryable STALE_COORD_HEAD.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "expected_coord_head": "7d50bd1dbe50f24bafe1ae2c65b2a5068002f1d9",
+  "expected_generation": 15,
+  "effect": {
+    "work_branch": "work/receiving-ui-regression-issue1050",
+    "head_sha": "872d95000539883636eeed86908882a6020da7f7",
+    "semantic_state": "ROOT_TESTED_BRANCH_READY",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {},
+      "display": "Apply exact tested Issue #1050 7-file receiver marking diff"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
+      "diff_digest": "5dbc731b27d9070ac7da663c77ea669b0da4b5493add77a5d78b68a7440bc87e",
+      "issue": 1050,
+      "generation": 15,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "ae_engine/joint_marking_policy.py",
+        "ae_engine/receiving_joint_marking.py",
+        "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+        "phase6_final_scene_renderer.py",
+        "phase6_manufacturing_service.py",
+        "tests/test_issue1050_receiving_divider_frame_joint_marking.py",
+        "tests/test_issue1050_receiving_mother_plate_marking.py",
+        "tests/test_issue471_t6_receiving_marking_activation.py",
+        "tests/test_issue509_receiving_horizontal_marking.py",
+        "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "22cdeff160f8df57f8322c06bde80ed4ba4550e602a16f4472c71aceb8f3a02a",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1050,
+      "generation": 15,
+      "record_fingerprint": "22cdeff160f8df57f8322c06bde80ed4ba4550e602a16f4472c71aceb8f3a02a",
+      "lease_token": "lease:1050:36747382824:1",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1050.20260930T1650Z",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "work/receiving-ui-regression-issue1050",
+      "expected_work_head": "450a131b73e1e982fa0e21212c696f1e5dce1a7d",
+      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
+    }
+  },
+  "reuse_admission_session": true
 }
