@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - cleanup/2d-3d-sync
+      - coord/source-export-requests
   pull_request:
     branches:
       - cleanup/2d-3d-sync
@@ -25,17 +26,78 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: 取出 exact cleanup HEAD
+      - name: 取出 transport trigger
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
 
+      - name: 解析並驗證 exact cleanup source identity
+        id: resolve_source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_BRANCH=""
+          SOURCE_SHA=""
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF_NAME}" == "coord/source-export-requests" ]]; then
+            REQUEST_PATH=".dispatch/source-export-request.json"
+            test -f "${REQUEST_PATH}" || { echo "SOURCE_EXPORT_REQUEST_MISSING" >&2; exit 1; }
+            mapfile -t REQUEST_VALUES < <(python - <<'PY_REQUEST'
+          import json
+          import re
+          from pathlib import Path
+
+          path = Path(".dispatch/source-export-request.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          if data.get("schema") != "WHD_SOURCE_EXPORT_REQUEST_V1":
+              raise SystemExit("SOURCE_EXPORT_REQUEST_SCHEMA_INVALID")
+          if data.get("version") != 1:
+              raise SystemExit("SOURCE_EXPORT_REQUEST_VERSION_INVALID")
+          branch = str(data.get("source_branch") or "").strip()
+          sha = str(data.get("source_sha") or "").strip().lower()
+          if branch != "cleanup/2d-3d-sync":
+              raise SystemExit("SOURCE_EXPORT_REQUEST_BRANCH_INVALID")
+          if not re.fullmatch(r"[0-9a-f]{40}", sha):
+              raise SystemExit("SOURCE_EXPORT_REQUEST_SHA_INVALID")
+          print(branch)
+          print(sha)
+          PY_REQUEST
+            )
+            SOURCE_BRANCH="${REQUEST_VALUES[0]}"
+            SOURCE_SHA="${REQUEST_VALUES[1]}"
+            git fetch --no-tags origin "+refs/heads/${SOURCE_BRANCH}:refs/remotes/origin/${SOURCE_BRANCH}"
+            git cat-file -e "${SOURCE_SHA}^{commit}" || { echo "SOURCE_EXPORT_REQUEST_SHA_NOT_FOUND=${SOURCE_SHA}" >&2; exit 1; }
+            git merge-base --is-ancestor "${SOURCE_SHA}" "refs/remotes/origin/${SOURCE_BRANCH}" || {
+              echo "SOURCE_EXPORT_REQUEST_SHA_NOT_REACHABLE=${SOURCE_SHA}" >&2
+              exit 1
+            }
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            SOURCE_BRANCH="${{ github.event.pull_request.base.ref }}"
+            SOURCE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          else
+            SOURCE_BRANCH="${GITHUB_REF_NAME}"
+            SOURCE_SHA="${GITHUB_SHA}"
+          fi
+
+          test "${SOURCE_BRANCH}" = "cleanup/2d-3d-sync" || {
+            echo "SOURCE_EXPORT_WRONG_BRANCH=${SOURCE_BRANCH}" >&2
+            exit 1
+          }
+          echo "source_branch=${SOURCE_BRANCH}" >> "${GITHUB_OUTPUT}"
+          echo "source_sha=${SOURCE_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: 取出 exact requested cleanup source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.resolve_source.outputs.source_sha }}
+
       - name: 驗證來源 branch 與 commit identity
         shell: bash
         env:
-          EXPECTED_BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
-          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
+          EXPECTED_BRANCH: ${{ steps.resolve_source.outputs.source_branch }}
+          EXPECTED_SHA: ${{ steps.resolve_source.outputs.source_sha }}
         run: |
           set -euo pipefail
           test "${EXPECTED_BRANCH}" = "cleanup/2d-3d-sync" || {
@@ -92,7 +154,7 @@ jobs:
       - name: 上傳 durable export artifact
         uses: actions/upload-artifact@v4
         with:
-          name: whd-drive-source-${{ github.sha }}
+          name: whd-drive-source-${{ steps.resolve_source.outputs.source_sha }}
           path: |
             whd-cleanup-2d-3d-sync-*.zip
             WHD_DRIVE_SOURCE_EXPORT_V1.json
