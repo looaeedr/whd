@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-rebind-a6851",
+  "request_id": "issue1072-rebind-a6851-retry",
   "issue": 1072,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20260930T2318Z",
-  "expected_coord_head": "e8888838298af82ac704f75836fa28e8fe2f4261",
+  "expected_coord_head": "ebc70862e16674884e0303d7f9581e477ef77b05",
   "expected_generation": 6,
   "effect": {
     "target_branch": "cleanup/2d-3d-sync",
@@ -27,7 +27,7 @@
       "display": "Verify unchanged Issue #1072 Drive candidate on latest target"
     }
   },
-  "purpose": "Rebind unchanged five-path Issue #1072 candidate to latest non-overlapping cleanup target.",
+  "purpose": "Retry unchanged Issue #1072 five-path reservation rebind after unrelated coord CAS churn.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
