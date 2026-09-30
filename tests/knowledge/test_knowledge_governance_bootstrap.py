@@ -231,3 +231,15 @@ def test_frozen_inventory_file_exists_and_names_its_source_head() -> None:
     assert '"schema": "WHD_KNOWLEDGE_INVENTORY_V1"' in text
     assert '"source_head":' in text
     assert '"content_sha256":' in text
+
+def test_update_directory_is_governed_and_inventory_scope_declares_it(tmp_path: Path) -> None:
+    governance = _load_governance()
+    assert governance.is_governed_markdown("UPDATE/AGENTS.md") is True
+
+    update = tmp_path / "UPDATE" / "AGENTS.md"
+    update.parent.mkdir(parents=True)
+    update.write_text(_reference_doc("agent-startup-process"), encoding="utf-8")
+    inventory = governance.build_inventory(tmp_path, source_head="fixture")
+    assert "UPDATE/**/*.md" in inventory["governed_scope"]
+    assert any(row["path"] == "UPDATE/AGENTS.md" for row in inventory["rows"])
+
