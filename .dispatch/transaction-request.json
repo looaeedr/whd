@@ -1,15 +1,17 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1069-apply-frozen-gen7-8",
+  "request_id": "issue1069-reconcile-already-applied-diff-8",
   "issue": 1069,
-  "kind": "APPLY_COMMIT",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
   "expected_coord_head": "622cb361e2a602351b3acf75da361fd0888d5533",
   "expected_generation": 7,
   "reuse_admission_session": true,
   "effect": {
-    "head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "observed_work_branch": "governance/issue1069-consume-qa-updated-at",
+    "observed_head_sha": "a33d8d9428026de71fe649ef25111f586e2fa445",
+    "observed_target_sha": "872d95000539883636eeed86908882a6020da7f7",
     "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
     "next_action": {
       "kind": "START_QA",
@@ -17,35 +19,7 @@
         "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
       "display": "Run exact-head WHD Control Plane Regression for Issue #1069"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "872d95000539883636eeed86908882a6020da7f7",
-      "diff_digest": "cdc0ab39b5e9c34b3a75d9d9b5fc4fc1c8689f6df13125dffa29f0a33dca5c91",
-      "issue": 1069,
-      "generation": 7,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tools/control_transaction_production_executor.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "2368a8d189cb0d75751072b5c4ef75074fa018ddae7b5c523be37e045ca2f2a2",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1069,
-      "generation": 7,
-      "record_fingerprint": "2368a8d189cb0d75751072b5c4ef75074fa018ddae7b5c523be37e045ca2f2a2",
-      "lease_token": "lease:1069:36749620227:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1069.20260930T1711Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1069-consume-qa-updated-at",
-      "expected_work_head": "a33d8d9428026de71fe649ef25111f586e2fa445",
-      "expected_target_head": "872d95000539883636eeed86908882a6020da7f7"
     }
-  }
+  },
+  "purpose": "Reconcile already-applied exact Drive-frozen Git side effect. Live work-branch blobs exactly match frozen Drive candidate; do not repeat APPLY_COMMIT."
 }
