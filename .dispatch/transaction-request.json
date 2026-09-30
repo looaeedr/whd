@@ -1,34 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-renew-repair-session-23",
+  "request_id": "issue1050-reconcile-repair-target-24",
   "issue": 1050,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "a9fd334b11c670ab038a04aff2dfa5fb051a7696",
-  "expected_generation": 22,
+  "expected_coord_head": "d29496d4ee2a087893a01370b0fe02c78dfc2e26",
+  "expected_generation": 23,
   "effect": {
-    "lease": {
-      "token": "lease:1050:repair:23",
-      "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-      "expires_at": "2026-09-30T23:48:00Z"
-    },
-    "observed_at": "2026-09-30T23:08:00Z",
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.0",
+    "observed_work_branch": "work/receiving-ui-regression-issue1050",
+    "observed_head_sha": "55a3c82cee91ccb2f2d0e0ee5daec445c2f16e8e",
+    "observed_target_sha": "6d76de59c06fc9aab889b2a5c2446f3544bc4b7b",
+    "semantic_state": "ROOT_REPAIR_TESTED_TARGET_RECONCILED",
     "next_action": {
-      "kind": "RECONCILE",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "failed_test": "tests/test_issue510_receiving_back_panel_modes.py::test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_canonical_state",
-        "reason": "PRODUCT_REGRESSION_RED"
+        "reason": "ROOT_REPAIR_TESTED",
+        "repair_path": "ae_engine/receiving_joint_marking.py"
       },
-      "display": "Return Issue #1050 to canonical root repair for dimensions=None regression"
-    },
-    "semantic_state": "QA_FAILED_REPAIR"
+      "display": "Apply exact root-tested dimensions=None repair to Issue #1050 work branch"
+    }
   },
-  "purpose": "Renew expired Issue #1050 interactive repair session without changing continuation.",
+  "purpose": "Reconcile non-overlapping production drift after root-tested Issue #1050 repair.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
