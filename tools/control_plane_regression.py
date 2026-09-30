@@ -60,8 +60,7 @@ PYTEST_PATHS = (
     "tests/process/test_root_local_first_entry_hard_gate.py",
     "tests/process/test_issue1022_root_ci_parity.py",
     "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py",
-    "tests/knowledge/test_knowledge_authority_contract.py",
-    "tests/knowledge/test_active_skill_runtime_contract.py",
+    "tests/knowledge",
 )
 
 

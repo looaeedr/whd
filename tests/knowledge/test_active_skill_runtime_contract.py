@@ -131,3 +131,28 @@ def test_catalog_active_classification_does_not_promote_mirror_skill_to_semantic
         assert "whd_doc_role: MIRROR" in text
         assert "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in text
 
+def test_flow_v2_mirror_bridge_policy_is_explicit_and_cannot_own_second_state_machine() -> None:
+    rules = (ROOT / "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md").read_text(encoding="utf-8")
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in rules
+    assert "狹窄的入口專屬 routing / projection / user-visible contract" in rules
+    assert "不得定義第二套 execution state" in rules
+
+    bridge_paths = {
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md",
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+        ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+        ".agents/skills/engineering/強制接手/SKILL.md",
+        ".agents/skills/engineering/執行開發任務/SKILL.md",
+        ".agents/skills/engineering/寫排程/SKILL.md",
+    }
+    for rel in bridge_paths:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        assert "whd_doc_role: MIRROR" in text, rel
+        assert "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in text, rel
+        assert "FLOW_V2_EXECUTION_BRIDGE_V1" in text, rel
+        assert "不擁有 execution state machine" in text, rel
+

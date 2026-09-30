@@ -202,6 +202,7 @@ Regression：`tests/process/test_issue739_write_auto_consume.py`。
 合法 Remote Guard 綁 historical claim blob H0 後，direct-child commit H1 在 receipt window 內落盤；但另一個同-owner coordination write先更新 remote-QA/evidence/next_action，造成 current claim blob改變而 claim HEAD仍是 H0。ordinary post-commit reconciliation正確要求 receipt claim blob == current blob，因此無法消耗原 commit；直接忽略 blob mismatch會讓 stale receipt跨 authority變更重播。
 
 ### 永久防線
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 只允許 `WHD_INTERVENING_COORD_POSTCOMMIT_RECONCILE_V1` 窄 recovery：
 
@@ -226,6 +227,7 @@ Canonical owner：`tools/execution_claim_guard.py`；trusted transport：`.githu
 實際 GitHub `git/blob` API 的 `content` 是合法 base64 bytes，但 transport 可含換行／ASCII whitespace；舊 decoder 直接把原始字串送進 `base64.b64decode(..., validate=True)`，因此把合法 line wrapping 誤判成 corruption。
 
 ### 永久防線
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 1. transport normalization 僅移除 ASCII whitespace：SP / HT / CR / LF / VT / FF。
 2. normalization 後仍用 `validate=True`；禁止切回 permissive base64 decode。
@@ -238,6 +240,7 @@ Canonical owner：`tools/execution_claim_guard.py::_historical_claim_payload_fro
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
 ## Mutating toolcall crash-recovery canonical invariant
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 - Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.

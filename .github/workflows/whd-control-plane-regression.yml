@@ -6,6 +6,19 @@ on:
       - main
       - cleanup/2d-3d-sync
     paths:
+      - '.agents/skills/skill_registry.json'
+      - '.agents/skills/skill_catalog.json'
+      - '.agents/skills/**/*.md'
+      - '.agents/contracts/**/*.json'
+      - '個人AI檔案庫/**/*.md'
+      - 'docs/governance/**/*.md'
+      - 'docs/specs/**/*.md'
+      - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
+      - 'docs/superpowers/verification/knowledge_authority_classification_v1.json'
+      - 'UPDATE/**/*.md'
+      - 'tests/knowledge/**'
+      - 'tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py'
+      - 'tools/knowledge_governance.py'
       - '.agents/skills/engineering/排程模擬/SKILL.md'
       - 'tests/process/test_root_local_first_entry_hard_gate.py'
       - 'tests/process/test_issue1022_root_ci_parity.py'

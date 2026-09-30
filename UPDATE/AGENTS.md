@@ -1,3 +1,14 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: agent-startup-process
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
+> **[HISTORICAL / SUPERSEDED AGENT STARTUP COPY]**
+> 這是舊 UPDATE 目錄快照，不參與 current routing。任何 local `state.json`、checkpoint/journal、PM→Worker→QA 或舊 startup hard gate 敘述只作歷史 evidence。
+> CURRENT startup authority 唯一是 repository root `AGENTS.md`，execution authority 唯一是 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。不得由檔名 `AGENTS.md` 或搜尋命中把本檔升格。
+
 # WHD 板金展開自動化系統
 
 ## AI 開發交接總覽

@@ -103,8 +103,9 @@ def test_t5_authority_map_rows_support_multiple_contracts_per_path() -> None:
     rows = resolver.parse_authority_map(AUTHORITY_MAP)
     monitoring = rows[".agents/skills/engineering/monitoring-remote-qa/SKILL.md"]
     assert len(monitoring) == 1
-    assert monitoring[0]["role"] == "CURRENT"
+    assert monitoring[0]["role"] == "MIRROR"
     assert monitoring[0]["contract"] == "remote-qa-monitoring"
+    assert monitoring[0]["canonical"] == ".agents/skills/engineering/flow-v2-execution/SKILL.md"
     assert monitoring[0]["evidence"]["type"] == "canonical_authority_map"
     assert {row["contract"] for row in rows["AGENTS.md"]} == {
         "agent-startup-process",

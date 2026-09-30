@@ -79,6 +79,7 @@ WHD 曾發生以下錯誤流程：
 4. bare `assert_finalizable` 只驗 state terminal，不能證明 owning identity，也不能證明 closure boundary 真的執行過 guard。
 
 ### 永久 fail-closed 規則
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 - Canonical executable owner：`tools/continuity_controller.py`。
 - `assert_finalizable` 僅為 state-only predicate；不得當 issue/workflow closure authorization。
@@ -117,6 +118,7 @@ Registry route：
 leaf/child Issue 已 `closed/completed`、自己的 checkpoint 也 terminal，不代表 assistant turn 可結束。只要 Master 還有 required open child 且 next child 可自主執行，child close 後直接回 final 就是 process-state 停工。
 
 ### 永久規則
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 - child close 前後 fresh-read parent/Master 與 next dependency；
 - terminal child checkpoint 必須帶 structured chain handoff；
@@ -134,6 +136,7 @@ Executable owner：`tools/continuity_controller.py`；regression：`tests/proces
 2026-09-15 分支整理曾使用「已是 X ancestor + 非 OPEN PR head」作安全刪除條件。這個條件仍然不完整：它只保護 OPEN PR 的 `head.ref`，漏掉 `base.ref`。結果四張仍 OPEN 的 PR 保留 head branch，但 base branch 被 cleanup 刪除；之後只能依 PR metadata 記錄的 exact base SHA 原樣恢復 refs。
 
 ### 永久規則
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 - OPEN PR 是雙端 ref contract：**`head.ref` 與 `base.ref` 都是 protected refs**。
 - branch 已 merged、已是 X ancestor、對應 issue 已 CLOSED/completed、或名稱看似 QA/runner，都不足以覆蓋 OPEN PR ref protection。
@@ -169,6 +172,7 @@ Repair 只是恢復 closure transaction 的可執行狀態；它不代表 Issue 
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
 ## Mutating toolcall crash-recovery canonical invariant
+> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本段以下 legacy imperative 只作歷史 evidence；CURRENT authority 是 `flow-v2-execution` + native `WHD_EXECUTION_RECORD_V2`，不得單獨擷取後升格。
 
 - Mutating work must persist an operation identity before the side effect and recover from durable readback before any ordinary next action after re-entry.
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.

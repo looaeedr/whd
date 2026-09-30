@@ -144,3 +144,51 @@ def test_skill_catalog_canonical_classification_is_routing_not_semantic_current(
     assert policy["canonical_classification_does_not_imply_doc_role_current"] is True
     assert policy["active_mirror_skill_allowed"] is True
 
+def test_legacy_scheduler_and_update_docs_are_locally_fenced_from_current_execution() -> None:
+    scheduler = _read("docs/governance/whd_scheduler_takeover_usage.md")
+    spec = _read("docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md")
+    update_agents = _read("UPDATE/AGENTS.md")
+
+    assert "whd_doc_role: HISTORICAL" in scheduler
+    assert "HISTORICAL / SUPERSEDED EXECUTION PROCEDURE — FLOW V2" in scheduler
+    assert "Chunk-local rule" in scheduler
+
+    assert spec.startswith("---\n")
+    assert "whd_doc_role: HISTORICAL" in spec
+    assert "HISTORICAL / SUPERSEDED EXECUTION SPEC — FLOW V2" in spec
+    assert "Chunk-local rule" in spec
+
+    assert update_agents.startswith("---\n")
+    assert "whd_doc_role: HISTORICAL" in update_agents
+    assert "HISTORICAL / SUPERSEDED AGENT STARTUP COPY" in update_agents
+    assert "CURRENT startup authority 唯一是 repository root `AGENTS.md`" in update_agents
+
+
+def test_control_plane_workflow_watches_semantic_authority_surfaces() -> None:
+    workflow = _read(".github/workflows/whd-control-plane-regression.yml")
+    for token in (
+        ".agents/skills/skill_registry.json",
+        ".agents/skills/skill_catalog.json",
+        "個人AI檔案庫/**/*.md",
+        "docs/governance/**/*.md",
+        "docs/specs/**/*.md",
+        "UPDATE/**/*.md",
+        "tests/knowledge/**",
+        "tools/knowledge_governance.py",
+    ):
+        assert token in workflow
+
+
+def test_frozen_knowledge_snapshots_cannot_masquerade_as_runtime_authority() -> None:
+    for path in (
+        "docs/superpowers/verification/knowledge_governance_inventory_v1.json",
+        "docs/superpowers/verification/knowledge_authority_classification_v1.json",
+    ):
+        payload = json.loads(_read(path))
+        assert payload["runtime_authority"] is False
+        assert payload["snapshot_role"] in {
+            "BOOTSTRAP_FREEZE_BASELINE",
+            "HISTORICAL_CLASSIFICATION_FREEZE",
+        }
+        assert "intentionally historical" in payload["snapshot_note"]
+

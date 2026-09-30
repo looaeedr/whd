@@ -1,3 +1,14 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: legacy-guard-transaction-spec
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
+> **[HISTORICAL / SUPERSEDED EXECUTION SPEC — FLOW V2]**
+> 本檔完整保留 2026-09-25 Guard Transaction / helper / stale-takeover 設計作 provenance。正文中的「硬閘門」「必須」「canonical」「其餘規則不變」只描述當時方案，**不得作 CURRENT execution authority**。CURRENT authority 固定為 `.agents/skills/engineering/flow-v2-execution/SKILL.md` + `WHD_EXECUTION_RECORD_V2` + atomic control transaction。
+> **Chunk-local rule**：即使 retrieval 只命中正文中段，也不得把 Remote Guard、claim、checkpoint、helper takeover 或 duplicate GREEN 規則升格為現行流程。
+
 # WHD 排程 Guard Transaction 與 Delegated/Helper Stale-Takeover 硬閘門規格
 日期：2026-09-25  
 狀態：Draft for implementation  
