@@ -1,26 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1066-reconcile-final-root-freeze-13",
+  "request_id": "issue1066-apply-drive-freeze-14",
   "issue": 1066,
-  "kind": "RECONCILE",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1066.20260930T1421Z",
-  "expected_coord_head": "f0168c04710799f63e6690a2c8d55b90d04f3626",
-  "expected_generation": 12,
+  "expected_coord_head": "f2e902ccd9b2b1ef98d8cd3c3f14620db0eefa35",
+  "expected_generation": 13,
   "effect": {
-    "observed_work_branch": "governance/issue1066-actions-minimal-ci-surface",
-    "observed_head_sha": "04e4ad018a5aef908712cd240f7c0c32eff3cb28",
-    "observed_target_sha": "1d3fc00d3bb3c586709836e872690516879b8875",
-    "semantic_state": "ROOT_DIFF_FROZEN",
+    "head_sha": "036080e2e3a4bc38096a337c5532b72675a792d3",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml",
         "diff_digest": "bffe2d28680511f101aee1f5d4af7c3136e4cc2ce8e46e39a17326d6b546851d"
       },
-      "display": "Apply final Drive-root tested Issue #1066 diff"
+      "display": "Run exact-head Product Regression for Issue #1066"
     }
   },
-  "purpose": "Bind Issue #1066 to the final Drive-root tested frozen diff before the only remaining Git content write.",
+  "purpose": "Apply exact Drive-root tested/frozen Issue #1066 candidate. Final tree matches canonical Drive manifest bffe2d2868...; no GitHub-side development.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
