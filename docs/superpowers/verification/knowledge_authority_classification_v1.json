@@ -9849,5 +9849,14 @@
     }
   ],
   "schema": "WHD_KNOWLEDGE_CLASSIFICATION_V1",
-  "source_head": "f01a6f085e4c65cb14b6e516a6f288530d391aaa"
+  "source_head": "f01a6f085e4c65cb14b6e516a6f288530d391aaa",
+  "snapshot_role": "HISTORICAL_CLASSIFICATION_FREEZE",
+  "runtime_authority": false,
+  "live_authority": [
+    "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+    "WHD_DOC_META_V1 frontmatter on the live file",
+    ".agents/skills/skill_registry.json",
+    ".agents/skills/skill_catalog.json"
+  ],
+  "snapshot_note": "This artifact is frozen migration/bootstrap evidence. source_head is intentionally historical and must not be interpreted as live role/routing truth."
 }
