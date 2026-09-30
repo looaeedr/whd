@@ -16,6 +16,8 @@ WORKSPACE_ARCHIVE_RECEIPT_SCHEMA = "WHD_WORKSPACE_ARCHIVE_RECEIPT_V1"
 ACTIVE_PREFIX = "/Google Drive/WHD/work/active"
 DONE_PREFIX = "/Google Drive/WHD/work/done"
 SNAPSHOT_PREFIX = "/Google Drive/WHD/source/snapshots"
+ROOT_LOCAL_GATE_PATH = "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
+ROOT_LOCAL_GATE_FILE_ID = "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
 
 
 def _mapping(value: object, label: str) -> Mapping[str, object]:
@@ -65,6 +67,11 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("done workspace prefix mismatch")
     if item.get("snapshot_prefix") != SNAPSHOT_PREFIX:
         raise ValueError("snapshot prefix mismatch")
+    pointer = _mapping(item.get("root_local_gate_pointer"), "root_local_gate_pointer")
+    if pointer.get("path") != ROOT_LOCAL_GATE_PATH or pointer.get("file_id") != ROOT_LOCAL_GATE_FILE_ID:
+        raise ValueError("root-local gate pointer mismatch")
+    if item.get("physical_cycle_completion_guard") != "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete":
+        raise ValueError("physical cycle completion guard mismatch")
     return {str(k): v for k, v in item.items()}
 
 
@@ -145,6 +152,8 @@ def build_manifest_complete_patch(receipt: object) -> dict[str, object]:
         "post_integration_export_artifact_digest": artifact_digest,
         "durable_snapshot_sha256": snapshot_sha256,
         "durable_snapshot_readback": "VERIFIED",
+        "root_local_gate_json_path": ROOT_LOCAL_GATE_PATH,
+        "root_local_gate_json_file_id": ROOT_LOCAL_GATE_FILE_ID,
     }
 
 
@@ -195,6 +204,10 @@ def validate_completed_source_manifest(manifest: object) -> dict[str, object]:
         raise ValueError("manifest durable snapshot file_id missing")
     if not str(item.get("durable_snapshot_name") or "").strip():
         raise ValueError("manifest durable snapshot name missing")
+    if str(item.get("root_local_gate_json_path") or "").strip() != ROOT_LOCAL_GATE_PATH:
+        raise ValueError("manifest root-local gate path is stale")
+    if str(item.get("root_local_gate_json_file_id") or "").strip() != ROOT_LOCAL_GATE_FILE_ID:
+        raise ValueError("manifest root-local gate file id is stale")
     return {str(k): v for k, v in item.items()}
 
 
