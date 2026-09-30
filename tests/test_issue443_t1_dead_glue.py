@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import subprocess
 from pathlib import Path
 
 BRIDGE = Path("fold_designer_bridge.py")
@@ -14,12 +13,9 @@ TARGETS = {
 
 
 def _tracked_python_paths() -> list[Path]:
-    raw = subprocess.check_output(["git", "ls-files", "-z", "*.py"])
-    paths = [
-        Path(item.decode("utf-8", "surrogateescape"))
-        for item in raw.split(b"\0")
-        if item
-    ]
+    # Root-local-first workspaces are intentionally not Git checkouts. Inventory
+    # the current source tree directly and keep the same BACKUP exclusion.
+    paths = [path for path in Path(".").rglob("*.py") if path.is_file()]
     return [path for path in paths if not (path.parts and path.parts[0] == "BACKUP")]
 
 

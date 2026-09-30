@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,16 +58,15 @@ def test_to_tickets_must_fail_closed_before_red_approval():
         assert required in text
 
 
-def test_dispatching_pm_cannot_bypass_to_tickets_red_gate():
-    text = _text(DISPATCHING)
-    assert ".agents/skills/engineering/拆解任務工單/SKILL.md" in text
-    for required in (
-        "RED-first",
-        "使用者核准",
-        "不得拆解工單",
-        "不得轉移至：實作者",
-    ):
-        assert required in text
+def test_ticket_decomposition_is_explicit_and_dispatch_cannot_own_a_second_decomposition_machine():
+    dispatch = _text(DISPATCHING)
+    registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
+    route = next(item for item in registry["routes"] if item["id"] == "explicit-skill-拆解任務工單")
+    assert route["required_skills"] == ["拆解任務工單"]
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in dispatch
+    assert "不擁有 execution state machine" in dispatch
+    assert "tools/execution_dispatch_ingress.py" in dispatch
+    assert "explicit READY ingress" in dispatch
 
 
 def test_to_tickets_does_not_invent_repair_ticket_when_red_is_already_green():

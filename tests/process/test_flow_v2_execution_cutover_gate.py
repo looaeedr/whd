@@ -212,6 +212,9 @@ def test_done_record_does_not_require_legacy_shadow():
         semantic_state="TERMINAL_SUCCESS",
         next_action=None,
         lease=None,
+        owner_kind="NONE",
+        owner_id="NONE",
+        lane_id=None,
         slot_id="worker.slot.2",
         closure=replace(active.closure, issue_closed=True, released_at="2026-09-28T03:00:00Z"),
     )

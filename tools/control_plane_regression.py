@@ -34,7 +34,7 @@ COMPILE_PATHS = (
     "tools/control_plane_regression.py",
 )
 
-PYTEST_PATHS = (
+STATIC_PYTEST_PATHS = (
     "tests/process/test_flow_v2_execution_invocation_exit.py",
     "tests/process/test_flow_v2_execution_scheduler_view.py",
     "tests/process/test_flow_v2_merge_precheck.py",
@@ -67,8 +67,25 @@ PYTEST_PATHS = (
     "tests/process/test_issue1049_flow_v2_anti_regrowth_v3.py",
     "tests/process/test_issue1056_flow_v2_anti_regrowth_v4.py",
     "tests/process/test_issue1045_post_integration_durability.py",
+    "tests/process/test_issue1059_flow_v2_anti_regrowth_v5.py",
+    "tests/test_dispatching_skill_timeout_contract.py",
+    "tests/test_execution_work_slot_autoincrement.py",
+    "tests/test_dm5_deep_module_writeback_contract.py",
+    "tests/test_issue443_t1_dead_glue.py",
+    "tests/test_issue_closure_completion_skill_contract.py",
+    "tests/test_phase6_skill_preflight_gate.py",
+    "tests/test_remote_qa_monitoring_skill_contract.py",
+    "tests/test_to_tickets_red_first_contract.py",
     "tests/knowledge",
 )
+
+FLOW_V2_PYTEST_PATHS = tuple(
+    sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tests/process").glob("test_flow_v2_*.py")
+    )
+)
+PYTEST_PATHS = tuple(dict.fromkeys((*FLOW_V2_PYTEST_PATHS, *STATIC_PYTEST_PATHS)))
 
 
 def run() -> int:

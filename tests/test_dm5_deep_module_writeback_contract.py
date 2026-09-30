@@ -6,14 +6,16 @@ def test_dm5_scan_to_implementation_handoff_contract_is_documented():
     tickets = Path(".agents/skills/engineering/拆解任務工單/SKILL.md").read_text(encoding="utf-8")
     dispatch = Path(".agents/skills/engineering/派工/SKILL.md").read_text(encoding="utf-8")
 
-    for text in (scan, tickets, dispatch):
+    for text in (scan, tickets):
         assert "GitHub owning Issue" in text
         assert "AI Library Writeback owner" in text
         assert "Combined Acceptance owner" in text
 
     assert "掃描報告不是工單" in scan
     assert "掃描深模組" in tickets
-    assert "掃描深模組" in dispatch
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in dispatch
+    assert "Flow v2 ExecutionRecord" in dispatch
+    assert "不擁有 execution state machine" in dispatch
 
 
 def test_dm5_divider_physical_geometry_contract_is_written_back():

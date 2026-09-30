@@ -813,9 +813,29 @@ def execution_record_from_legacy(
 
     # Legacy terminal-success means the work may be ready for finalization, not
     # that the Issue is already closed/released. V2 only enters DONE when those
-    # facts are explicit in durable evidence.
+    # facts are explicit in durable evidence.  Current V2 also forbids passive
+    # INTEGRATING records, so a terminal legacy projection must carry one exact
+    # executable continuation instead of becoming a durable zombie.
     if state == "DONE" and not (closure.issue_closed and closure.released_at):
         state = "INTEGRATING"
+    if state == "INTEGRATING" and current_action is None:
+        current_action = chain_next or ActionSpec(
+            kind="FINALIZE",
+            args={},
+            display="finalize legacy terminal-success",
+        )
+
+    owner_kind = _legacy_owner_kind(executor_source)
+    owner_id = owner
+    record_lane_id = lane_id
+    lease = _legacy_lease(claim)
+    active_run = _legacy_run(checkpoint, head_sha=claim_head)
+    if state == "DONE":
+        owner_kind = "NONE"
+        owner_id = "NONE"
+        record_lane_id = None
+        lease = None
+        active_run = None
 
     return ExecutionRecord(
         issue=claim_issue,
@@ -823,9 +843,9 @@ def execution_record_from_legacy(
             claim.get("execution_intent"), "execution_intent", optional=True
         )
         or "LEGACY_UNSPECIFIED",
-        owner_kind=_legacy_owner_kind(executor_source),
-        owner_id=owner,
-        lane_id=lane_id,
+        owner_kind=owner_kind,
+        owner_id=owner_id,
+        lane_id=record_lane_id,
         slot_id=_legacy_slot_id(claim.get("slot_id")),
         source_branch=source_branch,
         source_sha=source_sha,
@@ -836,8 +856,8 @@ def execution_record_from_legacy(
         state=state,
         semantic_state=semantic_state,
         next_action=current_action,
-        lease=_legacy_lease(claim),
-        active_run=_legacy_run(checkpoint, head_sha=claim_head),
+        lease=lease,
+        active_run=active_run,
         transaction=_legacy_transaction(checkpoint),
         qa=qa,
         blocker=blocker,

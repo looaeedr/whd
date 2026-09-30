@@ -297,4 +297,7 @@ def test_t2_module_has_no_bridge_app_display_mode_or_manufacturing_authority():
     assert "manufacturing_api" not in source
     assert "project_controller" not in source
     assert "assembly_box_body_piece_visible_vars" not in source
-    assert "project_box_body_piece_rows" not in source
+    # Current panel may consume the presentation-layer projection helper; the
+    # invariant is that it does not own manufacturing/geometry authority.
+    assert "from phase6_assembly_presentation import" in source
+    assert "project_box_body_piece_rows" in source

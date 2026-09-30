@@ -5,25 +5,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def test_remote_qa_monitoring_skill_is_registered_and_flow_v2_owned():
+    skill = ROOT / ".agents/skills/engineering/monitoring-remote-qa/SKILL.md"
+    text = skill.read_text(encoding="utf-8")
+    for token in (
+        "name: monitoring-remote-qa",
+        "whd_doc_role: MIRROR",
+        "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "FLOW_V2_EXECUTION_BRIDGE_V1",
+        "ExecutionRecord.active_run",
+        "exact run/head",
+        "CONSUME_QA",
+        "START_QA",
+        "POLL_QA",
+        "ACCEPT_QA",
+        "FAIL_QA",
+        "不擁有 execution state machine",
+    ):
+        assert token in text
 
-def test_remote_qa_monitoring_skill_is_registered_and_required_by_dispatch():
-    skill = ROOT / '.agents/skills/engineering/monitoring-remote-qa/SKILL.md'
-    assert skill.exists(), 'remote QA monitoring skill must exist'
-    skill_text = skill.read_text(encoding='utf-8')
-    assert 'name: monitoring-remote-qa' in skill_text
-    assert 'workflow run' in skill_text
-    assert 'job' in skill_text
-    assert 'step' in skill_text
-    assert 'durable state' in skill_text
-    assert '不得' in skill_text and '觸發' in skill_text and '停止' in skill_text
+    registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
+    route = next(item for item in registry["routes"] if item.get("id") == "remote-qa-monitoring")
+    assert route["required_skills"][:2] == ["flow-v2-execution", "monitoring-remote-qa"]
+    assert "long-log-context-safe-execution" in route["required_skills"]
+    assert {"遠端 QA", "同步遠端QA", "GitHub Actions", "workflow run"} <= set(route["keywords"])
 
-    registry = json.loads((ROOT / '.agents/skills/skill_registry.json').read_text(encoding='utf-8'))
-    route = next((item for item in registry['routes'] if item.get('id') == 'remote-qa-monitoring'), None)
-    assert route is not None, 'remote QA monitoring route must exist'
-    assert 'monitoring-remote-qa' in route.get('required_skills', [])
-    keywords = set(route.get('keywords', []))
-    assert {'遠端 QA', '同步遠端QA', 'GitHub Actions', 'workflow run'} <= keywords
-
-    dispatch = (ROOT / '.agents/skills/engineering/派工/SKILL.md').read_text(encoding='utf-8')
-    assert '**REQUIRED SUB-SKILL:** monitoring-remote-qa' in dispatch
-    assert 'remote QA' in dispatch or '遠端 QA' in dispatch
+    dispatch = (ROOT / ".agents/skills/engineering/派工/SKILL.md").read_text(encoding="utf-8")
+    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in dispatch
+    assert "不擁有 execution state machine" in dispatch

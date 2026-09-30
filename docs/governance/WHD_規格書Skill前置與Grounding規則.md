@@ -12,7 +12,7 @@ whd_schema: WHD_DOC_META_V1
 # WHD 規格書 Skill 前置與 Grounding 規則
 
 日期：2026-09-21  
-狀態：CURRENT
+狀態：MIRROR / CURRENT guidance projected from `寫成規格書` Skill
 
 ## Problem Statement
 
