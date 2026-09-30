@@ -204,5 +204,5 @@ def test_pr_transport_head_is_not_reinterpreted_as_export_source_identity() -> N
     assert contract["artifact_source_identity_policy"].startswith("TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME")
     tool = _read("tools/post_integration_durability.py")
     assert 'trigger_head_sha = _sha(run.get("head_sha"), "artifact head_sha")' in tool
-    assert "artifact head_sha mismatch" not in tool
+    assert 'artifact head_sha mismatch' not in tool
     assert '"trigger_head_sha": trigger_head_sha' in tool
