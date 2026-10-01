@@ -402,3 +402,116 @@ def refresh_add_part_menu(
         return
     for key in missing:
         menu.add_command(label=label_for_key(key), command=lambda k=key: add_part(k))
+
+def hide_corner_data_canvas(host, *, visibility_plan, tk_both):
+    """Project Corner Data/Matplotlib visibility without owning geometry state."""
+    plan = dict(visibility_plan or {})
+    info_label = getattr(host, "corner_data_info_label", None)
+    if info_label is not None and not bool(plan.get("info_label", False)):
+        try:
+            if info_label.winfo_manager():
+                info_label.pack_forget()
+        except Exception:
+            pass
+    canvas = getattr(host, "corner_data_canvas", None)
+    if canvas is not None and not bool(plan.get("corner_canvas", False)):
+        try:
+            if canvas.winfo_manager():
+                canvas.pack_forget()
+        except Exception:
+            pass
+    renderer = getattr(host, "renderer", None)
+    mpl_canvas = getattr(renderer, "canvas", None)
+    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
+    if not callable(get_widget):
+        return None
+    mpl_widget = get_widget()
+    if bool(plan.get("mpl_canvas", False)) and not mpl_widget.winfo_manager():
+        mpl_widget.pack(fill=tk_both, expand=True)
+    return mpl_widget
+
+
+def show_corner_data_mode(
+    host,
+    *,
+    frame_factory: Callable[[object], object],
+    mount_shared_content: Callable[[str], object],
+    prepare_canvas: Callable[[], object],
+    refresh_parts_panel: Callable[[], object],
+    refresh_unfold: Callable[[], object],
+    refresh_part_button_states: Callable[[], object] | None,
+    refresh_content_switch: Callable[[], object],
+):
+    """Project the view-only Corner Data mode; no workspace mutation is owned here."""
+    clear_navigation_residue(host)
+    host._phase6_3d_display_mode = "corner_data"
+    part_var = getattr(host, "part_var", None)
+    if part_var is not None:
+        part_var.set("截角資料")
+    piece_selector = getattr(host, "box_body_piece_selector", None)
+    if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
+        try:
+            piece_selector.pack_forget()
+        except Exception:
+            pass
+    panel = getattr(host, "corner_data_panel", None)
+    if panel is None:
+        shared_host = getattr(host, "left", None)
+        if shared_host is None:
+            return None
+        panel = frame_factory(shared_host)
+        host.corner_data_panel = panel
+    mount_shared_content("corner_data")
+    corner_canvas = prepare_canvas()
+    refresh_parts_panel()
+    if corner_canvas is not None:
+        refresh_unfold()
+    if callable(refresh_part_button_states):
+        refresh_part_button_states()
+    refresh_content_switch()
+    return None
+
+
+def project_assembly_mode(
+    host,
+    *,
+    mount_shared_content: Callable[[str], object],
+    pack_right_panel: Callable[[object], object],
+    clear_drawing_edge_controls: Callable[[], object],
+    tk_both,
+) -> None:
+    """Project assembly-mode widgets after Bridge completes authoritative state work."""
+    part_var = getattr(host, "part_var", None)
+    if part_var is not None:
+        part_var.set("組合體")
+    piece_selector = getattr(host, "box_body_piece_selector", None)
+    if piece_selector is not None and piece_selector.winfo_manager():
+        piece_selector.pack_forget()
+    mount_shared_content("assembly")
+    center = getattr(host, "settings_center", None)
+    if center is not None and center.winfo_manager():
+        center.pack_forget()
+    diagnostics = getattr(host, "assembly_diagnostics_frame", None)
+    if diagnostics is not None:
+        if bool(getattr(host, "_phase6_parameters_unlocked", False)):
+            if not diagnostics.winfo_manager():
+                pack_right_panel(diagnostics)
+        elif diagnostics.winfo_manager():
+            diagnostics.pack_forget()
+    delete = getattr(host, "remove_part_button", None)
+    if delete is not None:
+        delete.configure(state="disabled")
+    renderer = getattr(host, "renderer", None)
+    mpl_canvas = getattr(renderer, "canvas", None)
+    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
+    if callable(get_widget):
+        canvas_widget = get_widget()
+        if not canvas_widget.winfo_manager():
+            canvas_widget.pack(fill=tk_both, expand=True)
+    clear_drawing_edge_controls()
+    host.endcap_joint_vars = {}
+    host.endcap_joint_widgets = {}
+    host.endcap_joint_allowed = {}
+    host.base_plate_edge_shrink_vars = {}
+    host.base_plate_edge_shrink_widgets = {}
+
