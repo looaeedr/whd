@@ -1,26 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-reconcile-target-fbd864ed",
+  "request_id": "issue1077-reserve-current-fbd864ed",
   "issue": 1077,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-  "expected_coord_head": "ca66cc6cc41a31cff393b028e04e94642952d136",
-  "expected_generation": 4,
+  "expected_coord_head": "1a07f8744d5bb7ba066e989bd44191a6275245af",
+  "expected_generation": 5,
   "effect": {
-    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
-    "observed_head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
-    "observed_target_sha": "fbd864ed804d5361730e99a4e9bef4a5de1baa31",
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {
-        "work_branch": "governance/issue1077-root-local-durability-hardening"
-      },
-      "display": "Start exact tested Issue #1077 work branch after root freeze"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "fbd864ed804d5361730e99a4e9bef4a5de1baa31",
+    "write_paths": [
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_issue1045_post_integration_durability.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/execution_invocation_exit.py",
+      "tools/post_integration_durability.py",
+      "tools/root_local_first_gate.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED"
   },
-  "purpose": "Reconcile Issue #1077 target to latest production after non-overlapping target drift and root retest",
+  "purpose": "Refresh Issue #1077 exact path reservation onto current production fbd864ed after non-overlapping drift",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
