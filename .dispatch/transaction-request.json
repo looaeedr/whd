@@ -1,36 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-acquire-root-durability-repair-sorted",
+  "request_id": "issue1077-expand-post-integration-owner",
   "issue": 1077,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0440Z",
-  "expected_coord_head": "f1e235b13f21702a0cc2ba9c7c807fc366a1eca2",
-  "expected_generation": 1,
+  "expected_coord_head": "1900f9c41bed0c4be234c1df51ba5cf2b043c43a",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "PATHS_RESERVED",
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
-      "write_paths": [
-        ".agents/skills/engineering/root-local-first/SKILL.md",
-        "tests/process/test_flow_v2_execution_invocation_exit.py",
-        "tests/process/test_issue1045_post_integration_durability.py",
-        "tests/process/test_root_local_first_entry_hard_gate.py",
-        "tools/execution_invocation_exit.py",
-        "tools/root_local_first_gate.py"
-      ],
-      "delete_paths": []
-    },
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {
-        "work_branch": "governance/issue1077-root-local-durability-hardening"
-      },
-      "display": "Start exact tested Issue #1077 work branch after root freeze"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
+    "write_paths": [
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_issue1045_post_integration_durability.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/execution_invocation_exit.py",
+      "tools/post_integration_durability.py",
+      "tools/root_local_first_gate.py"
+    ],
+    "delete_paths": []
   },
-  "purpose": "Issue #1077 root-local-first machine enforcement and durability repair",
+  "purpose": "Expand Issue #1077 reservation to the canonical post-integration durability owner discovered by audit",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
