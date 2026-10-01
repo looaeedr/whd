@@ -28,8 +28,8 @@ def test_navigation_view_owner_exists_and_has_no_reverse_or_manufacturing_import
     assert "fold_designer_bridge" not in imports
     assert not [name for name in imports if name.startswith("ae_engine") or "manufacturing" in name]
     assert "sync_derived_parts" not in source
-    assert "add_part(" not in source
-    assert "remove_part(" not in source
+    assert "designer_workspace.add_part" not in source
+    assert "designer_workspace.remove_part" not in source
 
 
 def test_bridge_structure_tree_refresh_is_thin_view_wrapper():
@@ -111,3 +111,19 @@ def test_navigation_compatibility_view_glue_is_owned_by_adapter():
 def test_bridge_loc_ratchets_below_6145_after_navigation_view_completion():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 6145, f"Bridge regrew past #1100 final navigation ratchet: {loc}"
+
+
+def test_part_selector_and_add_menu_projection_are_owned_by_navigation_view_adapter():
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    for name in ("refresh_part_selector", "refresh_part_button_states", "refresh_add_part_menu"):
+        assert f"def {name}(" in adapter_source
+    bridge_tree = ast.parse(BRIDGE.read_text(encoding="utf-8"))
+    funcs = {node.name: node for node in bridge_tree.body if isinstance(node, ast.FunctionDef)}
+    for name in ("_fix11_refresh_part_buttons", "_fix11_refresh_part_button_states", "_fix11_refresh_add_part_menu"):
+        assert name in funcs
+        assert (funcs[name].end_lineno - funcs[name].lineno + 1) <= 20
+
+
+def test_bridge_loc_ratchets_below_6100_after_part_selector_extraction():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 6100, f"Bridge regrew past #1100 part-selector ratchet: {loc}"
