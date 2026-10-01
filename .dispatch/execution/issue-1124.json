@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
   "issue": 1124,
   "lane_id": "chatgpt.flowv2.work1",
@@ -38,9 +38,9 @@
   },
   "next_action": {
     "args": {
-      "candidate_commit_sha": "85638e8e976e209422e58e335571f9df51cad081"
+      "candidate_commit_sha": "3fa49fb73ae2e9868ccc03fd5dca143a076a5de0"
     },
-    "display": "Apply exact root-tested #1124 commit",
+    "display": "Apply exact root-tested #1124 commit on current target",
     "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work1",
@@ -58,21 +58,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "GIT_BRANCH_READY",
+  "semantic_state": "ROOT_RETESTED_TARGET_RECONCILED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+  "target_sha": "48c763c141ad65f372a4babd66ccd02c5325769a",
   "transaction": {
-    "expected_fingerprint": "913370a437a4716956051144577ef51a51dbf8b4f83dc4b4e49853195286f64e",
-    "id": "gha:36897307525:1124:ACQUIRE:3",
+    "expected_fingerprint": "a0661cf5aa0be0f010c8af1bc80cde172b630d579e2b0729a9fd1c11726b2d17",
+    "id": "gha:36897536420:1124:RECONCILE:4",
     "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T17:08:00Z",
+  "updated_at": "2026-10-01T17:11:00Z",
   "version": 2,
   "work_branch": "governance/issue1124-background-control-plane-20261002"
 }
