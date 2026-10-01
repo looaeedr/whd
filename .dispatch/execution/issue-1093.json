@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "011290e2d345b9eedd8631a3ee7192b1e13c3b0a",
   "issue": 1093,
   "lane_id": "chatgpt.flowv2.work2",
@@ -38,12 +38,20 @@
   },
   "next_action": {
     "args": {
+      "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
       "delete_paths": [],
+      "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md"
+        ".agents/contracts/WHD_ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1.json",
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "tests/process/test_flow_v2_execution_invocation_exit.py",
+        "tests/process/test_issue1019_terminal_tail_drain.py",
+        "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/execution_invocation_exit.py"
       ]
     },
-    "display": "reserve the final Flow v2 Skill path and finish #1093 wiring acceptance",
+    "display": "rebase the existing seven-path reservation to aa2f68cc current target",
     "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work2",
@@ -61,21 +69,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED_FULL_1093_SCOPE",
+  "semantic_state": "ROOT_TESTS_GREEN_REBASE_SCOPE_TO_CURRENT_TARGET",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "a26f966925dd42ea8395649ee8144bb6e0d83ecd",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "a26f966925dd42ea8395649ee8144bb6e0d83ecd",
+  "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "3e1852797fc6a7cfb2717068d1e008a680b9c4faf9be3d63bc592e1c1718d221",
-    "id": "gha:36936242123:1093:RESERVE_PATHS:8",
+    "expected_fingerprint": "8a5f3208c81c814a1bb480ac9c7167c6c87712b96e7c6a37e503b1c37c2c8bc0",
+    "id": "gha:36937044183:1093:RECONCILE:9",
     "invocation_identity": "chatgpt.flowv2.work2.issue1093.20261002",
-    "kind": "RESERVE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T22:38:33Z",
+  "updated_at": "2026-10-01T22:46:51Z",
   "version": 2,
   "work_branch": "work/issue1093-active-owning-issue-stickiness-20261002"
 }
