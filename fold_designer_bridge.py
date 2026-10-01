@@ -1995,64 +1995,8 @@ def _phase6_corner_transaction_payload(self):
 
 
 def _phase6_publish_live_state(self, *, force=False):
-    """Publish only when the pure live-sync plan requires one envelope."""
-    callback = getattr(self, "_live_sync_callback", None)
-    if (
-        not callable(callback)
-        or getattr(self, "_phase6_live_sync_guard", False)
-        or getattr(self, "_phase6_initializing", False)
-        or not getattr(self, "_phase6_sync_ready", False)
-        or not hasattr(self, "baseline_model_var")
-        or not hasattr(self, "designer_workspace")
-    ):
-        return False
-
-    state = _phase6_corner_transaction_payload(self)
-    input_snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    host_relief_present = (
-        isinstance(input_snapshot, Mapping)
-        and "assembly_relief" in input_snapshot
-    )
-    host_relief = (
-        deepcopy(input_snapshot.get("assembly_relief") or {})
-        if host_relief_present
-        else {}
-    )
-    plan = plan_live_sync_envelope(
-        current_state=state,
-        previous_state=getattr(self, "_phase6_last_live_state", None) or {},
-        previous_fingerprint=getattr(
-            self, "_phase6_last_live_fingerprint", None
-        ),
-        current_revision=getattr(self, "_phase6_sync_revision", 0),
-        active_transaction_id=getattr(
-            self, "_phase6_active_transaction_id", ""
-        ),
-        host_relief_present=host_relief_present,
-        host_relief=host_relief,
-        force=bool(force),
-    )
-    if not plan.should_publish:
-        return False
-
-    payload = materialize_sync_value(plan.payload)
-    self._phase6_live_sync_guard = True
-    try:
-        callback(deepcopy(payload))
-        self._phase6_sync_revision = plan.next_revision
-        self._phase6_last_live_state = deepcopy(state)
-        self._phase6_last_live_fingerprint = plan.fingerprint
-        self._phase6_last_live_payload = deepcopy(payload)
-        self._phase6_input_snapshot["assembly_relief"] = (
-            materialize_sync_value(plan.host_relief_repair)
-        )
-    except Exception as exc:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"即時同步失敗：{exc}")
-        return False
-    finally:
-        self._phase6_live_sync_guard = False
-    return True
+    """Compatibility port: composition owns live-sync publication effects."""
+    return _phase6_composition(self).publish_live_state(globals(), force=force)
 
 
 def _phase6_build_project_snapshot(self):
