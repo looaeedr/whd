@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 22,
+  "generation": 23,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
@@ -27,6 +27,7 @@
     "reservation_state": "ACTIVE",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
+      "fold_designer_bridge.py",
       "tests/test_issue124_structure_tree.py",
       "tests/test_issue163_unfold_workspace_layout.py",
       "tests/test_issue186_sheetmetal_selector_visibility.py",
@@ -36,7 +37,8 @@
       "tests/test_issue430_single_host_red.py",
       "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
       "tests/test_issue96_corner_data_selection_lifecycle.py",
-      "tests/test_issue98_existing_2d_capability_migration.py"
+      "tests/test_issue98_existing_2d_capability_migration.py",
+      "whd_theme.py"
     ]
   },
   "next_action": {
@@ -83,13 +85,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
   "transaction": {
-    "expected_fingerprint": "cd5295e8d7b9e67a2d954bae0cf06b35490be3fec690c19892ef07a900340f77",
-    "id": "gha:36879136464:1062:RESERVE_PATHS:21",
+    "expected_fingerprint": "ce3d0d1e3a0c0ebd1f474d815c77a3fb41793168640d2abd2dbb240df82effb8",
+    "id": "gha:36883176428:1062:RESERVE_PATHS:22",
     "invocation_identity": "chatgpt.flowv2.work0.issue1062.stage2.20261001T2245+08",
     "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T14:48:07Z",
+  "updated_at": "2026-10-01T15:18:36Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
