@@ -6,12 +6,12 @@
   "task_id": "6ab13f881c34819180cee63f5dd9446b",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "scheduler.a00.20261001T075801Z",
-  "event": "WAKE",
+  "event": "EXIT",
   "last_wake_at": "2026-10-01T07:58:01Z",
   "last_heartbeat_at": null,
   "heartbeat_expires_at": null,
   "last_progress_at": null,
-  "exit_at": null,
-  "exit_state": null,
-  "observed_at": "2026-10-01T07:58:01Z"
+  "exit_at": "2026-10-01T07:59:00Z",
+  "exit_state": "BLOCKED",
+  "observed_at": "2026-10-01T07:59:00Z"
 }
