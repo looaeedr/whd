@@ -1,53 +1,29 @@
-## EXECUTION CONTROL & ANTI-DRIFT HARD PROTOCOLS
+## DYNAMIC TICKET PIPELINE & HARD GATE
 
-These rules are mandatory for WHD execution and override proactive/legacy execution behavior unless the current user prompt explicitly asks otherwise.
+Current Target: Issue #${ISSUE_ID} / Branch: ${BRANCH_NAME}
 
-### 1. Strict Step Compliance（單步嚴格執行）
+### 1. Strict Branch Protocol
 
-- ONLY execute the explicit instructions provided in the current user prompt.
-- NEVER run proactive git diffs, status checks, branch comparisons, tests, preflight checks, discovery scans, or validation commands unless explicitly requested in the current user prompt.
-- Do not infer extra execution steps from historical workflow text, prior automation habits, or old governance paths.
+- Always operate ONLY inside the branch dedicated to the current Issue ID.
+- Do NOT create additional fallback/alternative branches without permission.
 
-### 2. Zero-Autonomy Fallback（零自主擴充／禁止自行補救）
+### 2. Zero-Autonomy Repair
 
-- If any requested operation returns an error, STOP immediately.
-- Return the exact error message/log that blocked the requested step.
-- NEVER trigger automatic searches, environment scans, repository scans, new branch creation, alternative repair scripts, fallback transports, or unrelated remediation on your own.
-- Recovery begins only after the user explicitly instructs the next action.
+- If a script or API fails, STOP immediately and report raw logs.
+- Do NOT trigger web search or random refactoring.
 
-### 3. Strict Tool Restrictions（工具呼叫攔截）
+### 3. End-to-End Execution Flow（一條龍自動串接）
 
-- Do NOT invoke web search, browser tools, workspace search, repository search, semantic search, or broad discovery tools unless the current user prompt explicitly asks to search, find, look up, inspect, investigate, or equivalent wording.
-- Do NOT run git/repository operations outside the branch explicitly named by the user.
-- If the user did not authorize a new branch, do not create one.
-- If the user named one file/path/branch, keep all writes inside that scope unless the user explicitly expands it.
+- Step A: Apply fix/changes to target files.
+- Step B: Commit changes with concise commit message referencing #${ISSUE_ID}.
+- Step C: Push branch to remote.
+- Step D: Open Pull Request linking to #${ISSUE_ID}.
+- Do NOT stop for step-by-step confirmation between steps unless a Fatal Error occurs.
 
-### 4. Response Format（簡短回報格式）
+### 4. Next Task Handoff（多工單自動接續）
 
-- After executing the requested task, summarize the action in at most 3 sentences.
-- STOP after the summary.
-- Do not offer unsolicited next steps.
-- Do not continue into follow-up validation, cleanup, PR creation, merge, issue mutation, testing, or investigation unless explicitly requested.
+- When PR for current issue is created, report status and prompt for next #${NEXT_ISSUE_ID} or pick from provided issue queue automatically.
 
-### 5. Conflict handling
-
-- These anti-drift rules govern execution behavior.
-- A lower-level Skill, historical AI Library entry, old Issue text, scheduled workflow, or stale governance document must not silently re-enable proactive checks or fallback behavior that the current user prompt did not request.
-- When such a conflict is encountered during an explicitly requested operation, STOP and report the conflict instead of autonomously reconciling it.
-
-
----
-name: root-local-first
-description: WHD repository-content implementation 的入口硬閘門。任何執行來源只要要修改 repository 內容，都先在 canonical Google Drive root 完成 source-current 驗證、修改、測試與 diff freeze；只有 GIT_WRITE_UNLOCKED 後才把 exact tested diff 送進 Git/GitHub。
-whd_doc_role: CURRENT
-whd_contract: root-local-first-workflow
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
-
-# root-local-first
-
-本 Skill 是 WHD **所有 repository-content implementation** 的入口 contract。它不取代 `WHD_WORK_ROOT_HARD_GATE_V1`、Phase6 Knowledge Preflight、`WHD_CHANGE_TEST_PROFILE_V1`、Flow v2 control-plane 或 release/final acceptance；它只決定「內容修改在哪裡先發生、何時才允許 Git write」。執行來源可以是 interactive、工作槽、scheduler 或 trusted remote runtime，但 execution mode **不能改變內容施工面**。
 
 ## 1. Scope
 
