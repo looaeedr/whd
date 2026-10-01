@@ -1,14 +1,29 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-resume-terminal",
+  "request_id": "issue1077-bind-qa",
   "issue": 1077,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0835Z",
-  "expected_coord_head": "43abe6eb53ca3746a7e97a2373faddef3d6da160",
-  "expected_generation": 9,
-  "effect": {},
-  "purpose": "Resume Issue #1077 terminal continuation",
+  "expected_coord_head": "cff989f85e1d5cd842b5f72276592b51d3c8b06a",
+  "expected_generation": 10,
+  "effect": {
+    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
+    "observed_head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
+    "observed_target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
+    "semantic_state": "REMOTE_QA_READY",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml",
+        "post_accept_pr_number": 1083,
+        "post_accept_target_branch": "cleanup/2d-3d-sync",
+        "post_accept_revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Consume completed exact-head QA"
+    }
+  },
+  "purpose": "Bind completed exact-head QA workflow",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
