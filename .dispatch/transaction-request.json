@@ -1,27 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-expand-reservation-v5-anti-regrowth-sorted",
+  "request_id": "issue1072-reconcile-gen10-root-freeze-f67e6f7c",
   "issue": 1072,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0145Z",
-  "expected_coord_head": "44eebdd93809f397797b33e5df96073674e2c70e",
-  "expected_generation": 9,
+  "expected_coord_head": "396f989852dee2be3cfeb62bd9ebc937ceef40ea",
+  "expected_generation": 10,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-    "write_paths": [
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-      "tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py",
-      "tests/process/test_issue899_push_transaction_ingress.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/control_transaction_request_ingress.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED"
+    "observed_work_branch": "governance/issue1072-decouple-root-evidence-generation",
+    "observed_head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "observed_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
+    "semantic_state": "ROOT_DIFF_FROZEN",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "f67e6f7c51058936f5847c604565ca10002aa65f441b711cd40c2355f0117ca3"
+      },
+      "display": "Transport exact generation-10 Drive-frozen diff for Issue #1072"
+    }
   },
-  "purpose": "Expand Issue #1072 reservation monotonically with sorted paths to include the stale v4-pinned anti-regrowth test discovered by the root full gate; repair and retest remain in the same canonical Drive workspace before Git transport.",
+  "purpose": "Reconcile Issue #1072 from PATHS_RESERVED back to ROOT_DIFF_FROZEN using the newly green generation-10 root evidence and exact six-path diff; no repository-content mutation occurs in this transaction.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
