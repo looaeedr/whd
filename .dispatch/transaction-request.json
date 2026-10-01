@@ -1,22 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-acquire-root-scope",
+  "request_id": "issue1112-acquire-root-scope-v2",
   "issue": 1112,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1112.20261002T064847+08",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1112.20261002T065005+08",
   "expected_coord_head": "b46e7f7957365b1c544b845ddef3f67adfa830cd",
   "expected_generation": 1,
   "effect": {
-    "observed_at": "2026-10-01T22:48:47Z",
+    "observed_at": "2026-10-01T22:50:05Z",
     "owner_kind": "INTERACTIVE",
     "owner_id": "chatgpt.flowv2.work0",
     "lane_id": "chatgpt.flowv2.work0",
     "slot_id": "worker.slot.0",
     "lease": {
-      "token": "lease:1112:work0:20261002T064847+08",
-      "invocation_identity": "chatgpt.flowv2.work0.issue1112.20261002T064847+08",
-      "expires_at": "2026-10-01T23:18:47Z"
+      "token": "lease:1112:work0:20261002T065005+08",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1112.20261002T065005+08",
+      "expires_at": "2026-10-01T23:20:05Z"
     },
     "next_action": {
       "kind": "START_BRANCH",
@@ -28,8 +28,8 @@
       "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
       "write_paths": [
         "ae_engine/receiving_layout.py",
-        "gui_modules/application/receiving_set_bay_adapter.py",
         "fold_designer_bridge.py",
+        "gui_modules/application/receiving_set_bay_adapter.py",
         "tests/test_issue1112_receiving_set_bay_editor.py"
       ],
       "delete_paths": []
