@@ -1,24 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-reconcile-tested-head-root-evidence",
+  "request_id": "issue1077-consume-pr-qa",
   "issue": 1077,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-  "expected_coord_head": "56cf7c0805a6dd3d96a4ee5ff768e3f0da7122a7",
-  "expected_generation": 8,
+  "expected_coord_head": "43abe6eb53ca3746a7e97a2373faddef3d6da160",
+  "expected_generation": 9,
   "effect": {
-    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
-    "observed_head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
-    "observed_target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
-    "semantic_state": "REMOTE_QA_READY",
+    "run_id": 36835505955,
+    "run_head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
+    "run_status": "completed",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
-      "args": {},
-      "display": "Consume completed PR QA for exact tested head"
+      "kind": "MERGE",
+      "args": {
+        "pr_number": 1083
+      },
+      "display": "Consume already-merged PR #1083 readback"
     }
   },
-  "purpose": "Reconcile durable record to exact tested Git head before consuming completed PR QA",
+  "purpose": "Consume completed PR control-plane QA for exact tested Issue #1077 head",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
