@@ -226,3 +226,84 @@ def on_box_body_piece_tab_changed(
     if str(getattr(workspace, "active_part", "") or "") == key:
         return resolve_operator_part(key)
     return activate_part(key)
+
+
+def refresh_sticky_structure_tree(host) -> None:
+    """Hide legacy sticky Structure Tree hosts without owning layout authority."""
+    for name in ("structure_tree_host", "structure_tree_spacer"):
+        widget = getattr(host, name, None)
+        if widget is None:
+            continue
+        try:
+            manager = str(widget.winfo_manager() or "")
+            if manager == "place":
+                widget.place_forget()
+            elif manager == "pack":
+                widget.pack_forget()
+            elif manager == "grid":
+                widget.grid_remove()
+        except Exception:
+            return
+
+
+def clear_navigation_residue(host) -> None:
+    """Dismiss transient navigation menus before the visible content changes."""
+    for name in ("part_choice_menu", "add_part_menu", "project_file_menu"):
+        menu = getattr(host, name, None)
+        if menu is None:
+            continue
+        try:
+            menu.unpost()
+        except Exception:
+            pass
+
+
+def refresh_content_switch(host) -> str:
+    """Project the current display mode onto legacy compatibility button handles."""
+    mode = str(getattr(host, "_phase6_3d_display_mode", "single") or "single")
+    active = "assembly" if mode == "assembly" else "corner_data" if mode == "corner_data" else "input"
+    mapping = {
+        "input": getattr(host, "input_content_button", None),
+        "assembly": getattr(host, "assembly_content_button", None),
+        "corner_data": getattr(host, "corner_data_content_button", None),
+    }
+    for key, button in mapping.items():
+        if button is None:
+            continue
+        try:
+            button.state(["pressed"] if key == active else ["!pressed"])
+        except Exception:
+            pass
+    return active
+
+
+def build_content_switch(host, *, frame_factory: Callable[[object], object]):
+    """Create compatibility handles without adding a duplicate visible navigator."""
+    host.content_switch_frame = frame_factory(host.left)
+    host.input_content_button = None
+    host.assembly_content_button = None
+    host.corner_data_content_button = None
+    refresh_content_switch(host)
+    return host.content_switch_frame
+
+
+def on_structure_tree_click(
+    host,
+    event,
+    *,
+    visibility_var: Callable[[str], object | None],
+    set_visibility: Callable[[str, bool], object],
+):
+    """Translate a Structure Tree visibility-column click into existing view authority."""
+    tree = getattr(host, "structure_tree", None)
+    if tree is None or tree.identify_column(event.x) != "#1":
+        return None
+    iid = str(tree.identify_row(event.y) or "")
+    if not iid.startswith("part:"):
+        return "break"
+    key = iid[5:]
+    var = visibility_var(key)
+    if var is None:
+        return "break"
+    set_visibility(key, not bool(var.get()))
+    return "break"
