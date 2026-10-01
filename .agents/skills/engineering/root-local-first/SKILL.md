@@ -76,7 +76,9 @@ ROOT_SOURCE_CURRENT
 
 只有下列條件才允許離開 fast path 升級完整治理：
 
-`PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / TEST_RED / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`
+`PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`
+
+`TEST_RED` **不是 escalation**：固定留在同一 root workspace 直接修正並重測，禁止因 RED 回到 ACQUIRE / RESERVE_PATHS / START_QA / FAIL_QA / GitHub-side hotfix。
 
 任何升級前都先 fresh-read current Issue；若 generation / fingerprint / lease / next_action / work head / target head 已前進，舊 plan 依 `STALE_PLAN_MUST_DIE` 立即作廢，不准把舊流程補完。
 
@@ -130,7 +132,7 @@ production / tests / docs / Skills / AI Library / Registry 等內容修改先在
 
 ### 3.5.1 TEST_EXECUTION_RECEIPT_HARD_GATE_V1
 
-`ROOT_TESTS_GREEN` 不接受裸 `tests_green=true`。必須攜帶 machine-readable `WHD_TEST_EXECUTION_RECEIPT_V1`，至少 exact 綁定 `source_sha / issue / generation / exact_commands / manifest_digest`，且 status=`GREEN`。receipt 與本輪 source/reservation/test command 任一 identity 不一致即 fail closed。
+`ROOT_TESTS_GREEN` 不接受裸 `tests_green=true`。必須攜帶 machine-readable `WHD_TEST_EXECUTION_RECEIPT_V1`，至少 exact 綁定 `source_sha / issue / exact_commands / manifest_digest`，且 status=`GREEN`。`generation` 只保留 freeze-time historical provenance：只要是正整數且不得大於 current reservation generation；單純 lease renewal / generation 前進不得使同一份 frozen root evidence 失效。receipt 與本輪 source/reservation/test command 任一 content identity 不一致即 fail closed。
 
 ### 3.6 ROOT_DIFF_FROZEN
 
