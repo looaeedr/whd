@@ -4254,18 +4254,6 @@ def _phase6_refresh_persistent_structure_controls(self):
             assembly_var.set(label)
 
 
-def _phase6_final_scene_set_preview_enabled(self, enabled):
-    return _phase6_composition(self).final_scene_set_preview_enabled(enabled)
-
-
-def _phase6_commit_output_draw_stock(self):
-    return _phase6_composition(self).commit_output_draw_stock(globals())
-
-
-def _phase6_export_selected_dxf_from_3d(self):
-    return _phase6_composition(self).export_selected_dxf_from_3d()
-
-
 def _phase6_toggle_parameter_panel(self):
     return _phase6_composition(self).toggle_parameter_panel(globals())
 
