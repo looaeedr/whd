@@ -33,6 +33,10 @@ from tools.control_transaction import (
     prepare_transaction,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
+from tools.execution_invocation_exit import (
+    InvocationExitError,
+    assert_active_owning_issue_sticky,
+)
 from tools.execution_path_reservation import (
     PathReservationError,
     require_no_path_reservation_conflict,
@@ -846,6 +850,26 @@ def _execute_one_attempt(
     if issue not in records:
         raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     record = records[issue]
+
+    # ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1: one durable lane/slot
+    # cannot pivot into a foreign mutation while another non-DONE owning Issue
+    # still binds that lane.  Read-only observation never enters this executor.
+    for owning_record in records.values():
+        if owning_record.issue == issue or owning_record.state == "DONE":
+            continue
+        if owning_record.lane_id != lane_id:
+            continue
+        if owning_record.owner_kind == "NONE" or owning_record.owner_id == "NONE":
+            continue
+        try:
+            assert_active_owning_issue_sticky(
+                owning_record,
+                requested_issue=issue,
+                requested_action_kind=kind,
+            )
+        except InvocationExitError as exc:
+            raise ControlTransactionConflict(str(exc)) from exc
+
     plan = prepare_transaction(
         record,
         kind=kind,

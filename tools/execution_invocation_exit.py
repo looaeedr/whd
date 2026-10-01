@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from tools.execution_action_contract import OBSERVATION_ACTION_KINDS
+from tools.execution_action_contract import ACTION_TRANSACTION_KIND, OBSERVATION_ACTION_KINDS
 from tools.execution_record import ExecutionRecord, execution_record_to_payload
 
 
@@ -145,10 +145,52 @@ def terminal_tail_active(record: ExecutionRecord) -> bool:
         and record.qa.accepted_head_sha == record.head_sha
     )
 
-TERMINAL_TAIL_FOREIGN_READ_ONLY_ACTIONS = frozenset({
+FOREIGN_READ_ONLY_ACTIONS = frozenset({
     "READ_ONLY_DISCOVERY",
     "READ_ONLY_STATUS",
 })
+TERMINAL_TAIL_FOREIGN_READ_ONLY_ACTIONS = FOREIGN_READ_ONLY_ACTIONS
+
+
+def _durable_owning_identity_active(record: ExecutionRecord) -> bool:
+    return (
+        record.state != "DONE"
+        and record.owner_kind != "NONE"
+        and record.owner_id != "NONE"
+    )
+
+
+def assert_active_owning_issue_sticky(
+    record: ExecutionRecord,
+    *,
+    requested_issue: int,
+    requested_action_kind: str,
+) -> bool:
+    """Forbid foreign mutations while this durable owning Issue is nonterminal.
+
+    This is the general owning-Issue gate.  The existing terminal-tail gate is
+    intentionally stronger and keeps its more specific failure identity.
+    """
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    if isinstance(requested_issue, bool) or not isinstance(requested_issue, int) or requested_issue <= 0:
+        raise InvocationExitError("requested_issue must be a positive issue number")
+    action = _text(requested_action_kind, "requested_action_kind")
+    if requested_issue == record.issue or not _durable_owning_identity_active(record):
+        return True
+    if action in FOREIGN_READ_ONLY_ACTIONS:
+        return True
+    if terminal_tail_active(record):
+        return assert_terminal_tail_owning_issue_sticky(
+            record,
+            requested_issue=requested_issue,
+            requested_action_kind=action,
+        )
+    raise InvocationExitError(
+        "ACTIVE_OWNING_ISSUE_NO_PIVOT "
+        f"current_issue={record.issue} foreign_issue={requested_issue} "
+        f"requested_action={action}"
+    )
 
 
 def assert_terminal_tail_owning_issue_sticky(
@@ -257,6 +299,15 @@ def classify_invocation_exit(
         and tx.invocation_identity == invocation
         and tx.kind in SUBSTANTIVE_TRANSACTION_KINDS
     )
+    if (
+        host_boundary
+        and current_substantive
+        and record.next_action is not None
+        and record.next_action.kind in ACTION_TRANSACTION_KIND
+        and record.next_action.kind != "YIELD"
+    ):
+        return _decision(record, "CONTINUE_EXECUTION", may_return=False, requires_yield=False)
+
     if host_boundary and current_substantive:
         return _decision(record, "YIELD_REQUIRED_HOST_BOUNDARY", may_return=False, requires_yield=True)
 
