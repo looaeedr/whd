@@ -69,8 +69,13 @@ def validate_test_execution_receipt(
         raise ValueError("test receipt source_sha mismatch")
     if isinstance(item.get("issue"), bool) or int(item.get("issue") or 0) != int(expected_issue):
         raise ValueError("test receipt issue mismatch")
-    if isinstance(item.get("generation"), bool) or int(item.get("generation") or 0) != int(expected_generation):
-        raise ValueError("test receipt generation mismatch")
+    if isinstance(item.get("generation"), bool):
+        raise ValueError("test receipt generation must be positive historical provenance")
+    receipt_generation = int(item.get("generation") or 0)
+    if receipt_generation <= 0:
+        raise ValueError("test receipt generation must be positive historical provenance")
+    if receipt_generation > int(expected_generation):
+        raise ValueError("test receipt generation cannot be from the future")
     commands = item.get("exact_commands")
     if not isinstance(commands, list) or tuple(str(x) for x in commands) != tuple(str(x) for x in expected_commands):
         raise ValueError("test receipt exact_commands mismatch")
@@ -218,6 +223,37 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("test execution receipt schema mismatch")
     if test_execution_receipt.get("bare_tests_green_boolean_sufficient") is not False:
         raise ValueError("bare tests_green boolean must not unlock Git writes")
+    if test_execution_receipt.get("generation_role") != "HISTORICAL_FREEZE_PROVENANCE_ONLY":
+        raise ValueError("test receipt generation role must be historical provenance only")
+    if tuple(test_execution_receipt.get("required_identity") or ()) != (
+        "source_sha", "issue", "exact_commands", "manifest_digest"
+    ):
+        raise ValueError("test receipt required identity must exclude lease-renewal generation")
+    direct_gate = _mapping(contract.get("direct_root_mutation_test_gate"), "direct_root_mutation_test_gate")
+    if direct_gate.get("schema") != "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1":
+        raise ValueError("direct root mutation/test gate schema mismatch")
+    if direct_gate.get("canonical_surface") != DEFAULT_WORK_PREFIX:
+        raise ValueError("direct root mutation/test canonical surface mismatch")
+    if direct_gate.get("interactive_first_substantive_action") != "ROOT_MUTATE":
+        raise ValueError("direct root mutation/test first action must be ROOT_MUTATE")
+    if tuple(direct_gate.get("required_contiguous_outer_sequence") or ()) != (
+        "ROOT_MUTATE", "ROOT_TEST_CLASSIFIED", "ROOT_TESTS_GREEN"
+    ):
+        raise ValueError("direct root mutation/test contiguous sequence mismatch")
+    if direct_gate.get("same_invocation_until") != "ROOT_TESTS_GREEN_OR_REAL_BLOCKER":
+        raise ValueError("direct root mutation/test same-invocation policy mismatch")
+    if direct_gate.get("root_capability_available_policy") != "NO_HANDOFF_ONLY_STOP":
+        raise ValueError("direct root mutation/test root-capability policy mismatch")
+    if direct_gate.get("status_or_progress_query_is_stop_reason") is not False:
+        raise ValueError("status/progress query must not be a stop reason")
+    if direct_gate.get("test_red_action") != "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST":
+        raise ValueError("TEST_RED must remain in the same root workspace")
+    if direct_gate.get("remote_without_root_capability_action") != "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK":
+        raise ValueError("remote no-root-capability action mismatch")
+    forbidden = set(direct_gate.get("forbidden_pre_root_green_outcomes") or ())
+    required_forbidden = {"PLANNING_ONLY", "CLAIM_ONLY", "OWNER_ONLY", "HANDOFF_ONLY", "BRANCH_CREATED_ONLY", "GOVERNANCE_GREEN_ONLY", "GITHUB_PATCH", "REMOTE_QA_AS_FIRST_TEST_SURFACE"}
+    if not required_forbidden.issubset(forbidden):
+        raise ValueError("direct root mutation/test forbidden outcome set is incomplete")
     receipt = _mapping(contract.get("git_write_receipt"), "git_write_receipt")
     if receipt.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
         raise ValueError("Git write receipt schema mismatch")

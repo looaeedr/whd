@@ -151,6 +151,8 @@ def classify_invocation_exit(
     invocation_identity: str,
     now: str,
     host_boundary: bool = False,
+    source_manifest: object | None = None,
+    workspace_location: str | None = None,
 ) -> InvocationExitDecision:
     """Classify whether this physical invocation may return.
 
@@ -165,6 +167,19 @@ def classify_invocation_exit(
 
     if record.state == "DONE":
         assert_durable_terminal_exit(record)
+        if record.mutation_scope is not None:
+            if source_manifest is None or workspace_location is None:
+                return _decision(
+                    record,
+                    "CONTINUE_POST_INTEGRATION_DURABILITY",
+                    may_return=False,
+                    requires_yield=False,
+                )
+            assert_repository_content_cycle_complete(
+                record,
+                source_manifest=source_manifest,
+                workspace_location=workspace_location,
+            )
         return _decision(record, "TASK_TERMINAL", may_return=True, requires_yield=False)
 
     if record.lease is None:

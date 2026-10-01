@@ -259,3 +259,33 @@ def test_flow_v2_skill_requires_direct_root_modify_and_test_in_same_invocation()
     assert "ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN" in text
     assert "使用者詢問進度/狀態只算 non-blocking checkpoint" in text
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" in text
+
+
+def test_test_receipt_generation_is_historical_provenance_not_exact_lease_generation():
+    from tools.root_local_first_gate import validate_test_execution_receipt
+    receipt = _test_receipt(generation=4)
+    assert validate_test_execution_receipt(
+        receipt,
+        expected_source_sha="a" * 40,
+        expected_issue=996,
+        expected_generation=7,
+        expected_commands=["python tools/control_plane_regression.py"],
+    )["generation"] == 4
+    with pytest.raises(ValueError, match="future"):
+        validate_test_execution_receipt(
+            _test_receipt(generation=8),
+            expected_source_sha="a" * 40,
+            expected_issue=996,
+            expected_generation=7,
+            expected_commands=["python tools/control_plane_regression.py"],
+        )
+
+
+def test_validate_contract_machine_enforces_direct_root_mutation_gate():
+    from tools.root_local_first_gate import validate_contract
+    payload = _contract()
+    assert validate_contract(payload)["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] == "ROOT_MUTATE"
+    bad = json.loads(json.dumps(payload))
+    bad["direct_root_mutation_test_gate"]["status_or_progress_query_is_stop_reason"] = True
+    with pytest.raises(ValueError, match="status/progress query"):
+        validate_contract(bad)

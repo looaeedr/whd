@@ -12,6 +12,7 @@ def _record(*, state="DONE", lease=None, reservation="RELEASED", next_action=Non
         "issue": 1045,
         "generation": 3,
         "state": state,
+        "target_sha": "a" * 40,
         "lease": lease,
         "next_action": next_action,
         "mutation_scope": {"reservation_state": reservation},
@@ -181,3 +182,23 @@ def test_source_export_request_rejects_non_cleanup_branch():
     }
     with pytest.raises(ValueError, match="source_branch"):
         validate_source_export_request(bad)
+
+
+def test_active_workspace_requires_current_manifest_to_match_terminal_target_sha():
+    from tools.post_integration_durability import classify_post_integration_durability
+    stale = dict(_complete_manifest(), source_sha="9" * 40, durable_snapshot_base_sha="9" * 40)
+    result = classify_post_integration_durability(
+        execution_record=_record(), source_manifest=stale, workspace_location="ACTIVE"
+    )
+    assert result["state"] == "SOURCE_EXPORT_PENDING"
+    assert result["next_action"] == "CONSUME_SOURCE_EXPORT"
+    assert "target_sha" in result["reason"]
+
+
+def test_archived_workspace_allows_later_current_source_to_advance():
+    from tools.post_integration_durability import classify_post_integration_durability
+    newer = dict(_complete_manifest(), source_sha="9" * 40, durable_snapshot_base_sha="9" * 40)
+    result = classify_post_integration_durability(
+        execution_record=_record(), source_manifest=newer, workspace_location="DONE"
+    )
+    assert result["state"] == "DURABLE_CLEANUP_COMPLETE"

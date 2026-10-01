@@ -275,7 +275,7 @@ def classify_post_integration_durability(
         return {"state": "NOT_TERMINAL", "next_action": "WAIT_EXECUTION_DONE", "reason": str(exc)}
 
     try:
-        validate_completed_source_manifest(source_manifest)
+        completed_manifest = validate_completed_source_manifest(source_manifest)
     except ValueError as exc:
         return {
             "state": "SOURCE_EXPORT_PENDING",
@@ -287,6 +287,17 @@ def classify_post_integration_durability(
 
     location = str(workspace_location or "").strip().upper()
     if location == "ACTIVE":
+        record = _mapping(execution_record, "ExecutionRecord")
+        target_sha = _sha(record.get("target_sha"), "ExecutionRecord target_sha")
+        manifest_sha = _sha(completed_manifest.get("source_sha"), "manifest source_sha")
+        if manifest_sha != target_sha:
+            return {
+                "state": "SOURCE_EXPORT_PENDING",
+                "next_action": "CONSUME_SOURCE_EXPORT",
+                "reason": "Current Source Manifest does not cover this terminal target_sha",
+                "issue": archive["issue"],
+                "request_transport": source_export_request_transport(),
+            }
         return {
             "state": "WORKSPACE_ARCHIVE_PENDING",
             "next_action": "ARCHIVE_WORKSPACE_TO_DONE",
