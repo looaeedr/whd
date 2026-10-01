@@ -4,6 +4,7 @@ This module adapts existing application state to authoritative engine/manufactur
 APIs. It does not own project schema, workspace identity, committed settings, or
 manufacturing geometry.
 """
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -42,6 +43,10 @@ from phase6_endcap_semantics import (
 )
 from phase6_settings_center import UI_TEXT_SIZE_LABELS, load_factory_defaults_from_ae
 from phase6_settings_service import Phase6SettingsTransactionService
+from phase6_sync_envelope import (
+    materialize_sync_value,
+    plan_live_sync_envelope,
+)
 from phase6_settings_contracts import SettingsStateSnapshot
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_project_controller import Phase6ProjectController
@@ -954,6 +959,67 @@ class Phase6FoldDesignerComposition:
         self._final_scene_renderer = None
         self._final_scene_adapter = None
 
+    def publish_live_state(self, namespace, *, force=False):
+        """Own the live-sync plan -> callback -> application-state effect boundary."""
+        app = self.app
+        callback = getattr(app, "_live_sync_callback", None)
+        if (
+            not callable(callback)
+            or getattr(app, "_phase6_live_sync_guard", False)
+            or getattr(app, "_phase6_initializing", False)
+            or not getattr(app, "_phase6_sync_ready", False)
+            or not hasattr(app, "baseline_model_var")
+            or not hasattr(app, "designer_workspace")
+        ):
+            return False
+
+        state = self._required(namespace, "_phase6_corner_transaction_payload")(app)
+        input_snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+        host_relief_present = (
+            isinstance(input_snapshot, Mapping)
+            and "assembly_relief" in input_snapshot
+        )
+        host_relief = (
+            deepcopy(input_snapshot.get("assembly_relief") or {})
+            if host_relief_present
+            else {}
+        )
+        plan = plan_live_sync_envelope(
+            current_state=state,
+            previous_state=getattr(app, "_phase6_last_live_state", None) or {},
+            previous_fingerprint=getattr(
+                app, "_phase6_last_live_fingerprint", None
+            ),
+            current_revision=getattr(app, "_phase6_sync_revision", 0),
+            active_transaction_id=getattr(
+                app, "_phase6_active_transaction_id", ""
+            ),
+            host_relief_present=host_relief_present,
+            host_relief=host_relief,
+            force=bool(force),
+        )
+        if not plan.should_publish:
+            return False
+
+        payload = materialize_sync_value(plan.payload)
+        app._phase6_live_sync_guard = True
+        try:
+            callback(deepcopy(payload))
+            app._phase6_sync_revision = plan.next_revision
+            app._phase6_last_live_state = deepcopy(state)
+            app._phase6_last_live_fingerprint = plan.fingerprint
+            app._phase6_last_live_payload = deepcopy(payload)
+            app._phase6_input_snapshot["assembly_relief"] = (
+                materialize_sync_value(plan.host_relief_repair)
+            )
+        except Exception as exc:
+            if hasattr(app, "settings_status_var"):
+                app.settings_status_var.set(f"即時同步失敗：{exc}")
+            return False
+        finally:
+            app._phase6_live_sync_guard = False
+        return True
+
     def final_scene_set_preview_enabled(self, enabled):
         """Apply the FinalScene preview effect through the composition owner."""
         app = self.app
@@ -1682,9 +1748,9 @@ class Phase6FoldDesignerComposition:
             scene_payload_for_part=lambda key: required(
                 "_phase6_scene_query_payload_for_part"
             )(app, key),
-            publish_live_state=lambda **kwargs: required(
-                "_phase6_publish_live_state"
-            )(app, **kwargs),
+            publish_live_state=lambda **kwargs: self.publish_live_state(
+                namespace, **kwargs
+            ),
             corner_dimension_text=corner_text,
             formed_size_text=formed_size_text,
             blank_text=blank_text,

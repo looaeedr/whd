@@ -108,13 +108,18 @@ def test_issue503_default_transaction_id_and_delta_are_planned_purely():
     assert plan.payload["origin"] == "fold_designer"
 
 
-def test_issue503_bridge_publish_is_plan_then_effect_boundary():
-    source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
-    tree = ast.parse(source, filename="fold_designer_bridge.py")
-    fn = next(
+def test_issue503_composition_publish_is_plan_then_effect_boundary():
+    source = Path("gui_modules/application/fold_designer_adapter.py").read_text(encoding="utf-8")
+    tree = ast.parse(source, filename="fold_designer_adapter.py")
+    owner = next(
         node for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    fn = next(
+        node for node in owner.body
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_publish_live_state"
+        and node.name == "publish_live_state"
     )
     block = ast.get_source_segment(source, fn) or ""
 
