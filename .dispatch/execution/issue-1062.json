@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
@@ -24,7 +24,7 @@
   "mutation_scope": {
     "base_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "fold_designer_bridge.py",
@@ -77,7 +77,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "PATH_RESERVATION_RELEASED",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
@@ -85,13 +85,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
   "transaction": {
-    "expected_fingerprint": "774bd3d3449625867fc3d0d7dce598f8a77f360c224ea761cdf931aee2e7a422",
-    "id": "gha:36849928472:1062:ACQUIRE:8",
+    "expected_fingerprint": "68d630b95bbc5710edee17d0ac833414fd5a29b788e9cce0812d8f2e2f1602fc",
+    "id": "gha:36850054724:1062:RELEASE_PATHS:9",
     "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T103339Z",
-    "kind": "ACQUIRE",
+    "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T10:33:39Z",
+  "updated_at": "2026-10-01T10:34:10Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
