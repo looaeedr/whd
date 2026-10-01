@@ -1,14 +1,36 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1050-drain-already-merged-terminal-tail-28",
-  "issue": 1050,
-  "kind": "MERGE",
+  "request_id": "issue1077-acquire-root-durability-repair",
+  "issue": 1077,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1050.20261001T0634+08",
-  "expected_coord_head": "ebc70862e16674884e0303d7f9581e477ef77b05",
-  "expected_generation": 27,
-  "effect": {},
-  "purpose": "Consume already-merged PR #1071 and drain FINALIZE to durable DONE for Issue #1050.",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0440Z",
+  "expected_coord_head": "f1e235b13f21702a0cc2ba9c7c807fc366a1eca2",
+  "expected_generation": 1,
+  "effect": {
+    "semantic_state": "PATHS_RESERVED",
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
+      "write_paths": [
+        ".agents/skills/engineering/root-local-first/SKILL.md",
+        "tools/root_local_first_gate.py",
+        "tools/execution_invocation_exit.py",
+        "tests/process/test_root_local_first_entry_hard_gate.py",
+        "tests/process/test_flow_v2_execution_invocation_exit.py",
+        "tests/process/test_issue1045_post_integration_durability.py"
+      ],
+      "delete_paths": []
+    },
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "work_branch": "governance/issue1077-root-local-durability-hardening"
+      },
+      "display": "Start exact tested Issue #1077 work branch after root freeze"
+    }
+  },
+  "purpose": "Issue #1077 root-local-first machine enforcement and durability repair",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
