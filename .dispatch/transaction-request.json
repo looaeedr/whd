@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-acquire-root-durability-repair",
+  "request_id": "issue1077-acquire-root-durability-repair-sorted",
   "issue": 1077,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -14,11 +14,11 @@
       "base_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
       "write_paths": [
         ".agents/skills/engineering/root-local-first/SKILL.md",
-        "tools/root_local_first_gate.py",
-        "tools/execution_invocation_exit.py",
-        "tests/process/test_root_local_first_entry_hard_gate.py",
         "tests/process/test_flow_v2_execution_invocation_exit.py",
-        "tests/process/test_issue1045_post_integration_durability.py"
+        "tests/process/test_issue1045_post_integration_durability.py",
+        "tests/process/test_root_local_first_entry_hard_gate.py",
+        "tools/execution_invocation_exit.py",
+        "tools/root_local_first_gate.py"
       ],
       "delete_paths": []
     },
