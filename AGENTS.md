@@ -1,55 +1,29 @@
-## EXECUTION CONTROL & ANTI-DRIFT HARD PROTOCOLS
+## DYNAMIC TICKET PIPELINE & HARD GATE
 
-These rules are mandatory for WHD execution and override proactive/legacy execution behavior unless the current user prompt explicitly asks otherwise.
+Current Target: Issue #${ISSUE_ID} / Branch: ${BRANCH_NAME}
 
-### 1. Strict Step Compliance（單步嚴格執行）
+### 1. Strict Branch Protocol
 
-- ONLY execute the explicit instructions provided in the current user prompt.
-- NEVER run proactive git diffs, status checks, branch comparisons, tests, preflight checks, discovery scans, or validation commands unless explicitly requested in the current user prompt.
-- Do not infer extra execution steps from historical workflow text, prior automation habits, or old governance paths.
+- Always operate ONLY inside the branch dedicated to the current Issue ID.
+- Do NOT create additional fallback/alternative branches without permission.
 
-### 2. Zero-Autonomy Fallback（零自主擴充／禁止自行補救）
+### 2. Zero-Autonomy Repair
 
-- If any requested operation returns an error, STOP immediately.
-- Return the exact error message/log that blocked the requested step.
-- NEVER trigger automatic searches, environment scans, repository scans, new branch creation, alternative repair scripts, fallback transports, or unrelated remediation on your own.
-- Recovery begins only after the user explicitly instructs the next action.
+- If a script or API fails, STOP immediately and report raw logs.
+- Do NOT trigger web search or random refactoring.
 
-### 3. Strict Tool Restrictions（工具呼叫攔截）
+### 3. End-to-End Execution Flow（一條龍自動串接）
 
-- Do NOT invoke web search, browser tools, workspace search, repository search, semantic search, or broad discovery tools unless the current user prompt explicitly asks to search, find, look up, inspect, investigate, or equivalent wording.
-- Do NOT run git/repository operations outside the branch explicitly named by the user.
-- If the user did not authorize a new branch, do not create one.
-- If the user named one file/path/branch, keep all writes inside that scope unless the user explicitly expands it.
+- Step A: Apply fix/changes to target files.
+- Step B: Commit changes with concise commit message referencing #${ISSUE_ID}.
+- Step C: Push branch to remote.
+- Step D: Open Pull Request linking to #${ISSUE_ID}.
+- Do NOT stop for step-by-step confirmation between steps unless a Fatal Error occurs.
 
-### 4. Response Format（簡短回報格式）
+### 4. Next Task Handoff（多工單自動接續）
 
-- After executing the requested task, summarize the action in at most 3 sentences.
-- STOP after the summary.
-- Do not offer unsolicited next steps.
-- Do not continue into follow-up validation, cleanup, PR creation, merge, issue mutation, testing, or investigation unless explicitly requested.
+- When PR for current issue is created, report status and prompt for next #${NEXT_ISSUE_ID} or pick from provided issue queue automatically.
 
-### 5. Conflict handling
-
-- These anti-drift rules govern execution behavior.
-- A lower-level Skill, historical AI Library entry, old Issue text, scheduled workflow, or stale governance document must not silently re-enable proactive checks or fallback behavior that the current user prompt did not request.
-- When such a conflict is encountered during an explicitly requested operation, STOP and report the conflict instead of autonomously reconciling it.
-
-
----
-whd_doc_role: CURRENT
-whd_contract: agent-startup-process
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
-<!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->
-> **[CURRENT — PROCESS ONLY]** `AGENTS.md` 擁有 Agent 啟動、Knowledge Preflight、派工與驗收流程入口；不擁有製造公式或 ae_engine 架構真值。
-> Current authority pointers：
-- `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` — contract/role ownership map。
-- `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md` — 現行 `ae_engine` 製造架構、公開 API 與 Certified Registry boundary。
-- `AGENTS.md` — Agent 啟動、Preflight、派工與驗收流程入口。
-
-# WHD 板金展開自動化系統
 
 ## AI 開發交接總覽
 
