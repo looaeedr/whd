@@ -515,3 +515,78 @@ def project_assembly_mode(
     host.base_plate_edge_shrink_vars = {}
     host.base_plate_edge_shrink_widgets = {}
 
+def project_active_part_selector(
+    host,
+    *,
+    key: str,
+    label: str,
+    removable: bool,
+    refresh_part_button_states: Callable[[], object] | None,
+) -> None:
+    """Project active-part label/remove affordance without owning navigation state."""
+    part_var = getattr(host, "part_var", None)
+    if part_var is not None:
+        part_var.set(label)
+    if callable(refresh_part_button_states):
+        refresh_part_button_states()
+    remove = getattr(host, "remove_part_button", None)
+    if remove is not None:
+        remove.configure(state=("normal" if removable else "disabled"))
+
+
+def finalize_single_part_layout(
+    host,
+    *,
+    settings_context: str,
+    render_settings_context: Callable[[str], object],
+    pack_right_panel: Callable[[object], object],
+    render_active_drawing_edge_controls: Callable[[], object],
+    tk_both,
+) -> None:
+    """Settle settings/canvas widgets after authoritative part activation completes."""
+    center = getattr(host, "settings_center", None)
+    if center is not None:
+        render_settings_context(settings_context)
+        if bool(getattr(host, "_phase6_parameters_unlocked", False)):
+            if not center.winfo_manager():
+                pack_right_panel(center)
+        elif center.winfo_manager():
+            center.pack_forget()
+
+    renderer = getattr(host, "renderer", None)
+    canvas = getattr(renderer, "canvas", None)
+    if canvas is None:
+        return
+    pending_draw = getattr(canvas, "_idle_draw_id", None)
+    if pending_draw is not None:
+        try:
+            host.root.after_cancel(pending_draw)
+        except Exception:
+            pass
+        try:
+            canvas._idle_draw_id = None
+        except Exception:
+            pass
+    try:
+        host.root.update_idletasks()
+    except Exception:
+        pass
+
+    get_widget = getattr(canvas, "get_tk_widget", None)
+    if callable(get_widget):
+        canvas_widget = get_widget()
+        if not canvas_widget.winfo_manager():
+            canvas_widget.pack(fill=tk_both, expand=True)
+    render_active_drawing_edge_controls()
+
+    resize_draw_idle = getattr(canvas, "draw_idle", None)
+    if callable(resize_draw_idle):
+        canvas.draw_idle = lambda *args, **kwargs: None
+    try:
+        host.root.update_idletasks()
+    except Exception:
+        pass
+    finally:
+        if callable(resize_draw_idle):
+            canvas.draw_idle = resize_draw_idle
+
