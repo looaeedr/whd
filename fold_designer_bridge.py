@@ -90,6 +90,9 @@ from phase6_navigation_view_adapter import (
     refresh_part_selector as _navigation_view_refresh_part_selector,
     refresh_part_button_states as _navigation_view_refresh_part_button_states,
     refresh_add_part_menu as _navigation_view_refresh_add_part_menu,
+    hide_corner_data_canvas as _navigation_view_hide_corner_data_canvas,
+    show_corner_data_mode as _navigation_view_show_corner_data_mode,
+    project_assembly_mode as _navigation_view_project_assembly_mode,
 )
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -5076,73 +5079,28 @@ def _phase6_prepare_corner_data_canvas(self):
     )
 
 def _phase6_hide_corner_data_canvas(self):
-    """Restore Matplotlib according to pure View visibility policy."""
-    plan = _phase6_corner_data_view(self).canvas_visibility_plan(False)
-    info_label = getattr(self, "corner_data_info_label", None)
-    if info_label is not None and not plan["info_label"]:
-        try:
-            if info_label.winfo_manager():
-                info_label.pack_forget()
-        except Exception:
-            pass
-    canvas = getattr(self, "corner_data_canvas", None)
-    if canvas is not None and not plan["corner_canvas"]:
-        try:
-            if canvas.winfo_manager():
-                canvas.pack_forget()
-        except Exception:
-            pass
-    renderer = getattr(self, "renderer", None)
-    mpl_canvas = getattr(renderer, "canvas", None)
-    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
-    if not callable(get_widget):
-        return None
-    mpl_widget = get_widget()
-    if plan["mpl_canvas"] and not mpl_widget.winfo_manager():
-        mpl_widget.pack(fill=original.tk.BOTH, expand=True)
-    return mpl_widget
+    """Delegate corner-data/Matplotlib visibility projection to the view owner."""
+    return _navigation_view_hide_corner_data_canvas(
+        self,
+        visibility_plan=_phase6_corner_data_view(self).canvas_visibility_plan(False),
+        tk_both=original.tk.BOTH,
+    )
 
 def _phase6_show_corner_data(self):
-    """Switch Fold Designer to the view-only corner-data navigation mode.
-
-    This mode is navigation only: it must not flush/publish settings, add a
-    manufacturing part, or alter workspace selection/state. T2 will populate
-    the authoritative part projection inside the mode panel.
-    """
-    _phase6_clear_navigation_residue(self)
-    self._phase6_3d_display_mode = "corner_data"
-    if hasattr(self, "part_var"):
-        self.part_var.set("截角資料")
-
-    piece_selector = getattr(self, "box_body_piece_selector", None)
-    if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
-        try:
-            piece_selector.pack_forget()
-        except Exception:
-            pass
-
-    panel = getattr(self, "corner_data_panel", None)
-    if panel is None:
-        shared_host = getattr(self, "left", None)
-        if shared_host is None:
-            return None
-        panel = original.ttk.Frame(shared_host, padding=6)
-        self.corner_data_panel = panel
-    _phase6_mount_shared_content(self, "corner_data")
-
-    corner_canvas = _phase6_prepare_corner_data_canvas(self)
-    _phase6_refresh_corner_data_parts_panel(self)
-    if corner_canvas is not None:
-        _phase6_refresh_corner_data_unfold_view(self)
-
-    refresh = getattr(self, "_refresh_part_button_states", None)
-    if callable(refresh):
-        refresh()
-    _phase6_refresh_content_switch(self)
-
+    """Switch to view-only Corner Data through the navigation view owner."""
+    return _navigation_view_show_corner_data_mode(
+        self,
+        frame_factory=lambda parent: original.ttk.Frame(parent, padding=6),
+        mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode),
+        prepare_canvas=lambda: _phase6_prepare_corner_data_canvas(self),
+        refresh_parts_panel=lambda: _phase6_refresh_corner_data_parts_panel(self),
+        refresh_unfold=lambda: _phase6_refresh_corner_data_unfold_view(self),
+        refresh_part_button_states=getattr(self, "_refresh_part_button_states", None),
+        refresh_content_switch=lambda: _phase6_refresh_content_switch(self),
+    )
 
 def _phase6_show_assembly(self, initial=False):
-    """Show the structural cabinet assembly while retaining a real active part as geometry backing."""
+    """Show assembly while Bridge retains save/update/manufacturing authority only."""
     _phase6_clear_navigation_residue(self)
     _phase6_hide_corner_data_canvas(self)
     if not initial and getattr(self, "_phase6_pending_settings", None):
@@ -5160,34 +5118,13 @@ def _phase6_show_assembly(self, initial=False):
             pass
     _phase6_workspace_navigation(self).clear_selection()
     self._phase6_3d_display_mode = "assembly"
-    if hasattr(self, "part_var"):
-        self.part_var.set("組合體")
-    piece_selector = getattr(self, "box_body_piece_selector", None)
-    if piece_selector is not None and piece_selector.winfo_manager():
-        piece_selector.pack_forget()
-    _phase6_mount_shared_content(self, "assembly")
-    center = getattr(self, "settings_center", None)
-    if center is not None and center.winfo_manager():
-        center.pack_forget()
-    diagnostics = getattr(self, "assembly_diagnostics_frame", None)
-    if diagnostics is not None:
-        if bool(getattr(self, "_phase6_parameters_unlocked", False)):
-            if not diagnostics.winfo_manager():
-                _phase6_pack_right_panel_above_canvas(self, diagnostics)
-        elif diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    delete = getattr(self, "remove_part_button", None)
-    if delete is not None:
-        delete.configure(state="disabled")
-    canvas_widget = self.renderer.canvas.get_tk_widget()
-    if not canvas_widget.winfo_manager():
-        canvas_widget.pack(fill=original.tk.BOTH, expand=True)
-    _phase6_clear_drawing_edge_controls(self)
-    self.endcap_joint_vars = {}
-    self.endcap_joint_widgets = {}
-    self.endcap_joint_allowed = {}
-    self.base_plate_edge_shrink_vars = {}
-    self.base_plate_edge_shrink_widgets = {}
+    _navigation_view_project_assembly_mode(
+        self,
+        mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode),
+        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
+        clear_drawing_edge_controls=lambda: _phase6_clear_drawing_edge_controls(self),
+        tk_both=original.tk.BOTH,
+    )
     if not initial:
         try:
             after_signature = _phase6_manufacturing_state_signature(self)
@@ -5201,7 +5138,6 @@ def _phase6_show_assembly(self, initial=False):
             self.do_update()
     _phase6_refresh_content_switch(self)
     return True
-
 
 def _fix11_select_part(self, key):
     key = str(key or "")
