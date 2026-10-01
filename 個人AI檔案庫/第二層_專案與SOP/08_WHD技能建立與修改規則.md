@@ -299,3 +299,19 @@ CI sharding 的 pytest isolation / deterministic ownership / concurrency budget 
 - CURRENT generic mutation continuity、readback/reconcile、owner transfer、scheduler resume 與 closure 全部由 `WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + structured `next_action` + `tools/execution_invocation_exit.py` 單一擁有；Entry Skills/prompts只能 bridge，不得把 historical owner重新升格。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
+
+
+---
+
+## 已核准規格拆工單 fast path — CURRENT
+
+當使用者已完成規格確認，接著要求「拆工單／拆票／拆成工單」時，`拆解任務工單` 必須直接走 `APPROVED_REQUIREMENT_FAST_PATH`：approved spec → requirement-to-ticket traceability → machine closure-owner validation → blockers-first owning Issues。
+
+- 不得重新要求 requirement-level RED。
+- 不得因 implementation test 尚未建立就把產品需求降回未核准。
+- 不得再插入第二次人工 breakdown approval gate。
+- Acceptance tests 屬施工/驗收條件，不是產品需求重新核准 gate。
+- 只有規格仍有真實矛盾、互斥方案或 unresolved product authority 時，才走 `REQUIREMENT_DISCOVERY_PATH`，使用 executable RED 協助釐清；需求一經核准立即回 approved fast path。
+- GitHub-backed project 仍需 real owning Issues、單一 `Issue Closure owner`、dependency readback 與 closing ownership；本修正不弱化 machine closure-owner gate。
+
+此條 supersede 舊「所有拆票一律先 requirement RED + 第二次核准」流程。

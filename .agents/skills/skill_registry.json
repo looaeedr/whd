@@ -745,7 +745,10 @@
     {
       "id": "explicit-skill-拆解任務工單",
       "keywords": [
-        "拆解任務工單"
+        "拆解任務工單",
+        "拆工單",
+        "拆票",
+        "拆成工單"
       ],
       "file_globs": [
         ".agents/skills/engineering/拆解任務工單/**"

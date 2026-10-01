@@ -11,51 +11,41 @@ def _text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_to_tickets_requires_red_gate_before_drafting_any_ticket():
+def test_approved_requirement_fast_path_does_not_require_requirement_red_or_second_approval():
     text = _text(TO_TICKETS)
+    assert "APPROVED_REQUIREMENT_FAST_PATH" in text
+    assert "已核准規格" in text
+    assert "直接拆票" in text
+    assert "不得重新要求 requirement-level RED" in text
+    assert "不得再要求第二次核准" in text
+
+
+def test_unclear_requirement_path_keeps_red_as_discovery_not_universal_gate():
+    text = _text(TO_TICKETS)
+    assert "REQUIREMENT_DISCOVERY_PATH" in text
     for required in (
-        "RED Gate",
-        "實際執行",
+        "需求尚未核准",
+        "executable RED",
         "正確失敗",
-        "使用者逐條論證",
-        "使用者核准",
-        "才可開始草擬工單",
+        "使用者核准需求",
     ):
         assert required in text
+    assert "RED 只用來釐清未核准需求" in text
 
 
-def test_to_tickets_red_must_map_each_requirement_to_executable_evidence():
+def test_approved_spec_ticket_requires_traceability_and_acceptance_not_approved_red_ids():
     text = _text(TO_TICKETS)
     for required in (
-        "Requirement",
-        "RED command/nodeid",
-        "expected failure",
-        "observed failure",
-        "user decision",
+        "Requirement Authority",
+        "Spec References",
+        "Acceptance Tests",
+        "Blocked by",
+        "Issue Closure owner",
+        "AI Library References",
+        "AI Library Writeback",
     ):
         assert required in text
-    assert "環境錯誤" in text
-    assert "語法錯誤" in text
-    assert "fixture" in text
-    assert "不能算 RED" in text
-
-
-def test_to_tickets_must_fail_closed_before_red_approval():
-    text = _text(TO_TICKETS)
-    for forbidden_before_approval in (
-        "Draft vertical slices",
-        "Publish the tickets",
-        "GitHub",
-        "Local files",
-    ):
-        assert forbidden_before_approval in text
-    for required in (
-        "RED 未核准",
-        "不得開始拆工單",
-        "不得建立 issue",
-        "不得寫入 local ticket",
-    ):
-        assert required in text
+    assert "Approved RED IDs" not in text
 
 
 def test_ticket_decomposition_is_explicit_and_dispatch_cannot_own_a_second_decomposition_machine():
@@ -63,27 +53,23 @@ def test_ticket_decomposition_is_explicit_and_dispatch_cannot_own_a_second_decom
     registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
     route = next(item for item in registry["routes"] if item["id"] == "explicit-skill-拆解任務工單")
     assert route["required_skills"] == ["拆解任務工單"]
+    assert {"拆解任務工單", "拆工單", "拆票", "拆成工單"}.issubset(set(route["keywords"]))
     assert "FLOW_V2_EXECUTION_BRIDGE_V1" in dispatch
     assert "不擁有 execution state machine" in dispatch
     assert "tools/execution_dispatch_ingress.py" in dispatch
     assert "explicit READY ingress" in dispatch
 
 
-def test_to_tickets_does_not_invent_repair_ticket_when_red_is_already_green():
+def test_approved_spec_can_publish_blockers_first_without_extra_user_gate():
     text = _text(TO_TICKETS)
-    for required in (
-        "RED 已是 GREEN",
-        "不得建立修復工單",
-        "重新確認測試 seam",
-    ):
-        assert required in text
+    assert "blockers first" in text
+    assert "GitHub owning Issue" in text
+    assert "已核准規格路徑" in text
+    assert "不新增人工 approval gate" in text
 
 
-def test_each_drafted_ticket_must_reference_approved_red_ids():
+def test_ticket_closure_owner_machine_guard_is_retained():
     text = _text(TO_TICKETS)
-    for required in (
-        "Approved RED IDs",
-        "每張工單",
-        "已核准的 RED",
-    ):
-        assert required in text
+    assert "tools/ticket_breakdown_guard.py" in text
+    assert "Issue Closure owner" in text
+    assert "恰好一個" in text
