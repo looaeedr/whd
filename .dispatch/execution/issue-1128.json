@@ -1,52 +1,71 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1128,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-  "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
-  "head_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire #1128 and reserve derived-sync decomposition scope"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": 1084
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": 1084,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "issue": 1128,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-01T23:34:37Z",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1128.20261002",
+    "token": "lease:1128:36940140994:1"
+  },
+  "mutation_scope": {
+    "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "gui_modules/application/fold_designer_adapter.py",
+      "tests/test_issue1128_derived_sync_composition_owner.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "After root tests",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "0c62ded1300dd1748a8e8d4ae00e66469257a8dd8cb0b50bf2bd9b306528486b",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user:chat:2026-10-02:continue-6000-line-bridge-decomposition",
-      "authority_fingerprint": "0c62ded1300dd1748a8e8d4ae00e66469257a8dd8cb0b50bf2bd9b306528486b"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-10-01T23:11:00Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED_ROOT_IMPLEMENTING",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "transaction": {
+    "expected_fingerprint": "b4f03997409126516de3591c51747f8a16695bd02c2fca0755348698b458f2a3",
+    "id": "gha:36940140994:1128:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1128.20261002",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-01T23:19:37Z",
+  "version": 2,
+  "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
