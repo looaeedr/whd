@@ -87,6 +87,9 @@ from phase6_navigation_view_adapter import (
     refresh_content_switch as _navigation_view_refresh_content_switch,
     build_content_switch as _navigation_view_build_content_switch,
     on_structure_tree_click as _navigation_view_on_structure_tree_click,
+    refresh_part_selector as _navigation_view_refresh_part_selector,
+    refresh_part_button_states as _navigation_view_refresh_part_button_states,
+    refresh_add_part_menu as _navigation_view_refresh_add_part_menu,
 )
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -4850,64 +4853,28 @@ def _phase6_activate_operator_part(self, key):
 
 
 def _fix11_refresh_part_buttons(self):
-    self.part_buttons = {}
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    menu = getattr(self, "part_choice_menu", None)
-    if menu is not None:
-        menu.delete(0, original.tk.END)
-        menu.add_radiobutton(
-            label="組合體",
-            variable=self.part_var,
-            value="組合體",
-            command=lambda: _phase6_show_assembly(self),
-        )
-        for key in _phase6_operator_part_selector_keys(self.available_parts):
-            label = _phase6_part_label(key, snapshot=snapshot)
-            menu.add_radiobutton(
-                label=label,
-                variable=self.part_var,
-                value=label,
-                command=lambda k=key: _phase6_activate_operator_part(self, k),
-            )
-        menu.add_radiobutton(
-            label="截角資料",
-            variable=self.part_var,
-            value="截角資料",
-            command=lambda: _phase6_show_corner_data(self),
-        )
-    active = getattr(self, "active_part_key", None)
-    if hasattr(self, "part_var"):
-        display_mode = str(
-            getattr(self, "_phase6_3d_display_mode", "single") or "single"
-        )
-        if display_mode == "assembly":
-            self.part_var.set("組合體")
-        elif display_mode == "corner_data":
-            self.part_var.set("截角資料")
-        elif _phase6_is_box_body_physical_piece_key(active):
-            self.part_var.set(_phase6_part_label("box_body", snapshot=snapshot))
-        elif active in self.available_parts:
-            self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
-    self._refresh_part_button_states()
-    _phase6_refresh_box_body_piece_selector(self)
-    _phase6_refresh_back_panel_mode_control(self)
-    if getattr(self, "assembly_parts_panel", None) is not None:
-        _phase6_refresh_assembly_parts_panel(self)
-    _phase6_refresh_structure_tree(self)
-    _phase6_refresh_content_switch(self)
-    _phase6_refresh_status_bar(self)
-
+    return _navigation_view_refresh_part_selector(
+        self,
+        tk_end=original.tk.END,
+        operator_selector_keys=_phase6_operator_part_selector_keys,
+        label_for_key=lambda key, snapshot=None: _phase6_part_label(key, snapshot=snapshot),
+        is_box_piece=_phase6_is_box_body_physical_piece_key,
+        show_assembly=lambda: _phase6_show_assembly(self),
+        show_corner_data=lambda: _phase6_show_corner_data(self),
+        activate_part=lambda key: _phase6_activate_operator_part(self, key),
+        refresh_button_states=lambda: _fix11_refresh_part_button_states(self),
+        refresh_piece_selector=lambda: _phase6_refresh_box_body_piece_selector(self),
+        refresh_back_panel=lambda: _phase6_refresh_back_panel_mode_control(self),
+        refresh_assembly_panel=(lambda: _phase6_refresh_assembly_parts_panel(self)) if getattr(self, "assembly_parts_panel", None) is not None else None,
+        refresh_structure_tree=lambda: _phase6_refresh_structure_tree(self),
+        refresh_content_switch=lambda: _phase6_refresh_content_switch(self),
+        refresh_status_bar=lambda: _phase6_refresh_status_bar(self),
+    )
 
 def _fix11_refresh_part_button_states(self):
-    selected = getattr(self, "selected_part_key", None)
-    for button in self.part_buttons.values():
-        button.state(["!disabled"])
-    delete = getattr(self, "remove_part_button", None)
-    if delete is not None:
-        delete.configure(
-            state=("normal" if selected in self.available_parts and selected != "box_body" and not _phase6_is_derived_physical_part_key(selected) else "disabled")
-        )
-
+    return _navigation_view_refresh_part_button_states(
+        self, is_derived_part=_phase6_is_derived_physical_part_key
+    )
 
 def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
     """Project authoritative workspace identities into the 2D View."""
@@ -5263,14 +5230,13 @@ def _fix11_remove_selected_part(self):
 
 
 def _fix11_refresh_add_part_menu(self):
-    self.add_part_menu.delete(0, original.tk.END)
-    missing = [key for key in KNOWN_PARTS if key not in self.available_parts]
-    if not missing:
-        self.add_part_menu.add_command(label="沒有可新增板件", state="disabled")
-        return
-    for key in missing:
-        self.add_part_menu.add_command(label=_phase6_part_label(key), command=lambda k=key: self.add_part(k))
-
+    return _navigation_view_refresh_add_part_menu(
+        self,
+        tk_end=original.tk.END,
+        known_parts=KNOWN_PARTS,
+        label_for_key=lambda key: _phase6_part_label(key),
+        add_part=lambda key: self.add_part(key),
+    )
 
 def _phase6_refresh_linked_part_profiles(self, changed_keys):
     """Refresh non-active parts from one shared cabinet state.
