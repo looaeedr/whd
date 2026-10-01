@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "567d697a461322f9875886108fea786458a1eb70",
   "issue": 1084,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,15 +23,9 @@
   },
   "mutation_scope": null,
   "next_action": {
-    "args": {
-      "expected_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-      "head_sha": "567d697a461322f9875886108fea786458a1eb70",
-      "pr_number": 1085,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Consume already-merged PR #1085 and finalize #1084",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -48,7 +42,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
@@ -56,13 +50,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "77ff7fa2c8cef9c5448ad58dac0226d76bc8e6699dc0272091e0229dbdc604e5",
-    "id": "gha:36936494610:1084:CONSUME_QA:3",
+    "expected_fingerprint": "f7704953cc04d6deab8f95dfdc389f5446747af3e1fb42635d0c6bd684231e0e",
+    "id": "gha:36936592485:1084:MERGE:4",
     "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T22:41:12Z",
+  "updated_at": "2026-10-01T22:42:12Z",
   "version": 2,
   "work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001"
 }
