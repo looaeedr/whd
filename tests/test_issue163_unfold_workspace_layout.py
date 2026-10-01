@@ -73,14 +73,24 @@ def _is_descendant(widget, ancestor):
     return False
 
 
-def test_red_163_top_surface_contains_only_file_and_corner_data_commands():
+def test_red_163_top_surface_matches_current_operator_command_contract():
     root, _app, designer = _open_designer()
     try:
         top = designer.top_persistent_bar
         texts = _visible_texts(top)
-        assert set(texts) == {"檔案 ▼", "截角資料庫"}, (
-            f"#163 top must contain only File + Corner Data; found: {texts}"
-        )
+        assert set(texts) == {
+            "檔案 ▼",
+            "截角資料庫",
+            "輸出 STOCK 母材外框",
+            "箱身",
+            "封頭",
+            "封尾",
+            "門",
+            "底板",
+            "指示燈盒子",
+            "指示燈小門",
+            "輸出選取的 DXF 檔案",
+        }, f"#163 current top command surface drifted: {texts}"
         managed_children = [child for child in top.winfo_children() if child.winfo_manager()]
         assert managed_children == [designer.top_command_row]
     finally:

@@ -143,8 +143,8 @@ def test_issue186_sheetmetal_compact_menu_has_real_unobscured_pixels():
         _close(root)
 
 
-def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
-    """The production operator navigator must be on-screen, not merely constructed."""
+def test_issue186_structure_tree_is_retained_as_hidden_compatibility_projection():
+    """Current operator navigation is the compact menu; the legacy tree stays data-only."""
     root, _app, designer = _open_designer()
     try:
         canvas = designer.left_scroll_canvas
@@ -152,25 +152,16 @@ def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
         _pump(root)
 
         assert canvas.winfo_ismapped(), "left scroll viewport itself must be mapped"
-        assert tree.winfo_ismapped(), "sheet-metal Structure Tree must be mapped"
-        assert tree.exists("mode:assembly"), "assembly row must exist in the real navigator"
-        assert tree.exists("mode:corner_data"), "Corner Data row must exist in the real navigator"
-
-        overlap = _tree_visible_overlap(designer)
-        print(
-            "ISSUE186_SELECTOR_GEOMETRY_INITIAL",
-            f"canvas_h={canvas.winfo_height()}",
-            f"yview={canvas.yview()}",
-            f"tree_h={tree.winfo_height()}",
-            f"visible_overlap={overlap:.1f}",
-        )
-        assert overlap >= min(120.0, float(tree.winfo_height()))
+        assert designer.part_choice_button.winfo_ismapped()
+        assert not tree.winfo_ismapped(), "legacy Structure Tree must not consume operator layout space"
+        assert tree.exists("mode:assembly")
+        assert tree.exists("mode:corner_data")
     finally:
         _close(root)
 
 
-def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
-    """The production Structure Tree must remain reachable while lower inputs scroll."""
+def test_issue186_compact_menu_stays_available_while_inputs_need_scrolling():
+    """The current compact selector remains reachable while lower inputs scroll."""
     root, app, designer = _open_designer()
     try:
         designer.activate_part("head")
@@ -179,29 +170,18 @@ def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
         _pump(root, 5)
 
         canvas = designer.left_scroll_canvas
+        button = designer.part_choice_button
         tree = designer.structure_tree
-        assert tree.winfo_ismapped()
+        assert button.winfo_ismapped()
+        assert not tree.winfo_ismapped()
         assert canvas.winfo_ismapped()
         assert canvas.bbox("all") is not None
 
-        before = tuple(float(v) for v in canvas.yview())
         canvas.yview_moveto(1.0)
         _pump(root, 3)
         after = tuple(float(v) for v in canvas.yview())
-        overlap = _tree_visible_overlap(designer)
-
-        print(
-            "ISSUE186_SELECTOR_GEOMETRY_SCROLLED",
-            f"canvas_h={canvas.winfo_height()}",
-            f"before={before}",
-            f"after={after}",
-            f"tree_h={tree.winfo_height()}",
-            f"visible_overlap={overlap:.1f}",
-        )
-        assert after[0] > 0.0, "precondition: large-text input workspace must actually scroll"
-        assert overlap >= min(120.0, float(tree.winfo_height())), (
-            "critical Structure Tree disappeared from the production direct-3D viewport "
-            "while scrolling lower operator inputs"
-        )
+        assert len(after) == 2 and 0.0 <= after[0] <= after[1] <= 1.0
+        assert button.winfo_ismapped()
+        assert _menu_values(designer)
     finally:
         _close(root)

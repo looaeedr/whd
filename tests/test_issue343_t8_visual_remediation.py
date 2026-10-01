@@ -104,6 +104,14 @@ def test_installed_cjk_font_is_selected_for_actual_matplotlib_text():
     from matplotlib.figure import Figure
     import whd_theme
 
+    installed = {font.name for font in font_manager.fontManager.ttflist}
+    candidates = tuple(
+        name for name in whd_theme.MPL_CJK_FONT_FAMILIES
+        if name not in {"DejaVu Sans", "sans-serif"}
+    )
+    if not any(name in installed for name in candidates):
+        pytest.skip("ENVIRONMENT_CAPABILITY: no configured CJK font is installed")
+
     fig = Figure()
     ax = fig.add_subplot(111, projection="3d")
     whd_theme.apply_mpl_dark_theme(fig, ax)

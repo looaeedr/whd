@@ -125,7 +125,9 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
     assert "_phase6_install_keyboard_shortcuts" in adapter
     assert "_phase6_final_scene_view_request" in adapter
     assert "_phase6_save_settings_context_as_defaults" in adapter
-    assert "_phase6_toggle_parameter_panel" in adapter
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert "return _phase6_composition(self).toggle_parameter_panel(globals())" in bridge_source
+    assert "def toggle_parameter_panel" in adapter
 
 
 def test_p7_r_a_parameter_panel_compat_port_toggles_workspace_visibility(monkeypatch):

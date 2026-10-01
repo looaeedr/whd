@@ -543,6 +543,7 @@ def _phase6_settings_application_project_ui_values(
             if hasattr(self, "_ui_text_controller")
             else 1.0
         )
+        _phase6_update_left_workspace_width(self, key)
         # Widget projection happens in the guarded block below.  Updating the
         # Tk variable here would emit a synthetic user-change callback during
         # model/family projection and persist config.ini unintentionally.

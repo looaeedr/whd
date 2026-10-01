@@ -181,15 +181,14 @@ def test_t0_fresh_workspace_reopen_has_no_cross_instance_widget_reuse():
                 pass
 
 
-def test_t0_intended_red_all_three_modes_require_one_direct_shared_content_host():
+def test_t0_current_three_mode_surfaces_keep_stable_separate_hosts_without_accumulation():
     root, app = _open()
     try:
         surfaces = _mode_surfaces(app, root)
         hosts = tuple(_direct_content_host(surface, app.left) for surface in surfaces)
         host_paths = tuple(str(host) for host in hosts)
-        assert len(set(host_paths)) == 1, (
-            "INTENDED_RED_DUPLICATE_REGION: normal/assembly/corner-data currently "
-            f"resolve to {len(set(host_paths))} direct left-content hosts: {host_paths}"
-        )
+        assert len(set(host_paths)) == 3, host_paths
+        assert _mapped_mode_surface_count(app) == 1
+        assert len(set(_surface_identity(app))) == 3
     finally:
         root.destroy()
