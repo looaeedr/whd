@@ -1,33 +1,43 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-stage2-expand-presentation-20261001T2310+08",
-  "issue": 1062,
-  "kind": "RESERVE_PATHS",
+  "request_id": "issue1123-acquire-partial-nonbridge-20261001T161156Z",
+  "issue": 1123,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1062.stage2.20261001T2245+08",
-  "expected_coord_head": "6815f7dfab97672805afc04ba4dfdf38ed6997a5",
-  "expected_generation": 22,
+  "invocation_identity": "chatgpt.flowv2.work0.issue1123.20261001T1609Z",
+  "expected_coord_head": "24fb7d492d7e0d7aee5ea27f7ecd0527343adfcb",
+  "expected_generation": 1,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
-    "write_paths": [
-      "fold_designer_bridge.py",
-      "tests/test_issue124_structure_tree.py",
-      "tests/test_issue163_unfold_workspace_layout.py",
-      "tests/test_issue186_sheetmetal_selector_visibility.py",
-      "tests/test_issue335_top_toolbar.py",
-      "tests/test_issue343_t8_visual_remediation.py",
-      "tests/test_issue367_t3_project_persistence_owner.py",
-      "tests/test_issue430_single_host_red.py",
-      "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
-      "tests/test_issue96_corner_data_selection_lifecycle.py",
-      "tests/test_issue98_existing_2d_capability_migration.py",
-      "whd_theme.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "STAGE2_PRODUCT_REGRESSION_PATHS_RESERVED"
+    "observed_at": "2026-10-01T16:11:56Z",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "lease": {
+      "token": "lease:1123:preflight36889676669:1",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1123.20261001T1609Z",
+      "expires_at": "2026-10-01T16:51:56Z"
+    },
+    "semantic_state": "ROOT_IMPLEMENTING_PATHS_RESERVED_PARTIAL_BRIDGE_WAIT",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Start Git branch only after root-local tests/freeze/unlock"
+    },
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "cf667f3fa89b8bff846d9a3327f0cb6e7b29edf1",
+      "write_paths": [
+        "gui_modules/application/manufacturing_adapter.py",
+        "phase6_assembly_relief_state.py",
+        "tests/test_issue1123_assembly_relief_state_owner.py",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
+      ],
+      "delete_paths": []
+    }
   },
-  "purpose": "Expand #1062 product reservation only for the two #343 presentation implementation files; no governance changes.",
+  "purpose": "Execute #1123 root-local-first partial non-Bridge slice while #1062 remains the sole Bridge writer. Reserve neutral owner, manufacturing replay consumer, anti-regrowth test, and authority writeback paths; do not touch fold_designer_bridge.py until a later monotonic reservation expansion.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
