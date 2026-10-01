@@ -1,6 +1,18 @@
 {
   "authority": "DERIVED_CACHE_ONLY",
-  "entries": [],
+  "entries": [
+    {
+      "execution_intent": "EXECUTE_TICKET",
+      "generation": 1,
+      "issue": 1128,
+      "next_action_display": "Acquire #1128 and reserve derived-sync decomposition scope",
+      "next_action_kind": "ACQUIRE",
+      "record_fingerprint": "b4f03997409126516de3591c51747f8a16695bd02c2fca0755348698b458f2a3",
+      "target_branch": "cleanup/2d-3d-sync",
+      "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+      "updated_at": "2026-10-01T23:11:00Z"
+    }
+  ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "d01f2de51b132317b6d012c81c6f958b46f7e80f753aa6d00320a51ae54f0182"
+  "source_digest": "ef6f710ee83fea28bce952ed2a3e0bc1765efcd407783b50c8ada483fe9380f2"
 }

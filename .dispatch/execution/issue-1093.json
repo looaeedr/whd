@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 19,
+  "generation": 20,
   "head_sha": "011290e2d345b9eedd8631a3ee7192b1e13c3b0a",
   "issue": 1093,
   "lane_id": "chatgpt.flowv2.work2",
@@ -41,9 +41,9 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "3eaa7fec9469fca9d3d1844f08cf66781ff8d7cd76395fa19be2ed8295c473fd"
+      "diff_digest": "d0b2fec0b941a94ab5b6117cfb7fd491b105d864abbff86e138b6fa386c5e2d9"
     },
-    "display": "apply exact root-readback-tested #1093 machine-fix commit",
+    "display": "apply canonical ten-path root-tested #1093 machine-fix commit",
     "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work2",
@@ -69,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "9c6fdb3cf17c42e1878085dd53ade5b0b5a3f3e87b83ea6f805538832361cc6d",
-    "id": "gha:36939133077:1093:RECONCILE:18",
+    "expected_fingerprint": "64a999d49c44852b5713496a9a7491d9a23256bacadde818fb5fafd417ad9451",
+    "id": "gha:36939637893:1093:RECONCILE:19",
     "invocation_identity": "chatgpt.flowv2.work2.issue1093.20261002",
     "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T23:08:44Z",
+  "updated_at": "2026-10-01T23:14:10Z",
   "version": 2,
   "work_branch": "work/issue1093-active-owning-issue-stickiness-20261002"
 }
