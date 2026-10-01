@@ -135,6 +135,20 @@ Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/contro
 
 Machine owners：`tools/control_transaction.py` + `tools/control_transaction_request_ingress.py`。
 
+### EXECUTABLE_LEAF_CONTINUATION_HARD_GATE_V1
+
+任何 current Issue 的 wait / YIELD / DONE 都只描述該 Issue，**不得自動取得整個 invocation 的 return authority**。只要同一 execution surface（同 work-slot / scheduler lane / authorized interactive worker）還存在另一個合法 executable leaf，本 invocation 就必須繼續。
+
+固定規則：
+1. 在任何正常 return 前，fresh-read canonical scheduler/work-slot projection，判斷是否存在另一個已通過 startup/preflight/path-reservation eligibility 的 executable leaf；不得用聊天印象、舊 ready-index 或「目前這張 PR 在等 CI」推論全域無工作。
+2. current Issue 若因 remote QA / external wait 完成 durable `YIELD`，reclassify 時若仍有 executable leaf，必須呼叫 `classify_invocation_exit(..., other_executable_leaf_available=True)`；machine 結果固定 `CONTINUE_OTHER_EXECUTABLE_LEAF`（`may_return=false`），禁止把 `YIELDED` 當 turn exit。
+3. current Issue 若已 `DONE`，但 projection 尚有另一個 executable leaf，同樣以 `other_executable_leaf_available=True` reclassify，固定 `CONTINUE_OTHER_EXECUTABLE_LEAF`；完成一張工單後立即 handoff/ACQUIRE 下一張，不得停在 completion report。
+4. `PR/CI pending`、`mergeable_state=behind/unstable`、等待 required check、已找到下一刀、已建立 Issue/branch/claim/Guard GREEN、使用者詢問進度，都不是 `NO_EXECUTABLE_WORK` 證據。它們最多只能讓 current leaf defer。
+5. 只有 fresh canonical projection 證明 **沒有任何其他 executable leaf**，或每個候選 leaf 都有 fresh durable fail-closed blocker，才允許 current `YIELDED / TASK_TERMINAL / LANE_BUSY` 成為 physical return。
+6. 不得為了滿足本 gate 發明新工作；只能 consume canonical ready/current/handoff authority 已授權的 leaf。
+
+Machine owner=`tools/execution_invocation_exit.py::classify_invocation_exit(..., other_executable_leaf_available=...)`。
+
 ### TERMINAL_QA_CONSUME_FAST_PATH_V1
 
 已存在 GitHub Actions terminal run 且 trusted executor fresh-read 證明 `run_head_sha == current record.head_sha`、workflow path exact match、`status=completed`、`conclusion=success` 時，不再強迫原本 `START_QA → ACCEPT_QA` 的兩顆 durable transaction（中間另有 workflow round-trip）。
@@ -384,6 +398,18 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 偵測到可能仍存活的舊 writer時：bump generation、換 canonical branch、綁 exact base/head/fingerprint。舊 generation後續寫入=`ORPHAN_WRITE`，不可直接 merge/accept。舊成果仍可 freeze donor HEAD 後分類 `ADOPTABLE / PARTIAL / STALE_CONFLICT`；可用部分收編到 current generation，只重做不能證明相容的部分。
 
 ## Remote QA
+
+### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
+
+Remote QA 是外部等待，不得佔住同一 invocation 做 busy polling。對同一 `issue + run_id + head_sha`，**每個 invocation 的 active-status observation budget 固定為 1**：
+
+1. fresh-read exact run/head 一次；若已 terminal，立刻走 `CONSUME_QA / ACCEPT_QA / FAIL_QA` 的既有 terminal 路徑。
+2. 若第一次 observation 仍為 `queued / in_progress / pending / waiting / requested`，立即呼叫 `classify_invocation_exit(..., remote_qa_active_observation_count=1)`；其結果必須是 `YIELD_REQUIRED_REMOTE_WAIT`，接著 durable `YIELD`。
+3. **同一 invocation 禁止第二次讀同一 active run 的 workflow/job/status**；machine budget owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget`。第二次 active observation 固定 `REMOTE_QA_POLL_BUDGET_EXHAUSTED`。
+4. remote wait 不算 executable engineering progress，也不得阻止 scheduler/worker 在 durable YIELD 後處理另一個合法 executable leaf；原 QA 只在後續 wake/resume 再觀測。
+5. progress/status 回報是 non-blocking checkpoint，不得用「再看一次 CI」延長本 invocation。
+
+<!-- REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1 -->
 
 START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA 可從 ACTIVE / VERIFYING / INTEGRATING 進入 VERIFYING：INTEGRATING 只用於「原 accepted head 後續因合法 APPLY_COMMIT / target reconciliation 前進而需要重新 exact-head QA」；不得把這條路徑當成跳過既有 acceptance。active只 POLL_QA；success→ACCEPT_QA；若來源是 integration revalidation，ACCEPT_QA 必須以 next_state=INTEGRATING 回到 merge gate，且 MERGE 仍強制 qa.accepted_head_sha == current head。terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
 
