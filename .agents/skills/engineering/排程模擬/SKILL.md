@@ -25,14 +25,14 @@ whd_schema: WHD_DOC_META_V1
 
 ### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
-若新 scheduler invocation 在 project startup 階段還不知道 exact owning Issue，先依 canonical Flow v2 做 `READ_ONLY_BOOTSTRAP_ONLY`：只讀 `coord/execution-v2`、derived ready-index、`tools/execution_scheduler_view.py` scheduler projection 與 Issue/branch/HEAD identity，用來綁 trusted Phase6 Preflight request。此 bootstrap projection 不得授權 WAKE、HEARTBEAT、claim、ACQUIRE、transaction、Guard 或任何 mutation。
+若新 scheduler invocation 在 project startup 階段還不知道 exact owning Issue，先依 canonical Flow v2 做 `READ_ONLY_BOOTSTRAP_ONLY`：只讀 `coord/execution-v2`、derived ready-index、`tools/execution_scheduler_view.py` scheduler projection 與 Issue/branch/HEAD identity；若 current/ready 都空，才額外用 `tools/scheduler_ready_ingress.py` 掃 repository-owner-authored open Issue 第一個 nonblank marker `WHD_SCHEDULER_DISPATCH_REQUEST_V1`（可帶 `lane=ANY|A|B`），用來綁 trusted Phase6 Preflight request。普通 open Issue 不得推論成 work authority。此 bootstrap projection 不得授權 claim、ACQUIRE、transaction、Guard 或 repository mutation。host entrypoint observation 依 canonical fixed NON_AUTHORITY exception 可寫。
 
 Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟棄 bootstrap projection，再 fresh-read canonical scheduler state，才進入下面的 Wake。禁止建立永久 bootstrap Issue，也不得把這個 bridge 擴張成第二套 scheduler authority。
 
 ## Wake
-每次 wake 先 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。live lease退讓、expired lease走 atomic reacquire。沒有 current record且ready-index empty才可回 NO_EXECUTABLE_WORK。
+每次 host wake 先以 `tools/scheduler_entrypoint_observation.py` 寫 exact entrypoint NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。若 current/ready 都空，必須做 explicit marker candidate discovery；命中時 scheduler view 回 `INGRESS_REQUIRED`，完成 candidate-bound Preflight 後建立 READY、fresh-read並立即 ACQUIRE。live lease退讓、expired lease走 atomic reacquire。只有 current/ready/explicit candidate 全空才可回 NO_EXECUTABLE_WORK。正常 return 前必須寫 exact entrypoint EXIT；不能再留下 SEED-only host occurrence。
 
-`RESUME_CURRENT` 若先 ACQUIRE，ACQUIRE 後同一 invocation 必須立即 fresh-read並執行原 exact `next_action`；不得把拿到 lease 當 progress/停止點。`READY_CANDIDATES` 必須使用 scheduler view 的 deterministic `selected_issue` 立即 ACQUIRE；race/conflict後 fresh-read重選。
+`RESUME_CURRENT` 若先 ACQUIRE，ACQUIRE 後同一 invocation 必須立即 fresh-read並執行原 exact `next_action`；不得把拿到 lease 當 progress/停止點。`READY_CANDIDATES` 必須使用 scheduler view 的 deterministic `selected_issue` 立即 ACQUIRE；`INGRESS_REQUIRED` 必須先建立 exact READY，再 fresh-read/ACQUIRE，且 `DISPATCH_READY` 不算 substantive progress。race/conflict後 fresh-read重選。
 
 正常 return 前必須通過 canonical `SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1`：WAKE/讀取/回報/HEARTBEAT/單獨 ACQUIRE 都不算 substantive progress。只有 DONE、LANE_BUSY、合法 BLOCKED、active remote QA wait，或本 invocation 已完成 substantive transaction 後的合法 YIELD 可離開；`SCHEDULER_EXECUTION_NO_PROGRESS` 必須繼續施工，不得停止。
 
@@ -60,7 +60,7 @@ Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟�
 
 scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，可且應執行 **read-only host lifecycle inspection**，取得 A00/A20/A40/B15/B45 的 task `enabled / last_run_time`，並以 NON_AUTHORITY snapshot CAS 更新 `coord/monitor-v2:.dispatch/monitor/host/chatgpt-automations.json`。此為唯一 read-only automation introspection 例外；禁止任何 lifecycle mutation API。
 
-每個 entrypoint 必須把自己的 WAKE/HEARTBEAT/PROGRESS/EXIT 同步 mirror 到 exact entrypoint observation file，使用 canonical `WHD_SCHEDULER_ENTRYPOINT_OBSERVATION_V1`。host snapshot 與 entrypoint mirror 都只是 observability，不可當 claim/lease/transaction authority。
+每個 entrypoint 必須把自己的 WAKE/HEARTBEAT/PROGRESS/EXIT 同步 mirror 到 exact entrypoint observation file，固定由 `tools/scheduler_entrypoint_observation.py` 建立 canonical `WHD_SCHEDULER_ENTRYPOINT_OBSERVATION_V1`。WAKE 可在 project startup 前寫入 fixed host-layer path；每個正常 return 都要有 EXIT，所以 host run 不得停在 SEED-only。host snapshot 與 entrypoint mirror 都只是 observability，不可當 claim/lease/transaction authority。
 
 獨立 GitHub watchdog workflow 已退役並移除。需要判讀 host occurrence 時，由當次 scheduler invocation 或 explicit diagnostic 直接呼叫 canonical `tools/scheduler_host_watchdog.py` 讀 NON_AUTHORITY snapshot；不得另建 recurring GitHub Actions watchdog。120 秒 grace 的 `HOST_ENTRY_FAILURE / HOST_AUTO_PAUSE / HOST_STATE_UNKNOWN` 分類語意仍由 evaluator 擁有。
 
