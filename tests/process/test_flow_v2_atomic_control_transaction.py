@@ -328,23 +328,19 @@ def test_accept_qa_requires_exact_active_run_and_promotes_accepted_head():
     assert accepted.next_action.kind == "MERGE"
 
 
-def test_yield_clears_only_runtime_lease_and_preserves_nonterminal_task():
+def test_yield_rejected_when_apply_commit_is_immediately_executable():
     record = _yieldable_record()
     plan = prepare_transaction(
         record, kind="YIELD", transaction_id="tx-yield",
         invocation_identity="scheduled:00:run-a",
     )
-    yielded = execute_transaction(
-        record,
-        plan,
-        effect={"updated_at": "2026-09-28T00:36:00Z"},
-    )
 
-    assert yielded.state == "ACTIVE"
-    assert yielded.lease is None
-    assert yielded.owner_id == record.owner_id
-    assert yielded.slot_id == "worker.slot.1"
-    assert yielded.next_action.kind == "APPLY_COMMIT"
+    with pytest.raises(ControlTransactionError, match="CONTINUE_EXECUTION"):
+        execute_transaction(
+            record,
+            plan,
+            effect={"updated_at": "2026-09-28T00:36:00Z"},
+        )
 
 
 def test_handoff_changes_owner_atomically_but_keeps_work_identity():
@@ -624,7 +620,7 @@ def test_expired_lease_reacquire_cannot_change_owner_or_lane():
         )
 
 
-def test_yield_requires_exact_lease_invocation_and_preserves_continuation():
+def test_yield_with_exact_lease_still_rejected_while_continuation_is_executable():
     record = _yieldable_record()
     plan = prepare_transaction(
         record,
@@ -632,19 +628,13 @@ def test_yield_requires_exact_lease_invocation_and_preserves_continuation():
         transaction_id="tx-yield-exact",
         invocation_identity="scheduled:00:run-a",
     )
-    yielded = execute_transaction(
-        record,
-        plan,
-        effect={"updated_at": "2026-09-28T00:45:00Z"},
-    )
 
-    assert yielded.lease is None
-    assert yielded.owner_id == record.owner_id
-    assert yielded.slot_id == record.slot_id
-    assert yielded.work_branch == record.work_branch
-    assert yielded.head_sha == record.head_sha
-    assert yielded.next_action == record.next_action
-    assert yielded.transaction.invocation_identity == "scheduled:00:run-a"
+    with pytest.raises(ControlTransactionError, match="CONTINUE_EXECUTION"):
+        execute_transaction(
+            record,
+            plan,
+            effect={"updated_at": "2026-09-28T00:45:00Z"},
+        )
 
 
 def test_yield_rejects_immediate_post_acquire_without_substantive_progress():

@@ -102,6 +102,7 @@ Static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`。Canonical sta
 2. trusted production executor 必須 fresh-read `coord/execution-v2` 全部 nonterminal records；同 target 的 ACTIVE reservation 若有 exact path overlap，固定回 `PATH_RESERVATION_CONFLICT`，並保留 `conflicting_issue + paths`，不得寫 coord。
 3. coord ref CAS 是 cross-Issue atomic fence：兩個 runtime 即使同時從無衝突快照起跑，也只有第一個 non-force coord update 可成功；另一個 fresh-read 後必須看到 reservation conflict。
 4. scope 擴張只可 atomic monotonic superset `RESERVE_PATHS`；不得先改新檔再補 reservation，也不得用 scope shrink 釋放局部 path。
+   - `RESERVE_PATHS` 若 caller 已提供 structured `next_action`，成功的同一 transaction 必須原子寫入該 continuation；不得 reservation 已成功卻讓 record 黏在舊 `RESERVE_PATHS`，再靠額外 `RECONCILE` 才進 `APPLY_COMMIT`。
 5. `HANDOFF` / takeover / YIELD 只改 owner/lease/runtime，不釋放 mutation scope；reservation 綁 Issue。
 6. explicit 放棄 mutation scope 走 `RELEASE_PATHS`；正常 terminal `FINALIZE` 自動把 ACTIVE scope 標 `RELEASED`。
 7. interactive workspace 依 `build_interactive_work_path(issue, source_sha)` 做 Issue 隔離；兩個 Issue 不得共用同一實體 `/work/active` 施工目錄。
@@ -152,6 +153,18 @@ Machine owners：`tools/control_transaction.py` + `tools/control_transaction_req
 - run 尚未 terminal、head/workflow 不符、conclusion 非 success 一律 fail closed；需要真的啟動新 QA 時仍走既有 `START_QA → POLL_QA → ACCEPT_QA`。
 
 這個 fast path 只消除「已經有 exact terminal GREEN 還要再綁一次再接受一次」的重複 round-trip，不降低 QA 證據要求。
+
+### ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1
+
+<!-- ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1 -->
+
+同一 durable lane／work slot 一旦仍有 **non-DONE owning Issue**，不得因 stale reservation、recovery debt、舊 checkpoint 或 foreign control request 而切去另一張 Issue 做 mutation。canonical machine owner=`tools/execution_invocation_exit.py::assert_active_owning_issue_sticky(...)`，transaction enforcement=`tools/control_transaction_production_executor.py`，contract=`.agents/contracts/WHD_ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1.json`。
+
+- foreign Issue 僅允許 `READ_ONLY_DISCOVERY / READ_ONLY_STATUS`；`ACQUIRE / RECONCILE / RELEASE_PATHS / HANDOFF / FINALIZE / takeover / repair` 等 control mutation 固定在 `prepare_transaction(...)` **之前** fail closed：`ACTIVE_OWNING_ISSUE_NO_PIVOT`。
+- same-Issue continuation / recovery 保持合法；不同 `lane_id` 的獨立 writer 可正常平行，不得把本 gate 擴張成全 repo 單工。
+- 若 current record 已進 terminal tail，既有 `TERMINAL_TAIL_OWNING_ISSUE_STICKINESS_HARD_GATE_V1` 是更強 specialization，仍回 `TERMINAL_TAIL_NO_PIVOT`。
+- physical host boundary 不是 YIELD authority。fresh `next_action` 若仍是立即可執行 transaction（例如 `APPLY_COMMIT`），即使上一顆 substantive transaction 已 reconciled，也必須 `CONTINUE_EXECUTION`，**不得 YIELD**。只有真正 remote wait、durable blocker、explicit YIELD 或沒有可立即執行 continuation 時，才進既有 yield/exit 判定。
+- `RESERVE_PATHS` 不得只更新 `mutation_scope` 後留下舊 continuation。effect **必須**攜帶 post-reservation structured `next_action`，machine owner=`tools/control_transaction.py::_execute_reserve_paths` 在同一 atomic transaction 寫入 scope + continuation；缺 `next_action` 固定 fail closed。若 reservation 完成後下一步是 `APPLY_COMMIT`，fresh record 必須直接呈現 `APPLY_COMMIT`，不得再靠額外 `RECONCILE` 補 continuation，也不得因此取得 YIELD 權限。
 
 ### TERMINAL_GREEN_DRAIN_HARD_GATE_V1
 

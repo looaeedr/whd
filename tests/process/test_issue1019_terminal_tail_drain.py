@@ -167,7 +167,10 @@ def test_atomic_acquire_reservation_still_checks_cross_issue_conflicts(monkeypat
         lambda *args, **kwargs: pytest.fail("conflicting admission must not write coord"),
     )
 
-    with pytest.raises(ControlTransactionConflict, match="PATH_RESERVATION_CONFLICT"):
+    # #1093 ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1 now wins earlier:
+    # the same durable lane may not pivot to a READY foreign Issue merely to
+    # discover its path conflict. Foreign mutation is rejected before prepare.
+    with pytest.raises(ControlTransactionConflict, match="ACTIVE_OWNING_ISSUE_NO_PIVOT"):
         executor._execute_one_attempt(
             repo="looaeedr/whd",
             token="token",
