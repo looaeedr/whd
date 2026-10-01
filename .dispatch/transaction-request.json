@@ -1,29 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1084-consume-product-green",
+  "request_id": "issue1084-merge-finalize-drain",
   "issue": 1084,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-  "expected_coord_head": "6ccca6aeed351b10a98eb2b242f4002043f7a49d",
-  "expected_generation": 3,
-  "effect": {
-    "run_id": 36849311967,
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1085,
-        "head_sha": "567d697a461322f9875886108fea786458a1eb70",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Consume already-merged PR #1085 and finalize #1084"
-    }
-  },
-  "purpose": "Consume exact-head terminal Product Regression GREEN for #1084 and enter terminal merge/finalize recovery tail.",
+  "expected_coord_head": "471b7739672966185eb55c414853a4a202bace63",
+  "expected_generation": 4,
+  "effect": {},
+  "purpose": "Consume already-merged PR #1085 through trusted MERGE readback and drain FINALIZE to DONE, releasing stale slot0 ownership.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
