@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1123-refresh-reservation-2be23097-20261001T1636Z",
+  "request_id": "issue1123-refresh-reservation-2be23097-retry-20261001T1637Z",
   "issue": 1123,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
@@ -20,5 +20,17 @@
     "delete_paths": [],
     "semantic_state": "ROOT_TESTS_GREEN_DIFF_FROZEN_PARTIAL_BRIDGE_WAIT"
   },
-  "reuse_admission_session": true
+  "purpose": "Refresh #1123 exact-path reservation from the prior reconciled base to cleanup/2d-3d-sync@2be23097, preserving the same five non-Bridge paths and same writer.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
