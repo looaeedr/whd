@@ -82,6 +82,11 @@ from phase6_navigation_view_adapter import (
     on_structure_tree_select as _navigation_view_on_structure_tree_select,
     set_structure_tree_visibility as _navigation_view_set_structure_tree_visibility,
     on_box_body_piece_tab_changed as _navigation_view_on_box_body_piece_tab_changed,
+    refresh_sticky_structure_tree as _navigation_view_refresh_sticky_structure_tree,
+    clear_navigation_residue as _navigation_view_clear_navigation_residue,
+    refresh_content_switch as _navigation_view_refresh_content_switch,
+    build_content_switch as _navigation_view_build_content_switch,
+    on_structure_tree_click as _navigation_view_on_structure_tree_click,
 )
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -4690,29 +4695,7 @@ def _phase6_mark_ready(self):
 
 
 def _phase6_refresh_sticky_structure_tree(self):
-    """Compatibility port retained for WorkspaceShell composition callbacks."""
-    host = getattr(self, "structure_tree_host", None)
-    spacer = getattr(self, "structure_tree_spacer", None)
-    try:
-        if host is not None:
-            manager = str(host.winfo_manager() or "")
-            if manager == "place":
-                host.place_forget()
-            elif manager == "pack":
-                host.pack_forget()
-            elif manager == "grid":
-                host.grid_remove()
-        if spacer is not None:
-            manager = str(spacer.winfo_manager() or "")
-            if manager == "pack":
-                spacer.pack_forget()
-            elif manager == "grid":
-                spacer.grid_remove()
-            elif manager == "place":
-                spacer.place_forget()
-    except Exception:
-        return
-
+    return _navigation_view_refresh_sticky_structure_tree(self)
 
 def _phase6_install_keyboard_shortcuts(self):
     """Compatibility port; command_router remains the keyboard binding owner."""
@@ -4759,51 +4742,13 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
 
 def _phase6_clear_navigation_residue(self):
-    """Dismiss transient navigation popups before changing the visible content."""
-    for name in ("part_choice_menu", "add_part_menu", "project_file_menu"):
-        menu = getattr(self, name, None)
-        if menu is None:
-            continue
-        try:
-            menu.unpost()
-        except Exception:
-            pass
-
+    return _navigation_view_clear_navigation_residue(self)
 
 def _phase6_refresh_content_switch(self):
-    """Project the existing display mode onto the three persistent buttons."""
-    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    active = "assembly" if mode == "assembly" else "corner_data" if mode == "corner_data" else "input"
-    mapping = {
-        "input": getattr(self, "input_content_button", None),
-        "assembly": getattr(self, "assembly_content_button", None),
-        "corner_data": getattr(self, "corner_data_content_button", None),
-    }
-    for key, button in mapping.items():
-        if button is None:
-            continue
-        try:
-            button.state(["pressed"] if key == active else ["!pressed"])
-        except Exception:
-            pass
-    return active
-
-
+    return _navigation_view_refresh_content_switch(self)
 
 def _phase6_build_content_switch(self):
-    """Retain compatibility handles without a second visible navigation strip.
-
-    The main part selector now owns Input/Assembly/Corner-Data navigation.  Keep
-    the legacy attributes so older internal callers can remain tolerant, but do
-    not expose duplicate wrapper labels or buttons in the operator layout.
-    """
-    self.content_switch_frame = original.ttk.Frame(self.left)
-    self.input_content_button = None
-    self.assembly_content_button = None
-    self.corner_data_content_button = None
-    _phase6_refresh_content_switch(self)
-    return self.content_switch_frame
-
+    return _navigation_view_build_content_switch(self, frame_factory=original.ttk.Frame)
 
 def _phase6_mount_shared_content(self, mode):
     return _workspace_shell_mount_shared_content(
@@ -4856,18 +4801,11 @@ def _phase6_set_structure_tree_visibility(self, key, visible):
     )
 
 def _phase6_on_structure_tree_click(self, event):
-    tree = getattr(self, "structure_tree", None)
-    if tree is None or tree.identify_column(event.x) != "#1":
-        return None
-    iid = str(tree.identify_row(event.y) or "")
-    if not iid.startswith("part:"):
-        return "break"
-    key = iid[5:]
-    visible_var = _phase6_structure_tree_visibility_var(self, key)
-    if visible_var is None:
-        return "break"
-    _phase6_set_structure_tree_visibility(self, key, not bool(visible_var.get()))
-    return "break"
+    return _navigation_view_on_structure_tree_click(
+        self, event,
+        visibility_var=lambda key: _phase6_structure_tree_visibility_var(self, key),
+        set_visibility=lambda key, visible: _phase6_set_structure_tree_visibility(self, key, visible),
+    )
 
 def _phase6_refresh_box_body_piece_selector(self):
     """Compatibility wrapper for hidden BoxBody child-tab view projection."""
