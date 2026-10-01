@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
   "issue": 1077,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,15 +38,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
-      "head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
-      "pr_number": 1083,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Read back already-merged PR #1083",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -63,21 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
+  "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
   "transaction": {
-    "expected_fingerprint": "98b1ca8e43f31b5a01dd3d0d1f4ef6c64b0018cef4946d3eaaee97faec851f82",
-    "id": "gha:36837993917:1077:CONSUME_QA:11",
+    "expected_fingerprint": "cfa4f904462a90f9045a75d422942f713d6e169893d8f2391685bcf52e1a393f",
+    "id": "gha:36838182759:1077:MERGE:12",
     "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0835Z",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T08:42:57Z",
+  "updated_at": "2026-10-01T08:44:38Z",
   "version": 2,
   "work_branch": "governance/issue1077-root-local-durability-hardening"
 }
