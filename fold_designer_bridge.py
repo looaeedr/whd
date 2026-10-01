@@ -95,6 +95,9 @@ from phase6_navigation_view_adapter import (
     project_assembly_mode as _navigation_view_project_assembly_mode,
     project_active_part_selector as _navigation_view_project_active_part_selector,
     finalize_single_part_layout as _navigation_view_finalize_single_part_layout,
+    refresh_persistent_structure_controls as _navigation_view_refresh_persistent_structure_controls,
+    pack_right_panel_above_canvas as _navigation_view_pack_right_panel_above_canvas,
+    hide_original_structure_mode_controls as _navigation_view_hide_original_structure_mode_controls,
 )
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -4211,64 +4214,28 @@ def _phase6_build_settings_center(self):
 def _phase6_refresh_persistent_structure_controls(self):
     state = _phase6_box_structure_state(self)
     active = BoxBodyStructureType(state["active_type"])
-    var = getattr(self, "structure_type_var", None)
-    if var is not None:
-        value = _BOX_STRUCTURE_LABELS[active]
-        if var.get() != value:
-            var.set(value)
-    button = getattr(self, "structure_choice_button", None)
-    if button is not None:
-        fixed_family = cabinet_family_policy.family_fixes_box_body_structure(
-            getattr(self, "_phase6_input_snapshot", {}) or {}
-        )
-        button.configure(state=("disabled" if fixed_family else "normal"))
-
-    assembly_var = getattr(self, "assembly_type_var", None)
-    if assembly_var is not None:
-        label = ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)]
-        if assembly_var.get() != label:
-            assembly_var.set(label)
+    return _navigation_view_refresh_persistent_structure_controls(
+        self,
+        structure_label=_BOX_STRUCTURE_LABELS[active],
+        structure_fixed=cabinet_family_policy.family_fixes_box_body_structure(getattr(self, "_phase6_input_snapshot", {}) or {}),
+        assembly_label=ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)],
+    )
 
 
 def _phase6_toggle_parameter_panel(self):
     return _phase6_composition(self).toggle_parameter_panel(globals())
 
 def _phase6_pack_right_panel_above_canvas(self, widget):
-    """Pack a right-side settings/diagnostic panel before the expanding 3D canvas.
-
-    Tk pack order matters: if the canvas is already packed with fill=BOTH and
-    expand=True, packing a settings frame afterwards can leave the frame at
-    1x1 pixels even though winfo_manager() reports "pack".
-    """
-    if widget is None:
-        return False
-    canvas_widget = self.renderer.canvas.get_tk_widget()
-    options = dict(side=original.tk.TOP, fill=original.tk.X, pady=(0, 6))
-    if canvas_widget.winfo_manager() == "pack" and canvas_widget.master is widget.master:
-        widget.pack(before=canvas_widget, **options)
-    else:
-        widget.pack(**options)
-    return True
-
+    """Delegate right-panel packing order to the Tk view owner."""
+    return _navigation_view_pack_right_panel_above_canvas(
+        self, widget, tk_top=original.tk.TOP, tk_x=original.tk.X
+    )
 
 def _hide_original_structure_mode_controls(root_widget):
-    """Hide only the prototype's user-visible mode chooser; keep its internals."""
-    targets = {"標準十字型", "金庫型(三件)", "結構:"}
-    for child in root_widget.winfo_children():
-        try:
-            text = str(child.cget("text"))
-        except Exception:
-            text = ""
-        if text in targets:
-            manager = child.winfo_manager()
-            if manager == "pack":
-                child.pack_forget()
-            elif manager == "grid":
-                child.grid_remove()
-            elif manager == "place":
-                child.place_forget()
-        _hide_original_structure_mode_controls(child)
-
+    """Delegate prototype-control hiding to the Tk view owner."""
+    return _navigation_view_hide_original_structure_mode_controls(
+        root_widget, targets={"標準十字型", "金庫型(三件)", "結構:"}
+    )
 
 def _phase6_on_assembly_part_visibility_changed(self):
     if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
