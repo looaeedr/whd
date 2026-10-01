@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-finalize-reacquire",
+  "request_id": "issue1124-reconcile-to-merged-pr-head-qa",
   "issue": 1124,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1124.finalize-20261002",
-  "expected_coord_head": "b8f56003265ed85c6ca1ab0770d3732fb37f2545",
-  "expected_generation": 5,
-  "effect": {},
-  "purpose": "Renew the same work1 lease for #1124 terminal-tail reconciliation after PR #1126 was already merged; no repository-content mutation.",
+  "expected_coord_head": "51b661edc5980ce856ff118aee20c037ca7e1f20",
+  "expected_generation": 6,
+  "effect": {
+    "observed_work_branch": "governance/issue1124-background-control-plane-20261002",
+    "observed_head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
+    "observed_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+    "semantic_state": "POST_PUSH_QA_READY",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Consume exact-head Product Regression GREEN for #1124"
+    }
+  },
+  "purpose": "Reconcile stale #1124 record to already-tested PR #1126 head and live target; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
