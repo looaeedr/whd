@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "cf667f3fa89b8bff846d9a3327f0cb6e7b29edf1",
   "issue": 1123,
   "lane_id": "chatgpt.flowv2.work0",
@@ -35,9 +35,20 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Start Git branch only after root-local tests/freeze/unlock",
-    "kind": "START_BRANCH"
+    "args": {
+      "base_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+      "delete_paths": [],
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "gui_modules/application/manufacturing_adapter.py",
+        "phase6_assembly_relief_state.py",
+        "tests/test_issue1123_assembly_relief_state_owner.py",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
+      ]
+    },
+    "display": "Refresh #1123 reservation to exact tested target",
+    "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -54,21 +65,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_IMPLEMENTING_PATHS_RESERVED_PARTIAL_BRIDGE_WAIT",
+  "semantic_state": "ROOT_TESTED_TARGET_RECONCILED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "cf667f3fa89b8bff846d9a3327f0cb6e7b29edf1",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "cf667f3fa89b8bff846d9a3327f0cb6e7b29edf1",
+  "target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
   "transaction": {
-    "expected_fingerprint": "e48b48520d35fc214208dbe3c1b481355691edc2396c4e3951d6c1e99f9dd85d",
-    "id": "gha:36890317509:1123:ACQUIRE:1",
+    "expected_fingerprint": "9fb985542bad860b2a82232f62d59b3d50ecee2020d2ee42fd0e4dc25b0d4bac",
+    "id": "gha:36892798101:1123:RECONCILE:2",
     "invocation_identity": "chatgpt.flowv2.work0.issue1123.20261001T1609Z",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T16:13:35Z",
+  "updated_at": "2026-10-01T16:33:17Z",
   "version": 2,
   "work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001"
 }
