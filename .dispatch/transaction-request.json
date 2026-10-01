@@ -1,38 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-reserve-8paths-c4d4bab",
+  "request_id": "issue1077-reconcile-tested-head",
   "issue": 1077,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-  "expected_coord_head": "e5a9fa9f5c34520476b4e620b5c2103168950673",
-  "expected_generation": 7,
+  "expected_coord_head": "56cf7c0805a6dd3d96a4ee5ff768e3f0da7122a7",
+  "expected_generation": 8,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
-    "write_paths": [
-      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
-      "tests/process/test_issue1045_post_integration_durability.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/execution_invocation_exit.py",
-      "tools/post_integration_durability.py",
-      "tools/root_local_first_gate.py"
-    ],
-    "delete_paths": []
+    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
+    "observed_head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
+    "observed_target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
+    "semantic_state": "REMOTE_QA_READY",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {},
+      "display": "Consume completed PR QA for exact tested head"
+    }
   },
-  "purpose": "Expand Issue #1077 to root gate canonical mirror and preserve frozen diff across non-overlapping target drift",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "purpose": "Reconcile durable record to exact tested Git head before consuming completed PR QA"
 }
