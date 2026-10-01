@@ -590,3 +590,48 @@ def finalize_single_part_layout(
         if callable(resize_draw_idle):
             canvas.draw_idle = resize_draw_idle
 
+def refresh_persistent_structure_controls(
+    host, *, structure_label: str, structure_fixed: bool, assembly_label: str
+) -> None:
+    """Project authoritative structure/assembly labels onto persistent controls."""
+    var = getattr(host, "structure_type_var", None)
+    if var is not None and var.get() != structure_label:
+        var.set(structure_label)
+    button = getattr(host, "structure_choice_button", None)
+    if button is not None:
+        button.configure(state=("disabled" if structure_fixed else "normal"))
+    assembly_var = getattr(host, "assembly_type_var", None)
+    if assembly_var is not None and assembly_var.get() != assembly_label:
+        assembly_var.set(assembly_label)
+
+
+def pack_right_panel_above_canvas(host, widget, *, tk_top, tk_x) -> bool:
+    """Pack a variable-height right panel before the expanding renderer canvas."""
+    if widget is None:
+        return False
+    canvas_widget = host.renderer.canvas.get_tk_widget()
+    options = dict(side=tk_top, fill=tk_x, pady=(0, 6))
+    if canvas_widget.winfo_manager() == "pack" and canvas_widget.master is widget.master:
+        widget.pack(before=canvas_widget, **options)
+    else:
+        widget.pack(**options)
+    return True
+
+
+def hide_original_structure_mode_controls(root_widget, *, targets: set[str]) -> None:
+    """Hide prototype structure-mode widgets while retaining their internal state."""
+    for child in root_widget.winfo_children():
+        try:
+            text = str(child.cget("text"))
+        except Exception:
+            text = ""
+        if text in targets:
+            manager = child.winfo_manager()
+            if manager == "pack":
+                child.pack_forget()
+            elif manager == "grid":
+                child.grid_remove()
+            elif manager == "place":
+                child.place_forget()
+        hide_original_structure_mode_controls(child, targets=targets)
+
