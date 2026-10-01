@@ -190,7 +190,7 @@ WHD breakdown 必須讀相關 CURRENT AI Library。若本次 approved requiremen
 
 ## 9. Deep-module / combined acceptance
 
-若來源是大型跨模組 work：
+若來源是 `掃描深模組` 或其他大型跨模組 work：
 
 - 每張施工票仍需 GitHub owning Issue；
 - 至少一張 Combined Acceptance owner；
