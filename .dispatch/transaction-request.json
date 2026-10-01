@@ -1,32 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1084-terminal-recovery-acquire-v2",
+  "request_id": "issue1084-reconcile-to-merged-pr-head",
   "issue": 1084,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-  "expected_coord_head": "a8041f8fe699311acc3e6fa108f36730e6ba2fcf",
-  "expected_generation": 1,
+  "expected_coord_head": "d15a0b6fa87a48e801085ff5064e97b50fdc7e8d",
+  "expected_generation": 2,
   "effect": {
-    "observed_at": "2026-10-01T22:36:00Z",
-    "owner_kind": "INTERACTIVE",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.0",
-    "lease": {
-      "token": "lease:1084:terminal-recovery:20261002T0636+08",
-      "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-      "expires_at": "2026-10-01T22:51:00Z"
-    },
+    "observed_work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001",
+    "observed_head_sha": "567d697a461322f9875886108fea786458a1eb70",
+    "observed_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+    "semantic_state": "POST_PUSH_QA_READY",
     "next_action": {
-      "kind": "RECONCILE",
-      "args": {},
-      "display": "Reconcile already-merged PR #1085 and terminalize #1084"
-    },
-    "semantic_state": "CLAIMED",
-    "updated_at": "2026-10-01T22:36:00Z"
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Consume exact-head Product Regression GREEN for #1084"
+    }
   },
-  "purpose": "Recover stale READY #1084 after its implementation was already merged and Issue closed; acquire only to reconcile exact merged evidence and terminalize the record, with no product mutation.",
+  "purpose": "Reconcile stale #1084 READY lineage to already-merged PR #1085 exact head and current target, then consume existing exact-head Product Regression evidence.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
