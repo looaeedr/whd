@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
 class NavigationIntent(str, Enum):
@@ -92,6 +92,96 @@ def _validated_memory(
     remembered = str(getattr(memory, "remembered_box_body_child", None) or "")
     return NavigationMemory(remembered if remembered in children else None)
 
+
+
+def operator_part_label(
+    value: object,
+    *,
+    snapshot: Mapping[str, object] | None = None,
+    base_labels: Mapping[str, object] | None = None,
+) -> str:
+    """Project one stable part identity to its operator-facing label.
+
+    This stays pure: callers provide any legacy/base label table plus an
+    optional read-only snapshot used only for family/layout-sensitive labels.
+    """
+    key = str(value or "")
+    labels = dict(base_labels or {})
+    if key in labels:
+        return str(labels[key])
+    piece_labels = {
+        "box_body:left_side": "左側板",
+        "box_body:back": "後面板",
+        "box_body:right_side": "右側板",
+        "box_body_left_side": "左側板",
+        "box_body_back": "後面板",
+        "box_body_right_side": "右側板",
+        "box_body:left": "左箱身",
+        "box_body:middle": "中箱身",
+        "box_body:right": "右箱身",
+    }
+    if key in piece_labels:
+        return piece_labels[key]
+
+    snap = dict(snapshot or {})
+    model = str(
+        snap.get("model")
+        or snap.get("baseline_model")
+        or snap.get("cabinet_family")
+        or ""
+    )
+    columns = list(snap.get("door_layout_columns") or ())
+
+    import re
+
+    door_match = re.fullmatch(r"door_c(\d+)_r(\d+)", key)
+    if door_match:
+        col, row = (int(door_match.group(1)), int(door_match.group(2)))
+        if model == "受電箱" and len(columns) == 1 and col == 1:
+            if row == 1:
+                return "上門"
+            if row == 2:
+                return "下門"
+        return f"第{col}欄第{row}門"
+
+    base_match = re.fullmatch(r"base_plate_c(\d+)_r(\d+)", key)
+    if base_match:
+        col, row = (int(base_match.group(1)), int(base_match.group(2)))
+        if model == "受電箱" and len(columns) == 1 and col == 1:
+            if row == 1:
+                return "上門底板"
+            if row == 2:
+                return "下門底板"
+        return f"第{col}欄第{row}門底板"
+
+    if key.startswith("box_body:divider:"):
+        axis = (
+            "橫向"
+            if ":HORIZONTAL:" in key
+            else "直向"
+            if ":VERTICAL:" in key
+            else ""
+        )
+        return f"箱身中隔（{axis}）" if axis else "箱身中隔"
+
+    if key.startswith("inner_door:") and key.endswith(":panel"):
+        door_id = key.split(":", 2)[1]
+        door_label = {"upper": "上層內門", "lower": "下層內門"}.get(door_id, "內門")
+        return f"{door_label}門板"
+
+    if key.startswith("inner_door:") and key.endswith("_frame"):
+        side = key.rsplit(":", 1)[-1].removesuffix("_frame")
+        side_label = {
+            "top": "上框",
+            "bottom": "下框",
+            "left": "左框",
+            "right": "右框",
+        }.get(side, "框")
+        door_id = key.split(":", 2)[1]
+        door_label = {"upper": "上層內門", "lower": "下層內門"}.get(door_id, "內門")
+        return f"{door_label}{side_label}"
+
+    return key
 
 def resolve_navigation(
     available_parts: Iterable[object] | None,
