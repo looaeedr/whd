@@ -1,18 +1,6 @@
 {
   "authority": "DERIVED_CACHE_ONLY",
-  "entries": [
-    {
-      "execution_intent": "EXECUTE_TICKET",
-      "generation": 1,
-      "issue": 1084,
-      "next_action_display": "Acquire Issue #1084",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "49a6c39da9b08d7cee64bc40a03407c554142afeffc5004b6cb716972f974f0a",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
-      "updated_at": "2026-10-01T10:40:00Z"
-    }
-  ],
+  "entries": [],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "25eace5ac35ad2113da0e0826a5f4251d4281b4cef908537b96438319346b1de"
+  "source_digest": "e13fdbab4ae534ebe51ff532d01877fe7ae224d2a1ee4ba334355af3beda1240"
 }

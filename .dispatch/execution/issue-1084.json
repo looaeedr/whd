@@ -1,52 +1,62 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1084,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
-  "work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001",
-  "head_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1084"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "issue": 1084,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-01T22:53:54Z",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
+    "token": "lease:1084:36936268424:1"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Reconcile already-merged PR #1085 and terminalize #1084",
+    "kind": "RECONCILE"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "e7be93a46c1ce8a71532cf2abf42163a583966c0e480fe58765d12ce2b101e93",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "user:chat:2026-10-01:do-issue1084",
-      "authority_fingerprint": "e7be93a46c1ce8a71532cf2abf42163a583966c0e480fe58765d12ce2b101e93"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-10-01T10:40:00Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "transaction": {
+    "expected_fingerprint": "49a6c39da9b08d7cee64bc40a03407c554142afeffc5004b6cb716972f974f0a",
+    "id": "gha:36936268424:1084:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-01T22:36:00Z",
+  "version": 2,
+  "work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001"
 }
