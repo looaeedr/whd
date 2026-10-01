@@ -1,26 +1,29 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1084-reconcile-to-merged-pr-head",
+  "request_id": "issue1084-consume-product-green",
   "issue": 1084,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-  "expected_coord_head": "d15a0b6fa87a48e801085ff5064e97b50fdc7e8d",
-  "expected_generation": 2,
+  "expected_coord_head": "6ccca6aeed351b10a98eb2b242f4002043f7a49d",
+  "expected_generation": 3,
   "effect": {
-    "observed_work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001",
-    "observed_head_sha": "567d697a461322f9875886108fea786458a1eb70",
-    "observed_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-    "semantic_state": "POST_PUSH_QA_READY",
+    "run_id": 36849311967,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
+        "pr_number": 1085,
+        "head_sha": "567d697a461322f9875886108fea786458a1eb70",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Consume exact-head Product Regression GREEN for #1084"
+      "display": "Consume already-merged PR #1085 and finalize #1084"
     }
   },
-  "purpose": "Reconcile stale #1084 READY lineage to already-merged PR #1085 exact head and current target, then consume existing exact-head Product Regression evidence.",
+  "purpose": "Consume exact-head terminal Product Regression GREEN for #1084 and enter terminal merge/finalize recovery tail.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
