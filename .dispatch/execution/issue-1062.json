@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1062,
-  "lane_id": "chatgpt.flowv2.work3",
-  "lease": {
-    "expires_at": "2026-09-30T17:12:16Z",
-    "invocation_identity": "chatgpt.flowv2.work3.issue1062.20261001T0055Z",
-    "token": "lease:1062:36747902533:1"
-  },
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": null,
   "mutation_scope": {
     "base_sha": "872d95000539883636eeed86908882a6020da7f7",
     "delete_paths": [],
@@ -44,7 +40,7 @@
     "display": "Create exact tested Issue #1062 work branch after Drive root freeze",
     "kind": "START_BRANCH"
   },
-  "owner_id": "chatgpt.flowv2.work3",
+  "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
@@ -67,13 +63,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "872d95000539883636eeed86908882a6020da7f7",
   "transaction": {
-    "expected_fingerprint": "b64774eab581c3c80ca611e395838af0a9b8fd2548a4e29311ca3175840b9c1a",
-    "id": "gha:36747902533:1062:ACQUIRE:1",
-    "invocation_identity": "chatgpt.flowv2.work3.issue1062.20261001T0055Z",
-    "kind": "ACQUIRE",
+    "expected_fingerprint": "8522f38fd01dfeecccd9f29f8a0128460cf48fc3d511d9a97c7aaa1025cdbc81",
+    "id": "gha:36841292778:1062:HANDOFF:2",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T0850Z",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-09-30T16:57:16Z",
+  "updated_at": "2026-10-01T09:13:42Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
