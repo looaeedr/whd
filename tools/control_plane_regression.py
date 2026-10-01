@@ -41,6 +41,7 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_flow_v2_execution_scheduler_view.py",
     "tests/process/test_issue1078_scheduler_ready_ingress.py",
     "tests/process/test_issue1078_scheduler_entrypoint_observation.py",
+    "tests/process/test_issue1081_a40_host_identity.py",
     "tests/process/test_flow_v2_merge_precheck.py",
     "tests/process/test_flow_v2_sync_target.py",
     "tests/process/test_flow_v2_atomic_control_transaction.py",
