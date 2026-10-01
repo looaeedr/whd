@@ -162,3 +162,22 @@ def test_bridge_loc_ratchets_below_6000_after_active_part_view_extraction():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 6000, f"Bridge regrew past #1100 active-part view ratchet: {loc}"
 
+def test_persistent_structure_and_layout_helpers_are_owned_by_view_adapter():
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    for name in (
+        "refresh_persistent_structure_controls",
+        "pack_right_panel_above_canvas",
+        "hide_original_structure_mode_controls",
+    ):
+        assert f"def {name}(" in adapter_source
+    bridge_tree = ast.parse(BRIDGE.read_text(encoding="utf-8"))
+    funcs = {node.name: node for node in bridge_tree.body if isinstance(node, ast.FunctionDef)}
+    assert (funcs["_phase6_refresh_persistent_structure_controls"].end_lineno - funcs["_phase6_refresh_persistent_structure_controls"].lineno + 1) <= 10
+    assert (funcs["_phase6_pack_right_panel_above_canvas"].end_lineno - funcs["_phase6_pack_right_panel_above_canvas"].lineno + 1) <= 8
+    assert (funcs["_hide_original_structure_mode_controls"].end_lineno - funcs["_hide_original_structure_mode_controls"].lineno + 1) <= 8
+
+
+def test_bridge_loc_ratchets_below_5970_after_layout_helper_extraction():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 5970, f"Bridge regrew past #1100 layout-helper ratchet: {loc}"
+
