@@ -1,27 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1123-expand-bridge-final",
+  "request_id": "issue1123-arm-final-apply",
   "issue": 1123,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1123.bridge-final",
-  "expected_coord_head": "954df7317a56eed8ef974c36d8d75968fd460e6f",
-  "expected_generation": 9,
+  "expected_coord_head": "7d6d631ab422c357287785d902ec4166ab185383",
+  "expected_generation": 10,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-    "write_paths": [
-      "fold_designer_bridge.py",
-      "gui_modules/application/manufacturing_adapter.py",
-      "phase6_assembly_relief_state.py",
-      "tests/test_issue1123_assembly_relief_state_owner.py",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
-    ],
-    "delete_paths": [],
-    "semantic_state": "ROOT_IMPLEMENTING_FINAL_BRIDGE_SLICE"
+    "observed_work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001",
+    "observed_head_sha": "8e35610dbb9d7176db9a9048b9952dd1069876a2",
+    "observed_target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+    "semantic_state": "ROOT_TESTS_GREEN_DIFF_FROZEN_FINAL",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "candidate_commit_sha": "6672e2901461a86c3a21748274f28925a94d2228"
+      },
+      "display": "Apply final exact-tested #1123 Bridge commit"
+    }
   },
-  "purpose": "Expand #1123 monotonically to fold_designer_bridge.py now that #1062 has canonically released its stale reservation. Preserve the already tested five-path slice and complete the Bridge delegation in the same issue lineage.",
+  "purpose": "Arm the final #1123 exact-tested commit after the Bridge reservation expansion and root regression pass.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
