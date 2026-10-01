@@ -9,6 +9,9 @@ class _Workspace:
         self.active_part = "head"
         self.selected_part = "head"
 
+    def box_body_structure_state(self):
+        return None
+
 
 def _app(parts, selected=None, remembered_box_child=None):
     return SimpleNamespace(

@@ -38,6 +38,9 @@ class _Workspace:
         self.active_part = "tail"
         self.selected_part = "tail"
 
+    def box_body_structure_state(self):
+        return None
+
 
 def _app(*, selected="head", callback=None):
     return SimpleNamespace(

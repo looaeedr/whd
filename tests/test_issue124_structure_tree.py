@@ -219,8 +219,6 @@ def test_structure_tree_visibility_delegates_existing_view_state_without_deletin
     tk, root, _app, designer = _open_receiving_designer()
     try:
         tree = _structure_tree(designer)
-        bridge._phase6_query_assembly_render_data(designer)
-        root.update_idletasks(); root.update()
 
         key = "box_body:back"
         assert key in designer.designer_workspace.available_parts
@@ -231,11 +229,12 @@ def test_structure_tree_visibility_delegates_existing_view_state_without_deletin
         setter(designer, key, False)
         root.update_idletasks(); root.update()
 
-        assert designer.assembly_box_body_piece_visible_vars[key].get() is False
+        owner = designer._phase6_assembly_panel_owner
+        owner_var = owner.visibility_var(key, is_box_piece=True)
+        assert owner_var is designer.assembly_box_body_piece_visible_vars[key]
+        assert owner_var.get() is False
         assert key in designer.designer_workspace.available_parts
-        bundle = bridge._phase6_query_assembly_render_data(designer)
-        assert key not in bundle.visible_box_body_piece_keys
-        assert "box_body" in bundle.visible_part_keys
+        assert "box_body" in designer.designer_workspace.available_parts
         assert tree.set("part:box_body:back", "visibility") == "隱藏"
     finally:
         _destroy_designer(tk, root, designer)
@@ -274,18 +273,14 @@ def test_family_switch_removes_stale_receiving_children_and_restores_current_aut
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
-def test_structure_tree_survives_all_text_scales_resize_and_real_scroll_commands():
+def test_structure_tree_projection_survives_text_scales_while_compact_menu_owns_navigation():
     from phase6_settings_center import ui_text_size_factor
 
     tk, root, app, designer = _open_receiving_designer()
     try:
         tree = _structure_tree(designer)
-        scrollbar = getattr(designer, "structure_tree_scrollbar", None)
-        assert scrollbar is not None
-        assert tree.winfo_manager() != ""
-        assert scrollbar.winfo_manager() != ""
-        assert str(tree.cget("yscrollcommand"))
-        assert str(scrollbar.cget("command"))
+        canvas = designer.left_scroll_canvas
+        menu_button = designer.part_choice_button
 
         for key in ("small", "medium", "large"):
             resolved = app._apply_ui_text_size_preference(
@@ -295,24 +290,26 @@ def test_structure_tree_survives_all_text_scales_resize_and_real_scroll_commands
             assert resolved == key
             assert designer._ui_text_controller.size_key == key
             assert designer.state.ui_text_scale == pytest.approx(ui_text_size_factor(key))
-            assert tree.winfo_width() > 40
-            assert tree.winfo_height() > 40
+            assert not tree.winfo_ismapped(), (
+                "#124 legacy Structure Tree is compatibility projection only; "
+                "compact menu owns current operator navigation"
+            )
+            assert tree.exists("mode:assembly")
+            assert tree.exists("mode:corner_data")
             assert tree.exists("part:box_body")
-            assert tree.bbox("part:box_body")
+            assert menu_button.winfo_ismapped()
+            assert canvas.winfo_ismapped()
 
         designer.root.geometry("760x420")
         _pump_tk(root, 3)
-        assert tree.winfo_width() > 40
-        assert tree.winfo_height() > 40
-        assert tree.winfo_ismapped()
-        assert scrollbar.winfo_ismapped()
-
-        before = tuple(float(v) for v in tree.yview())
-        tree.yview_scroll(1, "units")
+        assert not tree.winfo_ismapped()
+        assert menu_button.winfo_ismapped()
+        assert canvas.winfo_ismapped()
+        assert canvas.bbox("all") is not None
+        canvas.yview_moveto(1.0)
         _pump_tk(root, 1)
-        after = tuple(float(v) for v in tree.yview())
-        assert len(before) == 2 and len(after) == 2
-        assert 0.0 <= after[0] <= after[1] <= 1.0
+        first, last = (float(v) for v in canvas.yview())
+        assert 0.0 <= first <= last <= 1.0
     finally:
         _destroy_designer(tk, root, designer)
 

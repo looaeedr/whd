@@ -13,6 +13,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
 SHELL = ROOT / "phase6_workspace_shell.py"
+ADAPTER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
+PROJECT = ROOT / "phase6_project_controller.py"
 
 
 def _source() -> str:
@@ -64,12 +66,16 @@ def test_v3_top_toolbar_source_contract():
 
 
 def test_output_authority_routes_are_unchanged():
-    export_source = _function_source("_phase6_export_selected_dxf_from_3d")
-    stock_source = _function_source("_phase6_commit_output_draw_stock")
-    assert "_phase6_export_selected_dxf_callback" in export_source
-    assert "Phase6ProjectController.route_selected_dxf_export" in export_source
-    assert "Phase6ProjectController.commit_output_stock" in stock_source
-    assert "_phase6_stage_setting_update" in stock_source
+    adapter = ADAPTER.read_text(encoding="utf-8")
+    project = PROJECT.read_text(encoding="utf-8")
+    assert "def export_selected_dxf_from_3d" in adapter
+    assert "Phase6ProjectController.route_selected_dxf_export" in adapter
+    assert "_phase6_export_selected_dxf_callback" in adapter
+    assert "def commit_output_draw_stock" in adapter
+    assert "Phase6ProjectController.commit_output_stock" in adapter
+    assert "_phase6_stage_setting_update" in adapter
+    assert "def route_selected_dxf_export" in project
+    assert "def commit_output_stock" in project
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
