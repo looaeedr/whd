@@ -79,6 +79,9 @@ from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 from phase6_navigation_view_adapter import (
     refresh_structure_tree as _navigation_view_refresh_structure_tree,
     refresh_box_body_piece_selector as _navigation_view_refresh_box_body_piece_selector,
+    on_structure_tree_select as _navigation_view_on_structure_tree_select,
+    set_structure_tree_visibility as _navigation_view_set_structure_tree_visibility,
+    on_box_body_piece_tab_changed as _navigation_view_on_box_body_piece_tab_changed,
 )
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -4835,44 +4838,22 @@ def _phase6_refresh_structure_tree(self):
     )
 
 def _phase6_on_structure_tree_select(self, _event=None):
-    if bool(getattr(self, "_phase6_structure_tree_guard", False)):
-        return
-    tree = getattr(self, "structure_tree", None)
-    if tree is None:
-        return
-    selected = tuple(tree.selection())
-    if not selected:
-        return
-    iid = str(selected[0])
-    projected_iid = str(
-        getattr(self, "_phase6_structure_tree_programmatic_iid", "") or ""
+    return _navigation_view_on_structure_tree_select(
+        self,
+        show_assembly=lambda: _phase6_show_assembly(self),
+        show_corner_data=lambda: _phase6_show_corner_data(self),
+        activate_part=lambda key: _phase6_activate_operator_part(self, key),
+        refresh_tree=lambda: _phase6_refresh_structure_tree(self),
     )
-    if projected_iid:
-        self._phase6_structure_tree_programmatic_iid = ""
-        if iid == projected_iid:
-            return
-    if iid == "mode:assembly":
-        _phase6_show_assembly(self)
-    elif iid == "mode:corner_data":
-        _phase6_show_corner_data(self)
-    elif iid.startswith("part:"):
-        _phase6_activate_operator_part(self, iid[5:])
-    _phase6_refresh_structure_tree(self)
-
 
 def _phase6_set_structure_tree_visibility(self, key, visible):
-    """Mutate the shared panel Tk var and emit the panel visibility action."""
-    key = str(key or "")
-    visible_var = _phase6_structure_tree_visibility_var(self, key)
-    if visible_var is None:
-        return False
-    visible_var.set(bool(visible))
     owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is not None:
-        owner.notify_visibility_changed()
-    _phase6_refresh_structure_tree(self)
-    return True
-
+    return _navigation_view_set_structure_tree_visibility(
+        self, key, visible,
+        visibility_var=lambda part_key: _phase6_structure_tree_visibility_var(self, part_key),
+        notify_visibility_changed=(owner.notify_visibility_changed if owner is not None else None),
+        refresh_tree=lambda: _phase6_refresh_structure_tree(self),
+    )
 
 def _phase6_on_structure_tree_click(self, event):
     tree = getattr(self, "structure_tree", None)
@@ -4903,30 +4884,11 @@ def _phase6_refresh_box_body_piece_selector(self):
     )
 
 def _phase6_on_box_body_piece_tab_changed(self, _event=None):
-    if bool(getattr(self, "_phase6_box_body_piece_tab_guard", False)):
-        return
-    notebook = getattr(self, "box_body_piece_selector", None)
-    if notebook is None:
-        return
-    # #124 retired this Notebook from operator layout. It is compatibility
-    # projection state only; Tk auto-selects the first tab when topology is
-    # rebuilt and emits <<NotebookTabChanged>> asynchronously. A hidden widget
-    # must never turn that presentation event into an active-part mutation.
-    if not notebook.winfo_manager():
-        return
-    key = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {}).get(
-        str(notebook.select())
+    return _navigation_view_on_box_body_piece_tab_changed(
+        self,
+        activate_part=lambda key: _phase6_activate_operator_part(self, key),
+        resolve_operator_part=lambda key: _phase6_resolve_operator_part_key(self, key),
     )
-    if not key:
-        return
-    workspace = _designer_workspace(self)
-    if str(getattr(workspace, "active_part", "") or "") == key:
-        # Keep ephemeral navigation memory synchronized without re-activating an
-        # already-active manufacturing part.  Resolution remains the authority.
-        _phase6_resolve_operator_part_key(self, key)
-        return
-    _phase6_activate_operator_part(self, key)
-
 
 def _phase6_resolve_operator_part_key(self, key):
     """Resolve one explicit identity through the pure DM7 navigation owner."""
