@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1084,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001",
+  "head_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1084"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-01:do-issue1084",
+      "authority_fingerprint": "e7be93a46c1ce8a71532cf2abf42163a583966c0e480fe58765d12ce2b101e93"
+    }
+  ],
+  "updated_at": "2026-10-01T10:40:00Z"
+}
