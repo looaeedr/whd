@@ -166,6 +166,19 @@ freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
 
 不得把未重測的 stale root diff 直接套到 Git。
 
+### 3.7.1 DRIVE_RAW_TEXT_TRANSPORT_HARD_GATE_V1
+
+Drive / connector raw file transport 若回傳 base64 payload，不得把一般 text field 為空誤判成原檔為空。
+
+- Node.js runtime 固定使用：
+  ```js
+  const text = Buffer.from(base64_string, 'base64').toString('utf-8');
+  ```
+- 不得假設 `atob` 或 `TextDecoder` 存在。
+- source raw size > 0 時，decoded text 必須 non-empty。
+- Git write 後必須確認非空來源沒有變成空 blob `e69de29bb2d1d6434b8b29ae775ad8c2e48c5391`。
+- 若發生 decode corruption，從 verified raw/root source 重新覆蓋原 work branch；不得把錯誤空檔開 PR／merge。
+
 ## 4. Git phase
 
 `GIT_WRITE_UNLOCKED` 後：
