@@ -86,6 +86,14 @@ ROOT_SOURCE_CURRENT
 
 使用者回報只報 phase outcome / 真 blocker；不得把 control-plane internals 當成主要進度。
 
+#### OUTER_ACTION_MACHINE_GATE_V1
+
+上述規則不是 advisory。machine owner `tools/root_local_first_gate.py::assert_outer_primary_action` 必須直接阻止 interactive/chat outer layer 把低階 Flow v2 transaction 或 ordinary control-plane anomaly 升格成 primary task。
+
+以下一律是 **session-internal/background-only**：`ACQUIRE / RESERVE_PATHS / RELEASE_PATHS / RECONCILE / LEASE_RENEW / CAS_RETRY / SESSION_REUSE / START_BRANCH / APPLY_COMMIT / START_QA / POLL_QA / ACCEPT_QA / CONSUME_QA / FAIL_QA / MERGE / SYNC_TARGET / FINALIZE`，以及 `STALE_EXECUTION_RECORD / EXPIRED_LEASE / RESERVATION_MISMATCH / GOVERNANCE_DRIFT / TEST_RED / STATUS_QUERY / PROGRESS_QUERY`。它們可以被 machine 執行或記錄，但**不得被登記為聊天層 first substantive action、不得成為 user-visible next task，也不得中斷目前 primary root work**。
+
+interactive outer layer 只允許 phase-level：`FRESH_READ / ROOT_MUTATE / TARGETED_TEST / EXACT_DIFF / POST_PUSH_CI / MERGE_FINALIZE`。真正 escalation 只以 `REPORT_BLOCKER` 暴露，且必須綁 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED`；即使發生 escalation，也不代表允許聊天層手動逐顆 orchestration transaction。
+
 ### 3.1 ROOT_SOURCE_CURRENT
 
 開始任何 root mutation 前：
