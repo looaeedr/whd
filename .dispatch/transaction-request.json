@@ -1,22 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-start-branch-20261002T0055+08",
+  "request_id": "issue1124-apply-exact-root-diff-20261002T0101+08",
   "issue": 1124,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-  "expected_coord_head": "4235a5b264fa47c3157b194b3faddbeac6e14f3f",
-  "expected_generation": 2,
+  "expected_coord_head": "7d6d631ab422c357287785d902ec4166ab185383",
+  "expected_generation": 3,
   "effect": {
-    "work_branch": "governance/issue1124-background-control-plane-20261002",
-    "head_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-    "semantic_state": "GIT_BRANCH_READY",
+    "head_sha": "85638e8e976e209422e58e335571f9df51cad081",
+    "semantic_state": "ROOT_TESTED_DIFF_PUSHED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "candidate_commit_sha": "85638e8e976e209422e58e335571f9df51cad081"
+        "workflow": "whd-control-plane-regression.yml"
       },
-      "display": "Apply exact root-tested #1124 commit"
+      "display": "Run post-push control-plane regression"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -43,16 +42,16 @@
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1124,
-      "generation": 2,
-      "record_fingerprint": "09d8c348902b3f484e6de902eeb8eb410237cbd434884f6f6c56b1ceebae436e",
+      "generation": 3,
+      "record_fingerprint": "913370a437a4716956051144577ef51a51dbf8b4f83dc4b4e49853195286f64e",
       "lease_token": "lease:1124:36894624271:1",
       "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "governance/issue1124-background-control-plane-20261002",
       "expected_work_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
       "expected_target_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9"
     },
-    "updated_at": "2026-10-01T16:55:00Z"
+    "updated_at": "2026-10-01T17:01:00Z"
   },
   "reuse_admission_session": true
 }
