@@ -1,15 +1,15 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-reconcile-gen10-root-freeze-f67e6f7c",
+  "request_id": "issue1072-reconcile-actual-work-head-a6851",
   "issue": 1072,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0145Z",
-  "expected_coord_head": "396f989852dee2be3cfeb62bd9ebc937ceef40ea",
-  "expected_generation": 10,
+  "expected_coord_head": "60adc629810f3d0d445a013f7d19e271ef9de0fa",
+  "expected_generation": 11,
   "effect": {
     "observed_work_branch": "governance/issue1072-decouple-root-evidence-generation",
-    "observed_head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+    "observed_head_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
     "observed_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
     "semantic_state": "ROOT_DIFF_FROZEN",
     "next_action": {
@@ -20,7 +20,7 @@
       "display": "Transport exact generation-10 Drive-frozen diff for Issue #1072"
     }
   },
-  "purpose": "Reconcile Issue #1072 from PATHS_RESERVED back to ROOT_DIFF_FROZEN using the newly green generation-10 root evidence and exact six-path diff; no repository-content mutation occurs in this transaction.",
+  "purpose": "Fresh reconcile Issue #1072 to the actual Git work-branch HEAD a6851caa while preserving the already-green generation-10 frozen content identity; this corrects stale ExecutionRecord head observation before any Git content transport.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
