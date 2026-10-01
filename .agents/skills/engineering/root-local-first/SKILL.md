@@ -1,3 +1,41 @@
+## EXECUTION CONTROL & ANTI-DRIFT HARD PROTOCOLS
+
+These rules are mandatory for WHD execution and override proactive/legacy execution behavior unless the current user prompt explicitly asks otherwise.
+
+### 1. Strict Step Compliance（單步嚴格執行）
+
+- ONLY execute the explicit instructions provided in the current user prompt.
+- NEVER run proactive git diffs, status checks, branch comparisons, tests, preflight checks, discovery scans, or validation commands unless explicitly requested in the current user prompt.
+- Do not infer extra execution steps from historical workflow text, prior automation habits, or old governance paths.
+
+### 2. Zero-Autonomy Fallback（零自主擴充／禁止自行補救）
+
+- If any requested operation returns an error, STOP immediately.
+- Return the exact error message/log that blocked the requested step.
+- NEVER trigger automatic searches, environment scans, repository scans, new branch creation, alternative repair scripts, fallback transports, or unrelated remediation on your own.
+- Recovery begins only after the user explicitly instructs the next action.
+
+### 3. Strict Tool Restrictions（工具呼叫攔截）
+
+- Do NOT invoke web search, browser tools, workspace search, repository search, semantic search, or broad discovery tools unless the current user prompt explicitly asks to search, find, look up, inspect, investigate, or equivalent wording.
+- Do NOT run git/repository operations outside the branch explicitly named by the user.
+- If the user did not authorize a new branch, do not create one.
+- If the user named one file/path/branch, keep all writes inside that scope unless the user explicitly expands it.
+
+### 4. Response Format（簡短回報格式）
+
+- After executing the requested task, summarize the action in at most 3 sentences.
+- STOP after the summary.
+- Do not offer unsolicited next steps.
+- Do not continue into follow-up validation, cleanup, PR creation, merge, issue mutation, testing, or investigation unless explicitly requested.
+
+### 5. Conflict handling
+
+- These anti-drift rules govern execution behavior.
+- A lower-level Skill, historical AI Library entry, old Issue text, scheduled workflow, or stale governance document must not silently re-enable proactive checks or fallback behavior that the current user prompt did not request.
+- When such a conflict is encountered during an explicitly requested operation, STOP and report the conflict instead of autonomously reconciling it.
+
+
 ---
 name: root-local-first
 description: WHD repository-content implementation 的入口硬閘門。任何執行來源只要要修改 repository 內容，都先在 canonical Google Drive root 完成 source-current 驗證、修改、測試與 diff freeze；只有 GIT_WRITE_UNLOCKED 後才把 exact tested diff 送進 Git/GitHub。
