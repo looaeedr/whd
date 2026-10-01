@@ -1,1 +1,26 @@
-{"schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1","request_id":"issue1093-work2-apply-commit-20261002","issue":1093,"kind":"APPLY_COMMIT","lane_id":"chatgpt.flowv2.work2","invocation_identity":"chatgpt.flowv2.work2.issue1093.20261002","expected_coord_head":"10a8104eb118e8c9c11eb2064f1db8d67432538c","expected_generation":3,"reuse_admission_session":true,"effect":{"head_sha":"011290e2d345b9eedd8631a3ee7192b1e13c3b0a","semantic_state":"MACHINE_GATE_COMMITTED_PENDING_SKILL_PATH","next_action":{"kind":"RESERVE_PATHS","args":{"write_paths":[".agents/skills/engineering/flow-v2-execution/SKILL.md"],"delete_paths":[]},"display":"reserve Flow v2 Skill path to finish #1093 wiring acceptance"},"root_local_first_git_write_receipt":{"schema":"ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1","execution_mode":"INTERACTIVE","source_sha":"a26f966925dd42ea8395649ee8144bb6e0d83ecd","diff_digest":"b7187b1674ae61f16cd680d4818465b2059874dc445434f7c4e366a981dd62e4","issue":1093,"generation":3,"target_branch":"cleanup/2d-3d-sync","write_paths":[".agents/contracts/WHD_ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1.json","tests/process/test_flow_v2_execution_invocation_exit.py","tests/process/test_issue1019_terminal_tail_drain.py","tests/process/test_issue1093_active_owning_issue_no_pivot.py","tools/control_transaction_production_executor.py","tools/execution_invocation_exit.py"],"delete_paths":[],"record_fingerprint":"7b72d1accb4f68c6dad3cf4a9f37097f1ee346ada64e8dc424f12b9cee93df68","git_write_unlocked":true,"write_mode":"EXACT_TESTED_DIFF_ONLY"},"mutation_writer_guard":{"schema":"WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1","issue":1093,"generation":3,"record_fingerprint":"7b72d1accb4f68c6dad3cf4a9f37097f1ee346ada64e8dc424f12b9cee93df68","lease_token":"lease:1093:36898650593:1","invocation_identity":"chatgpt.flowv2.work2.issue1093.20261002","expected_next_action":"APPLY_COMMIT","expected_work_branch":"work/issue1093-active-owning-issue-stickiness-20261002","expected_work_head":"a26f966925dd42ea8395649ee8144bb6e0d83ecd","expected_target_head":"a26f966925dd42ea8395649ee8144bb6e0d83ecd"}}}
+{
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1093-work2-reserve-skill-20261002",
+  "issue": 1093,
+  "kind": "RESERVE_PATHS",
+  "lane_id": "chatgpt.flowv2.work2",
+  "invocation_identity": "chatgpt.flowv2.work2.issue1093.20261002",
+  "expected_coord_head": "2c5b3827003f80373b35f2fb6a0e9e19995697bf",
+  "expected_generation": 4,
+  "reuse_admission_session": true,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "a26f966925dd42ea8395649ee8144bb6e0d83ecd",
+    "write_paths": [
+      ".agents/contracts/WHD_ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1.json",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_issue1019_terminal_tail_drain.py",
+      "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/execution_invocation_exit.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "FULL_SCOPE_RESERVATION_PENDING_ROOT_SKILL_REBASE"
+  }
+}
