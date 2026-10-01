@@ -69,7 +69,9 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 
 所有 `/排程A`、`/排程B`、A00/A20/A40/B15/B45 的 **user-visible** progress / CHECKPOINT / terminal / exit 回報，**第一行**固定為：
 
-`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
+
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
 
 相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
 
@@ -77,6 +79,7 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 - scheduler 回報必須 fresh-read `lane_owner`、`claim_issue`、`claim_worker`；owner 必須是 real claim owner，不得因目前由排程A/B喚醒就改寫 ownership。
 - 沒有 active Issue 時工單=`NONE`；有 bootstrap projection 但尚未 durable bind 時=`UNBOUND`。slot 沒有 exact binding 時=`NONE/UNBOUND`，不得猜。
 - foreign owner / foreign lane 只能明確標示 foreign，不得偽裝成本 lane owner。
+- `invocation_identity` 必須取本輪 exact scheduler host/runtime observation；不得省略、不得用 entrypoint 名稱或 `last_run_time` 猜。
 - 此 prefix 只提供 provenance，**不建立 execution authority**；ownership authority 仍是 canonical ExecutionRecord + lease。
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。

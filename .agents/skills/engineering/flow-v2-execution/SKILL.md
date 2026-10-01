@@ -442,9 +442,14 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 ## Progress
 
-進度/status是 non-blocking checkpoint。scheduler/長任務第一行固定：
-`【處理者：<handler>｜owner=<record owner|NONE>｜工單：#<issue|NONE>】`
-回報後只要 current invocation 還能合法施工，就立即繼續。
+### RUNTIME_REPORT_IDENTITY_MACHINE_GATE_V1
+
+進度/status是 non-blocking checkpoint。所有 interactive work-slot 與 scheduler 的 user-visible `PROGRESS / CHECKPOINT / terminal / EXIT` 第一行固定使用 **fresh current runtime identity**：
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
+
+唯一 machine owner=`tools/runtime_report_identity.py`。caller 必須先用 `build_runtime_report_identity(...)` 驗證 `handler / owner / issue / slot / invocation_identity / runtime_kind`，再用 `format_runtime_report_prefix(...)` 產生第一行；不得手工拼接。`invocation_identity` 缺失、空白、`NONE / UNBOUND / UNAVAILABLE` 或 handler/runtime/slot identity 不一致都 fail closed。owner/issue/slot 取 fresh canonical ExecutionRecord/projection；invocation_identity 取 exact current runtime observation/startup provenance，禁止由聊天時間、entrypoint、task id 或上一輪 runtime 推測。
+
+此 gate 只保證 user-visible provenance，不建立 execution authority。`tools/assistant_turn_exit_gate.py` 在允許正常 turn exit 前也必須驗 exact report identity，因此「無身份退出」不是合法 terminal path。回報後只要 current invocation 還能合法施工，就立即繼續。
 
 ## Production transaction transport
 
