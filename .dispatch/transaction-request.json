@@ -1,26 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-reconcile-actual-work-head-a6851",
+  "request_id": "issue1072-renew-before-bootstrap-git-write",
   "issue": 1072,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0145Z",
-  "expected_coord_head": "60adc629810f3d0d445a013f7d19e271ef9de0fa",
-  "expected_generation": 11,
-  "effect": {
-    "observed_work_branch": "governance/issue1072-decouple-root-evidence-generation",
-    "observed_head_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-    "observed_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-    "semantic_state": "ROOT_DIFF_FROZEN",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {
-        "diff_digest": "f67e6f7c51058936f5847c604565ca10002aa65f441b711cd40c2355f0117ca3"
-      },
-      "display": "Transport exact generation-10 Drive-frozen diff for Issue #1072"
-    }
-  },
-  "purpose": "Fresh reconcile Issue #1072 to the actual Git work-branch HEAD a6851caa while preserving the already-green generation-10 frozen content identity; this corrects stale ExecutionRecord head observation before any Git content transport.",
+  "expected_coord_head": "397e7533bc31a4b9c5564354013b928443722fc1",
+  "expected_generation": 12,
+  "effect": {},
+  "purpose": "Renew the same Issue #1072 live writer lease before bootstrapping the generation-decoupling fix through the current strict ingress. Root content identity, target, reservation scope, and frozen diff are unchanged.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
