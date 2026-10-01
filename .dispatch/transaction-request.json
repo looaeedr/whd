@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-expand-bridge-residual-paths",
+  "request_id": "issue1062-expand-bridge-residual-paths-sorted",
   "issue": 1062,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
@@ -11,6 +11,7 @@
     "target_branch": "cleanup/2d-3d-sync",
     "base_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
     "write_paths": [
+      "fold_designer_bridge.py",
       "tests/test_issue124_structure_tree.py",
       "tests/test_issue163_unfold_workspace_layout.py",
       "tests/test_issue186_sheetmetal_selector_visibility.py",
@@ -20,13 +21,12 @@
       "tests/test_issue430_single_host_red.py",
       "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
       "tests/test_issue96_corner_data_selection_lifecycle.py",
-      "tests/test_issue98_existing_2d_capability_migration.py",
-      "fold_designer_bridge.py"
+      "tests/test_issue98_existing_2d_capability_migration.py"
     ],
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED"
   },
-  "purpose": "Monotonic reservation expansion for Issue #1062 Bridge residual anti-regrowth cleanup on current exact root.",
+  "purpose": "Monotonic sorted reservation expansion for Issue #1062 Bridge residual anti-regrowth cleanup.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
