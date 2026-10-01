@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
   "issue": 1077,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,8 +38,13 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Consume completed PR QA for exact tested head",
+    "args": {
+      "post_accept_pr_number": 1083,
+      "post_accept_revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "post_accept_target_branch": "cleanup/2d-3d-sync",
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+    },
+    "display": "Consume completed exact-head QA",
     "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -65,13 +70,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
   "transaction": {
-    "expected_fingerprint": "19510808bcf3520f3cf630b344cd5b4b886b97117d30dbc47e914fa9297f7254",
-    "id": "gha:36837676388:1077:ACQUIRE:9",
+    "expected_fingerprint": "6cfcfb23206db3ab610d70abdbb3d33767dfb908078e47d7c457c3c173a07787",
+    "id": "gha:36837866792:1077:RECONCILE:10",
     "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0835Z",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T08:39:47Z",
+  "updated_at": "2026-10-01T08:41:42Z",
   "version": 2,
   "work_branch": "governance/issue1077-root-local-durability-hardening"
 }
