@@ -1,15 +1,46 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-release-old-base-after-drift-20261001T1946+08",
+  "request_id": "issue1062-reconcile-current-7c999e21-20261001T1948+08",
   "issue": 1062,
-  "kind": "RELEASE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-reset-resync.20261001T1945+08",
-  "expected_coord_head": "95f0cb2f418977118a367d745220e1cca2e90249",
-  "expected_generation": 14,
+  "expected_coord_head": "20c991f27ad383410f95ce4679a6df6d64b7861b",
+  "expected_generation": 15,
   "effect": {
-    "reason": "Live cleanup advanced from 0a08e589 to 7c999e21; release old-base reservation before target reconcile and fresh exact re-reservation.",
-    "semantic_state": "TARGET_DRIFT_RELEASED_FOR_RESYNC"
+    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
+    "observed_head_sha": "872d95000539883636eeed86908882a6020da7f7",
+    "observed_target_sha": "7c999e218d2f161fe58fc319c01616e17004402f",
+    "semantic_state": "STALE_EXECUTION_RESET_CURRENT_SOURCE",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "7c999e218d2f161fe58fc319c01616e17004402f",
+        "write_paths": [
+          "tests/process/test_flow_v2_path_reservation.py",
+          "tests/process/test_issue892_flow_v2_production_transaction.py",
+          "tests/process/test_issue899_push_transaction_ingress.py",
+          "tools/control_transaction.py",
+          "tools/control_transaction_production_executor.py",
+          "tools/control_transaction_request_ingress.py"
+        ],
+        "delete_paths": []
+      },
+      "display": "Reserve exact stale-reset diff paths on current cleanup"
+    }
   },
-  "reuse_admission_session": true
+  "purpose": "Reconcile #1062 stale-reset repair to exact current cleanup 7c999e21 after proven target drift; touched source blobs are unchanged and root full gate will be rerun on the exact current export.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
