@@ -1,26 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-reconcile-target-c4d4bab-fixed",
+  "request_id": "issue1077-reserve-8paths-c4d4bab",
   "issue": 1077,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-  "expected_coord_head": "6ef1768f09293cca6b25d18bba7c3c7eb678a60e",
-  "expected_generation": 6,
+  "expected_coord_head": "e5a9fa9f5c34520476b4e620b5c2103168950673",
+  "expected_generation": 7,
   "effect": {
-    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
-    "observed_head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
-    "observed_target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {
-        "work_branch": "governance/issue1077-root-local-durability-hardening"
-      },
-      "display": "Apply preserved exact tested diff after non-overlapping target drift"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_issue1045_post_integration_durability.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/execution_invocation_exit.py",
+      "tools/post_integration_durability.py",
+      "tools/root_local_first_gate.py"
+    ],
+    "delete_paths": []
   },
-  "purpose": "Reconcile non-overlapping production drift without invalidating frozen root evidence",
+  "purpose": "Expand Issue #1077 to root gate canonical mirror and preserve frozen diff across non-overlapping target drift",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
