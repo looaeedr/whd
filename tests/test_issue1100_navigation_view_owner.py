@@ -146,3 +146,19 @@ def test_bridge_loc_ratchets_below_6050_after_mode_projection_extraction():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 6050, f"Bridge regrew past #1100 mode-projection ratchet: {loc}"
 
+def test_active_part_selector_and_canvas_settle_are_owned_by_navigation_view_adapter():
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    assert "def project_active_part_selector(" in adapter_source
+    assert "def finalize_single_part_layout(" in adapter_source
+    activate = ast.unparse(_function("_fix11_activate_part"))
+    assert "_navigation_view_project_active_part_selector" in activate
+    assert "_navigation_view_finalize_single_part_layout" in activate
+    assert "_phase6_manufacturing_state_signature" in activate
+    assert "navigation.begin_activation" in activate
+    assert "navigation.finish_activation" in activate
+
+
+def test_bridge_loc_ratchets_below_6000_after_active_part_view_extraction():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 6000, f"Bridge regrew past #1100 active-part view ratchet: {loc}"
+
