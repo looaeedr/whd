@@ -5,13 +5,13 @@
   "entrypoint": "A00",
   "task_id": "6ab13f881c34819180cee63f5dd9446b",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": null,
-  "event": "SEED",
-  "last_wake_at": null,
+  "invocation_identity": "scheduler.a00.20261001T070018Z",
+  "event": "WAKE",
+  "last_wake_at": "2026-10-01T07:00:18Z",
   "last_heartbeat_at": null,
   "heartbeat_expires_at": null,
   "last_progress_at": null,
   "exit_at": null,
   "exit_state": null,
-  "observed_at": "2026-09-28T15:44:12Z"
+  "observed_at": "2026-10-01T07:00:18Z"
 }
