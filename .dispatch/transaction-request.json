@@ -1,29 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-consume-product-green",
+  "request_id": "issue1124-merge-finalize-drain",
   "issue": 1124,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1124.finalize-20261002",
-  "expected_coord_head": "de82b197eb9033ea73345bd332b33ecfc6a41272",
-  "expected_generation": 7,
-  "effect": {
-    "run_id": 36897893969,
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1126,
-        "head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Consume merged PR #1126 and finalize #1124"
-    }
-  },
-  "purpose": "Consume exact-head terminal Product Regression GREEN for #1124 and enter no-yield terminal tail.",
+  "expected_coord_head": "1f42f5b41aec106ee2cd195d5c7b2228e63cf231",
+  "expected_generation": 8,
+  "effect": {},
+  "purpose": "Consume already-merged PR #1126 through trusted MERGE readback and drain FINALIZE to DONE, releasing the work1 reservation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
