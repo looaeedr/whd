@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
+    "id": 36814204632,
+    "purpose": ".github/workflows/whd-control-plane-regression.yml",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
   "issue": 1072,
   "lane_id": "chatgpt.flowv2.work2",
@@ -37,10 +42,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
+      "run_id": 36814204632
     },
-    "display": "Run canonical control-plane regression on exact Issue #1072 head",
-    "kind": "START_QA"
+    "display": "Poll exact Issue #1072 control-plane QA",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -57,21 +63,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
   "transaction": {
-    "expected_fingerprint": "cf2efce5ad5fb9d951ec5626014810ad04692acd9f8f0359f30ab2872e605090",
-    "id": "gha:36814092737:1072:APPLY_COMMIT:15",
+    "expected_fingerprint": "8d5af13c3a0a636f9ab405b3cc8b44e1d4befd0920955a90e3d4e0995fadd595",
+    "id": "gha:36814261356:1072:START_QA:16",
     "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0404Z",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T04:13:40Z",
+  "updated_at": "2026-10-01T04:15:53Z",
   "version": 2,
   "work_branch": "governance/issue1072-decouple-root-evidence-generation"
 }
