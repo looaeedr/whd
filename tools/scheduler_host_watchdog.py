@@ -65,7 +65,7 @@ ENTRYPOINTS: tuple[EntrypointSpec, ...] = (
         ".dispatch/monitor/host/entrypoints/a20.json",
     ),
     EntrypointSpec(
-        "a40", "40", 40, "6ab13fa557fc8191935c671214b865e2", LANE_A,
+        "a40", "40", 40, "6abe0efee140819190b5d215eb3bceba", LANE_A,
         ".dispatch/monitor/host/entrypoints/a40.json",
     ),
     EntrypointSpec(
