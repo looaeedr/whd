@@ -1,24 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-reconcile-current-target-before-bridge-cleanup",
+  "request_id": "issue1062-expand-bridge-residual-paths",
   "issue": 1062,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T0915Z",
-  "expected_coord_head": "1560257c1bd2a38bf74f19d3fb155eef5437b7e1",
-  "expected_generation": 4,
+  "expected_coord_head": "0d4b3709a7291ca232247d39eefa6fdfc5a7cc59",
+  "expected_generation": 5,
   "effect": {
-    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
-    "observed_head_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "observed_target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
-    "semantic_state": "TARGET_DRIFT_RECONCILED_BEFORE_ROOT_MUTATION",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1062 work branch after Drive root freeze"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+    "write_paths": [
+      "tests/test_issue124_structure_tree.py",
+      "tests/test_issue163_unfold_workspace_layout.py",
+      "tests/test_issue186_sheetmetal_selector_visibility.py",
+      "tests/test_issue335_top_toolbar.py",
+      "tests/test_issue343_t8_visual_remediation.py",
+      "tests/test_issue367_t3_project_persistence_owner.py",
+      "tests/test_issue430_single_host_red.py",
+      "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
+      "tests/test_issue96_corner_data_selection_lifecycle.py",
+      "tests/test_issue98_existing_2d_capability_migration.py",
+      "fold_designer_bridge.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED"
   },
-  "purpose": "Reconcile stale Issue #1062 target identity to current cleanup head ef76c7a before root mutation and reservation expansion.",
+  "purpose": "Monotonic reservation expansion for Issue #1062 Bridge residual anti-regrowth cleanup on current exact root.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
