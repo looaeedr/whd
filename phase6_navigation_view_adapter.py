@@ -148,3 +148,81 @@ def refresh_box_body_piece_selector(
     if notebook.winfo_manager():
         notebook.pack_forget()
     return wanted
+
+
+def on_structure_tree_select(
+    host,
+    *,
+    show_assembly: Callable[[], object],
+    show_corner_data: Callable[[], object],
+    activate_part: Callable[[str], object],
+    refresh_tree: Callable[[], object],
+):
+    """Translate one Treeview selection event into existing authority callbacks."""
+    if bool(getattr(host, "_phase6_structure_tree_guard", False)):
+        return None
+    tree = getattr(host, "structure_tree", None)
+    if tree is None:
+        return None
+    selected = tuple(tree.selection())
+    if not selected:
+        return None
+    iid = str(selected[0])
+    projected_iid = str(
+        getattr(host, "_phase6_structure_tree_programmatic_iid", "") or ""
+    )
+    if projected_iid:
+        host._phase6_structure_tree_programmatic_iid = ""
+        if iid == projected_iid:
+            return None
+    if iid == "mode:assembly":
+        show_assembly()
+    elif iid == "mode:corner_data":
+        show_corner_data()
+    elif iid.startswith("part:"):
+        activate_part(iid[5:])
+    return refresh_tree()
+
+
+def set_structure_tree_visibility(
+    host,
+    key,
+    visible,
+    *,
+    visibility_var: Callable[[str], object | None],
+    notify_visibility_changed: Callable[[], object] | None,
+    refresh_tree: Callable[[], object],
+) -> bool:
+    """Project visibility intent through existing assembly-view authority callbacks."""
+    part_key = str(key or "")
+    var = visibility_var(part_key)
+    if var is None:
+        return False
+    var.set(bool(visible))
+    if callable(notify_visibility_changed):
+        notify_visibility_changed()
+    refresh_tree()
+    return True
+
+
+def on_box_body_piece_tab_changed(
+    host,
+    *,
+    activate_part: Callable[[str], object],
+    resolve_operator_part: Callable[[str], object],
+):
+    """Translate a visible compatibility-tab event without owning navigation state."""
+    if bool(getattr(host, "_phase6_box_body_piece_tab_guard", False)):
+        return None
+    notebook = getattr(host, "box_body_piece_selector", None)
+    if notebook is None or not notebook.winfo_manager():
+        return None
+    key = dict(getattr(host, "_phase6_box_body_piece_tab_map", {}) or {}).get(
+        str(notebook.select())
+    )
+    if not key:
+        return None
+    workspace = getattr(host, "designer_workspace", None)
+    if str(getattr(workspace, "active_part", "") or "") == key:
+        return resolve_operator_part(key)
+    return activate_part(key)
