@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1124,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+  "work_branch": "governance/issue1124-background-control-plane-20261002",
+  "head_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1124"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-02:push-governance-back-to-background",
+      "authority_fingerprint": "9f84708e6ce0bfe0cf166c46027f08aa46f0967dc22d00baedce3c773ff71f32"
+    }
+  ],
+  "updated_at": "2026-10-01T16:37:00Z"
+}
