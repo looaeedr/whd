@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-    "released_at": null
+    "released_at": "2026-10-01T17:15:20Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
   "issue": 1124,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-01T18:13:08Z",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1124.finalize-20261002",
-    "token": "lease:1124:36903261747:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
@@ -36,13 +32,9 @@
       "tools/root_local_first_gate.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
     "last_accepted_run": 36897893969
@@ -56,21 +48,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "9c4a6fa21a20f94ef42dabf20d79174713b00f1c276fbb8f169abab5e07ccb77",
-    "id": "gha:36903691730:1124:MERGE:8",
+    "expected_fingerprint": "3dd5d821fdf7aba4766ad333673a804d281ae9afd362a1822fe1e462e32d70f3",
+    "id": "gha:36903691730:1124:FINALIZE:9",
     "invocation_identity": "chatgpt.flowv2.work1.issue1124.finalize-20261002",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T18:01:39Z",
+  "updated_at": "2026-10-01T18:02:03Z",
   "version": 2,
   "work_branch": "governance/issue1124-background-control-plane-20261002"
 }
