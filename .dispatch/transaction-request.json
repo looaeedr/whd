@@ -1,14 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-reacquire-for-root-full-gate-repair",
+  "request_id": "issue1072-expand-reservation-for-v5-anti-regrowth-test",
   "issue": 1072,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0145Z",
-  "expected_coord_head": "9797e71e63431810d4a89ce0ae283f54b8799f90",
-  "expected_generation": 8,
-  "effect": {},
-  "purpose": "Reacquire Issue #1072 after lease expiry so the same root workspace can repair the current full-gate regression and expand reservation monotonically before touching any new repository path.",
+  "expected_coord_head": "44eebdd93809f397797b33e5df96073674e2c70e",
+  "expected_generation": 9,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/control_transaction_request_ingress.py",
+      "tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED"
+  },
+  "purpose": "Expand Issue #1072 reservation monotonically to include the stale v4-pinned anti-regrowth test discovered by the canonical root full gate; keep all repair and retest work in the same /Google Drive/WHD root workspace before Git transport.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
