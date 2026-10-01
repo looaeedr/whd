@@ -82,3 +82,32 @@ def test_navigation_event_glue_is_owned_by_view_adapter_and_bridge_wrappers_stay
 def test_bridge_loc_ratchets_below_6200_after_navigation_event_extraction():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 6200, f"Bridge regrew past #1100 extended ratchet: {loc}"
+
+
+def test_navigation_compatibility_view_glue_is_owned_by_adapter():
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    for name in (
+        "refresh_sticky_structure_tree",
+        "clear_navigation_residue",
+        "refresh_content_switch",
+        "build_content_switch",
+        "on_structure_tree_click",
+    ):
+        assert f"def {name}(" in adapter_source
+
+    bridge_tree = ast.parse(BRIDGE.read_text(encoding="utf-8"))
+    funcs = {node.name: node for node in bridge_tree.body if isinstance(node, ast.FunctionDef)}
+    for name in (
+        "_phase6_refresh_sticky_structure_tree",
+        "_phase6_clear_navigation_residue",
+        "_phase6_refresh_content_switch",
+        "_phase6_build_content_switch",
+        "_phase6_on_structure_tree_click",
+    ):
+        assert name in funcs
+        assert (funcs[name].end_lineno - funcs[name].lineno + 1) <= 8
+
+
+def test_bridge_loc_ratchets_below_6145_after_navigation_view_completion():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 6145, f"Bridge regrew past #1100 final navigation ratchet: {loc}"
