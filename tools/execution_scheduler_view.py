@@ -19,12 +19,14 @@ from tools.execution_ready_index import (
     validate_ready_index,
 )
 from tools.execution_record import ExecutionRecord, execution_record_fingerprint
+from tools.scheduler_ready_ingress import SchedulerDispatchCandidate
 
 
 DECISIONS = frozenset({
     "RESUME_CURRENT",
     "LANE_BUSY",
     "READY_CANDIDATES",
+    "INGRESS_REQUIRED",
     "NO_EXECUTABLE_WORK",
 })
 LEASE_STATUSES = frozenset({
@@ -126,6 +128,7 @@ def build_scheduler_view(
     invocation_identity: str,
     now: str,
     ready_index: ExecutionReadyIndex | None = None,
+    dispatch_candidates: Iterable[SchedulerDispatchCandidate] = (),
 ) -> SchedulerView:
     """Build a deterministic, side-effect-free scheduler wake projection.
 
@@ -206,6 +209,34 @@ def build_scheduler_view(
             ready_issues=ready_issues,
             selected_issue=ready_issues[0],
             requires_transaction="ACQUIRE",
+        )
+
+    record_issues = {record.issue for record in materialized}
+    eligible_dispatch: list[SchedulerDispatchCandidate] = []
+    for candidate in dispatch_candidates:
+        if not isinstance(candidate, SchedulerDispatchCandidate):
+            raise SchedulerViewError("dispatch_candidates must contain SchedulerDispatchCandidate objects")
+        if candidate.issue in record_issues:
+            continue
+        if candidate.matches_lane(lane_id):
+            eligible_dispatch.append(candidate)
+    eligible_dispatch.sort(key=lambda item: item.issue)
+    if eligible_dispatch:
+        selected = eligible_dispatch[0]
+        return SchedulerView(
+            decision="INGRESS_REQUIRED",
+            lane_id=lane_id,
+            invocation_identity=invocation_identity,
+            current_issue=None,
+            current_record_fingerprint=None,
+            current_state=None,
+            next_action_kind="DISPATCH_READY",
+            next_action_display=f"Create READY ingress for Issue #{selected.issue}",
+            lease_status=None,
+            active_run_id=None,
+            ready_issues=(),
+            selected_issue=selected.issue,
+            requires_transaction="DISPATCH_READY",
         )
 
     return SchedulerView(

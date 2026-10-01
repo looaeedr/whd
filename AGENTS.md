@@ -122,9 +122,9 @@ GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力
 
 GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在 AI Library gate、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。
 
-- 只准讀 `coord/execution-v2`、derived `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only projection，以及取得 exact owning Issue / branch / HEAD 必需的 GitHub metadata。
+- 只准讀 `coord/execution-v2`、derived `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only projection，以及取得 exact owning Issue / branch / HEAD 必需的 GitHub metadata。若 current/ready 都空，允許額外用 `tools/scheduler_ready_ingress.py` 只掃 repository-owner-authored open Issue 第一個 nonblank `WHD_SCHEDULER_DISPATCH_REQUEST_V1` marker 與 `lane=ANY|A|B`；普通 open Issue 仍不是 execution authority。
 - bootstrap 唯一輸出用途是綁定 owning Issue 後送 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`；不得另造永久 bootstrap Issue。
-- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：receipt GREEN 且 REQUIRED SKILLS / REQUIRED REFERENCES 全部 fresh-read 前，禁止 WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease / ExecutionRecord mutation，亦不得 dispatch 除 trusted Phase6 Preflight request 外的其他 workflow / mutation transport。
+- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：receipt GREEN 且 REQUIRED SKILLS / REQUIRED REFERENCES 全部 fresh-read 前，禁止 canonical lane/runtime WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease / ExecutionRecord mutation，亦不得 dispatch 除 trusted Phase6 Preflight request 外的其他 workflow / mutation transport。唯一例外是 `tools/scheduler_entrypoint_observation.py` 對 fixed A00/A20/A40/B15/B45 host entrypoint file 的 `authority=NON_AUTHORITY` WAKE/HEARTBEAT/EXIT；它只證明 host occurrence，永遠不得授權 execution。
 - Preflight 完成後必須丟棄 bootstrap projection，重新 fresh-read canonical ExecutionRecord / scheduler view，才可進正常 Flow v2 WAKE / ownership / next_action。
 - 這是 read-only issue-binding bootstrap，不是 Preflight bypass、execution authority 或第二套 scheduler state machine。
 
