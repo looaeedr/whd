@@ -1,16 +1,17 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-stage2-reserve-product-batch1-20261001T2251+08",
+  "request_id": "issue1062-stage2-expand-presentation-20261001T2310+08",
   "issue": 1062,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.stage2.20261001T2245+08",
-  "expected_coord_head": "698579cfc649cca6af51a5dfb9c0a5793a472b9c",
-  "expected_generation": 21,
+  "expected_coord_head": "6815f7dfab97672805afc04ba4dfdf38ed6997a5",
+  "expected_generation": 22,
   "effect": {
     "target_branch": "cleanup/2d-3d-sync",
     "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
     "write_paths": [
+      "fold_designer_bridge.py",
       "tests/test_issue124_structure_tree.py",
       "tests/test_issue163_unfold_workspace_layout.py",
       "tests/test_issue186_sheetmetal_selector_visibility.py",
@@ -20,12 +21,13 @@
       "tests/test_issue430_single_host_red.py",
       "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
       "tests/test_issue96_corner_data_selection_lifecycle.py",
-      "tests/test_issue98_existing_2d_capability_migration.py"
+      "tests/test_issue98_existing_2d_capability_migration.py",
+      "whd_theme.py"
     ],
     "delete_paths": [],
     "semantic_state": "STAGE2_PRODUCT_REGRESSION_PATHS_RESERVED"
   },
-  "purpose": "Stage 2 product regression batch 1 only. Reserve the ten historical/current-oracle test paths before any root mutation.",
+  "purpose": "Expand #1062 product reservation only for the two #343 presentation implementation files; no governance changes.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
