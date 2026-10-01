@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "011290e2d345b9eedd8631a3ee7192b1e13c3b0a",
   "issue": 1093,
   "lane_id": "chatgpt.flowv2.work2",
@@ -22,7 +22,7 @@
     "token": "lease:1093:36935780751:1"
   },
   "mutation_scope": {
-    "base_sha": "a26f966925dd42ea8395649ee8144bb6e0d83ecd",
+    "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
     "reservation_state": "ACTIVE",
     "target_branch": "cleanup/2d-3d-sync",
@@ -69,7 +69,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTS_GREEN_REBASE_SCOPE_TO_CURRENT_TARGET",
+  "semantic_state": "ROOT_TESTS_GREEN_FULL_1093_SCOPE_AA2F",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "a26f966925dd42ea8395649ee8144bb6e0d83ecd",
@@ -77,13 +77,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "8a5f3208c81c814a1bb480ac9c7167c6c87712b96e7c6a37e503b1c37c2c8bc0",
-    "id": "gha:36937044183:1093:RECONCILE:9",
+    "expected_fingerprint": "91e4ddc684a928db48de2e18734bdb26bccf6aef61c20cf5d1cd6d761ab49d33",
+    "id": "gha:36937159302:1093:RESERVE_PATHS:10",
     "invocation_identity": "chatgpt.flowv2.work2.issue1093.20261002",
-    "kind": "RECONCILE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T22:46:51Z",
+  "updated_at": "2026-10-01T22:47:54Z",
   "version": 2,
   "work_branch": "work/issue1093-active-owning-issue-stickiness-20261002"
 }
