@@ -1755,27 +1755,13 @@ def _phase6_collect_workspace_state(self):
 
 
 def _phase6_relief_profile_fingerprint(profile):
-    rows = []
-    for raw in list(profile or ()):
-        row = dict(raw or {})
-        try:
-            length = round(float(row.get("len", row.get("length", 0.0)) or 0.0), 6)
-        except (TypeError, ValueError):
-            length = 0.0
-        angle = row.get("angle")
-        try:
-            angle = None if angle is None else round(float(angle), 6)
-        except (TypeError, ValueError):
-            angle = None
-        rows.append((
-            str(row.get("phase6_key") or ""), length, angle,
-            str(row.get("core") or ""),
-        ))
-    return tuple(rows)
+    from phase6_assembly_relief_state import relief_profile_fingerprint
 
+    return relief_profile_fingerprint(profile)
 
 def _phase6_current_relief_source_signature(self, required):
-    from ae_engine.certified_relief_registry import RELIEF_CONTRACT_VERSION
+    from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
+    from phase6_assembly_relief_state import build_current_source_signature
 
     source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     source.update(dict(getattr(self, "_settings_values", {}) or {}))
@@ -1783,184 +1769,54 @@ def _phase6_current_relief_source_signature(self, required):
     source["assembly_type"] = assembly_intent_value(getattr(
         self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY
     ))
-    scalar_keys = (
-        "w", "h", "d", "t", "fw", "zl1", "zl2", "zr1", "zr2",
-        "yl1", "yr1", "ytop1", "ybottom1", "assembly_type",
-    )
-    result = {key: deepcopy(source.get(key)) for key in scalar_keys if key in source}
     box_profile = clone_profile(
         (getattr(self.state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
     )
     formed_left, formed_right = formed_box_body_fw_widths(
         box_profile, float(source.get("t", 0.0) or 0.0)
     )
-    from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-    graph_snapshot = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    structure_state = deepcopy(self.designer_workspace.box_body_structure_state() or {})
-    import hashlib as _hashlib, json as _json
-    structure_payload = _json.dumps(structure_state, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
-    family_name = str(source.get("model") or source.get("cabinet_type") or "")
-    result.update({
-        "relief_contract_version": RELIEF_CONTRACT_VERSION,
-        "joint_graph_fingerprint": resolved_joint_graph_fingerprint(graph_snapshot),
-        "family_structure_fingerprint": _hashlib.sha256(structure_payload.encode("utf-8")).hexdigest(),
-        "cabinet_family": family_name,
-        "box_body_formed_fw": {
-            "left": None if formed_left is None else float(formed_left),
-            "right": None if formed_right is None else float(formed_right),
-        },
-        "box_body_profile": box_profile,
-        "part_profiles": {
+    graph_snapshot = migrate_legacy_snapshot_joints(
+        dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    )
+    return build_current_source_signature(
+        scalar_source=source,
+        joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
+        structure_state=deepcopy(self.designer_workspace.box_body_structure_state() or {}),
+        cabinet_family=str(source.get("model") or source.get("cabinet_type") or ""),
+        formed_left=formed_left,
+        formed_right=formed_right,
+        box_body_profile=box_profile,
+        part_profiles={
             key: deepcopy(self.designer_workspace.profiles_for(key, {}) or {})
             for key in required
         },
-    })
-    return result
+    )
 
 
 def _phase6_relief_source_matches_current(saved_source, current_source, required):
-    from ae_engine.certified_relief_registry import RELIEF_CONTRACT_VERSION
+    from phase6_assembly_relief_state import source_matches_current
 
-    saved = dict(saved_source or {})
-    current = dict(current_source or {})
-    if not saved:
-        return False
-    try:
-        if int(saved.get("relief_contract_version", 0) or 0) != RELIEF_CONTRACT_VERSION:
-            return False
-        if int(current.get("relief_contract_version", 0) or 0) != RELIEF_CONTRACT_VERSION:
-            return False
-    except (TypeError, ValueError):
-        return False
-    saved_formed = dict(saved.get("box_body_formed_fw") or {})
-    current_formed = dict(current.get("box_body_formed_fw") or {})
-    for side in ("left", "right"):
-        try:
-            if abs(float(saved_formed[side]) - float(current_formed[side])) > 1e-6:
-                return False
-        except (KeyError, TypeError, ValueError):
-            return False
-    for key in (
-        "w", "h", "d", "t", "fw", "zl1", "zl2", "zr1", "zr2",
-        "yl1", "yr1", "ytop1", "ybottom1",
-    ):
-        if key not in saved or key not in current:
-            continue
-        try:
-            if abs(float(saved[key]) - float(current[key])) > 1e-6:
-                return False
-        except (TypeError, ValueError):
-            return False
-    saved_graph = str(saved.get("joint_graph_fingerprint") or "")
-    current_graph = str(current.get("joint_graph_fingerprint") or "")
-    if not saved_graph or not current_graph or saved_graph != current_graph:
-        return False
-    saved_structure = str(saved.get("family_structure_fingerprint") or "")
-    current_structure = str(current.get("family_structure_fingerprint") or "")
-    if not saved_structure or not current_structure or saved_structure != current_structure:
-        return False
-    if str(saved.get("cabinet_family") or "") != str(current.get("cabinet_family") or ""):
-        return False
-    # A matching geometry signature is insufficient when the Certified Rule
-    # itself was revised or withdrawn.  Replay only active rule revisions.
-    from ae_engine.certified_relief_registry import certified_rule_revision_exists
-    saved_rules = dict(saved.get("registry_rules") or {})
-    for part_key in required:
-        rule = dict(saved_rules.get(str(part_key)) or {})
-        rule_id = str(rule.get("rule_id") or "")
-        if not rule_id:
-            continue
-        try:
-            revision = int(rule.get("revision", 0) or 0)
-        except (TypeError, ValueError):
-            return False
-        if revision <= 0 or not certified_rule_revision_exists(rule_id, revision):
-            return False
-    if "box_body_profile" in saved:
-        if _phase6_relief_profile_fingerprint(saved.get("box_body_profile")) != _phase6_relief_profile_fingerprint(current.get("box_body_profile")):
-            return False
-    saved_parts = dict(saved.get("part_profiles") or {})
-    current_parts = dict(current.get("part_profiles") or {})
-    for key in required:
-        saved_axes = dict(saved_parts.get(key) or {})
-        current_axes = dict(current_parts.get(key) or {})
-        for axis in ("X", "Y"):
-            if axis not in saved_axes:
-                continue
-            if _phase6_relief_profile_fingerprint(saved_axes.get(axis)) != _phase6_relief_profile_fingerprint(current_axes.get(axis)):
-                return False
-    return True
-
+    return source_matches_current(saved_source, current_source, required)
 
 def _phase6_serialize_assembly_relief_state(self):
-    """Serialize only an atomic verified EndCap relief transaction.
+    """Serialize one atomic persisted relief transaction via the canonical owner."""
+    from phase6_assembly_relief_state import build_persisted_relief_state
 
-    If a solve is partial/failed, preserve the previously committed relief
-    state (if any).  Never manufacture a Head-new/Tail-old state.
-    """
     enabled_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
     fallback_enabled = bool(enabled_var.get()) if enabled_var is not None else True
     solutions = dict(getattr(self, "_phase6_last_relief_solutions", {}) or {})
     available = set(getattr(getattr(self, "designer_workspace", None), "available_parts", ()) or ())
     required = [key for key in ("head", "tail") if key in available]
-    atomic_committable = bool(required) and all(
-        key in solutions and _phase6_solution_is_committable(solutions[key])
-        for key in required
-    )
     source_signature = dict(_phase6_current_relief_source_signature(self, required) or {})
-    if not atomic_committable:
-        prior = deepcopy((getattr(self, "_phase6_input_snapshot", {}) or {}).get("assembly_relief") or {})
-        if prior and _phase6_relief_source_matches_current(prior.get("source"), source_signature, required):
-            return prior
-        return {
-            "enabled": False,
-            "fallback_enabled": fallback_enabled,
-            "clearance": _phase6_assembly_relief_clearance(self),
-            "source": {},
-            "parts": {},
-        }
-    source_signature["registry_rules"] = {
-        key: {
-            "rule_id": str(getattr(solutions[key], "rule_id", "") or ""),
-            "revision": int(getattr(solutions[key], "rule_revision", 0) or 0),
-        }
-        for key in required
-    }
-    parts = {}
-    for key in required:
-        solution = solutions[key]
-        measurements = []
-        for item in tuple(getattr(solution, "corner_reliefs", ()) or ()):
-            m = getattr(item, "measurement", None)
-            if m is None:
-                continue
-            measurements.append({
-                "corner_name": str(getattr(m, "corner_name", getattr(item, "corner_name", ""))),
-                "primary_u": float(m.primary_u),
-                "primary_v": float(m.primary_v),
-                "secondary_u": None if m.secondary_u is None else float(m.secondary_u),
-                "secondary_depth": None if m.secondary_depth is None else float(m.secondary_depth),
-                "clearance_a": float(getattr(m, "clearance_a", 0.0)),
-            })
-        parts[key] = {
-            "verified": bool(getattr(solution, "verified", False)),
-            "canonical_accepted": True,
-            "trust_level": str(getattr(solution, "trust_level", "PROVISIONAL_3D") or "PROVISIONAL_3D"),
-            "rule_id": getattr(solution, "rule_id", None),
-            "rule_revision": getattr(solution, "rule_revision", None),
-            "joint_signature": [dict(item) for item in tuple(getattr(solution, "joint_signature", ()) or ())],
-            "shadow_validation": deepcopy(getattr(solution, "shadow_validation", None)),
-            "cuts": _phase6_relief_polygon_coords(getattr(solution, "cut_polygon_2d", None)),
-            "measurements": measurements,
-        }
-    return {
-        "enabled": True,
-        "fallback_enabled": fallback_enabled,
-        "clearance": _phase6_assembly_relief_clearance(self),
-        "source": source_signature,
-        "parts": parts,
-    }
-
+    prior = deepcopy((getattr(self, "_phase6_input_snapshot", {}) or {}).get("assembly_relief") or {})
+    return build_persisted_relief_state(
+        required_parts=required,
+        solutions=solutions,
+        source_signature=source_signature,
+        prior_state=prior,
+        fallback_enabled=fallback_enabled,
+        clearance=_phase6_assembly_relief_clearance(self),
+    )
 
 def _phase6_corner_transaction_payload(self):
     source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})

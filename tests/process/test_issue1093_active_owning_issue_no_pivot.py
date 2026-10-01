@@ -5,7 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from tools.control_transaction import ControlTransactionConflict
+from tools.control_transaction import (
+    ControlTransactionConflict,
+    execute_transaction,
+    prepare_transaction,
+)
 from tools.execution_invocation_exit import (
     InvocationExitError,
     assert_active_owning_issue_sticky,
@@ -177,3 +181,37 @@ def test_other_lane_can_continue_in_parallel(monkeypatch):
             supplied_effect={},
         )
     assert called["prepared"] is True
+
+def test_reserve_paths_can_atomically_advance_continuation_to_apply_commit():
+    record = _record(CURRENT, next_action="RESERVE_PATHS")
+    plan = prepare_transaction(
+        record,
+        kind="RESERVE_PATHS",
+        transaction_id="tx-issue1093-reserve-to-apply",
+        invocation_identity=INV,
+    )
+    updated = execute_transaction(
+        record,
+        plan,
+        effect={
+            "updated_at": NOW,
+            "target_branch": "cleanup/2d-3d-sync",
+            "base_sha": record.target_sha,
+            "write_paths": ["tools/control_transaction.py"],
+            "delete_paths": [],
+            "semantic_state": "ROOT_TESTS_GREEN",
+            "next_action": {
+                "kind": "APPLY_COMMIT",
+                "args": {"diff_digest": "a" * 64},
+                "display": "apply exact tested diff",
+            },
+        },
+    )
+
+    assert updated.mutation_scope is not None
+    assert updated.mutation_scope.reservation_state == "ACTIVE"
+    assert updated.mutation_scope.write_paths == ("tools/control_transaction.py",)
+    assert updated.next_action is not None
+    assert updated.next_action.kind == "APPLY_COMMIT"
+    assert updated.next_action.args["diff_digest"] == "a" * 64
+

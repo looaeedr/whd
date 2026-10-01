@@ -114,6 +114,20 @@ def test_released_or_done_scope_does_not_block_next_issue():
 
 def test_reserve_paths_is_atomic_record_transaction_and_only_allows_monotonic_expansion():
     record = _record(1001)
+    plan = prepare_transaction(record, kind="RESERVE_PATHS", transaction_id="tx-reserve-missing-next", invocation_identity=INV)
+    with pytest.raises(ControlTransactionError, match="next_action must be an object"):
+        execute_transaction(
+            record,
+            plan,
+            effect={
+                "target_branch": "cleanup/2d-3d-sync",
+                "base_sha": "c" * 40,
+                "write_paths": ["gui.py"],
+                "delete_paths": [],
+                "updated_at": "2026-09-29T10:30:30Z",
+            },
+        )
+
     plan = prepare_transaction(record, kind="RESERVE_PATHS", transaction_id="tx-reserve-1", invocation_identity=INV)
     reserved = execute_transaction(
         record,
@@ -123,11 +137,22 @@ def test_reserve_paths_is_atomic_record_transaction_and_only_allows_monotonic_ex
             "base_sha": "c" * 40,
             "write_paths": ["gui.py"],
             "delete_paths": [],
+            "next_action": {
+                "kind": "RESERVE_PATHS",
+                "args": {
+                    "target_branch": "cleanup/2d-3d-sync",
+                    "base_sha": "c" * 40,
+                    "write_paths": ["gui.py", "phase6_project_file.py"],
+                    "delete_paths": [],
+                },
+                "display": "expand exact reserved scope",
+            },
             "updated_at": "2026-09-29T10:31:00Z",
         },
     )
     assert reserved.mutation_scope.paths == ("gui.py",)
     assert reserved.semantic_state == "PATHS_RESERVED"
+    assert reserved.next_action.kind == "RESERVE_PATHS"
 
     expanded_plan = prepare_transaction(reserved, kind="RESERVE_PATHS", transaction_id="tx-reserve-2", invocation_identity=INV)
     expanded = execute_transaction(
@@ -138,6 +163,16 @@ def test_reserve_paths_is_atomic_record_transaction_and_only_allows_monotonic_ex
             "base_sha": "c" * 40,
             "write_paths": ["gui.py", "phase6_project_file.py"],
             "delete_paths": [],
+            "next_action": {
+                "kind": "RESERVE_PATHS",
+                "args": {
+                    "target_branch": "cleanup/2d-3d-sync",
+                    "base_sha": "c" * 40,
+                    "write_paths": ["gui.py", "phase6_project_file.py"],
+                    "delete_paths": [],
+                },
+                "display": "finish reservation before implementation",
+            },
             "updated_at": "2026-09-29T10:32:00Z",
         },
     )
@@ -153,10 +188,31 @@ def test_reserve_paths_is_atomic_record_transaction_and_only_allows_monotonic_ex
                 "base_sha": "c" * 40,
                 "write_paths": ["gui.py"],
                 "delete_paths": [],
+                "next_action": {"kind": "APPLY_COMMIT", "args": {}, "display": "apply"},
                 "updated_at": "2026-09-29T10:33:00Z",
             },
         )
 
+    consume_plan = prepare_transaction(expanded, kind="RESERVE_PATHS", transaction_id="tx-reserve-4", invocation_identity=INV)
+    consumed = execute_transaction(
+        expanded,
+        consume_plan,
+        effect={
+            "target_branch": "cleanup/2d-3d-sync",
+            "base_sha": "c" * 40,
+            "write_paths": ["gui.py", "phase6_project_file.py"],
+            "delete_paths": [],
+            "next_action": {
+                "kind": "APPLY_COMMIT",
+                "args": {"diff_digest": "d" * 64},
+                "display": "apply exact tested diff",
+            },
+            "updated_at": "2026-09-29T10:33:30Z",
+        },
+    )
+    assert consumed.mutation_scope == expanded.mutation_scope
+    assert consumed.next_action.kind == "APPLY_COMMIT"
+    assert consumed.next_action.args["diff_digest"] == "d" * 64
 
 def test_release_paths_requires_same_live_invocation_and_keeps_audit_scope():
     record = _record(1001, scope=_scope(write=("gui.py",)))
@@ -219,6 +275,11 @@ def test_trusted_executor_rejects_second_issue_before_coord_write(monkeypatch):
                 "base_sha": "c" * 40,
                 "write_paths": ["gui.py"],
                 "delete_paths": [],
+                "next_action": {
+                    "kind": "APPLY_COMMIT",
+                    "args": {"diff_digest": "f" * 64},
+                    "display": "apply after reservation",
+                },
             },
         )
 
