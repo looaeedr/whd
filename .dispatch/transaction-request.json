@@ -1,14 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1084-terminal-recovery-acquire",
+  "request_id": "issue1084-terminal-recovery-acquire-v2",
   "issue": 1084,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002",
-  "expected_coord_head": "86429154d760e74c5b63b72c97a31b42115f39c3",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
+  "expected_coord_head": "a8041f8fe699311acc3e6fa108f36730e6ba2fcf",
   "expected_generation": 1,
-  "effect": {},
-  "purpose": "Acquire stale READY #1084 only to reconcile its already-merged PR #1085 and finalize the completed Issue; no repository-content mutation.",
+  "effect": {
+    "observed_at": "2026-10-01T22:36:00Z",
+    "owner_kind": "INTERACTIVE",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "lease": {
+      "token": "lease:1084:terminal-recovery:20261002T0636+08",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
+      "expires_at": "2026-10-01T22:51:00Z"
+    },
+    "next_action": {
+      "kind": "RECONCILE",
+      "args": {},
+      "display": "Reconcile already-merged PR #1085 and terminalize #1084"
+    },
+    "semantic_state": "CLAIMED",
+    "updated_at": "2026-10-01T22:36:00Z"
+  },
+  "purpose": "Recover stale READY #1084 after its implementation was already merged and Issue closed; acquire only to reconcile exact merged evidence and terminalize the record, with no product mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
