@@ -307,3 +307,98 @@ def on_structure_tree_click(
         return "break"
     set_visibility(key, not bool(var.get()))
     return "break"
+
+
+def refresh_part_selector(
+    host,
+    *,
+    tk_end,
+    operator_selector_keys: Callable[[Iterable[object]], tuple[str, ...]],
+    label_for_key: Callable[..., str],
+    is_box_piece: Callable[[object], bool],
+    show_assembly: Callable[[], object],
+    show_corner_data: Callable[[], object],
+    activate_part: Callable[[str], object],
+    refresh_button_states: Callable[[], object],
+    refresh_piece_selector: Callable[[], object],
+    refresh_back_panel: Callable[[], object],
+    refresh_assembly_panel: Callable[[], object] | None,
+    refresh_structure_tree: Callable[[], object],
+    refresh_content_switch: Callable[[], object],
+    refresh_status_bar: Callable[[], object],
+):
+    """Project current operator navigation identities into the compact part menu."""
+    host.part_buttons = {}
+    snapshot = dict(getattr(host, "_phase6_input_snapshot", {}) or {})
+    menu = getattr(host, "part_choice_menu", None)
+    if menu is not None:
+        menu.delete(0, tk_end)
+        menu.add_radiobutton(
+            label="組合體", variable=host.part_var, value="組合體", command=show_assembly
+        )
+        for key in operator_selector_keys(getattr(host, "available_parts", ())):
+            label = label_for_key(key, snapshot=snapshot)
+            menu.add_radiobutton(
+                label=label, variable=host.part_var, value=label,
+                command=lambda k=key: activate_part(k),
+            )
+        menu.add_radiobutton(
+            label="截角資料", variable=host.part_var, value="截角資料", command=show_corner_data
+        )
+
+    active = getattr(host, "active_part_key", None)
+    if hasattr(host, "part_var"):
+        mode = str(getattr(host, "_phase6_3d_display_mode", "single") or "single")
+        if mode == "assembly":
+            host.part_var.set("組合體")
+        elif mode == "corner_data":
+            host.part_var.set("截角資料")
+        elif is_box_piece(active):
+            host.part_var.set(label_for_key("box_body", snapshot=snapshot))
+        elif active in getattr(host, "available_parts", ()):
+            host.part_var.set(label_for_key(active, snapshot=snapshot))
+
+    refresh_button_states()
+    refresh_piece_selector()
+    refresh_back_panel()
+    if callable(refresh_assembly_panel):
+        refresh_assembly_panel()
+    refresh_structure_tree()
+    refresh_content_switch()
+    refresh_status_bar()
+
+
+def refresh_part_button_states(
+    host,
+    *,
+    is_derived_part: Callable[[object], bool],
+) -> None:
+    """Project selection eligibility into legacy remove-button state."""
+    selected = getattr(host, "selected_part_key", None)
+    for button in getattr(host, "part_buttons", {}).values():
+        button.state(["!disabled"])
+    delete = getattr(host, "remove_part_button", None)
+    if delete is not None:
+        available = tuple(getattr(host, "available_parts", ()) or ())
+        enabled = selected in available and selected != "box_body" and not is_derived_part(selected)
+        delete.configure(state=("normal" if enabled else "disabled"))
+
+
+def refresh_add_part_menu(
+    host,
+    *,
+    tk_end,
+    known_parts: Iterable[str],
+    label_for_key: Callable[[str], str],
+    add_part: Callable[[str], object],
+) -> None:
+    """Project missing legacy top-level parts into the add-part menu."""
+    menu = host.add_part_menu
+    menu.delete(0, tk_end)
+    available = tuple(getattr(host, "available_parts", ()) or ())
+    missing = [key for key in known_parts if key not in available]
+    if not missing:
+        menu.add_command(label="沒有可新增板件", state="disabled")
+        return
+    for key in missing:
+        menu.add_command(label=label_for_key(key), command=lambda k=key: add_part(k))
