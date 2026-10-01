@@ -232,6 +232,27 @@ def test_root_local_skill_exposes_fast_path_hard_gate():
     assert "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS" not in text or "phase outcome" in text
 
 
+def test_task_scope_stickiness_blocks_control_plane_drift():
+    from tools.root_local_first_gate import validate_contract
+    payload = _contract()
+    gate = validate_contract(payload)["direct_root_mutation_test_gate"]
+    assert gate["task_scope_sticky_until"] == "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE"
+    assert gate["control_plane_anomaly_action"] == "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK"
+    for trigger in (
+        "STALE_EXECUTION_RECORD", "EXPIRED_LEASE", "RESERVATION_MISMATCH",
+        "GOVERNANCE_DRIFT", "TEST_RED", "STATUS_QUERY", "PROGRESS_QUERY",
+    ):
+        assert trigger in gate["forbidden_scope_switch_triggers"]
+    assert set(gate["scope_switch_allowed_only_on"]) == {
+        "USER_EXPLICIT_TASK_CHANGE", "PATH_CONFLICT", "SAME_ISSUE_OTHER_WRITER",
+        "SUBSTANTIVE_TARGET_OVERLAP", "MACHINE_FAIL_CLOSED", "USER_INPUT_REQUIRED",
+    }
+    bad = json.loads(json.dumps(payload))
+    bad["direct_root_mutation_test_gate"]["control_plane_anomaly_action"] = "REPAIR_GOVERNANCE_FIRST"
+    with pytest.raises(ValueError, match="must not become a new primary task"):
+        validate_contract(bad)
+
+
 def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     payload = _contract()
     gate = payload["direct_root_mutation_test_gate"]

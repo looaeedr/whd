@@ -80,6 +80,8 @@ ROOT_SOURCE_CURRENT
 
 `TEST_RED` **不是 escalation**：固定留在同一 root workspace 直接修正並重測，禁止因 RED 回到 ACQUIRE / RESERVE_PATHS / START_QA / FAIL_QA / GitHub-side hotfix。
 
+**TASK_SCOPE_STICKINESS_HARD_GATE_V1**：使用者已指定的當前任務，在 `ROOT_TESTS_GREEN`、真正 blocker，或使用者明確改題之前，固定保持為唯一 primary task。途中發現 `STALE_EXECUTION_RECORD / EXPIRED_LEASE / RESERVATION_MISMATCH / GOVERNANCE_DRIFT / TEST_RED / STATUS_QUERY / PROGRESS_QUERY`，只能記成 evidence 或 blocker，**不得自行升格成「先修治理／先補 Flow v2／先重跑 admission」的新主線**。只有 `USER_EXPLICIT_TASK_CHANGE / PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才允許離開目前 root task。使用者說「繼續／修／補」時，預設語意是繼續目前 primary task，不得用這些短句重新解讀成 control-plane repair。
+
 任何升級前都先 fresh-read current Issue；若 generation / fingerprint / lease / next_action / work head / target head 已前進，舊 plan 依 `STALE_PLAN_MUST_DIE` 立即作廢，不准把舊流程補完。
 
 使用者回報只報 phase outcome / 真 blocker；不得把 control-plane internals 當成主要進度。

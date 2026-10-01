@@ -38,7 +38,26 @@
     "same_invocation_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER",
     "schema": "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1",
     "status_or_progress_query_is_stop_reason": false,
-    "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
+    "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST",
+    "task_scope_sticky_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
+    "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK",
+    "forbidden_scope_switch_triggers": [
+      "STALE_EXECUTION_RECORD",
+      "EXPIRED_LEASE",
+      "RESERVATION_MISMATCH",
+      "GOVERNANCE_DRIFT",
+      "TEST_RED",
+      "STATUS_QUERY",
+      "PROGRESS_QUERY"
+    ],
+    "scope_switch_allowed_only_on": [
+      "USER_EXPLICIT_TASK_CHANGE",
+      "PATH_CONFLICT",
+      "SAME_ISSUE_OTHER_WRITER",
+      "SUBSTANTIVE_TARGET_OVERLAP",
+      "MACHINE_FAIL_CLOSED",
+      "USER_INPUT_REQUIRED"
+    ]
   },
   "execution_mode_provenance": {
     "interactive_must_not_self_assert_remote_mode": true,

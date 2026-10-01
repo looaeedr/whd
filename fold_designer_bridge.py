@@ -76,6 +76,29 @@ from phase6_settings_profile_projection import (
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_panel import build_registry_choice
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
+from phase6_navigation_view_adapter import (
+    refresh_structure_tree as _navigation_view_refresh_structure_tree,
+    refresh_box_body_piece_selector as _navigation_view_refresh_box_body_piece_selector,
+    on_structure_tree_select as _navigation_view_on_structure_tree_select,
+    set_structure_tree_visibility as _navigation_view_set_structure_tree_visibility,
+    on_box_body_piece_tab_changed as _navigation_view_on_box_body_piece_tab_changed,
+    refresh_sticky_structure_tree as _navigation_view_refresh_sticky_structure_tree,
+    clear_navigation_residue as _navigation_view_clear_navigation_residue,
+    refresh_content_switch as _navigation_view_refresh_content_switch,
+    build_content_switch as _navigation_view_build_content_switch,
+    on_structure_tree_click as _navigation_view_on_structure_tree_click,
+    refresh_part_selector as _navigation_view_refresh_part_selector,
+    refresh_part_button_states as _navigation_view_refresh_part_button_states,
+    refresh_add_part_menu as _navigation_view_refresh_add_part_menu,
+    hide_corner_data_canvas as _navigation_view_hide_corner_data_canvas,
+    show_corner_data_mode as _navigation_view_show_corner_data_mode,
+    project_assembly_mode as _navigation_view_project_assembly_mode,
+    project_active_part_selector as _navigation_view_project_active_part_selector,
+    finalize_single_part_layout as _navigation_view_finalize_single_part_layout,
+    refresh_persistent_structure_controls as _navigation_view_refresh_persistent_structure_controls,
+    pack_right_panel_above_canvas as _navigation_view_pack_right_panel_above_canvas,
+    hide_original_structure_mode_controls as _navigation_view_hide_original_structure_mode_controls,
+)
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
     submit_fold_designer_update_intent,
@@ -1972,64 +1995,8 @@ def _phase6_corner_transaction_payload(self):
 
 
 def _phase6_publish_live_state(self, *, force=False):
-    """Publish only when the pure live-sync plan requires one envelope."""
-    callback = getattr(self, "_live_sync_callback", None)
-    if (
-        not callable(callback)
-        or getattr(self, "_phase6_live_sync_guard", False)
-        or getattr(self, "_phase6_initializing", False)
-        or not getattr(self, "_phase6_sync_ready", False)
-        or not hasattr(self, "baseline_model_var")
-        or not hasattr(self, "designer_workspace")
-    ):
-        return False
-
-    state = _phase6_corner_transaction_payload(self)
-    input_snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    host_relief_present = (
-        isinstance(input_snapshot, Mapping)
-        and "assembly_relief" in input_snapshot
-    )
-    host_relief = (
-        deepcopy(input_snapshot.get("assembly_relief") or {})
-        if host_relief_present
-        else {}
-    )
-    plan = plan_live_sync_envelope(
-        current_state=state,
-        previous_state=getattr(self, "_phase6_last_live_state", None) or {},
-        previous_fingerprint=getattr(
-            self, "_phase6_last_live_fingerprint", None
-        ),
-        current_revision=getattr(self, "_phase6_sync_revision", 0),
-        active_transaction_id=getattr(
-            self, "_phase6_active_transaction_id", ""
-        ),
-        host_relief_present=host_relief_present,
-        host_relief=host_relief,
-        force=bool(force),
-    )
-    if not plan.should_publish:
-        return False
-
-    payload = materialize_sync_value(plan.payload)
-    self._phase6_live_sync_guard = True
-    try:
-        callback(deepcopy(payload))
-        self._phase6_sync_revision = plan.next_revision
-        self._phase6_last_live_state = deepcopy(state)
-        self._phase6_last_live_fingerprint = plan.fingerprint
-        self._phase6_last_live_payload = deepcopy(payload)
-        self._phase6_input_snapshot["assembly_relief"] = (
-            materialize_sync_value(plan.host_relief_repair)
-        )
-    except Exception as exc:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"即時同步失敗：{exc}")
-        return False
-    finally:
-        self._phase6_live_sync_guard = False
-    return True
+    """Compatibility port: composition owns live-sync publication effects."""
+    return _phase6_composition(self).publish_live_state(globals(), force=force)
 
 
 def _phase6_build_project_snapshot(self):
@@ -4191,64 +4158,28 @@ def _phase6_build_settings_center(self):
 def _phase6_refresh_persistent_structure_controls(self):
     state = _phase6_box_structure_state(self)
     active = BoxBodyStructureType(state["active_type"])
-    var = getattr(self, "structure_type_var", None)
-    if var is not None:
-        value = _BOX_STRUCTURE_LABELS[active]
-        if var.get() != value:
-            var.set(value)
-    button = getattr(self, "structure_choice_button", None)
-    if button is not None:
-        fixed_family = cabinet_family_policy.family_fixes_box_body_structure(
-            getattr(self, "_phase6_input_snapshot", {}) or {}
-        )
-        button.configure(state=("disabled" if fixed_family else "normal"))
-
-    assembly_var = getattr(self, "assembly_type_var", None)
-    if assembly_var is not None:
-        label = ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)]
-        if assembly_var.get() != label:
-            assembly_var.set(label)
+    return _navigation_view_refresh_persistent_structure_controls(
+        self,
+        structure_label=_BOX_STRUCTURE_LABELS[active],
+        structure_fixed=cabinet_family_policy.family_fixes_box_body_structure(getattr(self, "_phase6_input_snapshot", {}) or {}),
+        assembly_label=ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)],
+    )
 
 
 def _phase6_toggle_parameter_panel(self):
     return _phase6_composition(self).toggle_parameter_panel(globals())
 
 def _phase6_pack_right_panel_above_canvas(self, widget):
-    """Pack a right-side settings/diagnostic panel before the expanding 3D canvas.
-
-    Tk pack order matters: if the canvas is already packed with fill=BOTH and
-    expand=True, packing a settings frame afterwards can leave the frame at
-    1x1 pixels even though winfo_manager() reports "pack".
-    """
-    if widget is None:
-        return False
-    canvas_widget = self.renderer.canvas.get_tk_widget()
-    options = dict(side=original.tk.TOP, fill=original.tk.X, pady=(0, 6))
-    if canvas_widget.winfo_manager() == "pack" and canvas_widget.master is widget.master:
-        widget.pack(before=canvas_widget, **options)
-    else:
-        widget.pack(**options)
-    return True
-
+    """Delegate right-panel packing order to the Tk view owner."""
+    return _navigation_view_pack_right_panel_above_canvas(
+        self, widget, tk_top=original.tk.TOP, tk_x=original.tk.X
+    )
 
 def _hide_original_structure_mode_controls(root_widget):
-    """Hide only the prototype's user-visible mode chooser; keep its internals."""
-    targets = {"標準十字型", "金庫型(三件)", "結構:"}
-    for child in root_widget.winfo_children():
-        try:
-            text = str(child.cget("text"))
-        except Exception:
-            text = ""
-        if text in targets:
-            manager = child.winfo_manager()
-            if manager == "pack":
-                child.pack_forget()
-            elif manager == "grid":
-                child.grid_remove()
-            elif manager == "place":
-                child.place_forget()
-        _hide_original_structure_mode_controls(child)
-
+    """Delegate prototype-control hiding to the Tk view owner."""
+    return _navigation_view_hide_original_structure_mode_controls(
+        root_widget, targets={"標準十字型", "金庫型(三件)", "結構:"}
+    )
 
 def _phase6_on_assembly_part_visibility_changed(self):
     if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
@@ -4256,76 +4187,39 @@ def _phase6_on_assembly_part_visibility_changed(self):
 
 
 def _phase6_install_assembly_panel_aliases(self, owner):
-    """Expose rebuild-safe legacy handles for existing callers/tests."""
-    self.assembly_parts_panel = owner.host
-    self.assembly_parts_canvas = owner.canvas
-    self.assembly_parts_scrollbar = owner.scrollbar
-    self.assembly_parts_content = owner.content
-    self._assembly_parts_window = owner.window_id
-
-    self.assembly_part_visible_vars = owner.visible_vars
-    self.assembly_part_corner_vars = owner.corner_vars
-    self.assembly_part_formed_vars = owner.formed_vars
-    self.assembly_part_blank_vars = owner.blank_vars
-    self.assembly_part_checkbuttons = owner.checkbuttons
-    self.assembly_part_sections = owner.sections
-    self.assembly_part_detail_frames = owner.detail_frames
-    self.assembly_part_detail_buttons = owner.detail_buttons
-    self.assembly_presentation_group_sections = owner.group_sections
-    self.assembly_presentation_group_detail_frames = owner.group_detail_frames
-    self.assembly_presentation_group_detail_buttons = owner.group_detail_buttons
-    self._phase6_assembly_part_detail_open_stash = owner.detail_open_stash
-    self._phase6_assembly_presentation_group_open_stash = owner.group_open_stash
-
-    self.assembly_box_body_piece_labels = owner.box_piece_labels
-    self.assembly_box_body_piece_sections = owner.box_piece_sections
-    self.assembly_box_body_piece_visible_vars = owner.box_piece_visible_vars
-    self.assembly_box_body_piece_checkbuttons = owner.box_piece_checkbuttons
-    self.assembly_box_body_piece_detail_frames = owner.box_piece_detail_frames
-    self.assembly_box_body_piece_detail_buttons = owner.box_piece_detail_buttons
-    self.assembly_box_body_piece_formed_vars = owner.box_piece_formed_vars
-    self.assembly_box_body_piece_blank_vars = owner.box_piece_blank_vars
-    self.assembly_box_body_piece_corner_vars = owner.box_piece_corner_vars
-    self._phase6_box_body_piece_visibility_stash = owner.box_piece_visibility_stash
-    self._phase6_box_body_piece_detail_open_stash = owner.box_piece_detail_open_stash
+    """Delegate legacy alias exposure to the AssemblyPanel owner."""
+    return owner.install_legacy_aliases(self)
 
 
 _phase6_assembly_presentation_groups = legacy_assembly_presentation_groups
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
-    """Return the part-key topology currently represented by assembly rows."""
-    return tuple(dict(getattr(self, "assembly_part_visible_vars", {}) or {}))
-
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.represented_part_keys() if owner is not None else ()
 
 def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
-    """Rebuild assembly rows only when authoritative workspace topology changed."""
-    if getattr(self, "assembly_parts_panel", None) is None:
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is None:
         return False
-    current = _phase6_current_assembly_panel_part_keys(self)
-    wanted = _phase6_operator_part_selector_keys(
-        getattr(_designer_workspace(self), "available_parts", ()) or ()
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    return owner.refresh_if_topology_changed(
+        self,
+        getattr(_designer_workspace(self), "available_parts", ()) or (),
+        selector_keys=_phase6_operator_part_selector_keys,
+        label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
     )
-    if current == wanted:
-        return False
-    _phase6_refresh_assembly_parts_panel(self)
-    return True
 
 
 def _phase6_refresh_assembly_parts_panel(self):
     owner = getattr(self, "_phase6_assembly_panel_owner", None)
     if owner is None:
-        return
-
+        return None
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    model = build_assembly_presentation_model(
+    return owner.render_available_parts(
+        self,
         getattr(_designer_workspace(self), "available_parts", ()) or (),
         label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
     )
-    owner.render(model)
-
-    # The host widget is recreated with the logical BoxBody row. Registry and
-    # stash aliases remain the same long-lived panel-owned dict objects.
-    self.assembly_box_body_piece_host = owner.box_body_piece_host
 
 
 # Patch methods onto the FIX10 class instead of touching the user's original file.
@@ -4683,29 +4577,7 @@ def _phase6_mark_ready(self):
 
 
 def _phase6_refresh_sticky_structure_tree(self):
-    """Compatibility port retained for WorkspaceShell composition callbacks."""
-    host = getattr(self, "structure_tree_host", None)
-    spacer = getattr(self, "structure_tree_spacer", None)
-    try:
-        if host is not None:
-            manager = str(host.winfo_manager() or "")
-            if manager == "place":
-                host.place_forget()
-            elif manager == "pack":
-                host.pack_forget()
-            elif manager == "grid":
-                host.grid_remove()
-        if spacer is not None:
-            manager = str(spacer.winfo_manager() or "")
-            if manager == "pack":
-                spacer.pack_forget()
-            elif manager == "grid":
-                spacer.grid_remove()
-            elif manager == "place":
-                spacer.place_forget()
-    except Exception:
-        return
-
+    return _navigation_view_refresh_sticky_structure_tree(self)
 
 def _phase6_install_keyboard_shortcuts(self):
     """Compatibility port; command_router remains the keyboard binding owner."""
@@ -4752,51 +4624,13 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
 
 def _phase6_clear_navigation_residue(self):
-    """Dismiss transient navigation popups before changing the visible content."""
-    for name in ("part_choice_menu", "add_part_menu", "project_file_menu"):
-        menu = getattr(self, name, None)
-        if menu is None:
-            continue
-        try:
-            menu.unpost()
-        except Exception:
-            pass
-
+    return _navigation_view_clear_navigation_residue(self)
 
 def _phase6_refresh_content_switch(self):
-    """Project the existing display mode onto the three persistent buttons."""
-    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    active = "assembly" if mode == "assembly" else "corner_data" if mode == "corner_data" else "input"
-    mapping = {
-        "input": getattr(self, "input_content_button", None),
-        "assembly": getattr(self, "assembly_content_button", None),
-        "corner_data": getattr(self, "corner_data_content_button", None),
-    }
-    for key, button in mapping.items():
-        if button is None:
-            continue
-        try:
-            button.state(["pressed"] if key == active else ["!pressed"])
-        except Exception:
-            pass
-    return active
-
-
+    return _navigation_view_refresh_content_switch(self)
 
 def _phase6_build_content_switch(self):
-    """Retain compatibility handles without a second visible navigation strip.
-
-    The main part selector now owns Input/Assembly/Corner-Data navigation.  Keep
-    the legacy attributes so older internal callers can remain tolerant, but do
-    not expose duplicate wrapper labels or buttons in the operator layout.
-    """
-    self.content_switch_frame = original.ttk.Frame(self.left)
-    self.input_content_button = None
-    self.assembly_content_button = None
-    self.corner_data_content_button = None
-    _phase6_refresh_content_switch(self)
-    return self.content_switch_frame
-
+    return _navigation_view_build_content_switch(self, frame_factory=original.ttk.Frame)
 
 def _phase6_mount_shared_content(self, mode):
     return _workspace_shell_mount_shared_content(
@@ -4820,207 +4654,61 @@ def _phase6_structure_tree_visibility_var(self, key):
 
 
 def _phase6_refresh_structure_tree(self):
-    """Rebuild the CAD navigation projection from current authoritative identities."""
-    tree = getattr(self, "structure_tree", None)
-    if tree is None:
-        return ()
-    if bool(getattr(self, "_phase6_structure_tree_guard", False)):
-        return ()
-
-    self._phase6_structure_tree_guard = True
-    try:
-        roots = tuple(tree.get_children(""))
-        if roots:
-            tree.delete(*roots)
-        tree.insert("", "end", iid="mode:assembly", text="組合體", values=("",), open=True)
-        tree.insert("", "end", iid="mode:corner_data", text="截角資料", values=("",), open=True)
-        workspace = _designer_workspace(self)
-        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-        rows = _phase6_structure_tree_rows(getattr(workspace, "available_parts", ()) or ())
-        for key, parent_key in rows:
-            iid = f"part:{key}"
-            parent_iid = f"part:{parent_key}" if parent_key else ""
-            visible_var = _phase6_structure_tree_visibility_var(self, key)
-            visible = True if visible_var is None else bool(visible_var.get())
-            tree.insert(
-                parent_iid, "end", iid=iid,
-                text=_phase6_part_label(key, snapshot=snapshot),
-                values=("顯示" if visible else "隱藏",),
-                tags=(() if visible else ("hidden",)),
-                open=(key == "box_body"),
-            )
-        mode = str(getattr(self, "_phase6_3d_display_mode", "assembly") or "assembly")
-        active = str(getattr(workspace, "active_part", "") or "")
-        selected_iid = (
-            "mode:assembly" if mode == "assembly"
-            else "mode:corner_data" if mode == "corner_data"
-            else f"part:{active}" if active else ""
-        )
-        if selected_iid and tree.exists(selected_iid):
-            self._phase6_structure_tree_programmatic_iid = selected_iid
-            tree.selection_set(selected_iid)
-            tree.focus(selected_iid)
-            tree.see(selected_iid)
-        return rows
-    finally:
-        # ttk.Treeview.selection_set() posts <<TreeviewSelect>> asynchronously.
-        # Keep the guard alive through the queued event; dropping it here
-        # creates select -> refresh -> selection_set -> select recursion.
-        try:
-            tree.after_idle(
-                lambda: setattr(self, "_phase6_structure_tree_guard", False)
-            )
-        except Exception:
-            self._phase6_structure_tree_guard = False
-
+    """Compatibility wrapper for the dedicated navigation Tk view owner."""
+    return _navigation_view_refresh_structure_tree(
+        self,
+        project_rows=_phase6_structure_tree_rows,
+        label_for_key=lambda key, snapshot=None: _phase6_part_label(
+            key, snapshot=snapshot
+        ),
+        visibility_var=lambda key: _phase6_structure_tree_visibility_var(self, key),
+    )
 
 def _phase6_on_structure_tree_select(self, _event=None):
-    if bool(getattr(self, "_phase6_structure_tree_guard", False)):
-        return
-    tree = getattr(self, "structure_tree", None)
-    if tree is None:
-        return
-    selected = tuple(tree.selection())
-    if not selected:
-        return
-    iid = str(selected[0])
-    projected_iid = str(
-        getattr(self, "_phase6_structure_tree_programmatic_iid", "") or ""
+    return _navigation_view_on_structure_tree_select(
+        self,
+        show_assembly=lambda: _phase6_show_assembly(self),
+        show_corner_data=lambda: _phase6_show_corner_data(self),
+        activate_part=lambda key: _phase6_activate_operator_part(self, key),
+        refresh_tree=lambda: _phase6_refresh_structure_tree(self),
     )
-    if projected_iid:
-        self._phase6_structure_tree_programmatic_iid = ""
-        if iid == projected_iid:
-            return
-    if iid == "mode:assembly":
-        _phase6_show_assembly(self)
-    elif iid == "mode:corner_data":
-        _phase6_show_corner_data(self)
-    elif iid.startswith("part:"):
-        _phase6_activate_operator_part(self, iid[5:])
-    _phase6_refresh_structure_tree(self)
-
 
 def _phase6_set_structure_tree_visibility(self, key, visible):
-    """Mutate the shared panel Tk var and emit the panel visibility action."""
-    key = str(key or "")
-    visible_var = _phase6_structure_tree_visibility_var(self, key)
-    if visible_var is None:
-        return False
-    visible_var.set(bool(visible))
     owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is not None:
-        owner.notify_visibility_changed()
-    _phase6_refresh_structure_tree(self)
-    return True
-
+    return _navigation_view_set_structure_tree_visibility(
+        self, key, visible,
+        visibility_var=lambda part_key: _phase6_structure_tree_visibility_var(self, part_key),
+        notify_visibility_changed=(owner.notify_visibility_changed if owner is not None else None),
+        refresh_tree=lambda: _phase6_refresh_structure_tree(self),
+    )
 
 def _phase6_on_structure_tree_click(self, event):
-    tree = getattr(self, "structure_tree", None)
-    if tree is None or tree.identify_column(event.x) != "#1":
-        return None
-    iid = str(tree.identify_row(event.y) or "")
-    if not iid.startswith("part:"):
-        return "break"
-    key = iid[5:]
-    visible_var = _phase6_structure_tree_visibility_var(self, key)
-    if visible_var is None:
-        return "break"
-    _phase6_set_structure_tree_visibility(self, key, not bool(visible_var.get()))
-    return "break"
+    return _navigation_view_on_structure_tree_click(
+        self, event,
+        visibility_var=lambda key: _phase6_structure_tree_visibility_var(self, key),
+        set_visibility=lambda key, visible: _phase6_set_structure_tree_visibility(self, key, visible),
+    )
 
 def _phase6_refresh_box_body_piece_selector(self):
-    """Keep one logical 箱身 entry while exposing physical children as nested tabs."""
-    notebook = getattr(self, "box_body_piece_selector", None)
-    if notebook is None:
-        return ()
-
-    wanted = _phase6_box_body_piece_keys(
-        getattr(_designer_workspace(self), "available_parts", ()) or ()
-    )
-    current = tuple(getattr(self, "_phase6_box_body_piece_tab_keys", ()) or ())
-    if current != wanted:
-        self._phase6_box_body_piece_tab_guard = True
-        try:
-            for tab_id in tuple(notebook.tabs()):
-                try:
-                    widget = self.root.nametowidget(tab_id)
-                except Exception:
-                    widget = None
-                notebook.forget(tab_id)
-                if widget is not None:
-                    try:
-                        widget.destroy()
-                    except Exception:
-                        pass
-            tab_map = {}
-            for key in wanted:
-                frame = original.ttk.Frame(notebook)
-                notebook.add(frame, text=_phase6_part_label(key))
-                tab_map[str(frame)] = key
-            self._phase6_box_body_piece_tab_map = tab_map
-            self._phase6_box_body_piece_tab_keys = wanted
-        finally:
-            self._phase6_box_body_piece_tab_guard = False
-
-    workspace = _designer_workspace(self)
-    active = str(getattr(workspace, "active_part", "") or "")
-    remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-    if active in wanted:
-        desired = active
-        self._phase6_box_body_active_piece_key = active
-    else:
-        projection = _dm7_resolve_navigation(
-            getattr(workspace, "available_parts", ()) or (),
+    """Compatibility wrapper for hidden BoxBody child-tab view projection."""
+    return _navigation_view_refresh_box_body_piece_selector(
+        self,
+        piece_keys=_phase6_box_body_piece_keys,
+        label_for_key=lambda key: _phase6_part_label(key),
+        frame_factory=original.ttk.Frame,
+        resolve_remembered=lambda parts, remembered: _dm7_resolve_navigation(
+            parts,
             NavigationRequest(None, NavigationIntent.RESTORE_CHILD_CONTEXT),
             NavigationMemory(remembered or None),
-        )
-        desired = str(projection.resolved_key or "")
-        self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child
-    if desired:
-        tab_map = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {})
-        target_tab = next(
-            (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),
-            None,
-        )
-        if target_tab is not None and str(notebook.select()) != str(target_tab):
-            self._phase6_box_body_piece_tab_guard = True
-            try:
-                notebook.select(target_tab)
-            finally:
-                self._phase6_box_body_piece_tab_guard = False
-
-    # #124: tabs are retained only as compatibility state. Never expose a
-    # second visible child navigator beside the Structure Tree.
-    if notebook.winfo_manager():
-        notebook.pack_forget()
-    return wanted
-
+        ),
+    )
 
 def _phase6_on_box_body_piece_tab_changed(self, _event=None):
-    if bool(getattr(self, "_phase6_box_body_piece_tab_guard", False)):
-        return
-    notebook = getattr(self, "box_body_piece_selector", None)
-    if notebook is None:
-        return
-    # #124 retired this Notebook from operator layout. It is compatibility
-    # projection state only; Tk auto-selects the first tab when topology is
-    # rebuilt and emits <<NotebookTabChanged>> asynchronously. A hidden widget
-    # must never turn that presentation event into an active-part mutation.
-    if not notebook.winfo_manager():
-        return
-    key = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {}).get(
-        str(notebook.select())
+    return _navigation_view_on_box_body_piece_tab_changed(
+        self,
+        activate_part=lambda key: _phase6_activate_operator_part(self, key),
+        resolve_operator_part=lambda key: _phase6_resolve_operator_part_key(self, key),
     )
-    if not key:
-        return
-    workspace = _designer_workspace(self)
-    if str(getattr(workspace, "active_part", "") or "") == key:
-        # Keep ephemeral navigation memory synchronized without re-activating an
-        # already-active manufacturing part.  Resolution remains the authority.
-        _phase6_resolve_operator_part_key(self, key)
-        return
-    _phase6_activate_operator_part(self, key)
-
 
 def _phase6_resolve_operator_part_key(self, key):
     """Resolve one explicit identity through the pure DM7 navigation owner."""
@@ -5044,64 +4732,28 @@ def _phase6_activate_operator_part(self, key):
 
 
 def _fix11_refresh_part_buttons(self):
-    self.part_buttons = {}
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    menu = getattr(self, "part_choice_menu", None)
-    if menu is not None:
-        menu.delete(0, original.tk.END)
-        menu.add_radiobutton(
-            label="組合體",
-            variable=self.part_var,
-            value="組合體",
-            command=lambda: _phase6_show_assembly(self),
-        )
-        for key in _phase6_operator_part_selector_keys(self.available_parts):
-            label = _phase6_part_label(key, snapshot=snapshot)
-            menu.add_radiobutton(
-                label=label,
-                variable=self.part_var,
-                value=label,
-                command=lambda k=key: _phase6_activate_operator_part(self, k),
-            )
-        menu.add_radiobutton(
-            label="截角資料",
-            variable=self.part_var,
-            value="截角資料",
-            command=lambda: _phase6_show_corner_data(self),
-        )
-    active = getattr(self, "active_part_key", None)
-    if hasattr(self, "part_var"):
-        display_mode = str(
-            getattr(self, "_phase6_3d_display_mode", "single") or "single"
-        )
-        if display_mode == "assembly":
-            self.part_var.set("組合體")
-        elif display_mode == "corner_data":
-            self.part_var.set("截角資料")
-        elif _phase6_is_box_body_physical_piece_key(active):
-            self.part_var.set(_phase6_part_label("box_body", snapshot=snapshot))
-        elif active in self.available_parts:
-            self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
-    self._refresh_part_button_states()
-    _phase6_refresh_box_body_piece_selector(self)
-    _phase6_refresh_back_panel_mode_control(self)
-    if getattr(self, "assembly_parts_panel", None) is not None:
-        _phase6_refresh_assembly_parts_panel(self)
-    _phase6_refresh_structure_tree(self)
-    _phase6_refresh_content_switch(self)
-    _phase6_refresh_status_bar(self)
-
+    return _navigation_view_refresh_part_selector(
+        self,
+        tk_end=original.tk.END,
+        operator_selector_keys=_phase6_operator_part_selector_keys,
+        label_for_key=lambda key, snapshot=None: _phase6_part_label(key, snapshot=snapshot),
+        is_box_piece=_phase6_is_box_body_physical_piece_key,
+        show_assembly=lambda: _phase6_show_assembly(self),
+        show_corner_data=lambda: _phase6_show_corner_data(self),
+        activate_part=lambda key: _phase6_activate_operator_part(self, key),
+        refresh_button_states=lambda: _fix11_refresh_part_button_states(self),
+        refresh_piece_selector=lambda: _phase6_refresh_box_body_piece_selector(self),
+        refresh_back_panel=lambda: _phase6_refresh_back_panel_mode_control(self),
+        refresh_assembly_panel=(lambda: _phase6_refresh_assembly_parts_panel(self)) if getattr(self, "assembly_parts_panel", None) is not None else None,
+        refresh_structure_tree=lambda: _phase6_refresh_structure_tree(self),
+        refresh_content_switch=lambda: _phase6_refresh_content_switch(self),
+        refresh_status_bar=lambda: _phase6_refresh_status_bar(self),
+    )
 
 def _fix11_refresh_part_button_states(self):
-    selected = getattr(self, "selected_part_key", None)
-    for button in self.part_buttons.values():
-        button.state(["!disabled"])
-    delete = getattr(self, "remove_part_button", None)
-    if delete is not None:
-        delete.configure(
-            state=("normal" if selected in self.available_parts and selected != "box_body" and not _phase6_is_derived_physical_part_key(selected) else "disabled")
-        )
-
+    return _navigation_view_refresh_part_button_states(
+        self, is_derived_part=_phase6_is_derived_physical_part_key
+    )
 
 def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
     """Project authoritative workspace identities into the 2D View."""
@@ -5303,73 +4955,28 @@ def _phase6_prepare_corner_data_canvas(self):
     )
 
 def _phase6_hide_corner_data_canvas(self):
-    """Restore Matplotlib according to pure View visibility policy."""
-    plan = _phase6_corner_data_view(self).canvas_visibility_plan(False)
-    info_label = getattr(self, "corner_data_info_label", None)
-    if info_label is not None and not plan["info_label"]:
-        try:
-            if info_label.winfo_manager():
-                info_label.pack_forget()
-        except Exception:
-            pass
-    canvas = getattr(self, "corner_data_canvas", None)
-    if canvas is not None and not plan["corner_canvas"]:
-        try:
-            if canvas.winfo_manager():
-                canvas.pack_forget()
-        except Exception:
-            pass
-    renderer = getattr(self, "renderer", None)
-    mpl_canvas = getattr(renderer, "canvas", None)
-    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
-    if not callable(get_widget):
-        return None
-    mpl_widget = get_widget()
-    if plan["mpl_canvas"] and not mpl_widget.winfo_manager():
-        mpl_widget.pack(fill=original.tk.BOTH, expand=True)
-    return mpl_widget
+    """Delegate corner-data/Matplotlib visibility projection to the view owner."""
+    return _navigation_view_hide_corner_data_canvas(
+        self,
+        visibility_plan=_phase6_corner_data_view(self).canvas_visibility_plan(False),
+        tk_both=original.tk.BOTH,
+    )
 
 def _phase6_show_corner_data(self):
-    """Switch Fold Designer to the view-only corner-data navigation mode.
-
-    This mode is navigation only: it must not flush/publish settings, add a
-    manufacturing part, or alter workspace selection/state. T2 will populate
-    the authoritative part projection inside the mode panel.
-    """
-    _phase6_clear_navigation_residue(self)
-    self._phase6_3d_display_mode = "corner_data"
-    if hasattr(self, "part_var"):
-        self.part_var.set("截角資料")
-
-    piece_selector = getattr(self, "box_body_piece_selector", None)
-    if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
-        try:
-            piece_selector.pack_forget()
-        except Exception:
-            pass
-
-    panel = getattr(self, "corner_data_panel", None)
-    if panel is None:
-        shared_host = getattr(self, "left", None)
-        if shared_host is None:
-            return None
-        panel = original.ttk.Frame(shared_host, padding=6)
-        self.corner_data_panel = panel
-    _phase6_mount_shared_content(self, "corner_data")
-
-    corner_canvas = _phase6_prepare_corner_data_canvas(self)
-    _phase6_refresh_corner_data_parts_panel(self)
-    if corner_canvas is not None:
-        _phase6_refresh_corner_data_unfold_view(self)
-
-    refresh = getattr(self, "_refresh_part_button_states", None)
-    if callable(refresh):
-        refresh()
-    _phase6_refresh_content_switch(self)
-
+    """Switch to view-only Corner Data through the navigation view owner."""
+    return _navigation_view_show_corner_data_mode(
+        self,
+        frame_factory=lambda parent: original.ttk.Frame(parent, padding=6),
+        mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode),
+        prepare_canvas=lambda: _phase6_prepare_corner_data_canvas(self),
+        refresh_parts_panel=lambda: _phase6_refresh_corner_data_parts_panel(self),
+        refresh_unfold=lambda: _phase6_refresh_corner_data_unfold_view(self),
+        refresh_part_button_states=getattr(self, "_refresh_part_button_states", None),
+        refresh_content_switch=lambda: _phase6_refresh_content_switch(self),
+    )
 
 def _phase6_show_assembly(self, initial=False):
-    """Show the structural cabinet assembly while retaining a real active part as geometry backing."""
+    """Show assembly while Bridge retains save/update/manufacturing authority only."""
     _phase6_clear_navigation_residue(self)
     _phase6_hide_corner_data_canvas(self)
     if not initial and getattr(self, "_phase6_pending_settings", None):
@@ -5387,34 +4994,13 @@ def _phase6_show_assembly(self, initial=False):
             pass
     _phase6_workspace_navigation(self).clear_selection()
     self._phase6_3d_display_mode = "assembly"
-    if hasattr(self, "part_var"):
-        self.part_var.set("組合體")
-    piece_selector = getattr(self, "box_body_piece_selector", None)
-    if piece_selector is not None and piece_selector.winfo_manager():
-        piece_selector.pack_forget()
-    _phase6_mount_shared_content(self, "assembly")
-    center = getattr(self, "settings_center", None)
-    if center is not None and center.winfo_manager():
-        center.pack_forget()
-    diagnostics = getattr(self, "assembly_diagnostics_frame", None)
-    if diagnostics is not None:
-        if bool(getattr(self, "_phase6_parameters_unlocked", False)):
-            if not diagnostics.winfo_manager():
-                _phase6_pack_right_panel_above_canvas(self, diagnostics)
-        elif diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    delete = getattr(self, "remove_part_button", None)
-    if delete is not None:
-        delete.configure(state="disabled")
-    canvas_widget = self.renderer.canvas.get_tk_widget()
-    if not canvas_widget.winfo_manager():
-        canvas_widget.pack(fill=original.tk.BOTH, expand=True)
-    _phase6_clear_drawing_edge_controls(self)
-    self.endcap_joint_vars = {}
-    self.endcap_joint_widgets = {}
-    self.endcap_joint_allowed = {}
-    self.base_plate_edge_shrink_vars = {}
-    self.base_plate_edge_shrink_widgets = {}
+    _navigation_view_project_assembly_mode(
+        self,
+        mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode),
+        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
+        clear_drawing_edge_controls=lambda: _phase6_clear_drawing_edge_controls(self),
+        tk_both=original.tk.BOTH,
+    )
     if not initial:
         try:
             after_signature = _phase6_manufacturing_state_signature(self)
@@ -5428,7 +5014,6 @@ def _phase6_show_assembly(self, initial=False):
             self.do_update()
     _phase6_refresh_content_switch(self)
     return True
-
 
 def _fix11_select_part(self, key):
     key = str(key or "")
@@ -5457,14 +5042,13 @@ def _fix11_remove_selected_part(self):
 
 
 def _fix11_refresh_add_part_menu(self):
-    self.add_part_menu.delete(0, original.tk.END)
-    missing = [key for key in KNOWN_PARTS if key not in self.available_parts]
-    if not missing:
-        self.add_part_menu.add_command(label="沒有可新增板件", state="disabled")
-        return
-    for key in missing:
-        self.add_part_menu.add_command(label=_phase6_part_label(key), command=lambda k=key: self.add_part(k))
-
+    return _navigation_view_refresh_add_part_menu(
+        self,
+        tk_end=original.tk.END,
+        known_parts=KNOWN_PARTS,
+        label_for_key=lambda key: _phase6_part_label(key),
+        add_part=lambda key: self.add_part(key),
+    )
 
 def _phase6_refresh_linked_part_profiles(self, changed_keys):
     """Refresh non-active parts from one shared cabinet state.
@@ -5838,16 +5422,13 @@ def _fix11_activate_part(self, key, initial=False):
 
     navigation.begin_activation(plan)
     try:
-        if hasattr(self, "part_var"):
-            self.part_var.set(
-                _phase6_part_label("box_body")
-                if _phase6_is_box_body_physical_piece_key(key)
-                else _phase6_part_label(key)
-            )
-        if hasattr(self, "part_buttons"):
-            self._refresh_part_button_states()
-        if hasattr(self, "remove_part_button"):
-            self.remove_part_button.configure(state=("disabled" if key == "box_body" or _phase6_is_derived_physical_part_key(key) else "normal"))
+        _navigation_view_project_active_part_selector(
+            self,
+            key=key,
+            label=_phase6_part_label("box_body") if _phase6_is_box_body_physical_piece_key(key) else _phase6_part_label(key),
+            removable=key != "box_body" and not _phase6_is_derived_physical_part_key(key),
+            refresh_part_button_states=getattr(self, "_refresh_part_button_states", None),
+        )
 
         if key == "box_body":
             # Prepare the custom X-only editor BEFORE changing v_mode.  v_mode
@@ -5924,54 +5505,14 @@ def _fix11_activate_part(self, key, initial=False):
     finally:
         navigation.finish_activation()
 
-    # Finish the variable-height settings page before making the canvas visible;
-    # otherwise Tk/Matplotlib renders once at the tall pre-settings size and once
-    # again after the settings panel changes the viewport height.
-    if hasattr(self, "settings_center"):
-        settings_context = "box_body" if _phase6_is_box_body_physical_piece_key(key) else key
-        _phase6_render_settings_context(self, settings_context)
-        if bool(getattr(self, "_phase6_parameters_unlocked", False)):
-            if not self.settings_center.winfo_manager():
-                _phase6_pack_right_panel_above_canvas(self, self.settings_center)
-        elif self.settings_center.winfo_manager():
-            self.settings_center.pack_forget()
-    # Settings/editor changes can leave a Matplotlib draw_idle queued even while
-    # the preview widget is hidden. Cancel that stale paint before asking Tk to
-    # settle non-canvas layout; otherwise it becomes an unnecessary first draw.
-    canvas = self.renderer.canvas
-    pending_draw = getattr(canvas, "_idle_draw_id", None)
-    if pending_draw is not None:
-        try:
-            self.root.after_cancel(pending_draw)
-        except Exception:
-            pass
-        try:
-            canvas._idle_draw_id = None
-        except Exception:
-            pass
-    try:
-        self.root.update_idletasks()
-    except Exception:
-        pass
-    if not canvas_widget.winfo_manager():
-        canvas_widget.pack(fill=original.tk.BOTH, expand=True)
-    _phase6_render_active_drawing_edge_controls(self)
-
-    # Let Tk/Matplotlib establish the final pixel viewport before rendering the
-    # model, but suppress the resize handler's paint.  FigureCanvasTkAgg.resize()
-    # updates the Figure size first and only then calls draw_idle(); skipping that
-    # one blank/stale paint means the authoritative model is painted exactly once
-    # at the final viewport size.
-    resize_draw_idle = getattr(canvas, "draw_idle", None)
-    if callable(resize_draw_idle):
-        canvas.draw_idle = lambda *args, **kwargs: None
-    try:
-        self.root.update_idletasks()
-    except Exception:
-        pass
-    finally:
-        if callable(resize_draw_idle):
-            canvas.draw_idle = resize_draw_idle
+    _navigation_view_finalize_single_part_layout(
+        self,
+        settings_context="box_body" if _phase6_is_box_body_physical_piece_key(key) else key,
+        render_settings_context=lambda context: _phase6_render_settings_context(self, context),
+        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
+        render_active_drawing_edge_controls=lambda: _phase6_render_active_drawing_edge_controls(self),
+        tk_both=original.tk.BOTH,
+    )
 
     try:
         after_signature = _phase6_manufacturing_state_signature(self)

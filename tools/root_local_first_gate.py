@@ -242,6 +242,24 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("direct root mutation/test contiguous sequence mismatch")
     if direct_gate.get("same_invocation_until") != "ROOT_TESTS_GREEN_OR_REAL_BLOCKER":
         raise ValueError("direct root mutation/test same-invocation policy mismatch")
+    if direct_gate.get("task_scope_sticky_until") != "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE":
+        raise ValueError("current task scope must remain sticky until root green, real blocker, or explicit user task change")
+    if direct_gate.get("control_plane_anomaly_action") != "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK":
+        raise ValueError("control-plane anomaly must not become a new primary task")
+    forbidden_scope_switch = set(direct_gate.get("forbidden_scope_switch_triggers") or ())
+    required_scope_switch_forbidden = {
+        "STALE_EXECUTION_RECORD", "EXPIRED_LEASE", "RESERVATION_MISMATCH",
+        "GOVERNANCE_DRIFT", "TEST_RED", "STATUS_QUERY", "PROGRESS_QUERY",
+    }
+    if not required_scope_switch_forbidden.issubset(forbidden_scope_switch):
+        raise ValueError("task-scope stickiness forbidden trigger set is incomplete")
+    allowed_scope_switch = set(direct_gate.get("scope_switch_allowed_only_on") or ())
+    required_scope_switch_allowed = {
+        "USER_EXPLICIT_TASK_CHANGE", "PATH_CONFLICT", "SAME_ISSUE_OTHER_WRITER",
+        "SUBSTANTIVE_TARGET_OVERLAP", "MACHINE_FAIL_CLOSED", "USER_INPUT_REQUIRED",
+    }
+    if allowed_scope_switch != required_scope_switch_allowed:
+        raise ValueError("task scope may change only on explicit user change or a real escalation blocker")
     if direct_gate.get("root_capability_available_policy") != "NO_HANDOFF_ONLY_STOP":
         raise ValueError("direct root mutation/test root-capability policy mismatch")
     if direct_gate.get("status_or_progress_query_is_stop_reason") is not False:
