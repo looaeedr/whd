@@ -1,38 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-reserve-current-fbd864ed",
+  "request_id": "issue1077-reconcile-target-c4d4bab",
   "issue": 1077,
-  "kind": "RESERVE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-  "expected_coord_head": "1a07f8744d5bb7ba066e989bd44191a6275245af",
-  "expected_generation": 5,
+  "expected_coord_head": "6ef1768f09293cca6b25d18bba7c3c7eb678a60e",
+  "expected_generation": 6,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "fbd864ed804d5361730e99a4e9bef4a5de1baa31",
-    "write_paths": [
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
-      "tests/process/test_issue1045_post_integration_durability.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/execution_invocation_exit.py",
-      "tools/post_integration_durability.py",
-      "tools/root_local_first_gate.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED"
+    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
+    "observed_head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
+    "observed_target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "work_branch": "governance/issue1077-root-local-durability-hardening"
+      },
+      "display": "Apply preserved exact tested diff after non-overlapping target drift"
+    }
   },
-  "purpose": "Refresh Issue #1077 exact path reservation onto current production fbd864ed after non-overlapping drift",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "purpose": "Reconcile non-overlapping production drift without invalidating frozen root evidence"
 }
