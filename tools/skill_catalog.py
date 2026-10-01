@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from tools.skill_runtime_hygiene import assert_clean_skill_paths, read_context_text
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = ROOT / ".agents/skills"
@@ -20,7 +22,7 @@ class SkillRecord:
 
 
 def load_catalog(path: Path = CATALOG_PATH) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(read_context_text(path))
 
 
 def classify_path(path: Path | str, catalog: dict | None = None) -> str | None:
@@ -35,6 +37,7 @@ def classify_path(path: Path | str, catalog: dict | None = None) -> str | None:
 
 
 def discover_skill_files(root: Path = SKILLS_ROOT) -> list[Path]:
+    assert_clean_skill_paths(root)
     return sorted(root.rglob("SKILL.md"))
 
 

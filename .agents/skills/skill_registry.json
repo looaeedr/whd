@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
+  "description": "Machine-readable Skill Preflight registry. Routes may target active canonical Skills only; in-progress/deprecated and binary package artifacts are excluded from invocation context.",
   "routes": [
     {
       "id": "flow-v2-execution",

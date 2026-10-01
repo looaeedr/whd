@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "inventory_source": ".agents/skills/**/SKILL.md",
-  "authority": "Filesystem presence proves inventory only; skill_catalog.json classification decides active invocation/routing status. Semantic CURRENT authority is determined separately by WHD_DOC_META_V1 whd_doc_role and the Canonical Authority Map.",
+  "authority": "Filesystem presence proves inventory only; skill_catalog.json classification decides active invocation/routing status. Only canonical is active. in-progress/deprecated remain non-active inventory and must never be Registry targets; binary package artifacts are not context inputs.",
   "classifications": [
     "canonical",
     "reference",

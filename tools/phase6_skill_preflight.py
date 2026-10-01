@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
+from tools.skill_runtime_hygiene import read_context_text, validate_registry_targets
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / ".agents" / "skills" / "skill_registry.json"
@@ -48,7 +50,8 @@ def _keyword_matches_task(keyword: str, task_text: str) -> bool:
 
 
 def load_skill_registry(path: Path = REGISTRY) -> Mapping[str, object]:
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(read_context_text(path))
+    validate_registry_targets(repo_root=ROOT, registry=data)
     if data.get("schema_version") != 1:
         raise ValueError("unsupported skill_registry schema_version")
     routes = data.get("routes")
@@ -123,7 +126,7 @@ def completed_skills_from_evidence(paths: Iterable[str]) -> set[str]:
         path = Path(raw)
         if not path.is_file():
             continue
-        text = path.read_text(encoding="utf-8")
+        text = read_context_text(path)
         for skill_name in skill_names:
             if skill_name in text:
                 completed.add(skill_name)
@@ -139,7 +142,7 @@ def completed_references_from_evidence(
         path = Path(raw)
         if not path.is_file():
             continue
-        text = path.read_text(encoding="utf-8")
+        text = read_context_text(path)
         for reference in required:
             marker = f"READ_REFERENCE: {reference}"
             if marker in text and (ROOT / reference).is_file():
