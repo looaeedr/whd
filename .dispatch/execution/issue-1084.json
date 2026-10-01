@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
-  "head_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "generation": 3,
+  "head_sha": "567d697a461322f9875886108fea786458a1eb70",
   "issue": 1084,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -23,9 +23,11 @@
   },
   "mutation_scope": null,
   "next_action": {
-    "args": {},
-    "display": "Reconcile already-merged PR #1085 and terminalize #1084",
-    "kind": "RECONCILE"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "Consume exact-head Product Regression GREEN for #1084",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -42,21 +44,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "POST_PUSH_QA_READY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "49a6c39da9b08d7cee64bc40a03407c554142afeffc5004b6cb716972f974f0a",
-    "id": "gha:36936268424:1084:ACQUIRE:1",
+    "expected_fingerprint": "7bdcbd62bb8150281587be9f6619b87236bb4af9cc335d6cf2d983bf3f42442f",
+    "id": "gha:36936383920:1084:RECONCILE:2",
     "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T22:36:00Z",
+  "updated_at": "2026-10-01T22:40:05Z",
   "version": 2,
   "work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001"
 }
