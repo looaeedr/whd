@@ -1,14 +1,18 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-merge-readback-finalize",
-  "issue": 1077,
-  "kind": "MERGE",
+  "request_id": "issue1062-handoff-work0-bridge-residual",
+  "issue": 1062,
+  "kind": "HANDOFF",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0835Z",
-  "expected_coord_head": "b20104d6d1f68fac542feabd8105e7c88c92333b",
-  "expected_generation": 12,
-  "effect": {},
-  "purpose": "Read back already-merged PR #1083 and drain terminal finalize",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T0850Z",
+  "expected_coord_head": "82478f08ae5349a139b1d62f555a33436441a674",
+  "expected_generation": 2,
+  "effect": {
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0"
+  },
+  "purpose": "Take over stale Issue #1062 in work0 to repair Bridge residual anti-regrowth and stale #624 ownership expectations from exact Drive root.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
