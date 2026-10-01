@@ -93,6 +93,8 @@ from phase6_navigation_view_adapter import (
     hide_corner_data_canvas as _navigation_view_hide_corner_data_canvas,
     show_corner_data_mode as _navigation_view_show_corner_data_mode,
     project_assembly_mode as _navigation_view_project_assembly_mode,
+    project_active_part_selector as _navigation_view_project_active_part_selector,
+    finalize_single_part_layout as _navigation_view_finalize_single_part_layout,
 )
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -5546,16 +5548,13 @@ def _fix11_activate_part(self, key, initial=False):
 
     navigation.begin_activation(plan)
     try:
-        if hasattr(self, "part_var"):
-            self.part_var.set(
-                _phase6_part_label("box_body")
-                if _phase6_is_box_body_physical_piece_key(key)
-                else _phase6_part_label(key)
-            )
-        if hasattr(self, "part_buttons"):
-            self._refresh_part_button_states()
-        if hasattr(self, "remove_part_button"):
-            self.remove_part_button.configure(state=("disabled" if key == "box_body" or _phase6_is_derived_physical_part_key(key) else "normal"))
+        _navigation_view_project_active_part_selector(
+            self,
+            key=key,
+            label=_phase6_part_label("box_body") if _phase6_is_box_body_physical_piece_key(key) else _phase6_part_label(key),
+            removable=key != "box_body" and not _phase6_is_derived_physical_part_key(key),
+            refresh_part_button_states=getattr(self, "_refresh_part_button_states", None),
+        )
 
         if key == "box_body":
             # Prepare the custom X-only editor BEFORE changing v_mode.  v_mode
@@ -5632,54 +5631,14 @@ def _fix11_activate_part(self, key, initial=False):
     finally:
         navigation.finish_activation()
 
-    # Finish the variable-height settings page before making the canvas visible;
-    # otherwise Tk/Matplotlib renders once at the tall pre-settings size and once
-    # again after the settings panel changes the viewport height.
-    if hasattr(self, "settings_center"):
-        settings_context = "box_body" if _phase6_is_box_body_physical_piece_key(key) else key
-        _phase6_render_settings_context(self, settings_context)
-        if bool(getattr(self, "_phase6_parameters_unlocked", False)):
-            if not self.settings_center.winfo_manager():
-                _phase6_pack_right_panel_above_canvas(self, self.settings_center)
-        elif self.settings_center.winfo_manager():
-            self.settings_center.pack_forget()
-    # Settings/editor changes can leave a Matplotlib draw_idle queued even while
-    # the preview widget is hidden. Cancel that stale paint before asking Tk to
-    # settle non-canvas layout; otherwise it becomes an unnecessary first draw.
-    canvas = self.renderer.canvas
-    pending_draw = getattr(canvas, "_idle_draw_id", None)
-    if pending_draw is not None:
-        try:
-            self.root.after_cancel(pending_draw)
-        except Exception:
-            pass
-        try:
-            canvas._idle_draw_id = None
-        except Exception:
-            pass
-    try:
-        self.root.update_idletasks()
-    except Exception:
-        pass
-    if not canvas_widget.winfo_manager():
-        canvas_widget.pack(fill=original.tk.BOTH, expand=True)
-    _phase6_render_active_drawing_edge_controls(self)
-
-    # Let Tk/Matplotlib establish the final pixel viewport before rendering the
-    # model, but suppress the resize handler's paint.  FigureCanvasTkAgg.resize()
-    # updates the Figure size first and only then calls draw_idle(); skipping that
-    # one blank/stale paint means the authoritative model is painted exactly once
-    # at the final viewport size.
-    resize_draw_idle = getattr(canvas, "draw_idle", None)
-    if callable(resize_draw_idle):
-        canvas.draw_idle = lambda *args, **kwargs: None
-    try:
-        self.root.update_idletasks()
-    except Exception:
-        pass
-    finally:
-        if callable(resize_draw_idle):
-            canvas.draw_idle = resize_draw_idle
+    _navigation_view_finalize_single_part_layout(
+        self,
+        settings_context="box_body" if _phase6_is_box_body_physical_piece_key(key) else key,
+        render_settings_context=lambda context: _phase6_render_settings_context(self, context),
+        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
+        render_active_drawing_edge_controls=lambda: _phase6_render_active_drawing_edge_controls(self),
+        tk_both=original.tk.BOTH,
+    )
 
     try:
         after_signature = _phase6_manufacturing_state_signature(self)
