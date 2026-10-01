@@ -82,6 +82,117 @@ class Phase6CornerDataViewAdapter:
         owner.corner_data_back_panel_mode_selector = selector
         return True
 
+    def prepare_canvas(
+        self,
+        owner,
+        *,
+        canvas_bg,
+        on_configure,
+        on_mousewheel,
+        visibility_plan=None,
+    ):
+        """Own Corner Data Tk canvas/info-label lifecycle and visibility effects."""
+        renderer = getattr(owner, "renderer", None)
+        mpl_canvas = getattr(renderer, "canvas", None)
+        get_widget = getattr(mpl_canvas, "get_tk_widget", None)
+        if not callable(get_widget):
+            return None
+        mpl_widget = get_widget()
+
+        canvas = getattr(owner, "corner_data_canvas", None)
+        try:
+            canvas_alive = canvas is not None and bool(canvas.winfo_exists())
+        except Exception:
+            canvas_alive = canvas is not None
+
+        info_var = getattr(owner, "corner_data_info_var", None)
+        if info_var is None:
+            info_var = tk.StringVar(master=mpl_widget.master, value="")
+            owner.corner_data_info_var = info_var
+
+        info_label = getattr(owner, "corner_data_info_label", None)
+        try:
+            info_alive = info_label is not None and bool(info_label.winfo_exists())
+        except Exception:
+            info_alive = info_label is not None
+        if not info_alive:
+            info_label = ttk.Label(
+                mpl_widget.master,
+                textvariable=info_var,
+                justify=tk.LEFT,
+                anchor=tk.W,
+                wraplength=1100,
+                font=("Microsoft JhengHei", 11, "bold"),
+            )
+            owner.corner_data_info_label = info_label
+
+        if not canvas_alive:
+            canvas = tk.Canvas(
+                mpl_widget.master,
+                bg=str(canvas_bg),
+                highlightthickness=0,
+                takefocus=False,
+            )
+            owner.corner_data_canvas = canvas
+            canvas._phase6_unfold_zoom = 1.0
+            canvas.bind("<Configure>", on_configure)
+            canvas.bind("<MouseWheel>", on_mousewheel)
+            canvas.bind("<Button-4>", on_mousewheel)
+            canvas.bind("<Button-5>", on_mousewheel)
+
+        plan = dict(visibility_plan or self.canvas_visibility_plan(True))
+        if not plan["mpl_canvas"] and mpl_widget.winfo_manager():
+            mpl_widget.pack_forget()
+        if plan["info_label"] and not info_label.winfo_manager():
+            info_label.pack(fill=tk.X, padx=8, pady=(6, 2))
+        if plan["corner_canvas"] and not canvas.winfo_manager():
+            canvas.pack(fill=tk.BOTH, expand=True)
+        return canvas
+
+    def refresh_parts_panel(
+        self,
+        owner,
+        *,
+        keys,
+        selected,
+        navigation_rows,
+        label_for,
+        on_select,
+        on_refresh_back_panel_mode,
+    ) -> tuple[str, ...]:
+        """Own Corner Data parts-list widget rebuild while preserving selection authority."""
+        keys = tuple(str(key) for key in tuple(keys or ()))
+        owner.corner_data_part_keys = keys
+        if selected is not None:
+            on_select(selected)
+
+        panel = getattr(owner, "corner_data_panel", None)
+        if panel is None or not hasattr(panel, "winfo_children"):
+            return keys
+
+        for child in tuple(panel.winfo_children()):
+            child.destroy()
+        owner.corner_data_back_panel_mode_control = None
+        owner.corner_data_back_panel_mode_selector = None
+        owner.corner_data_part_rows = {}
+        owner.corner_data_part_buttons = {}
+        owner.corner_data_part_depths = {}
+
+        for key, depth in tuple(navigation_rows or ()):
+            row = ttk.Frame(panel)
+            row.pack(fill=tk.X, pady=(0, 4), padx=(18, 0) if depth else 0)
+            button = ttk.Button(
+                row,
+                text=label_for(key),
+                command=lambda k=key: on_select(k),
+            )
+            button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            owner.corner_data_part_rows[key] = row
+            owner.corner_data_part_buttons[key] = button
+            owner.corner_data_part_depths[key] = depth
+        on_refresh_back_panel_mode()
+        return keys
+
     @staticmethod
     def part_keys(workspace) -> tuple[str, ...]:
         return tuple(
