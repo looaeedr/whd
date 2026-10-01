@@ -1,34 +1,55 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1123-arm-start-branch-20261001T1642Z",
+  "request_id": "issue1123-start-branch-20261001T1645Z",
   "issue": 1123,
-  "kind": "RECONCILE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1123.20261001T1609Z",
-  "expected_coord_head": "93a93dedac3df82e52c5d4d7edf4e17fe0788362",
-  "expected_generation": 5,
+  "expected_coord_head": "7f7d9fe4edff23bda3071f605ac27ce4a265e141",
+  "expected_generation": 6,
   "effect": {
-    "observed_work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001",
-    "observed_head_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-    "observed_target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-    "semantic_state": "ROOT_DIFF_FROZEN_GIT_WRITE_UNLOCKED_PARTIAL_BRIDGE_WAIT",
+    "work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001",
+    "head_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+    "semantic_state": "GIT_BRANCH_STARTED_EXACT_TESTED_PARTIAL_BRIDGE_WAIT",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact-tested #1123 work branch"
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "candidate_commit_sha": "8e35610dbb9d7176db9a9048b9952dd1069876a2"
+      },
+      "display": "Apply exact tested #1123 candidate commit"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+      "diff_digest": "e8bf1ecdd95dcbc301e748524c54d8f41e1aa73c8aab712411b93552fc030f06",
+      "issue": 1123,
+      "generation": 5,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "gui_modules/application/manufacturing_adapter.py",
+        "phase6_assembly_relief_state.py",
+        "tests/test_issue1123_assembly_relief_state_owner.py",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "257c9f1b015d04d90b3209e06b4c90fd52f162e280f22926bcd6e9f39c22c175",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1123,
+      "generation": 6,
+      "record_fingerprint": "7c1d2ec3b1fce45f05f93490f4de2cb8b3b44eaf2fa0044d93feeba573ef58bb",
+      "lease_token": "lease:1123:36893109805:1",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1123.20261001T1609Z",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001",
+      "expected_work_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+      "expected_target_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9"
     }
   },
-  "purpose": "Arm #1123 START_BRANCH after exact-current root tests, frozen five-path diff, and GIT_WRITE_UNLOCKED receipt; no product content changes.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
