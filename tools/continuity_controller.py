@@ -367,6 +367,83 @@ def _scheduler_lane_from_claim_state(claim_state: object | None) -> str | None:
     return None
 
 
+TURN_EXIT_EXECUTABLE_CENSUS_MAX_AGE_SECONDS = 300
+TURN_EXIT_EXECUTABLE_CENSUS_FUTURE_SKEW_SECONDS = 30
+
+
+def assert_no_executable_leaf_for_turn_exit(
+    *,
+    exhaustive: bool,
+    executable_leaf_count: int,
+    continuation_action: object | None,
+    observed_at: str,
+    now: datetime | None = None,
+) -> bool:
+    """Fail closed while any executable leaf remains at assistant turn exit.
+
+    This is the shared interactive primitive. Scheduler READY_WORK_CENSUS_V1 keeps
+    its stricter lane-bound proof contract; both enforce the same invariant that
+    an executable continuation is not a legal stopping point.
+    """
+    if exhaustive is not True:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_CENSUS_NOT_EXHAUSTIVE"
+        )
+    if (
+        isinstance(executable_leaf_count, bool)
+        or not isinstance(executable_leaf_count, int)
+        or executable_leaf_count < 0
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: executable_leaf_count must be a nonnegative integer"
+        )
+
+    observed_text = str(observed_at or "").strip()
+    if not observed_text:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_CENSUS_STALE observed_at is missing"
+        )
+    try:
+        observed = datetime.fromisoformat(observed_text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_CENSUS_STALE observed_at must be ISO-8601"
+        ) from exc
+    if observed.tzinfo is None or observed.utcoffset() is None:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_CENSUS_STALE observed_at must be timezone-aware"
+        )
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None or current.utcoffset() is None:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: executable-leaf census comparison time must be timezone-aware"
+        )
+    age_seconds = (current.astimezone(timezone.utc) - observed.astimezone(timezone.utc)).total_seconds()
+    if (
+        age_seconds > TURN_EXIT_EXECUTABLE_CENSUS_MAX_AGE_SECONDS
+        or age_seconds < -TURN_EXIT_EXECUTABLE_CENSUS_FUTURE_SKEW_SECONDS
+    ):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_CENSUS_STALE "
+            f"age_seconds={age_seconds:.1f}"
+        )
+
+    action = str(continuation_action or "").strip()
+    if executable_leaf_count > 0:
+        if not action:
+            raise TurnExitBlocked(
+                "TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_EXISTS without exact continuation action"
+            )
+        raise TurnExitBlocked(
+            f"TURN_EXIT_BLOCKED: EXECUTABLE_LEAF_EXISTS next_action={action!r}"
+        )
+    if action:
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: zero executable leaves cannot carry continuation_action"
+        )
+    return True
+
+
 def ready_work_census_fingerprint(proof: Mapping[str, object]) -> str:
     if not isinstance(proof, Mapping):
         raise TurnExitBlocked(
