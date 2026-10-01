@@ -1,42 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-resume-expired-lease-for-stale-release-20261001T103339Z",
+  "request_id": "issue1062-release-stale-scope-20261001T1034Z",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T103339Z",
-  "expected_coord_head": "553bba94c7e4e2a991be57d76dcf774c94ef3b4c",
-  "expected_generation": 8,
+  "expected_coord_head": "d884ea6e9c4fb1c34b6c06b4944b62613bf44eab",
+  "expected_generation": 9,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "slot_id": "worker.slot.3",
-    "lease": {
-      "token": "lease:1062:stale-release:20261001T103339Z",
-      "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T103339Z",
-      "expires_at": "2026-10-01T11:03:39Z"
-    },
-    "observed_at": "2026-10-01T10:33:39Z",
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1062 work branch after Drive root freeze"
-    },
-    "updated_at": "2026-10-01T10:33:39Z"
+    "reason": "Stale reservation cleanup: lease had expired with no work branch, no active run, and no post-reservation product progress; release full mutation scope so future work must reacquire fresh.",
+    "semantic_state": "PATH_RESERVATION_RELEASED",
+    "updated_at": "2026-10-01T10:34:10Z"
   },
-  "purpose": "Resume expired Issue #1062 lease with the same owner/lane/slot solely to release its stale mutation scope; no repository-content mutation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
