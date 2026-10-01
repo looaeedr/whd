@@ -1,26 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1123-arm-final-apply",
+  "request_id": "issue1123-finalize-reacquire",
   "issue": 1123,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1123.bridge-final",
-  "expected_coord_head": "7d6d631ab422c357287785d902ec4166ab185383",
-  "expected_generation": 10,
-  "effect": {
-    "observed_work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001",
-    "observed_head_sha": "8e35610dbb9d7176db9a9048b9952dd1069876a2",
-    "observed_target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-    "semantic_state": "ROOT_TESTS_GREEN_DIFF_FROZEN_FINAL",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "candidate_commit_sha": "6672e2901461a86c3a21748274f28925a94d2228"
-      },
-      "display": "Apply final exact-tested #1123 Bridge commit"
-    }
-  },
-  "purpose": "Arm the final #1123 exact-tested commit after the Bridge reservation expansion and root regression pass.",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1123.finalize-20261002",
+  "expected_coord_head": "8cf1ab9f89b4c01bb3b7909fd349acf46c368b47",
+  "expected_generation": 11,
+  "effect": {},
+  "purpose": "Renew the same work0 lease for #1123 terminal-tail reconciliation after PR #1127 was already merged; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
