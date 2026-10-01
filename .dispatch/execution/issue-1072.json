@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 18,
+  "generation": 19,
   "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
   "issue": 1072,
   "lane_id": "chatgpt.flowv2.work2",
@@ -36,15 +36,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-      "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
-      "pr_number": 1076,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge exact accepted PR #1076",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -61,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
+  "target_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
   "transaction": {
-    "expected_fingerprint": "c4dabc6e0e54fc4cc7dd3bb654042e3a160de91717c857c7be3a5fdfbd6659c6",
-    "id": "gha:36814336118:1072:ACCEPT_QA:17",
+    "expected_fingerprint": "4b180b8b527d536f72a1ff65866ba69ac19d8be3672a4501c1e663bf2ec36073",
+    "id": "gha:36814449794:1072:MERGE:18",
     "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0404Z",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T04:16:50Z",
+  "updated_at": "2026-10-01T04:18:19Z",
   "version": 2,
   "work_branch": "governance/issue1072-decouple-root-evidence-generation"
 }
