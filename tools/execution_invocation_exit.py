@@ -145,6 +145,39 @@ def terminal_tail_active(record: ExecutionRecord) -> bool:
         and record.qa.accepted_head_sha == record.head_sha
     )
 
+TERMINAL_TAIL_FOREIGN_READ_ONLY_ACTIONS = frozenset({
+    "READ_ONLY_DISCOVERY",
+    "READ_ONLY_STATUS",
+})
+
+
+def assert_terminal_tail_owning_issue_sticky(
+    record: ExecutionRecord,
+    *,
+    requested_issue: int,
+    requested_action_kind: str,
+) -> bool:
+    """Forbid unrelated Issue work from preempting an active terminal tail.
+
+    Read-only discovery/status is allowed so stale coordination debt can be
+    observed and handed off later. Any foreign Flow/control mutation must wait
+    until the current owning Issue leaves terminal tail.
+    """
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    if isinstance(requested_issue, bool) or not isinstance(requested_issue, int) or requested_issue <= 0:
+        raise InvocationExitError("requested_issue must be a positive issue number")
+    action = _text(requested_action_kind, "requested_action_kind")
+    if not terminal_tail_active(record) or requested_issue == record.issue:
+        return True
+    if action in TERMINAL_TAIL_FOREIGN_READ_ONLY_ACTIONS:
+        return True
+    raise InvocationExitError(
+        "TERMINAL_TAIL_NO_PIVOT "
+        f"current_issue={record.issue} foreign_issue={requested_issue} "
+        f"requested_action={action}"
+    )
+
 def classify_invocation_exit(
     record: ExecutionRecord,
     *,

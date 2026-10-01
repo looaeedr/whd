@@ -403,6 +403,19 @@ START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA �
 - FINALIZE request 必須鎖 exact run 到 terminal，success 後 fresh-read record；只有 `DONE` 才可正常 return。
 - genuine BLOCKED、active remote wait 或外部平台硬中斷仍依既有 fail-closed/recovery contract；聊天室 progress/status 不是停止理由。
 
+### TERMINAL_TAIL_OWNING_ISSUE_STICKINESS_HARD_GATE_V1
+
+Terminal tail 一旦成立，**current owning Issue 必須 focus-lock 到 terminal**；不得因 read-only discovery 看見別張 Issue 的 stale claim、expired lease、ACTIVE reservation、舊 blocker 或其他 coordination debt，就把本 invocation 切去修 foreign Issue。這條規則同樣適用於 current exact PR 已 required-CI GREEN + fresh mergeable/clean，而 ExecutionRecord 只差 current-Issue reconcile / MERGE / FINALIZE 的短暫落差。
+
+固定規則：
+1. foreign Issue 的 stale/nonterminal evidence只可標記 `UNRELATED_COORDINATION_DEBT_DEFERRED`、做 `READ_ONLY_DISCOVERY / READ_ONLY_STATUS` 或建立後續 handoff；**不得在 current Issue terminal 前執行 foreign `ACQUIRE / RESERVE_PATHS / RELEASE_PATHS / RECONCILE / HANDOFF / YIELD / BLOCK / START_BRANCH / APPLY_COMMIT / START_QA / ACCEPT_QA / CONSUME_QA / FAIL_QA / MERGE / SYNC_TARGET / FINALIZE`**。
+2. `reservation_state=ACTIVE`、expired lease、缺 work branch、stale monitor 或其他 foreign inconsistency本身都不是 current terminal tail 的 interruption authority。只有 trusted current-Issue `MERGE / FINALIZE` 路徑本身回傳、且明確綁 current operation 的 genuine machine blocker，才可停止 current drain。
+3. genuine foreign live writer 若真的讓 current trusted operation fail closed，current Issue保持 owning focus並記錄 blocker；不得自動 takeover / repair foreign Issue。foreign recovery 必須成為獨立 handoff / successor，在 current Issue terminal 或明確 YIELD/blocked handoff 之後處理。
+4. user progress/status、額外 audit、順手治理 cleanup 都不得解除 focus lock。current exact next action可執行時，立即繼續 current Issue。
+5. Machine helper=`tools/execution_invocation_exit.py::assert_terminal_tail_owning_issue_sticky(...)`；任何 orchestrator 在 terminal tail 期間準備對 foreign Issue 做 control mutation 前都必須先過此 guard。
+
+這條 gate 的目的就是防止「current PR 已可收尾，卻被 unrelated stale reservation 拉去清舊工單」；coordination debt 可以存在，但不能插隊 terminal tail。
+
 <!-- FLOW_V2_FINALIZE_ISSUE_CLOSE_HARD_GATE_V1 -->
 
 FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor 必須先 fresh-read current ExecutionRecord 並驗證 current HEAD 已有 accepted QA、MERGE 已有 fresh target readback，然後由 trusted FINALIZE path 自己 fresh-read GitHub Issue：
