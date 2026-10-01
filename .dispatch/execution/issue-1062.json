@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
@@ -28,16 +28,33 @@
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "fold_designer_bridge.py",
+      "tests/architecture/test_box_body_single_source.py",
+      "tests/test_certified_relief_runtime_contract.py",
       "tests/test_issue124_structure_tree.py",
       "tests/test_issue163_unfold_workspace_layout.py",
       "tests/test_issue186_sheetmetal_selector_visibility.py",
       "tests/test_issue335_top_toolbar.py",
       "tests/test_issue343_t8_visual_remediation.py",
       "tests/test_issue367_t3_project_persistence_owner.py",
+      "tests/test_issue370_t6_final_scene_view_owner.py",
+      "tests/test_issue385_assembly_parent_child_groups.py",
+      "tests/test_issue386_default_assembly_collapsed.py",
       "tests/test_issue430_single_host_red.py",
       "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
       "tests/test_issue96_corner_data_selection_lifecycle.py",
-      "tests/test_issue98_existing_2d_capability_migration.py"
+      "tests/test_issue98_existing_2d_capability_migration.py",
+      "tests/test_joint_diagnostics_contract.py",
+      "tests/test_overlay_formed_fw_registry_contract.py",
+      "tests/test_overlay_fw_width_invariant.py",
+      "tests/test_phase6_3d_retain_and_baseline.py",
+      "tests/test_phase6_assembly_3d_view.py",
+      "tests/test_phase6_assembly_registry_gui_matrix.py",
+      "tests/test_phase6_corner_dimension_controls.py",
+      "tests/test_phase6_four_regressions.py",
+      "tests/test_phase6_receiving_multipart_integration.py",
+      "tests/test_phase6_receiving_projection_regression.py",
+      "tests/test_resolved_manufacturing_bridge.py",
+      "tests/ui/test_box_body_physical_child_navigation.py"
     ]
   },
   "next_action": {
@@ -68,13 +85,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
   "transaction": {
-    "expected_fingerprint": "41c011bd6894576824a168cc35e6e93fb8d5b155b2a56ecd45f86505efc714cb",
-    "id": "gha:36843994384:1062:ACQUIRE:6",
+    "expected_fingerprint": "a259aab90beaa2a1dd64a82cab5d84478caafdbf896442aea366572c60506ea0",
+    "id": "gha:36844137685:1062:RESERVE_PATHS:7",
     "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T0932Z",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T09:38:31Z",
+  "updated_at": "2026-10-01T09:39:48Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
