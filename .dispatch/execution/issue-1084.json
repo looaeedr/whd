@@ -7,28 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-    "released_at": null
+    "released_at": "2026-10-01T10:38:21Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "567d697a461322f9875886108fea786458a1eb70",
   "issue": 1084,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-01T22:53:54Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-    "token": "lease:1084:36936268424:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "567d697a461322f9875886108fea786458a1eb70",
     "last_accepted_run": 36849311967
@@ -42,21 +34,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "f7704953cc04d6deab8f95dfdc389f5446747af3e1fb42635d0c6bd684231e0e",
-    "id": "gha:36936592485:1084:MERGE:4",
+    "expected_fingerprint": "7326965f83bb3e53098e2eed63f10d1cca6252c4861f9c88a49527c0ace32628",
+    "id": "gha:36936592485:1084:FINALIZE:5",
     "invocation_identity": "chatgpt.flowv2.work0.issue1084.terminal-recovery-20261002T0636+08",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T22:42:12Z",
+  "updated_at": "2026-10-01T22:42:37Z",
   "version": 2,
   "work_branch": "work/issue1084-bridge-residual-anti-regrowth-20261001"
 }
