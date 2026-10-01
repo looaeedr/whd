@@ -202,14 +202,14 @@ def test_bare_tests_green_boolean_is_rejected():
             root_mutations_complete=True, test_classified=True, tests_green=True, diff_digest="f" * 64,
         )
 
-def test_root_local_mirror_points_to_current_drive_v4_identity():
+def test_root_local_mirror_points_to_current_drive_v5_identity():
     payload = _contract()
     source = payload["canonical_source"]
     assert source["drive_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
     assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["canonical_filename"] == "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["versioned_aliases_must_not_be_current"] is True
-    assert source["canonical_payload_sha256"] == "9cc61608a1e6135f4e1b271df5f4c495738a39965dca3ee82b216959483ce112"
+    assert source["canonical_payload_sha256"] == "a0b218d75e8c3e270519f4f28df1f783b8a1ab60bda30889682ef957a4beb64f"
     assert source["drive_file_id"] != "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
     assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
 
@@ -230,3 +230,32 @@ def test_root_local_skill_exposes_fast_path_hard_gate():
     assert "INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1" in text
     assert "不得由聊天層逐顆手動編排" in text
     assert "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS" not in text or "phase outcome" in text
+
+
+def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
+    payload = _contract()
+    gate = payload["direct_root_mutation_test_gate"]
+    assert gate["schema"] == "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1"
+    assert gate["canonical_surface"] == "/Google Drive/WHD/work/active"
+    assert gate["interactive_first_substantive_action"] == "ROOT_MUTATE"
+    assert gate["required_contiguous_outer_sequence"] == [
+        "ROOT_MUTATE", "ROOT_TEST_CLASSIFIED", "ROOT_TESTS_GREEN"
+    ]
+    assert gate["same_invocation_until"] == "ROOT_TESTS_GREEN_OR_REAL_BLOCKER"
+    assert gate["root_capability_available_policy"] == "NO_HANDOFF_ONLY_STOP"
+    assert gate["status_or_progress_query_is_stop_reason"] is False
+    assert "HANDOFF_ONLY" in gate["forbidden_pre_root_green_outcomes"]
+    assert "GOVERNANCE_GREEN_ONLY" in gate["forbidden_pre_root_green_outcomes"]
+    assert "REMOTE_QA_AS_FIRST_TEST_SURFACE" in gate["forbidden_pre_root_green_outcomes"]
+    assert gate["test_red_action"] == "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
+    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK"
+
+
+def test_flow_v2_skill_requires_direct_root_modify_and_test_in_same_invocation():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    assert "DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1" in text
+    assert "同一 invocation" in text
+    assert "ROOT_MUTATE" in text
+    assert "ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN" in text
+    assert "使用者詢問進度/狀態只算 non-blocking checkpoint" in text
+    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" in text
