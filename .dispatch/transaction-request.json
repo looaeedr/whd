@@ -1,27 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-expand-post-integration-owner",
+  "request_id": "issue1077-resume-after-source-refresh",
   "issue": 1077,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0440Z",
-  "expected_coord_head": "1900f9c41bed0c4be234c1df51ba5cf2b043c43a",
-  "expected_generation": 2,
-  "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
-    "write_paths": [
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      "tests/process/test_flow_v2_execution_invocation_exit.py",
-      "tests/process/test_issue1045_post_integration_durability.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py",
-      "tools/execution_invocation_exit.py",
-      "tools/post_integration_durability.py",
-      "tools/root_local_first_gate.py"
-    ],
-    "delete_paths": []
-  },
-  "purpose": "Expand Issue #1077 reservation to the canonical post-integration durability owner discovered by audit",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
+  "expected_coord_head": "3a0b8f183fe980cd5648279f91073f02319c95c8",
+  "expected_generation": 3,
+  "effect": {},
+  "purpose": "Resume Issue #1077 after current-source refresh and continue exact tested root-local-first repair",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
