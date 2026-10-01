@@ -1,24 +1,15 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-renew-after-target-drift-20261001T1945+08",
+  "request_id": "issue1062-release-old-base-after-drift-20261001T1946+08",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-reset-resync.20261001T1945+08",
-  "expected_coord_head": "e76e4d065f6b4ad7801adc9bbf22b48254fe5162",
-  "expected_generation": 13,
-  "effect": {},
-  "purpose": "Freshly renew expired Issue #1062 lease after live target drift so the stale-reset governance diff can release old reservation, reconcile to current cleanup, and reacquire exact unchanged touched paths.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "expected_coord_head": "95f0cb2f418977118a367d745220e1cca2e90249",
+  "expected_generation": 14,
+  "effect": {
+    "reason": "Live cleanup advanced from 0a08e589 to 7c999e21; release old-base reservation before target reconcile and fresh exact re-reservation.",
+    "semantic_state": "TARGET_DRIFT_RELEASED_FOR_RESYNC"
+  },
+  "reuse_admission_session": true
 }
