@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
   "issue": 1077,
   "lane_id": "chatgpt.flowv2.work0",
@@ -40,7 +40,7 @@
     "args": {
       "work_branch": "governance/issue1077-root-local-durability-hardening"
     },
-    "display": "Start exact tested Issue #1077 work branch after root freeze",
+    "display": "Apply preserved exact tested diff after non-overlapping target drift",
     "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -64,15 +64,15 @@
   "source_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "fbd864ed804d5361730e99a4e9bef4a5de1baa31",
+  "target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
   "transaction": {
-    "expected_fingerprint": "3d76ce72f2db28ea55cdef173c7d50279aab1ebef28bb09fa730104e5553b94a",
-    "id": "gha:36833392021:1077:RESERVE_PATHS:5",
+    "expected_fingerprint": "ee8812a7cdf71a6645b4169f25f14139318c0951c95e81229ff22937e1f7f11c",
+    "id": "gha:36834467401:1077:RECONCILE:6",
     "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-    "kind": "RESERVE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T07:57:57Z",
+  "updated_at": "2026-10-01T08:08:38Z",
   "version": 2,
   "work_branch": "governance/issue1077-root-local-durability-hardening"
 }
