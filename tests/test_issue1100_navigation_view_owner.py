@@ -57,3 +57,28 @@ def test_owner_exports_both_projection_entrypoints():
 
 def test_bridge_loc_ratchets_below_6240():
     assert BRIDGE.read_text(encoding="utf-8").count("\n") <= 6240
+
+
+def test_navigation_event_glue_is_owned_by_view_adapter_and_bridge_wrappers_stay_thin():
+    bridge_tree = ast.parse(BRIDGE.read_text(encoding="utf-8"))
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    for name in (
+        "on_structure_tree_select",
+        "set_structure_tree_visibility",
+        "on_box_body_piece_tab_changed",
+    ):
+        assert f"def {name}(" in adapter_source
+
+    funcs = {node.name: node for node in bridge_tree.body if isinstance(node, ast.FunctionDef)}
+    for name in (
+        "_phase6_on_structure_tree_select",
+        "_phase6_set_structure_tree_visibility",
+        "_phase6_on_box_body_piece_tab_changed",
+    ):
+        assert name in funcs
+        assert (funcs[name].end_lineno - funcs[name].lineno + 1) <= 10
+
+
+def test_bridge_loc_ratchets_below_6200_after_navigation_event_extraction():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 6200, f"Bridge regrew past #1100 extended ratchet: {loc}"
