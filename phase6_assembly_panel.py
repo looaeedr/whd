@@ -18,6 +18,7 @@ from phase6_assembly_presentation import (
     AssemblyPresentationModel,
     AssemblyPresentationRow,
     AssemblySyntheticGroup,
+    build_assembly_presentation_model,
     project_box_body_piece_rows,
 )
 
@@ -378,6 +379,73 @@ class Phase6AssemblyPanel:
                 old_open=old_open,
             )
         self.bind_scroll(group)
+
+    def install_legacy_aliases(self, host) -> None:
+        """Expose rebuild-safe compatibility handles owned by this panel."""
+        host.assembly_parts_panel = self.host
+        host.assembly_parts_canvas = self.canvas
+        host.assembly_parts_scrollbar = self.scrollbar
+        host.assembly_parts_content = self.content
+        host._assembly_parts_window = self.window_id
+
+        for attr, value in (
+            ("assembly_part_visible_vars", self.visible_vars),
+            ("assembly_part_corner_vars", self.corner_vars),
+            ("assembly_part_formed_vars", self.formed_vars),
+            ("assembly_part_blank_vars", self.blank_vars),
+            ("assembly_part_checkbuttons", self.checkbuttons),
+            ("assembly_part_sections", self.sections),
+            ("assembly_part_detail_frames", self.detail_frames),
+            ("assembly_part_detail_buttons", self.detail_buttons),
+            ("assembly_presentation_group_sections", self.group_sections),
+            ("assembly_presentation_group_detail_frames", self.group_detail_frames),
+            ("assembly_presentation_group_detail_buttons", self.group_detail_buttons),
+            ("_phase6_assembly_part_detail_open_stash", self.detail_open_stash),
+            ("_phase6_assembly_presentation_group_open_stash", self.group_open_stash),
+            ("assembly_box_body_piece_labels", self.box_piece_labels),
+            ("assembly_box_body_piece_sections", self.box_piece_sections),
+            ("assembly_box_body_piece_visible_vars", self.box_piece_visible_vars),
+            ("assembly_box_body_piece_checkbuttons", self.box_piece_checkbuttons),
+            ("assembly_box_body_piece_detail_frames", self.box_piece_detail_frames),
+            ("assembly_box_body_piece_detail_buttons", self.box_piece_detail_buttons),
+            ("assembly_box_body_piece_formed_vars", self.box_piece_formed_vars),
+            ("assembly_box_body_piece_blank_vars", self.box_piece_blank_vars),
+            ("assembly_box_body_piece_corner_vars", self.box_piece_corner_vars),
+            ("_phase6_box_body_piece_visibility_stash", self.box_piece_visibility_stash),
+            ("_phase6_box_body_piece_detail_open_stash", self.box_piece_detail_open_stash),
+        ):
+            setattr(host, attr, value)
+        self.sync_dynamic_legacy_aliases(host)
+
+    def sync_dynamic_legacy_aliases(self, host) -> None:
+        """Refresh compatibility handles whose widget object changes on render."""
+        host.assembly_box_body_piece_host = self.box_body_piece_host
+
+    def render_available_parts(self, host, available_parts, *, label_for: Callable[[str], str]):
+        """Build/render the pure presentation model and refresh dynamic aliases."""
+        model = build_assembly_presentation_model(available_parts, label_for=label_for)
+        self.render(model)
+        self.sync_dynamic_legacy_aliases(host)
+        return model
+
+    def represented_part_keys(self) -> tuple[str, ...]:
+        """Return the authoritative part-key topology currently projected by the panel."""
+        return tuple(self.visible_vars)
+
+    def refresh_if_topology_changed(
+        self,
+        host,
+        available_parts,
+        *,
+        selector_keys: Callable[[object], tuple[str, ...]],
+        label_for: Callable[[str], str],
+    ) -> bool:
+        """Rebuild only when authoritative workspace topology differs from the view."""
+        wanted = tuple(selector_keys(available_parts))
+        if self.represented_part_keys() == wanted:
+            return False
+        self.render_available_parts(host, available_parts, label_for=label_for)
+        return True
 
     def render(self, model: AssemblyPresentationModel) -> None:
         if not isinstance(model, AssemblyPresentationModel):
