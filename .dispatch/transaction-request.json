@@ -1,57 +1,44 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-apply-exact-tested-20261002T0102+08",
+  "request_id": "issue1124-renew-current-session-20261002T0108+08",
   "issue": 1124,
-  "kind": "APPLY_COMMIT",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-  "expected_coord_head": "7d6d631ab422c357287785d902ec4166ab185383",
+  "expected_coord_head": "4fea51f15b9c2aace130d039e0ec57b9f08e050e",
   "expected_generation": 3,
   "effect": {
-    "head_sha": "85638e8e976e209422e58e335571f9df51cad081",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Verify exact #1124 head"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-      "diff_digest": "392cf06e13f80b748db1c92523a0baa1520e7366be780663a6a2968cc7e65c8f",
-      "issue": 1124,
-      "generation": 2,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/root-local-first/SKILL.md",
-        "tests/process/test_issue1124_governance_background_only_gate.py",
-        "tests/process/test_root_local_first_entry_hard_gate.py",
-        "tools/continuity_controller.py",
-        "tools/root_local_first_gate.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "09d8c348902b3f484e6de902eeb8eb410237cbd434884f6f6c56b1ceebae436e",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1124,
-      "generation": 3,
-      "record_fingerprint": "913370a437a4716956051144577ef51a51dbf8b4f83dc4b4e49853195286f64e",
-      "lease_token": "lease:1124:36894624271:1",
+    "observed_at": "2026-10-01T17:08:00Z",
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work1",
+    "lane_id": "chatgpt.flowv2.work1",
+    "slot_id": "worker.slot.1",
+    "lease": {
+      "token": "lease:1124:current-retest:4",
       "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1124-background-control-plane-20261002",
-      "expected_work_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-      "expected_target_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9"
+      "expires_at": "2026-10-01T17:48:00Z"
     },
-    "updated_at": "2026-10-01T17:02:00Z"
+    "semantic_state": "GIT_BRANCH_READY",
+    "next_action": {
+      "args": {
+        "candidate_commit_sha": "85638e8e976e209422e58e335571f9df51cad081"
+      },
+      "display": "Apply exact root-tested #1124 commit",
+      "kind": "APPLY_COMMIT"
+    },
+    "updated_at": "2026-10-01T17:08:00Z"
   },
-  "reuse_admission_session": true
+  "purpose": "Continue the same #1124 root-tested governance-background task after target drift; renew only the expired work1 lease without changing scope or next action.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
