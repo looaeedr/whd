@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1112,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
+  "head_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1112"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-02:continue-after-1111-to-1112",
+      "authority_fingerprint": "5d5c868ae540ab3650d9af970b06e58634108f8587f75fff26454033c55d96b4"
+    }
+  ],
+  "updated_at": null
+}
