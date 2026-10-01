@@ -1,14 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-acquire-work0-bridge-residual",
+  "request_id": "issue1062-reconcile-current-target-before-bridge-cleanup",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T0915Z",
-  "expected_coord_head": "c01610447ceaf0e0514d5b837fe6f308f11088aa",
-  "expected_generation": 3,
-  "effect": {},
-  "purpose": "Resume Issue #1062 under work0 after stale-owner handoff for current-root Bridge residual cleanup.",
+  "expected_coord_head": "1560257c1bd2a38bf74f19d3fb155eef5437b7e1",
+  "expected_generation": 4,
+  "effect": {
+    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
+    "observed_head_sha": "872d95000539883636eeed86908882a6020da7f7",
+    "observed_target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+    "semantic_state": "TARGET_DRIFT_RECONCILED_BEFORE_ROOT_MUTATION",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create exact tested Issue #1062 work branch after Drive root freeze"
+    }
+  },
+  "purpose": "Reconcile stale Issue #1062 target identity to current cleanup head ef76c7a before root mutation and reservation expansion.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
