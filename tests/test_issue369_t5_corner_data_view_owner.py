@@ -22,6 +22,8 @@ REQUIRED_METHODS = {
     "current_unfolded_size",
     "registry_preview_geometry",
     "canvas_visibility_plan",
+    "prepare_canvas",
+    "refresh_parts_panel",
 }
 
 EXPECTED_DELEGATES = {
@@ -38,7 +40,8 @@ EXPECTED_DELEGATES = {
     "_phase6_format_formed_size_text": "formed_size_text",
     "_phase6_format_unfolded_blank_text": "unfolded_blank_text",
     "_phase6_current_unfolded_size": "current_unfolded_size",
-    "_phase6_prepare_corner_data_canvas": "canvas_visibility_plan",
+    "_phase6_prepare_corner_data_canvas": "prepare_canvas",
+    "_phase6_refresh_corner_data_parts_panel": "refresh_parts_panel",
     "_phase6_hide_corner_data_canvas": "canvas_visibility_plan",
 }
 

@@ -65,10 +65,12 @@ def test_child_identity_and_back_label_stay_exact():
 
 
 def test_corner_data_panel_consumes_hierarchy_projection_and_indents_children():
-    src = inspect.getsource(bridge._phase6_refresh_corner_data_parts_panel)
-    assert '_phase6_corner_data_navigation_rows(self)' in src
-    assert 'for key, depth in navigation_rows' in src
-    assert 'padx=(18, 0) if depth else 0' in src
+    bridge_src = inspect.getsource(bridge._phase6_refresh_corner_data_parts_panel)
+    adapter_src = inspect.getsource(bridge.Phase6CornerDataViewAdapter.refresh_parts_panel)
+    assert '_phase6_corner_data_navigation_rows(self)' in bridge_src
+    assert 'refresh_parts_panel' in bridge_src
+    assert 'for key, depth in tuple(navigation_rows or ())' in adapter_src
+    assert 'padx=(18, 0) if depth else 0' in adapter_src
 
 
 def test_raw_authoritative_flat_projection_remains_unchanged():
