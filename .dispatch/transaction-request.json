@@ -1,14 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-stage2-reacquire-20261001T2245+08",
+  "request_id": "issue1062-stage2-release-stale-governance-paths-20261001T2247+08",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.stage2.20261001T2245+08",
-  "expected_coord_head": "809ded93a0cbfaef3df093acaf6ec53b32a49494",
-  "expected_generation": 18,
-  "effect": {},
-  "purpose": "Stage 2 only: reacquire expired #1062 execution long enough to release stale governance paths and reserve current product-regression paths. No governance code mutation.",
+  "expected_coord_head": "e76597ea424a63cbc430f639c9c15b2811c0d6e9",
+  "expected_generation": 19,
+  "effect": {
+    "reason": "Stage 2 scope switch: release stale governance implementation reservation before product-regression reservation."
+  },
+  "purpose": "Stage 2 scope switch only. Release the stale governance reservation; do not mutate repository content.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
