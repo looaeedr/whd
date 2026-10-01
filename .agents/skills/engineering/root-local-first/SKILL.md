@@ -166,6 +166,36 @@ freeze 後內容若再變，舊 freeze 失效；重測並產生新 freeze。
 
 不得把未重測的 stale root diff 直接套到 Git。
 
+### 3.7.1 DRIVE_RAW_TEXT_TRANSPORT_HARD_GATE_V1
+
+Drive / connector raw file transport 若回傳 base64 payload，必須先保留 bytes identity，再轉 UTF-8 文字；**不得把 connector 的一般 text field 為空誤判成原檔為空**。
+
+固定規則：
+
+1. 在 **Node.js runtime**，base64 → UTF-8 固定使用：
+
+   ```js
+   const text = Buffer.from(base64_string, 'base64').toString('utf-8');
+   ```
+
+2. 不得假設 `atob`、`TextDecoder` 或其他 Web API 在目前 JS runtime 一定存在。若 runtime 不是 Node 或沒有 `Buffer`：
+   - 優先改走 connector 的 raw `file_uri` / materialize / download / mounted-file path；
+   - 不得臨時手寫 base64 decoder 當 production transport contract；
+   - 不得因 decoder capability 缺失把非空來源寫成空檔。
+
+3. Git write 前固定 readback：
+   - source raw size > 0 時，decoded / materialized text 必須 non-empty；
+   - final Git branch file 必須與 frozen root source做 exact-content 或 SHA-256 identity compare；
+   - 若 Git blob 變成空檔 blob `e69de29bb2d1d6434b8b29ae775ad8c2e48c5391` 而 source 非空，固定 `TRANSPORT_DECODE_CORRUPTION`，禁止開 PR／merge。
+
+4. 發生 transport corruption 時：
+   - production target 不得修改；
+   - 不沿用錯誤 branch content；
+   - 從 frozen root / verified raw bytes 恢復 exact files；
+   - 恢復後重新做 non-empty + exact readback，再進 PR/CI。
+
+此 gate 只擁有 **transport fidelity**；不改寫 root-tested product diff、domain authority 或 test result。
+
 ## 4. Git phase
 
 `GIT_WRITE_UNLOCKED` 後：
