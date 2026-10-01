@@ -1,1 +1,37 @@
-{"schema":"WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1","request_id":"issue1123-renew-after-1062-release","issue":1123,"kind":"ACQUIRE","lane_id":"chatgpt.flowv2.work0","invocation_identity":"chatgpt.flowv2.work0.issue1123.bridge-final","expected_coord_head":"fe5ac643162b31ed21df284d3d15487054501d31","expected_generation":8,"effect":{"observed_at":"2026-10-01T16:54:56Z","owner_kind":"SCHEDULER","owner_id":"chatgpt.flowv2.work0","lane_id":"chatgpt.flowv2.work0","slot_id":"worker.slot.0","lease":{"token":"lease:1123:bridge-final","invocation_identity":"chatgpt.flowv2.work0.issue1123.bridge-final","expires_at":"2026-10-01T17:34:56Z"},"semantic_state":"PARTIAL_ROOT_TESTED_COMMIT_APPLIED_BRIDGE_PATH_BLOCKED_BY_1062","next_action":{"kind":"WAIT_EXTERNAL","args":{"blocker_kind":"EXTERNAL_DEPENDENCY"},"display":"Wait for released Bridge path to be expanded"}},"purpose":"Resume issue 1123 after issue 1062 stale Bridge reservation was canonically released.","work_root_gate_evidence":{"schema":"WHD_WORK_ROOT_GATE_EVIDENCE_V1","gate_schema":"WHD_WORK_ROOT_HARD_GATE_V1","gate_status":"CURRENT","read_mode":"GOOGLE_DRIVE_CANONICAL","execution_mode":"INTERACTIVE","source":"/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json","provider":"google_drive","library_path":"/Google Drive/WHD","drive_folder_id":"1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_","current_source_manifest_file_id":"1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"}}
+{
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1123-expand-bridge-final",
+  "issue": 1123,
+  "kind": "RESERVE_PATHS",
+  "lane_id": "chatgpt.flowv2.work0",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1123.bridge-final",
+  "expected_coord_head": "954df7317a56eed8ef974c36d8d75968fd460e6f",
+  "expected_generation": 9,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+    "write_paths": [
+      "fold_designer_bridge.py",
+      "gui_modules/application/manufacturing_adapter.py",
+      "phase6_assembly_relief_state.py",
+      "tests/test_issue1123_assembly_relief_state_owner.py",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "ROOT_IMPLEMENTING_FINAL_BRIDGE_SLICE"
+  },
+  "purpose": "Expand #1123 monotonically to fold_designer_bridge.py now that #1062 has canonically released its stale reservation. Preserve the already tested five-path slice and complete the Bridge delegation in the same issue lineage.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
+}
