@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
-  "head_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
+  "generation": 12,
+  "head_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
   "issue": 1072,
   "lane_id": "chatgpt.flowv2.work2",
   "lease": {
@@ -65,13 +65,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
   "transaction": {
-    "expected_fingerprint": "a8f52872e0dd1cdbd6a6f98948023d9869792501b0ec7557418c441e1b42683f",
-    "id": "gha:36803829577:1072:RECONCILE:10",
+    "expected_fingerprint": "ece337d11179a33498d57b66b7a62b77a69cfd938a705b9229deff79c5ea045b",
+    "id": "gha:36803940586:1072:RECONCILE:11",
     "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0145Z",
     "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T02:01:28Z",
+  "updated_at": "2026-10-01T02:02:54Z",
   "version": 2,
   "work_branch": "governance/issue1072-decouple-root-evidence-generation"
 }
