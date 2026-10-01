@@ -18,6 +18,8 @@ def test_scheduler_entrypoints_bridge_flow_v2_native_state() -> None:
     assert "ready-index" in text
     assert "NO_EXECUTABLE_WORK" in text
     assert "YIELD" in text
+    assert "WHD_SCHEDULER_DISPATCH_REQUEST_V1" in text
+    assert "scheduler_entrypoint_observation.py" in text
 
 
 def test_scheduler_lane_identity_and_recurring_lifecycle_are_preserved() -> None:
@@ -42,7 +44,7 @@ def test_scheduler_authoring_points_to_flow_v2_not_parallel_state_machine() -> N
 
 def test_scheduler_view_has_same_lane_first_and_derived_ready_index_decisions() -> None:
     text = (ROOT / "tools/execution_scheduler_view.py").read_text(encoding="utf-8")
-    for token in ("RESUME_CURRENT", "LANE_BUSY", "READY_CANDIDATES", "NO_EXECUTABLE_WORK"):
+    for token in ("RESUME_CURRENT", "LANE_BUSY", "READY_CANDIDATES", "INGRESS_REQUIRED", "NO_EXECUTABLE_WORK"):
         assert token in text
     ready = (ROOT / "tools/execution_ready_index.py").read_text(encoding="utf-8")
     assert "DERIVED_CACHE_ONLY" in ready
