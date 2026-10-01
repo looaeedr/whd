@@ -1,55 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-apply-exact-root-diff-82d34fe7",
+  "request_id": "issue1072-start-qa-run-36814204632",
   "issue": 1072,
-  "kind": "APPLY_COMMIT",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0404Z",
-  "expected_coord_head": "d7d53e499dbf3ce01453b9116524f864df2e7540",
-  "expected_generation": 15,
+  "expected_coord_head": "49972e69f7973b0894e1f3b0a56239b30894c3e8",
+  "expected_generation": 16,
   "reuse_admission_session": true,
   "effect": {
-    "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "run_id": 36814204632,
+    "run_head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
+    "purpose": ".github/workflows/whd-control-plane-regression.yml",
+    "run_status": "in_progress",
+    "semantic_state": "REMOTE_QA",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "POLL_QA",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "run_id": 36814204632,
+        "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c"
       },
-      "display": "Run canonical control-plane regression on exact Issue #1072 head"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-      "diff_digest": "f67e6f7c51058936f5847c604565ca10002aa65f441b711cd40c2355f0117ca3",
-      "issue": 1072,
-      "generation": 15,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        "tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py",
-        "tests/process/test_issue899_push_transaction_ingress.py",
-        "tests/process/test_root_local_first_entry_hard_gate.py",
-        "tools/control_transaction_request_ingress.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "cf2efce5ad5fb9d951ec5626014810ad04692acd9f8f0359f30ab2872e605090",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1072,
-      "generation": 15,
-      "record_fingerprint": "cf2efce5ad5fb9d951ec5626014810ad04692acd9f8f0359f30ab2872e605090",
-      "lease_token": "lease:1072:36813487572:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0404Z",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "governance/issue1072-decouple-root-evidence-generation",
-      "expected_work_head": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-      "expected_target_head": "a6851caa132cfbfece831e59c33ae1cdc93b04b2"
+      "display": "Poll exact Issue #1072 control-plane QA"
     }
   }
 }
