@@ -43,6 +43,7 @@ from phase6_part_navigation import (
     box_body_piece_keys as _dm7_box_body_piece_keys,
     is_box_body_physical_piece_key as _dm7_is_box_body_physical_piece_key,
     operator_part_selector_keys as _dm7_operator_part_selector_keys,
+    operator_part_label as _dm7_operator_part_label,
     project_hierarchy as _dm7_project_hierarchy,
     resolve_navigation as _dm7_resolve_navigation,
 )
@@ -3355,55 +3356,10 @@ def _phase6_is_derived_physical_part_key(value):
 
 
 def _phase6_part_label(value: object, *, snapshot=None) -> str:
-    """Return the single Traditional-Chinese operator label for a part identity."""
-    key = str(value or "")
-    if key in PART_LABELS:
-        return PART_LABELS[key]
-    piece_labels = {
-        "box_body:left_side": "左側板", "box_body:back": "後面板", "box_body:right_side": "右側板",
-        "box_body_left_side": "左側板", "box_body_back": "後面板", "box_body_right_side": "右側板",
-        "box_body:left": "左箱身", "box_body:middle": "中箱身", "box_body:right": "右箱身",
-    }
-    if key in piece_labels:
-        return piece_labels[key]
-    door_match = re.fullmatch(r"door_c(\d+)_r(\d+)", key)
-    if door_match:
-        col, row = (int(door_match.group(1)), int(door_match.group(2)))
-        snap = dict(snapshot or {})
-        model = str(snap.get("model") or snap.get("baseline_model") or snap.get("cabinet_family") or "")
-        columns = list(snap.get("door_layout_columns") or ())
-        if model == "受電箱" and len(columns) == 1 and col == 1:
-            if row == 1:
-                return "上門"
-            if row == 2:
-                return "下門"
-        return f"第{col}欄第{row}門"
-    base_match = re.fullmatch(r"base_plate_c(\d+)_r(\d+)", key)
-    if base_match:
-        col, row = (int(base_match.group(1)), int(base_match.group(2)))
-        snap = dict(snapshot or {})
-        model = str(snap.get("model") or snap.get("baseline_model") or snap.get("cabinet_family") or "")
-        columns = list(snap.get("door_layout_columns") or ())
-        if model == "受電箱" and len(columns) == 1 and col == 1:
-            if row == 1:
-                return "上門底板"
-            if row == 2:
-                return "下門底板"
-        return f"第{col}欄第{row}門底板"
-    if key.startswith("box_body:divider:"):
-        axis = "橫向" if ":HORIZONTAL:" in key else ("直向" if ":VERTICAL:" in key else "")
-        return f"箱身中隔（{axis}）" if axis else "箱身中隔"
-    if key.startswith("inner_door:") and key.endswith(":panel"):
-        door_id = key.split(":", 2)[1]
-        door_label = {"upper": "上層內門", "lower": "下層內門"}.get(door_id, "內門")
-        return f"{door_label}門板"
-    if key.startswith("inner_door:") and key.endswith("_frame"):
-        side = key.rsplit(":", 1)[-1].removesuffix("_frame")
-        side_label = {"top": "上框", "bottom": "下框", "left": "左框", "right": "右框"}.get(side, "框")
-        door_id = key.split(":", 2)[1]
-        door_label = {"upper": "上層內門", "lower": "下層內門"}.get(door_id, "內門")
-        return f"{door_label}{side_label}"
-    return key
+    """Compatibility port to the pure operator part-label projection owner."""
+    return _dm7_operator_part_label(
+        value, snapshot=snapshot, base_labels=PART_LABELS
+    )
 
 
 def _phase6_operator_label(value, *, snapshot=None):
