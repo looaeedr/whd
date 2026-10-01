@@ -12,9 +12,9 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_drive_root_gate_mirror_has_one_unversioned_v4_identity() -> None:
+def test_drive_root_gate_mirror_has_one_unversioned_v5_identity() -> None:
     contract = json.loads(_read(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"))
-    assert contract["version"] == 4
+    assert contract["version"] == 5
     source = contract["canonical_source"]
     assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["drive_file_id"] == UNVERSIONED_DRIVE_GATE_ID

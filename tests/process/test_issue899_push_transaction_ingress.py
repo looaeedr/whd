@@ -865,3 +865,190 @@ def test_trusted_consume_qa_generates_updated_at_when_caller_omits_it(monkeypatc
     assert updated.qa.last_accepted_run == run_id
     assert updated.qa.accepted_head_sha == head
     assert updated.next_action.kind == "MERGE"
+
+
+def _issue1072_start_branch_record(*, generation=5, base_sha="a" * 40, write_paths=None):
+    from tools.execution_record import execution_record_from_payload
+
+    invocation = "chatgpt.flowv2.work2.issue1072.test"
+    write_paths = list(write_paths or ["AGENTS.md"])
+    return execution_record_from_payload({
+        "schema": "WHD_EXECUTION_RECORD_V2",
+        "version": 2,
+        "generation": generation,
+        "issue": 940,
+        "execution_intent": "EXECUTE_TICKET",
+        "owner_kind": "SCHEDULER",
+        "owner_id": "chatgpt.flowv2.work2",
+        "lane_id": "chatgpt.flowv2.work2",
+        "slot_id": "worker.slot.2",
+        "source_branch": "cleanup/2d-3d-sync",
+        "source_sha": base_sha,
+        "work_branch": "work/issue940",
+        "head_sha": base_sha,
+        "target_branch": "cleanup/2d-3d-sync",
+        "target_sha": base_sha,
+        "state": "ACTIVE",
+        "semantic_state": "ROOT_DIFF_FROZEN",
+        "next_action": {
+            "kind": "START_BRANCH",
+            "args": {"diff_digest": "c" * 64},
+            "display": "create branch",
+        },
+        "lease": {
+            "token": "lease-940-renewed",
+            "invocation_identity": invocation,
+            "expires_at": "2099-10-01T00:00:00Z",
+        },
+        "active_run": None,
+        "transaction": None,
+        "mutation_scope": {
+            "target_branch": "cleanup/2d-3d-sync",
+            "base_sha": base_sha,
+            "write_paths": write_paths,
+            "delete_paths": [],
+            "reservation_state": "ACTIVE",
+        },
+        "qa": {"last_accepted_run": None, "accepted_head_sha": None},
+        "blocker": None,
+        "closure": {"merged_sha": None, "issue_closed": False, "released_at": None},
+        "chain": {"parent_issue": None, "next_issue": None, "next_action": None},
+        "recovery_history": [],
+        "updated_at": "2026-09-30T22:52:05Z",
+    })
+
+
+def test_issue1072_lease_renewal_generation_does_not_invalidate_frozen_root_receipt(monkeypatch):
+    from tools.control_transaction import build_mutation_writer_guard
+    import tools.control_transaction_request_ingress as ingress
+
+    record = _issue1072_start_branch_record(generation=5)
+    invocation = record.lease.invocation_identity
+    guard = build_mutation_writer_guard(
+        record, kind="START_BRANCH", invocation_identity=invocation
+    )
+    request = {
+        "kind": "START_BRANCH",
+        "invocation_identity": invocation,
+        "effect": {
+            "head_sha": record.head_sha,
+            "root_local_first_git_write_receipt": _root_unlock_receipt(),
+            "mutation_writer_guard": guard,
+        },
+    }
+
+    monkeypatch.setattr(
+        ingress,
+        "_read_branch_head",
+        lambda repo, token, branch: record.target_sha if branch == record.target_branch else record.head_sha,
+    )
+
+    ingress._validate_interactive_git_write_receipt(
+        request,
+        execution_mode="INTERACTIVE",
+        record=record,
+        repo="looaeedr/whd",
+        token="token",
+    )
+
+
+def test_issue1072_fresh_mutation_guard_still_fences_current_execution_identity(monkeypatch):
+    import pytest
+    from tools.control_transaction import build_mutation_writer_guard
+    import tools.control_transaction_request_ingress as ingress
+
+    record = _issue1072_start_branch_record(generation=5)
+    invocation = record.lease.invocation_identity
+    guard = build_mutation_writer_guard(
+        record, kind="START_BRANCH", invocation_identity=invocation
+    )
+    guard["generation"] = 4
+    request = {
+        "kind": "START_BRANCH",
+        "invocation_identity": invocation,
+        "effect": {
+            "head_sha": record.head_sha,
+            "root_local_first_git_write_receipt": _root_unlock_receipt(),
+            "mutation_writer_guard": guard,
+        },
+    }
+    monkeypatch.setattr(
+        ingress,
+        "_read_branch_head",
+        lambda repo, token, branch: record.target_sha if branch == record.target_branch else record.head_sha,
+    )
+
+    with pytest.raises(Exception, match="mutation guard generation drift"):
+        ingress._validate_interactive_git_write_receipt(
+            request,
+            execution_mode="INTERACTIVE",
+            record=record,
+            repo="looaeedr/whd",
+            token="token",
+        )
+
+
+def test_issue1072_root_contract_treats_generation_as_provenance_not_content_identity():
+    import json
+
+    contract = json.loads(
+        (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    receipt = contract["test_execution_receipt"]
+    assert "generation" not in receipt["required_identity"]
+    assert receipt["generation_role"] == "HISTORICAL_FREEZE_PROVENANCE_ONLY"
+    git_receipt = contract["git_write_receipt"]
+    assert git_receipt["current_execution_fence"] == "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1"
+    assert git_receipt["lease_renewal_generation_drift"] == "DOES_NOT_INVALIDATE_UNCHANGED_FROZEN_EVIDENCE"
+
+
+def test_issue1072_frozen_root_receipt_still_fails_closed_on_content_identity_drift(monkeypatch):
+    import copy
+    import pytest
+    from tools.control_transaction import build_mutation_writer_guard
+    import tools.control_transaction_request_ingress as ingress
+
+    record = _issue1072_start_branch_record(generation=5)
+    invocation = record.lease.invocation_identity
+    guard = build_mutation_writer_guard(record, kind="START_BRANCH", invocation_identity=invocation)
+    monkeypatch.setattr(
+        ingress,
+        "_read_branch_head",
+        lambda repo, token, branch: record.target_sha if branch == record.target_branch else record.head_sha,
+    )
+
+    cases = [
+        ("source_sha", "d" * 40, "source/base drift"),
+        ("write_paths", ["README.md"], "reserved paths drift"),
+        ("diff_digest", "d" * 64, "diff digest drift"),
+    ]
+    for field, value, message in cases:
+        receipt = copy.deepcopy(_root_unlock_receipt())
+        receipt[field] = value
+        request = {
+            "kind": "START_BRANCH",
+            "invocation_identity": invocation,
+            "effect": {
+                "head_sha": record.head_sha,
+                "root_local_first_git_write_receipt": receipt,
+                "mutation_writer_guard": guard,
+            },
+        }
+        with pytest.raises(Exception, match=message):
+            ingress._validate_interactive_git_write_receipt(
+                request,
+                execution_mode="INTERACTIVE",
+                record=record,
+                repo="looaeedr/whd",
+                token="token",
+            )
+
+
+def test_issue1072_flow_skill_assigns_current_execution_fence_to_mutation_guard():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    assert "freeze-time provenance" in text
+    assert "mutation_writer_guard" in text
+    assert "lease renewal" in text
+    assert "不得要求重跑 root tests" in text

@@ -121,10 +121,33 @@ def _validate_interactive_git_write_receipt(
 
     if int(validated_receipt.get("issue") or 0) != record.issue:
         raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt issue drift")
-    if int(validated_receipt.get("generation") or 0) != record.generation:
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt generation drift")
-    if str(validated_receipt.get("record_fingerprint") or "") != str(guard.get("record_fingerprint") or ""):
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt fingerprint drift")
+
+    # ROOT_LOCAL_FIRST evidence is freeze-time content provenance.  A same-scope
+    # ACQUIRE may renew the lease and advance ExecutionRecord.generation without
+    # changing the tested source, reservation, or frozen diff.  Current writer
+    # identity is fenced above by mutation_writer_guard; do not re-bind historical
+    # root evidence to the renewed generation/fingerprint.
+    receipt_generation = int(validated_receipt.get("generation") or 0)
+    if receipt_generation > record.generation:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt future generation")
+
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "ACTIVE":
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt requires ACTIVE reservation")
+    if str(validated_receipt.get("source_sha") or "") != scope.base_sha:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt source/base drift")
+    if str(validated_receipt.get("target_branch") or "") != scope.target_branch:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt target branch drift")
+    if tuple(validated_receipt.get("write_paths") or ()) != tuple(scope.write_paths) or tuple(
+        validated_receipt.get("delete_paths") or ()
+    ) != tuple(scope.delete_paths):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt reserved paths drift")
+
+    frozen_diff = ""
+    if record.next_action is not None:
+        frozen_diff = str(record.next_action.args.get("diff_digest") or "").strip().lower()
+    if frozen_diff and str(validated_receipt.get("diff_digest") or "").strip().lower() != frozen_diff:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE Git receipt diff digest drift")
 
     live_target = _read_branch_head(repo, token, record.target_branch)
     if live_target != record.target_sha or live_target != str(guard.get("expected_target_head") or ""):
