@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
-    "id": 36814204632,
-    "purpose": ".github/workflows/whd-control-plane-regression.yml",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 17,
+  "generation": 18,
   "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
   "issue": 1072,
   "lane_id": "chatgpt.flowv2.work2",
@@ -42,17 +37,20 @@
   },
   "next_action": {
     "args": {
+      "expected_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
       "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
-      "run_id": 36814204632
+      "pr_number": 1076,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Poll exact Issue #1072 control-plane QA",
-    "kind": "POLL_QA"
+    "display": "Merge exact accepted PR #1076",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
+    "last_accepted_run": 36814204632
   },
   "recovery_history": [
     {
@@ -63,21 +61,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "75417ee4e449e0c3ed09b4ef6bfd45421e0fe051",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
   "transaction": {
-    "expected_fingerprint": "8d5af13c3a0a636f9ab405b3cc8b44e1d4befd0920955a90e3d4e0995fadd595",
-    "id": "gha:36814261356:1072:START_QA:16",
+    "expected_fingerprint": "c4dabc6e0e54fc4cc7dd3bb654042e3a160de91717c857c7be3a5fdfbd6659c6",
+    "id": "gha:36814336118:1072:ACCEPT_QA:17",
     "invocation_identity": "chatgpt.flowv2.work2.issue1072.20261001T0404Z",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T04:15:53Z",
+  "updated_at": "2026-10-01T04:16:50Z",
   "version": 2,
   "work_branch": "governance/issue1072-decouple-root-evidence-generation"
 }
