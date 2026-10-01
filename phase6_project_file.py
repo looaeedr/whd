@@ -15,7 +15,11 @@ from ae_engine.sheetmetal_features import (
 )
 from ae_engine.sheetmetal_geometry import Vec2
 
-PROJECT_SCHEMA = "phase6-fold-project-v1"
+PROJECT_SCHEMA_V1 = "phase6-fold-project-v1"
+PROJECT_SCHEMA_V2 = "phase6-fold-project-v2"
+# Existing generic callers still construct v1 payloads. Receiving projects are
+# promoted to v2 by write_project once ReceivingLayout is present.
+PROJECT_SCHEMA = PROJECT_SCHEMA_V1
 PROJECT_EXTENSION = ".p6fold"
 PROJECT_CLASS = "Phase6.FoldProject"
 
@@ -193,23 +197,47 @@ def _decode(value):
 def validate_project(payload):
     if not isinstance(payload, dict):
         raise ValueError("Phase6 專案必須是 JSON 物件")
-    if payload.get("schema") != PROJECT_SCHEMA:
-        raise ValueError(f"不支援的 Phase6 專案格式：{payload.get('schema')!r}")
+    schema = payload.get("schema")
+    if schema not in {PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V2}:
+        raise ValueError(f"不支援的 Phase6 專案格式：{schema!r}")
     if not isinstance(payload.get("snapshot"), dict):
         raise ValueError("Phase6 專案缺少 snapshot")
+    if schema == PROJECT_SCHEMA_V2:
+        from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+        if not is_receiving_snapshot(payload["snapshot"]):
+            raise ValueError("phase6-fold-project-v2 is reserved for ReceivingLayout projects")
     return payload
+
+
+def _materialize_project_snapshot(snapshot):
+    from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    from ae_engine.receiving_layout import ensure_receiving_layout, project_primary_bay_legacy_aliases
+
+    result = migrate_legacy_snapshot_joints(dict(snapshot or {}))
+    if is_receiving_snapshot(result):
+        result = ensure_receiving_layout(result)
+        # Existing Door normalization still consumes d/t from the single-Bay
+        # runtime view.  This is transient only; v2 writer strips the aliases.
+        result = project_primary_bay_legacy_aliases(result)
+    return _normalize_authoritative_door_state(result)
 
 
 def write_project(path, payload):
     validate_project(payload)
-    # Persist the versioned AssemblyJoint graph even when an older caller still
-    # supplies only assembly_type.  Existing USER_ADDED joints are preserved
-    # because migration is idempotent for versioned snapshots.
-    from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    from ae_engine.receiving_layout import strip_legacy_receiving_aliases
+
     materialized = dict(payload)
-    materialized["snapshot"] = _normalize_authoritative_door_state(
-        migrate_legacy_snapshot_joints(dict(payload.get("snapshot") or {}))
-    )
+    snapshot = _materialize_project_snapshot(payload.get("snapshot") or {})
+    if is_receiving_snapshot(snapshot):
+        materialized["schema"] = PROJECT_SCHEMA_V2
+        snapshot = strip_legacy_receiving_aliases(snapshot)
+    elif materialized.get("schema") == PROJECT_SCHEMA_V2:
+        raise ValueError("phase6-fold-project-v2 requires ReceivingLayout")
+    else:
+        materialized["schema"] = PROJECT_SCHEMA_V1
+    materialized["snapshot"] = snapshot
     # Final geometry is a derived diagnostic/render cache, never project truth.
     # Persist only authoritative state; Reload must deterministically re-solve it.
     materialized["final_geometry"] = {}
@@ -226,13 +254,15 @@ def read_project(path):
     raw = json.loads(source.read_text(encoding="utf-8"))
     decoded = _decode(raw)
     validate_project(decoded)
-    # Legacy .p6fold files only stored one high-level assembly_type.  Migrate
-    # that state to a versioned AssemblyJoint graph on read; migration never
-    # invents WRAP and is idempotent for already-versioned projects.
-    from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
-    decoded["snapshot"] = _normalize_authoritative_door_state(
-        migrate_legacy_snapshot_joints(decoded["snapshot"])
-    )
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    from ae_engine.receiving_layout import project_primary_bay_legacy_aliases
+
+    decoded["snapshot"] = _materialize_project_snapshot(decoded["snapshot"])
+    if is_receiving_snapshot(decoded["snapshot"]):
+        # In-memory compatibility projection only.  Re-saving strips aliases
+        # again, so v2 never gains a second persisted W/H/D or panel-mode owner.
+        decoded["schema"] = PROJECT_SCHEMA_V2
+        decoded["snapshot"] = project_primary_bay_legacy_aliases(decoded["snapshot"])
     # Ignore legacy files that persisted derived geometry/probe evidence.
     decoded["final_geometry"] = {}
     return decoded
