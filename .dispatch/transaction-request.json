@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1072-accept-qa-36814204632",
+  "request_id": "issue1072-accept-exact-qa-run-36814204632",
   "issue": 1072,
   "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work2",
@@ -13,17 +13,17 @@
     "run_head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
     "conclusion": "success",
     "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
+    "semantic_state": "GREEN",
     "next_action": {
       "kind": "MERGE",
       "args": {
         "pr_number": 1076,
+        "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
         "target_branch": "cleanup/2d-3d-sync",
         "expected_target_sha": "a6851caa132cfbfece831e59c33ae1cdc93b04b2",
-        "head_sha": "82d34fe758e49d0d5155ac06cc11fb4a1c69041c",
         "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Merge exact accepted PR #1076"
+      "display": "Merge exact PR #1076 after accepted control-plane QA"
     }
   }
 }
