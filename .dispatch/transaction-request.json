@@ -1,32 +1,31 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-acquire-background-governance-retry2-20261002T0048+08",
+  "request_id": "issue1124-start-branch-20261002T0055+08",
   "issue": 1124,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-  "expected_coord_head": "0894ac37c2ccff534ec9fae2b8f57cf71839521e",
-  "expected_generation": 1,
+  "expected_coord_head": "4235a5b264fa47c3157b194b3faddbeac6e14f3f",
+  "expected_generation": 2,
   "effect": {
-    "observed_at": "2026-10-01T16:48:00Z",
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "slot_id": "worker.slot.1",
-    "lease": {
-      "token": "lease:1124:user-explicit:3",
-      "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-      "expires_at": "2026-10-01T17:28:00Z"
-    },
-    "semantic_state": "PATHS_RESERVED_ROOT_IMPLEMENTING",
+    "work_branch": "governance/issue1124-background-control-plane-20261002",
+    "head_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+    "semantic_state": "GIT_BRANCH_READY",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Start branch only after root tests and diff freeze"
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "candidate_commit_sha": "85638e8e976e209422e58e335571f9df51cad081"
+      },
+      "display": "Apply exact root-tested #1124 commit"
     },
-    "admission_reservation": {
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+      "diff_digest": "392cf06e13f80b748db1c92523a0baa1520e7366be780663a6a2968cc7e65c8f",
+      "issue": 1124,
+      "generation": 2,
       "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
       "write_paths": [
         ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
         ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -36,20 +35,24 @@
         "tools/continuity_controller.py",
         "tools/root_local_first_gate.py"
       ],
-      "delete_paths": []
-    }
+      "delete_paths": [],
+      "record_fingerprint": "09d8c348902b3f484e6de902eeb8eb410237cbd434884f6f6c56b1ceebae436e",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1124,
+      "generation": 2,
+      "record_fingerprint": "09d8c348902b3f484e6de902eeb8eb410237cbd434884f6f6c56b1ceebae436e",
+      "lease_token": "lease:1124:36894624271:1",
+      "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "governance/issue1124-background-control-plane-20261002",
+      "expected_work_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
+      "expected_target_head": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9"
+    },
+    "updated_at": "2026-10-01T16:55:00Z"
   },
-  "purpose": "Make interactive governance/background orchestration machine-enforced so low-level Flow v2 transactions cannot become chat-layer primary work; preserve root-local-first and one state machine.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
