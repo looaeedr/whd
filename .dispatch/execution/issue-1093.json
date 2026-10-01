@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "e8416c5314cfd38c8379ba12fed98ac599b583d3",
+    "id": 36939976944,
+    "purpose": "exact-head focused control-plane QA for #1093",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 21,
+  "generation": 22,
   "head_sha": "e8416c5314cfd38c8379ba12fed98ac599b583d3",
   "issue": 1093,
   "lane_id": "chatgpt.flowv2.work2",
@@ -41,10 +46,11 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "e8416c5314cfd38c8379ba12fed98ac599b583d3"
+      "head_sha": "e8416c5314cfd38c8379ba12fed98ac599b583d3",
+      "run_id": 36939976944
     },
-    "display": "start exact post-push QA for #1093",
-    "kind": "START_QA"
+    "display": "poll exact-head focused control-plane QA",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -61,21 +67,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "a26f966925dd42ea8395649ee8144bb6e0d83ecd",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "033f0e750d114bd796b0c914b5e0f6084838c56509865c51f1e6417e1f477701",
-    "id": "gha:36939814863:1093:APPLY_COMMIT:20",
+    "expected_fingerprint": "aedd386d5a07453c4473b1b7697fe7b64c5a16f9cf37930f12386411cb8f33e2",
+    "id": "gha:36940026608:1093:START_QA:21",
     "invocation_identity": "chatgpt.flowv2.work2.issue1093.20261002",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T23:16:01Z",
+  "updated_at": "2026-10-01T23:18:19Z",
   "version": 2,
   "work_branch": "work/issue1093-active-owning-issue-stickiness-20261002"
 }
