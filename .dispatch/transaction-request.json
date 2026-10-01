@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1077-resume-after-source-refresh",
+  "request_id": "issue1077-reconcile-target-fbd864ed",
   "issue": 1077,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-  "expected_coord_head": "3a0b8f183fe980cd5648279f91073f02319c95c8",
-  "expected_generation": 3,
-  "effect": {},
-  "purpose": "Resume Issue #1077 after current-source refresh and continue exact tested root-local-first repair",
+  "expected_coord_head": "ca66cc6cc41a31cff393b028e04e94642952d136",
+  "expected_generation": 4,
+  "effect": {
+    "observed_work_branch": "governance/issue1077-root-local-durability-hardening",
+    "observed_head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
+    "observed_target_sha": "fbd864ed804d5361730e99a4e9bef4a5de1baa31",
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "work_branch": "governance/issue1077-root-local-durability-hardening"
+      },
+      "display": "Start exact tested Issue #1077 work branch after root freeze"
+    }
+  },
+  "purpose": "Reconcile Issue #1077 target to latest production after non-overlapping target drift and root retest",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
