@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-acquire-background-governance-20261002T0038+08",
+  "request_id": "issue1124-acquire-background-governance-sorted-20261002T0046+08",
   "issue": 1124,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -8,15 +8,15 @@
   "expected_coord_head": "7f7d9fe4edff23bda3071f605ac27ce4a265e141",
   "expected_generation": 1,
   "effect": {
-    "observed_at": "2026-10-01T16:38:00Z",
+    "observed_at": "2026-10-01T16:46:00Z",
     "owner_kind": "SCHEDULER",
     "owner_id": "chatgpt.flowv2.work1",
     "lane_id": "chatgpt.flowv2.work1",
     "slot_id": "worker.slot.1",
     "lease": {
-      "token": "lease:1124:user-explicit:1",
+      "token": "lease:1124:user-explicit:2",
       "invocation_identity": "chatgpt.flowv2.work1.issue1124.20261002T0038+08",
-      "expires_at": "2026-10-01T17:18:00Z"
+      "expires_at": "2026-10-01T17:26:00Z"
     },
     "semantic_state": "PATHS_RESERVED_ROOT_IMPLEMENTING",
     "next_action": {
@@ -28,13 +28,13 @@
       "target_branch": "cleanup/2d-3d-sync",
       "base_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
       "write_paths": [
-        "tools/root_local_first_gate.py",
-        "tools/continuity_controller.py",
-        "tests/process/test_root_local_first_entry_hard_gate.py",
-        "tests/process/test_issue1124_governance_background_only_gate.py",
         ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
         ".agents/skills/engineering/root-local-first/SKILL.md",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md"
+        "tests/process/test_issue1124_governance_background_only_gate.py",
+        "tests/process/test_root_local_first_entry_hard_gate.py",
+        "tools/continuity_controller.py",
+        "tools/root_local_first_gate.py"
       ],
       "delete_paths": []
     }
