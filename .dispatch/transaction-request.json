@@ -1,16 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-release-stale-scope-20261001T1034Z",
+  "request_id": "issue1062-fresh-reacquire-for-stale-reset-20261001T1852+08",
   "issue": 1062,
-  "kind": "RELEASE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261001T103339Z",
-  "expected_coord_head": "d884ea6e9c4fb1c34b6c06b4944b62613bf44eab",
-  "expected_generation": 9,
-  "effect": {
-    "reason": "Stale reservation cleanup: lease had expired with no work branch, no active run, and no post-reservation product progress; release full mutation scope so future work must reacquire fresh.",
-    "semantic_state": "PATH_RESERVATION_RELEASED",
-    "updated_at": "2026-10-01T10:34:10Z"
-  },
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-reset.20261001T1852+08",
+  "expected_coord_head": "3c38af25963db082bf69e5ac9e798cf72462edad",
+  "expected_generation": 10,
+  "effect": {},
+  "purpose": "Freshly reacquire Issue #1062 only to perform canonical stale-execution reset and root-local-first recovery; no repository-content mutation before fresh reservation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
