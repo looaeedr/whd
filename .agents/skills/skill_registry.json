@@ -824,7 +824,11 @@
     {
       "id": "explicit-skill-寫成規格書",
       "keywords": [
-        "寫成規格書"
+        "寫成規格書",
+        "規格書",
+        "整理成規格",
+        "整理成工程規格",
+        "整理成產品規格"
       ],
       "file_globs": [
         ".agents/skills/engineering/寫成規格書/**"

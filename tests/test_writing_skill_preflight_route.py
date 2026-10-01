@@ -38,3 +38,22 @@ def test_skill_authoring_ai_rule_points_back_to_canonical_writing_and_dispatchin
     assert "已 superseded" in text
     assert "不得假裝工具存在" in text
     assert "使用者明確要求改名" in text
+
+
+def test_spec_authoring_route_accepts_natural_user_phrasings():
+    from tools.phase6_skill_preflight import required_skills_for
+
+    positive = (
+        "寫規格書",
+        "幫我把上面的討論整理成規格書",
+        "整理成工程規格",
+    )
+    for task in positive:
+        assert "寫成規格書" in set(required_skills_for(task=task)), task
+
+    negative = (
+        "幫我寫 README",
+        "整理會議紀錄",
+    )
+    for task in negative:
+        assert "寫成規格書" not in set(required_skills_for(task=task)), task
