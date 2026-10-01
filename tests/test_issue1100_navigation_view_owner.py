@@ -127,3 +127,22 @@ def test_part_selector_and_add_menu_projection_are_owned_by_navigation_view_adap
 def test_bridge_loc_ratchets_below_6100_after_part_selector_extraction():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 6100, f"Bridge regrew past #1100 part-selector ratchet: {loc}"
+
+def test_navigation_view_owner_projects_corner_and_assembly_modes_without_reverse_authority():
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    for name in ("hide_corner_data_canvas", "show_corner_data_mode", "project_assembly_mode"):
+        assert f"def {name}(" in adapter_source
+    bridge_tree = ast.parse(BRIDGE.read_text(encoding="utf-8"))
+    funcs = {node.name: node for node in bridge_tree.body if isinstance(node, ast.FunctionDef)}
+    assert (funcs["_phase6_hide_corner_data_canvas"].end_lineno - funcs["_phase6_hide_corner_data_canvas"].lineno + 1) <= 8
+    assert (funcs["_phase6_show_corner_data"].end_lineno - funcs["_phase6_show_corner_data"].lineno + 1) <= 16
+    show_assembly = ast.unparse(funcs["_phase6_show_assembly"])
+    assert "_phase6_manufacturing_state_signature" in show_assembly
+    assert "_save_current_part" in show_assembly
+    assert "_navigation_view_project_assembly_mode" in show_assembly
+
+
+def test_bridge_loc_ratchets_below_6050_after_mode_projection_extraction():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 6050, f"Bridge regrew past #1100 mode-projection ratchet: {loc}"
+
