@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
@@ -58,9 +58,22 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Create exact tested Issue #1062 work branch after Drive root freeze",
-    "kind": "START_BRANCH"
+    "args": {
+      "base_sha": "0a08e589ad4b6bebdd5d4abe49eb23bda3a30d6d",
+      "delete_paths": [],
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "tests/process/test_flow_v2_path_reservation.py",
+        "tests/process/test_issue892_flow_v2_production_transaction.py",
+        "tests/process/test_issue899_push_transaction_ingress.py",
+        "tools/control_transaction.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/control_transaction_request_ingress.py"
+      ]
+    },
+    "display": "Reserve stale-execution reset implementation paths in canonical root",
+    "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -77,21 +90,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_RELEASED",
+  "semantic_state": "STALE_EXECUTION_RESET_PREPARED",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "ef76c7a7876dc97d516b4cf4cdb48113b37da638",
+  "target_sha": "0a08e589ad4b6bebdd5d4abe49eb23bda3a30d6d",
   "transaction": {
-    "expected_fingerprint": "73d9ed6d4de65ebfff50d61f170415f821a27a3d89bba417a3efddce8a3c13b1",
-    "id": "gha:36854730958:1062:ACQUIRE:10",
+    "expected_fingerprint": "52a840c8bc7fb632b1114f60a141ddf6050fea87d936d4439471a3ffe66d2f97",
+    "id": "gha:36854901678:1062:RECONCILE:11",
     "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-reset.20261001T1852+08",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T11:20:45Z",
+  "updated_at": "2026-10-01T11:22:15Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
