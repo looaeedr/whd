@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "8e35610dbb9d7176db9a9048b9952dd1069876a2",
   "issue": 1123,
   "lane_id": "chatgpt.flowv2.work0",
@@ -37,10 +37,10 @@
   },
   "next_action": {
     "args": {
-      "blocker_kind": "EXTERNAL_DEPENDENCY"
+      "candidate_commit_sha": "6672e2901461a86c3a21748274f28925a94d2228"
     },
-    "display": "Wait only for #1062 to release fold_designer_bridge.py, then expand #1123 reservation",
-    "kind": "WAIT_EXTERNAL"
+    "display": "Apply final exact-tested #1123 Bridge commit",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -57,7 +57,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_IMPLEMENTING_FINAL_BRIDGE_SLICE",
+  "semantic_state": "ROOT_TESTS_GREEN_DIFF_FROZEN_FINAL",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "cf667f3fa89b8bff846d9a3327f0cb6e7b29edf1",
@@ -65,13 +65,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
   "transaction": {
-    "expected_fingerprint": "6b00bd1af0b95f6387bf1e322b4205873af7be9a24a97a4fb0c01c7fd6b1fa38",
-    "id": "gha:36895806721:1123:RESERVE_PATHS:9",
+    "expected_fingerprint": "ead0f6a3d9aa6cc78cf4567a654dee008dffb800b6acad4365779b888a45fc51",
+    "id": "gha:36897031437:1123:RECONCILE:10",
     "invocation_identity": "chatgpt.flowv2.work0.issue1123.bridge-final",
-    "kind": "RESERVE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T16:57:44Z",
+  "updated_at": "2026-10-01T17:07:54Z",
   "version": 2,
   "work_branch": "refactor/issue1123-assembly-relief-state-owner-20261001"
 }
