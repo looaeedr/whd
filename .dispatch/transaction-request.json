@@ -1,40 +1,31 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-stage2-reconcile-product-scope-20261001T2249+08",
+  "request_id": "issue1062-stage2-reserve-product-batch1-20261001T2251+08",
   "issue": 1062,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1062.stage2.20261001T2245+08",
-  "expected_coord_head": "414a949f3799ef675b0c5ddc3e0ff659d10f044c",
-  "expected_generation": 20,
+  "expected_coord_head": "698579cfc649cca6af51a5dfb9c0a5793a472b9c",
+  "expected_generation": 21,
   "effect": {
-    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
-    "observed_head_sha": "872d95000539883636eeed86908882a6020da7f7",
-    "observed_target_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
-    "semantic_state": "STAGE2_PRODUCT_REGRESSION_READY",
-    "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {
-        "target_branch": "cleanup/2d-3d-sync",
-        "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
-        "write_paths": [
-          "tests/test_issue124_structure_tree.py",
-          "tests/test_issue163_unfold_workspace_layout.py",
-          "tests/test_issue186_sheetmetal_selector_visibility.py",
-          "tests/test_issue335_top_toolbar.py",
-          "tests/test_issue343_t8_visual_remediation.py",
-          "tests/test_issue367_t3_project_persistence_owner.py",
-          "tests/test_issue430_single_host_red.py",
-          "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
-          "tests/test_issue96_corner_data_selection_lifecycle.py",
-          "tests/test_issue98_existing_2d_capability_migration.py"
-        ],
-        "delete_paths": []
-      },
-      "display": "Reserve first #1062 product-regression batch"
-    }
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
+    "write_paths": [
+      "tests/test_issue124_structure_tree.py",
+      "tests/test_issue163_unfold_workspace_layout.py",
+      "tests/test_issue186_sheetmetal_selector_visibility.py",
+      "tests/test_issue335_top_toolbar.py",
+      "tests/test_issue343_t8_visual_remediation.py",
+      "tests/test_issue367_t3_project_persistence_owner.py",
+      "tests/test_issue430_single_host_red.py",
+      "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
+      "tests/test_issue96_corner_data_selection_lifecycle.py",
+      "tests/test_issue98_existing_2d_capability_migration.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "STAGE2_PRODUCT_REGRESSION_PATHS_RESERVED"
   },
-  "purpose": "Stage 2 only: retarget #1062 to current cleanup and switch continuation from stale governance scope to the first product regression batch.",
+  "purpose": "Stage 2 product regression batch 1 only. Reserve the ten historical/current-oracle test paths before any root mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
