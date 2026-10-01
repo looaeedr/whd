@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
-  "head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
+  "generation": 9,
+  "head_sha": "1a43141b105f4d8ebd1fe6f54775035d67870b6f",
   "issue": 1077,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -38,11 +38,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "work_branch": "governance/issue1077-root-local-durability-hardening"
-    },
-    "display": "Apply preserved exact tested diff after non-overlapping target drift",
-    "kind": "START_BRANCH"
+    "args": {},
+    "display": "Consume completed PR QA for exact tested head",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -59,7 +57,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "REMOTE_QA_READY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
@@ -67,13 +65,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c4d4bab778527d4d199c0d8be6ea549d7b52a962",
   "transaction": {
-    "expected_fingerprint": "937e414761ab450c78a09fdc52b0641655f4eb57b069c57d3c5cdb03fc479fac",
-    "id": "gha:36834710375:1077:RESERVE_PATHS:7",
+    "expected_fingerprint": "5c15e4fa8287dd3604c10b543701c98dcbe4c7881d411f6c64852ddde0f7eda9",
+    "id": "gha:36837018969:1077:RECONCILE:8",
     "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0740Z",
-    "kind": "RESERVE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T08:11:17Z",
+  "updated_at": "2026-10-01T08:33:36Z",
   "version": 2,
   "work_branch": "governance/issue1077-root-local-durability-hardening"
 }
