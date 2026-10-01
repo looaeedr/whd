@@ -4243,76 +4243,39 @@ def _phase6_on_assembly_part_visibility_changed(self):
 
 
 def _phase6_install_assembly_panel_aliases(self, owner):
-    """Expose rebuild-safe legacy handles for existing callers/tests."""
-    self.assembly_parts_panel = owner.host
-    self.assembly_parts_canvas = owner.canvas
-    self.assembly_parts_scrollbar = owner.scrollbar
-    self.assembly_parts_content = owner.content
-    self._assembly_parts_window = owner.window_id
-
-    self.assembly_part_visible_vars = owner.visible_vars
-    self.assembly_part_corner_vars = owner.corner_vars
-    self.assembly_part_formed_vars = owner.formed_vars
-    self.assembly_part_blank_vars = owner.blank_vars
-    self.assembly_part_checkbuttons = owner.checkbuttons
-    self.assembly_part_sections = owner.sections
-    self.assembly_part_detail_frames = owner.detail_frames
-    self.assembly_part_detail_buttons = owner.detail_buttons
-    self.assembly_presentation_group_sections = owner.group_sections
-    self.assembly_presentation_group_detail_frames = owner.group_detail_frames
-    self.assembly_presentation_group_detail_buttons = owner.group_detail_buttons
-    self._phase6_assembly_part_detail_open_stash = owner.detail_open_stash
-    self._phase6_assembly_presentation_group_open_stash = owner.group_open_stash
-
-    self.assembly_box_body_piece_labels = owner.box_piece_labels
-    self.assembly_box_body_piece_sections = owner.box_piece_sections
-    self.assembly_box_body_piece_visible_vars = owner.box_piece_visible_vars
-    self.assembly_box_body_piece_checkbuttons = owner.box_piece_checkbuttons
-    self.assembly_box_body_piece_detail_frames = owner.box_piece_detail_frames
-    self.assembly_box_body_piece_detail_buttons = owner.box_piece_detail_buttons
-    self.assembly_box_body_piece_formed_vars = owner.box_piece_formed_vars
-    self.assembly_box_body_piece_blank_vars = owner.box_piece_blank_vars
-    self.assembly_box_body_piece_corner_vars = owner.box_piece_corner_vars
-    self._phase6_box_body_piece_visibility_stash = owner.box_piece_visibility_stash
-    self._phase6_box_body_piece_detail_open_stash = owner.box_piece_detail_open_stash
+    """Delegate legacy alias exposure to the AssemblyPanel owner."""
+    return owner.install_legacy_aliases(self)
 
 
 _phase6_assembly_presentation_groups = legacy_assembly_presentation_groups
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
-    """Return the part-key topology currently represented by assembly rows."""
-    return tuple(dict(getattr(self, "assembly_part_visible_vars", {}) or {}))
-
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.represented_part_keys() if owner is not None else ()
 
 def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
-    """Rebuild assembly rows only when authoritative workspace topology changed."""
-    if getattr(self, "assembly_parts_panel", None) is None:
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is None:
         return False
-    current = _phase6_current_assembly_panel_part_keys(self)
-    wanted = _phase6_operator_part_selector_keys(
-        getattr(_designer_workspace(self), "available_parts", ()) or ()
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    return owner.refresh_if_topology_changed(
+        self,
+        getattr(_designer_workspace(self), "available_parts", ()) or (),
+        selector_keys=_phase6_operator_part_selector_keys,
+        label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
     )
-    if current == wanted:
-        return False
-    _phase6_refresh_assembly_parts_panel(self)
-    return True
 
 
 def _phase6_refresh_assembly_parts_panel(self):
     owner = getattr(self, "_phase6_assembly_panel_owner", None)
     if owner is None:
-        return
-
+        return None
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    model = build_assembly_presentation_model(
+    return owner.render_available_parts(
+        self,
         getattr(_designer_workspace(self), "available_parts", ()) or (),
         label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
     )
-    owner.render(model)
-
-    # The host widget is recreated with the logical BoxBody row. Registry and
-    # stash aliases remain the same long-lived panel-owned dict objects.
-    self.assembly_box_body_piece_host = owner.box_body_piece_host
 
 
 # Patch methods onto the FIX10 class instead of touching the user's original file.
