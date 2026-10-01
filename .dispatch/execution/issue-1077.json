@@ -12,19 +12,38 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
   "issue": 1077,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1077",
-    "kind": "ACQUIRE"
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-01T05:05:46Z",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0440Z",
+    "token": "lease:1077:36816963332:1"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "mutation_scope": {
+    "base_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_issue1045_post_integration_durability.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/execution_invocation_exit.py",
+      "tools/root_local_first_gate.py"
+    ]
+  },
+  "next_action": {
+    "args": {
+      "work_branch": "governance/issue1077-root-local-durability-hardening"
+    },
+    "display": "Start exact tested Issue #1077 work branch after root freeze",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d47ce7159e3b0eead79ab6b6605deedf2edb3316",
-  "transaction": null,
-  "updated_at": "2026-10-01T04:39:08Z",
+  "transaction": {
+    "expected_fingerprint": "20fd2bdfc822c9a70ec25fd218916cc7bdc7d9f08dafc51d74efb0cb03aef204",
+    "id": "gha:36816963332:1077:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1077.20261001T0440Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-01T04:50:46Z",
   "version": 2,
   "work_branch": "governance/issue1077-root-local-durability-hardening"
 }
