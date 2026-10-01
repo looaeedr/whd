@@ -371,6 +371,6 @@ CURRENT deep owner：`phase6_assembly_relief_state.py`。
 
 - persisted `assembly_relief` 的 deterministic source identity、Fold-profile fingerprint、family-structure fingerprint、Certified rule revision validity、atomic Head/Tail serialization與 replay eligibility 由此 owner 集中。
 - `gui_modules/application/manufacturing_adapter.py` 只保留 live context collection + narrow delegate；不得再內嵌 `certified_rule_revision_exists`、Registry rule identity比對或第二套 profile/source matching。
-- Bridge 保留 geometry solve / live app collection / compatibility effect seam，不擁有 persisted contract truth。Bridge 既有 serialization/source-match helper 在單一 Bridge writer lineage 可修改時必須收斂成 delegate；不得為了抽 LOC 建第二 solver 或第二 Registry owner。
+- Bridge 保留 geometry solve / live app collection / compatibility effect seam，不擁有 persisted contract truth。Bridge 的 persisted source-signature / serialization / source-match helper 已收斂成同一 neutral owner 的 delegate；不得為了抽 LOC 建第二 solver 或第二 Registry owner。
 - 此 owner 不 import Tk / `gui` / `fold_designer_bridge.py`，也不擁有 collision/backprojection、Certified formula、manufacturing geometry或 project-file transport。
 - 永久 anti-regrowth：save 與 reload 必須消費同一 persisted-relief contract owner；reverse-import Bridge=0、duplicate persisted contract owner=0。

@@ -53,6 +53,12 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
     assert payload["execution_modes"]["SCHEDULER_LANE"].endswith("ROOT_WORKSPACE_HANDOFF")
     assert payload["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
+    fast_path = payload["orchestration_fast_path"]
+    assert fast_path["outer_action_gate"] == "tools/root_local_first_gate.py::assert_outer_primary_action"
+    assert fast_path["outer_primary_action_policy"] == "PHASE_OUTCOME_OR_REAL_BLOCKER_ONLY"
+    assert fast_path["control_plane_event_disposition"] == "BACKGROUND_CONTINUE_PRIMARY_TASK"
+    assert "RECONCILE" in fast_path["machine_internal_transaction_kinds"]
+    assert "EXPIRED_LEASE" in fast_path["background_only_events"]
 
 
 def test_interactive_order_unlocks_only_after_root_green_and_frozen_diff():
@@ -209,7 +215,7 @@ def test_root_local_mirror_points_to_current_drive_v5_identity():
     assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["canonical_filename"] == "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
     assert source["versioned_aliases_must_not_be_current"] is True
-    assert source["canonical_payload_sha256"] == "252a150bbc0099f27ab9dfb9796e6dcc31a17fe42106d2cb26c2764fe2d5f767"
+    assert source["canonical_payload_sha256"] == "1304ea1018baa592f11aa8c438d502415e1d23a6405e71c658479017a865fc1b"
     assert source["drive_file_id"] != "1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L"
     assert source["drive_file_id"] != "1p_C-NaNML03xUYxxCjUsisTbpoFv9Zgp"
 

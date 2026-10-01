@@ -214,6 +214,6 @@ CURRENT owner是 Flow v2 ExecutionRecord + atomic transaction + generation fenci
 - CURRENT persisted-state contract owner：`phase6_assembly_relief_state.py`。
 - Owner 只負責 deterministic profile/source fingerprint、family-structure fingerprint、Certified rule revision replay validity、persisted source matching、atomic Head/Tail state construction，以及已保存 CUTTING polygon 的 replay eligibility/materialization。
 - `gui_modules/application/manufacturing_adapter.py` 只蒐集 current manufacturing/workspace context 並 delegate replay 判定；不得重新實作 Registry revision / source identity / profile equality 規則。
-- `fold_designer_bridge.py` 的 runtime solve / workspace collection 仍是 bounded application/effect seam；當 Bridge writer lineage 可用時，其 persisted serialization/source-match implementation 必須 delegate 到同一 owner，不得形成第二份 contract。
+- `fold_designer_bridge.py` 的 runtime solve / workspace collection 仍是 bounded application/effect seam；persisted source-signature / serialization / source-match implementation 已 delegate 到同一 owner，不得形成第二份 contract。
 - `ae_engine.certified_relief_registry` 仍唯一擁有 Certified formula/rule/revision authority；`phase6_assembly_relief_state.py` 只驗 current revision 是否仍可 replay，不得建立或修改 Registry rule。
 - collision/backprojection、manufacturing geometry、placement、Final Material 與 DXF geometry authority不在此 owner；validation evidence不得回灌製造公式。

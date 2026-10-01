@@ -8,6 +8,7 @@ from shapely.geometry import box
 
 from phase6_assembly_relief_state import (
     RELIEF_CONTRACT_VERSION,
+    build_current_source_signature,
     build_persisted_relief_state,
     committed_relief_cuts,
     relief_profile_fingerprint,
@@ -18,6 +19,7 @@ from phase6_assembly_relief_state import (
 ROOT = Path(__file__).resolve().parents[1]
 OWNER = ROOT / "phase6_assembly_relief_state.py"
 ADAPTER = ROOT / "gui_modules" / "application" / "manufacturing_adapter.py"
+BRIDGE = ROOT / "fold_designer_bridge.py"
 
 
 def _source(*, graph="G1", structure=None, family="金庫型", assembly_type="INSERT"):
@@ -55,6 +57,7 @@ def test_neutral_owner_exists_without_bridge_gui_or_solver_imports():
         "structure_fingerprint",
         "source_matches_current",
         "committed_relief_cuts",
+        "build_current_source_signature",
         "build_persisted_relief_state",
     } <= names
     assert "import fold_designer_bridge" not in text
@@ -71,9 +74,52 @@ def test_manufacturing_adapter_delegates_replay_contract_to_neutral_owner():
     func = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_resolved_committed_assembly_relief_cuts")
     body = ast.get_source_segment(text, func)
     assert body is not None
+    assert "build_current_source_signature(" in body
     assert "committed_relief_cuts(" in body
     assert "certified_rule_revision_exists" not in body
+    assert "RELIEF_CONTRACT_VERSION" not in body
+    assert "structure_fingerprint" not in body
     assert "registry_rules" not in body
+
+
+def test_bridge_delegates_persisted_contract_to_neutral_owner():
+    text = BRIDGE.read_text(encoding="utf-8")
+    tree = ast.parse(text)
+    funcs = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+
+    source_body = ast.get_source_segment(text, funcs["_phase6_current_relief_source_signature"])
+    match_body = ast.get_source_segment(text, funcs["_phase6_relief_source_matches_current"])
+    serialize_body = ast.get_source_segment(text, funcs["_phase6_serialize_assembly_relief_state"])
+    fingerprint_body = ast.get_source_segment(text, funcs["_phase6_relief_profile_fingerprint"])
+
+    assert source_body is not None and "build_current_source_signature(" in source_body
+    assert match_body is not None and "source_matches_current(" in match_body
+    assert serialize_body is not None and "build_persisted_relief_state(" in serialize_body
+    assert fingerprint_body is not None and "relief_profile_fingerprint(" in fingerprint_body
+    for body in (source_body, match_body, serialize_body, fingerprint_body):
+        assert "certified_rule_revision_exists" not in body
+        assert "RELIEF_CONTRACT_VERSION" not in body
+        assert "structure_fingerprint" not in body
+        assert "registry_rules" not in body
+
+
+def test_source_signature_builder_is_shared_and_deterministic():
+    source = build_current_source_signature(
+        scalar_source={"w": 100, "t": 2, "assembly_type": "INSERT"},
+        joint_graph_fingerprint="G1",
+        structure_state={"mode": "three_piece"},
+        cabinet_family="金庫型",
+        formed_left=29,
+        formed_right=29,
+        box_body_profile=[{"phase6_key": "fw", "len": 25}],
+        part_profiles={"head": {"X": [{"phase6_key": "w", "len": 100}]}},
+    )
+    assert source["relief_contract_version"] == RELIEF_CONTRACT_VERSION
+    assert source["joint_graph_fingerprint"] == "G1"
+    assert source["cabinet_family"] == "金庫型"
+    assert source["box_body_formed_fw"] == {"left": 29.0, "right": 29.0}
+    assert source["assembly_type"] == "INSERT"
+    assert source["family_structure_fingerprint"] == structure_fingerprint({"mode": "three_piece"})
 
 
 def test_profile_fingerprint_is_stable_and_normalized():

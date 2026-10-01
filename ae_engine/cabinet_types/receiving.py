@@ -468,6 +468,13 @@ def apply_family_defaults(snapshot):
         frame_width=float(result["fw"]),
         layout_scope=DEFAULT_DOOR_LAYOUT_SCOPE,
     )
+    from ae_engine.receiving_layout import new_receiving_layout
+    result["receiving_layout"] = new_receiving_layout(
+        width=result["w"],
+        height=result["h"],
+        depth=result["d"],
+        back_panel_mode="FULL",
+    )
     return result
 
 

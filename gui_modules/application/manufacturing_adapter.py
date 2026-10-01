@@ -41,11 +41,10 @@ from phase6_fold_profiles import (
     profile_to_fold_segments,
 )
 from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-from ae_engine.certified_relief_registry import RELIEF_CONTRACT_VERSION
 from phase6_assembly_relief_state import (
+    build_current_source_signature,
     committed_relief_cuts,
     relief_profile_fingerprint,
-    structure_fingerprint,
 )
 
 
@@ -253,26 +252,25 @@ def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     family_getter = getattr(self, "_baseline_source_model", None)
     cabinet_family = str(family_getter() if callable(family_getter) else "")
 
-    current_source = {
-        "relief_contract_version": RELIEF_CONTRACT_VERSION,
-        "joint_graph_fingerprint": graph_fp,
-        "family_structure_fingerprint": structure_fingerprint(structure_state),
-        "cabinet_family": cabinet_family,
-        "box_body_formed_fw": {
-            "left": None if formed_left is None else float(formed_left),
-            "right": None if formed_right is None else float(formed_right),
-        },
-        "box_body_profile": deepcopy(list(body_profile or ())),
-        "part_profiles": {str(key): deepcopy(dict(stored_profiles or {}))},
+    scalar_source = {
+        name: float(val.get(name, default))
+        for name, default in (
+            ("w", 0.0), ("h", 0.0), ("d", 0.0), ("t", 0.0), ("fw", 0.0),
+            ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
+            ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
+            ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
+        )
     }
-    for name, default in (
-        ("w", 0.0), ("h", 0.0), ("d", 0.0), ("t", 0.0), ("fw", 0.0),
-        ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
-        ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
-        ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
-    ):
-        current_source[name] = float(val.get(name, default))
-
+    current_source = build_current_source_signature(
+        scalar_source=scalar_source,
+        joint_graph_fingerprint=graph_fp,
+        structure_state=structure_state,
+        cabinet_family=cabinet_family,
+        formed_left=formed_left,
+        formed_right=formed_right,
+        box_body_profile=body_profile,
+        part_profiles={str(key): deepcopy(dict(stored_profiles or {}))},
+    )
     return committed_relief_cuts(state, str(key), current_source)
 
 def _end_cap_part_spec(self, val, *, is_tail):

@@ -56,6 +56,46 @@ def structure_fingerprint(structure_state) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def build_current_source_signature(
+    *,
+    scalar_source,
+    joint_graph_fingerprint: str,
+    structure_state,
+    cabinet_family: str,
+    formed_left,
+    formed_right,
+    box_body_profile,
+    part_profiles: Mapping[str, object],
+):
+    """Build the persisted/replay mechanical source identity from caller-collected context.
+
+    Callers own live application/workspace reads.  This neutral owner owns the
+    deterministic persisted contract shape so save and reload cannot drift.
+    """
+    source = dict(scalar_source or {})
+    scalar_keys = (
+        "w", "h", "d", "t", "fw", "zl1", "zl2", "zr1", "zr2",
+        "yl1", "yr1", "ytop1", "ybottom1", "assembly_type",
+    )
+    result = {key: deepcopy(source.get(key)) for key in scalar_keys if key in source}
+    result.update({
+        "relief_contract_version": RELIEF_CONTRACT_VERSION,
+        "joint_graph_fingerprint": str(joint_graph_fingerprint or ""),
+        "family_structure_fingerprint": structure_fingerprint(structure_state),
+        "cabinet_family": str(cabinet_family or ""),
+        "box_body_formed_fw": {
+            "left": None if formed_left is None else float(formed_left),
+            "right": None if formed_right is None else float(formed_right),
+        },
+        "box_body_profile": deepcopy(list(box_body_profile or ())),
+        "part_profiles": {
+            str(key): deepcopy(value or {})
+            for key, value in dict(part_profiles or {}).items()
+        },
+    })
+    return result
+
+
 def _same_number(left, right, *, tolerance: float = 1e-6) -> bool:
     try:
         return abs(float(left) - float(right)) <= tolerance
