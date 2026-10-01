@@ -11,6 +11,7 @@ from tools.execution_record import (
     LeaseState,
     RunState,
     TransactionState,
+    MutationScopeState,
     ExecutionRecordError,
     execution_record_from_payload,
 )
@@ -283,3 +284,57 @@ def test_terminal_exit_contract_forbids_green_boundary_yield():
     assert payload["terminal_tail_actions"] == ["MERGE", "FINALIZE"]
     assert payload["host_boundary_yield_forbidden_in_terminal_tail"] is True
     assert payload["terminal_tail_exit_decision"] == "CONTINUE_TERMINAL_TAIL"
+
+
+def _complete_source_manifest_for_done():
+    return {
+        "source_sha": "c" * 40,
+        "tree_sha": "d" * 40,
+        "durable_snapshot_base_sha": "c" * 40,
+        "durable_snapshot_base_tree_sha": "d" * 40,
+        "durable_snapshot_file_id": "drive-file",
+        "durable_snapshot_name": "snapshot.zip",
+        "durable_snapshot_status": "CURRENT_EXACT_HEAD",
+        "export_writeback_status": "COMPLETE",
+        "post_integration_export_run_id": 1,
+        "post_integration_export_trigger_head_sha": "c" * 40,
+        "post_integration_export_artifact_id": 2,
+        "post_integration_export_artifact_digest": "sha256:" + "e" * 64,
+        "durable_snapshot_sha256": "f" * 64,
+        "durable_snapshot_readback": "VERIFIED",
+        "root_local_gate_json_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+        "root_local_gate_json_file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV",
+    }
+
+
+def _repository_content_done_record():
+    return replace(
+        _record("DONE"),
+        mutation_scope=MutationScopeState(
+            target_branch="cleanup/2d-3d-sync",
+            base_sha="a" * 40,
+            write_paths=("AGENTS.md",),
+            delete_paths=(),
+            reservation_state="RELEASED",
+        ),
+        closure=ClosureState(merged_sha="c" * 40, issue_closed=True, released_at="2026-09-28T01:50:00Z"),
+        target_sha="c" * 40,
+    )
+
+
+def test_repository_content_done_cannot_return_before_physical_cleanup_evidence():
+    result = classify_invocation_exit(_repository_content_done_record(), invocation_identity=INV, now=NOW)
+    assert result.decision == "CONTINUE_POST_INTEGRATION_DURABILITY"
+    assert result.may_return is False
+
+
+def test_repository_content_done_returns_only_after_manifest_and_workspace_archive():
+    result = classify_invocation_exit(
+        _repository_content_done_record(),
+        invocation_identity=INV,
+        now=NOW,
+        source_manifest=_complete_source_manifest_for_done(),
+        workspace_location="DONE",
+    )
+    assert result.decision == "TASK_TERMINAL"
+    assert result.may_return is True
