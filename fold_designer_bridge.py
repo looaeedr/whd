@@ -5302,40 +5302,17 @@ def _phase6_refresh_corner_data_back_panel_mode_control(self):
     )
 
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
-    """Refresh the corner-data list as a pure View projection of workspace parts."""
+    """Delegate Corner Data parts-panel presentation to the existing view owner."""
     keys = _phase6_corner_data_part_keys(self)
-    self.corner_data_part_keys = keys
-    selected = getattr(self, "_phase6_corner_data_selected_part_key", None)
-    if selected is not None:
-        _phase6_select_corner_data_part(self, selected)
-    panel = getattr(self, "corner_data_panel", None)
-    if panel is None or not hasattr(panel, "winfo_children"):
-        return keys
-
-    for child in tuple(panel.winfo_children()):
-        child.destroy()
-    self.corner_data_back_panel_mode_control = None
-    self.corner_data_back_panel_mode_selector = None
-
-    self.corner_data_part_rows = {}
-    self.corner_data_part_buttons = {}
-    self.corner_data_part_depths = {}
-    navigation_rows = _phase6_corner_data_navigation_rows(self)
-    for key, depth in navigation_rows:
-        row = original.ttk.Frame(panel)
-        row.pack(fill=original.tk.X, pady=(0, 4), padx=(18, 0) if depth else 0)
-        button = original.ttk.Button(
-            row,
-            text=_phase6_part_label(key),
-            command=lambda k=key: _phase6_select_corner_data_part(self, k),
-        )
-        button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
-        self.corner_data_part_rows[key] = row
-        self.corner_data_part_buttons[key] = button
-        self.corner_data_part_depths[key] = depth
-    _phase6_refresh_corner_data_back_panel_mode_control(self)
-    return keys
-
+    return _phase6_corner_data_view(self).refresh_parts_panel(
+        self,
+        keys=keys,
+        selected=getattr(self, "_phase6_corner_data_selected_part_key", None),
+        navigation_rows=_phase6_corner_data_navigation_rows(self),
+        label_for=_phase6_part_label,
+        on_select=lambda key: _phase6_select_corner_data_part(self, key),
+        on_refresh_back_panel_mode=lambda: _phase6_refresh_corner_data_back_panel_mode_control(self),
+    )
 
 def _phase6_on_corner_data_mousewheel(self, event):
     """Apply viewport zoom only; authoritative manufacturing geometry is untouched."""
@@ -5355,75 +5332,19 @@ def _phase6_on_corner_data_mousewheel(self, event):
     return "break"
 
 def _phase6_prepare_corner_data_canvas(self):
-    """Install the 2D canvas as a View effect using adapter visibility policy."""
-    renderer = getattr(self, "renderer", None)
-    mpl_canvas = getattr(renderer, "canvas", None)
-    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
-    if not callable(get_widget):
-        return None
-    mpl_widget = get_widget()
-    canvas = getattr(self, "corner_data_canvas", None)
-    try:
-        alive = canvas is not None and bool(canvas.winfo_exists())
-    except Exception:
-        alive = canvas is not None
-    info_var = getattr(self, "corner_data_info_var", None)
-    if info_var is None:
-        info_var = original.tk.StringVar(value="")
-        self.corner_data_info_var = info_var
-    info_label = getattr(self, "corner_data_info_label", None)
-    try:
-        info_alive = info_label is not None and bool(info_label.winfo_exists())
-    except Exception:
-        info_alive = info_label is not None
-    if not info_alive:
-        info_label = original.ttk.Label(
-            mpl_widget.master,
-            textvariable=self.corner_data_info_var,
-            justify=original.tk.LEFT,
-            anchor=original.tk.W,
-            wraplength=1100,
-            font=("Microsoft JhengHei", 11, "bold"),
-        )
-        self.corner_data_info_label = info_label
-    if not alive:
-        canvas = original.tk.Canvas(
-            mpl_widget.master,
-            bg=WHD_THEME["corner_data_canvas"],
-            highlightthickness=0,
-            takefocus=False,
-        )
-        self.corner_data_canvas = canvas
-        canvas._phase6_unfold_zoom = 1.0
-        canvas.bind(
-            "<Configure>",
-            lambda _event: (
-                _phase6_refresh_corner_data_unfold_view(self)
-                if str(getattr(self, "_phase6_3d_display_mode", "") or "")
-                == "corner_data"
-                else None
-            ),
-        )
-        canvas.bind(
-            "<MouseWheel>",
-            lambda event: _phase6_on_corner_data_mousewheel(self, event),
-        )
-        canvas.bind(
-            "<Button-4>",
-            lambda event: _phase6_on_corner_data_mousewheel(self, event),
-        )
-        canvas.bind(
-            "<Button-5>",
-            lambda event: _phase6_on_corner_data_mousewheel(self, event),
-        )
-    plan = _phase6_corner_data_view(self).canvas_visibility_plan(True)
-    if not plan["mpl_canvas"] and mpl_widget.winfo_manager():
-        mpl_widget.pack_forget()
-    if plan["info_label"] and not info_label.winfo_manager():
-        info_label.pack(fill=original.tk.X, padx=8, pady=(6, 2))
-    if plan["corner_canvas"] and not canvas.winfo_manager():
-        canvas.pack(fill=original.tk.BOTH, expand=True)
-    return canvas
+    """Delegate Corner Data canvas lifecycle to the existing view owner."""
+    view = _phase6_corner_data_view(self)
+    return view.prepare_canvas(
+        self,
+        canvas_bg=WHD_THEME["corner_data_canvas"],
+        on_configure=lambda _event: (
+            _phase6_refresh_corner_data_unfold_view(self)
+            if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+            else None
+        ),
+        on_mousewheel=lambda event: _phase6_on_corner_data_mousewheel(self, event),
+        visibility_plan=view.canvas_visibility_plan(True),
+    )
 
 def _phase6_hide_corner_data_canvas(self):
     """Restore Matplotlib according to pure View visibility policy."""
