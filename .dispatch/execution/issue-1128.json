@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1128,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
+  "head_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire #1128 and reserve derived-sync decomposition scope"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": 1084,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-02:continue-6000-line-bridge-decomposition",
+      "authority_fingerprint": "0c62ded1300dd1748a8e8d4ae00e66469257a8dd8cb0b50bf2bd9b306528486b"
+    }
+  ],
+  "updated_at": "2026-10-01T23:11:00Z"
+}
