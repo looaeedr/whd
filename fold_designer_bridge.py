@@ -76,6 +76,10 @@ from phase6_settings_profile_projection import (
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_panel import build_registry_choice
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
+from phase6_navigation_view_adapter import (
+    refresh_structure_tree as _navigation_view_refresh_structure_tree,
+    refresh_box_body_piece_selector as _navigation_view_refresh_box_body_piece_selector,
+)
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
     submit_fold_designer_update_intent,
@@ -4820,59 +4824,15 @@ def _phase6_structure_tree_visibility_var(self, key):
 
 
 def _phase6_refresh_structure_tree(self):
-    """Rebuild the CAD navigation projection from current authoritative identities."""
-    tree = getattr(self, "structure_tree", None)
-    if tree is None:
-        return ()
-    if bool(getattr(self, "_phase6_structure_tree_guard", False)):
-        return ()
-
-    self._phase6_structure_tree_guard = True
-    try:
-        roots = tuple(tree.get_children(""))
-        if roots:
-            tree.delete(*roots)
-        tree.insert("", "end", iid="mode:assembly", text="組合體", values=("",), open=True)
-        tree.insert("", "end", iid="mode:corner_data", text="截角資料", values=("",), open=True)
-        workspace = _designer_workspace(self)
-        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-        rows = _phase6_structure_tree_rows(getattr(workspace, "available_parts", ()) or ())
-        for key, parent_key in rows:
-            iid = f"part:{key}"
-            parent_iid = f"part:{parent_key}" if parent_key else ""
-            visible_var = _phase6_structure_tree_visibility_var(self, key)
-            visible = True if visible_var is None else bool(visible_var.get())
-            tree.insert(
-                parent_iid, "end", iid=iid,
-                text=_phase6_part_label(key, snapshot=snapshot),
-                values=("顯示" if visible else "隱藏",),
-                tags=(() if visible else ("hidden",)),
-                open=(key == "box_body"),
-            )
-        mode = str(getattr(self, "_phase6_3d_display_mode", "assembly") or "assembly")
-        active = str(getattr(workspace, "active_part", "") or "")
-        selected_iid = (
-            "mode:assembly" if mode == "assembly"
-            else "mode:corner_data" if mode == "corner_data"
-            else f"part:{active}" if active else ""
-        )
-        if selected_iid and tree.exists(selected_iid):
-            self._phase6_structure_tree_programmatic_iid = selected_iid
-            tree.selection_set(selected_iid)
-            tree.focus(selected_iid)
-            tree.see(selected_iid)
-        return rows
-    finally:
-        # ttk.Treeview.selection_set() posts <<TreeviewSelect>> asynchronously.
-        # Keep the guard alive through the queued event; dropping it here
-        # creates select -> refresh -> selection_set -> select recursion.
-        try:
-            tree.after_idle(
-                lambda: setattr(self, "_phase6_structure_tree_guard", False)
-            )
-        except Exception:
-            self._phase6_structure_tree_guard = False
-
+    """Compatibility wrapper for the dedicated navigation Tk view owner."""
+    return _navigation_view_refresh_structure_tree(
+        self,
+        project_rows=_phase6_structure_tree_rows,
+        label_for_key=lambda key, snapshot=None: _phase6_part_label(
+            key, snapshot=snapshot
+        ),
+        visibility_var=lambda key: _phase6_structure_tree_visibility_var(self, key),
+    )
 
 def _phase6_on_structure_tree_select(self, _event=None):
     if bool(getattr(self, "_phase6_structure_tree_guard", False)):
@@ -4929,72 +4889,18 @@ def _phase6_on_structure_tree_click(self, event):
     return "break"
 
 def _phase6_refresh_box_body_piece_selector(self):
-    """Keep one logical 箱身 entry while exposing physical children as nested tabs."""
-    notebook = getattr(self, "box_body_piece_selector", None)
-    if notebook is None:
-        return ()
-
-    wanted = _phase6_box_body_piece_keys(
-        getattr(_designer_workspace(self), "available_parts", ()) or ()
-    )
-    current = tuple(getattr(self, "_phase6_box_body_piece_tab_keys", ()) or ())
-    if current != wanted:
-        self._phase6_box_body_piece_tab_guard = True
-        try:
-            for tab_id in tuple(notebook.tabs()):
-                try:
-                    widget = self.root.nametowidget(tab_id)
-                except Exception:
-                    widget = None
-                notebook.forget(tab_id)
-                if widget is not None:
-                    try:
-                        widget.destroy()
-                    except Exception:
-                        pass
-            tab_map = {}
-            for key in wanted:
-                frame = original.ttk.Frame(notebook)
-                notebook.add(frame, text=_phase6_part_label(key))
-                tab_map[str(frame)] = key
-            self._phase6_box_body_piece_tab_map = tab_map
-            self._phase6_box_body_piece_tab_keys = wanted
-        finally:
-            self._phase6_box_body_piece_tab_guard = False
-
-    workspace = _designer_workspace(self)
-    active = str(getattr(workspace, "active_part", "") or "")
-    remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-    if active in wanted:
-        desired = active
-        self._phase6_box_body_active_piece_key = active
-    else:
-        projection = _dm7_resolve_navigation(
-            getattr(workspace, "available_parts", ()) or (),
+    """Compatibility wrapper for hidden BoxBody child-tab view projection."""
+    return _navigation_view_refresh_box_body_piece_selector(
+        self,
+        piece_keys=_phase6_box_body_piece_keys,
+        label_for_key=lambda key: _phase6_part_label(key),
+        frame_factory=original.ttk.Frame,
+        resolve_remembered=lambda parts, remembered: _dm7_resolve_navigation(
+            parts,
             NavigationRequest(None, NavigationIntent.RESTORE_CHILD_CONTEXT),
             NavigationMemory(remembered or None),
-        )
-        desired = str(projection.resolved_key or "")
-        self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child
-    if desired:
-        tab_map = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {})
-        target_tab = next(
-            (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),
-            None,
-        )
-        if target_tab is not None and str(notebook.select()) != str(target_tab):
-            self._phase6_box_body_piece_tab_guard = True
-            try:
-                notebook.select(target_tab)
-            finally:
-                self._phase6_box_body_piece_tab_guard = False
-
-    # #124: tabs are retained only as compatibility state. Never expose a
-    # second visible child navigator beside the Structure Tree.
-    if notebook.winfo_manager():
-        notebook.pack_forget()
-    return wanted
-
+        ),
+    )
 
 def _phase6_on_box_body_piece_tab_changed(self, _event=None):
     if bool(getattr(self, "_phase6_box_body_piece_tab_guard", False)):
