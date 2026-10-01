@@ -36,6 +36,124 @@ SCHEDULER_LANE_IDS = {
     "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
 }
 
+ORCHESTRATION_FAST_PATH_SCHEMA = "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1"
+OUTER_VISIBLE_PIPELINE = frozenset({
+    "FRESH_READ",
+    "ROOT_MUTATE",
+    "TARGETED_TEST",
+    "EXACT_DIFF",
+    "POST_PUSH_CI",
+    "MERGE_FINALIZE",
+})
+MACHINE_INTERNAL_CONTROL_ACTIONS = frozenset({
+    "LEASE",
+    "LEASE_RENEW",
+    "ACQUIRE",
+    "RESERVE_PATHS",
+    "RELEASE_PATHS",
+    "CAS_RETRY",
+    "SESSION_REUSE",
+    "RECONCILE",
+    "START_BRANCH",
+    "APPLY_COMMIT",
+    "START_QA",
+    "POLL_QA",
+    "ACCEPT_QA",
+    "CONSUME_QA",
+    "FAIL_QA",
+    "QA_CONSUME",
+    "QA_FAILURE_CONSUME",
+    "MERGE",
+    "SYNC_TARGET",
+    "HANDOFF",
+    "YIELD",
+    "FINALIZE",
+    "FINALIZE_DRAIN",
+})
+BACKGROUND_ONLY_EVENTS = frozenset({
+    "STALE_EXECUTION_RECORD",
+    "EXPIRED_LEASE",
+    "RESERVATION_MISMATCH",
+    "GOVERNANCE_DRIFT",
+    "TEST_RED",
+    "STATUS_QUERY",
+    "PROGRESS_QUERY",
+})
+REAL_ESCALATION_TRIGGERS = frozenset({
+    "USER_EXPLICIT_TASK_CHANGE",
+    "PATH_CONFLICT",
+    "SAME_ISSUE_OTHER_WRITER",
+    "SUBSTANTIVE_TARGET_OVERLAP",
+    "MACHINE_FAIL_CLOSED",
+    "USER_INPUT_REQUIRED",
+})
+
+
+def _event_token(value: object) -> str:
+    return re.sub(r"[^A-Z0-9]+", "_", str(value or "").strip().upper()).strip("_")
+
+
+def classify_outer_orchestration_event(
+    event: object, *, escalation_trigger: object | None = None
+) -> dict[str, object]:
+    """Classify one interactive outer-layer event without promoting control-plane plumbing.
+
+    Low-level Flow v2 transactions and ordinary control-plane anomalies remain
+    session-internal.  A real escalation may be reported to the user, but it does
+    not make a low-level transaction kind a valid outer primary action.
+    """
+
+    token = _event_token(event)
+    if not token:
+        raise ValueError("outer orchestration event must be nonblank")
+    trigger = _event_token(escalation_trigger) if escalation_trigger is not None else ""
+    if trigger and trigger not in REAL_ESCALATION_TRIGGERS:
+        raise ValueError(f"PRIMARY_TASK_SWITCH_FORBIDDEN: {trigger}")
+    if token in MACHINE_INTERNAL_CONTROL_ACTIONS or token in BACKGROUND_ONLY_EVENTS:
+        return {
+            "event": token,
+            "disposition": "BACKGROUND_CONTINUE_PRIMARY_TASK",
+            "outer_visible": False,
+            "primary_task_switch_allowed": False,
+        }
+    if token in OUTER_VISIBLE_PIPELINE:
+        return {
+            "event": token,
+            "disposition": "OUTER_VISIBLE_PHASE",
+            "outer_visible": True,
+            "primary_task_switch_allowed": False,
+        }
+    if token == "REPORT_BLOCKER":
+        if not trigger:
+            raise ValueError("REPORT_BLOCKER requires a real escalation trigger")
+        return {
+            "event": token,
+            "disposition": "REAL_ESCALATION_BLOCKER",
+            "outer_visible": True,
+            "primary_task_switch_allowed": trigger == "USER_EXPLICIT_TASK_CHANGE",
+            "escalation_trigger": trigger,
+        }
+    raise ValueError(f"unknown outer orchestration event: {token}")
+
+
+def is_background_only_outer_event(event: object) -> bool:
+    token = _event_token(event)
+    return token in MACHINE_INTERNAL_CONTROL_ACTIONS or token in BACKGROUND_ONLY_EVENTS
+
+
+def assert_outer_primary_action(
+    event: object, *, escalation_trigger: object | None = None
+) -> dict[str, object]:
+    classified = classify_outer_orchestration_event(
+        event, escalation_trigger=escalation_trigger
+    )
+    if classified["disposition"] == "BACKGROUND_CONTINUE_PRIMARY_TASK":
+        raise ValueError(
+            "GOVERNANCE_MUST_REMAIN_MACHINE_INTERNAL: "
+            f"{classified['event']} cannot become the interactive outer primary action"
+        )
+    return classified
+
 
 def _mapping(value: object, label: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
@@ -272,6 +390,31 @@ def validate_contract(payload: object) -> dict[str, object]:
     required_forbidden = {"PLANNING_ONLY", "CLAIM_ONLY", "OWNER_ONLY", "HANDOFF_ONLY", "BRANCH_CREATED_ONLY", "GOVERNANCE_GREEN_ONLY", "GITHUB_PATCH", "REMOTE_QA_AS_FIRST_TEST_SURFACE"}
     if not required_forbidden.issubset(forbidden):
         raise ValueError("direct root mutation/test forbidden outcome set is incomplete")
+
+    fast_path = _mapping(contract.get("orchestration_fast_path"), "orchestration_fast_path")
+    if fast_path.get("schema") != ORCHESTRATION_FAST_PATH_SCHEMA:
+        raise ValueError("interactive orchestration fast-path schema mismatch")
+    if fast_path.get("default") != "SESSION_INTERNAL_ORCHESTRATION":
+        raise ValueError("interactive orchestration must default to session-internal")
+    if set(fast_path.get("outer_visible_pipeline") or ()) != OUTER_VISIBLE_PIPELINE:
+        raise ValueError("outer visible pipeline must contain phase outcomes only")
+    if set(fast_path.get("machine_internal_transaction_kinds") or ()) != MACHINE_INTERNAL_CONTROL_ACTIONS:
+        raise ValueError("machine-internal transaction kind set is incomplete")
+    if set(fast_path.get("background_only_events") or ()) != BACKGROUND_ONLY_EVENTS:
+        raise ValueError("background-only event set is incomplete")
+    if set(fast_path.get("escalate_only_on") or ()) != REAL_ESCALATION_TRIGGERS - {"USER_EXPLICIT_TASK_CHANGE"}:
+        raise ValueError("interactive escalation trigger set mismatch")
+    if fast_path.get("outer_action_gate") != "tools/root_local_first_gate.py::assert_outer_primary_action":
+        raise ValueError("interactive outer action gate owner mismatch")
+    if fast_path.get("outer_primary_action_policy") != "PHASE_OUTCOME_OR_REAL_BLOCKER_ONLY":
+        raise ValueError("interactive outer primary action policy mismatch")
+    if fast_path.get("control_plane_event_disposition") != "BACKGROUND_CONTINUE_PRIMARY_TASK":
+        raise ValueError("control-plane events must remain background-only")
+    if fast_path.get("user_update_policy") != "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS":
+        raise ValueError("interactive user updates must hide control-plane internals")
+    if fast_path.get("manual_transaction_orchestration_after_escalation_allowed") is not False:
+        raise ValueError("manual transaction orchestration must remain forbidden")
+
     receipt = _mapping(contract.get("git_write_receipt"), "git_write_receipt")
     if receipt.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
         raise ValueError("Git write receipt schema mismatch")

@@ -20,6 +20,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterable, Mapping
 
+from tools.root_local_first_gate import is_background_only_outer_event
+
 
 CHECKPOINT_VERSION = 1
 FINALIZATION_PROOF_VERSION = 1
@@ -632,9 +634,13 @@ def record_first_substantive_action(
     if normalized.state is AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED:
         return normalized
     action_text = str(action or "").strip()
-    if not action_text or action_text in NON_SUBSTANTIVE_AUTHORITY_EVENTS:
+    if (
+        not action_text
+        or action_text in NON_SUBSTANTIVE_AUTHORITY_EVENTS
+        or is_background_only_outer_event(action_text)
+    ):
         raise CheckpointError(
-            f"substantive action required; non-substantive event={action_text!r}"
+            f"substantive action required; background/non-substantive event={action_text!r}"
         )
     return AuthorityProgress(
         state=AuthorityProgressState.SUBSTANTIVE_ACTION_COMPLETED,

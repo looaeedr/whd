@@ -27,6 +27,13 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 6. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
 7. scheduler 若曾使用 bootstrap projection，必須丟棄該 projection 並再次 fresh-read canonical scheduler projection；只有到此時，才可進入 Flow v2 ExecutionRecord / transaction / lease / next_action 與正常 WAKE。
 
+### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
+
+對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical executable gate=`tools/root_local_first_gate.py::assert_outer_primary_action`；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
+
+外層只報 `FRESH_READ → ROOT_MUTATE → TARGETED_TEST → EXACT_DIFF → POST_PUSH_CI → MERGE_FINALIZE` 的 phase outcome。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
+
+
 ### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
 `READ_ONLY_BOOTSTRAP_ONLY` 是為解除「remote Preflight 需要 owning Issue，但 scheduler 必須先 discovery 才知道 owning Issue」循環依賴的窄例外；它不是 execution phase，也不是 authority。
