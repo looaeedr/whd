@@ -68,6 +68,18 @@ def test_neutral_owner_exists_without_bridge_gui_or_solver_imports():
     assert "solve_world" not in text
 
 
+def test_disabled_replay_does_not_require_initialized_box_body_profile():
+    from gui_modules.application.manufacturing_adapter import (
+        _resolved_committed_assembly_relief_cuts,
+    )
+
+    host = SimpleNamespace(
+        assembly_relief_state={"enabled": False},
+        workspace_controller=SimpleNamespace(box_body_profile=lambda: None),
+    )
+    assert _resolved_committed_assembly_relief_cuts(host, "head", {"t": 2.0}, {}) == ()
+
+
 def test_manufacturing_adapter_delegates_replay_contract_to_neutral_owner():
     text = ADAPTER.read_text(encoding="utf-8")
     tree = ast.parse(text)

@@ -232,10 +232,12 @@ def _phase6_relief_profile_signature(profile):
 
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     state = deepcopy(getattr(self, "assembly_relief_state", {}) or {})
+    if not bool(state.get("enabled")):
+        return ()
     controller = getattr(self, "workspace_controller", None)
 
     body_profile_getter = getattr(controller, "box_body_profile", None)
-    body_profile = body_profile_getter() if callable(body_profile_getter) else ()
+    body_profile = (body_profile_getter() if callable(body_profile_getter) else ()) or ()
     formed_left, formed_right = formed_box_body_fw_widths(
         body_profile, float(val.get("t", 0.0) or 0.0)
     )
