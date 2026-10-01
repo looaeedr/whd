@@ -32,9 +32,9 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 `READ_ONLY_BOOTSTRAP_ONLY` 是為解除「remote Preflight 需要 owning Issue，但 scheduler 必須先 discovery 才知道 owning Issue」循環依賴的窄例外；它不是 execution phase，也不是 authority。
 
 - 前置條件固定為：work-root gate 已完成（scheduler 使用 `GITHUB_MIRROR`）、AI Library gate 已完成、fresh per-invocation startup declaration 已 user-visible 產生、且已 fresh-read `AGENTS.md` 與本 Skill。
-- 唯一可讀範圍：`coord/execution-v2` 的 canonical ExecutionRecords、DERIVED_CACHE_ONLY `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only scheduler projection，以及解析 exact owning Issue / work branch / target branch / HEAD 所需的 GitHub metadata。
+- 唯一可讀範圍：`coord/execution-v2` 的 canonical ExecutionRecords、DERIVED_CACHE_ONLY `ready-index`、`tools/execution_scheduler_view.py` 的純 read-only scheduler projection，以及解析 exact owning Issue / work branch / target branch / HEAD 所需的 GitHub metadata。若 current/ready 都為空，另允許用 `tools/scheduler_ready_ingress.py` 做**窄化 owner-authored marker discovery**：只掃 open Issue 的 number/state/author/body 第一個 machine marker `WHD_SCHEDULER_DISPATCH_REQUEST_V1` 與 `lane=ANY|A|B`；普通 open Issue、label、dependency-unblocked、PR 一律仍不是 authority。此 discovery 只為綁定 Preflight exact Issue，不授權 READY/ACQUIRE。
 - 唯一目的：取得 trusted remote Phase6 Preflight 所需的 exact owning Issue + branch + HEAD，然後送出該 Issue 上的 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`。不得建立永久 bootstrap Issue；若 projection 確認沒有可執行工作，仍須完成本 invocation 的 project startup requirements後才能依正常 scheduler exit contract 判讀。
-- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：Preflight GREEN 且全部 REQUIRED SKILLS / REQUIRED REFERENCES fresh-read 完成以前，禁止 WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease mutation、ExecutionRecord mutation或任何其他 execution side effect。除了 owner-authored trusted Phase6 Preflight request 本身，不得 dispatch 其他 workflow / mutation transport。
+- `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：Preflight GREEN 且全部 REQUIRED SKILLS / REQUIRED REFERENCES fresh-read 完成以前，禁止 canonical lane/runtime WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease mutation、ExecutionRecord mutation或任何其他 execution side effect。**唯一觀測例外**是 host-layer fixed entrypoint file (`coord/monitor-v2:.dispatch/monitor/host/entrypoints/<a00|a20|a40|b15|b45>.json`) 的 WAKE/HEARTBEAT/EXIT，可在 project startup 前由 `tools/scheduler_entrypoint_observation.py` 以 `authority=NON_AUTHORITY` 寫入；它不得包含或授權 Issue ownership / ACQUIRE / mutation。除了 owner-authored trusted Phase6 Preflight request 本身，不得 dispatch 其他 workflow / mutation transport。
 - bootstrap projection 只用來綁 Preflight identity；Preflight 完成後必須丟棄並 fresh-read `coord/execution-v2` / scheduler view，禁止把 bootstrap 時看到的 state 直接拿去 ACQUIRE 或 mutation。
 
 startup declaration 只提供 provenance/intent，不取代 claim、Guard、Preflight、ExecutionRecord 或 transaction fencing；bootstrap read-only discovery 也不提供任何 mutation authority。缺任一步固定 `FAIL_CLOSED`。前一聊天、前一 runtime 或前一 scheduler wake 的宣告不得沿用。
@@ -269,12 +269,12 @@ live lease 時其他 invocation 回 busy，不覆寫。`lease=null` 的 same-lan
 A owner=`scheduler.6ab13fa557fc8191935c671214b865e2`，entrypoints=`00/20/40`。
 B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
-每次 wake：fresh-read `coord/execution-v2` → same-lane nonterminal record優先 → 無 current record才讀 derived ready-index → exact structured action。active exact QA run只 poll；沒有 current record且ready-index empty才是 NO_EXECUTABLE_WORK。scheduler只走 GitHub/remote capability，不 fallback local。
+每次 wake：先用 `tools/scheduler_entrypoint_observation.py` 對 exact host entrypoint 寫 NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2` → same-lane nonterminal record優先 → 無 current record才讀 derived ready-index。若兩者都空，必須在 bootstrap read-only 範圍內檢查 `WHD_SCHEDULER_DISPATCH_REQUEST_V1` owner-authored explicit candidates；有 candidate 時 `execution_scheduler_view.py` 回 `INGRESS_REQUIRED`，Preflight 綁 exact candidate GREEN 後才由 `execution_dispatch_ingress.py` 建 READY，再 fresh-read並同 invocation ACQUIRE。只有 current/ready/explicit candidate 全空才是 NO_EXECUTABLE_WORK。active exact QA run只 poll；scheduler只走 GitHub/remote capability，不 fallback local。
 
 ### SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1
 
 - `RESUME_CURRENT`：若 lease 缺失/expired，先 ACQUIRE；**ACQUIRE 成功只是續跑前置，不是本輪 progress，也不是停止點**。同一 invocation 必須立即 fresh-read，繼續執行 ACQUIRE 前保存的 exact `next_action`。
-- `READY_CANDIDATES`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue`（fresh ready-index 中最小 Issue）；scheduler 必須對該 Issue 送 ACQUIRE。若 CAS/claim race 輸掉，fresh-read 後重新投影與選擇，不得以「有多張可選」停止。
+- `READY_CANDIDATES`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue`（fresh ready-index 中最小 Issue）；scheduler 必須對該 Issue 送 ACQUIRE。若 CAS/claim race 輸掉，fresh-read 後重新投影與選擇，不得以「有多張可選」停止。\n- `INGRESS_REQUIRED`：只可來自 `tools/scheduler_ready_ingress.py` 驗證通過的 repository-owner-authored `WHD_SCHEDULER_DISPATCH_REQUEST_V1` marker；依 issue number deterministic 選最小 eligible candidate。Preflight GREEN + required reads 完成後，建立 `execution_intent=SCHEDULER_LANE / authority_kind=USER_EXPLICIT` READY record；fresh-read ready-index 後立即走 ACQUIRE。`DISPATCH_READY` 本身不是 substantive progress/停止點。
 - 本輪只有以下 evidence 可合法離開：`DONE`、`LANE_BUSY`、合法 `BLOCKED`、active remote QA wait，或本 invocation 已有至少一個 reconciled substantive transaction（`START_BRANCH/APPLY_COMMIT/START_QA/ACCEPT_QA/MERGE/HANDOFF/FINALIZE/RECONCILE/BLOCK`）後因 host boundary 執行 YIELD。
 - **terminal-tail exception**：fresh record 若已接受 exact-head QA 且 `next_action.kind=MERGE`，或 `next_action.kind=FINALIZE`，substantive-transaction / host-boundary YIELD 權限立即失效；必須同 invocation drain `MERGE → FINALIZE → DONE`，只有 genuine machine blocker 可中斷。
 - `WAKE`、讀取、文字回報、HEARTBEAT、單獨 ACQUIRE 都不是 substantive progress。
@@ -331,7 +331,7 @@ Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
 
 正常 Flow v2 runtime 對 host lifecycle 仍只有 read-only observability；唯一 mutation 例外只限上方 `SCHEDULER_HOST_RECOVERY_BOOTSTRAP_V1` 的 fixed allowlist disabled→`is_enabled=true`。完成 project startup 後，可 mirror `enabled / last_run_time` 到 NON_AUTHORITY host snapshot；不得以 snapshot 授權任何 execution mutation。
 
-每個 scheduler runtime 在寫 canonical lane observation 時，還必須 mirror 同一 invocation 的 `WAKE / HEARTBEAT / PROGRESS / EXIT` 到自己的 exact entrypoint file，保留 `invocation_identity / last_wake_at / last_heartbeat_at / heartbeat_expires_at / last_progress_at / exit_at / exit_state`。host snapshot、entrypoint mirror與watchdog result都不得授權 ACQUIRE、mutation、merge、closure、takeover 或 owner 變更。
+每個 scheduler runtime 都必須用 `tools/scheduler_entrypoint_observation.py` mirror 同一 invocation 的 `WAKE / HEARTBEAT / PROGRESS / EXIT` 到自己的 exact entrypoint file，保留 `invocation_identity / last_wake_at / last_heartbeat_at / heartbeat_expires_at / last_progress_at / exit_at / exit_state`。**host entrypoint WAKE 是 startup 前 fixed NON_AUTHORITY 例外**，因此即使後續 Preflight/startup fail closed，也不得讓 host occurrence 永久停在 SEED；正常 return（含 NO_EXECUTABLE_WORK / LANE_BUSY / startup blocker）前必須寫 EXIT。canonical lane runtime observation仍依 startup gate後才可寫。host snapshot、entrypoint mirror與watchdog result都不得授權 ACQUIRE、mutation、merge、closure、takeover 或 owner 變更。
 
 ## Work slot / handoff
 
