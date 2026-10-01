@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 15,
+  "generation": 16,
   "head_sha": "872d95000539883636eeed86908882a6020da7f7",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,11 +38,10 @@
   },
   "next_action": {
     "args": {
-      "base_sha": "0a08e589ad4b6bebdd5d4abe49eb23bda3a30d6d",
+      "base_sha": "7c999e218d2f161fe58fc319c01616e17004402f",
       "delete_paths": [],
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
         "tests/process/test_flow_v2_path_reservation.py",
         "tests/process/test_issue892_flow_v2_production_transaction.py",
         "tests/process/test_issue899_push_transaction_ingress.py",
@@ -51,7 +50,7 @@
         "tools/control_transaction_request_ingress.py"
       ]
     },
-    "display": "Reserve stale-execution reset implementation paths in canonical root",
+    "display": "Reserve exact stale-reset diff paths on current cleanup",
     "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -69,21 +68,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "TARGET_DRIFT_RELEASED_FOR_RESYNC",
+  "semantic_state": "STALE_EXECUTION_RESET_CURRENT_SOURCE",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "872d95000539883636eeed86908882a6020da7f7",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "0a08e589ad4b6bebdd5d4abe49eb23bda3a30d6d",
+  "target_sha": "7c999e218d2f161fe58fc319c01616e17004402f",
   "transaction": {
-    "expected_fingerprint": "ca9e3fa38ca0b177c5c56b74228e9bad38403411b536e351d366bf7c66afc83c",
-    "id": "gha:36857502620:1062:RELEASE_PATHS:14",
+    "expected_fingerprint": "387e1e6acb42a7ea617977d1c278968dd6bdf0e99f8f49f16b27e972024cc4ca",
+    "id": "gha:36857751433:1062:RECONCILE:15",
     "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-reset-resync.20261001T1945+08",
-    "kind": "RELEASE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T11:47:14Z",
+  "updated_at": "2026-10-01T11:49:38Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
