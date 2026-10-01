@@ -40,6 +40,12 @@ from phase6_fold_profiles import (
     formed_box_body_fw_widths,
     profile_to_fold_segments,
 )
+from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
+from phase6_assembly_relief_state import (
+    build_current_source_signature,
+    committed_relief_cuts,
+    relief_profile_fingerprint,
+)
 
 
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
@@ -221,133 +227,53 @@ def _end_cap_part_spec_from_values(
 
 @staticmethod
 def _phase6_relief_profile_signature(profile):
-    rows = []
-    for row in list(profile or ()):
-        row = dict(row or {})
-        rows.append((
-            str(row.get("phase6_key") or ""),
-            round(float(row.get("len", row.get("length", 0.0)) or 0.0), 6),
-            None if row.get("angle") is None else round(float(row.get("angle") or 0.0), 6),
-            str(row.get("core") or ""),
-        ))
-    return tuple(rows)
+    return relief_profile_fingerprint(profile)
+
 
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     state = deepcopy(getattr(self, "assembly_relief_state", {}) or {})
     if not bool(state.get("enabled")):
         return ()
-    part = dict((state.get("parts") or {}).get(str(key), {}) or {})
-    if not bool(part.get("verified")) and not bool(part.get("canonical_accepted")):
-        return ()
-    trust_level = str(part.get("trust_level") or "")
-    rule_id = part.get("rule_id")
-    rule_revision = part.get("rule_revision")
-    if trust_level in {"CERTIFIED", "CERTIFIED_FROM_3D", "ENGINE_CONFLICT"} and rule_id:
-        from ae_engine.certified_relief_registry import certified_rule_revision_exists
-        try:
-            active_revision = certified_rule_revision_exists(str(rule_id), int(rule_revision))
-        except (TypeError, ValueError):
-            active_revision = False
-        if not active_revision:
-            return ()
-    source = dict(state.get("source") or {})
-    from ae_engine.certified_relief_registry import RELIEF_CONTRACT_VERSION
-    try:
-        if int(source.get("relief_contract_version", 0) or 0) != RELIEF_CONTRACT_VERSION:
-            return ()
-    except (TypeError, ValueError):
-        return ()
+    controller = getattr(self, "workspace_controller", None)
 
-    # Replay identity is mechanical, not the high-level assembly mirror.
-    # Graph/family/structure must all match the state that was shadow-verified.
-    from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-    import hashlib as _hashlib, json as _json
+    body_profile_getter = getattr(controller, "box_body_profile", None)
+    body_profile = (body_profile_getter() if callable(body_profile_getter) else ()) or ()
+    formed_left, formed_right = formed_box_body_fw_widths(
+        body_profile, float(val.get("t", 0.0) or 0.0)
+    )
+
     try:
-        current_graph_fp = resolved_joint_graph_fingerprint(dict(getattr(self, "assembly_joint_state", {}) or {}))
+        graph_fp = resolved_joint_graph_fingerprint(
+            dict(getattr(self, "assembly_joint_state", {}) or {})
+        )
     except Exception:
         return ()
-    if not str(source.get("joint_graph_fingerprint") or "") or str(source.get("joint_graph_fingerprint")) != current_graph_fp:
-        return ()
-    controller = getattr(self, "workspace_controller", None)
+
     structure_getter = getattr(controller, "box_body_structure_state", None)
-    current_structure = structure_getter() if callable(structure_getter) else {}
-    structure_payload = _json.dumps(current_structure or {}, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
-    current_structure_fp = _hashlib.sha256(structure_payload.encode("utf-8")).hexdigest()
-    if not str(source.get("family_structure_fingerprint") or "") or str(source.get("family_structure_fingerprint")) != current_structure_fp:
-        return ()
+    structure_state = structure_getter() if callable(structure_getter) else {}
     family_getter = getattr(self, "_baseline_source_model", None)
-    current_family = str(family_getter() if callable(family_getter) else "")
-    if str(source.get("cabinet_family") or "") != current_family:
-        return ()
+    cabinet_family = str(family_getter() if callable(family_getter) else "")
 
-    saved_formed = dict(source.get("box_body_formed_fw") or {})
-    if saved_formed:
-        body_profile_getter = getattr(controller, "box_body_profile", None)
-        current_formed_left, current_formed_right = formed_box_body_fw_widths(
-            body_profile_getter() if callable(body_profile_getter) else (),
-            float(val.get("t", 0.0) or 0.0),
+    scalar_source = {
+        name: float(val.get(name, default))
+        for name, default in (
+            ("w", 0.0), ("h", 0.0), ("d", 0.0), ("t", 0.0), ("fw", 0.0),
+            ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
+            ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
+            ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
         )
-        for side, current in (("left", current_formed_left), ("right", current_formed_right)):
-            try:
-                if current is None or abs(float(saved_formed[side]) - float(current)) > 1e-6:
-                    return ()
-            except (KeyError, TypeError, ValueError):
-                return ()
-
-    source_rules = dict(source.get("registry_rules") or {})
-    if trust_level in {"CERTIFIED", "CERTIFIED_FROM_3D", "ENGINE_CONFLICT"} and rule_id:
-        saved_rule = dict(source_rules.get(str(key)) or {})
-        try:
-            if str(saved_rule.get("rule_id") or "") != str(rule_id):
-                return ()
-            if int(saved_rule.get("revision", 0) or 0) != int(rule_revision):
-                return ()
-        except (TypeError, ValueError):
-            return ()
-
-    source_profiles = dict(source.get("part_profiles") or {})
-    expected = dict(source_profiles.get(str(key), {}) or {})
-    current_scalars = {
-        "w": float(val.get("w", 0.0)),
-        "h": float(val.get("h", 0.0)),
-        "d": float(val.get("d", 0.0)),
-        "t": float(val.get("t", 0.0)),
-        "fw": float(val.get("fw", 0.0)),
-        "zl1": float(val.get("zl1", ae.zl1_def)),
-        "zr1": float(val.get("zr1", ae.zr1_def)),
-        "yl1": float(val.get("yl1", ae.yl1_def)),
-        "yr1": float(val.get("yr1", ae.yr1_def)),
-        "ytop1": float(val.get("ytop1", ae.ytop1_def)),
-        "ybottom1": float(val.get("ybottom1", ae.ybottom1_def)),
     }
-    for name, current in current_scalars.items():
-        if name not in source:
-            continue
-        # ytop1 is an optional legacy aggregate. Once a saved Y Fold
-        # Profile exists, that profile is the authoritative topology/length
-        # fingerprint; comparing the legacy scalar as well can reject a
-        # valid committed 3D relief when the top fold was structurally
-        # removed (the editor adapter correctly reports ytop1=0).
-        if name == "ytop1" and "Y" in expected:
-            continue
-        try:
-            if abs(float(source[name]) - current) > 1e-6:
-                return ()
-        except (TypeError, ValueError):
-            return ()
-    for axis in ("X", "Y"):
-        expected_rows = expected.get(axis)
-        if expected_rows is None:
-            continue
-        current_rows = dict(stored_profiles or {}).get(axis, ())
-        if self._phase6_relief_profile_signature(expected_rows) != self._phase6_relief_profile_signature(current_rows):
-            return ()
-    cuts = []
-    for polygon in list(part.get("cuts") or ()):
-        coords = tuple((float(point[0]), float(point[1])) for point in polygon if len(point) >= 2)
-        if len(coords) >= 3:
-            cuts.append(coords)
-    return tuple(cuts)
+    current_source = build_current_source_signature(
+        scalar_source=scalar_source,
+        joint_graph_fingerprint=graph_fp,
+        structure_state=structure_state,
+        cabinet_family=cabinet_family,
+        formed_left=formed_left,
+        formed_right=formed_right,
+        box_body_profile=body_profile,
+        part_profiles={str(key): deepcopy(dict(stored_profiles or {}))},
+    )
+    return committed_relief_cuts(state, str(key), current_source)
 
 def _end_cap_part_spec(self, val, *, is_tail):
     key = "tail" if is_tail else "head"
