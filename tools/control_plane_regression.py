@@ -17,6 +17,8 @@ COMPILE_PATHS = (
     "tools/continuity_controller.py",
     "tools/scheduler_runtime_liveness.py",
     "tools/scheduler_host_watchdog.py",
+    "tools/scheduler_entrypoint_observation.py",
+    "tools/scheduler_ready_ingress.py",
     "tools/scheduled_resume_executor.py",
     "tools/scheduled_resume_runtime.py",
     "tools/control_transaction.py",
@@ -37,6 +39,8 @@ COMPILE_PATHS = (
 STATIC_PYTEST_PATHS = (
     "tests/process/test_flow_v2_execution_invocation_exit.py",
     "tests/process/test_flow_v2_execution_scheduler_view.py",
+    "tests/process/test_issue1078_scheduler_ready_ingress.py",
+    "tests/process/test_issue1078_scheduler_entrypoint_observation.py",
     "tests/process/test_flow_v2_merge_precheck.py",
     "tests/process/test_flow_v2_sync_target.py",
     "tests/process/test_flow_v2_atomic_control_transaction.py",
