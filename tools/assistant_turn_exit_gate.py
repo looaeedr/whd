@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
 from tools.continuity_controller import (  # noqa: E402
     CheckpointError,
     TurnExitBlocked,
+    assert_no_executable_leaf_for_turn_exit,
     assert_turn_exit_permitted,
 )
 
@@ -30,12 +31,22 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--issue", required=True)
     parser.add_argument("--branch", required=True)
     parser.add_argument("--head-sha", required=True)
+    parser.add_argument("--census-exhaustive", action="store_true")
+    parser.add_argument("--executable-leaf-count", required=True, type=int)
+    parser.add_argument("--continuation-action", default="")
+    parser.add_argument("--census-observed-at", required=True)
     return parser
 
 
 def main() -> int:
     args = _build_parser().parse_args()
     try:
+        assert_no_executable_leaf_for_turn_exit(
+            exhaustive=args.census_exhaustive,
+            executable_leaf_count=args.executable_leaf_count,
+            continuation_action=args.continuation_action,
+            observed_at=args.census_observed_at,
+        )
         checkpoint = assert_turn_exit_permitted(
             args.checkpoint,
             args.receipt,
