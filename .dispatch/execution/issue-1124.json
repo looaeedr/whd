@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
   "issue": 1124,
   "lane_id": "chatgpt.flowv2.work1",
@@ -38,16 +38,20 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
+      "head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
+      "pr_number": 1126,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume exact-head Product Regression GREEN for #1124",
-    "kind": "START_QA"
+    "display": "Consume merged PR #1126 and finalize #1124",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "e0c167a25e0b1a6fcd9f8ddcaa942505ccb7bcda",
+    "last_accepted_run": 36897893969
   },
   "recovery_history": [
     {
@@ -58,21 +62,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_PUSH_QA_READY",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "2be23097f564d35fb54c41b55d8528f3d7c6e8f9",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "9d633ed036487ccdc203be85cc3d87b4581f06b0e31c43d82904b49e5a515697",
-    "id": "gha:36903380411:1124:RECONCILE:6",
+    "expected_fingerprint": "b51582ee8aa0365c768d2edf531f0af813aabc651e4da220777a283cf5854e59",
+    "id": "gha:36903482006:1124:CONSUME_QA:7",
     "invocation_identity": "chatgpt.flowv2.work1.issue1124.finalize-20261002",
-    "kind": "RECONCILE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T17:59:01Z",
+  "updated_at": "2026-10-01T17:59:58Z",
   "version": 2,
   "work_branch": "governance/issue1124-background-control-plane-20261002"
 }
