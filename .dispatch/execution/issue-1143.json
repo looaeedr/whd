@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
+    "id": 37035740798,
+    "purpose": "WHD Control Plane Regression",
+    "status": "queued"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
   "issue": 1143,
   "lane_id": "chatgpt.flowv2.work2",
@@ -86,11 +91,11 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "218f86ee177a7e1d44d7ecc11459b23b36c3eb024b5f95177f557d24ef025ccb",
-      "manifest_generation": 4
+      "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
+      "run_id": 37035740798
     },
-    "display": "Start remote QA for frozen docs generation 4",
-    "kind": "START_QA"
+    "display": "Observe exact remote QA run 37035740798",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -107,21 +112,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
   "transaction": {
-    "expected_fingerprint": "8ea906cd3661965943fc66620ffb85585aa4f80e8dd02da549889186b3a3e02f",
-    "id": "gha:37035538764:1143:APPLY_COMMIT:5",
+    "expected_fingerprint": "db8f116d1a5046a9dc794288ee7b27d43b69236d0960148484287cee45b89a4e",
+    "id": "gha:37035809384:1143:START_QA:6",
     "invocation_identity": "chatgpt.flowv2.work2.issue1143.resume.20261003T0032+08",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T16:41:14Z",
+  "updated_at": "2026-10-02T16:43:32Z",
   "version": 2,
   "work_branch": "delivery/issue1143-docs-gen4-20261002"
 }
