@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 from shapely.geometry import Point, Polygon
 
+import ae_engine.ae as ae
 from ae_engine.box_body_structure import (
     resolve_box_body_piece_face_features,
     resolve_box_body_structure,
@@ -22,7 +23,10 @@ from ae_engine.receiving_layout import (
     update_receiving_bay,
     update_receiving_joint_alignment,
 )
-from ae_engine.sheetmetal_features import ResolvedCircle
+from ae_engine.sheetmetal_features import (
+    ResolvedCircle,
+    box_body_face_contexts_from_strip,
+)
 from ae_engine.sheetmetal_geometry import Vec2
 from phase6_fold_profiles import build_box_body_profile
 
@@ -43,18 +47,46 @@ def _layout(*, left=(800, 1600, 400), right=(900, 1800, 500), depth_alignment="F
     return layout
 
 
+def _baseline_back_local_x(*, w, h, d, t, fw, u, side):
+    result = ae.build_box_body_result(
+        w=float(w), h=float(h), d=float(d), t=float(t), fw=float(fw),
+        zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=-10.0,
+        include_right_fw=True,
+    )
+    ctx = box_body_face_contexts_from_strip(
+        result.topology, w=float(w), h=float(h), d=float(d), t=float(t)
+    )["back"]
+    unfolded_x = (
+        float(ctx.unfolded_min_x) + float(u)
+        if side == "left"
+        else float(ctx.unfolded_max_x) - float(u)
+    )
+    return float(
+        ctx.unfolded_to_local(Vec2(unfolded_x, float(ctx.unfolded_height) / 2.0)).x
+    )
+
+
 def _fake_certified_resolver(model_name, *, w, h, d, t, fw):
     assert model_name == "金庫型"
     assert t == pytest.approx(2.0)
     assert fw == pytest.approx(29.0)
-    del d
-    # Certified Vault lock groups live on the authoritative W face close to the
-    # two W edges. Edge distance becomes canonical side-local FRONT->REAR u.
     back = (
-        ResolvedCircle(center=Vec2(40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-        ResolvedCircle(center=Vec2(120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-        ResolvedCircle(center=Vec2(w - 120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-        ResolvedCircle(center=Vec2(w - 40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+        ResolvedCircle(
+            center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=40.0, side="left"), 100.0),
+            radius=8.0, layer="CUTTING", source_type="baseline"
+        ),
+        ResolvedCircle(
+            center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=120.0, side="left"), h - 100.0),
+            radius=8.0, layer="CUTTING", source_type="baseline"
+        ),
+        ResolvedCircle(
+            center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=120.0, side="right"), h - 100.0),
+            radius=8.0, layer="CUTTING", source_type="baseline"
+        ),
+        ResolvedCircle(
+            center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=40.0, side="right"), 100.0),
+            radius=8.0, layer="CUTTING", source_type="baseline"
+        ),
     )
     return {"left": (), "back": back, "right": ()}
 
@@ -98,11 +130,26 @@ def test_t009a_width_invariant_mismatch_fails_closed():
             rows = dict(rows)
             w = float(kwargs["w"])
             h = float(kwargs["h"])
+            d = float(kwargs["d"])
+            t = float(kwargs["t"])
+            fw = float(kwargs["fw"])
             rows["back"] = (
-                ResolvedCircle(center=Vec2(45.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-                ResolvedCircle(center=Vec2(120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-                ResolvedCircle(center=Vec2(w - 120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-                ResolvedCircle(center=Vec2(w - 40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+                ResolvedCircle(
+                    center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=45.0, side="left"), 100.0),
+                    radius=8.0, layer="CUTTING", source_type="baseline"
+                ),
+                ResolvedCircle(
+                    center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=120.0, side="left"), h - 100.0),
+                    radius=8.0, layer="CUTTING", source_type="baseline"
+                ),
+                ResolvedCircle(
+                    center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=120.0, side="right"), h - 100.0),
+                    radius=8.0, layer="CUTTING", source_type="baseline"
+                ),
+                ResolvedCircle(
+                    center=Vec2(_baseline_back_local_x(w=w, h=h, d=d, t=t, fw=fw, u=40.0, side="right"), 100.0),
+                    radius=8.0, layer="CUTTING", source_type="baseline"
+                ),
             )
         return rows
 
@@ -192,8 +239,14 @@ def test_t011_undersized_effective_panel_fails_closed_without_clipping():
         return {
             "left": (),
             "back": (
-                ResolvedCircle(center=Vec2(5.0, 5.0), radius=8.0, layer="CUTTING"),
-                ResolvedCircle(center=Vec2(w - 5.0, 5.0), radius=8.0, layer="CUTTING"),
+                ResolvedCircle(
+                    center=Vec2(_baseline_back_local_x(w=w, h=h, d=20.0, t=2.0, fw=29.0, u=5.0, side="left"), 5.0),
+                    radius=8.0, layer="CUTTING"
+                ),
+                ResolvedCircle(
+                    center=Vec2(_baseline_back_local_x(w=w, h=h, d=20.0, t=2.0, fw=29.0, u=5.0, side="right"), 5.0),
+                    radius=8.0, layer="CUTTING"
+                ),
             ),
             "right": (),
         }
