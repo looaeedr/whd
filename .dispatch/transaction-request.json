@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-handoff-work1-6f671299-20261002T1315",
+  "request_id": "issue1062-handoff-work1-6f671299-20261002T1316-r2",
   "issue": 1062,
   "kind": "HANDOFF",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -13,5 +13,17 @@
     "lane_id": "chatgpt.flowv2.work1",
     "lease": null
   },
-  "reuse_admission_session": true
+  "purpose": "Consume the exact #1062 current HANDOFF after fresh Scheduler A ACQUIRE at 6f671299. Transfer repository-content full-regression classification to work1 while preserving exact source/head/target, semantic state, historical RELEASED audit scope and structured HANDOFF continuation. No repository-content mutation in this transaction.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GITHUB_MIRROR",
+    "execution_mode": "SCHEDULER_LANE",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
