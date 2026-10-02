@@ -219,6 +219,104 @@ def build_receiving_readiness_graph(layout, intrinsic_failures: Iterable[Receivi
     )
 
 
+@dataclass(frozen=True)
+class ReceivingManufacturingReadinessResolution:
+    graph: ReceivingReadinessGraph
+    instance_geometries: Mapping[str, object]
+    joint_resolutions: Mapping[str, object]
+
+
+def _pairing_failure_from_geometry(*, set_id: str, bay_id: str, geometry):
+    for item in tuple(getattr(geometry, "diagnostics", ()) or ()):
+        code = str(getattr(item, "diagnostic_code", "") or "")
+        status = str(getattr(item, "status", "") or "")
+        if status != "BLOCKED":
+            continue
+        if code not in {
+            "RECEIVING_PAIRING_MARK_OUT_OF_BOUNDS",
+            "RECEIVING_PAIRING_MARK_CONFLICT",
+            "RECEIVING_PAIRING_MARK_BACKPROJECTION_FAILED",
+        }:
+            continue
+        evidence = dict(getattr(item, "evidence", {}) or {})
+        return ReceivingIntrinsicFailure(
+            scope=BAY_INTRINSIC, set_id=set_id, bay_id=bay_id,
+            physical_piece=str(getattr(item, "physical_piece", "") or "box_body:left_side"),
+            conflicting_feature_ids=tuple(evidence.get("conflicting_feature_ids") or ()),
+            reason=str(getattr(item, "diagnostic_detail", "") or code),
+            diagnostic_code=code,
+        )
+    return None
+
+
+def resolve_receiving_manufacturing_readiness(
+    snapshot, *, resolve_bay: Callable[[Mapping[str, object], int, int], object],
+    resolve_joint: Callable[..., object] | None = None, thickness: float = 2.0, frame_width: float = 29.0,
+) -> ReceivingManufacturingReadinessResolution:
+    """Resolve every Bay independently, every Joint independently, then classify R-028.
+
+    ``resolve_bay`` is the existing single-Bay manufacturing engine boundary. It
+    receives one transient per-Bay projection and must return either geometry or
+    an object exposing ``geometry``. No multi-Bay geometry engine is introduced.
+    """
+    from .receiving_joint_locks import (
+        ReceivingJointLockPatternError, resolve_receiving_joint_lock_pattern,
+    )
+    from .receiving_layout import (
+        RECEIVING_BAY_COMMON_STATE_INVALID, ReceivingBayProjectionError,
+        normalize_receiving_layout, project_receiving_bay_legacy_aliases,
+    )
+
+    source = dict(snapshot or {})
+    layout = normalize_receiving_layout(source.get("receiving_layout"))
+    failures = []
+    instance_geometries = {}
+    joint_resolutions = {}
+
+    for set_index, set_row in enumerate(layout["sets"]):
+        set_id = str(set_row["stable_id"])
+        for bay_index, bay in enumerate(set_row["bays"]):
+            bay_id = str(bay["stable_id"])
+            try:
+                projected = project_receiving_bay_legacy_aliases(
+                    source, set_index=set_index, bay_index=bay_index, validate_common=True
+                )
+                resolved = resolve_bay(projected, set_index, bay_index)
+                geometry = getattr(resolved, "geometry", resolved)
+                instance_geometries[bay_id] = geometry
+                pairing_failure = _pairing_failure_from_geometry(
+                    set_id=set_id, bay_id=bay_id, geometry=geometry
+                )
+                if pairing_failure is not None:
+                    failures.append(pairing_failure)
+            except ReceivingBayProjectionError as exc:
+                failures.append(ReceivingIntrinsicFailure(
+                    scope=BAY_INTRINSIC, set_id=set_id, bay_id=bay_id,
+                    reason=str(exc), diagnostic_code=RECEIVING_BAY_COMMON_STATE_INVALID,
+                ))
+
+        joint_fn = resolve_joint or resolve_receiving_joint_lock_pattern
+        for joint_index, joint in enumerate(set_row["joints"]):
+            joint_id = str(joint["stable_id"])
+            try:
+                joint_resolutions[joint_id] = joint_fn(
+                    layout, set_index=set_index, joint_index=joint_index,
+                    thickness=float(thickness), frame_width=float(frame_width),
+                )
+            except ReceivingJointLockPatternError as exc:
+                failures.append(ReceivingIntrinsicFailure(
+                    scope=JOINT_INTRINSIC, set_id=set_id, joint_id=joint_id,
+                    physical_piece="box_body:left_side|box_body:right_side",
+                    reason=str(exc), diagnostic_code=str(exc.code),
+                ))
+
+    graph = build_receiving_readiness_graph(layout, failures)
+    return ReceivingManufacturingReadinessResolution(
+        graph=graph, instance_geometries=dict(instance_geometries),
+        joint_resolutions=dict(joint_resolutions),
+    )
+
+
 def receiving_readiness_projection(graph: ReceivingReadinessGraph):
     """Pure UI projection: authority stays in the graph."""
     rows = []
@@ -353,7 +451,9 @@ def save_receiving_instance_batch_dxf(
 __all__ = [
     "READY", "BLOCKED", "JOINT_INTRINSIC", "BAY_INTRINSIC",
     "ReceivingIntrinsicFailure", "ReceivingReadinessRow", "ReceivingReadinessGraph",
+    "ReceivingManufacturingReadinessResolution",
     "ReceivingExportDecision", "build_receiving_readiness_graph",
+    "resolve_receiving_manufacturing_readiness",
     "receiving_readiness_projection", "evaluate_receiving_export",
     "receiving_instance_key", "save_receiving_instance_batch_dxf",
 ]
