@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "issue": 1128,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-01T23:34:37Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1128.20261002",
-    "token": "lease:1128:36940140994:1"
-  },
+  "lane_id": "chatgpt.flowv2.work3",
+  "lease": null,
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
@@ -36,7 +32,7 @@
     "display": "After root tests",
     "kind": "START_BRANCH"
   },
-  "owner_id": "chatgpt.flowv2.work0",
+  "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
@@ -59,13 +55,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "transaction": {
-    "expected_fingerprint": "b4f03997409126516de3591c51747f8a16695bd02c2fca0755348698b458f2a3",
-    "id": "gha:36940140994:1128:ACQUIRE:1",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1128.20261002",
-    "kind": "ACQUIRE",
+    "expected_fingerprint": "1bb22f0e9e4edeae944496f05d6bfc1fa4b2d0aefee3e8cf5ac85877e0323dee",
+    "id": "gha:36991136391:1128:HANDOFF:2",
+    "invocation_identity": "chatgpt.flowv2.work3.issue1128.handoff.20261002T1740+08",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-01T23:19:37Z",
+  "updated_at": "2026-10-02T09:40:51Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
