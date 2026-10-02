@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
-    "id": 36986222021,
-    "purpose": "exact-head WHD Control Plane Regression for #1092 PR #1140",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
   "issue": 1092,
   "lane_id": "chatgpt.flowv2.work2",
@@ -40,17 +35,16 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
-      "run_id": 36986222021
+      "pr_number": 1140
     },
-    "display": "observe exact-head control-plane QA on next wake",
-    "kind": "POLL_QA"
+    "display": "merge exact accepted Issue #1092 PR #1140",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
+    "last_accepted_run": 36986222021
   },
   "recovery_history": [
     {
@@ -61,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "GREEN",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "transaction": {
-    "expected_fingerprint": "4c4f1a712b4f5048fa01ff312e87b2820b2629fcce84ff9e0f2ee1a87cc8c8cd",
-    "id": "gha:36989557715:1092:ACQUIRE:10",
+    "expected_fingerprint": "e5c9d42c9439eb3e335442ab70cf54eb0f9fecb5e29e7cdc509c45d353d81c9c",
+    "id": "gha:36989749924:1092:ACCEPT_QA:11",
     "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1723+08",
-    "kind": "ACQUIRE",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T09:24:36Z",
+  "updated_at": "2026-10-02T09:26:46Z",
   "version": 2,
   "work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002"
 }
