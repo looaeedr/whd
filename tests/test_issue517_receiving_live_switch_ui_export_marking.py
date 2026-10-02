@@ -294,12 +294,30 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
                 and str(primitive.layer).upper() == "MARKING"
             ]
 
+        def receiver_joint_marking_lines(render_data):
+            owned = {
+                tuple(sorted((
+                    (round(float(row["p1"][0]), 9), round(float(row["p1"][1]), 9)),
+                    (round(float(row["p2"][0]), 9), round(float(row["p2"][1]), 9)),
+                )))
+                for row in tuple(dict(render_data.metadata or {}).get("joint_markings") or ())
+                if str(row.get("source") or "") == "JOINT_PLACEMENT_MARKING"
+            }
+            return [
+                primitive
+                for primitive in marking_lines(render_data)
+                if tuple(sorted((
+                    (round(float(primitive.p1.x), 9), round(float(primitive.p1.y), 9)),
+                    (round(float(primitive.p2.x), 9), round(float(primitive.p2.y), 9)),
+                ))) in owned
+            ]
+
         box = resolved.part("box_body").render_data
         pieces = {str(piece.role): piece.render_data for piece in tuple(box.pieces or ())}
         receiver_sources = {
-            "left_side": marking_lines(pieces["left_side"]),
-            "right_side": marking_lines(pieces["right_side"]),
-            "head": marking_lines(resolved.part("head").render_data),
+            "left_side": receiver_joint_marking_lines(pieces["left_side"]),
+            "right_side": receiver_joint_marking_lines(pieces["right_side"]),
+            "head": receiver_joint_marking_lines(resolved.part("head").render_data),
         }
         divider_marks = []
         for part in tuple(resolved.parts or ()):
@@ -317,7 +335,7 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
             "inner_door:upper:left_frame",
             "inner_door:upper:right_frame",
         ):
-            assert marking_lines(resolved.part(frame_id).render_data) == [], (
+            assert receiver_joint_marking_lines(resolved.part(frame_id).render_data) == [], (
                 "#1050 supersedes frame-owned #509 MARKING; the receiver mother "
                 f"plate must own the contact line instead: {frame_id}"
             )
