@@ -91,6 +91,72 @@ def _fake_certified_resolver(model_name, *, w, h, d, t, fw):
     return {"left": (), "back": back, "right": ()}
 
 
+def test_t006a_joint_default_and_tail_inheritance_feed_geometry_resolver():
+    layout = new_receiving_layout(
+        width=800, height=1600, depth=400, back_panel_mode="FULL"
+    )
+    layout = resize_receiving_bays(layout, set_index=0, bay_count=2)
+    first = layout["sets"][0]["joints"][0]
+    assert (first["depth_alignment"], first["height_alignment"]) == ("FRONT", "BOTTOM")
+
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=1, width=900, height=1800, depth=500
+    )
+    layout = update_receiving_joint_alignment(
+        layout, set_index=0, joint_index=0,
+        depth_alignment="REAR", height_alignment="TOP",
+    )
+    layout = resize_receiving_bays(layout, set_index=0, bay_count=3)
+    inherited = layout["sets"][0]["joints"][1]
+    assert (inherited["depth_alignment"], inherited["height_alignment"]) == ("REAR", "TOP")
+
+    result = resolve_receiving_joint_lock_pattern(
+        layout, set_index=0, joint_index=1, baseline_resolver=_fake_certified_resolver
+    )
+    assert (result.depth_alignment, result.height_alignment) == ("REAR", "TOP")
+
+
+def test_t010_equal_dh_alignment_choices_are_geometry_equivalent():
+    base = _layout(
+        left=(800, 1600, 400),
+        right=(900, 1600, 400),
+        depth_alignment="FRONT",
+        height_alignment="BOTTOM",
+    )
+    snapshots = []
+    for depth_alignment in ("FRONT", "REAR"):
+        for height_alignment in ("BOTTOM", "TOP"):
+            candidate = {
+                "schema": base["schema"],
+                "sets": [
+                    {
+                        "stable_id": base["sets"][0]["stable_id"],
+                        "bays": [dict(row) for row in base["sets"][0]["bays"]],
+                        "joints": [dict(row) for row in base["sets"][0]["joints"]],
+                    }
+                ],
+            }
+            candidate["sets"][0]["joints"][0]["depth_alignment"] = depth_alignment
+            candidate["sets"][0]["joints"][0]["height_alignment"] = height_alignment
+            result = resolve_receiving_joint_lock_pattern(
+                candidate,
+                set_index=0,
+                joint_index=0,
+                baseline_resolver=_fake_certified_resolver,
+            )
+            snapshots.append(
+                (
+                    result.left_bay.finished_centers,
+                    result.right_bay.finished_centers,
+                    result.left_bay.joint_world_centers,
+                    result.right_bay.joint_world_centers,
+                )
+            )
+
+    assert snapshots
+    assert all(row == snapshots[0] for row in snapshots[1:])
+
+
 def test_t008_t008a_canonical_joint_axes_and_participant_width_calls():
     calls = []
 
