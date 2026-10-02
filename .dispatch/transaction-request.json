@@ -1,18 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-start-qa-36986222021",
+  "request_id": "issue1092-work2-renew-for-remote-wait-yield-20261002T1711",
   "issue": 1092,
-  "kind": "START_QA",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-  "expected_coord_head": "8f3c948f4f7a0e6661f0954d497f60234b9b61cd",
-  "expected_generation": 7,
-  "reuse_admission_session": true,
+  "expected_coord_head": "26296c6689089332fb9c7f852aaa368aaa89ed8c",
+  "expected_generation": 8,
   "effect": {
-    "run_id": 36986222021,
-    "run_head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
-    "purpose": "exact-head WHD Control Plane Regression for #1092 PR #1140",
-    "run_status": "in_progress",
     "semantic_state": "REMOTE_QA",
     "next_action": {
       "kind": "POLL_QA",
@@ -23,5 +18,5 @@
       "display": "observe exact-head control-plane QA on next wake"
     }
   },
-  "purpose": "Bind the single allowed active-status observation for #1092 to exact-head Control Plane Regression run 36986222021. Do not poll again in this invocation; durable YIELD follows immediately."
+  "purpose": "Renew the expired same-owner work2 lease for Issue #1092 without another remote-QA status read. Preserve the already-observed active run identity/status, then immediately durable-YIELD this invocation under REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1."
 }
