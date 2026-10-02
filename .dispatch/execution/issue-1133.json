@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "60cf8c348dade83024832c66acf2089733cda4af",
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
   "issue": 1133,
   "lane_id": "chatgpt.flowv2.work1",
@@ -35,15 +35,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-      "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
-      "pr_number": 1138,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Merge PR #1138 after exact-head GREEN",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -60,21 +54,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "target_sha": "60cf8c348dade83024832c66acf2089733cda4af",
   "transaction": {
-    "expected_fingerprint": "44b6f45cfa5642fbe8af3292736decd126f8c8c3b8aac3b4bf31af5526e48c76",
-    "id": "gha:36965090602:1133:CONSUME_QA:10",
+    "expected_fingerprint": "59a98efe25dcbeb18588bdde1d18c96ced91ea27d075fc888df68a768c38d7ab",
+    "id": "gha:36965184039:1133:MERGE:11",
     "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T04:34:17Z",
+  "updated_at": "2026-10-02T04:35:31Z",
   "version": 2,
   "work_branch": "scheduler/issue1133-auto-dispatch"
 }
