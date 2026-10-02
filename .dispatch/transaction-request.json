@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-expand-root-scope-d1036c60-20261002T1606",
+  "request_id": "issue1062-expand-root-scope-d1036c60-20261002T1606-r2",
   "issue": 1062,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
@@ -45,7 +45,6 @@
     }
   },
   "purpose": "Monotonically expand #1062 current ACTIVE root reservation to the already-classified full-regression repair paths. Preserve d1036c60 source/target and keep START_BRANCH only as the post-root GREEN/freeze continuation; no Git content write occurs in this transaction.",
-  "reuse_admission_session": true,
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
