@@ -1,12 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-renew-after-root-green-20261002T1531",
+  "request_id": "issue1092-work2-renew-after-expiry-20261002T1626",
   "issue": 1092,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-  "expected_coord_head": "7f6642785250b288e799bba5c843f2f0d1260d2a",
-  "expected_generation": 2,
+  "expected_coord_head": "ae81309c8606460265bcf9fb14162a3d1b87dda2",
+  "expected_generation": 3,
   "effect": {
     "semantic_state": "ROOT_TESTS_GREEN_EXACT_DIFF_FROZEN",
     "next_action": {
@@ -17,7 +17,7 @@
       "display": "start exact #1092 Git branch from frozen Drive root"
     }
   },
-  "purpose": "Renew the expired work2 lease for Issue #1092 after the same d1036c60 source, ACTIVE four-path reservation, Drive readback, 40/40 focused tests, 543/543 canonical control-plane gate, and frozen diff remained unchanged. Do not retest or refreeze unchanged root evidence.",
+  "purpose": "Renew expired work2 lease for Issue #1092 only. Root evidence is unchanged: cleanup/2d-3d-sync remains d1036c60f67c1eb4308eb693fa89de4c7d98180f, four-path reservation unchanged, Drive readback verified, focused 40/40 GREEN, canonical control-plane 543/543 GREEN, frozen diff b3f5732807078d771a8974ecad7db55140a077aa4b52c3b4101543012037594c. Do not retest or refreeze.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
