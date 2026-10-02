@@ -118,45 +118,63 @@ def test_r2_existing_projection_owner_assembles_immutable_request_without_domain
     assert not [token for token in forbidden if token in source]
 
 
-def test_r2_bridge_derives_domains_then_delegates_request_assembly_and_plan_apply():
+def test_r2_composition_owns_domain_orchestration_and_bridge_is_narrow_delegate():
     from pathlib import Path
+    from gui_modules.application.fold_designer_adapter import (
+        Phase6FoldDesignerComposition,
+    )
 
-    source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    fn = next(
+    bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    bridge_tree = ast.parse(bridge_source)
+    bridge_fn = next(
         node
-        for node in tree.body
+        for node in bridge_tree.body
         if isinstance(node, ast.FunctionDef)
         and node.name == "_phase6_sync_authoritative_derived_parts"
     )
-    body = ast.get_source_segment(source, fn) or ""
+    bridge_body = ast.get_source_segment(bridge_source, bridge_fn) or ""
 
-    # Canonical domain derivation stays in the application seam/current domain owners.
-    for token in (
+    assert "sync_authoritative_derived_parts(globals())" in bridge_body
+    assert len(bridge_body.splitlines()) <= 5
+    for forbidden in (
         "_phase6_door_part_projections",
         "derive_door_layout_cells",
         "_phase6_box_body_piece_part_profiles",
         "derive_box_body_dividers",
         "derive_all_inner_door_frames",
+        "DerivedPartRequestAssemblyInput(",
+        "build_derived_part_projection_request(",
+        "build_derived_part_sync_plan(",
+        "apply_derived_sync_plan(",
+    ):
+        assert forbidden not in bridge_body, (
+            f"#1128 anti-regrowth: orchestration returned to Bridge: {forbidden}"
+        )
+
+    body = inspect.getsource(
+        Phase6FoldDesignerComposition.sync_authoritative_derived_parts
+    )
+    for token in (
+        "_derived_door_part_projections",
+        "derive_door_layout_cells",
+        "_phase6_box_body_piece_part_profiles",
+        "derive_box_body_dividers",
+        "derive_all_inner_door_frames",
+        "DerivedPartRequestAssemblyInput(",
+        "build_derived_part_projection_request(",
+        "build_derived_part_sync_plan(",
+        "navigation.apply_derived_sync_plan(plan)",
     ):
         assert token in body
 
-    # Request topology/add-remove-stash/repair policy moves to the existing
-    # pure derived projection owner.
-    assert "DerivedPartRequestAssemblyInput(" in body
-    assert "build_derived_part_projection_request(" in body
-    for stale_local in (
-        "remove_part_keys = []",
-        "add_parts = []",
-        "stash_profiles = []",
-        "stash_features = []",
-        "active_repair = None",
-        "selected_repair = None",
-    ):
-        assert stale_local not in body, f"B5 RED: bridge still owns request assembly: {stale_local}"
-
-    assert "build_derived_part_sync_plan(request)" in body
-    assert "navigation.apply_derived_sync_plan(plan)" in body
     assert body.index("build_derived_part_projection_request(") < body.index(
         "build_derived_part_sync_plan(request)"
     ) < body.index("navigation.apply_derived_sync_plan(plan)")
+
+
+def test_r2_bridge_does_not_regrow_a_second_derived_sync_composition_root():
+    from pathlib import Path
+
+    bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    assert "class Phase6FoldDesignerComposition" not in bridge_source
+    assert "def sync_authoritative_derived_parts(" not in bridge_source

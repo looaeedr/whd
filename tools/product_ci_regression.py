@@ -18,6 +18,7 @@ COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
     "tests/process/test_issue533_c1_anti_regrowth.py",
+    "tests/test_issue480_derived_part_projection_plan.py",
     "tests/test_dm1_divider_physical_contract.py",
     "tests/test_dm3_divider_canonical_relief_contract.py",
     "tests/test_dm4_divider_resolved_sinks.py",
