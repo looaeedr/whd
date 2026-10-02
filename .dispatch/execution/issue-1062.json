@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 29,
-  "head_sha": "60cf8c348dade83024832c66acf2089733cda4af",
+  "generation": 30,
+  "head_sha": "6f67129914eed10d5149461f064ab4a3b9c78696",
   "issue": 1062,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-02T05:08:04Z",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261002T1251+08",
-    "token": "lease:1062:36966452912:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
     "delete_paths": [],
@@ -42,15 +38,12 @@
     ]
   },
   "next_action": {
-    "args": {
-      "to_owner_id": "chatgpt.flowv2.work1",
-      "to_owner_kind": "INTERACTIVE"
-    },
-    "display": "Handoff Issue #1062 fresh current full-regression work to canonical root workspace via work1",
-    "kind": "HANDOFF"
+    "args": {},
+    "display": "Acquire fresh execution",
+    "kind": "ACQUIRE"
   },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -64,21 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "READY",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "60cf8c348dade83024832c66acf2089733cda4af",
-  "state": "ACTIVE",
+  "source_sha": "6f67129914eed10d5149461f064ab4a3b9c78696",
+  "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "60cf8c348dade83024832c66acf2089733cda4af",
+  "target_sha": "6f67129914eed10d5149461f064ab4a3b9c78696",
   "transaction": {
-    "expected_fingerprint": "b2aa88bda55aba45b384d58b1b0b8031466b18b93a29cdbceb6680c89093e9b2",
-    "id": "gha:36966452912:1062:ACQUIRE:28",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261002T1251+08",
-    "kind": "ACQUIRE",
+    "expected_fingerprint": "639cfe956be58cd1e390e93e28988b1088b853cc7fa82f45a38248d7126292fc",
+    "id": "gha:36967960431:1062:RELEASE_PATHS:29",
+    "invocation_identity": "scheduler-a.issue1062.stale-reset.20261002T1311+08",
+    "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T04:53:04Z",
+  "updated_at": "2026-10-02T05:13:39Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
