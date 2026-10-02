@@ -1,23 +1,56 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-renew-20261002T1642-r2",
+  "request_id": "issue1092-work2-apply-ecee3e5d-20261002",
   "issue": 1092,
-  "kind": "ACQUIRE",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-  "expected_coord_head": "b02d4a45b63cd6e60f73886d2497648b24232d72",
-  "expected_generation": 5,
+  "expected_coord_head": "1e05f0022bfb23c08b5bb2fce9acebacdd617700",
+  "expected_generation": 6,
+  "reuse_admission_session": true,
   "effect": {
-    "semantic_state": "ROOT_TESTS_GREEN_EXACT_DIFF_FROZEN",
+    "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
+    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "b3f5732807078d771a8974ecad7db55140a077aa4b52c3b4101543012037594c"
+        "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9"
       },
-      "display": "apply exact four-path root-tested #1092 commit"
+      "display": "start exact post-push QA for #1092"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+      "diff_digest": "b3f5732807078d771a8974ecad7db55140a077aa4b52c3b4101543012037594c",
+      "issue": 1092,
+      "generation": 2,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        "tests/process/test_issue1092_remote_qa_nonblocking_wait.py",
+        "tools/execution_invocation_exit.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "728b90c3d337f3d2958236e0f426304317585f49da719db58988dffd8ebf7f4e",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1092,
+      "generation": 6,
+      "record_fingerprint": "ef6a65714e13cf3840784732613212946b7c2d6a97066cf406c8a515f8025e47",
+      "lease_token": "lease:1092:36985887979:1",
+      "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
+      "expected_next_action": "APPLY_COMMIT",
+      "expected_work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002",
+      "expected_work_head": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+      "expected_target_head": "d1036c60f67c1eb4308eb693fa89de4c7d98180f"
     }
   },
-  "purpose": "Renew expired work2 lease for Issue #1092 immediately before APPLY_COMMIT. Preserve unchanged Drive-frozen evidence and exact work head ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9; do not retest or refreeze.",
+  "purpose": "Consume the exact Drive-readback-tested four-path #1092 work head ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9 and advance directly to exact-head post-push QA.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
