@@ -1,24 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-resume-terminal-qa-20261002T1723",
+  "request_id": "issue1092-work2-accept-terminal-qa-20261002T1725",
   "issue": 1092,
-  "kind": "ACQUIRE",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1723+08",
-  "expected_coord_head": "9311bce75dec2cc660771f0dbbeddc2eb7f9df7a",
-  "expected_generation": 10,
+  "expected_coord_head": "04aff403ae5f30f1281384f56b6857f37fd83bc5",
+  "expected_generation": 11,
+  "reuse_admission_session": true,
   "effect": {
-    "semantic_state": "REMOTE_QA",
+    "run_id": 36986222021,
+    "run_head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "GREEN",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "MERGE",
       "args": {
-        "run_id": 36986222021,
-        "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9"
+        "pr_number": 1140
       },
-      "display": "observe exact-head control-plane QA on next wake"
+      "display": "merge exact accepted Issue #1092 PR #1140"
     }
   },
-  "purpose": "Resume Issue #1092 in a new work2 invocation after exact QA run 36986222021 was observed terminal success. Preserve scope/head and acquire only the lease needed to consume terminal QA, merge, and finalize.",
+  "purpose": "Consume the already-observed terminal-success exact-head QA for Issue #1092 and enter the terminal integration tail without another QA poll.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
