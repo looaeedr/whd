@@ -438,19 +438,23 @@ def _world_point_to_flat_planar_affine(point, record):
     )
 
 
-def backproject_locator_world_points(
-    contact: ResolvedLegalContact,
+def backproject_mapped_skin_world_points(
+    mapping,
     points,
 ) -> LocatorBackprojectionResult:
-    """Backproject contact points through locator authoritative mapping only."""
-    try:
-        mapping = _authoritative_locator_mapping(contact)
-    except (TypeError, ValueError) as exc:
+    """Backproject world points through one authoritative mapped-skin owner.
+
+    This is the neutral mapping primitive shared by contact MARKING and
+    Receiving pairing MARKING. It never invents a mirror/rotation after the
+    mapped-skin transform and it does not infer machining side semantics.
+    """
+    mapping = tuple(mapping or ())
+    if not mapping:
         return LocatorBackprojectionResult(
             status="SKIPPED_FAIL_CLOSED",
             diagnostic_code="BACKPROJECTION_FAILED",
             flat_points=(),
-            evidence={"reason": str(exc)},
+            evidence={"reason": "authoritative mapped-skin mapping is missing"},
         )
 
     tolerance = float(
@@ -476,7 +480,7 @@ def backproject_locator_world_points(
                     diagnostic_code="BACKPROJECTION_FAILED",
                     flat_points=(),
                     evidence={
-                        "reason": "point is outside locator authoritative planes",
+                        "reason": "point is outside authoritative mapped-skin planes",
                         "world_point": point,
                         "mapping_record_count": len(mapping),
                     },
@@ -494,7 +498,7 @@ def backproject_locator_world_points(
                         diagnostic_code="BACKPROJECTION_FAILED",
                         flat_points=(),
                         evidence={
-                            "reason": "locator planar affine mapping is not unique",
+                            "reason": "planar affine mapping is not unique",
                             "world_point": point,
                             "mapping_record_count": len(mapping),
                             "candidate_count": len(affine_candidates),
@@ -513,7 +517,7 @@ def backproject_locator_world_points(
                     status="SKIPPED_FAIL_CLOSED",
                     diagnostic_code="BACKPROJECTION_FAILED",
                     flat_points=(),
-                    evidence={"reason": "locator mapping is not unique at point"},
+                    evidence={"reason": "mapped-skin mapping is not unique at point"},
                 )
         resolved.append((float(owner[0]), float(owner[1])))
 
@@ -522,7 +526,36 @@ def backproject_locator_world_points(
         diagnostic_code=None,
         flat_points=tuple(resolved),
         evidence={
-            "mapping_owner": "LOCATOR",
+            "mapping_owner": "MAPPED_SKIN",
             "mapping_record_count": len(mapping),
+        },
+    )
+
+
+def backproject_locator_world_points(
+    contact: ResolvedLegalContact,
+    points,
+) -> LocatorBackprojectionResult:
+    """Backproject contact points through locator authoritative mapping only."""
+    try:
+        mapping = _authoritative_locator_mapping(contact)
+    except (TypeError, ValueError) as exc:
+        return LocatorBackprojectionResult(
+            status="SKIPPED_FAIL_CLOSED",
+            diagnostic_code="BACKPROJECTION_FAILED",
+            flat_points=(),
+            evidence={"reason": str(exc)},
+        )
+
+    result = backproject_mapped_skin_world_points(mapping, points)
+    if result.status != "RESOLVED":
+        return result
+    return LocatorBackprojectionResult(
+        status=result.status,
+        diagnostic_code=result.diagnostic_code,
+        flat_points=result.flat_points,
+        evidence={
+            **dict(result.evidence or {}),
+            "mapping_owner": "LOCATOR",
         },
     )
