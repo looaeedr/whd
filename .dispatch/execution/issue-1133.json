@@ -12,10 +12,10 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
   "issue": 1133,
-  "lane_id": null,
+  "lane_id": "chatgpt.flowv2.work0",
   "lease": null,
   "mutation_scope": {
     "base_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
@@ -39,7 +39,7 @@
     "kind": "HANDOFF"
   },
   "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "INTERACTIVE",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -61,13 +61,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
   "transaction": {
-    "expected_fingerprint": "08a070ef4a4a1fd24148f450930f40d0b8f0b2061ecc3c62299b94ca285a296a",
-    "id": "gha:36961536393:1133:HANDOFF:2",
-    "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
+    "expected_fingerprint": "a226d16f26caaa8ce526e46ca6622d9573ec5ca10f56ec5b67b7b50c911b28e9",
+    "id": "gha:36963117837:1133:HANDOFF:3",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1133.20261002",
     "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T03:45:41Z",
+  "updated_at": "2026-10-02T04:07:50Z",
   "version": 2,
   "work_branch": "scheduler/issue1133-auto-dispatch"
 }
