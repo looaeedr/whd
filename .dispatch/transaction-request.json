@@ -1,14 +1,18 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1124-merge-finalize-drain",
-  "issue": 1124,
-  "kind": "MERGE",
+  "request_id": "issue1133-handoff-work1-20261002T1122+08",
+  "issue": 1133,
+  "kind": "HANDOFF",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1124.finalize-20261002",
-  "expected_coord_head": "1f42f5b41aec106ee2cd195d5c7b2228e63cf231",
-  "expected_generation": 8,
-  "effect": {},
-  "purpose": "Consume already-merged PR #1126 through trusted MERGE readback and drain FINALIZE to DONE, releasing the work1 reservation.",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
+  "expected_coord_head": "fc263d358fee7e385b1864df8c803fb97b17eafc",
+  "expected_generation": 4,
+  "effect": {
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work1",
+    "lane_id": "chatgpt.flowv2.work1"
+  },
+  "purpose": "Handoff Issue #1133 exact root-tested five-path governance fix to work1 so stale work0 Issue #1112 cannot deadlock its own unblocker. Preserve ACTIVE reservation and frozen diff identity.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
