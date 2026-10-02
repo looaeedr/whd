@@ -134,8 +134,9 @@ def test_host_boundary_requires_current_invocation_substantive_transaction_befor
         now=NOW,
         host_boundary=True,
     )
-    assert result.decision == "YIELD_REQUIRED_HOST_BOUNDARY"
-    assert result.requires_yield is True
+    assert result.decision == "CONTINUE_EXECUTION"
+    assert result.requires_yield is False
+    assert result.next_action_kind == "APPLY_COMMIT"
 
     other_tx = replace(current_tx, invocation_identity=OTHER)
     other_result = classify_invocation_exit(

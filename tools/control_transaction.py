@@ -442,12 +442,18 @@ def _execute_reserve_paths(
             raise ControlTransactionError("RESERVE_PATHS cannot shrink active write_paths")
         if not set(existing.delete_paths).issubset(scope.delete_paths):
             raise ControlTransactionError("RESERVE_PATHS cannot shrink active delete_paths")
+
+    if "next_action" not in effect:
+        raise ControlTransactionError("next_action must be an object")
+    next_action = _action(effect.get("next_action"))
+
     return _base_update(
         record,
         plan,
         effect,
         mutation_scope=scope,
         semantic_state=str(effect.get("semantic_state") or "PATHS_RESERVED"),
+        next_action=next_action,
     )
 
 
