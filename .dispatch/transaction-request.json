@@ -1,66 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-apply-ecee3e5d-20261002",
+  "request_id": "issue1092-work2-start-qa-36986222021",
   "issue": 1092,
-  "kind": "APPLY_COMMIT",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-  "expected_coord_head": "1e05f0022bfb23c08b5bb2fce9acebacdd617700",
-  "expected_generation": 6,
+  "expected_coord_head": "8f3c948f4f7a0e6661f0954d497f60234b9b61cd",
+  "expected_generation": 7,
   "reuse_admission_session": true,
   "effect": {
-    "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
-    "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+    "run_id": 36986222021,
+    "run_head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
+    "purpose": "exact-head WHD Control Plane Regression for #1092 PR #1140",
+    "run_status": "in_progress",
+    "semantic_state": "REMOTE_QA",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "POLL_QA",
       "args": {
+        "run_id": 36986222021,
         "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9"
       },
-      "display": "start exact post-push QA for #1092"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-      "diff_digest": "b3f5732807078d771a8974ecad7db55140a077aa4b52c3b4101543012037594c",
-      "issue": 1092,
-      "generation": 2,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
-        "tests/process/test_issue1092_remote_qa_nonblocking_wait.py",
-        "tools/execution_invocation_exit.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "728b90c3d337f3d2958236e0f426304317585f49da719db58988dffd8ebf7f4e",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1092,
-      "generation": 6,
-      "record_fingerprint": "ef6a65714e13cf3840784732613212946b7c2d6a97066cf406c8a515f8025e47",
-      "lease_token": "lease:1092:36985887979:1",
-      "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002",
-      "expected_work_head": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-      "expected_target_head": "d1036c60f67c1eb4308eb693fa89de4c7d98180f"
+      "display": "observe exact-head control-plane QA on next wake"
     }
   },
-  "purpose": "Consume the exact Drive-readback-tested four-path #1092 work head ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9 and advance directly to exact-head post-push QA.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "purpose": "Bind the single allowed active-status observation for #1092 to exact-head Control Plane Regression run 36986222021. Do not poll again in this invocation; durable YIELD follows immediately."
 }
