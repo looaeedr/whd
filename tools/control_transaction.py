@@ -464,11 +464,51 @@ def _execute_release_paths(
 ) -> ExecutionRecord:
     if record.state == "DONE":
         raise ControlTransactionError("RELEASE_PATHS cannot mutate DONE record")
-    _require_reservation_lease(record, plan)
     scope = record.mutation_scope
-    if scope is None or scope.reservation_state != "ACTIVE":
-        raise ControlTransactionError("RELEASE_PATHS requires an ACTIVE mutation_scope")
+    if scope is None:
+        raise ControlTransactionError("RELEASE_PATHS requires a mutation_scope")
     _text(effect.get("reason"), "reason")
+
+    # Surgical stale-release cleanup only. Reuse RELEASE_PATHS rather than
+    # introducing a parallel recovery API. The trusted executor must prove
+    # branch absence and fresh target identity before this transition runs.
+    if scope.reservation_state == "RELEASED":
+        observed_at = _aware_timestamp(effect.get("updated_at"), "effect.updated_at")
+        if record.lease is None:
+            raise ControlTransactionError("stale RELEASE_PATHS cleanup requires an expired lease")
+        lease_expires = _aware_timestamp(record.lease.expires_at, "lease.expires_at")
+        if lease_expires >= observed_at:
+            raise ControlTransactionError("stale RELEASE_PATHS cleanup requires an expired lease")
+        if record.active_run is not None:
+            raise ControlTransactionError("stale RELEASE_PATHS cleanup requires active_run=null")
+        if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
+            raise ControlTransactionError("stale RELEASE_PATHS cleanup requires no QA lock")
+        if effect.get("work_branch_exists") is not False:
+            raise ControlTransactionError("stale RELEASE_PATHS cleanup requires absent work branch")
+        fresh_target_sha = _text(effect.get("fresh_target_sha"), "fresh_target_sha")
+        return _base_update(
+            record,
+            plan,
+            effect,
+            owner_kind="NONE",
+            owner_id="NONE",
+            lane_id=None,
+            slot_id=None,
+            source_sha=fresh_target_sha,
+            head_sha=fresh_target_sha,
+            target_sha=fresh_target_sha,
+            state="READY",
+            semantic_state="READY",
+            next_action=ActionSpec(kind="ACQUIRE", args={}, display="Acquire fresh execution"),
+            lease=None,
+            active_run=None,
+            qa=QAState(),
+            blocker=None,
+        )
+
+    if scope.reservation_state != "ACTIVE":
+        raise ControlTransactionError("RELEASE_PATHS requires ACTIVE or RELEASED mutation_scope")
+    _require_reservation_lease(record, plan)
     released = MutationScopeState(
         target_branch=scope.target_branch,
         base_sha=scope.base_sha,

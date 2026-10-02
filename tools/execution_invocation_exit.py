@@ -160,6 +160,37 @@ def _durable_owning_identity_active(record: ExecutionRecord) -> bool:
     )
 
 
+def released_stale_reset_residue(
+    record: ExecutionRecord,
+    *,
+    observed_at: str,
+) -> bool:
+    """Return whether a nonterminal record is only stale RELEASED residue.
+
+    This classification is deliberately side-effect-free and uses only durable
+    ExecutionRecord facts.  Work-branch absence remains a trusted GitHub
+    readback owned by the RELEASE_PATHS cleanup seam; this helper never grants
+    cleanup authority by itself.
+    """
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    observed = _aware(observed_at, "observed_at")
+    if record.state == "DONE" or terminal_tail_active(record):
+        return False
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "RELEASED":
+        return False
+    if record.lease is None:
+        return False
+    if _aware(record.lease.expires_at, "lease.expires_at") >= observed:
+        return False
+    if record.active_run is not None:
+        return False
+    if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
+        return False
+    return True
+
+
 def assert_active_owning_issue_sticky(
     record: ExecutionRecord,
     *,
