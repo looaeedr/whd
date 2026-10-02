@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
   "issue": 1133,
   "lane_id": "chatgpt.flowv2.work1",
@@ -36,16 +36,20 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "expected_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+      "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
+      "pr_number": 1138,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume exact-head control-plane regression",
-    "kind": "START_QA"
+    "display": "Merge PR #1138 after exact-head GREEN",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
+    "last_accepted_run": 36964932568
   },
   "recovery_history": [
     {
@@ -56,21 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_PUSHED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
   "transaction": {
-    "expected_fingerprint": "d4f8d9af65c7e7dbef75d982577bbe04affff6d125eb1cd19e9f25d31327eaa6",
-    "id": "gha:36965016091:1133:RECONCILE:9",
+    "expected_fingerprint": "44b6f45cfa5642fbe8af3292736decd126f8c8c3b8aac3b4bf31af5526e48c76",
+    "id": "gha:36965090602:1133:CONSUME_QA:10",
     "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-    "kind": "RECONCILE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T04:33:06Z",
+  "updated_at": "2026-10-02T04:34:17Z",
   "version": 2,
   "work_branch": "scheduler/issue1133-auto-dispatch"
 }
