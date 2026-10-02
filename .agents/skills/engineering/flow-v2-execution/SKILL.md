@@ -405,6 +405,18 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 
 ## Remote QA
 
+### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
+
+Remote QA 是外部等待，不得佔住同一 invocation 做 busy polling。對同一 `issue + run_id + head_sha`，**每個 invocation 的 active-status observation budget 固定為 1**：
+
+1. fresh-read exact run/head 一次；若已 terminal，立刻走 `CONSUME_QA / ACCEPT_QA / FAIL_QA` 的既有 terminal 路徑。
+2. 若第一次 observation 仍為 `queued / in_progress / pending / waiting / requested`，立即呼叫 `classify_invocation_exit(..., remote_qa_active_observation_count=1)`；其結果必須是 `YIELD_REQUIRED_REMOTE_WAIT`，接著 durable `YIELD`。
+3. **同一 invocation 禁止第二次讀同一 active run 的 workflow/job/status**；machine budget owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget`。第二次 active observation 固定 `REMOTE_QA_POLL_BUDGET_EXHAUSTED`。
+4. remote wait 不算 executable engineering progress，也不得阻止 scheduler/worker 在 durable YIELD 後處理另一個合法 executable leaf；原 QA 只在後續 wake/resume 再觀測。
+5. progress/status 回報是 non-blocking checkpoint，不得用「再看一次 CI」延長本 invocation。
+
+<!-- REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1 -->
+
 START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA 可從 ACTIVE / VERIFYING / INTEGRATING 進入 VERIFYING：INTEGRATING 只用於「原 accepted head 後續因合法 APPLY_COMMIT / target reconciliation 前進而需要重新 exact-head QA」；不得把這條路徑當成跳過既有 acceptance。active只 POLL_QA；success→ACCEPT_QA；若來源是 integration revalidation，ACCEPT_QA 必須以 next_state=INTEGRATING 回到 merge gate，且 MERGE 仍強制 qa.accepted_head_sha == current head。terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
 
 ## Blocker
