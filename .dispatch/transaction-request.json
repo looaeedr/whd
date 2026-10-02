@@ -1,24 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1143-reacquire-expired-work2-20261003T0006+08",
+  "request_id": "issue1143-reconcile-existing-branch-gen4-20261003T0014+08",
   "issue": 1143,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1143.resume.20261003T0006+08",
-  "expected_coord_head": "cf4a8e5a66804f51182f8106a3e8f925700bd926",
-  "expected_generation": 2,
-  "effect": {},
-  "purpose": "Resume Issue #1143 after the prior work2 runtime expired. Preserve the same owner/lane/scope, reconcile the already-created delivery branch, and continue the exact frozen generation-4 docs delivery without replaying branch creation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "expected_coord_head": "b130c06789d8e2e7d09471a4f523ae9970cf37a2",
+  "expected_generation": 3,
+  "effect": {
+    "observed_work_branch": "delivery/issue1143-docs-gen4-20261002",
+    "observed_head_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+    "observed_target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+    "semantic_state": "IMPLEMENTING",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "diff_digest": "218f86ee177a7e1d44d7ecc11459b23b36c3eb024b5f95177f557d24ef025ccb",
+        "manifest_generation": 4,
+        "manifest_file": "manifest.gen4.x.json",
+        "lane": "docs"
+      },
+      "display": "Apply exact frozen docs generation 4 diff for Issue #1143"
+    }
+  },
+  "reuse_admission_session": true
 }
