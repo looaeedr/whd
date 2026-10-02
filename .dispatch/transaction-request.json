@@ -1,24 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-acquire-work3-root-tested-20261002T1741+08",
+  "request_id": "issue1128-reconcile-target-root-freeze-20261002T1741+08",
   "issue": 1128,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1128.20261002T1741+08",
-  "expected_coord_head": "79452551d30e91dbb31410219ddb85c47958d57c",
-  "expected_generation": 3,
-  "effect": {},
-  "purpose": "Acquire user-selected Issue #1128 on its new work3 routing lane after successful routing-only handoff. Continue already root-tested/frozen #1128 work; no unrelated Issue mutation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  "expected_coord_head": "307a9976c40c142314ced994e9227c1a5d14ed7c",
+  "expected_generation": 4,
+  "reuse_admission_session": true,
+  "effect": {
+    "observed_work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
+    "observed_head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
+    "observed_target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+    "semantic_state": "ROOT_TESTED_TARGET_RECONCILED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {},
+      "display": "Refresh #1128 path reservation against exact root-tested target d1036c60"
+    }
   }
 }
