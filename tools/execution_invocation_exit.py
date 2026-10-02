@@ -19,6 +19,7 @@ SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
     "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA", "MERGE", "HANDOFF", "FINALIZE", "RECONCILE", "BLOCK"
 })
 REMOTE_ACTIVE_STATUSES = frozenset({"queued", "in_progress", "pending", "waiting", "requested"})
+REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = 1
 
 
 class InvocationExitError(ValueError):
@@ -62,6 +63,31 @@ def _decision(record: ExecutionRecord, name: str, *, may_return: bool, requires_
         next_action_kind=record.next_action.kind if record.next_action else None,
         active_run_id=record.active_run.id if record.active_run else None,
     )
+
+
+def assert_remote_qa_active_observation_budget(
+    *,
+    observation_count: int,
+    run_status: str,
+) -> bool:
+    """Reject same-invocation busy polling of one active remote QA run.
+
+    The caller increments ``observation_count`` after each exact run/head status
+    read in the current invocation. Terminal observations are not budgeted: they
+    should be consumed immediately through the existing QA terminal path.
+    """
+    if isinstance(observation_count, bool) or not isinstance(observation_count, int):
+        raise InvocationExitError("observation_count must be an integer")
+    if observation_count <= 0:
+        raise InvocationExitError("observation_count must be positive")
+    status = _text(run_status, "run_status").lower()
+    if status in REMOTE_ACTIVE_STATUSES and observation_count > REMOTE_QA_ACTIVE_OBSERVATION_BUDGET:
+        raise InvocationExitError(
+            "REMOTE_QA_POLL_BUDGET_EXHAUSTED "
+            f"observation_count={observation_count} budget={REMOTE_QA_ACTIVE_OBSERVATION_BUDGET} "
+            f"run_status={status}"
+        )
+    return True
 
 
 def durable_terminal_exit_blockers(record: ExecutionRecord) -> tuple[str, ...]:
@@ -228,6 +254,8 @@ def classify_invocation_exit(
     host_boundary: bool = False,
     source_manifest: object | None = None,
     workspace_location: str | None = None,
+    remote_qa_active_observation_count: int = 1,
+    other_executable_leaf_available: bool = False,
 ) -> InvocationExitDecision:
     """Classify whether this physical invocation may return.
 
@@ -239,6 +267,8 @@ def classify_invocation_exit(
         raise InvocationExitError("record must be an ExecutionRecord")
     invocation = _text(invocation_identity, "invocation_identity")
     now_dt = _aware(now, "now")
+    if not isinstance(other_executable_leaf_available, bool):
+        raise InvocationExitError("other_executable_leaf_available must be boolean")
 
     if record.state == "DONE":
         assert_durable_terminal_exit(record)
@@ -255,6 +285,13 @@ def classify_invocation_exit(
                 source_manifest=source_manifest,
                 workspace_location=workspace_location,
             )
+        if other_executable_leaf_available:
+            return _decision(
+                record,
+                "CONTINUE_OTHER_EXECUTABLE_LEAF",
+                may_return=False,
+                requires_yield=False,
+            )
         return _decision(record, "TASK_TERMINAL", may_return=True, requires_yield=False)
 
     if record.lease is None:
@@ -265,6 +302,13 @@ def classify_invocation_exit(
             and tx.kind == "YIELD"
             and tx.invocation_identity == invocation
         ):
+            if other_executable_leaf_available:
+                return _decision(
+                    record,
+                    "CONTINUE_OTHER_EXECUTABLE_LEAF",
+                    may_return=False,
+                    requires_yield=False,
+                )
             return _decision(record, "YIELDED", may_return=True, requires_yield=False)
         return _decision(record, "ACQUIRE_REQUIRED", may_return=False, requires_yield=False)
 
@@ -282,6 +326,10 @@ def classify_invocation_exit(
     if record.active_run is not None and record.next_action is not None:
         run_status = str(record.active_run.status or "").strip().lower()
         if record.next_action.kind == "POLL_QA" and record.next_action.kind in OBSERVATION_ACTION_KINDS and run_status in REMOTE_ACTIVE_STATUSES:
+            assert_remote_qa_active_observation_budget(
+                observation_count=remote_qa_active_observation_count,
+                run_status=run_status,
+            )
             return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
 
     if terminal_tail_active(record):
