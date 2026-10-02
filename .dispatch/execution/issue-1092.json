@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "issue": 1092,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1092",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "f1c9fc98f3bf3d439deefb4d227e684b33d483185109ff1c3cf1009bbe9d7ff2",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-02:1062-has-owner-do-other-work",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.2",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "transaction": null,
+  "updated_at": "2026-10-02T07:09:18Z",
+  "version": 2,
+  "work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002"
+}
