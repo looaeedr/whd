@@ -719,6 +719,48 @@ def _ensure_issue_closed_for_finalize(
 
 
 
+def _trusted_stale_release_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    supplied: dict[str, object],
+) -> dict[str, object]:
+    """Prove the five narrow stale-release reset conditions with fresh readback."""
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "RELEASED":
+        return dict(supplied)
+    now = _now()
+    if record.lease is None:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires an expired lease")
+    lease_expires = datetime.fromisoformat(record.lease.expires_at.replace("Z", "+00:00"))
+    if lease_expires >= now:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires an expired lease")
+    if record.active_run is not None:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires active_run=null")
+    if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires no QA lock")
+
+    encoded_work = quote(record.work_branch, safe="")
+    try:
+        _api(repo, "GET", f"/git/ref/heads/{encoded_work}", token)
+    except HTTPError as exc:
+        if exc.code != 404:
+            raise
+    else:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires absent work branch")
+
+    effect = dict(supplied)
+    effect.update(
+        {
+            "work_branch_exists": False,
+            "fresh_target_sha": _read_branch_head(repo, token, record.target_branch),
+            "updated_at": _iso(now),
+        }
+    )
+    return effect
+
+
 def _trusted_consume_qa_effect(
     repo: str,
     token: str,
@@ -905,6 +947,13 @@ def _execute_one_attempt(
             token,
             record=record,
             invocation_identity=invocation_identity,
+        )
+    elif kind == "RELEASE_PATHS":
+        effect = _trusted_stale_release_effect(
+            repo,
+            token,
+            record=record,
+            supplied=effect,
         )
     elif kind == "FINALIZE":
         # FINALIZE owns an external GitHub Issue close/readback side effect, so
