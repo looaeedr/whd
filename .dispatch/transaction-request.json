@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-acquire-work1-20261002T1123+08",
+  "request_id": "issue1133-root-complete-to-start-branch-20261002T1124+08",
   "issue": 1133,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-  "expected_coord_head": "b2e69676c975d0fb26e4770cc2cfc64d93fe1308",
-  "expected_generation": 5,
-  "effect": {},
-  "purpose": "Acquire live work1 lease for Issue #1133 after successful handoff; preserve exact reserved paths and frozen root diff.",
+  "expected_coord_head": "0ef12229a0cb40e93c2f47ca0bd108f09f0615b0",
+  "expected_generation": 6,
+  "effect": {
+    "observed_work_branch": "scheduler/issue1133-auto-dispatch",
+    "observed_head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+    "observed_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+    "semantic_state": "ROOT_DIFF_FROZEN",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "c80c0556ddcd739e9b55fac35e17aa79e38dc7f050d0bb1bede04e1405a71d82"
+      },
+      "display": "Start exact-tested #1133 Git branch"
+    }
+  },
+  "purpose": "Reconcile Issue #1133 after canonical root tests and diff freeze; preserve owner, reservation, source and target identity and advance only to START_BRANCH.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
