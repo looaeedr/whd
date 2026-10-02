@@ -1,34 +1,17 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-acquire-a-6f671299-20261002T1314",
+  "request_id": "issue1062-handoff-work1-6f671299-20261002T1315",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "HANDOFF",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "scheduler-a.issue1062.current.20261002T1314+08",
-  "expected_coord_head": "21bfd427f24f5cd6780ae391ec2d83b5d494fef1",
-  "expected_generation": 30,
+  "expected_coord_head": "798a30ca0e42145fb60aa6a5e3ea7c30822d9a6d",
+  "expected_generation": 31,
   "effect": {
-    "semantic_state": "CLAIMED",
-    "next_action": {
-      "kind": "HANDOFF",
-      "args": {
-        "to_owner_kind": "INTERACTIVE",
-        "to_owner_id": "chatgpt.flowv2.work1"
-      },
-      "display": "Handoff Issue #1062 current full-regression classification to canonical root workspace via work1"
-    }
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work1",
+    "lane_id": "chatgpt.flowv2.work1",
+    "lease": null
   },
-  "purpose": "/排程A fresh ACQUIRE of #1062 after trusted current-head stale reset. Bind the exact current 6f671299 source/target and immediately continue to repository-content HANDOFF; do not resume any historical 872d9500/60cf8c34 continuation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GITHUB_MIRROR",
-    "execution_mode": "SCHEDULER_LANE",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
