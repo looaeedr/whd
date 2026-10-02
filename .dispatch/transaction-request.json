@@ -1,28 +1,18 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-accept-terminal-qa-20261002T1725",
-  "issue": 1092,
-  "kind": "ACCEPT_QA",
+  "request_id": "issue1128-handoff-work0-to-work2-20261002T1737+08",
+  "issue": 1128,
+  "kind": "HANDOFF",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1723+08",
-  "expected_coord_head": "04aff403ae5f30f1281384f56b6857f37fd83bc5",
-  "expected_generation": 11,
-  "reuse_admission_session": true,
+  "invocation_identity": "chatgpt.flowv2.work2.issue1128.handoff.20261002T1737+08",
+  "expected_coord_head": "8d156aff72dd55462b94794a68f2b864e62c2477",
+  "expected_generation": 2,
   "effect": {
-    "run_id": 36986222021,
-    "run_head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "GREEN",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1140
-      },
-      "display": "merge exact accepted Issue #1092 PR #1140"
-    }
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work2",
+    "lane_id": "chatgpt.flowv2.work2"
   },
-  "purpose": "Consume the already-observed terminal-success exact-head QA for Issue #1092 and enter the terminal integration tail without another QA poll.",
+  "purpose": "Routing-only handoff of user-selected Issue #1128 to first free interactive lane because work0 has stale closed #1112 residue and work1 is occupied by #1062. Preserve #1128 slot/work branch/head/next_action/semantic state and continue the already root-tested diff.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
