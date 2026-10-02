@@ -1,14 +1,36 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue964-finalize-5888362405",
-  "issue": 964,
-  "kind": "FINALIZE",
+  "request_id": "issue1133-acquire-root-5945139025",
+  "issue": 1133,
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a:user-finalize-964:5888362405",
-  "expected_coord_head": "fd5447c5fa15d77efc74b72c9f87fe232b9ab7fd",
-  "expected_generation": 8,
-  "effect": {},
-  "purpose": "User explicitly requested completing Issue #964. Consume the current structured FINALIZE action through the trusted writer, close/read back the Issue as completed, and terminalize the native ExecutionRecord without changing implementation, QA, merge, or unrelated Issues.",
+  "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
+  "expected_coord_head": "cd51b0442d85fd5828ae8db9eae114797092a012",
+  "expected_generation": 1,
+  "effect": {
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "kind": "HANDOFF",
+      "args": {
+        "to_owner_kind": "INTERACTIVE",
+        "to_owner_id": "chatgpt.flowv2.work0"
+      },
+      "display": "Handoff Issue #1133 repository-content implementation to canonical root workspace"
+    },
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+      "write_paths": [
+        "tools/execution_invocation_exit.py",
+        "tools/control_transaction.py",
+        "tools/control_transaction_production_executor.py",
+        "tests/process/test_flow_v2_path_reservation.py",
+        "tests/process/test_issue1093_active_owning_issue_no_pivot.py"
+      ],
+      "delete_paths": []
+    }
+  },
+  "purpose": "Continue Issue #1062 through machine-fail-closed blocker #1133. Atomically acquire Scheduler A control-plane authority and reserve the exact five governance paths already preflighted at d4a2c7b42764436e18abc0959291aab7c2dc3714, then hand repository-content implementation to the canonical Google Drive root workspace. No product/UI/geometry scope.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
