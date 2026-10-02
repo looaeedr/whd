@@ -1,24 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-acquire-terminal-tail-v1-compat-20261002T2319+08",
+  "request_id": "issue1092-merge-already-merged-20261002T2322+08",
   "issue": 1092,
-  "kind": "ACQUIRE",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.finalize.20261002T2319+08",
-  "expected_coord_head": "e1abc8c388750af523ec19833af9cd962632ef44",
-  "expected_generation": 12,
+  "expected_coord_head": "51db23ea92a999bf3a1f2045085c2c2ddded107b",
+  "expected_generation": 13,
   "effect": {},
-  "purpose": "Compatibility-envelope resume of already-merged Issue #1092 terminal tail only; renew expired same-lane lease, then reconcile ALREADY_MERGED and FINALIZE. This does not authorize repository-content authoring.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
