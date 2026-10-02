@@ -1,19 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-handoff-root-5945139025",
+  "request_id": "issue1133-correct-work0-handoff-5945139025",
   "issue": 1133,
   "kind": "HANDOFF",
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
-  "expected_coord_head": "a6cab7ec7541b79f5c80088737077234b3894596",
-  "expected_generation": 2,
+  "lane_id": "chatgpt.flowv2.work0",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1133.20261002",
+  "expected_coord_head": "7ef323c6ccfec7c03169745be7a8801a7ef7caa5",
+  "expected_generation": 3,
   "effect": {
-    "owner_kind": "INTERACTIVE",
+    "owner_kind": "SCHEDULER",
     "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": null,
+    "lane_id": "chatgpt.flowv2.work0",
     "lease": null
   },
-  "purpose": "Consume the exact #1133 HANDOFF structured action after Scheduler A acquired the exact five-path reservation. Transfer repository-content implementation to the canonical root-capable interactive owner without changing slot/work identity, reservation, semantic state, or next_action.",
+  "purpose": "Correct Issue #1133 to the canonical work-slot HANDOFF shape already used by production: owner_kind=SCHEDULER with owner_id/lane_id=chatgpt.flowv2.work0, preserving the exact five-path ACTIVE reservation and current continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
