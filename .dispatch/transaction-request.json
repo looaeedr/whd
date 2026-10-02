@@ -1,32 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-acquire-reserve-20261002T1509",
+  "request_id": "issue1092-work2-renew-after-root-green-20261002T1531",
   "issue": 1092,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-  "expected_coord_head": "1dc0780830d7ad0d9639f7e34f7cc3a2a24e3a47",
-  "expected_generation": 1,
+  "expected_coord_head": "7f6642785250b288e799bba5c843f2f0d1260d2a",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "PATHS_RESERVED_ROOT_IMPLEMENTING",
+    "semantic_state": "ROOT_TESTS_GREEN_EXACT_DIFF_FROZEN",
     "next_action": {
       "kind": "START_BRANCH",
-      "args": {},
-      "display": "Start Git phase only after ROOT_DIFF_FROZEN and GIT_WRITE_UNLOCKED"
-    },
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
-        "tests/process/test_issue1092_remote_qa_nonblocking_wait.py",
-        "tools/execution_invocation_exit.py"
-      ],
-      "delete_paths": []
+      "args": {
+        "diff_digest": "b3f5732807078d771a8974ecad7db55140a077aa4b52c3b4101543012037594c"
+      },
+      "display": "start exact #1092 Git branch from frozen Drive root"
     }
   },
-  "purpose": "Execute Issue #1092 in work2 at cleanup/2d-3d-sync@d1036c60f67c1eb4308eb693fa89de4c7d98180f. Atomically acquire the live lease and reserve only the remote-QA nonblocking-wait hard-gate paths, then implement/test/freeze in canonical /Google Drive/WHD before any Git content write.",
+  "purpose": "Renew the expired work2 lease for Issue #1092 after the same d1036c60 source, ACTIVE four-path reservation, Drive readback, 40/40 focused tests, 543/543 canonical control-plane gate, and frozen diff remained unchanged. Do not retest or refreeze unchanged root evidence.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
