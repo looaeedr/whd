@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 31,
+  "generation": 32,
   "head_sha": "6f67129914eed10d5149461f064ab4a3b9c78696",
   "issue": 1062,
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "lease": {
-    "expires_at": "2026-10-02T05:30:20Z",
-    "invocation_identity": "scheduler-a.issue1062.current.20261002T1314+08",
-    "token": "lease:1062:36968075065:1"
-  },
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": null,
   "mutation_scope": {
     "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
     "delete_paths": [],
@@ -49,7 +45,7 @@
     "display": "Handoff Issue #1062 current full-regression classification to canonical root workspace via work1",
     "kind": "HANDOFF"
   },
-  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
@@ -72,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "6f67129914eed10d5149461f064ab4a3b9c78696",
   "transaction": {
-    "expected_fingerprint": "53eb7f3feb83446617bf05b65af671a9837dfb33af4c20d3b149d84db605a249",
-    "id": "gha:36968075065:1062:ACQUIRE:30",
+    "expected_fingerprint": "cdb215558e9d46792eab81bf30b535a9764961b25d0e21572a93f81e7224eb47",
+    "id": "gha:36968216877:1062:HANDOFF:31",
     "invocation_identity": "scheduler-a.issue1062.current.20261002T1314+08",
-    "kind": "ACQUIRE",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T05:15:20Z",
+  "updated_at": "2026-10-02T05:17:04Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
