@@ -1,12 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-merge-finalize-drain-20261002T1135+08",
-  "issue": 1133,
-  "kind": "MERGE",
+  "request_id": "issue1062-work1-acquire-20261002T1251",
+  "issue": 1062,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-  "expected_coord_head": "9ce3053aebfc4636d4fcd8782fc29dfe68df5322",
-  "expected_generation": 11,
+  "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261002T1251+08",
+  "expected_coord_head": "0802c78a18e4c882c3170e0692109f329ab86a7c",
+  "expected_generation": 28,
   "effect": {},
-  "reuse_admission_session": true
+  "purpose": "Interactive work1 resumes Issue #1062 after Scheduler A handoff at current cleanup/2d-3d-sync@60cf8c348dade83024832c66acf2089733cda4af. Acquire only the live lease needed for current-source full-regression classification; do not reuse historical 872d9500 source, root freeze, or RELEASED path scope.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
