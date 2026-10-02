@@ -25,7 +25,7 @@ PYTEST_PATHS = (
     "tests/test_issue63_regression_red.py",
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
-    "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+    "tests/test_issue517_receiving_live_switch_ui_export_marking.py",\n    "tests/test_issue1113_receiving_joint_lock_geometry.py",
     "tests/test_corner_parameter_lock.py",
     "tests/test_issue509_receiving_horizontal_marking.py",
     "tests/test_issue510_receiving_back_panel_modes.py",
