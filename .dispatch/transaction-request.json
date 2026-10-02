@@ -1,14 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-work1-acquire-6f671299-20261002T1318",
+  "request_id": "issue1062-work1-stale-reset-d1036c60-20261002T1428",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261002T1318+08",
-  "expected_coord_head": "026b8828ff20246d220f55ce040f8001442dba56",
-  "expected_generation": 32,
-  "effect": {},
-  "purpose": "Interactive work1 resumes Issue #1062 after Scheduler A current-head handoff at cleanup/2d-3d-sync@6f67129914eed10d5149461f064ab4a3b9c78696. Acquire the live lease for current-source root full-regression classification only; do not reuse historical 872d9500/6577b8e5/60cf8c34 source, root freeze or RELEASED scope.",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261002T1428+08",
+  "expected_coord_head": "3dbcd6494090d0e052749edb066bfa4f060f778a",
+  "expected_generation": 33,
+  "effect": {
+    "reason": "expired work1 lease and target drift from 6f671299 to d1036c60; reset stale released residue to exact current target"
+  },
+  "purpose": "Issue #1062 current-head stale RELEASE_PATHS reset after expired work1 lease and target drift. Use the integrated narrow stale reset seam only; align source/head/target to cleanup/2d-3d-sync@d1036c60f67c1eb4308eb693fa89de4c7d98180f and return READY/ACQUIRE. Do not mutate repository content in this transaction.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
