@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1143,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.2",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "work_branch": "delivery/issue1143-docs-gen4-20261002",
+  "head_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1143"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "eaf114c602493fea1b5e778223d628739170404e1dcc767746772e3781a4dcfb",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-02:/推推全部",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "updated_at": "2026-10-02T15:26:00Z"
+}
