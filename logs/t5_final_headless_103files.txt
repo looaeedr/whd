@@ -1,0 +1,20 @@
+........................................................................ [  8%]
+.......................................ssssssssssss.ss.................. [ 17%]
+...........ss.......................................s.......s........... [ 26%]
+........................ss.s..........................................ss [ 35%]
+sssssssssssssssssssssssssssssssssssssssssssssss......................... [ 44%]
+.......sss.s......ssssss....ssssssssssssssssssssss.ss.........s.....s... [ 53%]
+...................s......s....ss...............................sss..... [ 61%]
+...........sssss.......s..ss..sss..ss...............s..............ssss. [ 70%]
+.........s.ssssssss.............ssssss.................................. [ 79%]
+......s.......ssss......................ss.......s.s.................... [ 88%]
+...................................................ssss.sssss.......sss. [ 97%]
+.......................                                                  [100%]
+=============================== warnings summary ===============================
+tests/test_assembly_collision.py::test_restore_unrelieved_endcap_material_fills_exterior_notch_but_preserves_hole
+tests/test_assembly_collision.py::test_restored_endcap_relief_delta_contains_only_material_added_back_by_diagnostic_restore
+  /opt/pyvenv/lib/python3.13/site-packages/shapely/decorators.py:173: DeprecationWarning: The 'resolution' argument is deprecated. Use 'quad_segs' instead
+    result = func(*args, **kwargs)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+648 passed, 167 skipped, 2 warnings in 24.40s

@@ -1,0 +1,114 @@
+{
+  "schema": "WHD_ISSUE545_B6_5_FINAL_CLASSIFICATION_V1",
+  "issue": 545,
+  "controller_issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R3"
+  ],
+  "parent_accepted_head": "f7179554c448a4af5b271d251290912efe115a38",
+  "audit": {
+    "run_id": 35811547955,
+    "head_sha": "4dcdbd07241988738374b506abd57e3818a07559"
+  },
+  "replacement_red": {
+    "run_id": 35811700857,
+    "head_sha": "41b87ea8cadcb8bb9dd2a4b97743a0eb1aacef5e",
+    "result": "3 failed / 1 passed as expected"
+  },
+  "migration_head": "39d2cdc4e0a2ba11036d645dd1a87d53f69c799d",
+  "candidate_green": {
+    "run_id": 35815867302,
+    "head_sha": "54797c37b1cdae0c6b05cff3f7f0c71fa7f8e9db",
+    "headless": "7 passed",
+    "xvfb": "11 failed / 49 passed"
+  },
+  "xvfb_baseline": {
+    "run_id": 35816036734,
+    "branch": "qa/issue545-b6-5-xvfb-baseline-20260923",
+    "parent_accepted_head": "f7179554c448a4af5b271d251290912efe115a38",
+    "xvfb": "11 failed / 49 passed",
+    "candidate_only_fail_count": 0
+  },
+  "architecture": {
+    "initial_run": {
+      "run_id": 35816207486,
+      "classification": "HARNESS_DEPENDENCY_ERROR_MISSING_EZDXF"
+    },
+    "replacement_run": {
+      "run_id": 35816292956,
+      "head_sha": "c23d0b7154c246145c58059617f67018ba993270",
+      "artifact_id": 10731333032,
+      "result": "7 passed"
+    },
+    "accounted": 12,
+    "unclassified": 0,
+    "dynamic_ref_unreviewed": 0,
+    "removed": 8,
+    "direct_owner_migrated": 7,
+    "facade_count_before": 60,
+    "facade_count_after": 52
+  },
+  "classification": {
+    "toggle_corner_parameter_lock": "CAN_DIRECT_OWNER",
+    "_render_settings_context": "CAN_DIRECT_OWNER",
+    "on_baseline_model_changed": "CAN_DIRECT_OWNER",
+    "confirm_corner_transaction": "CAN_DIRECT_OWNER",
+    "cancel_corner_transaction": "CAN_DIRECT_OWNER",
+    "reset_initial_values": "PUBLIC_REQUIRED",
+    "export_workspace_state_if_dirty": "CAN_DIRECT_OWNER",
+    "save_diagnostic_file": "NO_CALLER",
+    "save_project_file": "PUBLIC_REQUIRED",
+    "save_project_file_as": "PUBLIC_REQUIRED",
+    "load_project_file": "PUBLIC_REQUIRED",
+    "_phase6_on_endcap_edge_relation_selected": "CAN_DIRECT_OWNER"
+  },
+  "removed_from_facade": [
+    "toggle_corner_parameter_lock",
+    "_render_settings_context",
+    "on_baseline_model_changed",
+    "confirm_corner_transaction",
+    "cancel_corner_transaction",
+    "export_workspace_state_if_dirty",
+    "save_diagnostic_file",
+    "_phase6_on_endcap_edge_relation_selected"
+  ],
+  "direct_owner_migrations": [
+    [
+      "toggle_corner_parameter_lock",
+      "bridge._phase6_toggle_corner_parameter_lock"
+    ],
+    [
+      "_render_settings_context",
+      "bridge._phase6_render_settings_context"
+    ],
+    [
+      "on_baseline_model_changed",
+      "bridge._phase6_on_baseline_model_changed"
+    ],
+    [
+      "confirm_corner_transaction",
+      "bridge._phase6_confirm_corner_transaction"
+    ],
+    [
+      "cancel_corner_transaction",
+      "bridge._phase6_cancel_corner_transaction"
+    ],
+    [
+      "export_workspace_state_if_dirty",
+      "bridge._phase6_export_workspace_state_if_dirty"
+    ],
+    [
+      "_phase6_on_endcap_edge_relation_selected",
+      "bridge._phase6_on_endcap_edge_relation_selected"
+    ]
+  ],
+  "notes": [
+    "save_diagnostic_file had zero production/test/dynamic consumers and its facade exposure was removed.",
+    "Seven TEST_ONLY_REVIEW items were migrated to direct module-owner calls before facade removal.",
+    "reset_initial_values/save_project_file/save_project_file_as/load_project_file remain PUBLIC_REQUIRED due live production consumers.",
+    "Candidate Xvfb failures are identical to parent accepted baseline: candidate-only fail count=0."
+  ]
+}

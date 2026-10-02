@@ -1,0 +1,103 @@
+{
+  "schema": "WHD_ISSUE702_COMBINED_ACCEPTANCE_WRITEBACK_V1",
+  "issue": 702,
+  "requirement": "REQ-MUTATING-TOOLCALL-CRASH-RECOVERY-01",
+  "accepted_head_sha": "339dc1d25ca509b64a27a6bfadc2cf7b857492f3",
+  "red_stop_22": {
+    "red_head_sha": "ab7d3ccbcc92035fe43634f76962a35e160812f4",
+    "red_run_id": 36293705643,
+    "red_result": "1 failed / 12 passed; expected missing fault-matrix artifact",
+    "green_run_id": 36294035297,
+    "green_job_id": 108549429915,
+    "green_result": "100 passed / 0 failed",
+    "matrix_path": "docs/governance/issue702_crash_fault_injection_matrix.json"
+  },
+  "accepted_red_range": "RED-STOP-16..24",
+  "original_governance_regression": "#687-#692 process regression included in exact-head 100-pass run",
+  "canonical_owners": {
+    "operation_continuity": {
+      "path": "tools/continuity_controller.py",
+      "blob_sha": "2f8582345f38ed423760ced9fab7ac8fe57a8c88"
+    },
+    "guard_transactions": {
+      "path": "tools/execution_claim_guard.py",
+      "blob_sha": "b180e85d3b497391adcb55c4532afe84d2f4b711"
+    },
+    "scheduler_state": {
+      "path": "tools/scheduler_state_reconciliation.py",
+      "blob_sha": "c5c4faebfc38b360f4e8ee7b2541319913b8b502"
+    },
+    "claim_activation": {
+      "path": "tools/claim_activation_recovery.py",
+      "blob_sha": "19f0beceb266f18d93a7242d47f6ad28ea37bbf1"
+    },
+    "trusted_turn_exit": {
+      "path": ".github/workflows/whd-turn-exit-gate.yml",
+      "blob_sha": "d7de36b59ac0d67e41694debbdc0753f54a0f6e8"
+    },
+    "trusted_claim_activation": {
+      "path": ".github/workflows/whd-remote-claim-activation.yml",
+      "blob_sha": "ea8cf4b788d8e9b0f523f84eef69512a027ca91c"
+    }
+  },
+  "current_skill_readback": {
+    "派工": "1a18580e5866f09656ef81b768721cf993bba3ff",
+    "執行開發任務": "fb4641329c2416ccc283c26d13fb5f6aeec3aa4d",
+    "排程模擬": "aa61e9b1862ff75793a097d35205b111604e068f",
+    "寫排程": "c102fcb5877b96e3998803b5d4f7e5c5ed8a887a",
+    "強制接手": "512a6c86e899cd5947ec1d21863670b3ddd7cf14",
+    "工作槽": "98791e9fb39bb46d2316743060b51c53119029ad"
+  },
+  "ai_library_writeback_paths": [
+    "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+    "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+    "個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md",
+    "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+    "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md",
+    "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
+    "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+    "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
+  ],
+  "live_scheduler_readback": {
+    "operation_id": "issue702-live-scheduler-prompt-deployment-v1",
+    "state": "RECONCILED",
+    "required_prompt_markers": [
+      "EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1",
+      "SCHEDULER_STATE_RECONCILIATION_IDENTITY_V1"
+    ],
+    "invariants": {
+      "schedule_unchanged": true,
+      "timing_mode_unchanged": true,
+      "lane_owner_unchanged": true,
+      "entrypoint_unchanged": true
+    },
+    "targets": [
+      {
+        "entrypoint": "00",
+        "automation_id": "6ab13f881c34819180cee63f5dd9446b",
+        "enabled": true
+      },
+      {
+        "entrypoint": "20",
+        "automation_id": "6ab4eaee5e008191a0e7e23303f64cea",
+        "enabled": false,
+        "reason": "deferred to /排程A exit-time enable gate"
+      },
+      {
+        "entrypoint": "40",
+        "automation_id": "6ab13fa557fc8191935c671214b865e2",
+        "enabled": true
+      },
+      {
+        "entrypoint": "B15",
+        "automation_id": "6ab51d9226808191b9ae0c624e28c246",
+        "enabled": true
+      },
+      {
+        "entrypoint": "B45",
+        "automation_id": "6ab51d9ec6708191a578d67065f8979b",
+        "enabled": true
+      }
+    ]
+  }
+}

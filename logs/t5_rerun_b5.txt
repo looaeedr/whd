@@ -1,0 +1,201 @@
+.........................................................F.............. [ 72%]
+............................                                             [100%]
+=================================== FAILURES ===================================
+_ test_receiving_gui_part_specs_drive_actual_2d_contracts_and_survive_snapshot_restore _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9f218f7820>
+
+    def test_receiving_gui_part_specs_drive_actual_2d_contracts_and_survive_snapshot_restore(monkeypatch):
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+        root = tk.Tk(); root.withdraw()
+        app = gui.BoxCalculatorGUI(root)
+        try:
+            monkeypatch.setattr(gui.messagebox, "showerror", lambda *args, **kwargs: None)
+            app.baseline_var.set("受電箱")
+            val = app.get_float_values()
+    
+>           box_spec = app._box_body_part_spec(val)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_receiving_cabinet_2d.py:249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+gui.py:6762: in _box_body_part_spec
+    head_policy, tail_policy = self._box_body_corner_policies(val['fw'])
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+gui.py:2706: in _box_body_corner_policies
+    self._manual_corner_policy("head", head_fw),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+gui.py:2681: in _manual_corner_policy
+    return family_adapter(policy, part_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <gui.BoxCalculatorGUI object at 0x7f9f2193e490>
+policy = FourCornerTypePolicy(bottom_left=CornerTypeSelection(type_id=<CornerTypeId.CROSS: 'CROSS'>, rotation_quadrants=0, cros....HEIGHT: 'height'>, amount_t=1.0, secondary_retain_t=0.5, secondary_depth_t=2.0), fw=29.0, bottom_fw=None, top_fw=None)
+part_key = 'head'
+
+    def _apply_cabinet_family_endcap_policy(
+        self, policy, part_key, *, snapshot=None, thickness=None, structure_state=None
+    ):
+        """Apply cabinet-family geometry inputs without changing operator Corner selections.
+    
+        The Corner selections remain the operator/registry Source of Truth. Cabinet families
+        may supply only family geometry such as the receiving-cabinet effective bottom FW.
+        Both the main GUI and Fold Designer payload adapter call this helper so 2D/3D cannot
+        drift by rebuilding the same family rule differently.
+        """
+        if policy is None or str(part_key) not in {"head", "tail"}:
+            return policy
+    
+        family_source = (
+            BoxCalculatorGUI._current_cabinet_type_name(self)
+            if snapshot is None else snapshot
+        )
+        if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
+            return policy
+    
+        if structure_state is None:
+            try:
+                structure_state = self.workspace_controller.box_body_structure_state()
+            except Exception:
+                structure_state = None
+        if thickness is None:
+            try:
+                thickness = float(self.t_var.get())
+            except Exception:
+                thickness = float(ae.T)
+        return replace(
+            policy,
+            bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
+                family_source,
+                structure_state,
+                thickness=float(thickness),
+>               default_fw=float(policy.bottom_fw),
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+            ),
+        )
+E       TypeError: float() argument must be a string or a real number, not 'NoneType'
+
+gui.py:1426: TypeError
+=============================== warnings summary ===============================
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32068 (\N{CJK UNIFIED IDEOGRAPH-7D44}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21512 (\N{CJK UNIFIED IDEOGRAPH-5408}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 39636 (\N{CJK UNIFIED IDEOGRAPH-9AD4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65306 (\N{FULLWIDTH COLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24178 (\N{CJK UNIFIED IDEOGRAPH-5E72}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 28041 (\N{CJK UNIFIED IDEOGRAPH-6D89}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 30896 (\N{CJK UNIFIED IDEOGRAPH-78B0}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25758 (\N{CJK UNIFIED IDEOGRAPH-649E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21312 (\N{CJK UNIFIED IDEOGRAPH-5340}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27573 (\N{CJK UNIFIED IDEOGRAPH-6BB5}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20132 (\N{CJK UNIFIED IDEOGRAPH-4EA4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32218 (\N{CJK UNIFIED IDEOGRAPH-7DDA}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23637 (\N{CJK UNIFIED IDEOGRAPH-5C55}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38283 (\N{CJK UNIFIED IDEOGRAPH-958B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23610 (\N{CJK UNIFIED IDEOGRAPH-5C3A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23544 (\N{CJK UNIFIED IDEOGRAPH-5BF8}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 31665 (\N{CJK UNIFIED IDEOGRAPH-7BB1}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36523 (\N{CJK UNIFIED IDEOGRAPH-8EAB}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23553 (\N{CJK UNIFIED IDEOGRAPH-5C01}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38957 (\N{CJK UNIFIED IDEOGRAPH-982D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23614 (\N{CJK UNIFIED IDEOGRAPH-5C3E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38272 (\N{CJK UNIFIED IDEOGRAPH-9580}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24213 (\N{CJK UNIFIED IDEOGRAPH-5E95}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_receiving_is_also_visible_in_3d_existing_baseline_model_selector
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26495 (\N{CJK UNIFIED IDEOGRAPH-677F}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_receiving_cabinet_2d.py::test_receiving_gui_part_specs_drive_actual_2d_contracts_and_survive_snapshot_restore - TypeError: float() argument must be a string or a real number, not 'NoneType'
+1 failed, 99 passed, 28 warnings in 7.92s

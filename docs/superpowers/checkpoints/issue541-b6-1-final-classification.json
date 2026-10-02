@@ -1,0 +1,62 @@
+{
+  "schema": "WHD_ISSUE541_B6_1_FINAL_CLASSIFICATION_V1",
+  "issue": 541,
+  "controller_issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R3"
+  ],
+  "parent_accepted_head": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
+  "audit_v1": {
+    "run_id": 35795523293,
+    "status": "NON_ACCEPTANCE_EVIDENCE_BACKUP_CONTAMINATION"
+  },
+  "audit_v2": {
+    "run_id": 35795603842,
+    "head_sha": "058cc7e9c9c688b1d8ecf0916229a43d45990bb9",
+    "artifact_id": 10723808691
+  },
+  "replacement_red": {
+    "run_id": 35795722034,
+    "head_sha": "88a7273047572f299d66759160030e8378ceda28",
+    "result": "2 failed / 1 passed as expected"
+  },
+  "green": {
+    "run_id": 35795824278,
+    "head_sha": "cef59e90877ca9f87d542d6d50ae348027200539",
+    "artifact_id": 10723188742,
+    "result": "25 passed / 1 skipped"
+  },
+  "facade_count_before": 69,
+  "facade_count_after": 65,
+  "accounted": 12,
+  "unclassified": 0,
+  "dynamic_ref_unreviewed": 0,
+  "removed": [
+    "_phase6_cutting_mesh_error",
+    "_phase6_view_initialized",
+    "_phase6_base_renderer_render",
+    "_phase6_scroll_cid"
+  ],
+  "classification": {
+    "__getattr__": "LEGACY_REQUIRED",
+    "_phase6_last_cutting_mesh": "PROPERTY_COMPAT",
+    "_phase6_last_cutting_material": "PROPERTY_COMPAT",
+    "_phase6_cutting_mesh_error": "NO_CALLER",
+    "_phase6_zoom_scale": "PROPERTY_COMPAT",
+    "_phase6_view_initialized": "NO_CALLER",
+    "_phase6_base_renderer_render": "NO_CALLER",
+    "_phase6_scroll_cid": "NO_CALLER",
+    "__init__": "LEGACY_REQUIRED",
+    "_refresh_part_buttons": "LEGACY_REQUIRED",
+    "_refresh_part_button_states": "LEGACY_REQUIRED",
+    "_refresh_add_part_menu": "LEGACY_REQUIRED"
+  },
+  "evidence_rules": {
+    "backup_and_tooling_excluded_from_runtime_consumer_evidence": true,
+    "no_deletion_from_name_or_loc_only": true,
+    "no_caller_items_required_replacement_red_green": true
+  }
+}

@@ -1,0 +1,21 @@
+ISSUE: #466
+TASK: T5 — OPEN-1 product decision: marking failure DXF export disposition
+BRANCH: workorder/issue464-joint-placement-marking-v1.3-20260921
+BASE_HEAD: 947a2299cc4ab9109dbffadef325b12eab1ff3c3
+PRODUCT_AUTHORITY_DECISION: ALLOW_EXPORT_WITH_DIAGNOSTIC
+PRODUCT_AUTHORITY_SOURCE: user explicit selection in ChatGPT conversation on 2026-09-21
+REQUIREMENT_AUTHORITY_READ: docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md@0fafeae16c7cb0b4e2d1902c004626d7714d97d9
+READ_SKILL: 派工
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+PREFLIGHT_RESULT: GREEN
+DECISION_SEMANTICS:
+- marking failure remains fail-closed for guessed/fallback marks
+- DXF export remains allowed when canonical manufacturing geometry is otherwise valid
+- machine-readable diagnostic/export summary is mandatory and non-silent
+- T6/Gate B must enforce this disposition with focused regression

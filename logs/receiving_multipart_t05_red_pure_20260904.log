@@ -1,0 +1,23 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_dynamic_door_assembly_transform_uses_canonical_layout_cell_centers ____
+
+    def test_dynamic_door_assembly_transform_uses_canonical_layout_cell_centers():
+        import fold_designer_bridge as bridge
+    
+        receiving = {
+            "w": 800.0,
+            "h": 1600.0,
+            "multi_door_enabled": True,
+            "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        }
+>       assert bridge._phase6_assembly_placement_for_part(receiving, "door_c1_r1") == (
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "front", (0.0, 250.0, 0.0)
+        )
+E       AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_assembly_placement_for_part'
+
+tests/test_phase6_t05_multi_door_flow.py:30: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_t05_multi_door_flow.py::test_dynamic_door_assembly_transform_uses_canonical_layout_cell_centers - AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_assembly_placement_for_part'
+1 failed, 1 passed, 2 deselected in 0.55s

@@ -1,0 +1,102 @@
+===== R3 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R3_guard_drain_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_R3_guard_drain_is_behavioral ______________________
+test_whd_poweroff_requirement_red_v4.py:208: in test_R3_guard_drain_is_behavioral
+    _assert_decision(out, result, reason)
+test_whd_poweroff_requirement_red_v4.py:166: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R3_guard_drain_is_behavioral
+1 failed in 0.20s
+
+
+===== R4 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R4_scheduler_readiness_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_R4_scheduler_readiness_is_behavioral __________________
+test_whd_poweroff_requirement_red_v4.py:216: in test_R4_scheduler_readiness_is_behavioral
+    _assert_decision(
+test_whd_poweroff_requirement_red_v4.py:166: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R4_scheduler_readiness_is_behavioral
+1 failed in 0.20s
+
+
+===== R5 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R5_poweroff_truth_table_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: expected result=NOT_SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ test_R5_poweroff_truth_table_is_behavioral __________________
+test_whd_poweroff_requirement_red_v4.py:247: in test_R5_poweroff_truth_table_is_behavioral
+    _assert_decision(
+test_whd_poweroff_requirement_red_v4.py:166: in _assert_decision
+    assert out.get("result") == result, f"expected result={result}, got {out}"
+E   AssertionError: expected result=NOT_SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1']}
+E   assert 'SAFE' == 'NOT_SAFE'
+E     
+E     - NOT_SAFE
+E     + SAFE
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R5_poweroff_truth_table_is_behavioral
+1 failed in 0.28s
+
+
+===== R6 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R6_safe_receipt_invalidation_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: assert True is False
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_R6_safe_receipt_invalidation_is_behavioral _______________
+test_whd_poweroff_requirement_red_v4.py:268: in test_R6_safe_receipt_invalidation_is_behavioral
+    assert out.get("valid") is False
+E   AssertionError: assert True is False
+E    +  where True = <built-in method get of dict object at 0x0000016C7191BD40>('valid')
+E    +    where <built-in method get of dict object at 0x0000016C7191BD40> = {'schema': 'WHD_POWER_OFF_SAFE_VALIDATION_V1', 'valid': True, 'reason': 'VALID'}.get
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R6_safe_receipt_invalidation_is_behavioral
+1 failed in 0.26s
+
+
+===== R10 =====
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; $env:WHD_POWER_OFF_GATE_OVERRIDE='C:\Users\Public\fake_token_only_poweroff_gate.py'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_requirement_red_v4.py::test_R10_multi_slot_aggregation_is_behavioral
+EXPECTED_FAILURE_SUBSTRING: one NOT_SAFE slot must prevent aggregate SAFE
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R10_multi_slot_aggregation_is_behavioral ________________
+test_whd_poweroff_requirement_red_v4.py:323: in test_R10_multi_slot_aggregation_is_behavioral
+    assert out.get("result") != "SAFE", f"one NOT_SAFE slot must prevent aggregate SAFE, got {out}"
+E   AssertionError: one NOT_SAFE slot must prevent aggregate SAFE, got {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', 'evidence_revision': 'REV-1', 'active_slots': ['worker.slot.1', 'worker.slot.2']}
+E   assert 'SAFE' != 'SAFE'
+E    +  where 'SAFE' = <built-in method get of dict object at 0x000001DDA1E844C0>('result')
+E    +    where <built-in method get of dict object at 0x000001DDA1E844C0> = {'schema': 'WHD_POWER_OFF_GATE_V1', 'result': 'SAFE', 'reason': 'FAKE_ALWAYS_SAFE', 'poweroff_request_id': 'REQ-1', ...}.get
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_requirement_red_v4.py::test_R10_multi_slot_aggregation_is_behavioral
+1 failed in 0.33s
+

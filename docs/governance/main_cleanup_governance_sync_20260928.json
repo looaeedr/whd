@@ -1,0 +1,21 @@
+{
+  "schema": "WHD_MAIN_CLEANUP_GOVERNANCE_SYNC_V1",
+  "date": "2026-09-28",
+  "source_ref": "cleanup/2d-3d-sync",
+  "target_ref": "main",
+  "rationale": "Governance/reference/readback artifacts are mirrored between main and cleanup/2d-3d-sync; product/test implementation may remain cleanup-only.",
+  "mirrored_files": {
+    "docs/governance/whd_scheduler_takeover_usage.md": "b3280f0acf47480a29c271dc3b919de5d61d528d",
+    "docs/governance/issue693_combined_acceptance_writeback_manifest.json": "007141f7f80b02b942cbf3712e3319649de8eadc",
+    "docs/governance/issue702_combined_acceptance_writeback_manifest.json": "03f955e9f137b8fb8f2f713962235ea21ebc38c1",
+    "docs/governance/issue702_crash_fault_injection_matrix.json": "8103498a222d1f39164a537d308ef23011b512dc",
+    "docs/governance/issue843_control_plane_behavior_matrix.json": "3bb05586021836a0e6dcb0db5493ac4fd63a13d8"
+  },
+  "cleanup_only_exclusions": [
+    {
+      "path": "tests/process/test_issue843_control_plane_behavior_matrix.py",
+      "reason": "acceptance/regression test implementation; not governance truth"
+    }
+  ],
+  "invariant": "Mirrored governance files must have identical blob content on main and cleanup/2d-3d-sync after merge."
+}

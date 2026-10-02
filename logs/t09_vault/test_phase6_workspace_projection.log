@@ -1,0 +1,62 @@
+..F.                                                                     [100%]
+=================================== FAILURES ===================================
+____ test_bridge_collects_shared_fields_through_designer_owner_export_seam _____
+
+    def test_bridge_collects_shared_fields_through_designer_owner_export_seam():
+        import fold_designer_bridge as bridge
+    
+        canonical = _canonical_shared()
+    
+        class DesignerOwner:
+            active_part = "head"
+            def export_shared_snapshot(self, *, live_active_profiles=None):
+                result = deepcopy(canonical)
+                if live_active_profiles is not None:
+                    result["part_profiles"]["head"] = deepcopy(live_active_profiles)
+                return result
+            def box_body_structure_state(self):
+                raise AssertionError("adapter should not rebuild shared structure")
+    
+        holder = SimpleNamespace(
+            designer_workspace=DesignerOwner(),
+            state=SimpleNamespace(
+                profiles={"X": [{"len": 55.0}], "Y": []},
+                profiles_vault={"箱身": [{"phase6_key": "w", "len": 400.0}]},
+            ),
+            _phase6_assembly_type=bridge.CornerTypeId.INSERT_OVERLAY,
+            _phase6_endcap_fw_state={},
+            _phase6_input_snapshot={"fw": 25.0},
+        )
+>       result = bridge._phase6_collect_workspace_state(holder)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_phase6_workspace_projection.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = namespace(designer_workspace=<test_phase6_workspace_projection.test_bridge_collects_shared_fields_through_designer_own..._type=<CornerTypeId.INSERT_OVERLAY: 'INSERT_OVERLAY'>, _phase6_endcap_fw_state={}, _phase6_input_snapshot={'fw': 25.0})
+
+    def _phase6_collect_workspace_state(self):
+        active = self.designer_workspace.active_part
+        live_active_profiles = None
+        # The visible fold editor is live canonical state.  The adapter only supplies
+        # that editor payload; DesignerWorkspace owns how it projects the shared schema.
+        if active and active != "box_body":
+            profiles = getattr(self.state, "profiles", {}) or {}
+            live_x = profiles.get("X", ()) or ()
+            live_y = profiles.get("Y", ()) or ()
+            if live_x or live_y:
+                live_active_profiles = {
+                    "X": clone_profile(live_x),
+                    "Y": clone_profile(live_y),
+                }
+        owner = self.designer_workspace.export_shared_snapshot(
+            live_active_profiles=live_active_profiles
+        )
+>       owner["part_features"] = self.designer_workspace.part_features_snapshot()
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'DesignerOwner' object has no attribute 'part_features_snapshot'
+
+fold_designer_bridge.py:1871: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_workspace_projection.py::test_bridge_collects_shared_fields_through_designer_owner_export_seam - AttributeError: 'DesignerOwner' object has no attribute 'part_features_snapshot'
+1 failed, 3 passed in 0.68s

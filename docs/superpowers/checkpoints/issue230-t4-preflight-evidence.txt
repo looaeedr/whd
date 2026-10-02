@@ -1,0 +1,73 @@
+ISSUE: #230
+TASK: T4 Clean AI Library README and Core Rules
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+CURRENT_PARENT_SHA: 12497eeb17bac1066374ed23f8597f4efec39d79
+
+APPROVED_SPEC_PATH: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md
+APPROVED_SPEC_BLOB_SHA: 1f828b8aeab8c9596b189e6c5b15a757b3858c54
+APPROVED_SCOPE: README navigation/reference normalization; core rules remain REFERENCE; no production code/geometry/UI behavior change.
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+REFERENCE_SHA: 03d1c2fc1f7683f563b5ec839c5bfbb2f93a68a7
+REFERENCE_FINDING: README/reference prose must not create a parallel CURRENT owner; CURRENT ownership is resolved through the Authority Map.
+
+READ_TARGET: 個人AI檔案庫/README.md
+TARGET_SHA_BEFORE: 42f246b280c70e9fba0d9b6af6f3482b9000e80d
+TARGET_SHA_AFTER: addde27918d7f47245a4703c88aa5a0c86b1a0cf
+TARGET_FINDING_BEFORE: lacked WHD_DOC_META_V1 frontmatter; top-level tree omitted 踩坑庫; second-layer navigation was stale; contained legacy Pre-Edit 備份 summary and multiple dated UI/assembly/product CURRENT-style sections.
+TARGET_RESULT: normalized to REFERENCE/navigation-only README with current directory/SOP navigation, Authority Map routing, Git rollback rule and no dated product/UI CURRENT prose.
+
+READ_TARGET: 個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則.md
+TARGET_SHA_BEFORE: 10eaae346d96d94b4768a9e45e8ce0d5a5227e67
+TARGET_SHA_AFTER: 10eaae346d96d94b4768a9e45e8ce0d5a5227e67
+TARGET_FINDING: already declared REFERENCE role/pointers and Git branch/commit rollback semantics; focused RED proved this contract PASS, so T4 intentionally made no edit.
+
+READ_GUARD: tests/knowledge/test_knowledge_governance_bootstrap.py
+GUARD_SHA: e701a0f55b1e07c4273bcd69fc09b405b093082f
+GUARD_FINDING: any governed Markdown modified in bootstrap mode must immediately carry valid WHD_DOC_META_V1 metadata.
+
+DIRECTORY_FACTS:
+- 個人AI檔案庫 has current top-level navigation entries README.md, 第一層_核心檔案, 第二層_專案與SOP, 踩坑庫.
+- Current second-layer entries include 06_踩坑記錄與防錯經驗庫.md, both 07_* SOPs, both 08_* SOPs, and 09_WHD_Canonical_Authority_Map.md; normalized README now reflects these current navigation entries.
+
+RED_EVIDENCE:
+- RUN_ID: 34849090400
+- HEAD_SHA: a3c302fc51d1e768a41685370e36ed26c4ef1e3f
+- PREFLIGHT: GREEN; required Python測試實務 + required references all satisfied.
+- FOCUSED_RESULT: 3 failed / 1 passed.
+- RED_SCOPE: all three failures were 個人AI檔案庫/README.md acceptance gaps; core-rules REFERENCE/canonical-pointer test passed.
+
+FOCUSED_GREEN_EVIDENCE:
+- RUN_ID: 34849194374
+- HEAD_SHA: ae7f5742c1dda9f961bf482720a754dacf4b9eb6
+- PREFLIGHT: GREEN.
+- FOCUSED_RESULT: 4 passed / 0 failed.
+- BOOTSTRAP_RESULT: 8 passed / 0 failed.
+
+FINAL_KNOWLEDGE_EVIDENCE:
+- RUN_ID: 34849263388
+- TESTED_HEAD_SHA: 05efd71f1bffed3f85fcb0de8239c0e392822d6d
+- PREFLIGHT: GREEN.
+- FOCUSED_RESULT: 4 passed / 0 failed.
+- BOOTSTRAP_RESULT: 8 passed / 0 failed.
+- KNOWLEDGE_RESULT: 65 passed / 0 failed.
+
+CLEANUP:
+- temporary .github/workflows/issue230-t4-ai-library-qa.yml removed after terminal GREEN.
+- no production code, geometry, registry/catalog, Skill, config.ini or baseline modifications were made by T4.
+
+GATE:
+- RED was established before production-document edits.
+- Validation was not used as authority; assertions were derived from #230 + approved spec only.
+- Closing-head drift must remain limited to temporary workflow cleanup + durable evidence after TESTED_HEAD_SHA.

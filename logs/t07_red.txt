@@ -1,0 +1,71 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel _
+
+    def test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel():
+        tk, root, win, app, bridge = _build_app()
+        try:
+            app.activate_part("base_plate")
+            win.update_idletasks(); win.update()
+    
+            assert app._phase6_parameters_unlocked is False
+>           assert set(app.base_plate_edge_shrink_widgets) == {"TOP", "BOTTOM", "LEFT", "RIGHT"}
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'Phase6FoldDesignerApp' object has no attribute 'base_plate_edge_shrink_widgets'
+
+tests/test_phase6_receiving_edge_controls_gui.py:118: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+_ test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions _
+
+    def test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions():
+        tk, root, win, app, bridge = _build_app()
+        try:
+            app.activate_part("base_plate")
+            win.update_idletasks(); win.update()
+    
+            edits = {"TOP": 11.0, "BOTTOM": 22.0, "LEFT": 33.0, "RIGHT": 44.0}
+            for edge, value in edits.items():
+>               app.base_plate_edge_shrink_vars[edge].set(str(value))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               AttributeError: 'Phase6FoldDesignerApp' object has no attribute 'base_plate_edge_shrink_vars'
+
+tests/test_phase6_receiving_edge_controls_gui.py:155: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+=============================== warnings summary ===============================
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel - AttributeError: 'Phase6FoldDesignerApp' object has no attribute 'base_plate_edge_shrink_widgets'
+FAILED tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions - AttributeError: 'Phase6FoldDesignerApp' object has no attribute 'base_plate_edge_shrink_vars'
+2 failed, 2 deselected, 8 warnings in 1.21s

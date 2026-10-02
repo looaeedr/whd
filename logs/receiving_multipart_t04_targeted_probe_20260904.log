@@ -1,0 +1,635 @@
+........................................................................ [ 85%]
+........FF..                                                             [100%]
+=================================== FAILURES ===================================
+_ test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys _
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys():
+        import tkinter as tk
+        import gui
+        import fold_designer_bridge as bridge
+    
+        root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+        designer = None
+        try:
+            designer = app.open_original_fold_designer()
+            root.update_idletasks(); root.update()
+            designer.baseline_model_var.set("受電箱")
+            root.update_idletasks(); root.update()
+>           bridge._phase6_query_assembly_render_data(designer)
+
+tests/test_phase6_receiving_projection_regression.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+fold_designer_bridge.py:6135: in _phase6_query_assembly_render_data
+    resolved = _phase6_resolve_manufacturing_geometry(self)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fold_designer_bridge.py:5832: in _phase6_resolve_manufacturing_geometry
+    render_data = callback(key, payload)
+                  ^^^^^^^^^^^^^^^^^^^^^^
+gui.py:1711: in _query_fold_designer_render_data
+    spec, context = self._fold_designer_part_spec_from_payload(part_key, payload)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <gui.BoxCalculatorGUI object at 0x7f130e5db390>, part_key = 'door_c1_r1'
+payload = {'_runtime_project_path': None, '_use_committed_relief': False, 'active_part': 'box_body', 'assembly_joint_schema_version': 2, ...}
+
+    def _fold_designer_part_spec_from_payload(self, part_key, payload):
+        """Convert Fold Designer draft state to the canonical manufacturing request.
+    
+        This is the only draft-state adapter.  It returns ``(PartSpec, context)``;
+        the bridge never builds manufacturing geometry itself.
+        """
+        data = dict(payload or {})
+        key = str(part_key or "")
+        w = float(data.get("w", ae.W)); h = float(data.get("h", ae.H))
+        d = float(data.get("d", ae.D)); t = float(data.get("t", ae.T))
+        fw = float(data.get("fw", ae.FW))
+        model = normalize_custom_model_name(data.get("model"))
+        unknown = is_unknown_model(model)
+        corner_state = data.get("corner_state") or {}
+        features = tuple(data.get("features") or ())
+        face_features = data.get("face_features") or {}
+    
+        def payload_policy(part):
+            resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
+            if resolved is None and not unknown:
+                fallback = known_model_corner_state(
+                    (part,), cabinet_family=BoxCalculatorGUI._current_cabinet_type_name(self)
+                ).get(part)
+                resolved = policy_from_corner_state(fallback, fw=fw) if fallback is not None else None
+            return self._apply_cabinet_family_endcap_policy(
+                resolved, part, snapshot=data, thickness=t,
+                structure_state=data.get("box_body_structure"),
+            )
+    
+        policy = payload_policy(key)
+    
+        context = ManufacturingContext(draw_stock=False)
+        if key == "box_body":
+            spec = self._box_body_part_spec_from_values(
+                {
+                    "w": w, "h": h, "d": d, "t": t, "fw": fw,
+                    "zl1": float(data.get("zl1", ae.zl1_def)),
+                    "zl2": float(data.get("zl2", ae.zl2_def)),
+                    "zr1": float(data.get("zr1", ae.zr1_def)),
+                    "zr2": float(data.get("zr2", ae.zr2_def)),
+                    "z_comp": float(data.get("z_comp", getattr(ae, "z_comp_def", 0.0))),
+                },
+                model_name=(None if unknown else model),
+                features=features, face_features=face_features,
+                head_corner_policy=payload_policy("head"),
+                tail_corner_policy=payload_policy("tail"),
+                fold_profile=data.get("fold_profile"),
+                structure_state=data.get("box_body_structure"),
+                head_ybottom1=float(data.get("head_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+                tail_ybottom1=float(data.get("tail_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+            )
+        elif key in {"head", "tail"}:
+            endcap_values = {
+                "w": w, "h": h, "d": d, "t": t, "fw": fw,
+                "yl1": float(data.get("yl1", ae.yl1_def)),
+                "yr1": float(data.get("yr1", ae.yr1_def)),
+                "ytop1": float(data.get("ytop1", ae.ytop1_def)),
+                "ybottom1": float(data.get("ybottom1", ae.ybottom1_def)),
+                "zl1": float(data.get("zl1", ae.zl1_def)),
+                "zr1": float(data.get("zr1", ae.zr1_def)),
+            }
+            resolved_cuts = data.get("resolved_assembly_relief_cuts", None)
+            if resolved_cuts is None and bool(data.get("_use_committed_relief")):
+                resolved_cuts = self._resolved_committed_assembly_relief_cuts(
+                    key, endcap_values, data.get("fold_profiles") or {}
+                )
+            formed_fw_left, formed_fw_right = formed_box_body_fw_widths(
+                data.get("box_body_profile") or self.workspace_controller.box_body_profile() or (), t
+            )
+            spec = self._end_cap_part_spec_from_values(
+                endcap_values,
+                model_name=(None if unknown else model), is_tail=(key == "tail"),
+                holes=features, corner_policy=policy, fold_profiles=data.get("fold_profiles"),
+                resolved_assembly_relief_cuts=resolved_cuts or (),
+                box_body_formed_fw_left=formed_fw_left, box_body_formed_fw_right=formed_fw_right,
+                box_body_structure_state=(data.get("box_body_structure") or self.workspace_controller.box_body_structure_state()),
+                endcap_bottom_wrap_state=data.get("endcap_bottom_wrap"),
+                assembly_joints=data.get("assembly_joints"),
+            )
+        elif key == "door":
+            groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or ()))
+            direct = tuple(int(v) for v in (data.get("door_indicator_groups") or ()))
+            indicator_hole = None
+            if bool(data.get("door_indicator_box_enabled")) and groups:
+                indicator_hole = manufacturing_api.indicator_box_opening_size(groups, thickness=t)
+            spec = self._door_part_spec_from_values(
+                {
+                    "w": w, "h": h, "t": t, "fw": fw,
+                    "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+                    "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+                    "door_fold_l": float(data.get("door_fold_l", ae.door_fold_left_def)),
+                    "door_fold_r": float(data.get("door_fold_r", ae.door_fold_right_def)),
+                    "door_fold_t": float(data.get("door_fold_t", ae.door_fold_top_def)),
+                    "door_fold_b": float(data.get("door_fold_b", ae.door_fold_bottom_def)),
+                },
+                model_name=(None if unknown else model),
+                features=features,
+                indicator_hole=indicator_hole,
+                door_indicator=(direct or None),
+                door_indicator_offset=tuple(data.get("door_indicator_offset") or (0.0, 0.0)),
+                use_box_distance=bool(data.get("use_box_distance", False)),
+                corner_policy=policy,
+            )
+        elif key == "base_plate":
+            spec = self._base_plate_part_spec_from_values(
+                {
+                    "w": w, "h": h, "t": t, "fw": fw,
+                    "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
+                    "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
+                    "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
+                    "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
+                    "base_plate_bend": float(data.get("base_plate_bend", 20)),
+                },
+                features=features, corner_policy=policy,
+            )
+        elif key == "indicator_box":
+            groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+            spec = self._indicator_box_part_spec_from_values(
+                {"t": t}, groups, features=features
+            )
+        elif key == "indicator_door":
+            groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+            spec, context = self._indicator_door_part_spec_from_values(
+                {
+                    "t": t, "fw": fw,
+                    "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+                    "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+                    "indicator_door_fold": float(data.get("indicator_door_fold", getattr(ae, "indicator_small_door_fold_def", 19.0))),
+                },
+                groups, features=features,
+            )
+        else:
+>           raise ValueError(f"未知 3D 板件: {key}")
+E           ValueError: 未知 3D 板件: door_c1_r1
+
+gui.py:1649: ValueError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+___ test_receiving_three_piece_body_has_three_independent_piece_info_subrows ___
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_receiving_three_piece_body_has_three_independent_piece_info_subrows():
+        import tkinter as tk
+        import gui
+        import fold_designer_bridge as bridge
+    
+        root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+        designer = None
+        try:
+            designer = app.open_original_fold_designer()
+            root.update_idletasks(); root.update()
+            designer.baseline_model_var.set("受電箱")
+            root.update_idletasks(); root.update()
+>           bridge._phase6_query_assembly_render_data(designer)
+
+tests/test_phase6_receiving_projection_regression.py:179: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+fold_designer_bridge.py:6135: in _phase6_query_assembly_render_data
+    resolved = _phase6_resolve_manufacturing_geometry(self)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fold_designer_bridge.py:5832: in _phase6_resolve_manufacturing_geometry
+    render_data = callback(key, payload)
+                  ^^^^^^^^^^^^^^^^^^^^^^
+gui.py:1711: in _query_fold_designer_render_data
+    spec, context = self._fold_designer_part_spec_from_payload(part_key, payload)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <gui.BoxCalculatorGUI object at 0x7f13112c4e10>, part_key = 'door_c1_r1'
+payload = {'_runtime_project_path': None, '_use_committed_relief': False, 'active_part': 'box_body', 'assembly_joint_schema_version': 2, ...}
+
+    def _fold_designer_part_spec_from_payload(self, part_key, payload):
+        """Convert Fold Designer draft state to the canonical manufacturing request.
+    
+        This is the only draft-state adapter.  It returns ``(PartSpec, context)``;
+        the bridge never builds manufacturing geometry itself.
+        """
+        data = dict(payload or {})
+        key = str(part_key or "")
+        w = float(data.get("w", ae.W)); h = float(data.get("h", ae.H))
+        d = float(data.get("d", ae.D)); t = float(data.get("t", ae.T))
+        fw = float(data.get("fw", ae.FW))
+        model = normalize_custom_model_name(data.get("model"))
+        unknown = is_unknown_model(model)
+        corner_state = data.get("corner_state") or {}
+        features = tuple(data.get("features") or ())
+        face_features = data.get("face_features") or {}
+    
+        def payload_policy(part):
+            resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
+            if resolved is None and not unknown:
+                fallback = known_model_corner_state(
+                    (part,), cabinet_family=BoxCalculatorGUI._current_cabinet_type_name(self)
+                ).get(part)
+                resolved = policy_from_corner_state(fallback, fw=fw) if fallback is not None else None
+            return self._apply_cabinet_family_endcap_policy(
+                resolved, part, snapshot=data, thickness=t,
+                structure_state=data.get("box_body_structure"),
+            )
+    
+        policy = payload_policy(key)
+    
+        context = ManufacturingContext(draw_stock=False)
+        if key == "box_body":
+            spec = self._box_body_part_spec_from_values(
+                {
+                    "w": w, "h": h, "d": d, "t": t, "fw": fw,
+                    "zl1": float(data.get("zl1", ae.zl1_def)),
+                    "zl2": float(data.get("zl2", ae.zl2_def)),
+                    "zr1": float(data.get("zr1", ae.zr1_def)),
+                    "zr2": float(data.get("zr2", ae.zr2_def)),
+                    "z_comp": float(data.get("z_comp", getattr(ae, "z_comp_def", 0.0))),
+                },
+                model_name=(None if unknown else model),
+                features=features, face_features=face_features,
+                head_corner_policy=payload_policy("head"),
+                tail_corner_policy=payload_policy("tail"),
+                fold_profile=data.get("fold_profile"),
+                structure_state=data.get("box_body_structure"),
+                head_ybottom1=float(data.get("head_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+                tail_ybottom1=float(data.get("tail_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+            )
+        elif key in {"head", "tail"}:
+            endcap_values = {
+                "w": w, "h": h, "d": d, "t": t, "fw": fw,
+                "yl1": float(data.get("yl1", ae.yl1_def)),
+                "yr1": float(data.get("yr1", ae.yr1_def)),
+                "ytop1": float(data.get("ytop1", ae.ytop1_def)),
+                "ybottom1": float(data.get("ybottom1", ae.ybottom1_def)),
+                "zl1": float(data.get("zl1", ae.zl1_def)),
+                "zr1": float(data.get("zr1", ae.zr1_def)),
+            }
+            resolved_cuts = data.get("resolved_assembly_relief_cuts", None)
+            if resolved_cuts is None and bool(data.get("_use_committed_relief")):
+                resolved_cuts = self._resolved_committed_assembly_relief_cuts(
+                    key, endcap_values, data.get("fold_profiles") or {}
+                )
+            formed_fw_left, formed_fw_right = formed_box_body_fw_widths(
+                data.get("box_body_profile") or self.workspace_controller.box_body_profile() or (), t
+            )
+            spec = self._end_cap_part_spec_from_values(
+                endcap_values,
+                model_name=(None if unknown else model), is_tail=(key == "tail"),
+                holes=features, corner_policy=policy, fold_profiles=data.get("fold_profiles"),
+                resolved_assembly_relief_cuts=resolved_cuts or (),
+                box_body_formed_fw_left=formed_fw_left, box_body_formed_fw_right=formed_fw_right,
+                box_body_structure_state=(data.get("box_body_structure") or self.workspace_controller.box_body_structure_state()),
+                endcap_bottom_wrap_state=data.get("endcap_bottom_wrap"),
+                assembly_joints=data.get("assembly_joints"),
+            )
+        elif key == "door":
+            groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or ()))
+            direct = tuple(int(v) for v in (data.get("door_indicator_groups") or ()))
+            indicator_hole = None
+            if bool(data.get("door_indicator_box_enabled")) and groups:
+                indicator_hole = manufacturing_api.indicator_box_opening_size(groups, thickness=t)
+            spec = self._door_part_spec_from_values(
+                {
+                    "w": w, "h": h, "t": t, "fw": fw,
+                    "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+                    "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+                    "door_fold_l": float(data.get("door_fold_l", ae.door_fold_left_def)),
+                    "door_fold_r": float(data.get("door_fold_r", ae.door_fold_right_def)),
+                    "door_fold_t": float(data.get("door_fold_t", ae.door_fold_top_def)),
+                    "door_fold_b": float(data.get("door_fold_b", ae.door_fold_bottom_def)),
+                },
+                model_name=(None if unknown else model),
+                features=features,
+                indicator_hole=indicator_hole,
+                door_indicator=(direct or None),
+                door_indicator_offset=tuple(data.get("door_indicator_offset") or (0.0, 0.0)),
+                use_box_distance=bool(data.get("use_box_distance", False)),
+                corner_policy=policy,
+            )
+        elif key == "base_plate":
+            spec = self._base_plate_part_spec_from_values(
+                {
+                    "w": w, "h": h, "t": t, "fw": fw,
+                    "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
+                    "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
+                    "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
+                    "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
+                    "base_plate_bend": float(data.get("base_plate_bend", 20)),
+                },
+                features=features, corner_policy=policy,
+            )
+        elif key == "indicator_box":
+            groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+            spec = self._indicator_box_part_spec_from_values(
+                {"t": t}, groups, features=features
+            )
+        elif key == "indicator_door":
+            groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+            spec, context = self._indicator_door_part_spec_from_values(
+                {
+                    "t": t, "fw": fw,
+                    "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+                    "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+                    "indicator_door_fold": float(data.get("indicator_door_fold", getattr(ae, "indicator_small_door_fold_def", 19.0))),
+                },
+                groups, features=features,
+            )
+        else:
+>           raise ValueError(f"未知 3D 板件: {key}")
+E           ValueError: 未知 3D 板件: door_c1_r1
+
+gui.py:1649: ValueError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+=============================== warnings summary ===============================
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32068 (\N{CJK UNIFIED IDEOGRAPH-7D44}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21512 (\N{CJK UNIFIED IDEOGRAPH-5408}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 39636 (\N{CJK UNIFIED IDEOGRAPH-9AD4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65306 (\N{FULLWIDTH COLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24178 (\N{CJK UNIFIED IDEOGRAPH-5E72}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 28041 (\N{CJK UNIFIED IDEOGRAPH-6D89}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 30896 (\N{CJK UNIFIED IDEOGRAPH-78B0}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25758 (\N{CJK UNIFIED IDEOGRAPH-649E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21312 (\N{CJK UNIFIED IDEOGRAPH-5340}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27573 (\N{CJK UNIFIED IDEOGRAPH-6BB5}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20132 (\N{CJK UNIFIED IDEOGRAPH-4EA4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32218 (\N{CJK UNIFIED IDEOGRAPH-7DDA}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23637 (\N{CJK UNIFIED IDEOGRAPH-5C55}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38283 (\N{CJK UNIFIED IDEOGRAPH-958B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23610 (\N{CJK UNIFIED IDEOGRAPH-5C3A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23544 (\N{CJK UNIFIED IDEOGRAPH-5BF8}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 31665 (\N{CJK UNIFIED IDEOGRAPH-7BB1}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36523 (\N{CJK UNIFIED IDEOGRAPH-8EAB}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23553 (\N{CJK UNIFIED IDEOGRAPH-5C01}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38957 (\N{CJK UNIFIED IDEOGRAPH-982D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23614 (\N{CJK UNIFIED IDEOGRAPH-5C3E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38272 (\N{CJK UNIFIED IDEOGRAPH-9580}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24213 (\N{CJK UNIFIED IDEOGRAPH-5E95}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py: 10 warnings
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26495 (\N{CJK UNIFIED IDEOGRAPH-677F}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26410 (\N{CJK UNIFIED IDEOGRAPH-672A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 30693 (\N{CJK UNIFIED IDEOGRAPH-77E5}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts
+tests/test_phase6_receiving_projection_regression.py::test_receiving_second_topology_change_rebuilds_without_stale_rows
+tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys
+tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20214 (\N{CJK UNIFIED IDEOGRAPH-4EF6}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_phase6_receiving_projection_regression.py::test_receiving_assembly_rows_have_formed_blank_corner_contract_and_no_raw_keys - ValueError: 未知 3D 板件: door_c1_r1
+FAILED tests/test_phase6_receiving_projection_regression.py::test_receiving_three_piece_body_has_three_independent_piece_info_subrows - ValueError: 未知 3D 板件: door_c1_r1
+2 failed, 82 passed, 160 warnings in 23.31s

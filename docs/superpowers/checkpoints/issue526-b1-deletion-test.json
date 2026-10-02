@@ -1,0 +1,97 @@
+{
+  "schema": "WHD_ISSUE526_B1_DELETION_TEST_V1",
+  "issue": 526,
+  "master_issue": 520,
+  "boundary_id": "B1_PART_EDITOR",
+  "baseline_head": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
+  "accepted_parent_head": "4d085c4d2daf172bf55684c87e6086572d9d818c",
+  "prior_decision": "C_KEEP_BRIDGE_COMPATIBILITY",
+  "candidate_symbols": [
+    "_fix11_activate_part",
+    "_fix11_save_current_part",
+    "_phase6_install_part_editor_compatibility"
+  ],
+  "direct_callers": {
+    "_fix11_activate_part": [
+      "install_fold_designer_bridge_facade['activate_part']"
+    ],
+    "_fix11_save_current_part": [
+      "install_fold_designer_bridge_facade['_save_current_part']"
+    ],
+    "_phase6_install_part_editor_compatibility": [
+      "_fix11_init"
+    ]
+  },
+  "dynamic_callers": [
+    "facade-installed instance methods are runtime compatibility surface"
+  ],
+  "state_reads": [
+    "DesignerWorkspace available/active/switching through Phase6WorkspaceNavigationController",
+    "bridge Tk/presentation state",
+    "BendingUI/profile presentation state",
+    "Settings/application projection state",
+    "manufacturing state signature for display-vs-geometry intent"
+  ],
+  "state_writes": [
+    "presentation/Tk projections in bridge",
+    "workspace mutations routed through Phase6WorkspaceNavigationController/Phase6DesignerWorkspace",
+    "Settings commits routed through Phase6FoldDesignerSettingsCoordinator",
+    "update intent routed through command_router scheduler"
+  ],
+  "current_owner_dependencies": [
+    "Phase6WorkspaceNavigationController",
+    "Phase6DesignerWorkspace",
+    "Phase6FoldDesignerSettingsCoordinator",
+    "Phase6SettingsPanel",
+    "Phase6BendingUI",
+    "gui_modules/application/command_router.py scheduler",
+    "FinalScene/render sink"
+  ],
+  "variant_keep": {
+    "kind": "KEEP / inline responsibility variant",
+    "artifact": "issue526_variant_k.py (RUN artifact)",
+    "full_app_dependency": true,
+    "direct_workspace_mutators": [
+      "designer_workspace.begin_switch",
+      "designer_workspace.finish_switch"
+    ],
+    "observed_structural_regressions": [
+      "caller regains direct workspace mutation",
+      "caller must know save-before-identity-switch ordering",
+      "caller owns presentation-effect ordering"
+    ]
+  },
+  "variant_extract": {
+    "candidate_owner": "bounded Phase6PartEditorCoordinator candidate",
+    "artifact": "phase6_part_editor_coordinator_candidate.py (RUN artifact)",
+    "reverse_import_count": 0,
+    "forbidden_import_count": 0,
+    "full_app_dependency": false,
+    "port_count": 5,
+    "opaque_presentation_callback": true,
+    "old_bridge_body_removed": false,
+    "bridge_symbols_removed": [],
+    "duplicate_path_count": 1,
+    "observed_structural_regressions": [
+      "bounded coordinator can reproduce transaction ordering only",
+      "actual Tk/presentation/state-projection body remains behind opaque callback",
+      "candidate is a sequencing middle-man unless old bridge body can be deleted"
+    ]
+  },
+  "tests": {
+    "run_id": 35781297993,
+    "run_head_sha": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
+    "conclusion": "success",
+    "focused": "24 passed, 3 skipped",
+    "xvfb_exact_operator_path": "1 passed",
+    "variant_e_ordering_unit": "GREEN",
+    "combined_required": true,
+    "artifact_id": 10718655323
+  },
+  "decision": "B1_KEEP_COMPATIBILITY",
+  "supersedes": [],
+  "rationale": "Deletion-Test does not justify extraction. Inline removal of existing navigation ownership returns direct Workspace mutation and ordering knowledge to the caller. A bounded coordinator can own only the high-level plan/save/begin/presentation/finish sequence; deleting the old bridge body then requires an opaque presentation callback or a full-app-shaped interface, so the proposed coordinator is a middle-man rather than a deep owner. Existing deep owners remain unchanged.",
+  "production_change_required": false,
+  "bridge_symbols_removed": [],
+  "next_stage": "B2_WORKSPACE_SHELL_RECONSIDERATION"
+}

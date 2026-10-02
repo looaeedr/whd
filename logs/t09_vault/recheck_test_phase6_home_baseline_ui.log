@@ -1,0 +1,36 @@
+......                                                                   [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_home_baseline_ui.py::test_initial_view_is_assembly_and_global_controls_remain_visible
+tests/test_phase6_home_baseline_ui.py::test_selecting_part_keeps_global_visible_and_shows_fold_editor
+tests/test_phase6_home_baseline_ui.py::test_baseline_numeric_data_section_is_collapsed_by_default
+tests/test_phase6_home_baseline_ui.py::test_door_baseline_numeric_rows_are_lazy_loaded_when_section_expands
+tests/test_phase6_home_baseline_ui.py::test_known_parts_show_readonly_factory_corner_types
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_home_baseline_ui.py::test_initial_view_is_assembly_and_global_controls_remain_visible
+tests/test_phase6_home_baseline_ui.py::test_selecting_part_keeps_global_visible_and_shows_fold_editor
+tests/test_phase6_home_baseline_ui.py::test_baseline_numeric_data_section_is_collapsed_by_default
+tests/test_phase6_home_baseline_ui.py::test_door_baseline_numeric_rows_are_lazy_loaded_when_section_expands
+tests/test_phase6_home_baseline_ui.py::test_known_parts_show_readonly_factory_corner_types
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_home_baseline_ui.py::test_initial_view_is_assembly_and_global_controls_remain_visible
+tests/test_phase6_home_baseline_ui.py::test_selecting_part_keeps_global_visible_and_shows_fold_editor
+tests/test_phase6_home_baseline_ui.py::test_baseline_numeric_data_section_is_collapsed_by_default
+tests/test_phase6_home_baseline_ui.py::test_door_baseline_numeric_rows_are_lazy_loaded_when_section_expands
+tests/test_phase6_home_baseline_ui.py::test_known_parts_show_readonly_factory_corner_types
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_home_baseline_ui.py::test_initial_view_is_assembly_and_global_controls_remain_visible
+tests/test_phase6_home_baseline_ui.py::test_selecting_part_keeps_global_visible_and_shows_fold_editor
+tests/test_phase6_home_baseline_ui.py::test_baseline_numeric_data_section_is_collapsed_by_default
+tests/test_phase6_home_baseline_ui.py::test_door_baseline_numeric_rows_are_lazy_loaded_when_section_expands
+tests/test_phase6_home_baseline_ui.py::test_known_parts_show_readonly_factory_corner_types
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+6 passed, 20 warnings in 1.64s

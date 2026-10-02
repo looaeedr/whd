@@ -1,0 +1,163 @@
+name: WHD Drive 來源快照匯出
+run-name: "WHD Drive 來源快照｜${{ github.ref_name }}｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - cleanup/2d-3d-sync
+      - coord/source-export-requests
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-drive-source-snapshot-export-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  export-source:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    name: 產生 exact-head 來源快照與 manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出 transport trigger
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: 解析並驗證 exact cleanup source identity
+        id: resolve_source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_BRANCH=""
+          SOURCE_SHA=""
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF_NAME}" == "coord/source-export-requests" ]]; then
+            REQUEST_PATH=".dispatch/source-export-request.json"
+            test -f "${REQUEST_PATH}" || { echo "SOURCE_EXPORT_REQUEST_MISSING" >&2; exit 1; }
+            mapfile -t REQUEST_VALUES < <(python - <<'PY_REQUEST'
+          import json
+          import re
+          from pathlib import Path
+
+          path = Path(".dispatch/source-export-request.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          if data.get("schema") != "WHD_SOURCE_EXPORT_REQUEST_V1":
+              raise SystemExit("SOURCE_EXPORT_REQUEST_SCHEMA_INVALID")
+          if data.get("version") != 1:
+              raise SystemExit("SOURCE_EXPORT_REQUEST_VERSION_INVALID")
+          branch = str(data.get("source_branch") or "").strip()
+          sha = str(data.get("source_sha") or "").strip().lower()
+          if branch != "cleanup/2d-3d-sync":
+              raise SystemExit("SOURCE_EXPORT_REQUEST_BRANCH_INVALID")
+          if not re.fullmatch(r"[0-9a-f]{40}", sha):
+              raise SystemExit("SOURCE_EXPORT_REQUEST_SHA_INVALID")
+          print(branch)
+          print(sha)
+          PY_REQUEST
+            )
+            SOURCE_BRANCH="${REQUEST_VALUES[0]}"
+            SOURCE_SHA="${REQUEST_VALUES[1]}"
+            git fetch --no-tags origin "+refs/heads/${SOURCE_BRANCH}:refs/remotes/origin/${SOURCE_BRANCH}"
+            git cat-file -e "${SOURCE_SHA}^{commit}" || { echo "SOURCE_EXPORT_REQUEST_SHA_NOT_FOUND=${SOURCE_SHA}" >&2; exit 1; }
+            git merge-base --is-ancestor "${SOURCE_SHA}" "refs/remotes/origin/${SOURCE_BRANCH}" || {
+              echo "SOURCE_EXPORT_REQUEST_SHA_NOT_REACHABLE=${SOURCE_SHA}" >&2
+              exit 1
+            }
+          elif [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            SOURCE_BRANCH="${{ github.event.pull_request.base.ref }}"
+            SOURCE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          else
+            SOURCE_BRANCH="${GITHUB_REF_NAME}"
+            SOURCE_SHA="${GITHUB_SHA}"
+          fi
+
+          test "${SOURCE_BRANCH}" = "cleanup/2d-3d-sync" || {
+            echo "SOURCE_EXPORT_WRONG_BRANCH=${SOURCE_BRANCH}" >&2
+            exit 1
+          }
+          echo "source_branch=${SOURCE_BRANCH}" >> "${GITHUB_OUTPUT}"
+          echo "source_sha=${SOURCE_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: 取出 exact requested cleanup source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.resolve_source.outputs.source_sha }}
+
+      - name: 驗證來源 branch 與 commit identity
+        shell: bash
+        env:
+          EXPECTED_BRANCH: ${{ steps.resolve_source.outputs.source_branch }}
+          EXPECTED_SHA: ${{ steps.resolve_source.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          test "${EXPECTED_BRANCH}" = "cleanup/2d-3d-sync" || {
+            echo "SOURCE_EXPORT_WRONG_BRANCH=${EXPECTED_BRANCH}" >&2
+            exit 1
+          }
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}" || {
+            echo "SOURCE_EXPORT_HEAD_MISMATCH expected=${EXPECTED_SHA} actual=$(git rev-parse HEAD)" >&2
+            exit 1
+          }
+
+      - name: 建立可重現 source snapshot 與 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          TREE="$(git rev-parse HEAD^{tree})"
+          SHORT="${SHA:0:16}"
+          SNAPSHOT="whd-cleanup-2d-3d-sync-${SHORT}.zip"
+          git archive --format=zip --output="$SNAPSHOT" HEAD
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          snapshot = f"whd-cleanup-2d-3d-sync-{sha[:16]}.zip"
+          snapshot_sha256 = hashlib.sha256(Path(snapshot).read_bytes()).hexdigest()
+          artifact_name = f"whd-drive-source-{sha}"
+          payload = {
+              "schema": "WHD_DRIVE_SOURCE_EXPORT_V1",
+              "repository": "looaeedr/whd",
+              "source_branch": "cleanup/2d-3d-sync",
+              "source_sha": sha,
+              "tree_sha": tree,
+              "snapshot_name": snapshot,
+              "snapshot_sha256": snapshot_sha256,
+              "artifact_name": artifact_name,
+              "drive_destination_root": "/Google Drive/WHD/source",
+              "drive_writeback_owner": "interactive root-local-first finalization",
+              "github_run_id": os.environ.get("GITHUB_RUN_ID"),
+              "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+          }
+          Path("WHD_DRIVE_SOURCE_EXPORT_V1.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          sha256sum "$SNAPSHOT" > WHD_DRIVE_SOURCE_EXPORT_V1.sha256
+
+      - name: 上傳 durable export artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-drive-source-${{ steps.resolve_source.outputs.source_sha }}
+          path: |
+            whd-cleanup-2d-3d-sync-*.zip
+            WHD_DRIVE_SOURCE_EXPORT_V1.json
+            WHD_DRIVE_SOURCE_EXPORT_V1.sha256
+          if-no-files-found: error
+          retention-days: 14

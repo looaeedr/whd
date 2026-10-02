@@ -1,0 +1,31 @@
+Issue #439 correction — Knowledge Preflight Evidence
+
+BASE_SHA=719f4509371376f9d01fca97553b5199963de4c6
+BRANCH=fix/issue439-single-physical-content-host-20260920
+
+TASK:
+Remove the extra physical shared_content_host Frame. Reuse fold_editor_host as the sole physical content host; create input_content_host inside it; assembly and corner-data panels are children of fold_editor_host. Verify outer content bbox x/y/width/height identical across modes. Preserve geometry, persistence, callbacks, visibility semantics, assembly/corner data sources.
+
+READ_SKILL: UI設計與去AI味
+READ_SKILL: 截角資料入口收斂
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 程式碼庫設計
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PRODUCTION_RUNTIME_EDIT_BEFORE_RED=0

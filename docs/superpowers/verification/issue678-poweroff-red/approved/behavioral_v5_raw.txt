@@ -1,0 +1,615 @@
+===== R3-PENDING =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_R3_pending_guard_blocks_safe ______________________
+test_whd_poweroff_behavioral_red_v5.py:125: in test_R3_pending_guard_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R3_PENDING")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R3_PENDING: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_pending_guard_blocks_safe
+1 failed in 0.20s
+
+
+===== R3-RECONCILE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R3_reconcile_guard_blocks_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:131: in test_R3_reconcile_guard_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R3_RECONCILE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R3_RECONCILE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_reconcile_guard_blocks_safe
+1 failed in 0.19s
+
+
+===== R3-AMBIGUOUS =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R3_ambiguous_guard_blocks_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:137: in test_R3_ambiguous_guard_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R3_AMBIGUOUS")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R3_AMBIGUOUS: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_ambiguous_guard_blocks_safe
+1 failed in 0.21s
+
+
+===== R3-CONSUMED =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ test_R3_consumed_guard_does_not_block_safe __________________
+test_whd_poweroff_behavioral_red_v5.py:143: in test_R3_consumed_guard_does_not_block_safe
+    gate = _materialize_gate(tmp_path, requirement="R3_CONSUMED")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R3_CONSUMED: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_consumed_guard_does_not_block_safe
+1 failed in 0.18s
+
+
+===== R3-NONE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_R3_none_guard_does_not_block_safe ____________________
+test_whd_poweroff_behavioral_red_v5.py:149: in test_R3_none_guard_does_not_block_safe
+    gate = _materialize_gate(tmp_path, requirement="R3_NONE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R3_NONE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R3_none_guard_does_not_block_safe
+1 failed in 0.18s
+
+
+===== R4-READY =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R4_ready_scheduler_allows_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:157: in test_R4_ready_scheduler_allows_safe
+    gate = _materialize_gate(tmp_path, requirement="R4_READY")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_READY: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_ready_scheduler_allows_safe
+1 failed in 0.18s
+
+
+===== R4-OWNER =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R4_owner_mismatch_blocks_safe ______________________
+test_whd_poweroff_behavioral_red_v5.py:162: in test_R4_owner_mismatch_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R4_OWNER")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_OWNER: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_owner_mismatch_blocks_safe
+1 failed in 0.18s
+
+
+===== R4-UNVERIFIED =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_R4_scheduler_unverified_blocks_safe ___________________
+test_whd_poweroff_behavioral_red_v5.py:168: in test_R4_scheduler_unverified_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R4_UNVERIFIED")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_UNVERIFIED: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_unverified_blocks_safe
+1 failed in 0.18s
+
+
+===== R4-DISABLED =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_R4_scheduler_disabled_blocks_safe ____________________
+test_whd_poweroff_behavioral_red_v5.py:174: in test_R4_scheduler_disabled_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R4_DISABLED")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_DISABLED: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_scheduler_disabled_blocks_safe
+1 failed in 0.18s
+
+
+===== R4-NEXT-ACTION =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R4_nonterminal_missing_next_action_blocks_safe _____________
+test_whd_poweroff_behavioral_red_v5.py:180: in test_R4_nonterminal_missing_next_action_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R4_NEXT_ACTION")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_NEXT_ACTION: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_nonterminal_missing_next_action_blocks_safe
+1 failed in 0.18s
+
+
+===== R4-HEAD =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R4_checkpoint_head_mismatch_blocks_safe _________________
+test_whd_poweroff_behavioral_red_v5.py:186: in test_R4_checkpoint_head_mismatch_blocks_safe
+    gate = _materialize_gate(tmp_path, requirement="R4_HEAD")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R4_HEAD: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R4_checkpoint_head_mismatch_blocks_safe
+1 failed in 0.18s
+
+
+===== R5-SAFE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_R5_all_safe_is_safe ___________________________
+test_whd_poweroff_behavioral_red_v5.py:194: in test_R5_all_safe_is_safe
+    gate = _materialize_gate(tmp_path, requirement="R5_SAFE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R5_SAFE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R5_all_safe_is_safe - Ass...
+1 failed in 0.18s
+
+
+===== R5-NOT-SAFE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R5_local_mutation_is_not_safe ______________________
+test_whd_poweroff_behavioral_red_v5.py:199: in test_R5_local_mutation_is_not_safe
+    gate = _materialize_gate(tmp_path, requirement="R5_NOT_SAFE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R5_NOT_SAFE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R5_local_mutation_is_not_safe
+1 failed in 0.18s
+
+
+===== R5-ERROR =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_R5_machine_unreachable_is_error _____________________
+test_whd_poweroff_behavioral_red_v5.py:205: in test_R5_machine_unreachable_is_error
+    gate = _materialize_gate(tmp_path, requirement="R5_ERROR")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R5_ERROR: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R5_machine_unreachable_is_error
+1 failed in 0.18s
+
+
+===== R6-REQUEST =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R6_request_id_change_invalidates_safe_receipt ______________
+test_whd_poweroff_behavioral_red_v5.py:213: in test_R6_request_id_change_invalidates_safe_receipt
+    gate = _materialize_gate(tmp_path, requirement="R6_REQUEST")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_REQUEST: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_request_id_change_invalidates_safe_receipt
+1 failed in 0.18s
+
+
+===== R6-REVISION =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________ test_R6_evidence_revision_change_invalidates_safe_receipt __________
+test_whd_poweroff_behavioral_red_v5.py:221: in test_R6_evidence_revision_change_invalidates_safe_receipt
+    gate = _materialize_gate(tmp_path, requirement="R6_REVISION")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_REVISION: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_evidence_revision_change_invalidates_safe_receipt
+1 failed in 0.18s
+
+
+===== R6-RECEIPT =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_R6_non_safe_receipt_is_invalid _____________________
+test_whd_poweroff_behavioral_red_v5.py:229: in test_R6_non_safe_receipt_is_invalid
+    gate = _materialize_gate(tmp_path, requirement="R6_RECEIPT_NOT_SAFE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_RECEIPT_NOT_SAFE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_non_safe_receipt_is_invalid
+1 failed in 0.18s
+
+
+===== R6-DIRTY =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R6_new_dirty_file_invalidates_safe_state ________________
+test_whd_poweroff_behavioral_red_v5.py:244: in test_R6_new_dirty_file_invalidates_safe_state
+    gate = _materialize_gate(tmp_path, requirement="R6_DIRTY")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_DIRTY: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_new_dirty_file_invalidates_safe_state
+1 failed in 0.18s
+
+
+===== R6-GUARD =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R6_new_pending_guard_invalidates_safe_state _______________
+test_whd_poweroff_behavioral_red_v5.py:250: in test_R6_new_pending_guard_invalidates_safe_state
+    gate = _materialize_gate(tmp_path, requirement="R6_GUARD")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_GUARD: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_new_pending_guard_invalidates_safe_state
+1 failed in 0.18s
+
+
+===== R6-OWNER =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R6_claim_owner_change_invalidates_safe_state ______________
+test_whd_poweroff_behavioral_red_v5.py:256: in test_R6_claim_owner_change_invalidates_safe_state
+    gate = _materialize_gate(tmp_path, requirement="R6_OWNER")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_OWNER: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_claim_owner_change_invalidates_safe_state
+1 failed in 0.18s
+
+
+===== R6-SCHEDULER =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R6_scheduler_disable_invalidates_safe_state _______________
+test_whd_poweroff_behavioral_red_v5.py:262: in test_R6_scheduler_disable_invalidates_safe_state
+    gate = _materialize_gate(tmp_path, requirement="R6_SCHEDULER")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_SCHEDULER: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_scheduler_disable_invalidates_safe_state
+1 failed in 0.19s
+
+
+===== R6-HEAD =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_R6_remote_head_advance_invalidates_safe_state ______________
+test_whd_poweroff_behavioral_red_v5.py:268: in test_R6_remote_head_advance_invalidates_safe_state
+    gate = _materialize_gate(tmp_path, requirement="R6_HEAD")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R6_HEAD: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R6_remote_head_advance_invalidates_safe_state
+1 failed in 0.19s
+
+
+===== R10-ZERO =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________________ test_R10_zero_slots_is_safe _________________________
+test_whd_poweroff_behavioral_red_v5.py:276: in test_R10_zero_slots_is_safe
+    gate = _materialize_gate(tmp_path, requirement="R10_ZERO")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_ZERO: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_zero_slots_is_safe - ...
+1 failed in 0.19s
+
+
+===== R10-ONE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_R10_one_local_safe_slot_is_safe _____________________
+test_whd_poweroff_behavioral_red_v5.py:281: in test_R10_one_local_safe_slot_is_safe
+    gate = _materialize_gate(tmp_path, requirement="R10_ONE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_ONE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_one_local_safe_slot_is_safe
+1 failed in 0.26s
+
+
+===== R10-TWO =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_R10_two_local_safe_slots_are_safe ____________________
+test_whd_poweroff_behavioral_red_v5.py:286: in test_R10_two_local_safe_slots_are_safe
+    gate = _materialize_gate(tmp_path, requirement="R10_TWO")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_TWO: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_two_local_safe_slots_are_safe
+1 failed in 0.22s
+
+
+===== R10-NOT-SAFE =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_R10_one_not_safe_slot_blocks_aggregate_safe _______________
+test_whd_poweroff_behavioral_red_v5.py:294: in test_R10_one_not_safe_slot_blocks_aggregate_safe
+    gate = _materialize_gate(tmp_path, requirement="R10_NOT_SAFE")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_NOT_SAFE: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_one_not_safe_slot_blocks_aggregate_safe
+1 failed in 0.18s
+
+
+===== R10-ERROR =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_R10_one_error_slot_makes_aggregate_error ________________
+test_whd_poweroff_behavioral_red_v5.py:303: in test_R10_one_error_slot_makes_aggregate_error
+    gate = _materialize_gate(tmp_path, requirement="R10_ERROR")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_ERROR: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_one_error_slot_makes_aggregate_error
+1 failed in 0.18s
+
+
+===== R10-NON-LOCAL =====
+NODEID: C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown
+OVERRIDE: None
+COMMAND: $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'; Set-Location C:\Users\Public; python -m pytest -q --tb=short C:\Users\Public\test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown
+EXPECTED_FAILURE_SUBSTRING: missing production owner tools/workstation_poweroff_gate.py
+EXIT_CODE: 1
+EXPECTED_FAILURE_OBSERVED: True
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________ test_R10_non_local_dependent_slot_does_not_block_shutdown __________
+test_whd_poweroff_behavioral_red_v5.py:310: in test_R10_non_local_dependent_slot_does_not_block_shutdown
+    gate = _materialize_gate(tmp_path, requirement="R10_NON_LOCAL")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_whd_poweroff_behavioral_red_v5.py:29: in _materialize_gate
+    assert text is not None, (
+E   AssertionError: R10_NON_LOCAL: missing production owner tools/workstation_poweroff_gate.py at 87eb35b3f5ae5211673c941cb56c4c4343fa5405
+E   assert None is not None
+=========================== short test summary info ===========================
+FAILED test_whd_poweroff_behavioral_red_v5.py::test_R10_non_local_dependent_slot_does_not_block_shutdown
+1 failed in 0.18s
+

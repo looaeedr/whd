@@ -1,0 +1,54 @@
+Issue #435 / T5 — Knowledge Preflight Evidence
+
+TASK:
+Issue #435 T5 Switch lifecycle, state preservation and duplicate-tree guards. Validate part assembly corner_data repeated switching, project load save reload, refresh, dynamic part add delete, BoxBody late piece row refresh, duplicate widget tree, duplicate event binding, callback multiplication, stale widget references, state preservation, and mousewheel safety. Preserve accepted #431-#434 ownership and semantics. GitHub Actions remote QA.
+
+PREDECESSOR:
+#434 CLOSED/completed
+BASE/CLOSING_SHA=07a5fe36880d1548c9f42f2f6d071f46a9ac062f
+
+WORK BRANCH:
+refactor/issue435-t5-switch-lifecycle-guards-20260920
+
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: phase6-assembly-view-boundaries
+READ_SKILL: 截角資料入口收斂
+READ_SKILL: UI設計與去AI味
+READ_SKILL: Python測試實務
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 程式碼庫設計
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PLANNED_CHANGED_FILES:
+fold_designer_bridge.py
+phase6_assembly_panel.py
+phase6_corner_data_view_adapter.py
+phase6_project_controller.py
+tests/test_issue435_switch_lifecycle_guards.py
+.github/workflows/qa-issue435-t5.yml
+docs/superpowers/checkpoints/issue435-t5-journal.md
+docs/superpowers/checkpoints/issue435-t5-checkpoint.json
+
+T5_BOUNDARY:
+SHARED_CONTENT_HOST_AUTHORITY_CHANGED=0
+ASSEMBLY_PANEL_AUTHORITY_CHANGED=0
+CORNER_DATA_ADAPTER_AUTHORITY_CHANGED=0
+PROJECT_PERSISTENCE_AUTHORITY_CHANGED=0
+GEOMETRY_AUTHORITY_CHANGED=0
+VALIDATION_IS_JUDGE_ONLY=1

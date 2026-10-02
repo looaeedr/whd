@@ -1,0 +1,20 @@
+ISSUE: #226
+TASK: T0 Inventory Freeze + Bootstrap Governance Guard
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+APPROVED_SPEC: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md @ 57807a4e3ea0aa64d055891dc0a5fe856ce40935
+
+READ_SKILL: phase6-gui-performance-integrity
+READ_SKILL_PATH: .agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+
+NOTES:
+- The GUI-performance Skill match is broader than the T0 governance scope, but was read because Knowledge Preflight required it.
+- Python測試實務 was added by the changed-file preflight because T0 adds focused pytest coverage.
+- The global pitfall ledger was read through EOF. It is REFERENCE / incident history, not current domain authority.
+- The Skill authoring/modification rules were read through EOF because the changed-file preflight required them.
+- Current user-approved spec v1.1 supersedes stale/conflicting prose discovered in historical/reference material.
+- T0 focused tests use tmp_path and do not mutate config.ini, 基準檔/**, canonical registry, or other production inputs.

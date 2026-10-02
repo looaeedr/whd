@@ -1,0 +1,24 @@
+{
+  "production_base": "6b04fb2bb72d9c251c979167530dee04ab4a372e",
+  "accepted_issues": [
+    333,
+    334,
+    335,
+    336,
+    337,
+    338,
+    339,
+    340,
+    341
+  ],
+  "t8_final_run": 35348422624,
+  "t8_visual_artifact_id": 10548370209,
+  "t8_unresolved_visual_failures": 0,
+  "full_headless_required": true,
+  "full_xvfb_required": true,
+  "protected_runtime_files": [
+    "config.ini",
+    "基準檔/**"
+  ],
+  "integration_mode": "non-force-fast-forward"
+}

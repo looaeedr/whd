@@ -1,0 +1,56 @@
+{
+  "schema": "WHD_POST_INTEGRATION_DURABILITY_V1",
+  "version": 1,
+  "status": "CURRENT",
+  "owner": "tools/post_integration_durability.py",
+  "execution_state_owner": "WHD_EXECUTION_RECORD_V2",
+  "source_export_workflow": ".github/workflows/drive-source-snapshot-export.yml",
+  "source_manifest_path": "/Google Drive/WHD/source/manifests/WHD Current Source Manifest",
+  "snapshot_prefix": "/Google Drive/WHD/source/snapshots",
+  "active_workspace_prefix": "/Google Drive/WHD/work/active",
+  "done_workspace_prefix": "/Google Drive/WHD/work/done",
+  "required_order": [
+    "FLOW_V2_DONE",
+    "EXPORT_RUN_GREEN",
+    "ARTIFACT_IDENTITY_BOUND",
+    "DRIVE_SNAPSHOT_WRITTEN",
+    "DRIVE_SNAPSHOT_READBACK_VERIFIED",
+    "MANIFEST_WRITEBACK_COMPLETE",
+    "WORKSPACE_ARCHIVE_ELIGIBLE",
+    "WORKSPACE_ARCHIVED",
+    "DURABLE_CLEANUP_COMPLETE"
+  ],
+  "snapshot_receipt_schema": "WHD_SOURCE_SNAPSHOT_WRITEBACK_RECEIPT_V1",
+  "workspace_archive_receipt_schema": "WHD_WORKSPACE_ARCHIVE_RECEIPT_V1",
+  "manifest_complete_requirements": [
+    "source_sha/tree_sha exact",
+    "durable_snapshot CURRENT_EXACT_HEAD",
+    "Drive snapshot digest readback VERIFIED",
+    "GitHub run/artifact identity",
+    "export transport trigger head SHA",
+    "export_writeback_status COMPLETE"
+  ],
+  "archive_eligibility": [
+    "state=DONE",
+    "lease=null",
+    "mutation_scope.reservation_state=RELEASED",
+    "next_action=null",
+    "closure.issue_closed=true"
+  ],
+  "fail_closed": {
+    "source_export_pending": "CONSUME_SOURCE_EXPORT",
+    "workspace_active_after_complete_export": "ARCHIVE_WORKSPACE_TO_DONE",
+    "nonterminal_execution": "WAIT_EXECUTION_DONE"
+  },
+  "root_local_gate_pointer": {
+    "path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+    "file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
+  },
+  "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
+  "artifact_source_identity_policy": "TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME; WORKFLOW_RUN_HEAD_SHA_IS_TRANSPORT_TRIGGER_IDENTITY",
+  "source_export_request_schema": "WHD_SOURCE_EXPORT_REQUEST_V1",
+  "source_export_request_branch": "coord/source-export-requests",
+  "source_export_request_path": ".dispatch/source-export-request.json",
+  "source_export_request_source_branch": "cleanup/2d-3d-sync",
+  "source_export_request_policy": "REQUESTED_SHA_MUST_BE_REACHABLE_FROM_CURRENT_CLEANUP_HISTORY; REQUEST_TRIGGER_HEAD_IS_NOT_SOURCE_IDENTITY"
+}

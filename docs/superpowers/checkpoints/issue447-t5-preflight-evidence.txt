@@ -1,0 +1,50 @@
+ISSUE=447
+TASK=T5 Workspace Shell deletion test / conditional extraction
+ROLE=T5 實作者
+BASE_SHA=b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1
+WORK_BRANCH=refactor/issue447-t5-workspace-shell-20260921
+CURRENT_X_HEAD_OBSERVATION=e8329ca2cca84c8c9aa85c9feddc1ee7c8692dbc
+LINEAGE_RULE=child base remains accepted predecessor; do not chase X
+
+READ_SKILL: 派工
+READ_SKILL: UI設計與去AI味
+READ_SKILL: issue-closure-gate
+READ_SKILL: phase6-release-packaging
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md
+
+INITIAL_SCOPE=read-only deletion test of persistent top area / toolbar / fullscreen / shell layout.
+PROTECTED_UI_CONTRACT=single shared input/display physical slot; assembly/corner data are mutually exclusive direct siblings; no extra visible wrapper.
+
+CHANGED_FILE_PREFLIGHT:
+- fold_designer_bridge.py
+- phase6_workspace_shell.py (prospective only; only if EXTRACT)
+- tests/test_issue447_workspace_shell_owner.py
+- docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md
+MATCHED_ROUTE=phase6-corner-relief-3d
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+REMOTE_QA_PREFLIGHT:
+- tests/test_issue447_workspace_shell_owner.py
+- .github/workflows/qa-issue447-t5-workspace-shell.yml
+MATCHED_ROUTE=ui-design-de-ai
+MATCHED_ROUTE=remote-qa-monitoring
+READ_SKILL: UI設計與去AI味
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md

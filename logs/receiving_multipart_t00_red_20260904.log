@@ -1,0 +1,102 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________ test_receiving_topology_change_rebuilds_all_assembly_info_rows ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feeaecfad70>
+
+    @pytest.mark.skipif(not __import__("os").environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_receiving_topology_change_rebuilds_all_assembly_info_rows(monkeypatch):
+        """Vault -> Receiving must project every authoritative physical part into assembly rows."""
+>       root, app = _make_app(monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_phase6_receiving_projection_regression.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_phase6_receiving_projection_regression.py:32: in _make_app
+    app = bridge.Phase6FoldDesignerApp(win, _vault_snapshot())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fold_designer_bridge.py:6884: in _fix11_init
+    _phase6_sync_authoritative_derived_parts(self)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <fold_designer_bridge.Phase6FoldDesignerApp object at 0x7feeae750ec0>
+
+    def _phase6_sync_authoritative_derived_parts(self):
+        """Sync topology-derived physical parts into the persistent workspace.
+    
+        Divider geometry is fully determined by authoritative multi-door topology.
+        Receiving frame spans are derived by its family policy from Door finished
+        geometry plus the confirmed 50 mm left/right/top insets; other families may
+        still supply explicit spans to the generic frame capability.
+        """
+        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+        workspace = _designer_workspace(self)
+        sync_derived_parts = getattr(workspace, "sync_derived_parts", None)
+        if not callable(sync_derived_parts):
+            # Baseline-change and migration adapters may supply a lightweight
+            # workspace facade that predates topology-derived physical parts.
+            # Derived synchronization is additive capability; it must not make
+            # those transactions fail before a full DesignerWorkspace is attached.
+            return (), ()
+    
+        # Multi-Door cells are topology-owned physical parts.  Their identities are
+        # stable one-based c/r keys; the legacy logical ``door`` is present only in
+        # single-door mode so no caller can accidentally render one full-cabinet
+        # Door alongside the real cells.
+>       door_rows = _phase6_door_part_projections(snapshot)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       NameError: name '_phase6_door_part_projections' is not defined
+
+fold_designer_bridge.py:182: NameError
+__________ test_receiving_default_layout_materializes_two_door_parts ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feeaecfac40>
+
+    @pytest.mark.skipif(not __import__("os").environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_receiving_default_layout_materializes_two_door_parts(monkeypatch):
+        """Receiving [[800,[1100,500]]] must become two formal Door identities, not one legacy door."""
+>       root, app = _make_app(monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_phase6_receiving_projection_regression.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_phase6_receiving_projection_regression.py:32: in _make_app
+    app = bridge.Phase6FoldDesignerApp(win, _vault_snapshot())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fold_designer_bridge.py:6884: in _fix11_init
+    _phase6_sync_authoritative_derived_parts(self)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <fold_designer_bridge.Phase6FoldDesignerApp object at 0x7feeae7e2e90>
+
+    def _phase6_sync_authoritative_derived_parts(self):
+        """Sync topology-derived physical parts into the persistent workspace.
+    
+        Divider geometry is fully determined by authoritative multi-door topology.
+        Receiving frame spans are derived by its family policy from Door finished
+        geometry plus the confirmed 50 mm left/right/top insets; other families may
+        still supply explicit spans to the generic frame capability.
+        """
+        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+        workspace = _designer_workspace(self)
+        sync_derived_parts = getattr(workspace, "sync_derived_parts", None)
+        if not callable(sync_derived_parts):
+            # Baseline-change and migration adapters may supply a lightweight
+            # workspace facade that predates topology-derived physical parts.
+            # Derived synchronization is additive capability; it must not make
+            # those transactions fail before a full DesignerWorkspace is attached.
+            return (), ()
+    
+        # Multi-Door cells are topology-owned physical parts.  Their identities are
+        # stable one-based c/r keys; the legacy logical ``door`` is present only in
+        # single-door mode so no caller can accidentally render one full-cabinet
+        # Door alongside the real cells.
+>       door_rows = _phase6_door_part_projections(snapshot)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       NameError: name '_phase6_door_part_projections' is not defined
+
+fold_designer_bridge.py:182: NameError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_receiving_projection_regression.py::test_receiving_topology_change_rebuilds_all_assembly_info_rows - NameError: name '_phase6_door_part_projections' is not defined
+FAILED tests/test_phase6_receiving_projection_regression.py::test_receiving_default_layout_materializes_two_door_parts - NameError: name '_phase6_door_part_projections' is not defined
+2 failed in 0.96s

@@ -2,48 +2,105 @@ name: WHD Control Plane Regression
 
 on:
   pull_request:
-    branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '.agents/skills/skill_registry.json'
+      - '.agents/skills/skill_catalog.json'
+      - '.agents/skills/**/*.md'
+      - '.agents/contracts/**/*.json'
+      - '個人AI檔案庫/**/*.md'
+      - 'docs/governance/**/*.md'
+      - 'docs/specs/**/*.md'
+      - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
+      - 'docs/superpowers/verification/knowledge_authority_classification_v1.json'
+      - 'UPDATE/**/*.md'
+      - 'tests/knowledge/**'
+      - 'tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py'
+      - 'tests/process/test_checkpoint_resume_contract.py'
+      - 'tests/process/test_continuous_execution_durable_contract.py'
+      - 'tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py'
+      - 'tests/process/test_issue1049_flow_v2_anti_regrowth_v3.py'
+      - 'tests/process/test_issue1056_flow_v2_anti_regrowth_v4.py'
+      - '.agents/skills/engineering/deterministic-repo-migration/SKILL.md'
+      - '.agents/contracts/WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1.json'
+      - 'docs/governance/WHD_規格書Skill前置與Grounding規則.md'
+      - 'tests/process/test_issue1045_post_integration_durability.py'
+      - 'tools/post_integration_durability.py'
+      - '.agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json'
+      - '.github/workflows/**'
+      - 'tools/knowledge_governance.py'
+      - '.agents/skills/engineering/排程模擬/SKILL.md'
+      - 'tests/process/test_root_local_first_entry_hard_gate.py'
+      - 'tests/process/test_issue1022_root_ci_parity.py'
+      - 'tests/process/test_issue724_report_handler_identity_prefix.py'
+      - 'tools/control_plane_regression.py'
+      - '.agents/skills/engineering/工作槽/SKILL.md'
+      - '.agents/skills/engineering/寫排程/SKILL.md'
+      - '.agents/skills/engineering/派工/SKILL.md'
+      - '.agents/skills/engineering/flow-v2-execution/SKILL.md'
+      - '.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json'
+      - '.agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json'
+      - '.agents/contracts/WHD_PATH_RESERVATION_V1.json'
+      - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
+      - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
+      - '.agents/skills/engineering/remote-execution-guard/SKILL.md'
+      - 'tools/product_ci_regression.py'
+      - 'tests/process/test_issue952_governance_ancestry_reconcile.py'
+      - 'tests/process/test_issue975_flow_v2_closure_stability.py'
+      - 'tests/process/test_governance_single_authority.py'
+
+
+      - '.github/workflows/whd-control-transaction-v2-request.yml'
+      - 'AGENTS.md'
+      - 'tools/continuity_controller.py'
+      - 'tools/scheduler_runtime_liveness.py'
+      - 'tools/scheduler_host_watchdog.py'
+      - 'tools/scheduled_resume_executor.py'
+      - 'tools/scheduled_resume_runtime.py'
+      - 'tools/control_transaction.py'
+      - 'tools/control_transaction_production_executor.py'
+      - 'tools/execution_invocation_exit.py'
+      - 'tools/execution_scheduler_view.py'
+      - 'tools/control_transaction_request_ingress.py'
+      - 'tools/control_transaction_request_builder.py'
+      - 'tools/flow_v2_merge_precheck.py'
+      - 'tools/execution_entry_contract.py'
+      - 'tools/execution_path_reservation.py'
+      - 'tools/work_root_gate.py'
+      - 'tools/change_test_profile.py'
+      - 'tests/process/test_change_test_profile.py'
+      - 'tests/process/test_flow_v2_execution_invocation_exit.py'
+      - 'tests/process/test_flow_v2_execution_scheduler_view.py'
+      - 'tests/process/test_flow_v2_merge_precheck.py'
+      - 'tests/process/test_flow_v2_sync_target.py'
+      - 'tests/process/test_flow_v2_atomic_control_transaction.py'
+      - 'tests/process/test_flow_v2_path_reservation.py'
+      - 'tests/process/test_issue865_scheduler_stop_hardening.py'
+      - 'tests/process/test_issue787_turn_exit_blocker_authority.py'
+      - 'tests/process/test_scheduler_no_work_census_contract.py'
+      - 'tests/process/test_issue892_flow_v2_production_transaction.py'
+      - 'tests/process/test_issue899_push_transaction_ingress.py'
+      - 'tests/process/test_issue961_work_root_hard_gate.py'
+      - 'tests/process/test_issue696_startup_authorization_purpose.py'
+      - 'tests/process/test_issue721_task_start_authority_declaration.py'
+      - 'tests/process/test_issue886_flow_v2_entrypoint_cutover.py'
 
 permissions:
   contents: read
 
 jobs:
-  main-default-tombstone:
+  focused-control-plane:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate minimal fail-closed main tree
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          marker = "MAIN_DEFAULT_BRANCH_FAIL_CLOSED_V2"
-          allowed = {
-              "README.md",
-              "AGENTS.md",
-              ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-              ".agents/skills/skill_registry.json",
-              "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-              "tools/phase6_skill_preflight.py",
-              ".github/workflows/whd-control-plane-regression.yml",
-              ".github/workflows/whd-governance-mirror-gate.yml",
-              ".github/workflows/whd-phase6-preflight.yml",
-          }
-          actual = {p.as_posix() for p in Path(".").rglob("*") if p.is_file() and ".git" not in p.parts}
-          if actual != allowed:
-              raise SystemExit(f"MAIN_TOMBSTONE_TREE_MISMATCH missing={sorted(allowed-actual)} extra={sorted(actual-allowed)}")
-          for rel in ("README.md","AGENTS.md",".agents/skills/engineering/flow-v2-execution/SKILL.md","個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"):
-              if marker not in Path(rel).read_text(encoding="utf-8"):
-                  raise SystemExit(f"MAIN_TOMBSTONE_MARKER_MISSING:{rel}")
-          bridge = Path(".github/workflows/whd-phase6-preflight.yml").read_text(encoding="utf-8")
-          if "MAIN_DEFAULT_PHASE6_PREFLIGHT_BRIDGE_V1" not in bridge:
-              raise SystemExit("MAIN_PHASE6_PREFLIGHT_BRIDGE_MARKER_MISSING")
-          if 'branch != "cleanup/2d-3d-sync"' not in bridge:
-              raise SystemExit("MAIN_PHASE6_PREFLIGHT_BRIDGE_NOT_CLEANUP_PINNED")
-          registry = Path(".agents/skills/skill_registry.json").read_text(encoding="utf-8")
-          if '"routes": []' not in registry:
-              raise SystemExit("MAIN_REGISTRY_NOT_EMPTY")
-          PY
+      - name: Checkout proposed tree
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run canonical root/CI control-plane regression
+        run: python tools/control_plane_regression.py

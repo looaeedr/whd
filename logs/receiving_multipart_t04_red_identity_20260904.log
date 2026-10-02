@@ -1,0 +1,17 @@
+ERROR: found no collectors for /mnt/data/phase6_exec/tests/test_multi_door_layout.py::test_layout_formal_part_keys_are_stable_column_then_row
+
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/test_multi_door_layout.py _______________
+ImportError while importing test module '/mnt/data/phase6_exec/tests/test_multi_door_layout.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_multi_door_layout.py:4: in <module>
+    from ae_engine.sheetmetal_part_adapters import (
+E   ImportError: cannot import name 'door_layout_part_key' from 'ae_engine.sheetmetal_part_adapters' (/mnt/data/phase6_exec/ae_engine/sheetmetal_part_adapters.py)
+=========================== short test summary info ============================
+ERROR tests/test_multi_door_layout.py
+1 error in 0.28s

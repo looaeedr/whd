@@ -1,0 +1,12 @@
+=== tests/test_manufacturing_policy_boundary.py ===
+.....                                                                    [100%]
+5 passed in 0.32s
+RC=0
+=== tests/test_multi_door_gui.py ===
+.................................................                        [100%]
+49 passed in 21.40s
+RC=0
+=== tests/test_multi_door_layout.py ===
+..........................                                               [100%]
+26 passed in 0.50s
+RC=0

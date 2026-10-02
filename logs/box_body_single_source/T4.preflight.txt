@@ -1,0 +1,28 @@
+TASK: T4 #29 Box Body single-source Combined Acceptance
+REPOSITORY: looaeedr/whd
+TARGET_BRANCH: cleanup/2d-3d-sync
+ACCEPTANCE_BRANCH: accept/box-body-single-source-t4-20260907
+PARENT_CHECKPOINT: 3c28aad030db73f69a6b00aa5bd32356bf530dac
+TARGET_BASELINE: ec03a170f67c4734b4682501cfdb5d2b0316d2fe
+
+PREFLIGHT_COMMAND: python tools/phase6_skill_preflight.py --task "<T4 Combined Acceptance with 3D/Fold/assembly/DXF/save-reload/multi-piece and remote QA>" --changed-file tests/test_box_body_single_source_t4.py --changed-file .github/workflows/t4-box-body-single-source-qa.yml --evidence T4.preflight.evidence.txt
+PREFLIGHT_RESULT: RC=0
+
+READ_SKILL: phase6-corner-3d-model-integrity
+SKILL_SHA: 9cb9a7c9806d5cd222882c79b4521ac27a99e72f
+READ_SKILL: monitoring-remote-qa
+SKILL_SHA: 1bb36e701a6090b93ec5cffa8dff7a282ae193a9
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 3afa271fce7a4a2f2dc204c8b45a10b5fc2e4884
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+REFERENCE_SHA: 08e2e92a5e2b42766b2370a141b5f28a8c459698
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+REFERENCE_SHA: 25687a63fdebd628ac0400ff3124358d05dd8d68
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+REFERENCE_SHA: 4b1f6df433b9d3ecc634407e338f4456f484da13
+
+OWNING_ISSUE: #29
+APPROVED_REDS: R2,R3,R4,R5
+GUARDS: R1,R6
+MODE: ACCEPTANCE_ONLY

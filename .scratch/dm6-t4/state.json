@@ -1,0 +1,26 @@
+{
+  "task_id": "DM6",
+  "work_order": "#68",
+  "role": "ACCEPTED",
+  "branch": "work/dm6-t4-save-reload-semantic-determinism",
+  "dependency": "#67 ACCEPTED",
+  "production_change": "none required; persistence already stores authoritative snapshot only and clears final_geometry",
+  "acceptance": {
+    "run_id": 34340101003,
+    "job_id": 102428619101,
+    "head_sha": "8eb9736e3819de8f580c195236cb467619f5b73f",
+    "result": "18 passed in 4.47s",
+    "compile": "PASS"
+  },
+  "guards": [
+    "save/reload annotation semantic determinism",
+    "duplicate-label identity",
+    "same-value X/Y identity",
+    "production source ownership scan"
+  ],
+  "cleanup": {
+    "temporary_workflow_removed": true,
+    "commit": "7a441756a00e71a6ffa3f9e7413f282d6c5c131d"
+  },
+  "blocked": []
+}

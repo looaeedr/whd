@@ -1,0 +1,58 @@
+{
+  "schema": "WHD_ISSUE532_C0_FINAL_CLASSIFICATION_V1",
+  "issue": 532,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "tested_head": "320db9fdb08301cfa539ad2a48cc3d59cdd06839",
+  "acceptance": {
+    "run_id": 35858929083,
+    "conclusion": "success",
+    "artifact_id": 10747964468,
+    "headless": "106 passed / 18 skipped",
+    "xvfb": "47 passed / 1 skipped"
+  },
+  "residual_audit": {
+    "run_id": 35858929075,
+    "conclusion": "success",
+    "zero_consumer_count": 0,
+    "zero_consumer_span": 0,
+    "compat_only_count": 0,
+    "compat_only_span": 0,
+    "runtime_consumer_count": 43,
+    "runtime_consumer_span": 980
+  },
+  "quantitative_gate": {
+    "a0_bridge_loc": 7806,
+    "final_bridge_loc": 6476,
+    "total_reduction": 1330,
+    "min_reduction": 1000,
+    "effective_final_ceiling": 6500,
+    "ceiling_margin": 24,
+    "facade_count": 45,
+    "zero_consumer_wrappers_removed": 41
+  },
+  "attribution": [
+    "All residual audited bridge top-level defs have current runtime consumers; zero-consumer and compat-only residual sets are empty.",
+    "Final compression moved only composition-owned construction/port assembly and removed proven dead/compatibility surface; substantive KEEP boundaries were not reopened solely for LOC.",
+    "C0 acceptance is functional GREEN and quantitative GREEN."
+  ],
+  "cleanup": {
+    "one_shot_workflows_deleted": [
+      ".github/workflows/qa-issue532-c0-census.yml",
+      ".github/workflows/qa-issue532-c0-composition-red.yml",
+      ".github/workflows/qa-issue532-c0-deletion-audit.yml",
+      ".github/workflows/qa-issue532-c0-exact-ref-audit.yml",
+      ".github/workflows/qa-issue532-c0-import-alias-audit.yml",
+      ".github/workflows/qa-issue532-c0-normalization-green.yml",
+      ".github/workflows/qa-issue532-c0-presentation-composition-red.yml",
+      ".github/workflows/qa-issue532-c0-residual-def-audit.yml",
+      ".github/workflows/qa-issue532-c0-settings-ports-red.yml",
+      ".github/workflows/qa-issue532-c0-zero-import-red.yml"
+    ]
+  },
+  "next_stage": {
+    "issue": 533,
+    "task_id": "C1",
+    "action": "Permanent anti-regression guard on accepted C0 surface"
+  }
+}

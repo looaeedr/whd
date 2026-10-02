@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "issue": 275,
+  "master": 274,
+  "branch": "test-cleanup/issue275-inventory-v2-20260915",
+  "tested_head": "f688d428bc5a8c2d176867079d455e879c88a06c",
+  "run_id": 34978576155,
+  "artifact_id": 10400915083,
+  "artifact_name": "issue275-t0-test-inventory",
+  "summary": {
+    "total_nodes": 2136,
+    "headless_nodes": 2136,
+    "xvfb_nodes": 2136,
+    "known_inherited_nodes": 27,
+    "lane_counts": {
+      "architecture": 8,
+      "dxf": 22,
+      "geometry": 301,
+      "governance": 183,
+      "persistence": 25,
+      "projection": 85,
+      "regression": 1412,
+      "ui": 100
+    },
+    "classification_counts": {
+      "INHERITED_BASELINE_REQUIRES_SEPARATE_FIX": 26,
+      "KEEP_CURRENT_CONTRACT": 1826,
+      "MOVE_TO_GOVERNANCE_LANE": 183,
+      "MOVE_TO_UI_LANE": 100,
+      "REWRITE_SUPERSEDED_CONTRACT": 1
+    }
+  },
+  "full_csv_gzip_path": "docs/superpowers/verification/2026-09-15-issue275-test-inventory.csv.gz",
+  "full_csv_sha256": "54c05aad54a12da61c6b9f4411f883a1ec13bd1dfe50275a5791cc8129d8ec34",
+  "full_csv_gzip_sha256": "e0fa61a535f55a36fe5c04d8abcb06bcd15ac6f3b6babbfd6c371ffc9785e630",
+  "source_json_sha256": "e211e94ad6a4c0b7345aaa5b2953aba3a6d330da9be6193b5afa0f3de979859c",
+  "known_inherited_evidence_nodeids": 27,
+  "classification_note": "The historically inherited semantic-doc node is classified REWRITE_SUPERSEDED_CONTRACT because current WHD_DOC_META_V1 / Canonical Authority Map supersedes its old CURRENT-string contract; the other 26 historical inherited reds remain INHERITED_BASELINE_REQUIRES_SEPARATE_FIX pending their owning cleanup tickets.",
+  "safety": {
+    "production_source_drift": 0,
+    "geometry_drift": 0,
+    "dxf_drift": 0,
+    "config_invariant": "PASS",
+    "test_deletion": 0
+  }
+}

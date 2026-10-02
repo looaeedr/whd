@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "master_task_id": "262",
+  "master_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+  "target": "X",
+  "target_branch": "cleanup/2d-3d-sync",
+  "task_final_sha": "89d1f304036937d2a5cfd24ccbfdff2b8dee26b1",
+  "current_x_sha": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
+  "required_task_acceptance_code": "ELIGIBLE_FOR_INTEGRATION_ACCEPTANCE_CONSIDERATION",
+  "required_conflict_method": "three_way_merge_tree"
+}

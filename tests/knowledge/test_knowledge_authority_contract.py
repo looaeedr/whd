@@ -1,0 +1,102 @@
+from __future__ import annotations
+
+import re
+from collections import Counter
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+AUTHORITY_MAP = ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+SKILL_POLICY = ROOT / "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+DIMENSION_ROOT = ROOT / "07_Phase6尺寸語意與標準截角母規則.md"
+DIMENSION_CANONICAL = ROOT / "個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md"
+LAYER_CANONICAL = ROOT / "加工層分類與定義.md"
+MISNAMED_LAYER_ALIAS = ROOT / "標準基準檔格式.md"
+
+AUTHORITY_RE = re.compile(
+    r"<!-- WHD_AUTHORITY contract=(?P<contract>[^ ]+) role=(?P<role>CURRENT|REFERENCE|MIRROR|HISTORICAL) path=(?P<path>[^ ]+)(?: canonical=(?P<canonical>[^ ]+))? -->"
+)
+
+
+def _read(path: Path) -> str:
+    assert path.is_file(), f"required authority artifact is missing: {path.relative_to(ROOT)}"
+    return path.read_text(encoding="utf-8")
+
+
+def _assert_pointer_only(path: Path, canonical_path: str) -> None:
+    text = _read(path)
+    assert text.startswith("---\n"), f"{path.name} must use WHD_DOC_META_V1 frontmatter"
+    assert "whd_doc_role: MIRROR" in text, f"{path.name} must declare MIRROR role"
+    assert f"whd_canonical: {canonical_path}" in text, f"{path.name} must point to {canonical_path}"
+    assert "whd_schema: WHD_DOC_META_V1" in text, f"{path.name} must use WHD_DOC_META_V1"
+    assert "不得新增或複製 normative 規則" in text, f"{path.name} must remain pointer-only"
+    assert canonical_path in text, f"{path.name} must point to {canonical_path}"
+    assert len(text) < 2000, f"{path.name} is too large for a pointer-only mirror"
+
+
+def test_authority_map_has_exactly_one_current_owner_per_contract() -> None:
+    text = _read(AUTHORITY_MAP)
+    assert "WHD_AUTHORITY_MAP_V1" in text
+    rows = [match.groupdict() for match in AUTHORITY_RE.finditer(text)]
+    assert rows, "authority map must contain machine-readable WHD_AUTHORITY rows"
+
+    contracts = {row["contract"] for row in rows}
+    for required in {"phase6-dimension-semantics", "manufacturing-layer-classification"}:
+        assert required in contracts, f"missing authority contract: {required}"
+
+    current_counts = Counter(row["contract"] for row in rows if row["role"] == "CURRENT")
+    assert all(count == 1 for count in current_counts.values()), current_counts
+    for required in {"canonical-authority-map", "flow-v2-execution", "root-local-first-workflow"}:
+        assert current_counts[required] == 1, required
+
+    current_paths = {row["path"] for row in rows if row["role"] == "CURRENT"}
+    for row in rows:
+        if row["role"] == "MIRROR":
+            assert row["canonical"], f"MIRROR row must name canonical owner: {row}"
+            assert row["canonical"] in current_paths, (
+                f"MIRROR canonical path must itself be a CURRENT authority path: {row}"
+            )
+
+
+def test_dimension_semantics_root_is_pointer_to_ai_library_canonical() -> None:
+    canonical = "個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md"
+    assert DIMENSION_CANONICAL.is_file()
+    _assert_pointer_only(DIMENSION_ROOT, canonical)
+    root_text = _read(DIMENSION_ROOT)
+    assert "## [CURRENT]" not in root_text
+    assert "最高優先級機械語意規格" not in root_text
+
+
+def test_misnamed_standard_baseline_format_is_pointer_to_layer_definition() -> None:
+    assert LAYER_CANONICAL.is_file()
+    _assert_pointer_only(MISNAMED_LAYER_ALIAS, "加工層分類與定義.md")
+    assert _read(MISNAMED_LAYER_ALIAS) != _read(LAYER_CANONICAL)
+
+
+def test_skill_policy_defines_authority_roles_and_forbids_dual_current() -> None:
+    text = _read(SKILL_POLICY)
+    for role in ("CURRENT", "REFERENCE", "MIRROR", "HISTORICAL"):
+        assert f"`{role}`" in text, f"missing authority role: {role}"
+    assert "同一 contract" in text
+    assert "只能有一個" in text
+    assert "POINTER_ONLY" in text
+
+def test_skill_authority_rows_match_skill_frontmatter_roles_and_canonical_pointer() -> None:
+    text = _read(AUTHORITY_MAP)
+    rows = [match.groupdict() for match in AUTHORITY_RE.finditer(text)]
+    skill_rows = [
+        row for row in rows
+        if row["path"].startswith(".agents/skills/") and row["path"].endswith("/SKILL.md")
+    ]
+    assert skill_rows
+    for row in skill_rows:
+        skill_text = _read(ROOT / row["path"])
+        role_match = re.search(r"^whd_doc_role:\s*(CURRENT|REFERENCE|MIRROR|HISTORICAL)\s*$", skill_text, re.MULTILINE)
+        assert role_match is not None, row
+        assert role_match.group(1) == row["role"], row
+        if row["role"] == "MIRROR":
+            canonical_match = re.search(r"^whd_canonical:\s*(.+?)\s*$", skill_text, re.MULTILINE)
+            assert row["canonical"], row
+            assert canonical_match is not None, row
+            assert canonical_match.group(1).strip() == row["canonical"], row
+

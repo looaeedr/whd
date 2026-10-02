@@ -1,0 +1,86 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+______ test_normalize_existing_parts_is_deterministic_and_keeps_box_body _______
+
+    def test_normalize_existing_parts_is_deterministic_and_keeps_box_body():
+>       from phase6_workspace_state import normalize_existing_parts
+E       ModuleNotFoundError: No module named 'phase6_workspace_state'
+
+tests/test_phase6_workspace_state.py:8: ModuleNotFoundError
+___________________ test_active_repair_policies_are_explicit ___________________
+
+    def test_active_repair_policies_are_explicit():
+>       from phase6_workspace_state import SharedWorkspaceState
+E       ModuleNotFoundError: No module named 'phase6_workspace_state'
+
+tests/test_phase6_workspace_state.py:17: ModuleNotFoundError
+_ test_presence_changes_preserve_profile_stash_and_repair_active_by_owner_policy _
+
+    def test_presence_changes_preserve_profile_stash_and_repair_active_by_owner_policy():
+>       from phase6_workspace_state import SharedWorkspaceState
+E       ModuleNotFoundError: No module named 'phase6_workspace_state'
+
+tests/test_phase6_workspace_state.py:30: ModuleNotFoundError
+__________ test_snapshot_is_defensive_and_structure_is_canonicalized ___________
+
+    def test_snapshot_is_defensive_and_structure_is_canonicalized():
+>       from phase6_workspace_state import SharedWorkspaceState
+E       ModuleNotFoundError: No module named 'phase6_workspace_state'
+
+tests/test_phase6_workspace_state.py:48: ModuleNotFoundError
+____ test_shared_core_has_only_shared_fields_and_no_forbidden_dependencies _____
+
+    def test_shared_core_has_only_shared_fields_and_no_forbidden_dependencies():
+>       import phase6_workspace_state
+E       ModuleNotFoundError: No module named 'phase6_workspace_state'
+
+tests/test_phase6_workspace_state.py:72: ModuleNotFoundError
+_ test_main_and_designer_use_independent_shared_state_instances_and_same_normalization _
+
+    def test_main_and_designer_use_independent_shared_state_instances_and_same_normalization():
+        from phase6_workspace_controller import Phase6WorkspaceController
+        from phase6_designer_workspace import Phase6DesignerWorkspace
+    
+        raw = {
+            "existing_parts": ["door", "head", "door", "custom", ""],
+            "active_part": "missing",
+            "part_profiles": {"door": {"X": [{"len": 22.0}], "Y": []}},
+        }
+        main = Phase6WorkspaceController(default_existing_parts=[])
+        main.commit_workspace(deepcopy(raw))
+        designer = Phase6DesignerWorkspace.from_snapshot(deepcopy(raw))
+    
+>       assert main.workspace_snapshot()["existing_parts"] == list(designer.available_parts)
+E       AssertionError: assert ['box_body', ...or', 'custom'] == ['box_body', ...ad', 'custom']
+E         
+E         At index 1 diff: 'head' != 'door'
+E         
+E         Full diff:
+E           [
+E               'box_body',
+E         +     'head',
+E               'door',
+E         -     'head',
+E               'custom',
+E           ]
+
+tests/test_phase6_workspace_state.py:102: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_workspace_state.py::test_normalize_existing_parts_is_deterministic_and_keeps_box_body - ModuleNotFoundError: No module named 'phase6_workspace_state'
+FAILED tests/test_phase6_workspace_state.py::test_active_repair_policies_are_explicit - ModuleNotFoundError: No module named 'phase6_workspace_state'
+FAILED tests/test_phase6_workspace_state.py::test_presence_changes_preserve_profile_stash_and_repair_active_by_owner_policy - ModuleNotFoundError: No module named 'phase6_workspace_state'
+FAILED tests/test_phase6_workspace_state.py::test_snapshot_is_defensive_and_structure_is_canonicalized - ModuleNotFoundError: No module named 'phase6_workspace_state'
+FAILED tests/test_phase6_workspace_state.py::test_shared_core_has_only_shared_fields_and_no_forbidden_dependencies - ModuleNotFoundError: No module named 'phase6_workspace_state'
+FAILED tests/test_phase6_workspace_state.py::test_main_and_designer_use_independent_shared_state_instances_and_same_normalization - AssertionError: assert ['box_body', ...or', 'custom'] == ['box_body', ...ad', 'custom']
+  
+  At index 1 diff: 'head' != 'door'
+  
+  Full diff:
+    [
+        'box_body',
+  +     'head',
+        'door',
+  -     'head',
+        'custom',
+    ]
+6 failed in 0.14s

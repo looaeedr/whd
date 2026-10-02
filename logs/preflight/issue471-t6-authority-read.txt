@@ -1,0 +1,25 @@
+ISSUE: #471
+TASK: T6 — Receiving Production Activation + Gate B
+BRANCH: workorder/issue464-joint-placement-marking-v1.3-20260921
+BASE_HEAD: f9aa859396d2d317ad674b829ebf03715e44d948
+ACCEPTED_T4_HEAD: 947a2299cc4ab9109dbffadef325b12eab1ff3c3
+RESOLVED_T5_HEAD: f9aa859396d2d317ad674b829ebf03715e44d948
+PRODUCT_DISPOSITION: ALLOW_EXPORT_WITH_DIAGNOSTIC
+READ_SKILL: 派工
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: tdd
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+PREFLIGHT_RESULT: GREEN
+RED_TARGET:
+- Gate B activation state absent
+- no production Receiving marking resolver
+- no 4-line shared-Divider enrichment
+- no ALLOW_EXPORT_WITH_DIAGNOSTIC summary enforcement
+- no Save→Reload/dynamic topology production activation regression

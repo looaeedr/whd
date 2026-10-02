@@ -1,0 +1,3 @@
+tests/test_phase6_project_file.py|rc=0|19 passed, 226 warnings in 11.92s
+tests/test_phase6_assembly_3d_view.py|rc=0|18 passed, 8 warnings in 1.14s
+tests/test_base_plate_geometry.py|rc=0|1 passed in 0.25s

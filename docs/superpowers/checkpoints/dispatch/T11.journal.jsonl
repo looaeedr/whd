@@ -1,0 +1,13 @@
+{"task_id":"T11","role":"T11 實作者","event":"spec_corrected","contract":"known target preset; only custom carries current","status":"complete"}
+{"task_id":"T11","role":"T11 實作者","event":"red","result":"Receiving->Custom and Custom->Receiving exposed old runtime-cache semantics","status":"complete"}
+{"task_id":"T11","role":"T11 實作者","event":"green_batch_1","tests":21,"passed":21,"failed":0,"log":"logs/t11/t11_gui_roundtrip.log","status":"complete"}
+{"task_id":"T11","role":"總控審查","event":"green_batch_2","tests":22,"passed":22,"failed":0,"log":"logs/t11/t11_existing_integrity.log","status":"complete"}
+{"task_id":"T11","role":"總控審查","event":"config_integrity","sha256":"980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67","unchanged":true,"status":"complete"}
+{"task_id":"T11","role":"T18 release gate","event":"t18_reopen_stale_oracle","source_run":34024938119,"result":"2 stale box-body GUI oracles; production correct","status":"complete"}
+{"task_id":"T11","role":"T11 QA","event":"reopen_green","run_id":34025269614,"passed":26,"failed":0,"production_changes":0,"status":"complete"}
+{"task_id":"T11","role":"controller","event":"reclosed","issue":11,"result":"closed completed; T18 must recollect"}
+{"task_id":"T11","role":"T18 release gate","event":"t18_reopen_stale_oracle_wave2","source_run":34025390923,"result":"2 manufacturing adapter stale oracles; production correct","status":"complete"}
+{"task_id":"T11","role":"T11 QA","event":"wave2_green","run_id":34028013223,"passed":30,"failed":0,"production_changes":0,"status":"complete"}
+{"task_id":"T11","role":"T18 release gate","event":"t18_reopen_wave3","source_run":34028206636,"result":"multi-door stale family-switch test setups","status":"complete"}
+{"task_id":"T11","role":"T11 QA","event":"wave3_green","run_id":34028808208,"passed":85,"failed":0,"production_changes":0,"status":"complete"}
+{"task_id":"T11","role":"controller","event":"wave3_reclosed","run_id":34028808208,"result":"85 PASS / 0 FAIL; production/test drift 0"}

@@ -1,0 +1,28 @@
+{
+  "schema": "WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1",
+  "version": 1,
+  "status": "CURRENT",
+  "production_branch": "cleanup/2d-3d-sync",
+  "default_branch": "main",
+  "policy": "MAIN_MINIMAL_TOMBSTONE_TREE",
+  "reason": "GitHub connector cannot mutate repository default-branch setting; main must contain no stale production execution/governance tree.",
+  "legacy_tree_preserved_under_archive_branch": true,
+  "required_main_stub_paths": [
+    "README.md",
+    "AGENTS.md",
+    ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+    ".agents/skills/skill_registry.json",
+    "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+    "tools/phase6_skill_preflight.py",
+    ".github/workflows/whd-control-plane-regression.yml",
+    ".github/workflows/whd-governance-mirror-gate.yml"
+  ],
+  "forbidden_main_semantics": [
+    "CURRENT execution authority",
+    "CURRENT governance authority",
+    "legacy checkpoint/continuity authority",
+    "governance parity/mirror/ancestry execution",
+    "repository mutation implementation"
+  ],
+  "recovery": "explicitly bind reads/actions to live cleanup/2d-3d-sync or fail closed"
+}

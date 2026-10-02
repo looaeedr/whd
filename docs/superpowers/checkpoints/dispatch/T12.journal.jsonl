@@ -1,0 +1,7 @@
+{"task_id":"T12","role":"T12 實作者","event":"red","approved_red":["R07"],"result":"5/5 RED: missing family capability; Receiving state true; programmatic true effective; Vault->Receiving true; reload revives true","status":"complete"}
+{"task_id":"T12","role":"T12 實作者","event":"green_dedicated","passed":5,"failed":0,"status":"complete"}
+{"task_id":"T12","role":"T12 實作者","event":"legacy_symmetry_regression","passed":8,"failed":0,"status":"complete"}
+{"task_id":"T12","role":"總控審查","event":"family_registry_policy","passed":10,"skipped":5,"failed":0,"status":"complete"}
+{"task_id":"T12","role":"總控審查","event":"t11_t06_original_bridge","passed":48,"failed":0,"status":"complete"}
+{"task_id":"T12","role":"總控審查","event":"final_focused_gate","passed":20,"deselected":30,"failed":0,"status":"complete"}
+{"task_id":"T12","role":"總控審查","event":"process_cleanup","orphan_xvfb_detected":true,"orphan_xvfb_killed":true,"residual_pytest_xvfb":0,"status":"complete"}
