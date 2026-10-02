@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
-    "id": 37035740798,
-    "purpose": "WHD Control Plane Regression",
-    "status": "queued"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
   "issue": 1143,
   "lane_id": "chatgpt.flowv2.work2",
@@ -91,17 +86,19 @@
   },
   "next_action": {
     "args": {
+      "expected_target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
       "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
-      "run_id": 37035740798
+      "pr_number": 1144,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Observe exact remote QA run 37035740798",
-    "kind": "POLL_QA"
+    "display": "Merge PR #1144 into cleanup/2d-3d-sync",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
+    "last_accepted_run": 37035740798
   },
   "recovery_history": [
     {
@@ -112,21 +109,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
   "transaction": {
-    "expected_fingerprint": "db8f116d1a5046a9dc794288ee7b27d43b69236d0960148484287cee45b89a4e",
-    "id": "gha:37035809384:1143:START_QA:6",
+    "expected_fingerprint": "907d34f1eda5afbdf37329fe14a09e35198e4ccf56e7a0cbada119ca2658d204",
+    "id": "gha:37035976492:1143:ACCEPT_QA:7",
     "invocation_identity": "chatgpt.flowv2.work2.issue1143.resume.20261003T0032+08",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T16:43:32Z",
+  "updated_at": "2026-10-02T16:45:11Z",
   "version": 2,
   "work_branch": "delivery/issue1143-docs-gen4-20261002"
 }
