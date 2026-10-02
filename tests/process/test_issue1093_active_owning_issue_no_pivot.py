@@ -215,3 +215,145 @@ def test_reserve_paths_can_atomically_advance_continuation_to_apply_commit():
     assert updated.next_action.kind == "APPLY_COMMIT"
     assert updated.next_action.args["diff_digest"] == "a" * 64
 
+
+
+def _released_stale_residue(issue: int = 1062):
+    from tools.execution_record import MutationScopeState
+
+    record = _record(issue, next_action="RESERVE_PATHS")
+    return replace(
+        record,
+        semantic_state="STALE_EXECUTION_RESERVATION_RELEASED_RESTART_REQUIRED",
+        lease=type(record.lease)(
+            token=record.lease.token,
+            invocation_identity=record.lease.invocation_identity,
+            expires_at="2026-10-01T16:10:00Z",
+        ),
+        mutation_scope=MutationScopeState(
+            target_branch=record.target_branch,
+            base_sha=record.target_sha,
+            write_paths=("fold_designer_bridge.py",),
+            delete_paths=(),
+            reservation_state="RELEASED",
+        ),
+    )
+
+
+def _active_reserved_owner(issue: int = 1112):
+    from tools.execution_record import MutationScopeState
+
+    record = _record(issue, next_action="START_BRANCH")
+    return replace(
+        record,
+        mutation_scope=MutationScopeState(
+            target_branch=record.target_branch,
+            base_sha=record.target_sha,
+            write_paths=("ae_engine/receiving_layout.py",),
+            delete_paths=(),
+            reservation_state="ACTIVE",
+        ),
+    )
+
+
+@pytest.mark.parametrize("reverse_order", [False, True])
+def test_released_stale_residue_does_not_block_real_active_owner_continuation(monkeypatch, reverse_order):
+    from datetime import datetime, timezone
+    from tools import control_transaction_production_executor as executor
+
+    stale = _released_stale_residue()
+    active = _active_reserved_owner()
+    rows = [(stale.issue, stale), (active.issue, active)]
+    if reverse_order:
+        rows.reverse()
+    records = dict(rows)
+    monkeypatch.setattr(executor, "_now", lambda: datetime(2026, 10, 1, 16, 30, tzinfo=timezone.utc))
+    monkeypatch.setattr(executor, "_load_state", lambda *args, **kwargs: ("f" * 40, "e" * 40, records))
+
+    called = {"prepared": False}
+    def stop_after_gate(*args, **kwargs):
+        called["prepared"] = True
+        raise RuntimeError("passed stickiness gate")
+    monkeypatch.setattr(executor, "prepare_transaction", stop_after_gate)
+
+    with pytest.raises(RuntimeError, match="passed stickiness gate"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2",
+            issue=active.issue, kind="START_BRANCH", lane_id=LANE, invocation_identity=INV, supplied_effect={},
+        )
+    assert called["prepared"] is True
+
+
+def test_stale_residue_allows_only_release_paths_cleanup_before_prepare(monkeypatch):
+    from datetime import datetime, timezone
+    from tools import control_transaction_production_executor as executor
+
+    stale = _released_stale_residue()
+    active = _active_reserved_owner()
+    records = {stale.issue: stale, active.issue: active}
+    monkeypatch.setattr(executor, "_now", lambda: datetime(2026, 10, 1, 16, 30, tzinfo=timezone.utc))
+    monkeypatch.setattr(executor, "_load_state", lambda *args, **kwargs: ("f" * 40, "e" * 40, records))
+    monkeypatch.setattr(executor, "prepare_transaction", lambda *args, **kwargs: pytest.fail("non-cleanup stale mutation must fail before prepare"))
+
+    with pytest.raises(ControlTransactionConflict, match="STALE_RELEASED_RESIDUE_REQUIRES_RELEASE_PATHS_CLEANUP"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2",
+            issue=stale.issue, kind="HANDOFF", lane_id=LANE, invocation_identity=INV, supplied_effect={},
+        )
+
+
+def test_stale_release_cleanup_is_narrow_exception_but_unrelated_issue_still_blocked(monkeypatch):
+    from datetime import datetime, timezone
+    from tools import control_transaction_production_executor as executor
+
+    stale = _released_stale_residue()
+    active = _active_reserved_owner()
+    unrelated = _record(1200, next_action="RECONCILE")
+    records = {active.issue: active, stale.issue: stale, unrelated.issue: unrelated}
+    monkeypatch.setattr(executor, "_now", lambda: datetime(2026, 10, 1, 16, 30, tzinfo=timezone.utc))
+    monkeypatch.setattr(executor, "_load_state", lambda *args, **kwargs: ("f" * 40, "e" * 40, records))
+
+    prepared = []
+    def stop_after_gate(record, **kwargs):
+        prepared.append(record.issue)
+        raise RuntimeError("passed gate")
+    monkeypatch.setattr(executor, "prepare_transaction", stop_after_gate)
+
+    with pytest.raises(RuntimeError, match="passed gate"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2",
+            issue=stale.issue, kind="RELEASE_PATHS", lane_id=LANE, invocation_identity=INV, supplied_effect={"reason": "cleanup"},
+        )
+    assert prepared == [stale.issue]
+
+    prepared.clear()
+    with pytest.raises(ControlTransactionConflict, match=f"ACTIVE_OWNING_ISSUE_NO_PIVOT current_issue={active.issue}"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2",
+            issue=unrelated.issue, kind="RECONCILE", lane_id=LANE, invocation_identity=INV, supplied_effect={},
+        )
+    assert prepared == []
+
+
+def test_same_lane_blocker_selection_is_deterministic_across_record_order(monkeypatch):
+    from datetime import datetime, timezone
+    from tools import control_transaction_production_executor as executor
+
+    blocker_a = _active_reserved_owner(1112)
+    blocker_b = _active_reserved_owner(1115)
+    unrelated = _record(1200, next_action="RECONCILE")
+    monkeypatch.setattr(executor, "_now", lambda: datetime(2026, 10, 1, 16, 30, tzinfo=timezone.utc))
+
+    errors = []
+    for rows in [
+        [(blocker_b.issue, blocker_b), (blocker_a.issue, blocker_a), (unrelated.issue, unrelated)],
+        [(blocker_a.issue, blocker_a), (blocker_b.issue, blocker_b), (unrelated.issue, unrelated)],
+    ]:
+        monkeypatch.setattr(executor, "_load_state", lambda *args, rows=rows, **kwargs: ("f" * 40, "e" * 40, dict(rows)))
+        with pytest.raises(ControlTransactionConflict) as exc:
+            executor._execute_one_attempt(
+                repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2",
+                issue=unrelated.issue, kind="RECONCILE", lane_id=LANE, invocation_identity=INV, supplied_effect={},
+            )
+        errors.append(str(exc.value))
+    assert errors[0] == errors[1]
+    assert f"current_issue={blocker_a.issue}" in errors[0]
