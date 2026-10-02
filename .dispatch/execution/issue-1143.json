@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
-  "head_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "generation": 6,
+  "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
   "issue": 1143,
   "lane_id": "chatgpt.flowv2.work2",
   "lease": {
@@ -86,10 +86,11 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "218f86ee177a7e1d44d7ecc11459b23b36c3eb024b5f95177f557d24ef025ccb"
+      "diff_digest": "218f86ee177a7e1d44d7ecc11459b23b36c3eb024b5f95177f557d24ef025ccb",
+      "manifest_generation": 4
     },
-    "display": "Apply exact frozen docs generation 4 diff",
-    "kind": "APPLY_COMMIT"
+    "display": "Start remote QA for frozen docs generation 4",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -106,7 +107,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
@@ -114,13 +115,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
   "transaction": {
-    "expected_fingerprint": "13c7bb445eee852bd86ff5de29e1a088db5320431f1e36e53a80ddb4e7aa4e32",
-    "id": "gha:37034675265:1143:ACQUIRE:4",
+    "expected_fingerprint": "8ea906cd3661965943fc66620ffb85585aa4f80e8dd02da549889186b3a3e02f",
+    "id": "gha:37035538764:1143:APPLY_COMMIT:5",
     "invocation_identity": "chatgpt.flowv2.work2.issue1143.resume.20261003T0032+08",
-    "kind": "ACQUIRE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T16:33:15Z",
+  "updated_at": "2026-10-02T16:41:14Z",
   "version": 2,
   "work_branch": "delivery/issue1143-docs-gen4-20261002"
 }
