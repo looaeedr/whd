@@ -160,6 +160,73 @@ def _durable_owning_identity_active(record: ExecutionRecord) -> bool:
     )
 
 
+def released_stale_reset_residue(record: ExecutionRecord, *, now: object) -> bool:
+    """Return whether a released abandoned record must not own lane stickiness.
+
+    This is intentionally narrower than generic staleness.  Terminal-tail
+    ownership is always stronger.  Work-branch absence is *not* inferred here;
+    the trusted RELEASE_PATHS executor proves that separately before reset.
+    """
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    if terminal_tail_active(record):
+        return False
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "RELEASED":
+        return False
+    if record.lease is None:
+        return False
+    now_dt = _aware(now, "now")
+    expires_at = _aware(record.lease.expires_at, "lease.expires_at")
+    if expires_at >= now_dt:
+        return False
+    if record.active_run is not None:
+        return False
+    if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
+        return False
+    return True
+
+
+def ordered_active_owning_issue_authorities(
+    records,
+    *,
+    lane_id: str,
+    requested_issue: int,
+    now: object,
+) -> tuple[ExecutionRecord, ...]:
+    """Classify same-lane stickiness authorities deterministically.
+
+    Released stale-reset residue is excluded from ownership authority. Genuine
+    terminal-tail owners sort first so their stronger failure identity cannot be
+    hidden by dictionary/ExecutionRecord iteration order.
+    """
+    lane = _text(lane_id, "lane_id")
+    if isinstance(requested_issue, bool) or not isinstance(requested_issue, int) or requested_issue <= 0:
+        raise InvocationExitError("requested_issue must be a positive issue number")
+    authorities: list[ExecutionRecord] = []
+    for record in tuple(records or ()):
+        if not isinstance(record, ExecutionRecord):
+            raise InvocationExitError("records must contain ExecutionRecord values")
+        if record.issue == requested_issue:
+            continue
+        if record.lane_id != lane:
+            continue
+        if not _durable_owning_identity_active(record):
+            continue
+        if released_stale_reset_residue(record, now=now):
+            continue
+        authorities.append(record)
+    return tuple(
+        sorted(
+            authorities,
+            key=lambda record: (
+                0 if terminal_tail_active(record) else 1,
+                int(record.issue),
+            ),
+        )
+    )
+
+
 def assert_active_owning_issue_sticky(
     record: ExecutionRecord,
     *,
