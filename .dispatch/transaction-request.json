@@ -1,13 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-reconcile-target-root-freeze-20261002T1741+08",
+  "request_id": "issue1128-reconcile-target-fresh-admission-20261002T1745+08",
   "issue": 1128,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1128.20261002T1741+08",
   "expected_coord_head": "307a9976c40c142314ced994e9227c1a5d14ed7c",
   "expected_generation": 4,
-  "reuse_admission_session": true,
   "effect": {
     "observed_work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
     "observed_head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
@@ -18,5 +17,18 @@
       "args": {},
       "display": "Refresh #1128 path reservation against exact root-tested target d1036c60"
     }
+  },
+  "purpose": "Fresh-admission RECONCILE for user-selected #1128 after work3 acquisition. Align stale control record to exact live target d1036 and actual stale branch head before monotonic reservation refresh. Root-tested diff remains frozen; no repository-content mutation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
