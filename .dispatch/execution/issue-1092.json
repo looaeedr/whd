@@ -17,14 +17,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
   "issue": 1092,
   "lane_id": "chatgpt.flowv2.work2",
   "lease": {
-    "expires_at": "2026-10-02T09:01:08Z",
+    "expires_at": "2026-10-02T09:27:31Z",
     "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-    "token": "lease:1092:36985887979:1"
+    "token": "lease:1092:36988384908:1"
   },
   "mutation_scope": {
     "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
@@ -69,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "transaction": {
-    "expected_fingerprint": "c01f6cc958fac1ef484fc8db3238b4ea0117ab3f7e8c9ec9bc6339cc3d9f0da4",
-    "id": "gha:36986286828:1092:START_QA:7",
+    "expected_fingerprint": "d542672677c9a8f700895a5ef28c1c8718f3f54e9a3045681256440fdd7d98eb",
+    "id": "gha:36988384908:1092:ACQUIRE:8",
     "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-    "kind": "START_QA",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T08:50:21Z",
+  "updated_at": "2026-10-02T09:12:31Z",
   "version": 2,
   "work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002"
 }
