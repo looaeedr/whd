@@ -1,24 +1,34 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-reconcile-target-fresh-admission-20261002T1745+08",
+  "request_id": "issue1128-reserve-root-tested-scope-20261002T1746+08",
   "issue": 1128,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1128.20261002T1741+08",
-  "expected_coord_head": "307a9976c40c142314ced994e9227c1a5d14ed7c",
-  "expected_generation": 4,
+  "expected_coord_head": "21829b152a62f2d0013c5b6b1d355a21f2127054",
+  "expected_generation": 5,
   "effect": {
-    "observed_work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
-    "observed_head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
-    "observed_target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-    "semantic_state": "ROOT_TESTED_TARGET_RECONCILED",
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+    "write_paths": [
+      "fold_designer_bridge.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "tests/test_issue1128_derived_sync_composition_owner.py",
+      "tests/test_issue480_derived_part_projection_plan.py",
+      "tests/test_issue481_derived_apply_linked_endcap_owner.py",
+      "tools/product_ci_regression.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "ROOT_TESTED_DIFF_FROZEN",
     "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {},
-      "display": "Refresh #1128 path reservation against exact root-tested target d1036c60"
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "9427b2f3e022c6eadc7dfbb62dc88ea5c8bf21ff0efc68b4251058e6799d22c5"
+      },
+      "display": "Create clean #1128 branch from exact root-tested source and frozen diff"
     }
   },
-  "purpose": "Fresh-admission RECONCILE for user-selected #1128 after work3 acquisition. Align stale control record to exact live target d1036 and actual stale branch head before monotonic reservation refresh. Root-tested diff remains frozen; no repository-content mutation.",
+  "purpose": "Monotonic reservation refresh for user-selected #1128 after root RED/GREEN and product full gate. Keep the two legacy reserved paths and add every actual frozen diff path; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
