@@ -1,36 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-normalize-qa-workflow-path-20261002T1132+08",
+  "request_id": "issue1133-consume-control-plane-green-20261002T1134+08",
   "issue": 1133,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-  "expected_coord_head": "e25e6de2b2cf1d1965adafd8c785c38237f1a4b9",
-  "expected_generation": 9,
+  "expected_coord_head": "0a364c54180a131025edfd9da1a9378a28e7d54a",
+  "expected_generation": 10,
   "effect": {
-    "observed_work_branch": "scheduler/issue1133-auto-dispatch",
-    "observed_head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
-    "observed_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-    "semantic_state": "ROOT_TESTED_DIFF_PUSHED",
+    "run_id": 36964932568,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "pr_number": 1138,
+        "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Consume exact-head control-plane regression"
+      "display": "Merge PR #1138 after exact-head GREEN"
     }
   },
-  "purpose": "Normalize Issue #1133 post-push QA workflow path to the exact GitHub Actions path without changing code, scope, head, target, owner or reservation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
