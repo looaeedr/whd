@@ -1,18 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-handoff-work0-to-work3-20261002T1740+08",
+  "request_id": "issue1128-acquire-work3-root-tested-20261002T1741+08",
   "issue": 1128,
-  "kind": "HANDOFF",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "chatgpt.flowv2.work3.issue1128.handoff.20261002T1740+08",
-  "expected_coord_head": "8d156aff72dd55462b94794a68f2b864e62c2477",
-  "expected_generation": 2,
-  "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work3",
-    "lane_id": "chatgpt.flowv2.work3"
-  },
-  "purpose": "Routing-only handoff of user-selected #1128 to next free interactive lane. work0 is conflicted by stale closed #1112; work1 is occupied by #1062; work2 has terminal-tail #1092. Preserve slot/work branch/head/next_action/semantic state.",
+  "invocation_identity": "chatgpt.flowv2.work3.issue1128.20261002T1741+08",
+  "expected_coord_head": "79452551d30e91dbb31410219ddb85c47958d57c",
+  "expected_generation": 3,
+  "effect": {},
+  "purpose": "Acquire user-selected Issue #1128 on its new work3 routing lane after successful routing-only handoff. Continue already root-tested/frozen #1128 work; no unrelated Issue mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
