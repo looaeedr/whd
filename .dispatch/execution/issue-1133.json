@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1133,
+  "execution_intent": "SCHEDULER_LANE",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": null,
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "work_branch": "scheduler/issue1133-auto-dispatch",
+  "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1133"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "github-issue:1133:WHD_SCHEDULER_DISPATCH_REQUEST_V1",
+      "authority_fingerprint": "dc5eb93725406582623884ab7ad8faf6e5aa44fab6b5f738e3240ce378f57729"
+    }
+  ],
+  "updated_at": "2026-10-02T00:33:43Z"
+}
