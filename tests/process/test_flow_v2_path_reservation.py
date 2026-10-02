@@ -9,6 +9,7 @@ from tools.execution_path_reservation import (
     require_no_path_reservation_conflict,
 )
 from tools.execution_record import (
+    ActionSpec,
     MutationScopeState,
     execution_record_from_payload,
     execution_record_to_payload,
