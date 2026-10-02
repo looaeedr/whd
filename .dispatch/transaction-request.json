@@ -1,25 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1143-start-qa-20261003T0043+08",
+  "request_id": "issue1143-accept-qa-20261003T0044+08",
   "issue": 1143,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1143.resume.20261003T0032+08",
-  "expected_coord_head": "bd367337def140c9f98b038f164b3ff5161ead5a",
-  "expected_generation": 6,
+  "expected_coord_head": "9e4d326cd7dd3e73fbcc0ea19b5877ff9abf3e9d",
+  "expected_generation": 7,
   "effect": {
     "run_id": 37035740798,
     "run_head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
-    "purpose": "WHD Control Plane Regression",
-    "run_status": "queued",
-    "semantic_state": "REMOTE_QA",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "MERGE",
       "args": {
-        "run_id": 37035740798,
-        "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435"
+        "pr_number": 1144,
+        "head_sha": "b104d0501ba422954d9112ea0828e818f1a75435",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9"
       },
-      "display": "Observe exact remote QA run 37035740798"
+      "display": "Merge PR #1144 into cleanup/2d-3d-sync"
     }
   },
   "reuse_admission_session": true
