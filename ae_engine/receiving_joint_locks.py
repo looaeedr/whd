@@ -84,28 +84,47 @@ class ReceivingJointLockResolution:
 def _cutting_side_pattern(
     face_features,
     *,
-    face_key: str,
+    participant_side: str,
+    participant_width: float,
     effective_depth: float,
     effective_height: float,
 ) -> tuple[ReceivingJointLockCircle, ...]:
-    """Return one side-face CUTTING/BLIND_HOLE group in canonical u/v axes."""
-    if face_key not in {"left", "right"}:
-        raise ValueError(f"unsupported Receiving side face: {face_key!r}")
+    """Extract one certified side-local lock group from the baseline W face.
+
+    The Vault baseline stores the two side-lock groups on the authoritative
+    width face, one group close to each W edge.  Their edge distance is the
+    side-local FRONT->REAR datum reused by the mating side panel.  This keeps
+    the certified resolver authoritative without inventing a second hole table.
+    """
+    side = str(participant_side).strip().lower()
+    if side not in {"left", "right"}:
+        raise ValueError(f"unsupported Receiving participant side: {participant_side!r}")
+    width = float(participant_width)
+    if width <= 0.0:
+        raise ValueError("participant_width must be positive")
+
     rows = []
-    for feature in tuple(dict(face_features or {}).get(face_key, ()) or ()):
+    for feature in tuple(dict(face_features or {}).get("back", ()) or ()):
         if not isinstance(feature, ResolvedCircle):
             continue
         layer = str(feature.layer or "").strip().upper()
         if layer not in {"CUTTING", "BLIND_HOLE"}:
             continue
+        x = float(feature.center.x)
+        # Split the certified W-face groups by participant side, then normalize
+        # both to an edge-local positive distance so W itself cannot affect the
+        # resulting Joint pattern.
+        if side == "left":
+            if x > width / 2.0 + _TOL:
+                continue
+            u = x
+        else:
+            if x < width / 2.0 - _TOL:
+                continue
+            u = width - x
+        v = float(feature.center.y)
         radius = float(feature.radius)
         diameter = 2.0 * radius
-        x = float(feature.center.x)
-        y = float(feature.center.y)
-        # Left face manufacturing-local X already runs FRONT->REAR. Right face
-        # runs REAR->FRONT, so reverse it before comparing the shared pattern.
-        u = x if face_key == "left" else float(effective_depth) - x
-        v = y
         if (
             u - radius < -_TOL
             or u + radius > float(effective_depth) + _TOL
@@ -114,7 +133,7 @@ def _cutting_side_pattern(
         ):
             raise ReceivingJointLockPatternError(
                 RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION,
-                f"certified {face_key} lock circle exceeds effective panel: "
+                f"certified {side} side-local lock circle exceeds effective panel: "
                 f"u={u}, v={v}, diameter={diameter}, "
                 f"D={effective_depth}, H={effective_height}",
             )
@@ -129,10 +148,9 @@ def _cutting_side_pattern(
     if not rows:
         raise ReceivingJointLockPatternError(
             RECEIVING_LOCK_PATTERN_BASELINE_UNAVAILABLE,
-            f"certified baseline produced no side-lock circles for {face_key}",
+            f"certified baseline produced no {side} side-local lock circles",
         )
     return tuple(sorted(rows, key=lambda row: (row.u, row.v, row.diameter, row.layer)))
-
 
 def _patterns_match(a, b) -> bool:
     if len(a) != len(b):
@@ -298,13 +316,15 @@ def resolve_receiving_joint_lock_pattern(
     # Canonicalization removes the right-face REAR->FRONT manufacturing traversal.
     from_left_participant = _cutting_side_pattern(
         left_faces,
-        face_key="right",
+        participant_side="right",
+        participant_width=float(left_bay["width"]),
         effective_depth=effective_depth,
         effective_height=effective_height,
     )
     from_right_participant = _cutting_side_pattern(
         right_faces,
-        face_key="left",
+        participant_side="left",
+        participant_width=float(right_bay["width"]),
         effective_depth=effective_depth,
         effective_height=effective_height,
     )
