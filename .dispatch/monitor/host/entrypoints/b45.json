@@ -6,12 +6,12 @@
   "task_id": "6ab51d9ec6708191a578d67065f8979b",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler.e58ea936e7d0b12bd0d475314709d6f1:B45:20261002T174703Z:turn9",
-  "event": "WAKE",
+  "event": "EXIT",
   "last_wake_at": "2026-10-02T17:47:03Z",
   "last_heartbeat_at": null,
   "heartbeat_expires_at": null,
   "last_progress_at": null,
-  "exit_at": null,
-  "exit_state": null,
-  "observed_at": "2026-10-02T17:47:03Z"
+  "exit_at": "2026-10-02T17:47:45Z",
+  "exit_state": "NO_EXECUTABLE_WORK",
+  "observed_at": "2026-10-02T17:47:45Z"
 }
