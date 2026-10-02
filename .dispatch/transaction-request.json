@@ -1,26 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-reconcile-existing-merged-evidence-20261002T1734+08",
-  "issue": 1112,
-  "kind": "RECONCILE",
+  "request_id": "issue1062-work0-takeover-20261002T2002+08",
+  "issue": 1062,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1112.stale-closure-recovery.20261002T1734+08",
-  "expected_coord_head": "8d156aff72dd55462b94794a68f2b864e62c2477",
-  "expected_generation": 2,
-  "effect": {
-    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
-    "observed_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
-    "observed_target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-    "semantic_state": "STALE_CLOSED_RECORD_QA_RECONCILE",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Consume existing exact-head Product Regression for already-merged #1112"
-    }
-  },
-  "purpose": "Closure-only stale #1112 ExecutionRecord reconciliation to unblock user-selected #1128. Bind record to already-existing PR #1134 head and live target; no repository-content mutation.",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261002T2002+08",
+  "expected_coord_head": "21829b152a62f2d0013c5b6b1d355a21f2127054",
+  "expected_generation": 37,
+  "effect": {},
+  "purpose": "User-explicit takeover of #1062 by /work0. Preserve current product-regression scope and continue from the existing d1036c60 Drive root workspace; no governance changes.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
