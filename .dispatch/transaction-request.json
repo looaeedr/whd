@@ -1,14 +1,31 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-resume-root-work",
-  "issue": 1128,
-  "kind": "ACQUIRE",
+  "request_id": "issue1062-fresh-root-restart-6577",
+  "issue": 1062,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1128.20261002T0807+08",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261002T0814+08",
   "expected_coord_head": "e3952cfd711eb689a5d608487fac5f88f0e9e647",
-  "expected_generation": 2,
-  "effect": {},
-  "purpose": "Resume active Issue #1128 root-local-first implementation",
+  "expected_generation": 25,
+  "effect": {
+    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
+    "observed_head_sha": "6577b8e5c6da5a4968ac7714e65cb767742aba1b",
+    "observed_target_sha": "6577b8e5c6da5a4968ac7714e65cb767742aba1b",
+    "semantic_state": "ROOT_SOURCE_CURRENT",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {
+        "target_branch": "cleanup/2d-3d-sync",
+        "base_sha": "6577b8e5c6da5a4968ac7714e65cb767742aba1b",
+        "write_paths": [
+          "docs/superpowers/verification/issue678-poweroff-red/approved/test_behavioral_red_v5.py"
+        ],
+        "delete_paths": []
+      },
+      "display": "Reserve current first full-regression repair path"
+    }
+  },
+  "purpose": "Restart Issue #1062 from exact current root source",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
