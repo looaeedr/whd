@@ -1,36 +1,56 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-root-complete-to-start-branch-20261002T1124+08",
+  "request_id": "issue1133-start-branch-20261002T1126+08",
   "issue": 1133,
-  "kind": "RECONCILE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-  "expected_coord_head": "0ef12229a0cb40e93c2f47ca0bd108f09f0615b0",
-  "expected_generation": 6,
+  "expected_coord_head": "d4e13f5bd52768637974f625635e3ef2b3956e4f",
+  "expected_generation": 7,
   "effect": {
-    "observed_work_branch": "scheduler/issue1133-auto-dispatch",
-    "observed_head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-    "observed_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-    "semantic_state": "ROOT_DIFF_FROZEN",
+    "work_branch": "scheduler/issue1133-auto-dispatch",
+    "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+    "semantic_state": "GIT_BRANCH_READY",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {
+        "candidate_commit_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
         "diff_digest": "c80c0556ddcd739e9b55fac35e17aa79e38dc7f050d0bb1bede04e1405a71d82"
       },
-      "display": "Start exact-tested #1133 Git branch"
+      "display": "Apply exact root-tested #1133 commit"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+      "diff_digest": "c80c0556ddcd739e9b55fac35e17aa79e38dc7f050d0bb1bede04e1405a71d82",
+      "issue": 1133,
+      "generation": 4,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "tests/process/test_flow_v2_path_reservation.py",
+        "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
+        "tools/control_transaction.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/execution_invocation_exit.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "d788f46eeab88749a5e32627b96876e7497755cb949e01cd6b74be006fa241b4",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1133,
+      "generation": 7,
+      "record_fingerprint": "8226d1f6bebba4e000d86ca7b18e1bd7dd8ab0c96e207ddcd95e219ae6fdecae",
+      "lease_token": "lease:1133:36964317294:1",
+      "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "scheduler/issue1133-auto-dispatch",
+      "expected_work_head": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+      "expected_target_head": "d4a2c7b42764436e18abc0959291aab7c2dc3714"
     }
   },
-  "purpose": "Reconcile Issue #1133 after canonical root tests and diff freeze; preserve owner, reservation, source and target identity and advance only to START_BRANCH.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
-  }
+  "reuse_admission_session": true
 }
