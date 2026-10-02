@@ -1,24 +1,15 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-renew-for-remote-wait-yield-20261002T1711-r2",
+  "request_id": "issue1092-work2-yield-20261002T1713",
   "issue": 1092,
-  "kind": "ACQUIRE",
+  "kind": "YIELD",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-  "expected_coord_head": "26296c6689089332fb9c7f852aaa368aaa89ed8c",
-  "expected_generation": 8,
+  "expected_coord_head": "70f6c5cfdb546250e229b24416623b282b98b09d",
+  "expected_generation": 9,
   "effect": {
-    "semantic_state": "REMOTE_QA",
-    "next_action": {
-      "kind": "POLL_QA",
-      "args": {
-        "run_id": 36986222021,
-        "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9"
-      },
-      "display": "observe exact-head control-plane QA on next wake"
-    }
+    "updated_at": "2026-10-02T09:13:48Z"
   },
-  "purpose": "Renew the expired same-owner work2 lease for Issue #1092 without another remote-QA status read. Preserve the already-observed active run identity/status, then immediately durable-YIELD this invocation under REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
