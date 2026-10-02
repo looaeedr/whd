@@ -18,6 +18,7 @@ from .sheetmetal_features import (
     CircleFeature,
     FeatureAnchor,
     ResolvedCircle,
+    box_body_face_contexts_from_strip,
 )
 from .sheetmetal_geometry import Vec2
 
@@ -88,6 +89,8 @@ def _cutting_side_pattern(
     participant_width: float,
     effective_depth: float,
     effective_height: float,
+    thickness: float,
+    frame_width: float,
 ) -> tuple[ReceivingJointLockCircle, ...]:
     """Extract one certified side-local lock group from the baseline W face.
 
@@ -103,6 +106,32 @@ def _cutting_side_pattern(
     if width <= 0.0:
         raise ValueError("participant_width must be positive")
 
+    # The certified parser returns finished-face coordinates, but the baseline
+    # itself preserves each side-lock group's edge distance in the unfolded W
+    # segment. Convert back through the existing face transform before comparing
+    # different participant W values; otherwise thickness compensation leaks a
+    # tiny W-dependent scale error into the invariant check.
+    baseline_result = ae.build_box_body_result(
+        w=width,
+        h=float(effective_height),
+        d=float(effective_depth),
+        t=float(thickness),
+        fw=float(frame_width),
+        zl1=15.0,
+        zl2=20.0,
+        zr1=15.0,
+        zr2=20.0,
+        z_comp=-10.0,
+        include_right_fw=True,
+    )
+    back_context = box_body_face_contexts_from_strip(
+        baseline_result.topology,
+        w=width,
+        h=float(effective_height),
+        d=float(effective_depth),
+        t=float(thickness),
+    )["back"]
+
     rows = []
     for feature in tuple(dict(face_features or {}).get("back", ()) or ()):
         if not isinstance(feature, ResolvedCircle):
@@ -111,17 +140,19 @@ def _cutting_side_pattern(
         if layer not in {"CUTTING", "BLIND_HOLE"}:
             continue
         x = float(feature.center.x)
-        # Split the certified W-face groups by participant side, then normalize
-        # both to an edge-local positive distance so W itself cannot affect the
-        # resulting Joint pattern.
+        # Split in finished-face space, but measure the canonical edge distance
+        # only after mapping the point back to the certified unfolded W segment.
         if side == "left":
             if x > width / 2.0 + _TOL:
                 continue
-            u = x
         else:
             if x < width / 2.0 - _TOL:
                 continue
-            u = width - x
+        unfolded = back_context.local_to_unfolded(feature.center)
+        if side == "left":
+            u = float(unfolded.x) - float(back_context.unfolded_min_x)
+        else:
+            u = float(back_context.unfolded_max_x) - float(unfolded.x)
         v = float(feature.center.y)
         radius = float(feature.radius)
         diameter = 2.0 * radius
@@ -320,6 +351,8 @@ def resolve_receiving_joint_lock_pattern(
         participant_width=float(left_bay["width"]),
         effective_depth=effective_depth,
         effective_height=effective_height,
+        thickness=float(thickness),
+        frame_width=float(frame_width),
     )
     from_right_participant = _cutting_side_pattern(
         right_faces,
@@ -327,6 +360,8 @@ def resolve_receiving_joint_lock_pattern(
         participant_width=float(right_bay["width"]),
         effective_depth=effective_depth,
         effective_height=effective_height,
+        thickness=float(thickness),
+        frame_width=float(frame_width),
     )
     if not _patterns_match(from_left_participant, from_right_participant):
         raise ReceivingJointLockPatternError(
