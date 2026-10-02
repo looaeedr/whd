@@ -1,19 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-correct-work0-handoff-5945139025-r2",
-  "issue": 1133,
-  "kind": "HANDOFF",
+  "request_id": "issue1062-stale-release-reset-after-1133-20261002T1137+08",
+  "issue": 1062,
+  "kind": "RELEASE_PATHS",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1133.20261002",
-  "expected_coord_head": "7ef323c6ccfec7c03169745be7a8801a7ef7caa5",
-  "expected_generation": 3,
+  "invocation_identity": "scheduler-a.issue1062.restart.20261002T1137+08",
+  "expected_coord_head": "e26223582e5ba49e72751d0bb1852e5ade9e9dd1",
+  "expected_generation": 25,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work0",
-    "lane_id": "chatgpt.flowv2.work0",
-    "lease": null
+    "reason": "Clear abandoned RELEASED #1062 continuation after #1133 stale-owner deadlock fix integrated."
   },
-  "purpose": "Correct Issue #1133 to the canonical work-slot HANDOFF shape already used by production while preserving the exact five-path ACTIVE reservation and current continuation.",
+  "purpose": "Reset only the proven stale RELEASED Issue #1062 execution residue to fresh READY/ACQUIRE at current cleanup/2d-3d-sync, then let Scheduler A acquire it. Do not resume historical 872d9500 work.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
