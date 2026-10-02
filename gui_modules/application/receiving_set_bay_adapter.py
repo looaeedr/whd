@@ -215,3 +215,15 @@ class ReceivingSetBayAdapter:
             bay_index=self._selection.bay_index,
             validate_common=True,
         )
+
+    def project_readiness(self, readiness) -> dict[str, object]:
+        """Read-only READY/BLOCKED UI projection; never manufacturing authority."""
+        from ae_engine.receiving_manufacturing_readiness import (
+            project_receiving_readiness,
+        )
+
+        before = self.layout
+        projected = project_receiving_readiness(before, readiness)
+        if self.layout != before:
+            raise AssertionError("readiness projection must not mutate Receiving layout")
+        return projected

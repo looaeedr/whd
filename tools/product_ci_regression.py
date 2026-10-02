@@ -28,6 +28,8 @@ PYTEST_PATHS = (
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
     "tests/test_issue1114_receiving_pairing_marking.py",
+    "tests/test_issue1115_receiving_readiness_export.py",
+    "tests/test_issue1115_receiving_manufacturing_readiness.py",
     "tests/test_corner_parameter_lock.py",
     "tests/test_issue509_receiving_horizontal_marking.py",
     "tests/test_issue510_receiving_back_panel_modes.py",
