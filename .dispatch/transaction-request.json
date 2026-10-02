@@ -1,23 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-start-branch-20261002T1126+08",
+  "request_id": "issue1133-apply-exact-root-diff-20261002T1129+08",
   "issue": 1133,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-  "expected_coord_head": "d4e13f5bd52768637974f625635e3ef2b3956e4f",
-  "expected_generation": 7,
+  "expected_coord_head": "e630c22bfeac3023ba4eb3e661d02f8f4a27bcf7",
+  "expected_generation": 8,
   "effect": {
-    "work_branch": "scheduler/issue1133-auto-dispatch",
-    "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-    "semantic_state": "GIT_BRANCH_READY",
+    "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
+    "semantic_state": "ROOT_TESTED_DIFF_PUSHED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "candidate_commit_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
-        "diff_digest": "c80c0556ddcd739e9b55fac35e17aa79e38dc7f050d0bb1bede04e1405a71d82"
+        "workflow": "whd-control-plane-regression.yml"
       },
-      "display": "Apply exact root-tested #1133 commit"
+      "display": "Run post-push control-plane regression"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -42,11 +40,11 @@
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1133,
-      "generation": 7,
-      "record_fingerprint": "8226d1f6bebba4e000d86ca7b18e1bd7dd8ab0c96e207ddcd95e219ae6fdecae",
+      "generation": 8,
+      "record_fingerprint": "ee397266fb4985e6e6e710e893ccccf95e8c3f09f1bd79b6ce98dd19c2d7dd5b",
       "lease_token": "lease:1133:36964317294:1",
       "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "scheduler/issue1133-auto-dispatch",
       "expected_work_head": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
       "expected_target_head": "d4a2c7b42764436e18abc0959291aab7c2dc3714"
