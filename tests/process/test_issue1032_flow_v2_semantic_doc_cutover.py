@@ -8,14 +8,16 @@ ROOT = Path(__file__).resolve().parents[2]
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
-def test_current_execution_docs_use_atomic_admission_and_session_reuse() -> None:
+def test_current_execution_docs_use_shared_zero_then_delivery_reservation() -> None:
     agents = _read("AGENTS.md")
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
-    assert "atomic `ACQUIRE.effect.admission_reservation" in agents
-    assert "不得主動拆成 `ACQUIRE → RESERVE_PATHS`" in agents
-    assert "session-first" in flow
-    assert "LIVE_LEASE_CONTINUATION" in flow
-    assert "每次需要 ACQUIRE/RESERVE_PATHS/RELEASE_PATHS/ACCEPT_QA" not in flow
+    assert "ZERO_INITIALIZED_OR_FRESH_READ" in agents
+    assert "DELIVERY_RESERVATION" in agents
+    assert "Flow v2 path reservation" in agents and "delivery reservation" in agents
+    assert "ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1" in flow
+    assert "只有 delivery 才取得 reservation" in flow
+    assert "ACQUIRE.effect.admission_reservation" not in agents
+
 
 def test_current_qa_docs_prefer_consume_qa_for_existing_terminal_green() -> None:
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
@@ -34,11 +36,13 @@ def test_current_skills_do_not_restore_legacy_claim_guard_authority() -> None:
     assert "NO WORK WITHOUT CLAIM" not in rules
     assert "FLOW_V2_MULTI_AI_SINGLE_WRITER_CURRENT_V1" in rules
 
-def test_path_reservation_contract_names_atomic_new_work_admission() -> None:
+def test_path_reservation_contract_is_delivery_only() -> None:
     payload = json.loads(_read(".agents/contracts/WHD_PATH_RESERVATION_V1.json"))
-    assert payload["canonical_new_work_admission"]["transaction"] == "ACQUIRE"
-    assert payload["canonical_new_work_admission"]["effect_field"] == "admission_reservation"
-    assert payload["separate_reserve_policy"] == "COMPATIBILITY_OR_MONOTONIC_SCOPE_EXPANSION_ONLY"
+    assert payload["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert payload["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
+    assert payload["canonical_delivery_reservation"]["phase"] == "AFTER_LANE_MANIFEST_FROZEN"
+    assert "canonical_new_work_admission" not in payload
+
 
 def test_required_legacy_execution_references_are_explicitly_fenced() -> None:
     paths = [
@@ -63,22 +67,26 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
     scheduler = _read(".agents/skills/engineering/排程模擬/SKILL.md")
     agents = _read("AGENTS.md")
-    contract = json.loads(_read(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"))
+    contract = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
 
     retired = "SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 不直接套用此 workspace content gate"
     assert retired not in flow
-    assert "REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V1" in flow
+    assert "REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V2" in flow
     assert "REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1" in scheduler
-    assert "remote lane 禁止 GitHub-side authoring/hotfix" in agents
-    assert "remote lane **不得在 GitHub branch 直接施工或熱修**" in root
+    assert "repository-content authoring" in agents and "GitHub checkout" in agents
+    assert "GitHub-side hotfix" in root and "shared-unpushed" in root
     assert contract["execution_modes"]["SCHEDULER_LANE"].endswith("ROOT_WORKSPACE_HANDOFF")
     assert contract["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
 
 
-def test_root_local_first_uses_atomic_admission_for_new_work() -> None:
+def test_root_local_first_uses_delivery_only_reservation() -> None:
     root = _read(".agents/skills/engineering/root-local-first/SKILL.md")
-    assert "ACQUIRE.effect.admission_reservation" in root
-    assert "新 work 不得主動拆成 `ACQUIRE → RESERVE_PATHS`" in root
+    contract = json.loads(_read(".agents/contracts/WHD_PATH_RESERVATION_V1.json"))
+    assert "DELIVERY_RESERVATION" in root
+    assert "Pre-write reservation" in root or "pre-write reservation" in root or "施工前置 single-writer gate" in root
+    assert contract["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert contract["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
+
 
 def test_agents_completion_bridge_cannot_restore_legacy_continuity_finalization() -> None:
     agents = _read("AGENTS.md")
@@ -92,7 +100,7 @@ def test_agents_completion_bridge_cannot_restore_legacy_continuity_finalization(
 def test_always_read_references_use_reserved_path_root_order_and_no_mntdata_authority() -> None:
     global_pitfalls = _read("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md")
     root_pitfall = _read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
-    expected = "ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED"
+    expected = "ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED"
     assert expected in global_pitfalls
     assert expected in root_pitfall
     assert "固定落 `/mnt/data` 或其他跨回合持久位置" not in global_pitfalls
@@ -111,7 +119,10 @@ def test_scheduler_required_reference_uses_flow_v2_current_rules_not_legacy_guar
     text = _read("個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md")
     assert "### CURRENT 永久規則" in text
     assert "施工型 scheduler prompt 必須顯式保留 **派工 + 遠端執行守門**" not in text
-    assert "NORMAL_PATH_FIRST`：正常 implementation 走 `READY → atomic ACQUIRE+reservation" in text
+    assert "NORMAL_PATH_FIRST" in text
+    assert "canonical root shared-0 authoring/tests" in text
+    assert "lane manifest freeze → delivery reservation" in text
+    assert "READY → atomic ACQUIRE+reservation" not in text
     assert "排程 remote control-plane 與 root content surface 邊界 — CURRENT" in text
     assert "需要 Guard 時走 trusted Remote Guard" not in text
 

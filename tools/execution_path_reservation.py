@@ -14,6 +14,7 @@ from tools.execution_record import ExecutionRecord, MutationScopeState
 
 SCHEMA = "WHD_PATH_RESERVATION_V1"
 EVIDENCE_SCHEMA = "WHD_PATH_RESERVATION_EVIDENCE_V1"
+DELIVERY_PHASE = "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
 
 
 class PathReservationError(ValueError):
@@ -99,17 +100,22 @@ def require_no_path_reservation_conflict(
 
 
 def build_path_reservation_evidence(record: ExecutionRecord) -> dict[str, object]:
-    """Project one ACTIVE canonical reservation into root-workspace gate evidence."""
+    """Project one ACTIVE delivery reservation into Git-write gate evidence.
+
+    Root authoring is governed by shared `.unpushed/{body|docs}/0`; this
+    reservation exists only after a lane manifest is frozen and therefore must
+    never recreate a per-Issue root workspace authority.
+    """
     if not isinstance(record, ExecutionRecord):
         raise PathReservationError("record must be an ExecutionRecord")
     scope = record.mutation_scope
     if scope is None or scope.reservation_state != "ACTIVE" or record.state == "DONE":
         raise PathReservationError("ACTIVE mutation_scope reservation is required")
     from tools.execution_record import execution_record_fingerprint
-    from tools.work_root_gate import build_interactive_work_path
 
     return {
         "schema": EVIDENCE_SCHEMA,
+        "phase": DELIVERY_PHASE,
         "issue": record.issue,
         "generation": record.generation,
         "target_branch": scope.target_branch,
@@ -117,7 +123,6 @@ def build_path_reservation_evidence(record: ExecutionRecord) -> dict[str, object
         "write_paths": list(scope.write_paths),
         "delete_paths": list(scope.delete_paths),
         "reservation_state": scope.reservation_state,
-        "workspace_path": build_interactive_work_path(issue=record.issue, source_sha=scope.base_sha),
         "record_fingerprint": execution_record_fingerprint(record),
     }
 
@@ -126,15 +131,16 @@ def validate_path_reservation_evidence(evidence: object) -> dict[str, object]:
     if not isinstance(evidence, dict):
         raise PathReservationError("path reservation evidence must be an object")
     required = {
-        "schema", "issue", "generation", "target_branch", "base_sha",
-        "write_paths", "delete_paths", "reservation_state", "workspace_path",
-        "record_fingerprint",
+        "schema", "phase", "issue", "generation", "target_branch", "base_sha",
+        "write_paths", "delete_paths", "reservation_state", "record_fingerprint",
     }
     missing = sorted(required - set(evidence))
     if missing:
         raise PathReservationError(f"path reservation evidence missing fields: {missing}")
     if evidence.get("schema") != EVIDENCE_SCHEMA:
         raise PathReservationError("unexpected path reservation evidence schema")
+    if evidence.get("phase") != DELIVERY_PHASE:
+        raise PathReservationError("path reservation evidence is not delivery-only")
     if evidence.get("reservation_state") != "ACTIVE":
         raise PathReservationError("path reservation evidence is not ACTIVE")
     issue = evidence.get("issue")
@@ -144,7 +150,7 @@ def validate_path_reservation_evidence(evidence: object) -> dict[str, object]:
     if isinstance(generation, bool) or not isinstance(generation, int) or generation <= 0:
         raise PathReservationError("path reservation evidence generation must be positive")
     try:
-        scope = MutationScopeState(
+        MutationScopeState(
             target_branch=str(evidence.get("target_branch") or ""),
             base_sha=str(evidence.get("base_sha") or ""),
             write_paths=tuple(evidence.get("write_paths") or ()),
@@ -156,9 +162,6 @@ def validate_path_reservation_evidence(evidence: object) -> dict[str, object]:
     fingerprint = str(evidence.get("record_fingerprint") or "").strip().lower()
     if len(fingerprint) != 64 or any(ch not in "0123456789abcdef" for ch in fingerprint):
         raise PathReservationError("path reservation evidence record_fingerprint must be SHA256")
-    from tools.work_root_gate import build_interactive_work_path, validate_interactive_workspace_path
-    expected_workspace = build_interactive_work_path(issue=issue, source_sha=scope.base_sha)
-    observed_workspace = validate_interactive_workspace_path(str(evidence.get("workspace_path") or ""))
-    if observed_workspace != expected_workspace:
-        raise PathReservationError("path reservation evidence workspace identity mismatch")
+    if "workspace_path" in evidence:
+        raise PathReservationError("legacy per-Issue workspace_path is forbidden in delivery reservation evidence")
     return {str(k): v for k, v in evidence.items()}

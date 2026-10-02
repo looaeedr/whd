@@ -167,17 +167,18 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 
 ## Root-local-first write gate
 
-For WHD interactive/default bug-fix work, diagnosis may use Git read-only evidence, but content mutation follows `root-local-first`:
+For WHD interactive/default bug-fix work, diagnosis may use Git read-only evidence, but content mutation follows CURRENT shared-0 `root-local-first`:
 
 1. Fresh-read canonical Drive root + Current Source Manifest and prove `ROOT_SOURCE_CURRENT`.
 2. Reproduce RED and modify production/tests/docs in the root workspace.
 3. Classify tests through `WHD_CHANGE_TEST_PROFILE_V1`; finish targeted + required full gate in root.
 4. Freeze the exact tested diff and fresh-read target/touched paths.
-5. Only after `GIT_WRITE_UNLOCKED`, create a fresh work branch from current target and apply `EXACT_TESTED_DIFF_ONLY`.
+5. Merge the tested worker candidate into fresh latest lane `0`; any conflict becomes `BLOCKED_USER_DECISION` and must wait for the user's explicit resolution. Re-test the merged `0`, freeze its manifest, then use `/推推 主體` (or `/推推 文檔` for governance/Skill-only bug fixes) to create the delivery branch.
 6. Remote QA is post-push verification; remote failure returns to root for correction/retest/refreeze.
 
 Hard rules:
 - Never patch `cleanup/2d-3d-sync` / `main` directly.
-- Git branch creation is a Git-phase protection after root testing, not the starting point of interactive diagnosis.
+- Git branch creation is delivery-only after shared `0` post-merge GREEN; it is never the starting point of diagnosis.
+- Never auto-select ours/theirs for a shared-0 conflict.
 - If target drifts across touched paths, use `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`.
 - Small/docs-only bug corrections follow the same ordering.

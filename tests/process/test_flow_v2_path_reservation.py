@@ -358,14 +358,16 @@ def test_trusted_executor_proves_absent_work_branch_before_stale_release_reset(m
     assert effect["updated_at"] == "2026-09-29T10:40:00Z"
 
 
-def test_issue_scoped_drive_workspaces_are_physically_isolated():
-    from tools.work_root_gate import build_interactive_work_path
+def test_worker_candidate_paths_are_issue_scoped_but_not_content_authority():
+    from tools.work_root_gate import worker_candidate_path, unpushed_zero_path
 
-    a = build_interactive_work_path(issue=1001, source_sha="a" * 40)
-    b = build_interactive_work_path(issue=1002, source_sha="a" * 40)
+    a = worker_candidate_path(lane="body", worker="work0", issue=1001)
+    b = worker_candidate_path(lane="body", worker="work1", issue=1002)
     assert a != b
-    assert "/issue-1001/" in a
-    assert "/issue-1002/" in b
+    assert a.endswith("/body/workers/work0/issue-1001")
+    assert b.endswith("/body/workers/work1/issue-1002")
+    assert unpushed_zero_path("body") == "/Google Drive/WHD/.unpushed/body/0"
+    assert "/work/active" not in a + b
 
 
 def test_trusted_executor_rejects_second_issue_before_coord_write(monkeypatch):
@@ -459,12 +461,14 @@ def test_static_contract_declares_execution_record_as_only_dynamic_state_owner()
     assert payload["status"] == "CURRENT"
     assert payload["state_owner"] == "WHD_EXECUTION_RECORD_V2.mutation_scope"
     assert payload["evaluator"] == "tools/execution_path_reservation.py"
-    assert payload["writer_policy"] == "SINGLE_AUTHORITATIVE_WRITER_PER_PATH"
+    assert payload["writer_policy"] == "SINGLE_AUTHORITATIVE_WRITER_PER_PATH_AT_DELIVERY_ONLY"
+    assert payload["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert payload["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
     assert payload["second_database_forbidden"] is True
     assert payload["reservation_counts_as_substantive_progress"] is False
 
 
-def test_path_reservation_evidence_binds_issue_base_and_isolated_workspace():
+def test_path_reservation_evidence_binds_issue_base_and_delivery_phase_only():
     from tools.execution_path_reservation import (
         build_path_reservation_evidence,
         validate_path_reservation_evidence,
@@ -474,5 +478,6 @@ def test_path_reservation_evidence_binds_issue_base_and_isolated_workspace():
     evidence = build_path_reservation_evidence(record)
     assert evidence["issue"] == 1001
     assert evidence["base_sha"] == "c" * 40
-    assert evidence["workspace_path"].endswith("/issue-1001/cccccccccccc")
+    assert evidence["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert "workspace_path" not in evidence
     assert validate_path_reservation_evidence(evidence) == evidence

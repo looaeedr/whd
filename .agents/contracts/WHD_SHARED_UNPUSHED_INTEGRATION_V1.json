@@ -1,0 +1,69 @@
+{
+  "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
+  "status": "CURRENT",
+  "canonical_root": "/Google Drive/WHD",
+  "integration_root": "/Google Drive/WHD/.unpushed",
+  "lanes": {
+    "body": "/Google Drive/WHD/.unpushed/body/0",
+    "docs": "/Google Drive/WHD/.unpushed/docs/0"
+  },
+  "classification": {
+    "principle": "CLASSIFY_BY_OWNERSHIP_NOT_EXTENSION",
+    "docs_includes": [
+      "governance",
+      "skills",
+      "AGENTS",
+      "process_authority",
+      "authority_registry",
+      "SOP",
+      "governance_contracts",
+      "governance_tests",
+      "human_reading_docs"
+    ],
+    "body_includes": [
+      "product_code",
+      "product_tests",
+      "ui",
+      "renderer",
+      "geometry",
+      "manufacturing",
+      "product_required_docs"
+    ],
+    "product_required_doc_rule": "IF_OMITTING_THE_DOCUMENT_MAKES_THE_PRODUCT_DELIVERY_INCOMPLETE_OR_UNVERIFIABLE_THEN_BODY"
+  },
+  "path_lineage": {
+    "authority": "LANE_0_IS_SINGLE_UNPUSHED_INTEGRATION_AUTHORITY",
+    "later_worker_base": "LATEST_0",
+    "merge_mode": "THREE_WAY_WITH_BASE_GENERATION_AND_HASH",
+    "overwrite_latest_0": false,
+    "generation_monotonic": true
+  },
+  "merge_conflict_hard_gate": {
+    "schema": "WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1",
+    "state": "BLOCKED_USER_DECISION",
+    "required_actions": [
+      "WRITE_CONFLICT_CHECKPOINT",
+      "RECORD_CONFLICT_PATHS_AND_HUNKS",
+      "RECORD_BASE_CURRENT_WORKER_IDENTITIES",
+      "NOTIFY_USER_FOR_DECISION"
+    ],
+    "forbidden_actions": [
+      "AUTO_RESOLVE",
+      "AUTO_OURS",
+      "AUTO_THEIRS",
+      "AUTO_REWRITE",
+      "ADVANCE_GENERATION",
+      "RUN_PUSH",
+      "CREATE_DELIVERY_BRANCH",
+      "CONTINUE_AS_IF_MERGED"
+    ],
+    "resume_requires": "EXPLICIT_USER_CONFLICT_DECISION"
+  },
+  "push": {
+    "entry_skill": "/推推",
+    "allowed_targets": ["文檔", "主體"],
+    "branch_creation_timing": "DELIVERY_ONLY_AFTER_LANE_GREEN",
+    "scope_gate": "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST",
+    "cross_lane_leakage": "FORBIDDEN"
+  }
+}

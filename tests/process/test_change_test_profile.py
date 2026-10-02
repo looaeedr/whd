@@ -12,8 +12,10 @@ def test_contract_is_current_and_workspace_first():
     assert payload["schema"] == "WHD_CHANGE_TEST_PROFILE_V1"
     assert payload["status"] == "CURRENT"
     assert payload["workspace"]["interactive_root"] == "/Google Drive/WHD"
-    assert payload["workspace"]["interactive_work_prefix"] == "/Google Drive/WHD/work/active"
-    assert payload["workspace"]["policy"] == "WORKSPACE_FIRST"
+    assert payload["workspace"]["shared_unpushed_root"] == "/Google Drive/WHD/.unpushed"
+    assert payload["workspace"]["body_zero"].endswith("/.unpushed/body/0")
+    assert payload["workspace"]["docs_zero"].endswith("/.unpushed/docs/0")
+    assert payload["workspace"]["policy"] == "ROOT_SHARED_UNPUSHED_FIRST"
 
 
 def test_bugfix_ui_combines_bugfix_and_ui_stages_then_full_regression():

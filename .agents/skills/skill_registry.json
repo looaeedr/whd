@@ -37,9 +37,11 @@
         "root-local-first",
         "根目錄先做",
         "根目錄修改",
-        "GIT_WRITE_UNLOCKED",
-        "ROOT_DIFF_FROZEN",
-        "EXACT_TESTED_DIFF_ONLY"
+        "共享0",
+        "未推送0",
+        "latest 0",
+        "BLOCKED_USER_DECISION",
+        "GIT_WRITE_UNLOCKED"
       ],
       "file_globs": [
         "**"
@@ -48,7 +50,8 @@
         "root-local-first"
       ],
       "required_references": [
-        "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
+        ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
       ]
     },
     {
@@ -1280,6 +1283,27 @@
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ]
+    },
+    {
+      "id": "推推",
+      "keywords": [
+        "推推",
+        "/推推",
+        "推推 文檔",
+        "推推 主體",
+        "delivery branch",
+        "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST"
+      ],
+      "file_globs": [
+        ".unpushed/**",
+        ".agents/skills/engineering/推推/**"
+      ],
+      "required_skills": [
+        "推推"
+      ],
+      "required_references": [
+        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
       ]
     }
   ]

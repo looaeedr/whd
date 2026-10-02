@@ -30,7 +30,8 @@ def _force_utf8_stdio() -> None:
 
 
 def _norm(value: str | Path) -> str:
-    return Path(value).as_posix().lstrip("./")
+    text = Path(value).as_posix()
+    return text[2:] if text.startswith("./") else text
 
 
 def _keyword_matches_task(keyword: str, task_text: str) -> bool:

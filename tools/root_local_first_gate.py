@@ -8,21 +8,29 @@ import re
 from collections.abc import Iterable, Mapping
 
 from tools.execution_path_reservation import validate_path_reservation_evidence
+from tools.shared_unpushed_integration import (
+    CONFLICT_CHECKPOINT_SCHEMA,
+    CONFLICT_STATE,
+    validate_lane_evidence,
+)
 
-SCHEMA = "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1"
-EVIDENCE_SCHEMA = "WHD_ROOT_LOCAL_FIRST_GATE_EVIDENCE_V1"
+SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
+EVIDENCE_SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_GATE_EVIDENCE_V1"
 DEFAULT_ROOT = "/Google Drive/WHD"
-DEFAULT_WORK_PREFIX = "/Google Drive/WHD/work/active"
+DEFAULT_WORK_PREFIX = "/Google Drive/WHD/.unpushed"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
 TEST_EXECUTION_RECEIPT_SCHEMA = "WHD_TEST_EXECUTION_RECEIPT_V1"
 REQUIRED_ORDER = (
     "ROOT_SOURCE_CURRENT",
-    "PATHS_RESERVED",
+    "UNPUSHED_LANE_CLASSIFIED",
+    "LATEST_0_BASE_BOUND",
     "ROOT_MUTATIONS_COMPLETE",
-    "ROOT_TEST_CLASSIFIED",
-    "ROOT_TESTS_GREEN",
-    "ROOT_DIFF_FROZEN",
+    "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
+    "POST_MERGE_0_TEST_CLASSIFIED",
+    "POST_MERGE_0_TESTS_GREEN",
+    "LANE_MANIFEST_FROZEN",
+    "DELIVERY_PATHS_RESERVED",
     "GIT_WRITE_UNLOCKED",
 )
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
@@ -307,6 +315,17 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("Git write mode must be EXACT_TESTED_DIFF_ONLY")
     if contract.get("target_drift_action") != "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE":
         raise ValueError("target drift action mismatch")
+    shared = _mapping(contract.get("shared_unpushed_integration"), "shared_unpushed_integration")
+    if shared.get("schema") != "WHD_SHARED_UNPUSHED_INTEGRATION_V1":
+        raise ValueError("shared unpushed integration schema mismatch")
+    if shared.get("machine_owner") != "tools/shared_unpushed_integration.py":
+        raise ValueError("shared unpushed integration owner mismatch")
+    if shared.get("integration_root") != DEFAULT_WORK_PREFIX:
+        raise ValueError("shared unpushed integration root mismatch")
+    if shared.get("conflict_state") != CONFLICT_STATE:
+        raise ValueError("merge conflict must block on explicit user decision")
+    if shared.get("conflict_checkpoint_schema") != CONFLICT_CHECKPOINT_SCHEMA:
+        raise ValueError("merge conflict checkpoint schema mismatch")
     reservation = _mapping(contract.get("path_reservation"), "path_reservation")
     if reservation.get("schema") != "WHD_PATH_RESERVATION_V1":
         raise ValueError("path reservation schema mismatch")
@@ -314,8 +333,8 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("path reservation state owner mismatch")
     if reservation.get("evaluator") != "tools/execution_path_reservation.py":
         raise ValueError("path reservation evaluator mismatch")
-    if reservation.get("conflict_policy") != "SAME_TARGET_EXACT_PATH_SINGLE_WRITER":
-        raise ValueError("path reservation conflict policy mismatch")
+    if reservation.get("phase") != "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN":
+        raise ValueError("path reservation must be delivery-only")
     if reservation.get("release_policy") != "FINALIZE_OR_EXPLICIT_RELEASE_PATHS":
         raise ValueError("path reservation release policy mismatch")
     modes = _mapping(contract.get("execution_modes"), "execution_modes")
@@ -355,7 +374,8 @@ def validate_contract(payload: object) -> dict[str, object]:
     if direct_gate.get("interactive_first_substantive_action") != "ROOT_MUTATE":
         raise ValueError("direct root mutation/test first action must be ROOT_MUTATE")
     if tuple(direct_gate.get("required_contiguous_outer_sequence") or ()) != (
-        "ROOT_MUTATE", "ROOT_TEST_CLASSIFIED", "ROOT_TESTS_GREEN"
+        "ROOT_MUTATE", "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
+        "POST_MERGE_0_TEST_CLASSIFIED", "POST_MERGE_0_TESTS_GREEN"
     ):
         raise ValueError("direct root mutation/test contiguous sequence mismatch")
     if direct_gate.get("same_invocation_until") != "ROOT_TESTS_GREEN_OR_REAL_BLOCKER":
@@ -423,24 +443,67 @@ def validate_contract(payload: object) -> dict[str, object]:
     return {str(k): v for k, v in contract.items()}
 
 
-def validate_source_current(*, manifest: object, live_source_sha: str, live_tree_sha: str, touched_path_proofs: Iterable[Mapping[str, object]] = ()) -> dict[str, object]:
-    item = _mapping(manifest, "source manifest")
+def validate_source_current(
+    *,
+    live_source_sha: str,
+    live_tree_sha: str,
+    workspace_git: object | None = None,
+    manifest: object | None = None,
+    touched_path_proofs: Iterable[Mapping[str, object]] = (),
+) -> dict[str, object]:
+    """Prove the Google Drive root is based on the live target.
+
+    CURRENT mode is the real repo working tree under `/Google Drive/WHD`: its
+    `.git` HEAD/tree is compared directly to the live target.  The legacy source
+    manifest remains accepted only as a migration fallback so old callers fail
+    closed instead of silently inventing source identity.
+    """
     live_sha = _sha(live_source_sha, "live_source_sha")
     live_tree = _sha(live_tree_sha, "live_tree_sha")
+    if workspace_git is not None:
+        item = _mapping(workspace_git, "workspace git evidence")
+        workspace_sha = _sha(item.get("head_sha"), "workspace head_sha")
+        workspace_tree = _sha(item.get("tree_sha"), "workspace tree_sha")
+        if workspace_sha != live_sha or workspace_tree != live_tree:
+            raise ValueError(
+                "ROOT_SOURCE_CURRENT_FAILED: workspace .git HEAD/tree does not match live target"
+            )
+        return {
+            "status": "EXACT_SOURCE_CURRENT",
+            "source_sha": live_sha,
+            "tree_sha": live_tree,
+            "source_mode": "ROOT_GIT_WORKTREE",
+        }
+
+    if manifest is None:
+        raise ValueError("ROOT_SOURCE_CURRENT_FAILED: workspace_git evidence is required")
+    item = _mapping(manifest, "legacy source manifest")
     manifest_sha = _sha(item.get("source_sha"), "manifest source_sha")
     manifest_tree = _sha(item.get("tree_sha"), "manifest tree_sha")
     if manifest_sha == live_sha and manifest_tree == live_tree:
-        return {"status": "EXACT_SOURCE_CURRENT", "source_sha": live_sha, "tree_sha": live_tree, "snapshot_status": str(item.get("durable_snapshot_status") or "UNKNOWN")}
+        return {
+            "status": "EXACT_SOURCE_CURRENT",
+            "source_sha": live_sha,
+            "tree_sha": live_tree,
+            "source_mode": "LEGACY_MANIFEST_FALLBACK",
+            "snapshot_status": str(item.get("durable_snapshot_status") or "UNKNOWN"),
+        }
     proofs = list(touched_path_proofs)
     if not proofs:
-        raise ValueError("ROOT_SOURCE_CURRENT_FAILED: manifest stale and no touched-path proof")
+        raise ValueError("ROOT_SOURCE_CURRENT_FAILED: legacy manifest stale and no touched-path proof")
     for proof in proofs:
         path = str(proof.get("path") or "").strip()
         expected = str(proof.get("live_blob_sha") or "").strip().lower()
         observed = str(proof.get("workspace_blob_sha") or "").strip().lower()
         if not path or not re.fullmatch(r"[0-9a-f]{40}", expected) or expected != observed:
             raise ValueError(f"ROOT_SOURCE_CURRENT_FAILED: invalid touched-path proof for {path!r}")
-    return {"status": "SCOPED_CURRENT_RECOVERY", "source_sha": live_sha, "tree_sha": live_tree, "verified_paths": sorted(str(p["path"]) for p in proofs)}
+    return {
+        "status": "SCOPED_CURRENT_RECOVERY",
+        "source_sha": live_sha,
+        "tree_sha": live_tree,
+        "source_mode": "LEGACY_SCOPED_RECOVERY",
+        "verified_paths": sorted(str(p["path"]) for p in proofs),
+    }
 
 
 def frozen_diff_digest(entries: Iterable[Mapping[str, object]]) -> str:
@@ -463,13 +526,16 @@ def build_gate_evidence(
     execution_mode_provenance: Mapping[str, object] | None = None,
     repository_content_implementation: bool = False,
     source_evidence: Mapping[str, object] | None = None,
-    path_reservation_evidence: Mapping[str, object] | None = None,
+    unpushed_lane_evidence: Mapping[str, object] | None = None,
     root_mutations_complete: bool = False,
+    merge_to_zero_complete: bool = False,
+    conflict_checkpoint: Mapping[str, object] | None = None,
     test_classified: bool = False,
     tests_green: bool = False,
     test_receipt: Mapping[str, object] | None = None,
     expected_test_commands: Iterable[str] = (),
     diff_digest: str | None = None,
+    path_reservation_evidence: Mapping[str, object] | None = None,
     target_drift: bool = False,
 ) -> dict[str, object]:
     mode = str(execution_mode or "INTERACTIVE").strip().upper()
@@ -482,7 +548,10 @@ def build_gate_evidence(
         return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
     if mode not in INTERACTIVE_MODES:
         raise ValueError(f"unsupported execution mode: {mode}")
+
     completed: list[str] = []
+    lane = None
+    reservation = None
     if not source_evidence:
         next_action = "ROOT_SOURCE_CURRENT"
     else:
@@ -490,52 +559,90 @@ def build_gate_evidence(
         if status not in {"EXACT_SOURCE_CURRENT", "SCOPED_CURRENT_RECOVERY"}:
             raise ValueError("invalid ROOT_SOURCE_CURRENT evidence")
         completed.append("ROOT_SOURCE_CURRENT")
-        if not path_reservation_evidence:
-            next_action = "PATHS_RESERVED"
+        if not unpushed_lane_evidence:
+            next_action = "UNPUSHED_LANE_CLASSIFIED"
         else:
             try:
-                reservation = validate_path_reservation_evidence(path_reservation_evidence)
+                lane = validate_lane_evidence(unpushed_lane_evidence)
             except ValueError as exc:
-                raise ValueError(f"invalid PATHS_RESERVED evidence: {exc}") from exc
-            if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
-                raise ValueError("PATHS_RESERVED base_sha must match ROOT_SOURCE_CURRENT source_sha")
-            completed.append("PATHS_RESERVED")
+                raise ValueError(f"invalid UNPUSHED_LANE evidence: {exc}") from exc
+            if str(lane.get("source_sha") or "") != str(source_evidence.get("source_sha") or ""):
+                raise ValueError("LATEST_0 base source_sha must match ROOT_SOURCE_CURRENT source_sha")
+            completed.extend(("UNPUSHED_LANE_CLASSIFIED", "LATEST_0_BASE_BOUND"))
             if not root_mutations_complete:
                 next_action = "ROOT_MUTATIONS_COMPLETE"
             else:
                 completed.append("ROOT_MUTATIONS_COMPLETE")
-                if not test_classified:
-                    next_action = "ROOT_TEST_CLASSIFIED"
+                if conflict_checkpoint:
+                    cp = _mapping(conflict_checkpoint, "conflict checkpoint")
+                    if cp.get("schema") != CONFLICT_CHECKPOINT_SCHEMA or cp.get("state") != CONFLICT_STATE:
+                        raise ValueError("invalid merge conflict checkpoint")
+                    return {
+                        "schema": EVIDENCE_SCHEMA,
+                        "execution_mode": mode,
+                        "applicable": True,
+                        "completed": completed,
+                        "git_write_unlocked": False,
+                        "next_action": "USER_CONFLICT_DECISION",
+                        "blocked_state": CONFLICT_STATE,
+                        "conflict_checkpoint": dict(cp),
+                        "unpushed_lane": dict(lane),
+                    }
+                if not merge_to_zero_complete:
+                    next_action = "MERGE_TO_0_OR_CONFLICT_CHECKPOINT"
                 else:
-                    completed.append("ROOT_TEST_CLASSIFIED")
-                    if not tests_green:
-                        next_action = "ROOT_TESTS_GREEN"
-                    elif not test_receipt:
-                        raise ValueError("ROOT_TESTS_GREEN requires WHD_TEST_EXECUTION_RECEIPT_V1")
+                    completed.append("MERGE_TO_0_OR_CONFLICT_CHECKPOINT")
+                    if not test_classified:
+                        next_action = "POST_MERGE_0_TEST_CLASSIFIED"
                     else:
-                        validate_test_execution_receipt(
-                            test_receipt,
-                            expected_source_sha=str(source_evidence.get("source_sha") or ""),
-                            expected_issue=int(reservation.get("issue") or 0),
-                            expected_generation=int(reservation.get("generation") or 0),
-                            expected_commands=expected_test_commands,
-                        )
-                        completed.append("ROOT_TESTS_GREEN")
-                        if not diff_digest:
-                            next_action = "ROOT_DIFF_FROZEN"
+                        completed.append("POST_MERGE_0_TEST_CLASSIFIED")
+                        if not tests_green:
+                            next_action = "POST_MERGE_0_TESTS_GREEN"
+                        elif not test_receipt:
+                            raise ValueError("POST_MERGE_0_TESTS_GREEN requires WHD_TEST_EXECUTION_RECEIPT_V1")
                         else:
-                            if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
-                                raise ValueError("diff_digest must be SHA256")
-                            completed.append("ROOT_DIFF_FROZEN")
-                            if target_drift:
-                                return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation}
-                            completed.append("GIT_WRITE_UNLOCKED")
-                            next_action = "EXACT_TESTED_DIFF_ONLY"
+                            validate_test_execution_receipt(
+                                test_receipt,
+                                expected_source_sha=str(source_evidence.get("source_sha") or ""),
+                                expected_issue=int(lane.get("issue") or 0),
+                                expected_generation=int(lane.get("generation") or 0),
+                                expected_commands=expected_test_commands,
+                            )
+                            completed.append("POST_MERGE_0_TESTS_GREEN")
+                            if not diff_digest:
+                                next_action = "LANE_MANIFEST_FROZEN"
+                            else:
+                                if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
+                                    raise ValueError("diff_digest must be SHA256")
+                                completed.append("LANE_MANIFEST_FROZEN")
+                                if not path_reservation_evidence:
+                                    next_action = "DELIVERY_PATHS_RESERVED"
+                                else:
+                                    try:
+                                        reservation = validate_path_reservation_evidence(path_reservation_evidence)
+                                    except ValueError as exc:
+                                        raise ValueError(f"invalid DELIVERY_PATHS_RESERVED evidence: {exc}") from exc
+                                    if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
+                                        raise ValueError("delivery reservation base_sha must match source_sha")
+                                    if int(reservation.get("issue") or 0) != int(lane.get("issue") or 0):
+                                        raise ValueError("delivery reservation issue must match lane issue")
+                                    if str(reservation.get("target_branch") or "") != str(lane.get("target_branch") or ""):
+                                        raise ValueError("delivery reservation target must match lane target")
+                                    if tuple(reservation.get("write_paths") or ()) != tuple(lane.get("write_paths") or ()) or tuple(reservation.get("delete_paths") or ()) != tuple(lane.get("delete_paths") or ()):
+                                        raise ValueError("delivery reservation scope must equal lane manifest scope")
+                                    completed.append("DELIVERY_PATHS_RESERVED")
+                                    if target_drift:
+                                        return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane)}
+                                    completed.append("GIT_WRITE_UNLOCKED")
+                                    next_action = "EXACT_TESTED_DIFF_ONLY"
+
     result = {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": "GIT_WRITE_UNLOCKED" in completed, "next_action": next_action}
     if diff_digest:
         result["diff_digest"] = diff_digest
-    if path_reservation_evidence:
-        result["path_reservation"] = dict(path_reservation_evidence)
+    if lane:
+        result["unpushed_lane"] = dict(lane)
+    if reservation:
+        result["path_reservation"] = dict(reservation)
     return result
 
 

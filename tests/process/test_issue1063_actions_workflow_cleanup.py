@@ -6,7 +6,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 EXPECTED = {
-    "drive-source-snapshot-export.yml",
     "knowledge-governance-bootstrap.yml",
     "whd-product-regression.yml",
     "whd-control-plane-regression.yml",
@@ -103,10 +102,14 @@ def test_remote_guard_registry_route_does_not_restore_deleted_workflow() -> None
     assert ".github/workflows/whd-remote-execution-guard.yml" not in route["file_globs"]
 
 
-def test_source_export_request_transport_reuses_existing_workflow_without_surface_growth() -> None:
-    assert len(EXPECTED) == 8
-    assert "drive-source-snapshot-export.yml" in EXPECTED
-    text = (WORKFLOWS / "drive-source-snapshot-export.yml").read_text(encoding="utf-8")
-    assert "coord/source-export-requests" in text
-    assert "WHD_SOURCE_EXPORT_REQUEST_V1" in text
-    assert ".dispatch/source-export-request.json" in text
+def test_legacy_source_snapshot_workflow_stays_retired_under_durability_v2() -> None:
+    assert len(EXPECTED) == 7
+    assert "drive-source-snapshot-export.yml" not in EXPECTED
+    assert not (WORKFLOWS / "drive-source-snapshot-export.yml").exists()
+    contract = json.loads((ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json").read_text(encoding="utf-8"))
+    assert contract["status"] == "CURRENT"
+    tool = (ROOT / "tools/post_integration_durability.py").read_text(encoding="utf-8")
+    assert "ROOT_SYNC_PENDING" in tool
+    assert "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD" in tool
+    assert "LANE_CLEANUP_PENDING" in tool
+    assert "FINALIZE_DELIVERED_LANE_ZERO" in tool

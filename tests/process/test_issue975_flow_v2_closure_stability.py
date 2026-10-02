@@ -11,27 +11,25 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _root_gate_evidence(execution_mode: str = "INTERACTIVE") -> dict[str, object]:
     from tools.work_root_gate import (
-        READ_MODE_GITHUB_MIRROR,
+        READ_MODE_GITHUB_REPO,
         READ_MODE_GOOGLE_DRIVE,
         build_work_root_gate_evidence,
     )
 
     payload = json.loads(
-        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").read_text(
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(
             encoding="utf-8"
         )
     )
-    if execution_mode == "INTERACTIVE":
-        payload.pop("role", None)
-        payload.pop("mirror_policy", None)
-        payload.pop("canonical_source", None)
-        mode = READ_MODE_GOOGLE_DRIVE
-    else:
-        mode = READ_MODE_GITHUB_MIRROR
+    mode = READ_MODE_GOOGLE_DRIVE if execution_mode == "INTERACTIVE" else READ_MODE_GITHUB_REPO
     return build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=mode,
         execution_mode=execution_mode,
+        root_entries=[
+            ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
+            "ae_engine", "gui_modules", ".unpushed",
+        ],
     )
 
 

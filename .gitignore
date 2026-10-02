@@ -12,3 +12,4 @@ restore_temp/
 *temp*
 run_output.txt
 GIT儲存庫.MD
+.unpushed/
