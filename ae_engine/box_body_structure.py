@@ -1057,13 +1057,20 @@ def resolve_box_body_piece_face_features(
         # Build only the requested side context from the segment present in this piece.
         from .sheetmetal_features import BoxBodyFaceContext
         from .sheetmetal_geometry import box_body_vertical_offsets
+        target_names = (
+            {"depth_left", "d_left"}
+            if face_key == "left"
+            else {"depth_right", "d_right"}
+        )
         target_name = "depth_left" if face_key == "left" else "depth_right"
         cursor = 0.0
         span = None
+        resolved_segment_name = None
         for segment in topology.segments:
             width = float(segment.length) + float(segment.compensation)
-            if segment.name == target_name:
+            if segment.name in target_names:
                 span = (cursor, cursor + width)
+                resolved_segment_name = segment.name
                 break
             cursor += width
         if span is None:
@@ -1072,7 +1079,7 @@ def resolve_box_body_piece_face_features(
             t, head_corner_policy=head_corner_policy, tail_corner_policy=tail_corner_policy,
         )
         context = BoxBodyFaceContext(
-            face_key=face_key, segment_name=target_name, outer_width=float(d), outer_height=float(h),
+            face_key=face_key, segment_name=str(resolved_segment_name or target_name), outer_width=float(d), outer_height=float(h),
             thickness=float(t), unfolded_min_x=span[0], unfolded_max_x=span[1],
             unfolded_height=float(topology.height), bottom_outer_offset=bottom, top_outer_offset=top,
         )
