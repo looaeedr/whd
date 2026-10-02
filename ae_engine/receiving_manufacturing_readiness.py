@@ -1,459 +1,531 @@
 # -*- coding: utf-8 -*-
-"""Receiving manufacturing readiness, dependency closure, and instance export.
+"""Receiving V1.6 manufacturing readiness and multi-instance export.
 
-This is the single R-028 authority for Set/Bay/Joint READY/BLOCKED projection.
-Intrinsic failures enter once. Derived NOT_EXPORTABLE state is never recycled
-as a new intrinsic failure, which prevents chain propagation.
+This module is the single Receiving-only projection between intrinsic
+manufacturing failures and export/UI behavior. It never makes NOT_EXPORTABLE
+an intrinsic cause and never changes generic single-cabinet DXF semantics.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 import os
-import re
+from pathlib import Path
 import shutil
 import tempfile
-from typing import Callable, Iterable, Mapping
+from typing import Iterable, Mapping
+from urllib.parse import quote
 
 from .receiving_layout import normalize_receiving_layout
-
 
 READY = "READY"
 BLOCKED = "BLOCKED"
 JOINT_INTRINSIC = "JOINT_INTRINSIC"
 BAY_INTRINSIC = "BAY_INTRINSIC"
+NOT_EXPORTABLE = "NOT_EXPORTABLE"
+
+RECEIVING_JOINT_FEATURE_CONFLICT = "RECEIVING_JOINT_FEATURE_CONFLICT"
+
+_JOINT_INTRINSIC_CODES = frozenset({
+    "RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION",
+    "RECEIVING_LOCK_PATTERN_OUT_OF_BOUNDS",
+    "RECEIVING_LOCK_PATTERN_WIDTH_INVARIANT_VIOLATION",
+    RECEIVING_JOINT_FEATURE_CONFLICT,
+})
+_BAY_INTRINSIC_CODES = frozenset({
+    "RECEIVING_BAY_COMMON_STATE_INVALID",
+    "RECEIVING_PAIRING_MARK_OUT_OF_BOUNDS",
+    "RECEIVING_PAIRING_MARK_CONFLICT",
+})
 
 
 @dataclass(frozen=True)
 class ReceivingIntrinsicFailure:
-    scope: str
+    kind: str
     set_id: str
-    reason: str
-    bay_id: str = ""
-    joint_id: str = ""
-    physical_piece: str = ""
-    conflicting_feature_ids: tuple[str, ...] = ()
-    diagnostic_code: str = ""
-
-    def __post_init__(self):
-        scope = str(self.scope).strip().upper()
-        if scope not in {JOINT_INTRINSIC, BAY_INTRINSIC}:
-            raise ValueError(f"unsupported Receiving intrinsic scope: {self.scope!r}")
-        object.__setattr__(self, "scope", scope)
-        object.__setattr__(
-            self, "conflicting_feature_ids",
-            tuple(str(value) for value in tuple(self.conflicting_feature_ids or ()))
-        )
-        if scope == JOINT_INTRINSIC and not str(self.joint_id).strip():
-            raise ValueError("Joint-intrinsic failure requires joint_id")
-        if scope == BAY_INTRINSIC and not str(self.bay_id).strip():
-            raise ValueError("Bay-intrinsic failure requires bay_id")
-
-
-@dataclass(frozen=True)
-class ReceivingReadinessRow:
-    entity_type: str
     entity_id: str
-    set_id: str
-    status: str
-    blocker_codes: tuple[str, ...] = ()
-    diagnostics: tuple[ReceivingIntrinsicFailure, ...] = ()
+    code: str
+    reason: str
+    physical_piece: str = ""
+    feature_ids: tuple[str, ...] = ()
 
-    @property
-    def ready(self) -> bool:
-        return self.status == READY
-
-
-@dataclass(frozen=True)
-class ReceivingReadinessGraph:
-    sets: Mapping[str, ReceivingReadinessRow]
-    bays: Mapping[str, ReceivingReadinessRow]
-    joints: Mapping[str, ReceivingReadinessRow]
-    set_bay_ids: Mapping[str, tuple[str, ...]]
-    set_joint_ids: Mapping[str, tuple[str, ...]]
-    bay_joint_ids: Mapping[str, tuple[str, ...]]
-
-    def row(self, entity_type: str, entity_id: str) -> ReceivingReadinessRow:
-        table = {
-            "SET": self.sets, "BAY": self.bays, "JOINT": self.joints
-        }.get(str(entity_type).strip().upper())
-        if table is None:
-            raise ValueError(f"unsupported entity_type: {entity_type!r}")
-        return table[str(entity_id)]
-
-
-@dataclass(frozen=True)
-class ReceivingExportDecision:
-    status: str
-    requested_bay_ids: tuple[str, ...]
-    dependency_entity_ids: tuple[str, ...]
-    blockers: tuple[ReceivingReadinessRow, ...]
-
-    @property
-    def ready(self) -> bool:
-        return self.status == READY
+    def __post_init__(self) -> None:
+        kind = str(self.kind or "").strip().upper()
+        code = str(self.code or "").strip()
+        if kind not in {JOINT_INTRINSIC, BAY_INTRINSIC}:
+            raise ValueError(f"unsupported Receiving intrinsic failure kind: {self.kind!r}")
+        if code == NOT_EXPORTABLE:
+            raise ValueError("NOT_EXPORTABLE is a derived result, never an intrinsic failure")
+        if not str(self.set_id or "").strip():
+            raise ValueError("Receiving intrinsic failure requires set_id")
+        if not str(self.entity_id or "").strip():
+            raise ValueError("Receiving intrinsic failure requires entity_id")
+        if not code:
+            raise ValueError("Receiving intrinsic failure requires code")
+        if not str(self.reason or "").strip():
+            raise ValueError("Receiving intrinsic failure requires reason")
+        object.__setattr__(self, "kind", kind)
+        object.__setattr__(self, "set_id", str(self.set_id))
+        object.__setattr__(self, "entity_id", str(self.entity_id))
+        object.__setattr__(self, "code", code)
+        object.__setattr__(self, "reason", str(self.reason))
+        object.__setattr__(self, "physical_piece", str(self.physical_piece or ""))
+        object.__setattr__(
+            self,
+            "feature_ids",
+            tuple(str(value) for value in tuple(self.feature_ids or ()) if str(value)),
+        )
 
 
-def _blocked_row(entity_type, entity_id, set_id, diagnostics):
-    rows = tuple(diagnostics or ())
-    codes = tuple(sorted({
-        str(item.diagnostic_code or item.reason or item.scope)
-        for item in rows
-    }))
-    return ReceivingReadinessRow(
-        entity_type=str(entity_type), entity_id=str(entity_id), set_id=str(set_id),
-        status=BLOCKED, blocker_codes=codes, diagnostics=rows,
+def classify_receiving_intrinsic_code(code: object) -> str:
+    value = str(code or "").strip()
+    if value in _JOINT_INTRINSIC_CODES:
+        return JOINT_INTRINSIC
+    if value in _BAY_INTRINSIC_CODES:
+        return BAY_INTRINSIC
+    if value == NOT_EXPORTABLE:
+        raise ValueError("NOT_EXPORTABLE cannot be reclassified as an intrinsic failure")
+    raise ValueError(f"unclassified Receiving intrinsic failure code: {value!r}")
+
+
+def intrinsic_failure(
+    *,
+    set_id: object,
+    entity_id: object,
+    code: object,
+    reason: object,
+    physical_piece: object = "",
+    feature_ids: Iterable[object] = (),
+) -> ReceivingIntrinsicFailure:
+    value = str(code or "").strip()
+    return ReceivingIntrinsicFailure(
+        kind=classify_receiving_intrinsic_code(value),
+        set_id=str(set_id or ""),
+        entity_id=str(entity_id or ""),
+        code=value,
+        reason=str(reason or ""),
+        physical_piece=str(physical_piece or ""),
+        feature_ids=tuple(str(item) for item in tuple(feature_ids or ())),
     )
 
 
-def _ready_row(entity_type, entity_id, set_id):
-    return ReceivingReadinessRow(
-        entity_type=str(entity_type), entity_id=str(entity_id), set_id=str(set_id),
-        status=READY,
-    )
+@dataclass(frozen=True)
+class ReceivingEntityReadiness:
+    entity_type: str
+    stable_id: str
+    status: str
+    blockers: tuple[ReceivingIntrinsicFailure, ...] = ()
+    bay_ids: tuple[str, ...] = ()
+    joint_ids: tuple[str, ...] = ()
 
 
-def build_receiving_readiness_graph(layout, intrinsic_failures: Iterable[ReceivingIntrinsicFailure] = ()):
-    """Classify R-028 validity without propagating derived NOT_EXPORTABLE state."""
+@dataclass(frozen=True)
+class ReceivingReadiness:
+    sets: tuple[ReceivingEntityReadiness, ...]
+    bays: tuple[ReceivingEntityReadiness, ...]
+    joints: tuple[ReceivingEntityReadiness, ...]
+
+    def _row(self, rows, stable_id: object) -> ReceivingEntityReadiness:
+        key = str(stable_id or "")
+        for row in rows:
+            if row.stable_id == key:
+                return row
+        raise KeyError(key)
+
+    def set(self, stable_id: object) -> ReceivingEntityReadiness:
+        return self._row(self.sets, stable_id)
+
+    def bay(self, stable_id: object) -> ReceivingEntityReadiness:
+        return self._row(self.bays, stable_id)
+
+    def joint(self, stable_id: object) -> ReceivingEntityReadiness:
+        return self._row(self.joints, stable_id)
+
+
+def _dedupe_failures(rows) -> tuple[ReceivingIntrinsicFailure, ...]:
+    result = []
+    seen = set()
+    for row in rows:
+        key = (
+            row.kind, row.set_id, row.entity_id, row.code, row.reason,
+            row.physical_piece, row.feature_ids,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(row)
+    return tuple(result)
+
+
+def resolve_receiving_readiness(
+    layout: Mapping[str, object],
+    intrinsic_failures: Iterable[ReceivingIntrinsicFailure] = (),
+) -> ReceivingReadiness:
+    """Project intrinsic failures to Set/Bay/Joint READY/BLOCKED state.
+
+    R-028 propagation is intentionally one-way:
+    * Joint intrinsic -> that Joint + its two participant Bays.
+    * Bay intrinsic -> that Bay only.
+    * Set status is an aggregate projection only.
+    * NOT_EXPORTABLE is never accepted as new input.
+    """
     normalized = normalize_receiving_layout(layout)
-    sets_by_id = {}
-    bay_owner = {}
-    joint_owner = {}
-    set_bay_ids = {}
-    set_joint_ids = {}
-    bay_joint_ids = {}
-
+    set_index = {}
+    bay_index = {}
+    joint_index = {}
     for set_row in normalized["sets"]:
         set_id = str(set_row["stable_id"])
-        sets_by_id[set_id] = set_row
-        bays = tuple(str(row["stable_id"]) for row in set_row["bays"])
-        joints = tuple(str(row["stable_id"]) for row in set_row["joints"])
-        set_bay_ids[set_id] = bays
-        set_joint_ids[set_id] = joints
-        for bay_id in bays:
-            bay_owner[bay_id] = set_id
-            bay_joint_ids[bay_id] = []
+        set_index[set_id] = set_row
+        for bay in set_row["bays"]:
+            bay_index[str(bay["stable_id"])] = (set_id, bay)
         for joint in set_row["joints"]:
-            joint_id = str(joint["stable_id"])
-            joint_owner[joint_id] = (
-                set_id, str(joint["left_bay_id"]), str(joint["right_bay_id"])
-            )
-            bay_joint_ids[str(joint["left_bay_id"])].append(joint_id)
-            bay_joint_ids[str(joint["right_bay_id"])].append(joint_id)
+            joint_index[str(joint["stable_id"])] = (set_id, joint)
 
-    direct_bay_failures = {bay_id: [] for bay_id in bay_owner}
-    direct_joint_failures = {joint_id: [] for joint_id in joint_owner}
+    bay_blockers = {key: [] for key in bay_index}
+    joint_blockers = {key: [] for key in joint_index}
 
     for failure in tuple(intrinsic_failures or ()):
         if not isinstance(failure, ReceivingIntrinsicFailure):
             raise TypeError("intrinsic_failures must contain ReceivingIntrinsicFailure")
-        if failure.scope == BAY_INTRINSIC:
-            bay_id = str(failure.bay_id)
-            if bay_id not in bay_owner:
-                raise ValueError(f"unknown Receiving Bay failure target: {bay_id}")
-            if str(failure.set_id) != bay_owner[bay_id]:
-                raise ValueError("Bay failure set_id does not own target Bay")
-            direct_bay_failures[bay_id].append(failure)
-        else:
-            joint_id = str(failure.joint_id)
-            if joint_id not in joint_owner:
-                raise ValueError(f"unknown Receiving Joint failure target: {joint_id}")
-            if str(failure.set_id) != joint_owner[joint_id][0]:
-                raise ValueError("Joint failure set_id does not own target Joint")
-            direct_joint_failures[joint_id].append(failure)
+        if failure.set_id not in set_index:
+            raise ValueError(f"unknown Receiving set_id in failure: {failure.set_id}")
+        if failure.kind == BAY_INTRINSIC:
+            row = bay_index.get(failure.entity_id)
+            if row is None or row[0] != failure.set_id:
+                raise ValueError(
+                    f"Bay-intrinsic failure does not identify a Bay in {failure.set_id}: "
+                    f"{failure.entity_id}"
+                )
+            bay_blockers[failure.entity_id].append(failure)
+            continue
 
-    joints = {}
-    for joint_id, (set_id, _left, _right) in joint_owner.items():
-        rows = tuple(direct_joint_failures[joint_id])
-        joints[joint_id] = (
-            _blocked_row("JOINT", joint_id, set_id, rows)
-            if rows else _ready_row("JOINT", joint_id, set_id)
-        )
-
-    bays = {}
-    for bay_id, set_id in bay_owner.items():
-        rows = list(direct_bay_failures[bay_id])
-        # Joint-intrinsic invalidity blocks each participant Bay package. This
-        # is a one-hop dependency effect only; the resulting Bay BLOCKED state
-        # is never fed back into other Joint validity.
-        for joint_id, (_owner_set, left_id, right_id) in joint_owner.items():
-            if bay_id in {left_id, right_id}:
-                rows.extend(direct_joint_failures[joint_id])
-        bays[bay_id] = (
-            _blocked_row("BAY", bay_id, set_id, rows)
-            if rows else _ready_row("BAY", bay_id, set_id)
-        )
-
-    sets = {}
-    for set_id in sets_by_id:
-        blockers = []
-        for bay_id in set_bay_ids[set_id]:
-            if not bays[bay_id].ready:
-                blockers.extend(bays[bay_id].diagnostics)
-        for joint_id in set_joint_ids[set_id]:
-            if not joints[joint_id].ready:
-                blockers.extend(joints[joint_id].diagnostics)
-        # De-duplicate identical intrinsic records. A Joint failure appears on
-        # its Joint row and both participant Bay package rows by design.
-        unique = []
-        seen = set()
-        for item in blockers:
-            key = (
-                item.scope, item.set_id, item.bay_id, item.joint_id,
-                item.physical_piece, item.conflicting_feature_ids,
-                item.diagnostic_code, item.reason,
+        row = joint_index.get(failure.entity_id)
+        if row is None or row[0] != failure.set_id:
+            raise ValueError(
+                f"Joint-intrinsic failure does not identify a Joint in {failure.set_id}: "
+                f"{failure.entity_id}"
             )
-            if key not in seen:
-                seen.add(key)
-                unique.append(item)
-        sets[set_id] = (
-            _blocked_row("SET", set_id, set_id, tuple(unique))
-            if unique else _ready_row("SET", set_id, set_id)
-        )
+        _set_id, joint = row
+        joint_blockers[failure.entity_id].append(failure)
+        # This is the only allowed cross-entity propagation in R-028.
+        bay_blockers[str(joint["left_bay_id"])].append(failure)
+        bay_blockers[str(joint["right_bay_id"])].append(failure)
 
-    return ReceivingReadinessGraph(
-        sets=sets, bays=bays, joints=joints,
-        set_bay_ids={key: tuple(value) for key, value in set_bay_ids.items()},
-        set_joint_ids={key: tuple(value) for key, value in set_joint_ids.items()},
-        bay_joint_ids={key: tuple(value) for key, value in bay_joint_ids.items()},
+    bay_rows = tuple(
+        ReceivingEntityReadiness(
+            entity_type="BAY",
+            stable_id=bay_id,
+            status=BLOCKED if bay_blockers[bay_id] else READY,
+            blockers=_dedupe_failures(bay_blockers[bay_id]),
+        )
+        for bay_id in bay_index
     )
+    joint_rows = tuple(
+        ReceivingEntityReadiness(
+            entity_type="JOINT",
+            stable_id=joint_id,
+            status=BLOCKED if joint_blockers[joint_id] else READY,
+            blockers=_dedupe_failures(joint_blockers[joint_id]),
+        )
+        for joint_id in joint_index
+    )
+    bay_by_id = {row.stable_id: row for row in bay_rows}
+    joint_by_id = {row.stable_id: row for row in joint_rows}
+
+    set_rows = []
+    for set_row in normalized["sets"]:
+        set_id = str(set_row["stable_id"])
+        bay_ids = tuple(str(row["stable_id"]) for row in set_row["bays"])
+        joint_ids = tuple(str(row["stable_id"]) for row in set_row["joints"])
+        blockers = _dedupe_failures(
+            failure
+            for entity_id in (*bay_ids, *joint_ids)
+            for failure in (
+                bay_by_id[entity_id].blockers
+                if entity_id in bay_by_id
+                else joint_by_id[entity_id].blockers
+            )
+        )
+        set_rows.append(
+            ReceivingEntityReadiness(
+                entity_type="SET",
+                stable_id=set_id,
+                status=BLOCKED if blockers else READY,
+                blockers=blockers,
+                bay_ids=bay_ids,
+                joint_ids=joint_ids,
+            )
+        )
+    return ReceivingReadiness(
+        sets=tuple(set_rows),
+        bays=bay_rows,
+        joints=joint_rows,
+    )
+
+
+def _diagnostic_payload(failure: ReceivingIntrinsicFailure) -> dict[str, object]:
+    return {
+        "kind": failure.kind,
+        "set_id": failure.set_id,
+        "entity_id": failure.entity_id,
+        "code": failure.code,
+        "reason": failure.reason,
+        "physical_piece": failure.physical_piece,
+        "feature_ids": tuple(failure.feature_ids),
+    }
+
+
+def project_receiving_readiness(
+    layout: Mapping[str, object],
+    readiness: ReceivingReadiness,
+) -> dict[str, object]:
+    """Return read-only UI rows; this projection never mutates manufacturing state."""
+    normalized = normalize_receiving_layout(layout)
+    rows = []
+    for set_row in normalized["sets"]:
+        set_id = str(set_row["stable_id"])
+        set_state = readiness.set(set_id)
+        rows.append({
+            "entity_type": "SET",
+            "stable_id": set_id,
+            "status": set_state.status,
+            "diagnostics": tuple(_diagnostic_payload(row) for row in set_state.blockers),
+            "bays": tuple({
+                "entity_type": "BAY",
+                "stable_id": str(bay["stable_id"]),
+                "status": readiness.bay(bay["stable_id"]).status,
+                "diagnostics": tuple(
+                    _diagnostic_payload(row)
+                    for row in readiness.bay(bay["stable_id"]).blockers
+                ),
+            } for bay in set_row["bays"]),
+            "joints": tuple({
+                "entity_type": "JOINT",
+                "stable_id": str(joint["stable_id"]),
+                "status": readiness.joint(joint["stable_id"]).status,
+                "diagnostics": tuple(
+                    _diagnostic_payload(row)
+                    for row in readiness.joint(joint["stable_id"]).blockers
+                ),
+            } for joint in set_row["joints"]),
+        })
+    return {"sets": tuple(rows)}
+
+
+def receiving_export_blockers(
+    readiness: ReceivingReadiness,
+    *,
+    scope: str,
+    set_id: object | None = None,
+    bay_id: object | None = None,
+    requested_bay_ids: Iterable[object] = (),
+) -> tuple[ReceivingIntrinsicFailure, ...]:
+    scope_value = str(scope or "").strip().upper()
+    rows = []
+    if scope_value == "BAY":
+        if bay_id is None:
+            raise ValueError("BAY export requires bay_id")
+        rows.extend(readiness.bay(bay_id).blockers)
+    elif scope_value == "SET":
+        if set_id is None:
+            raise ValueError("SET export requires set_id")
+        rows.extend(readiness.set(set_id).blockers)
+    elif scope_value == "PROJECT":
+        requested = tuple(str(value) for value in tuple(requested_bay_ids or ()))
+        if requested:
+            for value in requested:
+                rows.extend(readiness.bay(value).blockers)
+        else:
+            for set_row in readiness.sets:
+                rows.extend(set_row.blockers)
+    else:
+        raise ValueError(f"unsupported Receiving export scope: {scope!r}")
+    return _dedupe_failures(rows)
+
+
+class ReceivingExportBlocked(RuntimeError):
+    def __init__(self, blockers: Iterable[ReceivingIntrinsicFailure]):
+        self.blockers = tuple(blockers or ())
+        detail = "; ".join(
+            f"{row.entity_id}:{row.code}:{row.reason}" for row in self.blockers
+        )
+        super().__init__(f"Receiving export BLOCKED: {detail}")
+
+
+def assert_receiving_exportable(readiness: ReceivingReadiness, **request) -> None:
+    blockers = receiving_export_blockers(readiness, **request)
+    if blockers:
+        raise ReceivingExportBlocked(blockers)
 
 
 @dataclass(frozen=True)
-class ReceivingManufacturingReadinessResolution:
-    graph: ReceivingReadinessGraph
-    instance_geometries: Mapping[str, object]
-    joint_resolutions: Mapping[str, object]
+class ReceivingManufacturingInstance:
+    set_id: str
+    bay_id: str
+    geometry: object
+
+    def __post_init__(self) -> None:
+        if not str(self.set_id or "").strip() or not str(self.bay_id or "").strip():
+            raise ValueError("Receiving manufacturing instance requires stable Set/Bay IDs")
 
 
-def _pairing_failure_from_geometry(*, set_id: str, bay_id: str, geometry):
-    for item in tuple(getattr(geometry, "diagnostics", ()) or ()):
-        code = str(getattr(item, "diagnostic_code", "") or "")
-        status = str(getattr(item, "status", "") or "")
-        if status != "BLOCKED":
-            continue
-        if code not in {
-            "RECEIVING_PAIRING_MARK_OUT_OF_BOUNDS",
-            "RECEIVING_PAIRING_MARK_CONFLICT",
-            "RECEIVING_PAIRING_MARK_BACKPROJECTION_FAILED",
-        }:
-            continue
-        evidence = dict(getattr(item, "evidence", {}) or {})
-        return ReceivingIntrinsicFailure(
-            scope=BAY_INTRINSIC, set_id=set_id, bay_id=bay_id,
-            physical_piece=str(getattr(item, "physical_piece", "") or "box_body:left_side"),
-            conflicting_feature_ids=tuple(evidence.get("conflicting_feature_ids") or ()),
-            reason=str(getattr(item, "diagnostic_detail", "") or code),
-            diagnostic_code=code,
+@dataclass(frozen=True)
+class ReceivingExportInventoryRow:
+    set_id: str
+    bay_id: str
+    part_id: str
+    relative_path: str
+
+
+def _identity_segment(prefix: str, stable_id: object) -> str:
+    value = str(stable_id or "").strip()
+    if not value:
+        raise ValueError("Receiving stable instance ID is empty")
+    return f"{prefix}={quote(value, safe='')}"
+
+
+def receiving_instance_directory(root: Path, *, set_id: object, bay_id: object) -> Path:
+    return root / _identity_segment("set", set_id) / _identity_segment("bay", bay_id)
+
+
+def _preflight_instances(
+    instances: Iterable[ReceivingManufacturingInstance],
+    readiness: ReceivingReadiness,
+) -> tuple[ReceivingManufacturingInstance, ...]:
+    rows = tuple(instances or ())
+    if not rows:
+        raise ValueError("Receiving export requires at least one Bay instance")
+    seen = set()
+    for row in rows:
+        if not isinstance(row, ReceivingManufacturingInstance):
+            raise TypeError("instances must contain ReceivingManufacturingInstance")
+        key = (row.set_id, row.bay_id)
+        if key in seen:
+            raise ValueError(f"duplicate Receiving manufacturing instance: {key}")
+        seen.add(key)
+        state = readiness.bay(row.bay_id)
+        # Binding Set identity is part of export inventory authority.
+        matching_set = next(
+            (item for item in readiness.sets if row.bay_id in item.bay_ids),
+            None,
         )
-    return None
+        if matching_set is None or matching_set.stable_id != row.set_id:
+            raise ValueError(
+                f"Receiving instance Set/Bay identity mismatch: {row.set_id}/{row.bay_id}"
+            )
+        if state.status != READY:
+            raise ReceivingExportBlocked(state.blockers)
+    return rows
 
 
-def resolve_receiving_manufacturing_readiness(
-    snapshot, *, resolve_bay: Callable[[Mapping[str, object], int, int], object],
-    resolve_joint: Callable[..., object] | None = None, thickness: float = 2.0, frame_width: float = 29.0,
-) -> ReceivingManufacturingReadinessResolution:
-    """Resolve every Bay independently, every Joint independently, then classify R-028.
-
-    ``resolve_bay`` is the existing single-Bay manufacturing engine boundary. It
-    receives one transient per-Bay projection and must return either geometry or
-    an object exposing ``geometry``. No multi-Bay geometry engine is introduced.
-    """
-    from .receiving_joint_locks import (
-        ReceivingJointLockPatternError, resolve_receiving_joint_lock_pattern,
-    )
-    from .receiving_layout import (
-        RECEIVING_BAY_COMMON_STATE_INVALID, ReceivingBayProjectionError,
-        normalize_receiving_layout, project_receiving_bay_legacy_aliases,
-    )
-
-    source = dict(snapshot or {})
-    layout = normalize_receiving_layout(source.get("receiving_layout"))
-    failures = []
-    instance_geometries = {}
-    joint_resolutions = {}
-
-    for set_index, set_row in enumerate(layout["sets"]):
-        set_id = str(set_row["stable_id"])
-        for bay_index, bay in enumerate(set_row["bays"]):
-            bay_id = str(bay["stable_id"])
-            try:
-                projected = project_receiving_bay_legacy_aliases(
-                    source, set_index=set_index, bay_index=bay_index, validate_common=True
-                )
-                resolved = resolve_bay(projected, set_index, bay_index)
-                geometry = getattr(resolved, "geometry", resolved)
-                instance_geometries[bay_id] = geometry
-                pairing_failure = _pairing_failure_from_geometry(
-                    set_id=set_id, bay_id=bay_id, geometry=geometry
-                )
-                if pairing_failure is not None:
-                    failures.append(pairing_failure)
-            except ReceivingBayProjectionError as exc:
-                failures.append(ReceivingIntrinsicFailure(
-                    scope=BAY_INTRINSIC, set_id=set_id, bay_id=bay_id,
-                    reason=str(exc), diagnostic_code=RECEIVING_BAY_COMMON_STATE_INVALID,
-                ))
-
-        joint_fn = resolve_joint or resolve_receiving_joint_lock_pattern
-        for joint_index, joint in enumerate(set_row["joints"]):
-            joint_id = str(joint["stable_id"])
-            try:
-                joint_resolutions[joint_id] = joint_fn(
-                    layout, set_index=set_index, joint_index=joint_index,
-                    thickness=float(thickness), frame_width=float(frame_width),
-                )
-            except ReceivingJointLockPatternError as exc:
-                failures.append(ReceivingIntrinsicFailure(
-                    scope=JOINT_INTRINSIC, set_id=set_id, joint_id=joint_id,
-                    physical_piece="box_body:left_side|box_body:right_side",
-                    reason=str(exc), diagnostic_code=str(exc.code),
-                ))
-
-    graph = build_receiving_readiness_graph(layout, failures)
-    return ReceivingManufacturingReadinessResolution(
-        graph=graph, instance_geometries=dict(instance_geometries),
-        joint_resolutions=dict(joint_resolutions),
-    )
-
-
-def receiving_readiness_projection(graph: ReceivingReadinessGraph):
-    """Pure UI projection: authority stays in the graph."""
-    rows = []
-    for entity_type, table in (("SET", graph.sets), ("BAY", graph.bays), ("JOINT", graph.joints)):
-        for entity_id, row in table.items():
-            rows.append({
-                "entity_type": entity_type,
-                "entity_id": str(entity_id),
-                "set_id": str(row.set_id),
-                "status": str(row.status),
-                "diagnostics": tuple({
-                    "physical_piece": item.physical_piece,
-                    "conflicting_feature_ids": item.conflicting_feature_ids,
-                    "reason": item.reason,
-                    "diagnostic_code": item.diagnostic_code,
-                } for item in row.diagnostics),
-            })
-    return tuple(rows)
-
-
-def evaluate_receiving_export(
-    graph: ReceivingReadinessGraph, *,
-    bay_ids: Iterable[str] = (), set_ids: Iterable[str] = (), full_project: bool = False,
-) -> ReceivingExportDecision:
-    """Evaluate exact requested dependency closure before any file mutation."""
-    wanted_bays = set(str(value) for value in tuple(bay_ids or ()))
-    wanted_sets = set(str(value) for value in tuple(set_ids or ()))
-    if full_project:
-        wanted_sets = set(graph.sets)
-    unknown_sets = wanted_sets - set(graph.sets)
-    unknown_bays = wanted_bays - set(graph.bays)
-    if unknown_sets or unknown_bays:
-        raise ValueError(f"unknown Receiving export target: sets={sorted(unknown_sets)}, bays={sorted(unknown_bays)}")
-
-    for set_id in wanted_sets:
-        wanted_bays.update(graph.set_bay_ids[set_id])
-
-    dependency_rows = {}
-    for set_id in wanted_sets:
-        dependency_rows[("SET", set_id)] = graph.sets[set_id]
-        for joint_id in graph.set_joint_ids[set_id]:
-            dependency_rows[("JOINT", joint_id)] = graph.joints[joint_id]
-    for bay_id in wanted_bays:
-        dependency_rows[("BAY", bay_id)] = graph.bays[bay_id]
-        for joint_id in graph.bay_joint_ids[bay_id]:
-            dependency_rows[("JOINT", joint_id)] = graph.joints[joint_id]
-
-    blockers = tuple(
-        row for _key, row in sorted(dependency_rows.items()) if not row.ready
-    )
-    ids = tuple(f"{kind}:{entity_id}" for kind, entity_id in sorted(dependency_rows))
-    return ReceivingExportDecision(
-        status=BLOCKED if blockers else READY,
-        requested_bay_ids=tuple(sorted(wanted_bays)),
-        dependency_entity_ids=ids,
-        blockers=blockers,
-    )
-
-
-def receiving_instance_key(set_id: str, bay_id: str) -> str:
-    return f"{str(set_id)}::{str(bay_id)}"
-
-
-def _safe_component(value: str) -> str:
-    text = str(value or "").strip()
-    if not text:
-        raise ValueError("Receiving instance identity component is empty")
-    return re.sub(r'[<>:"/\\|?*]', "_", text)
-
-
-def save_receiving_instance_batch_dxf(
-    *, graph: ReceivingReadinessGraph, layout, instance_geometries: Mapping[str, object],
-    output_dir, save_geometry: Callable[..., Mapping[str, str]],
-    verify_geometry: Callable[..., object] | None = None,
-    bay_ids: Iterable[str] = (), set_ids: Iterable[str] = (),
-    full_project: bool = False, overwrite: bool = False,
-):
-    """Atomically publish stable Set/Bay-scoped physical DXF inventories."""
-    decision = evaluate_receiving_export(
-        graph, bay_ids=bay_ids, set_ids=set_ids, full_project=full_project
-    )
-    if not decision.ready:
-        blocker_ids = ", ".join(
-            f"{row.entity_type}:{row.entity_id}" for row in decision.blockers
-        )
-        raise ValueError(f"RECEIVING_EXPORT_BLOCKED: {blocker_ids}")
-
-    normalized = normalize_receiving_layout(layout)
-    bay_to_set = {}
-    for set_row in normalized["sets"]:
-        for bay in set_row["bays"]:
-            bay_to_set[str(bay["stable_id"])] = str(set_row["stable_id"])
-
-    missing = set(decision.requested_bay_ids) - set(instance_geometries)
-    if missing:
-        raise ValueError(f"missing resolved Receiving Bay geometry: {sorted(missing)}")
+def verify_receiving_manufacturing_instances_dxf(
+    instances: Iterable[ReceivingManufacturingInstance],
+    output_dir,
+) -> dict[tuple[str, str], object]:
+    """Reopen each Bay package using the existing generic physical-piece verifier."""
+    from ae_engine import manufacturing_api as api
 
     root = Path(output_dir)
+    results = {}
+    for row in tuple(instances or ()):
+        directory = receiving_instance_directory(
+            root, set_id=row.set_id, bay_id=row.bay_id
+        )
+        result = api.verify_saved_resolved_manufacturing_geometry_dxf(
+            row.geometry, directory
+        )
+        results[(row.set_id, row.bay_id)] = result
+    return results
+
+
+def save_receiving_manufacturing_instances_dxf(
+    instances: Iterable[ReceivingManufacturingInstance],
+    output_dir,
+    *,
+    readiness: ReceivingReadiness,
+    overwrite: bool = False,
+) -> tuple[ReceivingExportInventoryRow, ...]:
+    """Atomically export one requested multi-Bay batch after readiness preflight.
+
+    Stable Set/Bay IDs live in directory identity only. Existing physical-piece
+    DXF filenames are preserved and no ID is engraved into sheet geometry.
+    """
+    from ae_engine import manufacturing_api as api
+
+    rows = _preflight_instances(instances, readiness)
+    root = Path(output_dir)
     root.parent.mkdir(parents=True, exist_ok=True)
-    temp_root = Path(tempfile.mkdtemp(prefix=f".{root.name}.receiving-tmp-", dir=str(root.parent)))
-    inventory = {}
+    if root.exists() and not overwrite:
+        raise FileExistsError(str(root))
+
+    stage = Path(tempfile.mkdtemp(prefix=f".{root.name}.tmp-", dir=str(root.parent)))
+    backup = None
     try:
-        for bay_id in decision.requested_bay_ids:
-            set_id = bay_to_set[bay_id]
-            instance_key = receiving_instance_key(set_id, bay_id)
-            instance_dir = temp_root / _safe_component(set_id) / _safe_component(bay_id)
-            outputs = dict(save_geometry(
-                instance_geometries[bay_id], instance_dir, overwrite=True
-            ))
-            if callable(verify_geometry):
-                verification = verify_geometry(instance_geometries[bay_id], instance_dir)
-                if not bool(getattr(verification, "ok", False)):
-                    raise ValueError(f"Receiving DXF reopen verification failed: {instance_key}")
+        inventory = []
+        for row in rows:
+            directory = receiving_instance_directory(
+                stage, set_id=row.set_id, bay_id=row.bay_id
+            )
+            outputs = api.save_resolved_manufacturing_geometry_dxf(
+                row.geometry, directory, overwrite=True
+            )
+            check = api.verify_saved_resolved_manufacturing_geometry_dxf(
+                row.geometry, directory
+            )
+            if not bool(getattr(check, "ok", False)):
+                raise RuntimeError(
+                    f"Receiving DXF reopen verification failed for "
+                    f"{row.set_id}/{row.bay_id}: {getattr(check, 'issues', ())}"
+                )
             for part_id, path in outputs.items():
-                inventory[f"{instance_key}::{part_id}"] = str(path)
+                inventory.append(
+                    ReceivingExportInventoryRow(
+                        set_id=row.set_id,
+                        bay_id=row.bay_id,
+                        part_id=str(part_id),
+                        relative_path=str(Path(path).relative_to(stage)),
+                    )
+                )
 
         if root.exists():
-            if not overwrite:
-                raise FileExistsError(str(root))
-            shutil.rmtree(root)
-        os.replace(temp_root, root)
-        published = {}
-        for key, old_path in inventory.items():
-            rel = Path(old_path).relative_to(temp_root)
-            published[key] = str(root / rel)
-        return published
-    except Exception:
-        shutil.rmtree(temp_root, ignore_errors=True)
-        raise
+            backup = root.with_name(root.name + ".previous")
+            if backup.exists():
+                shutil.rmtree(backup)
+            os.replace(root, backup)
+        try:
+            os.replace(stage, root)
+        except Exception:
+            if backup is not None and backup.exists() and not root.exists():
+                os.replace(backup, root)
+            raise
+        if backup is not None and backup.exists():
+            shutil.rmtree(backup)
+        stage = None
+        return tuple(inventory)
+    finally:
+        if stage is not None and stage.exists():
+            shutil.rmtree(stage, ignore_errors=True)
 
 
 __all__ = [
-    "READY", "BLOCKED", "JOINT_INTRINSIC", "BAY_INTRINSIC",
-    "ReceivingIntrinsicFailure", "ReceivingReadinessRow", "ReceivingReadinessGraph",
-    "ReceivingManufacturingReadinessResolution",
-    "ReceivingExportDecision", "build_receiving_readiness_graph",
-    "resolve_receiving_manufacturing_readiness",
-    "receiving_readiness_projection", "evaluate_receiving_export",
-    "receiving_instance_key", "save_receiving_instance_batch_dxf",
+    "BAY_INTRINSIC",
+    "BLOCKED",
+    "JOINT_INTRINSIC",
+    "NOT_EXPORTABLE",
+    "READY",
+    "RECEIVING_JOINT_FEATURE_CONFLICT",
+    "ReceivingEntityReadiness",
+    "ReceivingExportBlocked",
+    "ReceivingExportInventoryRow",
+    "ReceivingIntrinsicFailure",
+    "ReceivingManufacturingInstance",
+    "ReceivingReadiness",
+    "assert_receiving_exportable",
+    "classify_receiving_intrinsic_code",
+    "intrinsic_failure",
+    "project_receiving_readiness",
+    "receiving_export_blockers",
+    "receiving_instance_directory",
+    "resolve_receiving_readiness",
+    "save_receiving_manufacturing_instances_dxf",
+    "verify_receiving_manufacturing_instances_dxf",
 ]
