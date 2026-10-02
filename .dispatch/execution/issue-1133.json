@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
   "issue": 1133,
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "lease": {
-    "expires_at": "2026-10-02T03:59:32Z",
-    "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
-    "token": "lease:1133:36961452847:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
     "delete_paths": [],
@@ -42,8 +38,8 @@
     "display": "Handoff Issue #1133 repository-content implementation to canonical root workspace",
     "kind": "HANDOFF"
   },
-  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "INTERACTIVE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -65,13 +61,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
   "transaction": {
-    "expected_fingerprint": "2ac461a584e486d4c9345ba189b85220044cf5dc6a664617e3ecaa4ec2671477",
-    "id": "gha:36961452847:1133:ACQUIRE:1",
+    "expected_fingerprint": "08a070ef4a4a1fd24148f450930f40d0b8f0b2061ecc3c62299b94ca285a296a",
+    "id": "gha:36961536393:1133:HANDOFF:2",
     "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
-    "kind": "ACQUIRE",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T03:44:32Z",
+  "updated_at": "2026-10-02T03:45:41Z",
   "version": 2,
   "work_branch": "scheduler/issue1133-auto-dispatch"
 }
