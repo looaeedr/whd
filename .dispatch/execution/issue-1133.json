@@ -1,52 +1,77 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1133,
-  "execution_intent": "SCHEDULER_LANE",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": null,
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-  "work_branch": "scheduler/issue1133-auto-dispatch",
-  "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1133"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "SCHEDULER_LANE",
+  "generation": 2,
+  "head_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "issue": 1133,
+  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lease": {
+    "expires_at": "2026-10-02T03:59:32Z",
+    "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
+    "token": "lease:1133:36961452847:1"
+  },
+  "mutation_scope": {
+    "base_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "tests/process/test_flow_v2_path_reservation.py",
+      "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
+      "tools/control_transaction.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/execution_invocation_exit.py"
+    ]
+  },
+  "next_action": {
+    "args": {
+      "to_owner_id": "chatgpt.flowv2.work0",
+      "to_owner_kind": "INTERACTIVE"
+    },
+    "display": "Handoff Issue #1133 repository-content implementation to canonical root workspace",
+    "kind": "HANDOFF"
+  },
+  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
-      "kind": "INGRESS_AUTHORITY",
+      "authority_fingerprint": "dc5eb93725406582623884ab7ad8faf6e5aa44fab6b5f738e3240ce378f57729",
       "authority_kind": "USER_EXPLICIT",
       "authority_ref": "github-issue:1133:WHD_SCHEDULER_DISPATCH_REQUEST_V1",
-      "authority_fingerprint": "dc5eb93725406582623884ab7ad8faf6e5aa44fab6b5f738e3240ce378f57729"
+      "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-10-02T00:33:43Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
+  "slot_id": null,
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
+  "transaction": {
+    "expected_fingerprint": "2ac461a584e486d4c9345ba189b85220044cf5dc6a664617e3ecaa4ec2671477",
+    "id": "gha:36961452847:1133:ACQUIRE:1",
+    "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-02T03:44:32Z",
+  "version": 2,
+  "work_branch": "scheduler/issue1133-auto-dispatch"
 }
