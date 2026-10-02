@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-work2-yield-20261002T1713",
+  "request_id": "issue1092-work2-yield-20261002T1713-r2",
   "issue": 1092,
   "kind": "YIELD",
   "lane_id": "chatgpt.flowv2.work2",
@@ -10,6 +10,7 @@
   "effect": {
     "updated_at": "2026-10-02T09:13:48Z"
   },
+  "purpose": "Complete the required remote-wait yield after one active QA observation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
