@@ -39,6 +39,12 @@ DIRECTION_CONTRACT = {
 }
 
 _TOL = 1e-6
+_CANONICAL_DECIMALS = 9
+
+
+def _canonical_number(value: float) -> float:
+    """Collapse transform round-off at the canonical Joint-frame boundary."""
+    return float(round(float(value), _CANONICAL_DECIMALS))
 
 
 class ReceivingJointLockPatternError(ValueError):
@@ -170,9 +176,9 @@ def _cutting_side_pattern(
             )
         rows.append(
             ReceivingJointLockCircle(
-                u=float(u),
-                v=float(v),
-                diameter=float(diameter),
+                u=_canonical_number(u),
+                v=_canonical_number(v),
+                diameter=_canonical_number(diameter),
                 layer=layer,
             )
         )
@@ -240,8 +246,8 @@ def _project_participant(
         # mating plane X=0, u points toward REAR (-Z), v points TOP (+Y).
         front_world_z = 0.0 if depth_alignment == "FRONT" else depth - float(effective_depth)
         bottom_world_y = 0.0 if height_alignment == "BOTTOM" else float(effective_height) - height
-        world_y = bottom_world_y + local_y
-        world_z = front_world_z - participant_u
+        world_y = _canonical_number(bottom_world_y + local_y)
+        world_z = _canonical_number(front_world_z - participant_u)
 
         features.append(
             CircleFeature(
@@ -259,8 +265,15 @@ def _project_participant(
                 ),
             )
         )
-        finished_centers.append((float(local_x), float(local_y)))
-        world_centers.append((0.0, float(world_y), float(world_z)))
+        finished_centers.append((
+            _canonical_number(local_x),
+            _canonical_number(local_y),
+        ))
+        world_centers.append((
+            0.0,
+            _canonical_number(world_y),
+            _canonical_number(world_z),
+        ))
 
     return ReceivingJointLockParticipantProjection(
         bay_id=str(bay["stable_id"]),
