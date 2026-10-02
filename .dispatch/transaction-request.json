@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-acquire-root-5945139025",
+  "request_id": "issue1133-acquire-root-5945139025-r2",
   "issue": 1133,
   "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -21,11 +21,11 @@
       "target_branch": "cleanup/2d-3d-sync",
       "base_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
       "write_paths": [
-        "tools/execution_invocation_exit.py",
+        "tests/process/test_flow_v2_path_reservation.py",
+        "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
         "tools/control_transaction.py",
         "tools/control_transaction_production_executor.py",
-        "tests/process/test_flow_v2_path_reservation.py",
-        "tests/process/test_issue1093_active_owning_issue_no_pivot.py"
+        "tools/execution_invocation_exit.py"
       ],
       "delete_paths": []
     }
