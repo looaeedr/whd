@@ -1,54 +1,36 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-apply-exact-root-diff-20261002T1129+08",
+  "request_id": "issue1133-normalize-qa-workflow-path-20261002T1132+08",
   "issue": 1133,
-  "kind": "APPLY_COMMIT",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-  "expected_coord_head": "e630c22bfeac3023ba4eb3e661d02f8f4a27bcf7",
-  "expected_generation": 8,
+  "expected_coord_head": "e25e6de2b2cf1d1965adafd8c785c38237f1a4b9",
+  "expected_generation": 9,
   "effect": {
-    "head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
+    "observed_work_branch": "scheduler/issue1133-auto-dispatch",
+    "observed_head_sha": "e3c38e99653e8848ddeda978efd62fd648465d15",
+    "observed_target_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
     "semantic_state": "ROOT_TESTED_DIFF_PUSHED",
     "next_action": {
       "kind": "START_QA",
       "args": {
-        "workflow": "whd-control-plane-regression.yml"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Run post-push control-plane regression"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-      "diff_digest": "c80c0556ddcd739e9b55fac35e17aa79e38dc7f050d0bb1bede04e1405a71d82",
-      "issue": 1133,
-      "generation": 4,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_flow_v2_path_reservation.py",
-        "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
-        "tools/control_transaction.py",
-        "tools/control_transaction_production_executor.py",
-        "tools/execution_invocation_exit.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "d788f46eeab88749a5e32627b96876e7497755cb949e01cd6b74be006fa241b4",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1133,
-      "generation": 8,
-      "record_fingerprint": "ee397266fb4985e6e6e710e893ccccf95e8c3f09f1bd79b6ce98dd19c2d7dd5b",
-      "lease_token": "lease:1133:36964317294:1",
-      "invocation_identity": "chatgpt.flowv2.work1.issue1133.20261002T1122+08",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "scheduler/issue1133-auto-dispatch",
-      "expected_work_head": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-      "expected_target_head": "d4a2c7b42764436e18abc0959291aab7c2dc3714"
+      "display": "Consume exact-head control-plane regression"
     }
   },
-  "reuse_admission_session": true
+  "purpose": "Normalize Issue #1133 post-push QA workflow path to the exact GitHub Actions path without changing code, scope, head, target, owner or reservation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+  }
 }
