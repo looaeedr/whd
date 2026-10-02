@@ -1,35 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1092-acquire-terminal-tail-20261002T2307+08",
+  "request_id": "issue1092-acquire-terminal-tail-v1-compat-20261002T2319+08",
   "issue": 1092,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1092.finalize.20261002T2307+08",
+  "invocation_identity": "chatgpt.flowv2.work2.issue1092.finalize.20261002T2319+08",
   "expected_coord_head": "e1abc8c388750af523ec19833af9cd962632ef44",
   "expected_generation": 12,
   "effect": {},
-  "purpose": "Resume exact Issue #1092 terminal tail after PR #1140 was externally merged; renew the expired same-lane lease without changing next_action, then reconcile MERGE and FINALIZE to release the existing path reservation.",
+  "purpose": "Compatibility-envelope resume of already-merged Issue #1092 terminal tail only; renew expired same-lane lease, then reconcile ALREADY_MERGED and FINALIZE. This does not authorize repository-content authoring.",
   "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
+    "gate_status": "CURRENT",
     "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "execution_mode": "INTERACTIVE",
+    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
+    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
+    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
   }
 }
