@@ -12,19 +12,34 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "issue": 1092,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": {
+    "expires_at": "2026-10-02T07:27:09Z",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
+    "token": "lease:1092:36977287107:1"
+  },
+  "mutation_scope": {
+    "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+      "tests/process/test_issue1092_remote_qa_nonblocking_wait.py",
+      "tools/execution_invocation_exit.py"
+    ]
+  },
   "next_action": {
     "args": {},
-    "display": "Acquire Issue #1092",
-    "kind": "ACQUIRE"
+    "display": "Start Git phase only after ROOT_DIFF_FROZEN and GIT_WRITE_UNLOCKED",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work2",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +53,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "PATHS_RESERVED_ROOT_IMPLEMENTING",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "transaction": null,
-  "updated_at": "2026-10-02T07:09:18Z",
+  "transaction": {
+    "expected_fingerprint": "6f917ca8f8b23a89bbf576907e7021053c1b2be7145c674ea48d46bd26f044db",
+    "id": "gha:36977287107:1092:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-02T07:12:09Z",
   "version": 2,
   "work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002"
 }
