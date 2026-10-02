@@ -12,11 +12,15 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 26,
+  "generation": 27,
   "head_sha": "60cf8c348dade83024832c66acf2089733cda4af",
   "issue": 1062,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lease": {
+    "expires_at": "2026-10-02T04:59:38Z",
+    "invocation_identity": "scheduler-a.issue1062.current.20261002T1240+08",
+    "token": "lease:1062:36965842714:1"
+  },
   "mutation_scope": {
     "base_sha": "091b11a50ae8e29e9119edcf5c22d6a8ad7433b1",
     "delete_paths": [],
@@ -38,12 +42,15 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Acquire fresh execution",
-    "kind": "ACQUIRE"
+    "args": {
+      "to_owner_id": "chatgpt.flowv2.work1",
+      "to_owner_kind": "INTERACTIVE"
+    },
+    "display": "Handoff Issue #1062 fresh current full-regression work to canonical root workspace via work1",
+    "kind": "HANDOFF"
   },
-  "owner_id": "NONE",
-  "owner_kind": "NONE",
+  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -57,21 +64,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "60cf8c348dade83024832c66acf2089733cda4af",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "60cf8c348dade83024832c66acf2089733cda4af",
   "transaction": {
-    "expected_fingerprint": "247497d6d28aaabcfec55f974dd41873b42a36ac82da005626dbd2dfc96deefa",
-    "id": "gha:36965400084:1062:RELEASE_PATHS:25",
-    "invocation_identity": "scheduler-a.issue1062.restart.20261002T1137+08",
-    "kind": "RELEASE_PATHS",
+    "expected_fingerprint": "75d2abf6592f16a5590f851bf94aa4af5e4ca0007a764df2cf913f7358c35859",
+    "id": "gha:36965842714:1062:ACQUIRE:26",
+    "invocation_identity": "scheduler-a.issue1062.current.20261002T1240+08",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T04:38:29Z",
+  "updated_at": "2026-10-02T04:44:38Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
