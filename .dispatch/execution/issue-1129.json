@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "issue": 1129,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1129",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "f06bf25f50f79fe610c42b9106a117abeb57d7c0f51edee3a1306244fc4d708a",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:chat:2026-10-02:continue-open-work",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.3",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "transaction": null,
+  "updated_at": "2026-10-02T07:21:20Z",
+  "version": 2,
+  "work_branch": "governance/issue1129-runtime-report-identity-gate-20261002"
+}
