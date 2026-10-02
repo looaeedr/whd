@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-acquire-root-tested-canonical-drive-20261002T1625+08",
+  "request_id": "issue1128-acquire-root-tested-fresh-cas-20261002T1625+08",
   "issue": 1128,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1128.20261002T1625+08",
-  "expected_coord_head": "04aff403ae5f30f1281384f56b6857f37fd83bc5",
+  "expected_coord_head": "8d156aff72dd55462b94794a68f2b864e62c2477",
   "expected_generation": 2,
   "effect": {},
-  "purpose": "Resume Issue #1128 only after exact-current canonical Drive root materialization and root RED/GREEN/full-gate work. Corrected canonical read_mode evidence; no content or unrelated Issue mutation.",
+  "purpose": "Fresh-CAS retry of the same Issue #1128 expired same-owner lease acquisition after retryable STALE_COORD_HEAD; no content or unrelated Issue mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
