@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTRACT = ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json"
+CONTRACT = ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json"
 
 
 def _record(*, state="DONE", lease=None, reservation="RELEASED", next_action=None):
@@ -20,185 +20,107 @@ def _record(*, state="DONE", lease=None, reservation="RELEASED", next_action=Non
     }
 
 
-def _export():
-    return {
-        "schema": "WHD_DRIVE_SOURCE_EXPORT_V1",
-        "source_sha": "a" * 40,
-        "tree_sha": "b" * 40,
-        "snapshot_name": "whd-cleanup-2d-3d-sync-aaaaaaaaaaaaaaaa.zip",
-        "snapshot_sha256": "c" * 64,
-        "artifact_name": f"whd-drive-source-{'a' * 40}",
-        "github_run_id": "123",
-    }
+def _root_receipt():
+    from tools.post_integration_durability import build_root_sync_receipt
+    return build_root_sync_receipt(
+        accepted_sha="a" * 40,
+        accepted_tree_sha="b" * 40,
+        root_head_sha="a" * 40,
+        root_tree_sha="b" * 40,
+    )
 
 
-def _artifact():
-    return {
-        "id": 456,
-        "name": f"whd-drive-source-{'a' * 40}",
-        "digest": "sha256:" + "d" * 64,
-        "workflow_run": {"id": 123, "head_sha": "a" * 40},
-    }
+def _lane_receipt(state="EMPTY"):
+    from tools.post_integration_durability import build_lane_delivery_receipt
+    return build_lane_delivery_receipt(
+        lane="docs", issue=1045, generation=7, merged_sha="a" * 40,
+        manifest_digest="c" * 64, delivered_paths=["AGENTS.md"],
+        lane_state_after=state,
+    )
 
 
-def _drive():
-    return {
-        "file_id": "drive-file-1",
-        "name": "whd-cleanup-2d-3d-sync-aaaaaaaaaaaaaaaa.zip",
-        "sha256": "c" * 64,
-        "size": 12345,
-    }
-
-
-def _complete_manifest():
-    return {
-        "source_sha": "a" * 40,
-        "tree_sha": "b" * 40,
-        "durable_snapshot_base_sha": "a" * 40,
-        "durable_snapshot_base_tree_sha": "b" * 40,
-        "durable_snapshot_file_id": "drive-file-1",
-        "durable_snapshot_name": "whd-cleanup-2d-3d-sync-aaaaaaaaaaaaaaaa.zip",
-        "durable_snapshot_status": "CURRENT_EXACT_HEAD",
-        "export_writeback_status": "COMPLETE",
-        "post_integration_export_run_id": 123,
-        "post_integration_export_trigger_head_sha": "a" * 40,
-        "post_integration_export_artifact_id": 456,
-        "post_integration_export_artifact_digest": "sha256:" + "d" * 64,
-        "durable_snapshot_sha256": "c" * 64,
-        "durable_snapshot_readback": "VERIFIED",
-        "root_local_gate_json_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-        "root_local_gate_json_file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV",
-    }
-
-
-def test_contract_keeps_execution_authority_in_flow_v2():
+def test_v2_contract_keeps_execution_authority_in_flow_v2_and_retires_v1():
     from tools.post_integration_durability import validate_contract
     payload = validate_contract(json.loads(CONTRACT.read_text(encoding="utf-8")))
+    old = json.loads((ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json").read_text(encoding="utf-8"))
     assert payload["execution_state_owner"] == "WHD_EXECUTION_RECORD_V2"
-    assert payload["owner"] == "tools/post_integration_durability.py"
     assert payload["required_order"][-1] == "DURABLE_CLEANUP_COMPLETE"
+    assert payload["canonical_root"] == "/Google Drive/WHD"
+    assert old["status"] == "SUPERSEDED"
 
 
-def test_export_receipt_binds_run_artifact_snapshot_and_drive_readback():
-    from tools.post_integration_durability import build_manifest_complete_patch, build_snapshot_writeback_receipt
-    receipt = build_snapshot_writeback_receipt(export_manifest=_export(), artifact=_artifact(), drive_snapshot=_drive())
-    assert receipt["status"] == "VERIFIED"
-    assert receipt["artifact_id"] == 456
-    assert receipt["trigger_head_sha"] == "a" * 40
-    assert receipt["drive_file_id"] == "drive-file-1"
-    patch = build_manifest_complete_patch(receipt)
-    assert patch["export_writeback_status"] == "COMPLETE"
-    assert patch["durable_snapshot_status"] == "CURRENT_EXACT_HEAD"
-    assert patch["durable_snapshot_readback"] == "VERIFIED"
-    assert patch["root_local_gate_json_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
-    assert patch["root_local_gate_json_file_id"] == "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
+def test_root_sync_receipt_requires_exact_accepted_head_and_tree():
+    from tools.post_integration_durability import build_root_sync_receipt
+    assert _root_receipt()["status"] == "VERIFIED"
+    with pytest.raises(ValueError, match="HEAD"):
+        build_root_sync_receipt(
+            accepted_sha="a" * 40, accepted_tree_sha="b" * 40,
+            root_head_sha="d" * 40, root_tree_sha="b" * 40,
+        )
+    with pytest.raises(ValueError, match="tree"):
+        build_root_sync_receipt(
+            accepted_sha="a" * 40, accepted_tree_sha="b" * 40,
+            root_head_sha="a" * 40, root_tree_sha="d" * 40,
+        )
 
 
-def test_pull_request_transport_head_may_differ_from_exported_merge_source():
-    from tools.post_integration_durability import build_manifest_complete_patch, build_snapshot_writeback_receipt
-    artifact = _artifact()
-    artifact["workflow_run"] = {"id": 123, "head_sha": "f" * 40}
-    receipt = build_snapshot_writeback_receipt(export_manifest=_export(), artifact=artifact, drive_snapshot=_drive())
-    assert receipt["source_sha"] == "a" * 40
-    assert receipt["trigger_head_sha"] == "f" * 40
-    patch = build_manifest_complete_patch(receipt)
-    assert patch["durable_snapshot_base_sha"] == "a" * 40
-    assert patch["post_integration_export_trigger_head_sha"] == "f" * 40
+def test_lane_delivery_receipt_requires_finalized_shared_zero_state():
+    from tools.post_integration_durability import build_lane_delivery_receipt
+    assert _lane_receipt("EMPTY")["lane_state_after"] == "EMPTY"
+    assert _lane_receipt("ROLLED_FORWARD")["lane_state_after"] == "ROLLED_FORWARD"
+    with pytest.raises(ValueError, match="EMPTY or ROLLED_FORWARD"):
+        build_lane_delivery_receipt(
+            lane="docs", issue=1045, generation=7, merged_sha="a" * 40,
+            manifest_digest="c" * 64, delivered_paths=["AGENTS.md"], lane_state_after="PENDING",
+        )
 
 
-def test_drive_digest_mismatch_fails_closed_before_manifest_complete():
-    from tools.post_integration_durability import build_snapshot_writeback_receipt
-    bad = dict(_drive(), sha256="e" * 64)
-    with pytest.raises(ValueError, match="Drive snapshot digest mismatch"):
-        build_snapshot_writeback_receipt(export_manifest=_export(), artifact=_artifact(), drive_snapshot=bad)
-
-
-def test_workspace_archive_requires_full_done_tuple():
-    from tools.post_integration_durability import validate_workspace_archive_eligibility
-    assert validate_workspace_archive_eligibility(_record())["eligible"] is True
-    with pytest.raises(ValueError, match="lease=null"):
-        validate_workspace_archive_eligibility(_record(lease={"owner": "worker.slot.0"}))
-    with pytest.raises(ValueError, match="RELEASED"):
-        validate_workspace_archive_eligibility(_record(reservation="ACTIVE"))
-    with pytest.raises(ValueError, match="next_action=null"):
-        validate_workspace_archive_eligibility(_record(next_action={"action": "MERGE"}))
-
-
-def test_cleanup_tail_never_treats_done_as_enough():
+def test_cleanup_tail_requires_done_root_sync_then_lane_finalization():
     from tools.post_integration_durability import classify_post_integration_durability
-    pending = dict(_complete_manifest(), export_writeback_status="PENDING_POST_INTEGRATION_EXPORT")
-    result = classify_post_integration_durability(execution_record=_record(), source_manifest=pending, workspace_location="ACTIVE")
-    assert result["next_action"] == "CONSUME_SOURCE_EXPORT"
-    result = classify_post_integration_durability(execution_record=_record(), source_manifest=_complete_manifest(), workspace_location="ACTIVE")
-    assert result["next_action"] == "ARCHIVE_WORKSPACE_TO_DONE"
-    result = classify_post_integration_durability(execution_record=_record(), source_manifest=_complete_manifest(), workspace_location="DONE")
+    result = classify_post_integration_durability(
+        execution_record=_record(), root_sync_receipt=None, lane_delivery_receipt=None,
+    )
+    assert result["next_action"] == "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD"
+    result = classify_post_integration_durability(
+        execution_record=_record(), root_sync_receipt=_root_receipt(), lane_delivery_receipt=None,
+    )
+    assert result["next_action"] == "FINALIZE_DELIVERED_LANE_ZERO"
+    result = classify_post_integration_durability(
+        execution_record=_record(), root_sync_receipt=_root_receipt(), lane_delivery_receipt=_lane_receipt(),
+    )
     assert result["state"] == "DURABLE_CLEANUP_COMPLETE"
-    assert result["next_action"] is None
 
 
-def test_nonterminal_or_live_work_is_never_auto_archived():
+def test_nonterminal_or_live_record_never_completes_physical_cycle():
     from tools.post_integration_durability import classify_post_integration_durability
-    result = classify_post_integration_durability(execution_record=_record(state="ACTIVE"), source_manifest=_complete_manifest(), workspace_location="ACTIVE")
-    assert result["state"] == "NOT_TERMINAL"
-    assert result["next_action"] == "WAIT_EXECUTION_DONE"
+    for record in (
+        _record(state="ACTIVE"),
+        _record(lease={"owner": "worker.slot.0"}),
+        _record(reservation="ACTIVE"),
+        _record(next_action={"kind": "MERGE"}),
+    ):
+        result = classify_post_integration_durability(
+            execution_record=record, root_sync_receipt=_root_receipt(), lane_delivery_receipt=_lane_receipt(),
+        )
+        assert result["state"] == "NOT_TERMINAL"
+        assert result["next_action"] == "WAIT_EXECUTION_DONE"
 
 
-def test_export_workflow_emits_self_contained_exact_head_digest_identity():
-    text = (ROOT / ".github/workflows/drive-source-snapshot-export.yml").read_text(encoding="utf-8")
-    assert "pull_request:" in text
-    assert "types: [closed]" in text
-    assert "github.event.pull_request.merged == true" in text
-    assert "github.event.pull_request.merge_commit_sha" in text
-    assert '"snapshot_sha256": snapshot_sha256' in text
-    assert '"artifact_name": artifact_name' in text
-    assert '"github_run_id": os.environ.get("GITHUB_RUN_ID")' in text
-
-
-def test_root_local_skill_requires_cleanup_tail_and_authority_map_points_to_machine_owner():
-    skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
-    assert "POST_INTEGRATION_DURABILITY_HARD_GATE_V1" in skill
-    assert "Flow v2 `DONE` 只代表 execution / merge / issue closure / reservation 已 terminal" in skill
-    assert "DURABLE_CLEANUP_COMPLETE" in skill
-    authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
-    assert "contract=post-integration-durability role=CURRENT path=tools/post_integration_durability.py" in authority
-
-
-def test_source_export_request_schema_is_owned_by_existing_durability_machine():
-    from tools.post_integration_durability import build_source_export_request, validate_source_export_request
-    request = build_source_export_request(source_sha="a" * 40)
-    validated = validate_source_export_request(request)
-    assert validated["schema"] == "WHD_SOURCE_EXPORT_REQUEST_V1"
-    assert validated["source_branch"] == "cleanup/2d-3d-sync"
-    assert validated["source_sha"] == "a" * 40
-
-
-def test_source_export_request_rejects_non_cleanup_branch():
-    from tools.post_integration_durability import validate_source_export_request
-    bad = {
-        "schema": "WHD_SOURCE_EXPORT_REQUEST_V1",
-        "version": 1,
-        "source_branch": "main",
-        "source_sha": "a" * 40,
+def test_legacy_snapshot_and_work_active_are_not_current_authorities():
+    contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+    assert set(contract["forbidden_current_authorities"]) == {
+        "SOURCE_SNAPSHOT", "CURRENT_SOURCE_MANIFEST", "WORK_ACTIVE_ARCHIVE"
     }
-    with pytest.raises(ValueError, match="source_branch"):
-        validate_source_export_request(bad)
+    tool = (ROOT / "tools/post_integration_durability.py").read_text(encoding="utf-8")
+    assert "/work/active" not in tool
+    assert "/source/snapshots" not in tool
+    assert "Current Source Manifest" not in tool
 
 
-def test_active_workspace_requires_current_manifest_to_match_terminal_target_sha():
-    from tools.post_integration_durability import classify_post_integration_durability
-    stale = dict(_complete_manifest(), source_sha="9" * 40, durable_snapshot_base_sha="9" * 40)
-    result = classify_post_integration_durability(
-        execution_record=_record(), source_manifest=stale, workspace_location="ACTIVE"
-    )
-    assert result["state"] == "SOURCE_EXPORT_PENDING"
-    assert result["next_action"] == "CONSUME_SOURCE_EXPORT"
-    assert "target_sha" in result["reason"]
-
-
-def test_archived_workspace_allows_later_current_source_to_advance():
-    from tools.post_integration_durability import classify_post_integration_durability
-    newer = dict(_complete_manifest(), source_sha="9" * 40, durable_snapshot_base_sha="9" * 40)
-    result = classify_post_integration_durability(
-        execution_record=_record(), source_manifest=newer, workspace_location="DONE"
-    )
-    assert result["state"] == "DURABLE_CLEANUP_COMPLETE"
+def test_root_local_skill_and_authority_map_point_to_v2_cleanup():
+    skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
+    authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
+    assert "POST_INTEGRATION_DURABILITY_HARD_GATE_V2" in skill
+    assert "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD" in skill
+    assert "FINALIZE_DELIVERED_LANE_ZERO" in skill
+    assert "contract=post-integration-durability-v2 role=CURRENT path=tools/post_integration_durability.py" in authority

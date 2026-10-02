@@ -25,7 +25,15 @@ whd_schema: WHD_DOC_META_V1
 
 ### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
-若新 scheduler invocation 在 project startup 階段還不知道 exact owning Issue，先依 canonical Flow v2 做 `READ_ONLY_BOOTSTRAP_ONLY`：只讀 `coord/execution-v2`、derived ready-index、`tools/execution_scheduler_view.py` scheduler projection 與 Issue/branch/HEAD identity；若 current/ready 都空，才額外用 `tools/scheduler_ready_ingress.py` 掃 repository-owner-authored open Issue 第一個 nonblank marker `WHD_SCHEDULER_DISPATCH_REQUEST_V1`（可帶 `lane=ANY|A|B`），用來綁 trusted Phase6 Preflight request。普通 open Issue 不得推論成 work authority。此 bootstrap projection 不得授權 claim、ACQUIRE、transaction、Guard 或 repository mutation。host entrypoint observation 依 canonical fixed NON_AUTHORITY exception 可寫。
+若新 
+### SHARED_0_SCHEDULER_HARD_GATE_V1
+
+- 排程 A/B 不擁有另一份 0；所有 scheduler/interactive/work-slot 共用 `.unpushed/docs/0` 與 `.unpushed/body/0`。
+- 同 path 已有 lineage 時，scheduler 必須以 latest `0` generation+hash 為 base；不得以自己的舊 checkout/branch/base 覆寫。
+- merge conflict 固定 checkpoint=`WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1`、state=`BLOCKED_USER_DECISION`，通知使用者；沒有 `EXPLICIT_USER_CONFLICT_DECISION` 不得自行選 ours/theirs 或繼續 `/推推`。
+- Flow v2 path reservation 只在 delivery phase取得，不得把 reservation conflict 升格成 root施工前置條件。
+
+scheduler invocation 在 project startup 階段還不知道 exact owning Issue，先依 canonical Flow v2 做 `READ_ONLY_BOOTSTRAP_ONLY`：只讀 `coord/execution-v2`、derived ready-index、`tools/execution_scheduler_view.py` scheduler projection 與 Issue/branch/HEAD identity；若 current/ready 都空，才額外用 `tools/scheduler_ready_ingress.py` 掃 repository-owner-authored open Issue 第一個 nonblank marker `WHD_SCHEDULER_DISPATCH_REQUEST_V1`（可帶 `lane=ANY|A|B`），用來綁 trusted Phase6 Preflight request。普通 open Issue 不得推論成 work authority。此 bootstrap projection 不得授權 claim、ACQUIRE、transaction、Guard 或 repository mutation。host entrypoint observation 依 canonical fixed NON_AUTHORITY exception 可寫。
 
 Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟棄 bootstrap projection，再 fresh-read canonical scheduler state，才進入下面的 Wake。禁止建立永久 bootstrap Issue，也不得把這個 bridge 擴張成第二套 scheduler authority。
 
@@ -41,9 +49,9 @@ Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟�
 排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但**不能因此取得 GitHub-first 內容施工權**。
 
 - 若 exact next_action 只需要 read/discovery、lease/coordination、trusted preflight、既有候選的 QA/merge/finalization，排程可直接執行。
-- 若 next_action 需要新增、修改或刪除 repository content，固定先走 `HANDOFF` 到 canonical `/Google Drive/WHD/work/active/...` root workspace；不得在 GitHub branch 直接 author / patch / hotfix。
+- 若 next_action 需要新增、修改或刪除 repository content，固定先走 `HANDOFF` 到 canonical `/Google Drive/WHD` shared-unpushed workflow：先分類 docs/body、fresh-read對應 latest `0`，worker 以 latest `0` 為 base，在 root namespace 完成修改/測試，再 merge 回 fresh latest `0`。不得在 GitHub branch 直接 author / patch / hotfix。
 - root workspace 必須先完成 change-test classification、targeted/affected/integration/final full gate、`WHD_TEST_EXECUTION_RECEIPT_V1=GREEN` 與 `ROOT_DIFF_FROZEN`；之後才把 exact tested diff push 成候選。
-- GitHub 在此之後只負責 PR/CI/remote QA/merge verification。若 verification 揭露內容錯誤，回 root 重修重測，不在 branch 上補。
+- 只有 selected lane 最新 `0` post-merge GREEN 並 frozen 後，才可由 `/推推 文檔|主體` 取得 delivery reservation、建立 delivery branch。GitHub 在此之後只負責 PR/CI/remote QA/merge verification；verification 揭露內容錯誤時回 shared-0 修正，不在 branch 上補。
 - 這個 handoff 不等於停止：scheduler 必須把 structured next_action 留成可恢復狀態；root-tested candidate 出現後，lane 立即接回 post-push integration tail。
 
 <!-- REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1 -->

@@ -15,63 +15,55 @@ whd_schema: WHD_DOC_META_V1
 
 ## AI 開發交接總覽
 
-## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V1：先解析 Google Drive WHD 根目錄
+## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V2：完整 Google Drive WHD repo root
 
-<!-- WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 -->
+<!-- WORK_ROOT_BOOTSTRAP_HARD_GATE_V2 -->
 
-對 WHD 的任何新 task/runtime/invocation，**預設工作根目錄不需要使用者重複指定**。固定 canonical root 是：
+任何 WHD task/runtime/invocation 的 canonical root 固定是 `/Google Drive/WHD`，Drive folder id=`1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN`。
 
-`/Google Drive/WHD`
+啟動固定硬閘門：
 
-canonical gate 是：
+`WHD_ROOT_RESOLVED → ROOT_IDENTITY_VERIFIED → FULL_REPO_ROOT_VERIFIED → SHARED_UNPUSHED_LAYOUT_VERIFIED → ROOT_SHARED_UNPUSHED_GATE_READ`
 
-`/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json`
+root 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engine/gui_modules/.unpushed`。`source/state/work/artifacts` 不再是 CURRENT content-root 架構；舊 snapshot/control-root 不得再作 current authority。
 
-在任何一般 workspace/file discovery、專案檔案讀取、分析或 mutation 前，只允許完成下列 bootstrap read：
+canonical contracts：
 
-1. 列出 Library root，確認 `/Google Drive` 的 mount identity 為 `external-gdrive:root`。
-2. 列出 `/Google Drive`，解析 exact `/Google Drive/WHD` 並驗 folder id=`1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_`。
-3. fresh-read canonical `WHD_WORK_ROOT_HARD_GATE_V1.json`。
-4. fresh-read `/Google Drive/WHD/source/manifests/WHD Current Source Manifest`，完成 `CURRENT_SOURCE_MANIFEST_READ`。
-5. 產生 `WHD_WORK_ROOT_GATE_EVIDENCE_V1`；沒有這張 evidence，不得建立 Flow v2 startup_evidence，也不得進入 mutation ingress。
+- `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`
+- `.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`
+- `.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json`
 
-互動式/chat runtime 固定使用 `read_mode=GOOGLE_DRIVE_CANONICAL`。若使用者只說「根目錄／工作根目錄／專案根目錄／root」，不得再解讀為 `/`、`/mnt/data`、Library `/WHD` 或 GitHub checkout。
+machine owners：`tools/work_root_gate.py`、`tools/shared_unpushed_integration.py`。
 
-GitHub-only / `SCHEDULER_LANE` / trusted remote action 若 execution environment 沒有 Google Drive connector，必須在**任何一般 GitHub discovery 前** fresh-read pointer-only mirror：
+interactive/chat 直接讀 Google Drive root；scheduler/GitHub-only 可以從 repository contract 驗規則，但 repository-content authoring 仍只能回 canonical root，不得把 GitHub checkout 升格為施工 authority。
 
-`.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json`
+## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：共享 0、無 branch 施工、分 lane 交付
 
-並使用 `read_mode=GITHUB_MIRROR`。此 mirror 只證明 canonical root identity，**不得**把 GitHub checkout 改綁成預設工作根目錄。scheduler 的 code/PR/CI/control-plane transport 仍走 GitHub；workspace root 語意仍屬 Google Drive。
+<!-- ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1 -->
 
-machine validator 固定為 `tools/work_root_gate.py`。mount/root/gate/manifest 任一缺失或 identity mismatch 都 fail closed；不得用聊天記憶、`/mnt/data` 暫存路徑或前一 invocation evidence 代替。
+任何 repository-content implementation 在 Phase6 Preflight 後固定使用：
 
-## -0.5. ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1：互動式修改先在根目錄完成並測綠
-
-<!-- ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1 -->
-
-`WHD_WORK_ROOT_HARD_GATE_V1` 完成後，任何 execution mode 只要本輪會進入 repository-content implementation，在 Phase6 Preflight 與任何 repository content mutation 前都必須 fresh-read：
-
-- `/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json`；
-- `.agents/skills/engineering/root-local-first/SKILL.md`；
-- machine owner `tools/root_local_first_gate.py`。
+- `.agents/skills/engineering/root-local-first/SKILL.md`
+- `tools/shared_unpushed_integration.py`
+- `.agents/skills/engineering/推推/SKILL.md`（只有 delivery 時）
 
 唯一順序：
 
-`ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`
+`ROOT_IDENTITY_CURRENT → LANE_CLASSIFIED → ZERO_INITIALIZED_OR_FRESH_READ → WORKER_BASE_LATEST_ZERO → WORKER_MUTATION_COMPLETE → WORKER_TESTS_GREEN → MERGE_TO_FRESH_LATEST_ZERO → CONFLICT_GATE_OR_MERGED → POST_MERGE_ZERO_TESTS_GREEN → ZERO_MANIFEST_FROZEN → DELIVERY_RESERVATION → GIT_WRITE_UNLOCKED`
 
 硬規則：
 
-1. `ROOT_SOURCE_CURRENT` 必須 fresh-read Current Source Manifest 並與 authoritative target SHA/tree exact 對齊；durable snapshot 落後時只可作 bootstrap base，planned touched existing paths 必須逐一 fresh-compare target blob。
-2. 第一次 root/content write 前必須完成 `PATHS_RESERVED`。**新 READY work 的 canonical 入口是 atomic `ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`**，在同一 coord CAS 內同時取得 live lease 與 ACTIVE `mutation_scope`；不得主動拆成 `ACQUIRE → RESERVE_PATHS` 兩次等待。`RESERVE_PATHS` 只保留給 compatibility 與既有 ACTIVE scope 的 monotonic 擴張。同 target 同 path 只允許一張 nonterminal Issue 持有 ACTIVE reservation；overlap 固定 `PATH_RESERVATION_CONFLICT`。state owner 是 ExecutionRecord，static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`，evaluator=`tools/execution_path_reservation.py`，禁止另建 lock database。
-3. 每張 Issue 使用 `build_interactive_work_path(issue=<N>, source_sha=<base>)` 的獨立 workspace；handoff/takeover 不釋放 reservation。scope 擴張必須先 atomic reserve；`FINALIZE` 或 explicit `RELEASE_PATHS` 才釋放。
-4. `GIT_WRITE_UNLOCKED` 前 Git repository content plane 只准 `READ / FETCH / COMPARE`；禁止 content write、commit、create/update ref、push、merge。
-5. root workspace 內先完成實際修改與 `WHD_CHANGE_TEST_PROFILE_V1` 要求的 RED/GREEN/final full gate；test-profile owner 唯一是 `tools/change_test_profile.py`，不得另造第二套分類。
-6. tests terminal GREEN 後 freeze exact touched paths + diff digest + test evidence。fresh-read target；任何 touched/base drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`。
-7. 只有 `GIT_WRITE_UNLOCKED` 後才建立 fresh Git work branch，fresh-read parent/base，再套 `EXACT_TESTED_DIFF_ONLY`。branch 上若需要改內容，回 root 修正、重測、refreeze；不得 Git-side 熱修。
-8. GitHub Actions / remote QA 是 post-push verification，不得取代 root 第一測試面。accepted integration 後必須刷新 Drive Current Source Manifest；full snapshot 尚未刷新時明確標 `STALE_BOOTSTRAP_BASE`。
-9. `SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 的例外只限 **control-plane / post-push verification**。一旦 next action 要產生 repository-content diff，固定 HANDOFF 到 canonical root workspace，完成修改、分類測試、full gate、test receipt、diff freeze 與 `GIT_WRITE_UNLOCKED` 後才可送 Git 候選；remote lane 禁止 GitHub-side authoring/hotfix。
+1. 正常修改與測試**不開 Git branch**。Git branch 只在 `/推推 文檔` 或 `/推推 主體` 的 delivery phase 建立。
+2. 文檔 lane=`.unpushed/docs/0`（完整路徑 `/Google Drive/WHD/.unpushed/docs/0`）；主體 lane=`.unpushed/body/0`（完整路徑 `/Google Drive/WHD/.unpushed/body/0`）。分類看歸屬，不看副檔名。治理/Skill/AGENTS/流程 authority/治理 tests → 文檔；產品程式/產品 tests/UI/renderer/geometry/manufacturing → 主體；**主體必要文件屬於主體**。
+3. 第一次碰某 path，從 CURRENT root 複製進 lane `0` 並建立 generation/hash lineage。後來者固定以最新 `0` 為 base，禁止回 root 舊版本施工。
+4. worker 完成後 fresh-read 最新 `0` 做三方合併。成功才可 generation+1。
+5. **任何 merge conflict 固定寫 `WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1`，state=`BLOCKED_USER_DECISION`，記錄 path/hunks/base/latest/worker identities，通知使用者決定。沒有 `EXPLICIT_USER_CONFLICT_DECISION`，禁止 auto ours/theirs、禁止改寫、禁止 generation+1、禁止 merge 回 0、禁止 `/推推`、禁止 push/PR。**
+6. worker GREEN 後，merge 回最新 `0` 還必須再跑 post-merge tests；只有最新 `0` GREEN 才可 freeze manifest。
+7. Flow v2 path reservation 降為 **delivery reservation**；它不再是 root/content write 前置 single-writer gate。
+8. `/推推 文檔` 只能送 docs manifest；`/推推 主體` 只能送 body manifest。`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST`，跨 lane 夾帶 fail closed。
+9. GitHub Actions / remote QA 只做 post-push verification。任何內容修正回 root/shared-0，禁止 Git-side hotfix。
 
-缺少 gate evidence、source-current evidence、root tests GREEN 或 frozen diff，一律 fail closed。
+使用者詢問進度不構成停止理由；只有上述 hard gate 的 fresh blocker 或 `BLOCKED_USER_DECISION` 才能暫停內容前進。
 
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
@@ -1026,7 +1018,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 
 ### N. Git phase branch gate（只在 `GIT_WRITE_UNLOCKED` 後）
 
-- interactive/default content work 的前置 owner 是 `ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1`；root mutation / RED→GREEN / full gate / diff freeze 都發生在 canonical root，**不是先建 Git branch 再開工**。
+- interactive/default content work 的前置 owner 是 `WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1`；root mutation / RED→GREEN / full gate / diff freeze 都發生在 canonical root，**不是先建 Git branch 再開工**。
 - `GIT_WRITE_UNLOCKED` 前 Git 只准 `READ / FETCH / COMPARE`。
 - unlock 後第一個 Git content step 才是：fresh-read authoritative target HEAD → 建立新的 work branch → fresh-read parent/base SHA。
 - 禁止直接修改 `cleanup/2d-3d-sync`、`main` 或其他 production target；target 只接受完成驗收後的正常 non-force merge / PR。

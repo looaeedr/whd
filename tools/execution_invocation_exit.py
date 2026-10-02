@@ -65,20 +65,12 @@ def _decision(record: ExecutionRecord, name: str, *, may_return: bool, requires_
     )
 
 
-
 def assert_remote_qa_active_observation_budget(
     *,
     observation_count: int,
     run_status: str,
 ) -> bool:
-    """Reject same-invocation busy polling of one active remote QA run.
-
-    ``observation_count`` is the number of exact run/head status reads already
-    performed in the current physical invocation, including the current read.
-    Active observations have a budget of one. Terminal observations are not
-    budget-limited because they must be consumed immediately by the existing
-    terminal QA path.
-    """
+    """Reject same-invocation busy polling of one active remote QA run."""
     if isinstance(observation_count, bool) or not isinstance(observation_count, int):
         raise InvocationExitError("observation_count must be an integer")
     if observation_count <= 0:
@@ -91,6 +83,7 @@ def assert_remote_qa_active_observation_budget(
             f"run_status={status}"
         )
     return True
+
 
 def durable_terminal_exit_blockers(record: ExecutionRecord) -> tuple[str, ...]:
     """Return machine reasons that forbid a task-complete/terminal claim.
@@ -135,23 +128,21 @@ def assert_durable_terminal_exit(record: ExecutionRecord) -> bool:
 def assert_repository_content_cycle_complete(
     record: ExecutionRecord,
     *,
-    source_manifest: object,
-    workspace_location: str,
+    root_sync_receipt: object,
+    lane_delivery_receipt: object,
 ) -> bool:
-    """Fail closed until execution DONE is followed by durable root cleanup.
+    """Fail closed until DONE is followed by root sync + lane finalization.
 
-    ``assert_durable_terminal_exit`` proves only the Flow v2 execution tuple.
-    Repository-content work is not user-visible/physical-cycle complete until
-    the exact source export has been written/read back and the issue workspace
-    has left ``/work/active``.
+    The current full-repo/shared-unpushed workflow has no Current Source
+    snapshot/manifest or per-Issue workspace archival completion authority.
     """
     assert_durable_terminal_exit(record)
     from tools.post_integration_durability import classify_post_integration_durability
 
     result = classify_post_integration_durability(
         execution_record=execution_record_to_payload(record),
-        source_manifest=source_manifest,
-        workspace_location=workspace_location,
+        root_sync_receipt=root_sync_receipt,
+        lane_delivery_receipt=lane_delivery_receipt,
     )
     if result.get("state") != "DURABLE_CLEANUP_COMPLETE":
         next_action = str(result.get("next_action") or "UNKNOWN")
@@ -285,8 +276,8 @@ def classify_invocation_exit(
     invocation_identity: str,
     now: str,
     host_boundary: bool = False,
-    source_manifest: object | None = None,
-    workspace_location: str | None = None,
+    root_sync_receipt: object | None = None,
+    lane_delivery_receipt: object | None = None,
     remote_qa_active_observation_count: int = 1,
 ) -> InvocationExitDecision:
     """Classify whether this physical invocation may return.
@@ -303,7 +294,7 @@ def classify_invocation_exit(
     if record.state == "DONE":
         assert_durable_terminal_exit(record)
         if record.mutation_scope is not None:
-            if source_manifest is None or workspace_location is None:
+            if root_sync_receipt is None or lane_delivery_receipt is None:
                 return _decision(
                     record,
                     "CONTINUE_POST_INTEGRATION_DURABILITY",
@@ -312,8 +303,8 @@ def classify_invocation_exit(
                 )
             assert_repository_content_cycle_complete(
                 record,
-                source_manifest=source_manifest,
-                workspace_location=workspace_location,
+                root_sync_receipt=root_sync_receipt,
+                lane_delivery_receipt=lane_delivery_receipt,
             )
         return _decision(record, "TASK_TERMINAL", may_return=True, requires_yield=False)
 

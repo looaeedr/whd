@@ -186,7 +186,7 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
         "command_owner": "tools/control_plane_regression.py" if full_gate_kind == "GOVERNANCE_FULL_SUITE" else "pytest",
         "profile_id": "+".join([change_type, *domains, full_gate_kind]),
         "workspace_root": "/Google Drive/WHD",
-        "workspace_work_prefix": "/Google Drive/WHD/work/active",
+        "workspace_unpushed_root": "/Google Drive/WHD/.unpushed",
     }
 
 

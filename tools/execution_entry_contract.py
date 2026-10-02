@@ -30,7 +30,7 @@ def build_startup_declaration(*, purpose: str, repository: str = DEFAULT_REPOSIT
             f"目的：{purpose}",
             "範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，"
             "不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。",
-            "工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V1；預設 workspace root=/Google Drive/WHD。",
+            "工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。",
         )
     )
 

@@ -35,12 +35,17 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=flow-v2-path-reservation role=CURRENT path=tools/execution_path_reservation.py -->
 
 <!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
-<!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=CURRENT path=tools/root_local_first_gate.py -->
+<!-- WHD_AUTHORITY contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py -->
+<!-- WHD_AUTHORITY contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json -->
+<!-- WHD_AUTHORITY contract=shared-unpushed-integration role=CURRENT path=tools/shared_unpushed_integration.py -->
+<!-- WHD_AUTHORITY contract=push-delivery-skill role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
+<!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=HISTORICAL path=tools/root_local_first_gate.py canonical=tools/shared_unpushed_integration.py -->
+<!-- WHD_AUTHORITY contract=root-shared-unpushed-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=deterministic-repo-migration role=CURRENT path=.agents/skills/engineering/deterministic-repo-migration/SKILL.md -->
 <!-- WHD_AUTHORITY contract=process-test-classification role=CURRENT path=tests/process/WHD_PROCESS_TEST_CLASSIFICATION_V1.json -->
 <!-- WHD_AUTHORITY contract=x-independent-task-chain-governance role=HISTORICAL path=個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md -->
-<!-- WHD_AUTHORITY contract=post-integration-durability role=CURRENT path=tools/post_integration_durability.py -->
+<!-- WHD_AUTHORITY contract=post-integration-durability-v2 role=CURRENT path=tools/post_integration_durability.py -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=knowledge-preflight role=CURRENT path=AGENTS.md -->
@@ -83,11 +88,11 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 ## Work-root bootstrap authority
 
 - canonical workspace root identity/data lives in Google Drive at `/Google Drive/WHD`.
-- canonical external gate: `/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json`.
-- repository pointer-only mirror: `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json`; it exists only so GitHub-only / scheduler runtimes can read the same root identity before general repo discovery.
+- canonical work-root contract: `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json` inside the full `/Google Drive/WHD` repo root.
+- scheduler/GitHub-only runtimes may read the same repository V2 contract for root identity, but repository content authoring remains under `/Google Drive/WHD/.unpushed/{body|docs}/0`.
 - machine validator: `tools/work_root_gate.py`.
 - interactive/chat runtime must read the Google Drive canonical gate + Current Source Manifest; GitHub-only / `SCHEDULER_LANE` uses the mirror and may not reinterpret GitHub checkout, `/mnt/data`, `/`, or Library `/WHD` as the default workspace root.
-- Flow v2 mutation startup evidence must include `WHD_WORK_ROOT_GATE_EVIDENCE_V1`; missing/mismatched root identity fails closed before ExecutionRecord state read.
+- Flow v2 mutation startup evidence must include `WHD_WORK_ROOT_GATE_EVIDENCE_V2`; missing/mismatched full-root identity fails closed before ExecutionRecord state read.
 
 ## Permanent routing boundaries
 

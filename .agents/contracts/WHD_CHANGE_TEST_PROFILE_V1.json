@@ -6,9 +6,11 @@
   "purpose": "Deterministically select required QA stages from change intent and affected domains. Targeted tests never replace the final full gate for non-doc changes.",
   "workspace": {
     "interactive_root": "/Google Drive/WHD",
-    "interactive_work_prefix": "/Google Drive/WHD/work/active",
-    "policy": "WORKSPACE_FIRST",
-    "github_role": "source/code/PR/CI/scheduler/control-plane authority; not the default interactive execution workspace"
+    "shared_unpushed_root": "/Google Drive/WHD/.unpushed",
+    "body_zero": "/Google Drive/WHD/.unpushed/body/0",
+    "docs_zero": "/Google Drive/WHD/.unpushed/docs/0",
+    "policy": "ROOT_SHARED_UNPUSHED_FIRST",
+    "github_role": "delivery/PR/CI/control-plane; not authoring workspace"
   },
   "primary_change_types": {
     "BUGFIX": [
@@ -92,5 +94,11 @@
     ],
     "github_actions_policy": "WORKFLOW_MUST_CALL_PROFILE_COMMAND_OWNER_NOT_DUPLICATE_TEST_LIST",
     "root_policy": "ROOT_MUST_RUN_EXACT_PROFILE_COMMANDS_BEFORE_DIFF_FREEZE"
+  },
+  "lane_policy": {
+    "classification_owner": "tools/shared_unpushed_integration.py",
+    "docs": "governance/skills/AGENTS/process authority/governance tests/human docs",
+    "body": "product code/tests/UI/renderer/geometry/manufacturing/product-required docs",
+    "post_merge_zero_test_required": true
   }
 }

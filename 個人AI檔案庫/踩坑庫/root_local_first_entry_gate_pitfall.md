@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 - **事故模式**：Flow v2 / work-root 已要求 `/Google Drive/WHD` 作 interactive workspace，但 AGENTS、Skills 與 contract tests 仍要求第一次 repository write 前先建 Git work branch。結果同一任務同時存在兩個相反順序。
 - **根因**：舊 branch policy 沒有被降級成 Git-phase-only，且 tests 還把 `branch-first` 關鍵字當正向 invariant。
-- **永久規則**：interactive/default content work 唯一順序為 `ROOT_SOURCE_CURRENT → PATHS_RESERVED → ROOT_MUTATIONS_COMPLETE → ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED`；新 READY work 以 atomic `ACQUIRE.effect.admission_reservation` 取得 live lease + ACTIVE mutation scope，fresh Git work branch 只在 unlock 後建立。
+- **永久規則**：interactive/default content work 唯一順序為 `ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED`；root 施工不做 pre-write reservation；`LANE_MANIFEST_FROZEN` 後才取得 delivery reservation，fresh Git delivery branch 只在 unlock 後建立。
 - **Git phase invariant**：仍禁止直接寫 `cleanup/2d-3d-sync` / `main`；unlock 後只允許 `EXACT_TESTED_DIFF_ONLY`。
 - **source freshness**：Drive full snapshot 若落後，只可作 bootstrap base；manifest 必須標示真實 source SHA/tree，未證明 current 的 touched path 不得修改。
 - **remote scope**：`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 仍依 Flow v2 remote authority；不得拿 remote mode 當 interactive content-work bypass。
