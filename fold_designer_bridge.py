@@ -114,6 +114,18 @@ from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
 )
+from gui_modules.application.receiving_set_bay_adapter import (
+    ReceivingDestructiveEditConfirmationRequired,
+    ReceivingSetBayAdapter,
+    receiving_layout_stable_ids,
+)
+from gui_modules.application.receiving_set_bay_controls import (
+    build_receiving_set_bay_controls,
+)
+from ae_engine.receiving_layout import (
+    ensure_receiving_layout,
+    project_receiving_bay_legacy_aliases,
+)
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
     setting_number_text as _setting_number_text,
@@ -1190,6 +1202,11 @@ class Phase6FoldDesignerApp(original.MainApp):
     def load_phase6_snapshot(self, snapshot: Mapping[str, object]):
         snapshot = _phase6_snapshot_with_settings_fallback(snapshot)
         _phase6_replace_mapping(self, "_phase6_input_snapshot", dict(snapshot))
+        self._phase6_receiving_set_bay_adapter = None
+        if _phase6_receiving_layout_applicable(self):
+            _phase6_receiving_adapter(self, reset=True)
+            _phase6_sync_receiving_current_bay(self, validate_common=False)
+            snapshot = dict(self._phase6_input_snapshot)
         stored = snapshot.get("box_body_profile")
         if stored:
             self.state.profiles_vault["箱身"] = merge_box_body_profile(stored, snapshot)
@@ -2056,6 +2073,201 @@ _BOX_STRUCTURE_LABELS = {
 _BOX_STRUCTURE_LABEL_TO_TYPE = {label: key for key, label in _BOX_STRUCTURE_LABELS.items()}
 
 
+
+def _phase6_receiving_layout_applicable(self):
+    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+    return cabinet_family_policy.canonical_family_name(snapshot) == "受電箱"
+
+
+def _phase6_confirm_receiving_destructive(self, stable_ids):
+    from tkinter import messagebox
+
+    labels = "\n".join(str(value) for value in stable_ids)
+    return bool(
+        messagebox.askyesno(
+            "確認刪除受電箱 Set/Bay",
+            "此操作會刪除已保存或本次工作階段已修改的尾端資料：\n"
+            f"{labels}\n\n確定繼續嗎？",
+            parent=getattr(self, "root", None),
+        )
+    )
+
+
+def _phase6_receiving_adapter(self, *, reset=False):
+    if not _phase6_receiving_layout_applicable(self):
+        return None
+    snapshot = ensure_receiving_layout(getattr(self, "_phase6_input_snapshot", {}) or {})
+    layout = snapshot.get("receiving_layout")
+    if not isinstance(layout, Mapping):
+        return None
+    adapter = None if reset else getattr(self, "_phase6_receiving_set_bay_adapter", None)
+    if adapter is None:
+        adapter = ReceivingSetBayAdapter(
+            layout,
+            persisted_ids=receiving_layout_stable_ids(layout),
+            confirm_destructive=lambda ids: _phase6_confirm_receiving_destructive(self, ids),
+        )
+        self._phase6_receiving_set_bay_adapter = adapter
+    return adapter
+
+
+def _phase6_sync_receiving_current_bay(self, *, validate_common=True, refresh_controls=True):
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        return False
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    snapshot["receiving_layout"] = adapter.layout
+    projected = project_receiving_bay_legacy_aliases(
+        snapshot,
+        set_index=adapter.selection.set_index,
+        bay_index=adapter.selection.bay_index,
+        validate_common=bool(validate_common),
+    )
+    _phase6_replace_mapping(self, "_phase6_input_snapshot", projected)
+    _phase6_replace_mapping(
+        self,
+        "_phase6_box_whd",
+        {"w": projected["w"], "h": projected["h"], "d": projected["d"]},
+    )
+    self.state.w = original.get_int(projected["w"])
+    self.state.h = original.get_int(projected["h"])
+    self.state.d = original.get_int(projected["d"])
+    self._phase6_last_w = self.state.w
+    self._phase6_last_d = self.state.d
+    self._phase6_receiving_set_bay_guard = True
+    try:
+        for var, value in (
+            (getattr(self, "v_w", None), projected["w"]),
+            (getattr(self, "v_h", None), projected["h"]),
+            (getattr(self, "v_d", None), projected["d"]),
+        ):
+            if var is not None:
+                var.set(_setting_number_text(value))
+    finally:
+        self._phase6_receiving_set_bay_guard = False
+    if refresh_controls:
+        _phase6_refresh_receiving_set_bay_control(self)
+    _phase6_refresh_back_panel_mode_control(self)
+    return True
+
+
+def _phase6_commit_receiving_current_bay_controls(self):
+    if getattr(self, "_phase6_receiving_set_bay_guard", False):
+        return False
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        return False
+    adapter.update_current_bay(
+        width=original.get_int(self.v_w.get()),
+        height=original.get_int(self.v_h.get()),
+        depth=original.get_int(self.v_d.get()),
+    )
+    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
+    _phase6_sync_receiving_current_bay(
+        self,
+        validate_common=not bool(getattr(self, "_phase6_initializing", False)),
+        refresh_controls=False,
+    )
+    workspace = getattr(self, "designer_workspace", None)
+    if workspace is not None:
+        workspace.mark_dirty()
+    return True
+
+
+def _phase6_refresh_receiving_set_bay_control(self):
+    frame = getattr(self, "receiving_set_bay_control", None)
+    set_selector = getattr(self, "receiving_set_selector", None)
+    bay_selector = getattr(self, "receiving_bay_selector", None)
+    if frame is None or set_selector is None or bay_selector is None:
+        return False
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        if frame.winfo_manager():
+            frame.pack_forget()
+        return False
+    set_values = tuple(f"Set {number}" for number in adapter.visible_set_numbers())
+    bay_values = tuple(f"Bay {number}" for number in range(1, adapter.bay_count() + 1))
+    set_selector.configure(values=set_values)
+    bay_selector.configure(values=bay_values)
+    self._phase6_receiving_set_bay_guard = True
+    try:
+        self.receiving_set_var.set(f"Set {adapter.selection.set_index + 1}")
+        self.receiving_bay_var.set(f"Bay {adapter.selection.bay_index + 1}")
+    finally:
+        self._phase6_receiving_set_bay_guard = False
+    remove_set = getattr(self, "receiving_remove_set_button", None)
+    if remove_set is not None:
+        existing = len(adapter.layout["sets"])
+        allowed = adapter.selection.set_index == existing - 1 and existing > 1
+        remove_set.configure(state=("normal" if allowed else "disabled"))
+    if not frame.winfo_manager():
+        frame.pack(fill=original.tk.X, pady=(0, 4))
+    return True
+
+
+def _phase6_receiving_parse_number(value, prefix):
+    text = str(value or "").strip()
+    if not text.startswith(prefix):
+        raise ValueError(f"invalid Receiving selector value: {text!r}")
+    return int(text[len(prefix):].strip())
+
+
+def _phase6_on_receiving_set_selected(self):
+    if getattr(self, "_phase6_receiving_set_bay_guard", False):
+        return
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        return
+    number = _phase6_receiving_parse_number(self.receiving_set_var.get(), "Set")
+    adapter.select_set(number)
+    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
+    _phase6_sync_receiving_current_bay(self)
+    self.do_update()
+
+
+def _phase6_on_receiving_bay_selected(self):
+    if getattr(self, "_phase6_receiving_set_bay_guard", False):
+        return
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        return
+    number = _phase6_receiving_parse_number(self.receiving_bay_var.get(), "Bay")
+    adapter.select_bay(number)
+    _phase6_sync_receiving_current_bay(self)
+    self.do_update()
+
+
+def _phase6_resize_receiving_bays(self, delta):
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        return
+    try:
+        adapter.set_bay_count(adapter.bay_count() + int(delta))
+    except ReceivingDestructiveEditConfirmationRequired:
+        _phase6_refresh_receiving_set_bay_control(self)
+        return
+    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
+    _phase6_sync_receiving_current_bay(self)
+    self.do_update()
+
+
+def _phase6_remove_current_receiving_set(self):
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is None:
+        return
+    existing = len(adapter.layout["sets"])
+    if existing <= 1 or adapter.selection.set_index != existing - 1:
+        return
+    try:
+        adapter.set_set_count(existing - 1)
+    except ReceivingDestructiveEditConfirmationRequired:
+        _phase6_refresh_receiving_set_bay_control(self)
+        return
+    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
+    _phase6_sync_receiving_current_bay(self)
+    self.do_update()
+
+
 _BACK_PANEL_MODE_LABELS = {
     BackPanelMode.FULL: "全板",
     BackPanelMode.HALF: "半截",
@@ -2181,7 +2393,11 @@ def _phase6_refresh_back_panel_mode_control(self):
             frame.pack_forget()
         return False
 
-    current = back_panel_mode(_phase6_box_structure_state(self))
+    adapter = _phase6_receiving_adapter(self)
+    if adapter is not None:
+        current = BackPanelMode(str(adapter.current_bay()["back_panel_mode"]))
+    else:
+        current = back_panel_mode(_phase6_box_structure_state(self))
     label = _BACK_PANEL_MODE_LABELS[current]
     if str(var.get() or "") != label:
         var.set(label)
@@ -2208,8 +2424,14 @@ def _phase6_select_back_panel_mode(self, var):
         return
     state = _phase6_box_structure_state(self)
     try:
+        adapter = _phase6_receiving_adapter(self)
+        if adapter is not None:
+            adapter.update_current_bay(back_panel_mode=mode.value)
+            self._phase6_input_snapshot["receiving_layout"] = adapter.layout
         committed = set_side_back_back_panel_mode(state, mode)
         _phase6_commit_box_structure_state(self, committed, rebuild=True)
+        if adapter is not None:
+            _phase6_sync_receiving_current_bay(self, refresh_controls=False)
     except Exception as exc:
         _phase6_box_structure_error(self, exc)
         _phase6_after_box_structure_commit(self, state, rebuild=True)
@@ -4357,6 +4579,24 @@ def _phase6_install_part_editor_compatibility(self):
     self.fold_editor_host = self.input_content_host
     self.shared_content_host = self.left
 
+    # Receiving Set/Bay selection is UI/session state only. The adapter mutates
+    # canonical receiving_layout; selection itself is never persisted.
+    receiving_controls = build_receiving_set_bay_controls(
+        self.input_content_host,
+        tk=original.tk,
+        ttk=original.ttk,
+        on_set_selected=lambda: _phase6_on_receiving_set_selected(self),
+        on_bay_selected=lambda: _phase6_on_receiving_bay_selected(self),
+        on_resize_bays=lambda delta: _phase6_resize_receiving_bays(self, delta),
+        on_remove_set=lambda: _phase6_remove_current_receiving_set(self),
+    )
+    self.receiving_set_bay_control = receiving_controls.frame
+    self.receiving_set_var = receiving_controls.set_var
+    self.receiving_bay_var = receiving_controls.bay_var
+    self.receiving_set_selector = receiving_controls.set_selector
+    self.receiving_bay_selector = receiving_controls.bay_selector
+    self.receiving_remove_set_button = receiving_controls.remove_set_button
+
     # Receiving 後面板形式 is a normal product choice, not an advanced
     # parameter.  Keep one normal-input projection bound to the existing
     # canonical structure-state callback; no second state owner is created.
@@ -5387,6 +5627,7 @@ def _fix11_activate_part(self, key, initial=False):
         self.do_update()
     _phase6_refresh_persistent_structure_controls(self)
     _phase6_refresh_box_body_piece_selector(self)
+    _phase6_refresh_receiving_set_bay_control(self)
     _phase6_refresh_back_panel_mode_control(self)
     _phase6_refresh_content_switch(self)
 
@@ -5598,6 +5839,8 @@ _FIX10_DO_UPDATE = Phase6FoldDesignerApp.do_update
 def _fix11_do_update(self):
     key = getattr(self, "active_part_key", "box_body")
     if key == "box_body":
+        if _phase6_receiving_layout_applicable(self):
+            _phase6_commit_receiving_current_bay_controls(self)
         # 折彎編輯器的軸向是唯一基準；舊金庫型 Renderer 曾使用
         # active_bend="箱身" only as a visual highlight flag; mutating the shared
         # editor state here can race Tk notebook callbacks and makes the custom
@@ -5608,7 +5851,8 @@ def _fix11_do_update(self):
             "h": original.get_int(self.v_h.get()),
             "d": original.get_int(self.v_d.get()),
         })
-        self._phase6_input_snapshot.update(self._phase6_box_whd)
+        if not _phase6_receiving_layout_applicable(self):
+            self._phase6_input_snapshot.update(self._phase6_box_whd)
         _propagate_endcap_derived_cores(self, self._phase6_box_whd["w"], self._phase6_box_whd["d"])
         # The inherited MainApp constructor briefly owns an unannotated legacy
         # 5-row visual profile before load_phase6_snapshot() installs D-W-D
@@ -5627,7 +5871,10 @@ def _fix11_do_update(self):
         "h": original.get_int(self.v_h.get()),
         "d": original.get_int(self.v_d.get()),
     })
-    self._phase6_input_snapshot.update(self._phase6_box_whd)
+    if _phase6_receiving_layout_applicable(self):
+        _phase6_commit_receiving_current_bay_controls(self)
+    else:
+        self._phase6_input_snapshot.update(self._phase6_box_whd)
     return original.MainApp.do_update(self)
 
 
