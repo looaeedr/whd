@@ -119,6 +119,9 @@ from gui_modules.application.receiving_set_bay_adapter import (
     ReceivingSetBayAdapter,
     receiving_layout_stable_ids,
 )
+from gui_modules.application.receiving_set_bay_controls import (
+    build_receiving_set_bay_controls,
+)
 from ae_engine.receiving_layout import (
     ensure_receiving_layout,
     project_receiving_bay_legacy_aliases,
@@ -4578,49 +4581,21 @@ def _phase6_install_part_editor_compatibility(self):
 
     # Receiving Set/Bay selection is UI/session state only. The adapter mutates
     # canonical receiving_layout; selection itself is never persisted.
-    self.receiving_set_bay_control = original.ttk.Frame(self.input_content_host)
-    self.receiving_set_var = original.tk.StringVar(master=self.receiving_set_bay_control, value="Set 1")
-    self.receiving_bay_var = original.tk.StringVar(master=self.receiving_set_bay_control, value="Bay 1")
-    original.ttk.Label(self.receiving_set_bay_control, text="受電箱").pack(side=original.tk.LEFT, padx=(0, 6))
-    self.receiving_set_selector = original.ttk.Combobox(
-        self.receiving_set_bay_control,
-        textvariable=self.receiving_set_var,
-        state="readonly",
-        width=7,
+    receiving_controls = build_receiving_set_bay_controls(
+        self.input_content_host,
+        tk=original.tk,
+        ttk=original.ttk,
+        on_set_selected=lambda: _phase6_on_receiving_set_selected(self),
+        on_bay_selected=lambda: _phase6_on_receiving_bay_selected(self),
+        on_resize_bays=lambda delta: _phase6_resize_receiving_bays(self, delta),
+        on_remove_set=lambda: _phase6_remove_current_receiving_set(self),
     )
-    self.receiving_set_selector.pack(side=original.tk.LEFT, padx=(0, 4))
-    self.receiving_set_selector.bind(
-        "<<ComboboxSelected>>", lambda _event: _phase6_on_receiving_set_selected(self)
-    )
-    self.receiving_bay_selector = original.ttk.Combobox(
-        self.receiving_set_bay_control,
-        textvariable=self.receiving_bay_var,
-        state="readonly",
-        width=7,
-    )
-    self.receiving_bay_selector.pack(side=original.tk.LEFT, padx=(0, 4))
-    self.receiving_bay_selector.bind(
-        "<<ComboboxSelected>>", lambda _event: _phase6_on_receiving_bay_selected(self)
-    )
-    original.ttk.Button(
-        self.receiving_set_bay_control,
-        text="−Bay",
-        width=5,
-        command=lambda: _phase6_resize_receiving_bays(self, -1),
-    ).pack(side=original.tk.LEFT, padx=(0, 2))
-    original.ttk.Button(
-        self.receiving_set_bay_control,
-        text="+Bay",
-        width=5,
-        command=lambda: _phase6_resize_receiving_bays(self, 1),
-    ).pack(side=original.tk.LEFT, padx=(0, 2))
-    self.receiving_remove_set_button = original.ttk.Button(
-        self.receiving_set_bay_control,
-        text="刪Set",
-        width=5,
-        command=lambda: _phase6_remove_current_receiving_set(self),
-    )
-    self.receiving_remove_set_button.pack(side=original.tk.LEFT)
+    self.receiving_set_bay_control = receiving_controls.frame
+    self.receiving_set_var = receiving_controls.set_var
+    self.receiving_bay_var = receiving_controls.bay_var
+    self.receiving_set_selector = receiving_controls.set_selector
+    self.receiving_bay_selector = receiving_controls.bay_selector
+    self.receiving_remove_set_button = receiving_controls.remove_set_button
 
     # Receiving 後面板形式 is a normal product choice, not an advanced
     # parameter.  Keep one normal-input projection bound to the existing
