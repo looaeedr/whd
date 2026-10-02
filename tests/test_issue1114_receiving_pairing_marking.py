@@ -214,7 +214,11 @@ def test_t013_variants_circle_layer_and_cabinet_top_bottom_binding(mode, expecte
     assert direct.status == "RESOLVED"
     frame = role_map[frame_role]
     assert isinstance(frame, PolylinePrimitive)
-    assert tuple((p.x, p.y) for p in frame.points) == pytest.approx(direct.flat_points)
+    actual_flat = tuple((float(p.x), float(p.y)) for p in frame.points)
+    assert len(actual_flat) == len(direct.flat_points)
+    for actual, expected in zip(actual_flat, direct.flat_points):
+        assert actual[0] == pytest.approx(expected[0])
+        assert actual[1] == pytest.approx(expected[1])
 
     assert _pairing_rows(_piece(result.geometry, "right_side")) == ()
     assert _pairing_rows(_piece(result.geometry, "back")) == ()
