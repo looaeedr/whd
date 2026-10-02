@@ -1,19 +1,16 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-handoff-work1-20261002T1248-r2",
+  "request_id": "issue1062-stale-reset-6f671299-20261002T1311",
   "issue": 1062,
-  "kind": "HANDOFF",
+  "kind": "RELEASE_PATHS",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a.issue1062.current.20261002T1240+08",
-  "expected_coord_head": "8e814e4b3cf1e525ffcf8e2bf73c19ce58249094",
-  "expected_generation": 27,
+  "invocation_identity": "scheduler-a.issue1062.stale-reset.20261002T1311+08",
+  "expected_coord_head": "5132761ab93b9c77aa9cd1d53f4ba1213b378dcf",
+  "expected_generation": 29,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "lease": null
+    "reason": "work1 lease and heartbeat expired; discard stale HANDOFF at 60cf8c34 and reset released residue to fresh current target"
   },
-  "purpose": "Consume the exact #1062 HANDOFF after fresh current Scheduler A acquisition. Transfer repository-content full-regression classification to the first available interactive work slot work1 without changing source/head/target, historical RELEASED audit scope, semantic state, or next_action.",
+  "purpose": "/排程A #1062 current-head trusted stale RELEASE_PATHS reset after work1 lease expiry and target drift. Use the integrated narrow reset seam only; fresh-read branch absence and cleanup target in the trusted production executor, clear stale continuation, align source/head/target to current cleanup, return READY/ACQUIRE, and do not mutate repository content.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
