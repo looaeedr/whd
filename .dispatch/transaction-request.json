@@ -1,36 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1133-acquire-root-5945139025-r2",
+  "request_id": "issue1133-handoff-root-5945139025",
   "issue": 1133,
-  "kind": "ACQUIRE",
+  "kind": "HANDOFF",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "scheduler-a:issue1133:continue-1062:5945139025",
-  "expected_coord_head": "cd51b0442d85fd5828ae8db9eae114797092a012",
-  "expected_generation": 1,
+  "expected_coord_head": "a6cab7ec7541b79f5c80088737077234b3894596",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "HANDOFF",
-      "args": {
-        "to_owner_kind": "INTERACTIVE",
-        "to_owner_id": "chatgpt.flowv2.work0"
-      },
-      "display": "Handoff Issue #1133 repository-content implementation to canonical root workspace"
-    },
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "d4a2c7b42764436e18abc0959291aab7c2dc3714",
-      "write_paths": [
-        "tests/process/test_flow_v2_path_reservation.py",
-        "tests/process/test_issue1093_active_owning_issue_no_pivot.py",
-        "tools/control_transaction.py",
-        "tools/control_transaction_production_executor.py",
-        "tools/execution_invocation_exit.py"
-      ],
-      "delete_paths": []
-    }
+    "owner_kind": "INTERACTIVE",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": null,
+    "lease": null
   },
-  "purpose": "Continue Issue #1062 through machine-fail-closed blocker #1133. Atomically acquire Scheduler A control-plane authority and reserve the exact five governance paths already preflighted at d4a2c7b42764436e18abc0959291aab7c2dc3714, then hand repository-content implementation to the canonical Google Drive root workspace. No product/UI/geometry scope.",
+  "purpose": "Consume the exact #1133 HANDOFF structured action after Scheduler A acquired the exact five-path reservation. Transfer repository-content implementation to the canonical root-capable interactive owner without changing slot/work identity, reservation, semantic state, or next_action.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
