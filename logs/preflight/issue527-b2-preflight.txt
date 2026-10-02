@@ -1,0 +1,28 @@
+Issue #527 B2 Phase6 Knowledge Preflight
+TASK: Workspace Shell Deletion-Test DT-0..DT-6 for persistent top area, project/output/visual/global controls, keyboard/fullscreen, and single shared-content surface parity; remote GitHub Actions characterization.
+TARGET: cleanup/2d-3d-sync
+WORK_ORDER_BRANCH: work/issue520-phase6-bridge-residual-reduction-20260923
+PARENT_ACCEPTED_HEAD: 185991276c57fa3aeecace562daf89fa7be5b5ae
+
+REQUIRED SKILLS
+✓ phase6-release-packaging
+✓ monitoring-remote-qa
+✓ long-log-context-safe-execution
+✓ executable-continuity-controller
+
+REQUIRED REFERENCES
+✓ 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+✓ release_required_artifacts.json
+✓ 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+✓ 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+READ_SKILL: phase6-release-packaging
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PREFLIGHT_DECISION=GREEN

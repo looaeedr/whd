@@ -1,0 +1,72 @@
+{
+  "gui_segments": [
+    {
+      "calculation": 4,
+      "manufacturing": 4,
+      "scene_rebuild": 4,
+      "render": 4,
+      "publish": 4,
+      "echo": 0,
+      "dxf_disk_read": 0,
+      "wall_time": 0.44708963399989443,
+      "segment": "whdt_burst_20_each"
+    },
+    {
+      "calculation": 1,
+      "manufacturing": 1,
+      "scene_rebuild": 1,
+      "render": 1,
+      "publish": 0,
+      "echo": 0,
+      "dxf_disk_read": 0,
+      "wall_time": 0.1357079959998373,
+      "segment": "fw_burst_20"
+    },
+    {
+      "calculation": 1,
+      "manufacturing": 1,
+      "scene_rebuild": 1,
+      "render": 10,
+      "publish": 0,
+      "echo": 0,
+      "dxf_disk_read": 0,
+      "wall_time": 0.6416280419998657,
+      "segment": "part_switch_cycle"
+    },
+    {
+      "calculation": 0,
+      "manufacturing": 0,
+      "scene_rebuild": 0,
+      "render": 10,
+      "publish": 0,
+      "echo": 0,
+      "dxf_disk_read": 0,
+      "wall_time": 0.5350957189994006,
+      "segment": "head_tail_10"
+    },
+    {
+      "calculation": 0,
+      "manufacturing": 0,
+      "scene_rebuild": 0,
+      "render": 5,
+      "publish": 0,
+      "echo": 0,
+      "dxf_disk_read": 0,
+      "wall_time": 0.19233972999973048,
+      "segment": "preview_toggle_5"
+    }
+  ],
+  "cache_segments": [
+    {
+      "segment": "warm_cache_20",
+      "dxf_disk_read": 1,
+      "additional_after_first": 0
+    },
+    {
+      "segment": "force_reload",
+      "dxf_disk_read": 1,
+      "generation": 1
+    }
+  ],
+  "created_at": 1788511578.6939776
+}

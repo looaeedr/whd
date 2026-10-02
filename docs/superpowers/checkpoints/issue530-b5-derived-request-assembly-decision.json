@@ -1,0 +1,68 @@
+{
+  "schema": "WHD_ISSUE530_B5_DERIVED_REQUEST_ASSEMBLY_DECISION_V1",
+  "issue": 530,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R2"
+  ],
+  "parent_accepted_head": "8fa30cfc7800afba16b71c7580552893db5d1037",
+  "deletion_test": {
+    "candidate_green_run": 35794244876,
+    "candidate_green_head": "e07f3c1b98d96cbd7bbc51b9cafc8334bc896672",
+    "candidate_artifact_id": 10723453663,
+    "harness_failures": [
+      {
+        "run_id": 35794007741,
+        "classification": "HARNESS_INDENTATION_ERROR"
+      },
+      {
+        "run_id": 35794138484,
+        "classification": "HARNESS_INDENTATION_ERROR"
+      }
+    ],
+    "candidate_decision": "DEEPEN_DERIVED_PROJECTION_OWNER",
+    "variant_e_span_reduction": 52
+  },
+  "replacement_red": {
+    "run_id": 35794404726,
+    "head_sha": "93fe402288767a24fdffe8ac79a9ccb4295fbe6c",
+    "artifact_id": 10723891087,
+    "result": "EXPECTED_RED",
+    "pytest": "2 failed, 4 passed"
+  },
+  "production_green": {
+    "run_id": 35794936955,
+    "head_sha": "9fe131b9574d6fdfb918eca56eaaa7988da75104",
+    "artifact_id": 10723667690,
+    "headless": "52 passed",
+    "xvfb": "2 passed, 33 deselected",
+    "bridge_loc": 7482,
+    "bridge_reduction_from_pre_b5": 58,
+    "derived_sync_span": 193,
+    "reverse_import_bridge": 0
+  },
+  "final_decision": "DEEPEN_DERIVED_PROJECTION_OWNER",
+  "owner_changes": {
+    "request_assembly": "phase6_derived_part_projection.py::build_derived_part_projection_request",
+    "request_input": "phase6_derived_part_projection.py::DerivedPartRequestAssemblyInput",
+    "immutable_sync_plan": "phase6_derived_part_projection.py::build_derived_part_sync_plan",
+    "workspace_mutation": "phase6_workspace_navigation_controller.py::Phase6WorkspaceNavigationController.apply_derived_sync_plan",
+    "domain_derivation": "unchanged; remains in current domain/application derivation owners"
+  },
+  "bridge_contract": [
+    "Bridge derives Door/BasePlate/BoxBody-piece/Divider/InnerDoor domain projections from canonical owners.",
+    "Bridge packages already-derived projections into DerivedPartRequestAssemblyInput.",
+    "phase6_derived_part_projection assembles namespace/remove/add/stash/repair immutable request.",
+    "phase6_derived_part_projection builds immutable sync plan.",
+    "navigation.apply_derived_sync_plan remains the unique workspace mutation seam."
+  ],
+  "supersedes": [
+    "Bridge-local remove/add/stash/active/selected repair request assembly"
+  ],
+  "production_change_required": true,
+  "production_change_complete": true,
+  "bridge_symbols_removed": [],
+  "next_issue": 531
+}

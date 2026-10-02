@@ -1,0 +1,510 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_receiving_joint_shrinks_features_round_trip_from_designer_to_project ___
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-20/test_receiving_joint_shrinks_f0')
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_receiving_joint_shrinks_features_round_trip_from_designer_to_project(tmp_path):
+        import gui
+        import phase6_project_file as project
+        from ae_engine.assembly_joint import edge_relation_for_part
+    
+        tk, root, app, designer, bridge = _open_receiving_t08()
+        path = tmp_path / "receiving-multipart-t08.p6fold"
+        upper = _feature(12.0, -20.0)
+        lower = _feature(18.0, 30.0)
+        edge = None
+        changed_relation = None
+        try:
+            bridge._phase6_query_assembly_render_data(designer)
+            assert tuple(designer.assembly_box_body_piece_formed_vars) == (
+                "box_body:left_side", "box_body:back", "box_body:right_side",
+            )
+    
+            designer.activate_part("head")
+            root.update_idletasks(); root.update()
+            edge = next(edge for edge, allowed in designer.endcap_joint_allowed.items() if len(allowed) > 1)
+            current_label = designer.endcap_joint_vars[edge].get()
+            alternate = next(value for value in designer.endcap_joint_allowed[edge] if value != current_label)
+            designer.endcap_joint_vars[edge].set(alternate)
+            bridge._phase6_on_endcap_edge_relation_selected(designer, "head", edge)
+            changed_relation = edge_relation_for_part(designer._phase6_input_snapshot, "head", edge)
+    
+            designer.activate_part("base_plate")
+            root.update_idletasks(); root.update()
+            for shrink_edge, value in {"TOP": 11, "BOTTOM": 22, "LEFT": 33, "RIGHT": 44}.items():
+                assert bridge._phase6_commit_base_plate_edge_shrink(designer, shrink_edge, str(value))
+    
+            designer.designer_workspace.stash_features("door_c1_r1", [upper])
+            designer.designer_workspace.stash_features("door_c1_r2", [lower])
+            designer._phase6_last_live_fingerprint = None
+            assert bridge._phase6_publish_live_state(designer, force=True) is True
+            root.update_idletasks(); root.update()
+    
+            snap = app._compose_phase6_project_snapshot_from_main_gui()
+>           assert edge_relation_for_part(snap, "head", edge) == changed_relation
+E           AssertionError: assert <AssemblyJoin...ERT: 'INSERT'> == <AssemblyJoin...AY: 'OVERLAY'>
+E             
+E             - OVERLAY
+E             + INSERT
+
+tests/test_phase6_receiving_multipart_integration.py:132: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+=============================== warnings summary ===============================
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32068 (\N{CJK UNIFIED IDEOGRAPH-7D44}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21512 (\N{CJK UNIFIED IDEOGRAPH-5408}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 39636 (\N{CJK UNIFIED IDEOGRAPH-9AD4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65306 (\N{FULLWIDTH COLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24178 (\N{CJK UNIFIED IDEOGRAPH-5E72}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 28041 (\N{CJK UNIFIED IDEOGRAPH-6D89}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 30896 (\N{CJK UNIFIED IDEOGRAPH-78B0}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25758 (\N{CJK UNIFIED IDEOGRAPH-649E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21312 (\N{CJK UNIFIED IDEOGRAPH-5340}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27573 (\N{CJK UNIFIED IDEOGRAPH-6BB5}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20132 (\N{CJK UNIFIED IDEOGRAPH-4EA4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32218 (\N{CJK UNIFIED IDEOGRAPH-7DDA}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23637 (\N{CJK UNIFIED IDEOGRAPH-5C55}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38283 (\N{CJK UNIFIED IDEOGRAPH-958B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23610 (\N{CJK UNIFIED IDEOGRAPH-5C3A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23544 (\N{CJK UNIFIED IDEOGRAPH-5BF8}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 31665 (\N{CJK UNIFIED IDEOGRAPH-7BB1}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36523 (\N{CJK UNIFIED IDEOGRAPH-8EAB}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23553 (\N{CJK UNIFIED IDEOGRAPH-5C01}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38957 (\N{CJK UNIFIED IDEOGRAPH-982D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23614 (\N{CJK UNIFIED IDEOGRAPH-5C3E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38272 (\N{CJK UNIFIED IDEOGRAPH-9580}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24213 (\N{CJK UNIFIED IDEOGRAPH-5E95}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26495 (\N{CJK UNIFIED IDEOGRAPH-677F}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24038 (\N{CJK UNIFIED IDEOGRAPH-5DE6}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20596 (\N{CJK UNIFIED IDEOGRAPH-5074}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25104 (\N{CJK UNIFIED IDEOGRAPH-6210}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24418 (\N{CJK UNIFIED IDEOGRAPH-5F62}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65307 (\N{FULLWIDTH SEMICOLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24460 (\N{CJK UNIFIED IDEOGRAPH-5F8C}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38754 (\N{CJK UNIFIED IDEOGRAPH-9762}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21491 (\N{CJK UNIFIED IDEOGRAPH-53F3}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19978 (\N{CJK UNIFIED IDEOGRAPH-4E0A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19979 (\N{CJK UNIFIED IDEOGRAPH-4E0B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20013 (\N{CJK UNIFIED IDEOGRAPH-4E2D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38548 (\N{CJK UNIFIED IDEOGRAPH-9694}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27243 (\N{CJK UNIFIED IDEOGRAPH-6A6B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21521 (\N{CJK UNIFIED IDEOGRAPH-5411}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23652 (\N{CJK UNIFIED IDEOGRAPH-5C64}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20839 (\N{CJK UNIFIED IDEOGRAPH-5167}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26694 (\N{CJK UNIFIED IDEOGRAPH-6846}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25240 (\N{CJK UNIFIED IDEOGRAPH-6298}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21253 (\N{CJK UNIFIED IDEOGRAPH-5305}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22806 (\N{CJK UNIFIED IDEOGRAPH-5916}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25130 (\N{CJK UNIFIED IDEOGRAPH-622A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 35282 (\N{CJK UNIFIED IDEOGRAPH-89D2}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26009 (\N{CJK UNIFIED IDEOGRAPH-6599}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project - AssertionError: assert <AssemblyJoin...ERT: 'INSERT'> == <AssemblyJoin...AY: 'OVERLAY'>
+  
+  - OVERLAY
+  + INSERT
+1 failed, 1 passed, 1 deselected, 219 warnings in 6.31s

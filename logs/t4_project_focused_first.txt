@@ -1,0 +1,20 @@
+.......F......s.ssssssss........                                         [100%]
+=================================== FAILURES ===================================
+____________ test_confirm_designer_commits_canonical_snapshot_once _____________
+
+    def test_confirm_designer_commits_canonical_snapshot_once():
+        controller, _ = make_controller()
+        controller.begin_designer(lambda: {"w": 400.0, "existing_parts": ["box_body"]})
+    
+        committed = controller.confirm_designer({"w": 500.0, "existing_parts": ["box_body"]})
+    
+        assert committed["w"] == pytest.approx(500.0)
+        assert controller.has_draft is False
+>       assert controller.session.snapshot_for_save()["w"] == pytest.approx(500.0)
+               ^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Phase6ProjectController' object has no attribute 'session'
+
+tests/test_phase6_project_controller.py:88: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_project_controller.py::test_confirm_designer_commits_canonical_snapshot_once - AttributeError: 'Phase6ProjectController' object has no attribute 'session'
+1 failed, 22 passed, 9 skipped in 0.89s

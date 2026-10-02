@@ -1,0 +1,24 @@
+ISSUE: #472
+TASK: T7 candidate-only remediation verification
+HEAD: 1c3e86ceb2953a638b96e3010c4fe4b5951697a9
+READ_SKILL: 派工
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: phase6-release-packaging
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+PREFLIGHT_RESULT: GREEN
+BASELINE_DIFF_RUN: 35663550436
+CANDIDATE_ONLY_HEADLESS: 2
+CANDIDATE_ONLY_XVFB: 3
+REMEDIATION:
+- preserve strict inner_door_vertical_frame_contract
+- omit only per-item unresolved derived frame sets during collection
+- update stale vertical-span oracles to physical terminal authority

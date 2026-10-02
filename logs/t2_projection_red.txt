@@ -1,0 +1,115 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+__ test_main_project_compose_uses_workspace_owner_for_all_four_shared_fields ___
+
+    def test_main_project_compose_uses_workspace_owner_for_all_four_shared_fields():
+        import gui
+    
+        canonical = _canonical_shared()
+        canonical["box_body_profile"] = [{"phase6_key": "w", "len": 400.0}]
+    
+        class WorkspaceOwner:
+            def workspace_snapshot(self):
+                return deepcopy(canonical)
+    
+        fake = SimpleNamespace(
+            workspace_controller=WorkspaceOwner(),
+            endcap_fw_state={"mode": "LINKED"},
+            endcap_bottom_wrap_state={"mode": "LINKED"},
+        )
+        fake._make_original_fold_designer_snapshot = lambda: {
+            "existing_parts": ["box_body", "door"],
+            "active_part": "door",
+            "part_profiles": {"door": {"X": [{"len": 999.0}], "Y": []}},
+            "box_body_profile": [{"phase6_key": "w", "len": 999.0}],
+            "workspace": {"box_body_structure": {"active_type": "BROKEN"}},
+        }
+    
+        result = gui.BoxCalculatorGUI._compose_phase6_project_snapshot_from_main_gui(fake)
+        workspace = result["workspace"]
+        for key in ("existing_parts", "active_part", "part_profiles", "box_body_structure"):
+>           assert workspace[key] == canonical[key]
+E           AssertionError: assert ['box_body', 'door'] == ['box_body', 'head']
+E             
+E             At index 1 diff: 'door' != 'head'
+E             
+E             Full diff:
+E               [
+E                   'box_body',
+E             -     'head',
+E             +     'door',
+E               ]
+
+tests/test_phase6_workspace_projection.py:40: AssertionError
+____ test_designer_owner_exports_live_active_profile_without_mutating_stash ____
+
+    def test_designer_owner_exports_live_active_profile_without_mutating_stash():
+        from phase6_designer_workspace import Phase6DesignerWorkspace
+    
+        ws = Phase6DesignerWorkspace.from_snapshot({
+            "existing_parts": ["box_body", "head"],
+            "active_part": "head",
+            "part_profiles": {"head": {"X": [{"len": 11.0}], "Y": []}},
+        })
+>       exported = ws.export_shared_snapshot(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+            live_active_profiles={"X": [{"len": 33.0}], "Y": []}
+        )
+E       AttributeError: 'Phase6DesignerWorkspace' object has no attribute 'export_shared_snapshot'
+
+tests/test_phase6_workspace_projection.py:51: AttributeError
+____ test_bridge_collects_shared_fields_through_designer_owner_export_seam _____
+
+    def test_bridge_collects_shared_fields_through_designer_owner_export_seam():
+        import fold_designer_bridge as bridge
+    
+        canonical = _canonical_shared()
+    
+        class DesignerOwner:
+            active_part = "head"
+            def export_shared_snapshot(self, *, live_active_profiles=None):
+                result = deepcopy(canonical)
+                if live_active_profiles is not None:
+                    result["part_profiles"]["head"] = deepcopy(live_active_profiles)
+                return result
+            def box_body_structure_state(self):
+                raise AssertionError("adapter should not rebuild shared structure")
+    
+        holder = SimpleNamespace(
+            designer_workspace=DesignerOwner(),
+            state=SimpleNamespace(
+                profiles={"X": [{"len": 55.0}], "Y": []},
+                profiles_vault={"箱身": [{"phase6_key": "w", "len": 400.0}]},
+            ),
+            _phase6_assembly_type=bridge.CornerTypeId.INSERT_OVERLAY,
+            _phase6_endcap_fw_state={},
+            _phase6_input_snapshot={"fw": 25.0},
+        )
+>       result = bridge._phase6_collect_workspace_state(holder)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_phase6_workspace_projection.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = namespace(designer_workspace=<test_phase6_workspace_projection.test_bridge_collects_shared_fields_through_designer_own..._type=<CornerTypeId.INSERT_OVERLAY: 'INSERT_OVERLAY'>, _phase6_endcap_fw_state={}, _phase6_input_snapshot={'fw': 25.0})
+
+    def _phase6_collect_workspace_state(self):
+>       owner = self.designer_workspace.snapshot()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'DesignerOwner' object has no attribute 'snapshot'
+
+fold_designer_bridge.py:1674: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_workspace_projection.py::test_main_project_compose_uses_workspace_owner_for_all_four_shared_fields - AssertionError: assert ['box_body', 'door'] == ['box_body', 'head']
+  
+  At index 1 diff: 'door' != 'head'
+  
+  Full diff:
+    [
+        'box_body',
+  -     'head',
+  +     'door',
+    ]
+FAILED tests/test_phase6_workspace_projection.py::test_designer_owner_exports_live_active_profile_without_mutating_stash - AttributeError: 'Phase6DesignerWorkspace' object has no attribute 'export_shared_snapshot'
+FAILED tests/test_phase6_workspace_projection.py::test_bridge_collects_shared_fields_through_designer_owner_export_seam - AttributeError: 'DesignerOwner' object has no attribute 'snapshot'
+3 failed in 0.95s

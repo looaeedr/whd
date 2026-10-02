@@ -1,0 +1,24 @@
+=== tests/test_phase6_receiving_multipart_integration.py::test_opening_receiving_designer_preserves_formal_door_features_and_authoritative_rows rc=0 ===
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 43 warnings in 2.23s
+
+=== tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project rc=0 ===
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 135 warnings in 5.64s
+
+=== tests/test_phase6_receiving_multipart_integration.py::test_drawing_edge_hosts_keep_place_ownership_across_resize_and_fullscreen rc=0 ===
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 101 warnings in 3.21s
+
+=== tests/test_phase6_receiving_multipart_integration.py::test_receiving_multipart_project_round_trip_preserves_joints_shrinks_features_and_piece_identity rc=0 ===
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 86 warnings in 7.53s
+

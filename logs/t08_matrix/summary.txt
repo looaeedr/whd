@@ -1,0 +1,20 @@
+=== tests/test_phase6_receiving_projection_regression.py rc=0 ===
+
+tests/test_phase6_receiving_projection_regression.py::test_receiving_formal_door_parts_activate_with_independent_cell_dimensions
+tests/test_phase6_receiving_projection_regression.py::test_receiving_formal_door_parts_activate_with_independent_cell_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26009 (\N{CJK UNIFIED IDEOGRAPH-6599}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 436 warnings in 12.93s
+
+=== tests/test_phase6_receiving_edge_controls_gui.py rc=0 ===
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel
+tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+4 passed, 16 warnings in 1.71s
+

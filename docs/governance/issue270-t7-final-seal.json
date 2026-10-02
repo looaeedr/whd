@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "master_id": "262",
+  "task_id": "T7",
+  "issue_number": 270,
+  "target_x": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+  "parent_accepted_head": "95243d18a06a96b5907991681873f8c3d0ebdf84",
+  "current_x_sha": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
+  "task_acceptance": "ACCEPTED",
+  "integration_readiness": "READY_FOR_X_INTEGRATION",
+  "integration_acceptance": "NOT_PERFORMED",
+  "do_not_merge_x": true,
+  "x_mutated": false
+}

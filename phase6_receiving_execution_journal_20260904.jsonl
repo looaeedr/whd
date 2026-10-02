@@ -1,0 +1,6 @@
+{"task_id":"T00","role":"implementer","status":"complete","baseline":"61 passed","red_probes":"2 failed as intended","config_sha":"980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67","workspace":"/mnt/data/phase6_exec"}
+{"task_id":"T01","role":"QA","status":"complete","tests":"13 passed","files":["fold_designer_bridge.py","tests/test_phase6_receiving_projection_regression.py"]}
+{"task_id":"T02","role":"QA","status":"complete","tests":"35 passed","note":"box_body formed intentionally deferred to T03 per-piece projection"}
+{"task_id":"T03","role":"QA","status":"complete","tests":"8 passed","parts":["box_body:left_side","box_body:back","box_body:right_side"]}
+{"task": "T04", "status": "complete", "tests": "82 passed", "log": "logs/receiving_multipart_t04_green_20260904.log", "ts": "2026-09-04T12:45:28.802202+00:00"}
+{"task": "T05", "status": "complete", "tests": "100 targeted passed (93 plan gate + 7 added)", "config_sha": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67", "notes": ["full-batch incomplete_timeout correctly split by file/nodeid", "DXF door_cN_rM identity covered by multi-door GUI export tests"]}

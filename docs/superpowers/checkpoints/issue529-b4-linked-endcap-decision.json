@@ -1,0 +1,51 @@
+{
+  "schema": "WHD_ISSUE529_B4_LINKED_ENDCAP_DECISION_V1",
+  "issue": 529,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R2"
+  ],
+  "parent_accepted_head": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
+  "tested_head": "4d1618937dd342b67a82c45b1f29feca86661a18",
+  "run_id": 35793499633,
+  "artifact_id": 10722084894,
+  "prior_decision": "KEEP_COMPATIBILITY",
+  "decision": "KEEP_COMPATIBILITY",
+  "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
+  "bridge_role": "workspace/live-editor compatibility effects",
+  "join_derived_part_plan": false,
+  "deepen_fold_profiles": false,
+  "deepen_application_coordinator": false,
+  "production_change_required": false,
+  "bridge_symbols_removed": [],
+  "dt0": {
+    "span": 61,
+    "has_derivation_call": true,
+    "has_direct_workspace_stash": true,
+    "has_live_editor_projection": true,
+    "has_tk_idle_refresh": true
+  },
+  "variant_keep": {
+    "full_app_dependency": true,
+    "workspace_mutation_in_caller": true
+  },
+  "variant_extract": {
+    "forbidden_imports": 0,
+    "full_app_dependency": false,
+    "old_effect_body_removed": false
+  },
+  "tests": {
+    "headless": "55 passed, 5 skipped",
+    "xvfb": "10 passed, 24 deselected"
+  },
+  "rationale": [
+    "Linked Endcap derivation is already deep and pure in phase6_fold_profiles.",
+    "Variant K pushes workspace mutation and live-editor effect ordering back to a full-app caller.",
+    "Variant E can plan derivation/presence without forbidden imports, but cannot delete the old live-editor/Tk effect body.",
+    "Joining DerivedPartSyncPlan would mix canonical existing EndCap profile refresh with derived physical-part topology.",
+    "Deepening Fold Profiles would contaminate a pure derivation owner with workspace/Tk effects.",
+    "A new application coordinator would be a sequencing middle-man unless another accepted presentation owner absorbs the live-editor effects."
+  ]
+}

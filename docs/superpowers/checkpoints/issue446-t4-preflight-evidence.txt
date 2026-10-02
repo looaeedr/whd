@@ -1,0 +1,44 @@
+ISSUE=446
+TASK=T4 Registry diagnostics presentation ownership
+ROLE=T4 實作者
+BASE_SHA=cc2af5a40769d8897ecd81679bfcb81fa36e5599
+WORK_BRANCH=refactor/issue446-t4-registry-diagnostics-owner-20260921
+PREFLIGHT_MODE=accepted Git-object exact-read (local checkout DNS blocked)
+PREFLIGHT_SCRIPT_SHA=c69f8a611efb4771efee6b8fa22589abfc8868d9
+SKILL_REGISTRY_SHA=e5f679267d549e927745879cdcbba1fec21059c1
+MATCHED_ROUTE=dispatching-workflow
+MATCHED_ROUTE=phase6-corner-relief-3d
+
+READ_SKILL: 派工
+READ_SKILL: issue-closure-gate
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+BOUNDARY=Presentation extraction only; Certified Registry formula/promote semantics, manufacturing geometry, AssemblyJoint canonical mutation remain outside panel.
+LOCAL_CHECKOUT=BLOCKED: Could not resolve host github.com
+
+CHANGED_FILE_PREFLIGHT:
+- fold_designer_bridge.py
+- phase6_registry_diagnostics_panel.py
+- tests/test_issue446_registry_diagnostics_presentation_owner.py
+- tests/test_issue368_t4_registry_diagnostics_owner.py
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+REMOTE_QA_PREFLIGHT:
+- .github/workflows/qa-issue446-t4-registry-panel.yml
+MATCHED_ROUTE=remote-qa-monitoring
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md

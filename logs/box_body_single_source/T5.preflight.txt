@@ -1,0 +1,35 @@
+TASK: T5 #30 normalize nested Phase6 settings before first canonical Fold Profile load
+REPOSITORY: looaeedr/whd
+PARENT_HEAD: 2e4d406b01bde095e33ac9620e762e00d60666d0
+WORK_BRANCH: fix/phase6-nested-settings-normalization-t5-rebase-20260907
+BLOCKS: #29
+
+PLANNED_CHANGED_FILE: fold_designer_bridge.py
+PLANNED_CHANGED_FILE: tests/test_phase6_t5_nested_settings_normalization.py
+PLANNED_CHANGED_FILE: .github/workflows/t5-nested-settings-qa.yml
+
+READ_SKILL: diagnosing-bugs
+SKILL_SHA: 061c25a524acaa93d4534e9e08a793c0a5fe45fd
+READ_SKILL: tdd
+SKILL_SHA: 8fc086710806190ee7c4baa32089cb877a75736a
+READ_SKILL: phase6-corner-3d-model-integrity
+SKILL_SHA: 9cb9a7c9806d5cd222882c79b4521ac27a99e72f
+READ_SKILL: monitoring-remote-qa
+SKILL_SHA: 1bb36e701a6090b93ec5cffa8dff7a282ae193a9
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 3afa271fce7a4a2f2dc204c8b45a10b5fc2e4884
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+REFERENCE_SHA: 08e2e92a5e2b42766b2370a141b5f28a8c459698
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+REFERENCE_SHA: 25687a63fdebd628ac0400ff3124358d05dd8d68
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+REFERENCE_SHA: 4b1f6df433b9d3ecc634407e338f4456f484da13
+READ_CONTEXT: CONTEXT.md
+CONTEXT_SHA: be6e46e8db764c2a3b0b561a85e226d373c0326f
+
+PREFLIGHT_REBASE_AUDIT: required Skill/reference/context blob SHAs match prior validated T5 preflight head 75eac60cd30a4ea8305b6faf3366742eceefbedd
+PUBLIC_TEST_SEAM: Phase6FoldDesignerApp(root, snapshot) -> first assembly to box_body switch
+VALID_RED_SOURCE: #29 run 34109321662
+VALID_RED_HEAD: 2576b9b86ff21a57de21f2e62f6f1870c5b29924
+VALID_RED_SYMPTOM: nested settings fw=24 but first switch reaches door_material_frame_width(frame_width=0)

@@ -1,0 +1,12 @@
+{
+  "completed_nodeids": 1442,
+  "failed_batches": 0,
+  "last_status": "complete",
+  "mode": "xvfb",
+  "passed": 1442,
+  "pending_nodeids": 0,
+  "skipped": 0,
+  "teardown_timeout_batches": 0,
+  "total_nodeids": 1442,
+  "updated_at": 1788532450.2810647
+}

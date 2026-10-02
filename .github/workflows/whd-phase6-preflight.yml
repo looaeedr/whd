@@ -1,5 +1,4 @@
 name: WHD Remote Phase6 Preflight
-# MAIN_DEFAULT_PHASE6_PREFLIGHT_BRIDGE_V1
 run-name: "WHD｜Phase6 Preflight｜Issue #${{ github.event.issue.number }}"
 
 on:
@@ -79,8 +78,6 @@ jobs:
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
           branch = singles["branch"]
-          if branch != "cleanup/2d-3d-sync":
-              raise SystemExit("main tombstone bridge only permits cleanup/2d-3d-sync")
           if (
               not re.fullmatch(r"[A-Za-z0-9._/-]{1,200}", branch)
               or branch.startswith("/")

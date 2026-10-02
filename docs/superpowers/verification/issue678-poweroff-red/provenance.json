@@ -1,0 +1,25 @@
+{
+  "schema": "WHD_ISSUE678_RED_DURABLE_ANCHOR_V1",
+  "issue": 678,
+  "status": "APPROVED_REQUIREMENT_RED_REPOSITORY_ANCHOR",
+  "baseline_ref": "cleanup/2d-3d-sync",
+  "baseline_sha": "87eb35b3f5ae5211673c941cb56c4c4343fa5405",
+  "approved_node_count": 36,
+  "gap_nodes": ["R0", "R0A", "R1", "R2", "R7", "R8", "R9", "R11"],
+  "behavioral_coverage": {"T3": 5, "T4": 6, "T5": 3, "T6": 8, "T10": 6},
+  "original_hashes": {
+    "test_requirement_red_v4.py": "381aa32f04d170e4ff5d29180ec892a57b4c9b81dea675079fcf25b4b666f4ac",
+    "run_requirement_red_v4.py": "f2636832dbe33fb83cdbe78318908e4a5a73323df7d36869129d81f8c0fafc61",
+    "requirement_v4_raw.txt": "430d935719600a5c794e62c1152fb0781c487128aa6f44d25059e54ee2f095ae",
+    "requirement_v4_anti_raw.txt": "0bc4e1e18b0de6e0b76cb507a9a4019ff08f8a2d4dbe3101d54027c07dc99789",
+    "requirement_v4_manifest.json": "8e055bd2704c797706c3e5f674dbfb15cf6142694609b1922d1767794ea02fd0",
+    "test_behavioral_red_v5.py": "eb43deeef3f7c3911e15502ec514a6eb3341918c729d5cdee19eab95e7152393",
+    "run_behavioral_red_v5.py": "fed4bbd442b3aba772c5f4284a58d35380ca2e48e4efede10f452a0b60dd34ee",
+    "fake_always_safe_gate.py": "268e9887ceca7586d1e1204e3f00ebf4714cd5fafd4cd259a96a4a8007805e4e",
+    "fake_always_not_safe_gate.py": "5b2f7a693088fda487b9194791693e221d851bcad9222870de75403ef3db7bf5",
+    "behavioral_v5_raw.txt": "5e7899c63dea1eadfb7cb877ea5e76f117c6f246403cc44d8a8014aafa51c07d",
+    "behavioral_v5_adversarial_raw.txt": "f6041ec3725fd99e02a0141dff9251cbb212fe72ff51abc2e3a9fe002ef39dbb",
+    "behavioral_v5_manifest.json": "565289cb23fefec07dd3a2f097532a56b0dd54908d74c3f87ed9b26937a9950e"
+  },
+  "reproduction": "python docs/superpowers/verification/issue678-poweroff-red/reproduce.py"
+}

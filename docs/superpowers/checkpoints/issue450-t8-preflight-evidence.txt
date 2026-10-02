@@ -1,0 +1,68 @@
+ISSUE=450
+TASK=T8 Combined Acceptance: architecture + geometry + Git-object invariants
+ROLE=T8 Combined Acceptance 實作者
+WORK_BRANCH=qa/issue450-t8-combined-acceptance-20260921
+CANDIDATE_BASE_SHA=1faebaa991aaaed7b968c5432bfc7e04ab32b432
+FIXED_T0_BASELINE_SHA=2b9aeccee2c91446ca02cbfe9fdcefee587ba29e
+MASTER_ISSUE=441
+
+READ_SKILL: 派工
+READ_SKILL: issue-closure-gate
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: docs/superpowers/checkpoints/issue442-t0-review.md
+READ_REFERENCE: tools/phase6_bridge_refactor_t0_census.py
+
+T0_BASELINE_BRIDGE_SPLITLINES=9013
+T0_BASELINE_TOP_LEVEL_DEF_CLASS=346
+T0_BASELINE_PHASE6_TOP_LEVEL_SYMBOLS=288
+T0_BASELINE_FACADE_BINDINGS=69
+T0_BASELINE_PHASE6_REVERSE_IMPORT_BRIDGE_COUNT=0
+T0_BASELINE_TRACKED_DXF_PATHS=10
+T0_BASELINE_DXF_AGGREGATE_SHA256=a96920189cd8ca149829ebc12d694981d1e97a6e925f87efc2f094c6c7483970
+T0_BASELINE_CONFIG_SHA256=980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67
+
+A_B_RULE=fixed T0 baseline versus exact candidate; do not substitute newer production HEAD
+HEADLESS_RULE=same repository test suite on baseline and candidate, capture JUnit + node-level failures/errors/skips
+XVFB_RULE=same repository test suite under xvfb-run on baseline and candidate, capture JUnit + node-level failures/errors/skips
+CLASSIFIER_RULE=candidate-only failure/error set must be empty after stale structural-test diagnosis/remediation; stale structural tests may be updated only when the old expectation contradicts accepted ownership authority
+SOURCE_SCAN_RULE=all root phase6_*.py reverse-import bridge count must remain 0; second composition root 0; facade <=69 baseline and <=70 hard ceiling
+SHARED_CONTENT_RULE=duplicate region/tree/binding 0; single physical shared-content slot preserved
+PROTECTED_GIT_OBJECT_RULE=tracked DXF path/blob/hash delta=0 and config.ini Git-object delta=0 versus fixed T0 baseline
+GEOMETRY_RULE=validation judge-only; geometry/manufacturing/persistence regression suites must not mutate production authority
+R1_R9_RULE=final classifier must emit all R1-R9 satisfied before closure
+AI_LIBRARY_WRITEBACK=None; durable writeback belongs to T9/#451
+
+REMEDIATION_CHANGED_FILE_PREFLIGHT=2026-09-21T17:02:00+08:00
+READ_SKILL: Python測試實務
+READ_SKILL: 性質導向測試
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+REMEDIATION_RULE=fix runtime KeyError for non-CROSS settings corner projection; migrate stale source tests to accepted T3/T4/T7 owners without weakening semantics
+FIRST_T8_RUN=35577683274
+FIRST_T8_FOCUSED_INVARIANTS=GREEN
+FIRST_T8_HEADLESS_CANDIDATE_ONLY=5
+FIRST_T8_XVFB_CANDIDATE_ONLY=10
+RUNTIME_ROOT_CAUSE=_phase6_settings_corner_projection indexed _CORNER_MODE_LABEL with selection.cross_mode=None for non-CROSS selections
+ISSUE450_REMEDIATION_2026-09-21
+PREVIOUS_RED_RUN=35582342898
+PREVIOUS_RED_HEAD=b725d8ccffe1902daf9c6917599cf7cc9864b621
+STALE_STRUCTURAL_TESTS_UPDATED=3
+REMEDIATED_HEAD=09196316ba97d426d14b66537cb014818cc88d07
+OWNER_SEAMS=T7_BOOTSTRAP_INSTALLER,REGISTRY_DIAGNOSTICS_PANEL,REGISTRY_PREVIEW_PANEL_PLUS_CORNER_DATA_ADAPTER
+NEXT_GATE=FRESH_COMBINED_ACCEPTANCE

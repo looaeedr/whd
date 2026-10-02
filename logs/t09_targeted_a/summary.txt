@@ -1,0 +1,6 @@
+tests/test_phase6_t02_endcap_edge_controls.py|rc=0|5 passed, 4 warnings in 1.02s
+tests/test_phase6_t03_piece_dimensions.py|rc=0|7 passed, 33 warnings in 2.62s
+tests/test_phase6_t04_inner_door_frames.py|rc=0|5 passed in 0.27s
+tests/test_phase6_t05_box_body_dividers.py|rc=0|6 passed in 0.26s
+tests/test_phase6_t06_receiving_fresh_family.py|rc=0|6 passed, 67 warnings in 3.64s
+tests/test_multi_door_layout.py|rc=0|27 passed in 0.37s

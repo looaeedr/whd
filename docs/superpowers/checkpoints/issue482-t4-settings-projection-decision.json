@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "issue": 482,
+  "master_issue": 486,
+  "frozen_sha": "960e79e3ded9f0bdeb7760161150bfeea291e58c",
+  "accepted_predecessor": "960e79e3ded9f0bdeb7760161150bfeea291e58c",
+  "requirement": "R4 Settings projection ownership decision",
+  "decision": "KEEP_BRIDGE_COMPATIBILITY",
+  "scope": [
+    "_phase6_settings_box_structure_projection",
+    "_phase6_settings_endcap_fw_projection",
+    "_phase6_settings_bottom_wrap_projection",
+    "_phase6_settings_corner_projection",
+    "_phase6_settings_context_extension_projection",
+    "_phase6_sync_settings_panel_extension"
+  ],
+  "deletion_test": {
+    "result": "KEEP_BRIDGE_COMPATIBILITY",
+    "reason": "phase6_settings_panel.py already owns Settings presentation. The six bridge functions form compatibility/dataflow projection glue over existing domain owners and bridge-host state. Moving them to the panel would make presentation own domain projection semantics; extracting a second helper would primarily forward the same callbacks/state or duplicate existing BoxBody/FW/WRAP/Corner rules. The approved no-shallow-wrapper rule therefore selects KEEP_BRIDGE_COMPATIBILITY.",
+    "deepening_settings_panel_rejected": "Would move read-only domain projection assembly into the presentation owner and blur the explicit callback-only state-mutation boundary.",
+    "pure_projection_extraction_rejected": "The exact-six set is not a cohesive pure-value algorithm: it reads bridge/workspace/domain state and synchronizes legacy compatibility handles. A new module would be a forwarding/service-bag wrapper unless domain contracts were redesigned beyond T4 scope."
+  },
+  "ownership_assertions": {
+    "settings_presentation_owner": "phase6_settings_panel.py",
+    "settings_transaction_owner_changed": false,
+    "registry_mutation_owner_changed": false,
+    "manufacturing_mutation_owner_changed": false,
+    "assembly_joint_mutation_owner_changed": false,
+    "new_edit_capability": false,
+    "new_settings_owner": false,
+    "facade_binding_delta": 0
+  },
+  "preflight": {
+    "route_result": "repository-read reconstruction completed",
+    "script_execution": "SCRIPT_EXECUTION_UNAVAILABLE",
+    "read_skills": [
+      "派工",
+      "issue-closure-gate",
+      "executable-continuity-controller",
+      "monitoring-remote-qa",
+      "phase6-release-packaging",
+      "phase6-corner-3d-model-integrity",
+      "驗證板件與DXF",
+      "Python測試實務",
+      "截角資料入口收斂",
+      "phase6-assembly-view-boundaries",
+      "UI設計與去AI味"
+    ],
+    "read_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+      "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+      "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+      "個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md",
+      "release_required_artifacts.json"
+    ]
+  },
+  "guard": {
+    "result": "EXECUTION_CLAIM_GUARD_GREEN",
+    "action": "write",
+    "issue": 482,
+    "worker": "chatgpt",
+    "work_branch": "work/issue486-phase4-ownership-20260922",
+    "base_sha": "960e79e3ded9f0bdeb7760161150bfeea291e58c",
+    "head_sha": "960e79e3ded9f0bdeb7760161150bfeea291e58c",
+    "changed_file": "docs/superpowers/checkpoints/issue482-t4-settings-projection-decision.json",
+    "execution": "equivalent executable guard reconstructed from frozen tools/execution_claim_guard.py"
+  },
+  "provenance": {
+    "executor_source": "chatgpt_automation",
+    "cycle_started_at": "2026-09-22T08:56:55+08:00",
+    "owning_issue": 482,
+    "action": "persist exact-six Settings projection deletion-test characterization"
+  }
+}

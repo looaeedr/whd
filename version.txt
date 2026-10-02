@@ -1,0 +1,31 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(0,1,2,0),
+    prodvers=(0,1,2,0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0,0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '040904B0',
+        [
+          StringStruct('CompanyName', ''),
+          StringStruct('FileDescription', '鈑金展開'),
+          StringStruct('FileVersion', '0.1.2'),
+          StringStruct('InternalName', '鈑金展開'),
+          StringStruct('OriginalFilename', '鈑金展開.exe'),
+          StringStruct('ProductName', '鈑金展開'),
+          StringStruct('ProductVersion', '0.1.2')
+        ]
+      )
+    ]),
+    VarFileInfo([
+      VarStruct('Translation', [1033, 1200])
+    ])
+  ]
+)

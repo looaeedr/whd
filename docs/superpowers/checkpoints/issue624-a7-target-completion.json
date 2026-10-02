@@ -1,0 +1,143 @@
+{
+  "schema": "WHD_PHASE7_TARGET_COMPLETION_V1",
+  "issue": 624,
+  "master_issue": 627,
+  "target_id": "P7-A",
+  "target": "P7-A",
+  "task_id": "A7",
+  "result": "ACCEPTED",
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "predecessor_head": "99e389de4e82ad5e34f80cc91e2e83aab0dd0f7d",
+  "initial_implementation_head": "942736f043237a6c12ecac79c7c3cab03963f298",
+  "implementation_head": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+  "tested_head": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+  "closing_head": "f2a7745e8548965d9f44fbc3236367bf7165144a",
+  "canonical_dt_artifact": "docs/superpowers/checkpoints/issue613-a1-dt-p7-a.json",
+  "dt_decision": "DEEPEN_EXISTING_OWNER",
+  "responsibilities_before": [
+    "Residual fold_designer_bridge compatibility root contained six fresh-census dead helpers plus four namespace-driven compatibility ports that local text census could not classify safely."
+  ],
+  "responsibilities_after": [
+    "six proven NO_CALLER Bridge helpers removed",
+    "four runtime/facade-proven compatibility ports retained as bounded delegates",
+    "Part Editor activation transaction ordering preserved",
+    "update scheduler remains command-router-owned",
+    "bootstrap/lifecycle/install-order and legacy host compatibility preserved"
+  ],
+  "removed_no_caller": [
+    "_phase6_active_mesh_profiles",
+    "_phase6_query_assembly_render_data",
+    "_phase6_final_scene_set_preview_enabled",
+    "_phase6_commit_output_draw_stock",
+    "_phase6_export_selected_dxf_from_3d",
+    "_phase6_toggle_parameter_panel"
+  ],
+  "retained_compatibility_ports": [
+    "_phase6_refresh_sticky_structure_tree",
+    "_phase6_install_keyboard_shortcuts",
+    "_phase6_final_scene_view_request",
+    "_phase6_save_settings_context_as_defaults"
+  ],
+  "compatibility_entries": {
+    "public_required": [
+      "Phase6FoldDesignerApp compatibility root and installed facade/bootstrap entrypoints"
+    ],
+    "legacy_required": [
+      "_fix11_init",
+      "_fix11_activate_part",
+      "_phase6_submit_update_intent"
+    ],
+    "internal_only": [],
+    "no_caller_removed": [
+      "_phase6_active_mesh_profiles",
+      "_phase6_query_assembly_render_data",
+      "_phase6_final_scene_set_preview_enabled",
+      "_phase6_commit_output_draw_stock",
+      "_phase6_export_selected_dxf_from_3d",
+      "_phase6_toggle_parameter_panel"
+    ],
+    "evidence_backed_keep": [
+      "_phase6_refresh_sticky_structure_tree",
+      "_phase6_install_keyboard_shortcuts",
+      "_phase6_final_scene_view_request",
+      "_phase6_save_settings_context_as_defaults"
+    ]
+  },
+  "structural": {
+    "reverse_import": 0,
+    "duplicate_path": 0,
+    "duplicate_owner": 0,
+    "second_composition_root": 0,
+    "full_app_dependency": false,
+    "shallow_part_editor_session_created": false,
+    "terminal_bridge_blob_sha": "8701cb47265cfa8da12466ac6dfbff02af890f36",
+    "baseline_bridge_loc": 6477,
+    "terminal_bridge_loc": 6403,
+    "loc_delta": -74
+  },
+  "invariants": {
+    "reverse_import": 0,
+    "duplicate_owner_path": 0,
+    "second_composition_root": 0,
+    "full_app_dependency": false,
+    "part_editor_order_preserved": true,
+    "update_scheduler_owner_preserved": true,
+    "bootstrap_lifecycle_install_order_preserved": true
+  },
+  "locality": {
+    "improved": true,
+    "bridge_role": "bounded composition/bootstrap/legacy compatibility root",
+    "decision": "DEEPEN_EXISTING_OWNER",
+    "verdict": "PASS_RESPONSIBILITY_LOCALITY_IMPROVED_NOT_LOC_GAMING",
+    "evidence": "Acceptance is based on deletion tests plus broader runtime/facade readback. Four locally zero-caller functions were restored when runtime composition proved them live; only six functions with final NO_CALLER evidence remain deleted."
+  },
+  "tests": {
+    "focused": {
+      "status": "GREEN",
+      "run_id": 36247109736,
+      "job_id": 108418225925,
+      "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+      "summary": "6 passed in 0.38s"
+    },
+    "broader": {
+      "status": "GREEN",
+      "run_id": 36247109748,
+      "job_id": 108418225953,
+      "head_sha": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+      "summary": "owner-boundary 84 passed, 2 skipped; original Bridge/GUI compatibility 47 passed, 64 warnings"
+    },
+    "physical_dxf": {
+      "status": "NOT_AFFECTED",
+      "reason": "A7 changes Bridge residual ownership/compatibility glue only; manufacturing geometry and DXF truth are unchanged."
+    },
+    "save_reload": {
+      "status": "NOT_AFFECTED",
+      "reason": "Project persistence formats/owners are unchanged by A7."
+    }
+  },
+  "drift_audit": {
+    "tested_head": "da0abb85d287d05d6f3a6f27c335eb2a9f3b052c",
+    "closing_head": "f2a7745e8548965d9f44fbc3236367bf7165144a",
+    "ahead_by": 1,
+    "behind_by": 0,
+    "files": [
+      {
+        "path": ".github/workflows/qa-issue624-a7-bridge-residual-reduction.yml",
+        "status": "removed"
+      },
+      {
+        "path": ".github/workflows/qa-issue624-a7-broader-regression.yml",
+        "status": "removed"
+      }
+    ],
+    "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+  },
+  "terminal_predicates": {
+    "dt_0_through_dt_6_complete": true,
+    "structural_counts_zero": true,
+    "affected_acceptance_green": true,
+    "proven_dead_removed": true,
+    "runtime_proven_compatibility_preserved": true
+  },
+  "next_action": "terminal checkpoint and trusted finalization proof"
+}

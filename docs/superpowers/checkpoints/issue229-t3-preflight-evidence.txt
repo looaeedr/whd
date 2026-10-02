@@ -1,0 +1,93 @@
+ISSUE: #229
+TASK: T3 Align AGENTS and Skill Routing with Executable Continuity
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+BASE_WORK_ORDER_SHA: b4ebba5f3a162ade89228ebc26cd2f92de9df8a1
+BASE_PRODUCTION_SHA: e0a82f28f4ce3204c9fae56326f34f1a0964851f
+CURRENT_PARENT_SHA: 68e80b2366466d91db158199042422ec2cf19f95
+CURRENT_PARENT_TREE_SHA: e7066b4132330717c9d7a6773256924dec60ecfd
+APPROVED_SPEC: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md @ 57807a4e3ea0aa64d055891dc0a5fe856ce40935
+
+READ_SKILL: executable-continuity-controller
+READ_SKILL_PATH: .agents/skills/engineering/executable-continuity-controller/SKILL.md
+READ_SKILL_SHA: d653958bb46fb111f2c957a76d22f54e7e245dad
+
+READ_SKILL: 寫技能
+READ_SKILL_PATH: .agents/skills/engineering/寫技能/SKILL.md
+READ_SKILL_SHA: 9fc8d323f255d118ebedc1f0a361d4472a667596
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_SKILL: phase6-release-packaging
+READ_SKILL_PATH: .agents/skills/engineering/phase6-release-packaging/SKILL.md
+READ_SKILL_SHA: 241fd49fe86e7f43f77ace157e071df454e98bff
+
+READ_REFERENCE: release_required_artifacts.json
+REFERENCE_SHA: 29968e4b3f4255ebbd547e13a308ad47f127ed83
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+REFERENCE_READ: previously read through EOF on the same work-order lineage; unchanged since T2
+
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+REFERENCE_SHA: 60128f6aecc4e811ddf4c33f71cf496241ef8427
+REFERENCE_READ: read in T2 and unchanged on T3 base
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+REFERENCE_SHA: 03d1c2fc1f7683f563b5ec839c5bfbb2f93a68a7
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+REFERENCE_READ: previously read through EOF on the same work-order lineage; unchanged since T2
+
+READ_TARGET: AGENTS.md
+TARGET_SHA: 5a4b564ca74099bcc7b3fb7f1facea91f76d25bb
+
+READ_TARGET: .agents/skills/skill_registry.json
+TARGET_SHA: 781881875ce48623bbf1bff28b3f8e1dd24a511d
+TARGET_FINDING: executable-continuity-controller route already exists and requires the canonical Skill.
+
+READ_TARGET: .agents/skills/skill_catalog.json
+TARGET_SHA: abb316fe9371ff5817fe1920451574ecbff90e5e
+TARGET_FINDING: engineering/**/SKILL.md is already canonical/active classification.
+
+READ_TARGET: .agents/skills/engineering/README.md
+TARGET_SHA: 9945fdf294555f15ab8ef8895a2339425ab39d46
+TARGET_FINDING: navigation-only README currently does not list executable-continuity-controller.
+
+NOTES:
+- T3 must bridge AGENTS startup/process/finalization to executable-continuity-controller / assert-finalizable semantics without duplicating the controller state machine.
+- Registry and catalog already agree that the executable continuity Skill is active; do not churn them unless behavior tests prove a real mismatch.
+- Engineering README is navigation only, never authority.
+- Existing active-Skill classification and preflight contracts must remain GREEN.
+- Four required-artifact checks above are pinned to exact current-parent paths and full blob SHAs before production-document edits.
+
+RED_EVIDENCE:
+- RUN_ID: 34844663751
+- HEAD_SHA: cecb22b95429c84c5b10e5d3454ab254fe683990
+- PREFLIGHT: GREEN / fail-closed
+- FOCUSED_RESULT: 2 failed / 2 passed
+- EXPECTED_GAPS: AGENTS executable-continuity bridge marker; engineering README canonical navigation link.
+
+IMPLEMENTATION:
+- PRODUCTION_DOC_COMMIT: e2278320574a1cb58a123198e9919077233a3c79
+- CHANGED_PRODUCTION_DOCS_ONLY: AGENTS.md; .agents/skills/engineering/README.md
+- PRODUCTION_DOC_DIFF: 8 insertions; registry/catalog/Skill files unchanged.
+
+GREEN_EVIDENCE:
+- FOCUSED_RUN_ID: 34846170019
+- FOCUSED_JOB_ID: 103982537584
+- FOCUSED_HEAD_SHA: d4f5f4ecde675cf847ca52fdd692eb0bbd93ecef
+- PREFLIGHT: GREEN / all required Skills and references satisfied
+- FOCUSED_RESULT: 4 passed / 0 failed
+- KNOWLEDGE_REGRESSION_RUN_ID: 34846508784
+- KNOWLEDGE_REGRESSION_JOB_ID: 103983654033
+- KNOWLEDGE_REGRESSION_HEAD_SHA: dcc858b3f76a510c64bbb1f0bd16a191655f8fe9
+- KNOWLEDGE_REGRESSION_RESULT: tests/knowledge = 61 passed / 0 failed
+
+REVOKED_NON_ACCEPTANCE_HARNESS_EVIDENCE:
+- RUN 34845036305: workflow YAML parse failure; no job created; INVALID / NON_ACCEPTANCE_EVIDENCE.
+- RUN 34845896545: applicator bootstrap used system Python without tkinter; harness failure; INVALID / NON_ACCEPTANCE_EVIDENCE.
+- RUN 34846066662: bounded applicator succeeded and produced production-doc commit e2278320574a1cb58a123198e9919077233a3c79; used only as implementation provenance, not final acceptance.

@@ -1,0 +1,12 @@
+{
+  "task_id": 107,
+  "work_order": 110,
+  "role": "T3 Implementer",
+  "branch": "fix/issue110-shared-info-projection-20260911",
+  "accepted_base": "01fe5c39ff32c7513e6e464f29f94423b46c4fe7",
+  "pending": [
+    "exact-head remote QA",
+    "QA review"
+  ],
+  "next": "#111 after #110 acceptance"
+}

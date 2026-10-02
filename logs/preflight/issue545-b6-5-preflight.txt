@@ -1,0 +1,24 @@
+Issue #545 B6-5 Phase6 Knowledge Preflight
+TASK: exact-branch repo-wide facade caller/dynamic/property/public audit for 12 B6-5 bindings; evidence-only census before any compatibility mutation.
+TARGET: cleanup/2d-3d-sync
+WORK_ORDER_BRANCH: work/issue520-phase6-bridge-residual-reduction-20260923
+PARENT_ACCEPTED_HEAD: f7179554c448a4af5b271d251290912efe115a38
+
+REQUIRED SKILLS
+✓ monitoring-remote-qa
+✓ long-log-context-safe-execution
+✓ executable-continuity-controller
+
+REQUIRED REFERENCES
+✓ 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+✓ 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+✓ 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PREFLIGHT_DECISION=GREEN

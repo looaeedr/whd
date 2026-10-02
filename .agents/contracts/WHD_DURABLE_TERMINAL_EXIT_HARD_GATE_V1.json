@@ -1,0 +1,58 @@
+{
+  "schema": "WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1",
+  "version": 2,
+  "status": "CURRENT",
+  "machine_owner": "tools/execution_invocation_exit.py",
+  "state_owner": "WHD_EXECUTION_RECORD_V2",
+  "record_validator": "tools/execution_record.py",
+  "normal_completion_requires": "DURABLE_DONE_TUPLE",
+  "functional_success_is_terminal": false,
+  "nonterminal_success_markers_not_terminal": [
+    "QA_GREEN",
+    "PR_MERGED",
+    "FUNCTION_FIXED",
+    "FEATURE_LIVE",
+    "WORKFLOW_DISABLED"
+  ],
+  "durable_done_tuple": {
+    "state": "DONE",
+    "next_action": null,
+    "lease": null,
+    "active_run": null,
+    "owner_kind": "NONE",
+    "owner_id": "NONE",
+    "lane_id": null,
+    "closure.issue_closed": true,
+    "closure.released_at": "NON_NULL",
+    "mutation_scope.reservation_state": "RELEASED_OR_ABSENT"
+  },
+  "nonterminal_policy": "CONTINUE_EXACT_NEXT_ACTION_OR_GENUINE_MACHINE_BLOCKER",
+  "progress_report_is_stop_authority": false,
+  "completion_claim_guard": "assert_durable_terminal_exit",
+  "physical_yield_note": "A legal YIELD/LANE_BUSY return is not a task-complete claim.",
+  "terminal_green_is_stop_authority": false,
+  "terminal_green_policy": "CONSUME_AND_CONTINUE_SAME_INVOCATION",
+  "terminal_tail_entry": {
+    "accepted_exact_head_qa": {
+      "requires": [
+        "qa.last_accepted_run=NON_NULL",
+        "qa.accepted_head_sha==head_sha"
+      ],
+      "next_action": "MERGE"
+    },
+    "merged_anchor": {
+      "next_action": "FINALIZE"
+    }
+  },
+  "terminal_tail_actions": [
+    "MERGE",
+    "FINALIZE"
+  ],
+  "host_boundary_yield_forbidden_in_terminal_tail": true,
+  "terminal_tail_exit_decision": "CONTINUE_TERMINAL_TAIL",
+  "terminal_tail_required_end": "DURABLE_DONE_TUPLE",
+  "genuine_machine_blocker_only_escape": true,
+  "execution_terminal_scope": "FLOW_V2_EXECUTION_ONLY",
+  "repository_content_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
+  "repository_content_completion_requires": "DURABLE_CLEANUP_COMPLETE"
+}

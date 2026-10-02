@@ -1,0 +1,44 @@
+{
+  "task": "Receiving Door projection/snapshot single-source follow-up",
+  "parent_sha": "e97d1ab6401f4bf5606be031331d3ffbad8bae76",
+  "red_run": {
+    "run_id": 34083065751,
+    "passed": 1,
+    "failed": 2,
+    "expected_old_values": [
+      "727x1060",
+      "727x427"
+    ]
+  },
+  "production_commits": [
+    "96ec9500628a791ec982e941a4fa82600be24681",
+    "38dd8a4b2d76df82d7e7830503be53beaae506e0"
+  ],
+  "green_run": {
+    "run_id": 34083409925,
+    "head_sha": "38dd8a4b2d76df82d7e7830503be53beaae506e0",
+    "focused": "3 passed",
+    "t25": "1 passed",
+    "artifact_id": 10004409173,
+    "artifact_digest": "sha256:672eded31fea68906689fdb11b1dc757ea2bb5b13e3b9a9712e3514ea3eae939"
+  },
+  "config_ini_sha256": {
+    "before": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67",
+    "after": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67"
+  },
+  "verified_dimensions": {
+    "receiving_upper_finished": [
+      735,
+      1064
+    ],
+    "receiving_lower_finished": [
+      735,
+      435
+    ],
+    "receiving_main_snapshot_legacy_door_finished": [
+      735,
+      1535
+    ]
+  },
+  "production_scan": "gui.py and fold_designer_bridge.py contain no caller-level Door fw+2T hand formula"
+}

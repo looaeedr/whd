@@ -1,0 +1,46 @@
+name: WHD Product Regression
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - 'ae_engine/**'
+      - 'gui_modules/**'
+      - 'phase6_*.py'
+      - 'fold_designer_bridge.py'
+      - 'tests/**'
+      - 'tools/phase6_bridge_anti_regrowth_guard.py'
+      - 'tools/product_ci_regression.py'
+      - 'docs/architecture/phase6_bridge_anti_regrowth_baseline.json'
+      - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
+      - '.github/workflows/whd-product-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  product-regression:
+    name: Canonical Product Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout exact PR candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install product test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run canonical root/CI product regression
+        shell: bash
+        run: python tools/product_ci_regression.py

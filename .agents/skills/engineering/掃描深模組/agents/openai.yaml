@@ -1,0 +1,5 @@
+interface:
+  display_name: "掃描深模組"
+  short_description: "掃描架構深化機會並以繁體中文報告"
+policy:
+  allow_implicit_invocation: false

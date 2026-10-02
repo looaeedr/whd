@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "308",
+  "branch": "ci-sharding/issue308-t4-aggregation-20260917",
+  "head_sha": "4f43ca1296c410eb9cdd59441e8f6a3475db9f5b",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35121912254,
+  "job_id": 104884262813,
+  "log_cursor": null,
+  "evidence": [
+    "Exact accepted T3 base 3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb",
+    "T4 Knowledge Preflight run 35120577426 at 80ca5c0e42f56ca6dcf3a9170dfe7f67f441066e: terminal SUCCESS",
+    "T4 aggregation contract RED run 35120927167 proved the missing aggregator seam before implementation",
+    "T4 artifact normalization focused GREEN run 35121570302 at 215e56d6f088dd84910f02ce3bf7ba57ffcba30d: 13 PASS / 0 FAIL",
+    "T4 full acceptance run 35121912254 at 4f43ca1296c410eb9cdd59441e8f6a3475db9f5b: completed SUCCESS",
+    "20/20 non-GUI shards terminal SUCCESS and four Xvfb shards 33/27/25/28 terminal SUCCESS",
+    "Aggregate schema WHD_TEST_AGGREGATION_V1 decision GREEN with 2222/2222 unique nodes reconciled",
+    "Aggregate totals 1945 PASS / 264 SKIP / 13 exact INHERITED_BASELINE_RED / 0 errors / 0 unclassified RED / warnings=[]",
+    "Aggregate manifest sha256 77536ad913c35b3dd7cc1ff85fe4446d3ecf52e7f53faf99d10fb53bbe501402",
+    "Aggregate plan artifact digest 2b6495fd5f9a2cd34fc191e15dc21effb97e468207bef4279fad632736f815c3",
+    "Aggregate evidence artifact issue308-t4-aggregate id 10458511726 zip sha256 39fa112c1e8d504ad4795eadad5713f2b7aea302b6af6d0b1334447f4911e68a",
+    "T0 provenance run 35092857584 artifact 10445586630 digest sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77",
+    "Unified Markdown summary published to GITHUB_STEP_SUMMARY and preserved as aggregate artifact",
+    "Protected invariants GREEN for all 24 shard artifacts; production source untouched"
+  ]
+}

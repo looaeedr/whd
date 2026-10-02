@@ -1,0 +1,96 @@
+{
+  "schema": "WHD_ISSUE546_B6_6_FINAL_CLASSIFICATION_V1",
+  "issue": 546,
+  "controller_issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R3"
+  ],
+  "parent_accepted_head": "c06f5fb976b96e0db58452438ed8977b9d86e800",
+  "audit": {
+    "run_id": 35816653419,
+    "head_sha": "80ab12e34c34f60ff1d921ca1712875a5aeda6f4",
+    "artifact_id": 10731387278
+  },
+  "replacement_red": {
+    "run_id": 35816829506,
+    "head_sha": "87da454f3c6bab8dee33d2e8233e7972cd632bbe",
+    "result": "4 failed / 9 passed as expected"
+  },
+  "migration_head": "fb2d5c5cdc10f3a32f0e466fa78377a9a606829c",
+  "candidate_green": {
+    "run_id": 35817570889,
+    "head_sha": "b9dd61041f43d91c3c083cba6e4ad206cc4c8c79",
+    "headless": "24 passed",
+    "xvfb": "3 failed / 28 passed",
+    "artifact_id": 10732540108
+  },
+  "immutable_ab": {
+    "run_id": 35817807414,
+    "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
+    "baseline_head": "c06f5fb976b96e0db58452438ed8977b9d86e800",
+    "candidate_head": "fb2d5c5cdc10f3a32f0e466fa78377a9a606829c",
+    "baseline_xvfb": "3 failed / 28 passed",
+    "candidate_xvfb": "3 failed / 28 passed",
+    "candidate_only_failures": [],
+    "baseline_only_failures": [],
+    "artifact_id": 10731144611
+  },
+  "architecture": {
+    "source_run_id": 35817807414,
+    "accounted": 9,
+    "unclassified": 0,
+    "dynamic_ref_unreviewed": 0,
+    "removed": 7,
+    "direct_owner_test_oracle_migrations": 3,
+    "facade_count_before": 52,
+    "facade_count_after": 45
+  },
+  "classification": {
+    "_phase6_render_endcap_edge_controls": "NO_CALLER",
+    "_phase6_commit_base_plate_edge_shrink": "CAN_DIRECT_OWNER",
+    "submit_update_intent": "PUBLIC_REQUIRED",
+    "apply_settings_delta": "CAN_DIRECT_OWNER",
+    "switch_active_part": "CAN_DIRECT_OWNER",
+    "publish_if_changed": "CAN_DIRECT_OWNER",
+    "_phase6_flush_update_intents": "CAN_DIRECT_OWNER",
+    "set_3d_preview_enabled": "PUBLIC_REQUIRED",
+    "refresh_3d_preview": "NO_CALLER"
+  },
+  "removed_from_facade": [
+    "_phase6_render_endcap_edge_controls",
+    "_phase6_commit_base_plate_edge_shrink",
+    "apply_settings_delta",
+    "switch_active_part",
+    "publish_if_changed",
+    "_phase6_flush_update_intents",
+    "refresh_3d_preview"
+  ],
+  "public_required": [
+    "submit_update_intent",
+    "set_3d_preview_enabled"
+  ],
+  "test_oracle_migrations": [
+    [
+      "apply_settings_delta",
+      "bridge._phase6_apply_settings_delta"
+    ],
+    [
+      "switch_active_part",
+      "bridge._phase6_switch_active_part"
+    ],
+    [
+      "publish_if_changed",
+      "bridge._phase6_publish_if_changed"
+    ]
+  ],
+  "notes": [
+    "_phase6_render_endcap_edge_controls and refresh_3d_preview had no production/test/dynamic consumers and their facade exposures were removed.",
+    "_phase6_commit_base_plate_edge_shrink and _phase6_flush_update_intents retain their direct module-owner functions; existing direct/module contract consumers do not require class-facade exposure.",
+    "apply_settings_delta, switch_active_part, and publish_if_changed stale class-oracle assertions were migrated to direct module-owner contracts before facade removal.",
+    "submit_update_intent and set_3d_preview_enabled remain PUBLIC_REQUIRED due live production/runtime consumers.",
+    "The three Xvfb failures are identical on immutable parent and candidate; candidate-only failure count is zero."
+  ]
+}

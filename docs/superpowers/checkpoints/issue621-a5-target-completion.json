@@ -1,0 +1,47 @@
+{
+  "schema": "WHD_PHASE7_TARGET_COMPLETION_V1",
+  "issue": 621,
+  "master_issue": 627,
+  "target_id": "P7-E",
+  "target": "P7-E",
+  "task_id": "A5",
+  "result": "ACCEPTED",
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "predecessor_head": "a21dabe56e99201a106edac14460e8731ee435b4",
+  "implementation_head": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+  "tested_head": "5f363ed246f2edf89e0cebad38f6d0d8ad24f33f",
+  "closing_head": "8e80e460160a9b238ee53d201a1ff88ee47439d3",
+  "canonical_dt_artifact": "docs/superpowers/checkpoints/issue613-a1-dt-p7-e.json",
+  "dt_decision": "DEEPEN_EXISTING_OWNER",
+  "invariants": {
+    "reverse_import_to_manufacturing_api": 0,
+    "duplicate_owner_path": 0,
+    "second_composition_root": 0,
+    "full_app_dependency": false,
+    "one_generic_algorithm_path": true
+  },
+  "tests": {
+    "remote_qa": {
+      "status": "GREEN",
+      "run_id": 36225921203,
+      "job_id": 108359824682,
+      "summary": "122 passed, 4 skipped, 0 failed"
+    },
+    "physical_dxf": {
+      "status": "GREEN"
+    },
+    "save_reload": {
+      "status": "NOT_AFFECTED"
+    }
+  },
+  "drift_audit": {
+    "qa_orchestration_head": "f9b7439f03d60fc0f9bb6929d8b566b21ce2291c",
+    "verdict": "EMPTY_TREE_DIFF"
+  },
+  "terminal_predicates": {
+    "dt_0_through_dt_6_complete": true,
+    "structural_counts_zero": true,
+    "affected_acceptance_green": true,
+    "one_generic_algorithm_path": true
+  }
+}

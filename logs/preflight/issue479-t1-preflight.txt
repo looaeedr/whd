@@ -1,0 +1,38 @@
+FROZEN_CHAIN_BASE=76c7f3faed713622cf90d823a4be88edb4677488
+CURRENT_T1_PREWRITE_HEAD=76c7f3faed713622cf90d823a4be88edb4677488
+REGISTRY_SHA=4ed99227c91212fc06fe00074430975884b2e79a
+TASK=Issue #479 T1 FinalScene composition ports ownership
+
+PLANNED_CHANGED_FILES
+fold_designer_bridge.py
+gui_modules/application/fold_designer_adapter.py
+tests/test_issue479_final_scene_composition_owner.py
+
+MATCHED_ROUTES
+python-testing-practices
+dispatching-workflow
+phase6-corner-relief-3d
+part-dxf-acceptance
+
+REQUIRED_SKILLS_READ
+Python測試實務
+派工
+issue-closure-gate
+phase6-corner-3d-model-integrity
+驗證板件與DXF
+monitoring-remote-qa
+tdd
+執行開發任務
+
+REQUIRED_REFERENCES_READ
+個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+基準檔/截角資料庫/README_母規則說明.md
+基準檔/截角資料庫/certified_relief_rules.json
+個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+T1_REQUIREMENT_RED=R1
+R1_EXPECTED=bridge must not construct FinalSceneCompositionPorts inline
+R1_OBSERVED_BASELINE=fold_designer_bridge.py::_phase6_final_scene_adapter lines 755-873 constructs 35/35 ports inline
+INVARIANTS=G1 reverse-import=0; G2 second composition root=0; G3 accepted #447/#448/#449 boundaries; G4 behavior/dataflow/geometry/persistence drift=0

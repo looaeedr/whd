@@ -1,0 +1,8 @@
+ISSUE: #230
+PR_READY: true
+HEAD_AUTHORITY: current branch head / PR head
+TESTED_HEAD: 05efd71f1bffed3f85fcb0de8239c0e392822d6d
+FINAL_REGRESSION_RUN: 34849263388
+RESULT: focused 4 passed; bootstrap 8 passed; tests/knowledge 65 passed; 0 failed
+POST_TEST_DRIFT: temporary workflow cleanup + durable evidence only
+CORE_RULES_BLOB_UNCHANGED: 10eaae346d96d94b4768a9e45e8ce0d5a5227e67

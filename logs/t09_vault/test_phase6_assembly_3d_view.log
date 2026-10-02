@@ -1,0 +1,24 @@
+..................                                                       [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part
+tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part
+tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part
+tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part
+tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+18 passed, 8 warnings in 1.21s

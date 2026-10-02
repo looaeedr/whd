@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/mnt/data/phase6_exec/tools/phase6_release_test_runner.py", line 534, in journal_run_lock
+    fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/data/phase6_exec/tools/phase6_release_test_runner.py", line 636, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/mnt/data/phase6_exec/tools/phase6_release_test_runner.py", line 622, in main
+    return run_resumable_suite(
+        root=root,
+    ...<7 lines>...
+        reset=bool(args.reset),
+    )
+  File "/mnt/data/phase6_exec/tools/phase6_release_test_runner.py", line 582, in run_resumable_suite
+    with journal_run_lock(journal_path):
+         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/mnt/data/phase6_exec/tools/phase6_release_test_runner.py", line 536, in journal_run_lock
+    raise RuntimeError(f"release journal already in use: {journal_path}") from exc
+RuntimeError: release journal already in use: logs/receiving_multipart_release_headless_20260904.jsonl

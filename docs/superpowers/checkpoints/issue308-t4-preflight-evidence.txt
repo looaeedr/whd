@@ -1,0 +1,28 @@
+# Issue 308 / T4 Knowledge Preflight Evidence
+
+BASE_ACCEPTED_HEAD: 3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb
+BRANCH: ci-sharding/issue308-t4-aggregation-20260917
+TASK: Implement #308 T4 aggregation and Unified Markdown Summary for deterministic shard results and GitHub Actions remote QA; fail closed on missing shard, duplicate/missing node and unclassified RED; preserve first-run and retry outcomes including FLAKY-WARNING; preserve protected invariants.
+
+READ_SKILL: Python測試實務
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md
+
+PLANNED_CHANGED_FILE: tools/test_shard_aggregation.py
+PLANNED_CHANGED_FILE: tests/test_issue308_t4_aggregation.py
+PLANNED_CHANGED_FILE: .github/workflows/qa-issue308-t4-aggregation.yml
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue308-t4.json
+
+BOUNDARIES:
+- T2/T3 manifest ownership and executor stay authoritative inputs; do not recompute ownership inside aggregation.
+- First-run RED is never overwritten by retry GREEN; surface [FLAKY-WARNING].
+- Missing shard/result, duplicate node, missing node, unclassified RED and protected-invariant mismatch are fail-closed.
+- Full raw logs remain artifacts; summary/context use bounded evidence only.
+- No production geometry/UI/persistence/DXF behavior changes.

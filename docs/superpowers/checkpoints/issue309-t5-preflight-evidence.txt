@@ -1,0 +1,32 @@
+# Issue 309 / T5 Knowledge Preflight Evidence
+
+BASE_ACCEPTED_HEAD: a415f10fca808a19debba62e27cf90a7a864d46b
+BRANCH: ci-sharding/issue309-t5-xdist-isolation-20260917
+TASK: Audit pytest-xdist state isolation for non-GUI deterministic shards, classify scopes as xdist-safe or serial-only, enable conservative worker counts only where repeat evidence proves stable node/result semantics, preserve protected invariants, and keep Xvfb/Tk serial inside each isolated display.
+
+READ_SKILL: Python測試實務
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md
+
+PLANNED_CHANGED_FILE: tools/xdist_state_isolation.py
+PLANNED_CHANGED_FILE: tests/test_issue309_t5_xdist_state_isolation.py
+PLANNED_CHANGED_FILE: config/ci_test_execution.json
+PLANNED_CHANGED_FILE: .github/workflows/qa-issue309-t5-xdist.yml
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue309-t5.json
+
+BOUNDARIES:
+- Job-level deterministic sharding remains primary; xdist is optional and scope-specific.
+- No global pytest -n auto; worker count must be explicit and conservative.
+- Xvfb/Tk stays serial inside each isolated display unless a separate dedicated proof authorizes otherwise.
+- Persistence/DXF and any scope with fixed paths, protected-file writes, singleton/global state, shared caches, ports, env leakage or Tk roots remain serial until independently proven safe.
+- xdist-safe requires repeat-run stable node/result semantics plus no cross-worker leakage and protected invariants GREEN.
+- Worker-local temporary roots/resources are mandatory for mutable test resources used by parallel workers.
+- Any order-dependent/shared-state regression disables xdist for that scope; validation evidence cannot be used to weaken test semantics.
+- No production geometry/UI/persistence/DXF behavior changes for CI convenience.

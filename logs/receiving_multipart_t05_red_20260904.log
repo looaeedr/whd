@@ -1,0 +1,36 @@
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+___ test_multi_door_feature_maps_use_formal_part_identity_and_isolate_cells ____
+
+    def test_multi_door_feature_maps_use_formal_part_identity_and_isolate_cells():
+>       from ae_engine.sheetmetal_part_adapters import (
+            door_layout_feature_map_to_part_features,
+            door_part_features_to_layout_feature_map,
+        )
+E       ImportError: cannot import name 'door_layout_feature_map_to_part_features' from 'ae_engine.sheetmetal_part_adapters' (/mnt/data/phase6_exec/ae_engine/sheetmetal_part_adapters.py)
+
+tests/test_phase6_t05_multi_door_identity.py:8: ImportError
+____ test_receiving_two_door_assembly_offsets_are_distinct_and_front_placed ____
+
+    def test_receiving_two_door_assembly_offsets_are_distinct_and_front_placed():
+        import fold_designer_bridge as bridge
+    
+        snapshot = {
+            "w": 800.0,
+            "h": 1600.0,
+            "multi_door_enabled": True,
+            "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+            "t": 2.0,
+            "fw": 25.0,
+            "door_gap_w": 3.5,
+            "door_gap_h": 3.5,
+        }
+>       upper = bridge._phase6_door_part_assembly_placement(snapshot, "door_c1_r1")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_door_part_assembly_placement'
+
+tests/test_phase6_t05_multi_door_identity.py:42: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_t05_multi_door_identity.py::test_multi_door_feature_maps_use_formal_part_identity_and_isolate_cells - ImportError: cannot import name 'door_layout_feature_map_to_part_features' from 'ae_engine.sheetmetal_part_adapters' (/mnt/data/phase6_exec/ae_engine/sheetmetal_part_adapters.py)
+FAILED tests/test_phase6_t05_multi_door_identity.py::test_receiving_two_door_assembly_offsets_are_distinct_and_front_placed - AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_door_part_assembly_placement'
+2 failed, 1 passed in 0.56s
