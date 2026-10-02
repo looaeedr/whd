@@ -1,7 +1,5 @@
 {
-  "schema": "WHD_EXECUTION_READY_INDEX_V1",
   "authority": "DERIVED_CACHE_ONLY",
-  "source_digest": "800185e4976e1a4bab8957946fee0e32b148d293885432b3ef6d9582e8842194",
   "entries": [
     {
       "execution_intent": "EXECUTE_TICKET",
@@ -13,17 +11,8 @@
       "target_branch": "cleanup/2d-3d-sync",
       "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
       "updated_at": "2026-10-02T07:21:20Z"
-    },
-    {
-      "execution_intent": "EXECUTE_TICKET",
-      "generation": 1,
-      "issue": 1143,
-      "next_action_display": "Acquire Issue #1143",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "1e2a059b201fe94532894e0823afadc49f5a0dff5dde94fb5cb255e148b72158",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
-      "updated_at": "2026-10-02T15:26:00Z"
     }
-  ]
+  ],
+  "schema": "WHD_EXECUTION_READY_INDEX_V1",
+  "source_digest": "89db217d83f6e4db6d31cf2b4a5074f7a6b681e79d7135997924aa302f5cf25d"
 }

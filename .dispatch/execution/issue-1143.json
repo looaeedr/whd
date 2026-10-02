@@ -1,44 +1,99 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1143,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.2",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
-  "work_branch": "delivery/issue1143-docs-gen4-20261002",
-  "head_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1143"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "issue": 1143,
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": {
+    "expires_at": "2026-10-02T15:49:10Z",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1143.pushall.20261002T2331+08",
+    "token": "lease:1143:37027843646:1"
+  },
+  "mutation_scope": {
+    "base_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+    "delete_paths": [
+      ".github/workflows/drive-source-snapshot-export.yml"
+    ],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_CHANGE_TEST_PROFILE_V1.json",
+      ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
+      ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
+      ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json",
+      ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
+      ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+      ".agents/skills/engineering/deterministic-repo-migration/SKILL.md",
+      ".agents/skills/engineering/diagnosing-bugs/SKILL.md",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".agents/skills/engineering/寫技能/SKILL.md",
+      ".agents/skills/engineering/排程模擬/SKILL.md",
+      ".agents/skills/engineering/推推/SKILL.md",
+      ".agents/skills/skill_registry.json",
+      ".gitignore",
+      "AGENTS.md",
+      "tests/knowledge/test_issue250_deterministic_repo_migration_skill.py",
+      "tests/process/test_change_test_profile.py",
+      "tests/process/test_drive_source_snapshot_export_contract.py",
+      "tests/process/test_flow_v2_execution_invocation_exit.py",
+      "tests/process/test_flow_v2_path_reservation.py",
+      "tests/process/test_issue1022_root_ci_parity.py",
+      "tests/process/test_issue1032_flow_v2_semantic_doc_cutover.py",
+      "tests/process/test_issue1045_post_integration_durability.py",
+      "tests/process/test_issue1046_flow_v2_anti_regrowth_v2.py",
+      "tests/process/test_issue1049_flow_v2_anti_regrowth_v3.py",
+      "tests/process/test_issue1056_flow_v2_anti_regrowth_v4.py",
+      "tests/process/test_issue1063_actions_workflow_cleanup.py",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tests/process/test_issue961_work_root_hard_gate.py",
+      "tests/process/test_issue975_flow_v2_closure_stability.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tests/process/test_shared_unpushed_anti_regrowth.py",
+      "tests/process/test_shared_unpushed_integration.py",
+      "tests/process/test_work_root_gate_v2.py",
+      "tests/test_phase6_skill_preflight_gate.py",
+      "tools/change_test_profile.py",
+      "tools/execution_entry_contract.py",
+      "tools/execution_invocation_exit.py",
+      "tools/execution_path_reservation.py",
+      "tools/phase6_skill_preflight.py",
+      "tools/post_integration_durability.py",
+      "tools/root_local_first_gate.py",
+      "tools/shared_unpushed_integration.py",
+      "tools/work_root_gate.py",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md",
+      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
+      "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Create exact docs delivery branch for Issue #1143 generation 4",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work2",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
@@ -48,5 +103,22 @@
       "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-10-02T15:26:00Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PATHS_RESERVED",
+  "slot_id": "worker.slot.2",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "1ba28ded5fc8ad9d7c68cf3c13f1db76569c4ec9",
+  "transaction": {
+    "expected_fingerprint": "1e2a059b201fe94532894e0823afadc49f5a0dff5dde94fb5cb255e148b72158",
+    "id": "gha:37027843646:1143:ACQUIRE:1",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1143.pushall.20261002T2331+08",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-02T15:34:10Z",
+  "version": 2,
+  "work_branch": "delivery/issue1143-docs-gen4-20261002"
 }
