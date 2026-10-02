@@ -237,6 +237,169 @@ def test_release_paths_requires_same_live_invocation_and_keeps_audit_scope():
         )
 
 
+def _released_stale_record():
+    record = _record(1001, scope=_scope(write=("gui.py",)))
+    plan = prepare_transaction(
+        record,
+        kind="RELEASE_PATHS",
+        transaction_id="tx-release-for-stale-cleanup",
+        invocation_identity=INV,
+    )
+    released = execute_transaction(
+        record,
+        plan,
+        effect={"reason": "scope cancelled", "updated_at": "2026-09-29T10:34:00Z"},
+    )
+    return replace(
+        released,
+        lease=type(released.lease)(
+            token=released.lease.token,
+            invocation_identity=released.lease.invocation_identity,
+            expires_at="2026-09-29T10:35:00Z",
+        ),
+        semantic_state="PATH_RESERVATION_RELEASED",
+        next_action=ActionSpec(kind="START_BRANCH", args={}, display="stale continuation"),
+    )
+
+
+def test_released_stale_record_resets_to_ready_only_with_all_five_conditions():
+    record = _released_stale_record()
+    plan = prepare_transaction(
+        record,
+        kind="RELEASE_PATHS",
+        transaction_id="tx-stale-release-cleanup",
+        invocation_identity="cleanup-runtime",
+    )
+    reset = execute_transaction(
+        record,
+        plan,
+        effect={
+            "reason": "clear abandoned continuation",
+            "updated_at": "2026-09-29T10:40:00Z",
+            "work_branch_exists": False,
+            "fresh_target_sha": "d" * 40,
+        },
+    )
+    assert reset.state == "READY"
+    assert reset.semantic_state == "READY"
+    assert reset.owner_kind == "NONE"
+    assert reset.owner_id == "NONE"
+    assert reset.lane_id is None
+    assert reset.slot_id is None
+    assert reset.lease is None
+    assert reset.active_run is None
+    assert reset.qa.last_accepted_run is None
+    assert reset.qa.accepted_head_sha is None
+    assert reset.mutation_scope.reservation_state == "RELEASED"
+    assert reset.next_action.kind == "ACQUIRE"
+    assert reset.source_sha == "d" * 40
+    assert reset.head_sha == "d" * 40
+    assert reset.target_sha == "d" * 40
+
+
+def test_released_stale_record_reset_rejects_live_lease_active_run_qa_or_existing_branch():
+    from tools.execution_record import RunState
+
+    base = _released_stale_record()
+
+    live = replace(
+        base,
+        lease=type(base.lease)(
+            token=base.lease.token,
+            invocation_identity=base.lease.invocation_identity,
+            expires_at="2026-09-29T10:45:00Z",
+        ),
+    )
+    plan = prepare_transaction(
+        live, kind="RELEASE_PATHS", transaction_id="tx-live",
+        invocation_identity="cleanup-runtime"
+    )
+    with pytest.raises(ControlTransactionError, match="requires an expired lease"):
+        execute_transaction(
+            live, plan,
+            effect={
+                "reason": "no", "updated_at": "2026-09-29T10:40:00Z",
+                "work_branch_exists": False, "fresh_target_sha": "d" * 40,
+            },
+        )
+
+    running = replace(
+        base, active_run=RunState(id=123, head_sha=base.head_sha, purpose="qa")
+    )
+    plan = prepare_transaction(
+        running, kind="RELEASE_PATHS", transaction_id="tx-run",
+        invocation_identity="cleanup-runtime"
+    )
+    with pytest.raises(ControlTransactionError, match="active_run=null"):
+        execute_transaction(
+            running, plan,
+            effect={
+                "reason": "no", "updated_at": "2026-09-29T10:40:00Z",
+                "work_branch_exists": False, "fresh_target_sha": "d" * 40,
+            },
+        )
+
+    qa_locked = replace(
+        base, qa=type(base.qa)(last_accepted_run=456, accepted_head_sha=base.head_sha)
+    )
+    plan = prepare_transaction(
+        qa_locked, kind="RELEASE_PATHS", transaction_id="tx-qa",
+        invocation_identity="cleanup-runtime"
+    )
+    with pytest.raises(ControlTransactionError, match="no QA lock"):
+        execute_transaction(
+            qa_locked, plan,
+            effect={
+                "reason": "no", "updated_at": "2026-09-29T10:40:00Z",
+                "work_branch_exists": False, "fresh_target_sha": "d" * 40,
+            },
+        )
+
+    plan = prepare_transaction(
+        base, kind="RELEASE_PATHS", transaction_id="tx-branch",
+        invocation_identity="cleanup-runtime"
+    )
+    with pytest.raises(ControlTransactionError, match="absent work branch"):
+        execute_transaction(
+            base, plan,
+            effect={
+                "reason": "no", "updated_at": "2026-09-29T10:40:00Z",
+                "work_branch_exists": True, "fresh_target_sha": "d" * 40,
+            },
+        )
+
+
+def test_trusted_executor_proves_absent_work_branch_before_stale_release_reset(monkeypatch):
+    from datetime import datetime, timezone
+    from urllib.error import HTTPError
+    from tools import control_transaction_production_executor as executor
+
+    record = _released_stale_record()
+    monkeypatch.setattr(
+        executor, "_now",
+        lambda: datetime(2026, 9, 29, 10, 40, tzinfo=timezone.utc)
+    )
+
+    def fake_api(repo, method, path, token, payload=None):
+        if path.startswith("/git/ref/heads/work%2Fissue-1001"):
+            raise HTTPError("https://example.invalid", 404, "Not Found", None, None)
+        raise AssertionError(f"unexpected API call: {method} {path}")
+
+    monkeypatch.setattr(executor, "_api", fake_api)
+    monkeypatch.setattr(
+        executor, "_read_branch_head", lambda repo, token, branch: "d" * 40
+    )
+    effect = executor._trusted_stale_release_effect(
+        "looaeedr/whd",
+        "unused",
+        record=record,
+        supplied={"reason": "clear abandoned continuation"},
+    )
+    assert effect["work_branch_exists"] is False
+    assert effect["fresh_target_sha"] == "d" * 40
+    assert effect["updated_at"] == "2026-09-29T10:40:00Z"
+
+
 def test_issue_scoped_drive_workspaces_are_physically_isolated():
     from tools.work_root_gate import build_interactive_work_path
 

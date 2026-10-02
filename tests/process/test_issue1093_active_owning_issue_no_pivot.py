@@ -14,8 +14,15 @@ from tools.execution_invocation_exit import (
     InvocationExitError,
     assert_active_owning_issue_sticky,
     classify_invocation_exit,
+    ordered_active_owning_issue_authorities,
+    released_stale_reset_residue,
 )
-from tools.execution_record import ActionSpec, TransactionState, execution_record_from_payload
+from tools.execution_record import (
+    ActionSpec,
+    MutationScopeState,
+    TransactionState,
+    execution_record_from_payload,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = 1090
@@ -181,6 +188,174 @@ def test_other_lane_can_continue_in_parallel(monkeypatch):
             supplied_effect={},
         )
     assert called["prepared"] is True
+
+def _released_stale_residue(issue: int = FOREIGN):
+    record = _record(issue, next_action="START_BRANCH")
+    return replace(
+        record,
+        semantic_state="STALE_EXECUTION_RESERVATION_RELEASED_RESTART_REQUIRED",
+        lease=type(record.lease)(
+            token=record.lease.token,
+            invocation_identity=record.lease.invocation_identity,
+            expires_at="2026-10-01T16:20:00Z",
+        ),
+        mutation_scope=MutationScopeState(
+            target_branch=record.target_branch,
+            base_sha=record.target_sha,
+            write_paths=("gui.py",),
+            delete_paths=(),
+            reservation_state="RELEASED",
+        ),
+    )
+
+
+def test_released_stale_residue_is_not_same_lane_ownership_authority():
+    stale = _released_stale_residue()
+    active = _record(1112)
+    assert released_stale_reset_residue(stale, now=NOW)
+    authorities = ordered_active_owning_issue_authorities(
+        (stale, active),
+        lane_id=LANE,
+        requested_issue=9999,
+        now=NOW,
+    )
+    assert [row.issue for row in authorities] == [1112]
+
+
+@pytest.mark.parametrize("record_order", ["stale_first", "active_first"])
+def test_issue1133_active_continuation_is_independent_of_stale_residue_scan_order(
+    monkeypatch, record_order
+):
+    from tools import control_transaction_production_executor as executor
+
+    stale = _released_stale_residue()
+    active = _record(1112)
+    rows = (
+        {FOREIGN: stale, 1112: active}
+        if record_order == "stale_first"
+        else {1112: active, FOREIGN: stale}
+    )
+    monkeypatch.setattr(
+        executor,
+        "_load_state",
+        lambda *args, **kwargs: ("f" * 40, "e" * 40, rows),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_now",
+        lambda: __import__("datetime").datetime.fromisoformat(
+            "2026-10-01T16:30:00+00:00"
+        ),
+    )
+
+    def passed_owner_gate(*args, **kwargs):
+        raise RuntimeError("ACTIVE_CONTINUATION_OWNER_GATE_PASSED")
+
+    monkeypatch.setattr(executor, "prepare_transaction", passed_owner_gate)
+    with pytest.raises(RuntimeError, match="ACTIVE_CONTINUATION_OWNER_GATE_PASSED"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+            issue=1112,
+            kind="APPLY_COMMIT",
+            lane_id=LANE,
+            invocation_identity=INV,
+            supplied_effect={},
+        )
+
+
+def test_issue1133_stale_cleanup_is_the_only_mutation_allowed_on_residue(monkeypatch):
+    from tools import control_transaction_production_executor as executor
+
+    stale = _released_stale_residue()
+    active = _record(1112)
+    monkeypatch.setattr(
+        executor,
+        "_load_state",
+        lambda *args, **kwargs: ("f" * 40, "e" * 40, {FOREIGN: stale, 1112: active}),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_now",
+        lambda: __import__("datetime").datetime.fromisoformat(
+            "2026-10-01T16:30:00+00:00"
+        ),
+    )
+
+    def passed_owner_gate(*args, **kwargs):
+        raise RuntimeError("STALE_CLEANUP_OWNER_GATE_PASSED")
+
+    monkeypatch.setattr(executor, "prepare_transaction", passed_owner_gate)
+    with pytest.raises(RuntimeError, match="STALE_CLEANUP_OWNER_GATE_PASSED"):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+            issue=FOREIGN,
+            kind="RELEASE_PATHS",
+            lane_id=LANE,
+            invocation_identity="cleanup-runtime",
+            supplied_effect={"reason": "clear abandoned continuation"},
+        )
+
+    with pytest.raises(
+        ControlTransactionConflict,
+        match="STALE_RELEASED_RESIDUE_REQUIRES_RELEASE_PATHS_CLEANUP",
+    ):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+            issue=FOREIGN,
+            kind="ACQUIRE",
+            lane_id=LANE,
+            invocation_identity="cleanup-runtime",
+            supplied_effect={},
+        )
+
+
+@pytest.mark.parametrize("record_order", ["stale_first", "active_first"])
+def test_issue1133_unrelated_mutation_is_deterministically_blocked_by_real_owner(
+    monkeypatch, record_order
+):
+    from tools import control_transaction_production_executor as executor
+
+    stale = _released_stale_residue()
+    active = _record(1112)
+    unrelated = _record(9999, next_action="RECONCILE")
+    rows = (
+        {FOREIGN: stale, 1112: active, 9999: unrelated}
+        if record_order == "stale_first"
+        else {1112: active, 9999: unrelated, FOREIGN: stale}
+    )
+    monkeypatch.setattr(
+        executor,
+        "_load_state",
+        lambda *args, **kwargs: ("f" * 40, "e" * 40, rows),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_now",
+        lambda: __import__("datetime").datetime.fromisoformat(
+            "2026-10-01T16:30:00+00:00"
+        ),
+    )
+    with pytest.raises(
+        ControlTransactionConflict,
+        match=r"ACTIVE_OWNING_ISSUE_NO_PIVOT current_issue=1112 foreign_issue=9999",
+    ):
+        executor._execute_one_attempt(
+            repo="looaeedr/whd",
+            token="unused",
+            coord_branch="coord/execution-v2",
+            issue=9999,
+            kind="RECONCILE",
+            lane_id=LANE,
+            invocation_identity=INV,
+            supplied_effect={},
+        )
+
 
 def test_reserve_paths_can_atomically_advance_continuation_to_apply_commit():
     record = _record(CURRENT, next_action="RESERVE_PATHS")

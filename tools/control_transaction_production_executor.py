@@ -36,6 +36,8 @@ from tools.execution_ready_index import build_ready_index, ready_index_to_payloa
 from tools.execution_invocation_exit import (
     InvocationExitError,
     assert_active_owning_issue_sticky,
+    ordered_active_owning_issue_authorities,
+    released_stale_reset_residue,
 )
 from tools.execution_path_reservation import (
     PathReservationError,
@@ -719,6 +721,48 @@ def _ensure_issue_closed_for_finalize(
 
 
 
+def _trusted_stale_release_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    supplied: dict[str, object],
+) -> dict[str, object]:
+    """Prove the five narrow stale-release reset conditions with fresh readback."""
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "RELEASED":
+        return dict(supplied)
+    now = _now()
+    if record.lease is None:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires an expired lease")
+    lease_expires = datetime.fromisoformat(record.lease.expires_at.replace("Z", "+00:00"))
+    if lease_expires >= now:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires an expired lease")
+    if record.active_run is not None:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires active_run=null")
+    if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires no QA lock")
+
+    encoded_work = quote(record.work_branch, safe="")
+    try:
+        _api(repo, "GET", f"/git/ref/heads/{encoded_work}", token)
+    except HTTPError as exc:
+        if exc.code != 404:
+            raise
+    else:
+        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires absent work branch")
+
+    effect = dict(supplied)
+    effect.update(
+        {
+            "work_branch_exists": False,
+            "fresh_target_sha": _read_branch_head(repo, token, record.target_branch),
+            "updated_at": _iso(now),
+        }
+    )
+    return effect
+
+
 def _trusted_consume_qa_effect(
     repo: str,
     token: str,
@@ -851,24 +895,36 @@ def _execute_one_attempt(
         raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     record = records[issue]
 
-    # ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1: one durable lane/slot
-    # cannot pivot into a foreign mutation while another non-DONE owning Issue
-    # still binds that lane.  Read-only observation never enters this executor.
-    for owning_record in records.values():
-        if owning_record.issue == issue or owning_record.state == "DONE":
-            continue
-        if owning_record.lane_id != lane_id:
-            continue
-        if owning_record.owner_kind == "NONE" or owning_record.owner_id == "NONE":
-            continue
-        try:
-            assert_active_owning_issue_sticky(
-                owning_record,
-                requested_issue=issue,
-                requested_action_kind=kind,
-            )
-        except InvocationExitError as exc:
-            raise ControlTransactionConflict(str(exc)) from exc
+    # ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1:
+    # classify same-lane ownership independently of record iteration order.
+    # A RELEASED/expired/no-run/no-QA residue is not an ownership authority, but
+    # the residue itself is mutable only through the narrow trusted
+    # RELEASE_PATHS cleanup seam.
+    owner_now = _iso(_now())
+    target_is_stale_residue = released_stale_reset_residue(record, now=owner_now)
+    if target_is_stale_residue and kind != "RELEASE_PATHS":
+        raise ControlTransactionConflict(
+            "STALE_RELEASED_RESIDUE_REQUIRES_RELEASE_PATHS_CLEANUP "
+            f"issue={issue} requested_action={kind}"
+        )
+
+    stale_cleanup = target_is_stale_residue and kind == "RELEASE_PATHS"
+    if not stale_cleanup:
+        authorities = ordered_active_owning_issue_authorities(
+            records.values(),
+            lane_id=lane_id,
+            requested_issue=issue,
+            now=owner_now,
+        )
+        for owning_record in authorities:
+            try:
+                assert_active_owning_issue_sticky(
+                    owning_record,
+                    requested_issue=issue,
+                    requested_action_kind=kind,
+                )
+            except InvocationExitError as exc:
+                raise ControlTransactionConflict(str(exc)) from exc
 
     plan = prepare_transaction(
         record,
@@ -905,6 +961,13 @@ def _execute_one_attempt(
             token,
             record=record,
             invocation_identity=invocation_identity,
+        )
+    elif kind == "RELEASE_PATHS":
+        effect = _trusted_stale_release_effect(
+            repo,
+            token,
+            record=record,
+            supplied=effect,
         )
     elif kind == "FINALIZE":
         # FINALIZE owns an external GitHub Issue close/readback side effect, so
