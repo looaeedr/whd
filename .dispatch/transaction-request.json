@@ -1,16 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-stale-release-reset-after-1133-20261002T1137+08",
+  "request_id": "issue1062-acquire-fresh-current-20261002T1240",
   "issue": 1062,
-  "kind": "RELEASE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a.issue1062.restart.20261002T1137+08",
-  "expected_coord_head": "e26223582e5ba49e72751d0bb1852e5ade9e9dd1",
-  "expected_generation": 25,
+  "invocation_identity": "scheduler-a.issue1062.current.20261002T1240+08",
+  "expected_coord_head": "2b813e618d09157b14d37562c33d18a87c104b4d",
+  "expected_generation": 26,
   "effect": {
-    "reason": "Clear abandoned RELEASED #1062 continuation after #1133 stale-owner deadlock fix integrated."
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "HANDOFF",
+      "args": {
+        "to_owner_kind": "INTERACTIVE",
+        "to_owner_id": "chatgpt.flowv2.work1"
+      },
+      "display": "Handoff Issue #1062 fresh current full-regression work to canonical root workspace via work1"
+    }
   },
-  "purpose": "Reset only the proven stale RELEASED Issue #1062 execution residue to fresh READY/ACQUIRE at current cleanup/2d-3d-sync, then let Scheduler A acquire it. Do not resume historical 872d9500 work.",
+  "purpose": "Acquire fresh Issue #1062 at cleanup/2d-3d-sync@60cf8c348dade83024832c66acf2089733cda4af after stale-residue reset, then hand repository-content full-regression classification to the first available interactive slot work1. Do not reuse historical 872d9500 source, root freeze, or path reservation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
