@@ -47,17 +47,16 @@ def _fake_certified_resolver(model_name, *, w, h, d, t, fw):
     assert model_name == "金庫型"
     assert t == pytest.approx(2.0)
     assert fw == pytest.approx(29.0)
-    # Canonical u values are 40 and 120 from FRONT. The RIGHT face is stored
-    # REAR->FRONT, so its local X is D-u; LEFT face is already FRONT->REAR.
-    left = (
+    del d
+    # Certified Vault lock groups live on the authoritative W face close to the
+    # two W edges. Edge distance becomes canonical side-local FRONT->REAR u.
+    back = (
         ResolvedCircle(center=Vec2(40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
         ResolvedCircle(center=Vec2(120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+        ResolvedCircle(center=Vec2(w - 120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+        ResolvedCircle(center=Vec2(w - 40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
     )
-    right = (
-        ResolvedCircle(center=Vec2(d - 40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-        ResolvedCircle(center=Vec2(d - 120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-    )
-    return {"left": left, "back": (), "right": right}
+    return {"left": (), "back": back, "right": ()}
 
 
 def test_t008_t008a_canonical_joint_axes_and_participant_width_calls():
@@ -97,9 +96,13 @@ def test_t009a_width_invariant_mismatch_fails_closed():
         rows = _fake_certified_resolver(model_name, **kwargs)
         if float(kwargs["w"]) > 800.0:
             rows = dict(rows)
-            rows["left"] = (
+            w = float(kwargs["w"])
+            h = float(kwargs["h"])
+            rows["back"] = (
                 ResolvedCircle(center=Vec2(45.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
-                ResolvedCircle(center=Vec2(120.0, kwargs["h"] - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+                ResolvedCircle(center=Vec2(120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+                ResolvedCircle(center=Vec2(w - 120.0, h - 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
+                ResolvedCircle(center=Vec2(w - 40.0, 100.0), radius=8.0, layer="CUTTING", source_type="baseline"),
             )
         return rows
 
@@ -185,11 +188,14 @@ def test_t010_physical_side_piece_flat_projection_keeps_whole_holes_without_clip
 
 def test_t011_undersized_effective_panel_fails_closed_without_clipping():
     def out_of_bounds_resolver(model_name, *, w, h, d, t, fw):
-        del model_name, w, t, fw
+        del model_name, d, t, fw
         return {
-            "left": (ResolvedCircle(center=Vec2(5.0, 5.0), radius=8.0, layer="CUTTING"),),
-            "back": (),
-            "right": (ResolvedCircle(center=Vec2(d - 5.0, 5.0), radius=8.0, layer="CUTTING"),),
+            "left": (),
+            "back": (
+                ResolvedCircle(center=Vec2(5.0, 5.0), radius=8.0, layer="CUTTING"),
+                ResolvedCircle(center=Vec2(w - 5.0, 5.0), radius=8.0, layer="CUTTING"),
+            ),
+            "right": (),
         }
 
     with pytest.raises(ReceivingJointLockPatternError) as exc:
