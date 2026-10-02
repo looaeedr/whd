@@ -398,6 +398,19 @@ def _backproject_rows(rows, mapping, *, bay_id: str):
             "bay_id": str(bay_id),
             "role": role,
             "primitive_signature": _primitive_signature(primitive),
+            "world_points": (
+                tuple(tuple(float(v) for v in point) for point in row["points"])
+                if row.get("points") is not None
+                else ()
+            ),
+            "world_center": (
+                tuple(float(v) for v in row["center"])
+                if row.get("center") is not None
+                else None
+            ),
+            "world_radius": (
+                float(row["radius"]) if row.get("radius") is not None else None
+            ),
         })
     return tuple(primitives), tuple(metadata_rows)
 
