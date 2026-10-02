@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
+    "id": 36986222021,
+    "purpose": "exact-head WHD Control Plane Regression for #1092 PR #1140",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
   "issue": 1092,
   "lane_id": "chatgpt.flowv2.work2",
@@ -35,10 +40,11 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9"
+      "head_sha": "ecee3e5d1f26e222c1d0a299c5d10a430ff5f0c9",
+      "run_id": 36986222021
     },
-    "display": "start exact post-push QA for #1092",
-    "kind": "START_QA"
+    "display": "observe exact-head control-plane QA on next wake",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -55,21 +61,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_DIFF_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "transaction": {
-    "expected_fingerprint": "ef6a65714e13cf3840784732613212946b7c2d6a97066cf406c8a515f8025e47",
-    "id": "gha:36986063814:1092:APPLY_COMMIT:6",
+    "expected_fingerprint": "c01f6cc958fac1ef484fc8db3238b4ea0117ab3f7e8c9ec9bc6339cc3d9f0da4",
+    "id": "gha:36986286828:1092:START_QA:7",
     "invocation_identity": "chatgpt.flowv2.work2.issue1092.20261002T1509+08",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-02T08:48:05Z",
+  "updated_at": "2026-10-02T08:50:21Z",
   "version": 2,
   "work_branch": "work/issue1092-remote-qa-nonblocking-wait-20261002"
 }
