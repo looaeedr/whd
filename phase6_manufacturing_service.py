@@ -27,6 +27,9 @@ from ae_engine.receiving_joint_marking import (
     resolve_joint_marking_production_status,
     resolve_receiving_joint_markings,
 )
+from ae_engine.receiving_pairing_marking import (
+    resolve_receiving_pairing_marking,
+)
 from phase6_endcap_semantics import assembly_intent_value
 from phase6_final_scene_view import AssemblyScenePart
 from phase6_fold_profiles import _num
@@ -509,6 +512,7 @@ def resolve(request):
 
     joint_marking_status = resolve_joint_marking_production_status()
     joint_marking_results = ()
+    pairing_marking_result = None
     if _cabinet_family(request) == "受電箱":
         marking_world_geometry = _phase6_build_joint_world_geometry(
             tuple(resolved.parts or ()), dims, thickness
@@ -525,6 +529,14 @@ def resolve(request):
         joint_marking_status = marking_resolution.status
         joint_marking_results = tuple(marking_resolution.results)
 
+        pairing_resolution = resolve_receiving_pairing_marking(
+            snapshot,
+            resolved,
+            world_geometry=marking_world_geometry,
+        )
+        resolved = pairing_resolution.geometry
+        pairing_marking_result = pairing_resolution.result
+
     return ManufacturingResolveResult(
         geometry=resolved,
         diagnostics=ManufacturingDiagnosticsResult(
@@ -539,6 +551,7 @@ def resolve(request):
             joint_marking_export_summary=_joint_marking_export_summary(
                 joint_marking_results
             ),
+            pairing_marking_result=pairing_marking_result,
         ),
         mutations=ManufacturingMutationResult(
             snapshot_patch=snapshot_patch

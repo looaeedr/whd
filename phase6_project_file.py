@@ -26,6 +26,7 @@ PROJECT_CLASS = "Phase6.FoldProject"
 _TRANSIENT_DERIVED_SNAPSHOT_KEYS = (
     "divider_parts",
     "inner_door_frame_parts",
+    "_receiving_runtime_selection",
 )
 
 

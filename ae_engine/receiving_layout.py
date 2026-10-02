@@ -11,6 +11,7 @@ from copy import deepcopy
 from typing import Mapping
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
+RECEIVING_RUNTIME_SELECTION_KEY = "_receiving_runtime_selection"
 _ALLOWED_BACK_PANEL_MODES = {"FULL", "HALF", "BACK_OPENING"}
 _DERIVED_LAYOUT_KEYS = {
     "left_locked",
@@ -482,6 +483,12 @@ def project_receiving_bay_legacy_aliases(
         raise IndexError("Receiving bay_index out of range")
     bay = bays[bay_index]
     result["receiving_layout"] = persisted_layout
+    result[RECEIVING_RUNTIME_SELECTION_KEY] = {
+        "set_index": int(set_index),
+        "bay_index": int(bay_index),
+        "set_id": str(selected["stable_id"]),
+        "bay_id": str(bay["stable_id"]),
+    }
     result["w"] = float(bay["width"])
     result["h"] = float(bay["height"])
     result["d"] = float(bay["depth"])

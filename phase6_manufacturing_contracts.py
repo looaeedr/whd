@@ -375,6 +375,7 @@ class ManufacturingDiagnosticsResult:
     joint_marking_status: Any = None
     joint_marking_results: Any = ()
     joint_marking_export_summary: Any = ()
+    pairing_marking_result: Any = None
     warnings: Any = ()
 
     def __post_init__(self) -> None:
