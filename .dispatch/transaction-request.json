@@ -1,38 +1,39 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-atomic-admission-3",
-  "issue": 1062,
+  "request_id": "issue1129-work3-acquire-reserve-adopt-pr1130-20261002T1717",
+  "issue": 1129,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "chatgpt.flowv2.work3.issue1062.20261001T0055Z",
-  "expected_coord_head": "7d50bd1dbe50f24bafe1ae2c65b2a5068002f1d9",
+  "invocation_identity": "chatgpt.flowv2.work3.issue1129.20261002T1717+08",
+  "expected_coord_head": "9311bce75dec2cc660771f0dbbeddc2eb7f9df7a",
   "expected_generation": 1,
   "effect": {
+    "semantic_state": "PATHS_RESERVED_EXISTING_CANDIDATE_INTEGRATION",
+    "next_action": {
+      "kind": "RECONCILE",
+      "args": {
+        "pr_number": 1130,
+        "candidate_head": "456760e19373edf3e23e958d4222f6532f53f47a"
+      },
+      "display": "bind existing root-tested PR #1130 candidate head"
+    },
     "admission_reservation": {
       "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "872d95000539883636eeed86908882a6020da7f7",
+      "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
       "write_paths": [
-        "tests/test_issue124_structure_tree.py",
-        "tests/test_issue163_unfold_workspace_layout.py",
-        "tests/test_issue186_sheetmetal_selector_visibility.py",
-        "tests/test_issue335_top_toolbar.py",
-        "tests/test_issue343_t8_visual_remediation.py",
-        "tests/test_issue367_t3_project_persistence_owner.py",
-        "tests/test_issue430_single_host_red.py",
-        "tests/test_issue624_phase7_a7_bridge_residual_reduction.py",
-        "tests/test_issue96_corner_data_selection_lifecycle.py",
-        "tests/test_issue98_existing_2d_capability_migration.py"
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        ".agents/skills/engineering/寫排程/SKILL.md",
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/排程模擬/SKILL.md",
+        "tests/process/test_issue1129_runtime_report_identity_gate.py",
+        "tests/process/test_issue724_report_handler_identity_prefix.py",
+        "tools/assistant_turn_exit_gate.py",
+        "tools/runtime_report_identity.py"
       ],
       "delete_paths": []
-    },
-    "semantic_state": "PATHS_RESERVED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create exact tested Issue #1062 work branch after Drive root freeze"
     }
   },
-  "purpose": "Continue Issue #1062 product full-regression recovery. Reserve first successor-proven historical UI/ownership/fixture test batch only; do not overlap Issue #1050 MARKING scope.",
+  "purpose": "Adopt already root-tested PR #1130 for Issue #1129 into Flow v2 work3. Reserve only its exact eight paths, bind existing candidate head 456760e19373edf3e23e958d4222f6532f53f47a, preserve frozen content, then target-sync/re-QA/merge/finalize without repository-content authoring.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
