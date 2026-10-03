@@ -1,24 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-work0-takeover-20261002T2002+08",
-  "issue": 1062,
+  "request_id": "issue1146-work0-acquire-docs-gen8",
+  "issue": 1146,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1062.20261002T2002+08",
-  "expected_coord_head": "21829b152a62f2d0013c5b6b1d355a21f2127054",
-  "expected_generation": 37,
+  "invocation_identity": "chatgpt.flowv2.work0.issue1146.entry-router-gen8",
+  "expected_coord_head": "c7cfd19b052af7726e01182b8e1d2576fc0eece2",
+  "expected_generation": 1,
   "effect": {},
-  "purpose": "User-explicit takeover of #1062 by /work0. Preserve current product-regression scope and continue from the existing d1036c60 Drive root workspace; no governance changes.",
+  "purpose": "User-authorized delivery of #1146 ENTRY_ROUTER_FIRST_HARD_GATE_V1 from canonical /Google Drive/WHD .unpushed/docs/0 generation 8 into cleanup/2d-3d-sync, preserving carried-forward #1145 metadata repair.",
   "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
   }
 }
