@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
   "issue": 1128,
   "lane_id": "chatgpt.flowv2.work3",
@@ -24,7 +24,7 @@
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "gui_modules/application/fold_designer_adapter.py",
@@ -51,7 +51,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "ROOT_TESTED_TARGET_RECONCILED",
+  "semantic_state": "PATH_RESERVATION_RELEASED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
@@ -59,13 +59,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "transaction": {
-    "expected_fingerprint": "4cce3dd01f9e7ebf99c954aafa471569f823edd815a74cd577518077d137084c",
-    "id": "gha:37127160359:1128:ACQUIRE:5",
+    "expected_fingerprint": "3645adb82e6ea5c449784d051ffe78909a5dc9091529d9e455369fdaacaff2b1",
+    "id": "gha:37127373797:1128:RELEASE_PATHS:6",
     "invocation_identity": "chatgpt.flowv2.work3.issue1128.stale-release.20261003T2143+08",
-    "kind": "ACQUIRE",
+    "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T13:44:03Z",
+  "updated_at": "2026-10-03T13:47:50Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
