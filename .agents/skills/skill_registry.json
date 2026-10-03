@@ -1305,6 +1305,32 @@
       "required_references": [
         ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
       ]
+    },
+    {
+      "id": "刪除",
+      "keywords": [
+        "刪除",
+        "刪掉",
+        "清除",
+        "清掉",
+        "清空",
+        "移除 staging",
+        "移除 0",
+        "清 staging",
+        "清 active 0",
+        "delete",
+        "remove"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/刪除/**",
+        "tests/process/test_delete_skill_contract.py"
+      ],
+      "required_skills": [
+        "刪除"
+      ],
+      "required_references": [
+        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+      ]
     }
   ]
 }
