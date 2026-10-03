@@ -1,72 +1,66 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-reconcile-docs22-root-repair-20261003T2233+08",
+  "request_id": "issue1129-apply-docs22-repair-20261003T2236+08",
   "issue": 1129,
-  "kind": "RECONCILE",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
-  "expected_coord_head": "212605db748b7a5ad2e7267f80c1b3e66e1ff5ab",
-  "expected_generation": 7,
+  "expected_coord_head": "37fb9230b2218a212c43a3ea7f7566ab24ae1eaf",
+  "expected_generation": 8,
+  "reuse_admission_session": true,
   "effect": {
-    "observed_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
-    "observed_head_sha": "96839193956b7457e2a9df98f85412e13f49c721",
-    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
-    "semantic_state": "ROOT_REPAIRED_GEN22_FROZEN",
+    "head_sha": "19b99baeeaa48946dce352e7906aac4dc5dc104f",
+    "semantic_state": "PUSHED_EXACT_LOCKED_FILESET",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "d2288e6e4b2e3b6481143f9259300aff94c379a92382d7bd5aa8141060847032"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Apply root-repaired frozen docs generation 22 exact fileset"
+      "display": "Run post-push control-plane CI for repaired docs generation 22 exact head"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+      "diff_digest": "d2288e6e4b2e3b6481143f9259300aff94c379a92382d7bd5aa8141060847032",
+      "issue": 1129,
+      "generation": 8,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+        ".agents/skills/engineering/code-review/SKILL.md",
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+        ".agents/skills/engineering/long-log-context-safe-execution/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/root-local-first/SKILL.md",
+        ".agents/skills/engineering/triage/SKILL.md",
+        ".agents/skills/engineering/wayfinder/SKILL.md",
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
+        ".agents/skills/productivity/MCP工具操作/SKILL.md",
+        ".agents/skills/productivity/找技能/SKILL.md",
+        "AGENTS.md",
+        "tests/process/test_root_local_first_entry_hard_gate.py",
+        "tools/root_local_first_gate.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "c5c14ab3c19e88e9393d150315ade5bd42696a3169383a784bc79c68e07e4dd0",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1129,
+      "generation": 8,
+      "record_fingerprint": "c5c14ab3c19e88e9393d150315ade5bd42696a3169383a784bc79c68e07e4dd0",
+      "lease_token": "lease:1129:37129912117:1",
+      "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
+      "expected_next_action": "APPLY_COMMIT",
+      "expected_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+      "expected_work_head": "96839193956b7457e2a9df98f85412e13f49c721",
+      "expected_target_head": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692"
     }
-  },
-  "purpose": "Reconcile #1129 after PR #1154 control-plane RED was repaired in canonical root and refrozen as docs generation 22; preserve exact target and delivery scope.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1129,
-    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
-    "required_skills": [
-      "root-local-first",
-      "推推",
-      "flow-v2-execution"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "推推",
-      "flow-v2-execution"
-    ],
-    "required_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    ],
-    "completed_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    ],
-    "observed_at": "2026-10-03T14:33:21Z"
   }
 }
