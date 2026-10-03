@@ -22,6 +22,8 @@ whd_schema: WHD_DOC_META_V1
 
 ## 強制規則
 
+0. **remote log/status 先驗 authority。** 若 log/status 位於 GitHub Actions/API/Connector，任何 `run/jobs/steps/log` read 前先通過 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`；沒有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 不得因「只讀 log」自行連 GitHub。
+
 1. **禁止把完整超長 Log 灌進執行／聊天 context。** 完整 raw log 應寫入檔案、CI artifact、provider job log 或其他 durable storage；畫面與 context 只讀有限片段。
 2. **正常執行只讀摘要 + bounded tail。** 每輪優先讀 process/run/job/step 狀態、iteration、PASS/FAIL/score、elapsed，以及最後固定上限 N 行。N 必須有上限，不能隨 log 成長；預設可從 80 行以下開始。
 3. **FAIL 先定位、再切片。** 先搜尋 `FAILED`、`ERROR`、`Traceback`、`AssertionError`、exit code 或 provider failed-step annotation，只擷取命中點前後有限區段；不足才按 chunk 向外擴。

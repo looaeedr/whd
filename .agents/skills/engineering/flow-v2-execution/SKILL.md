@@ -50,6 +50,17 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 
 本 Skill 是 WHD execution/control-plane 的唯一 CURRENT operational contract。其他 workflow Skills 只可做入口 bridge，不得建立第二套 ownership、resume、closure、scheduler 或 recovery state machine。
 
+### REMOTE_AUTHORITY_NON_PROPAGATION_HARD_GATE_V1
+
+Flow v2 的 execution/claim/lease/transaction authority **不等於 GitHub network authority**，也不得由 bridge 自動傳遞。任何 GitHub repo metadata、code search、contents、branch/commit、Issue/PR、Actions/workflow/run/artifact、GitHub API/Connector 或 network git (`fetch/pull/ls-remote/push`) 動作前，都必須先以 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗證 exact action 是否存在於 `WHD_REMOTE_CONNECTION_AUTHORITY_V1.allowed_actions`。
+
+- interactive/default 沒有 explicit remote authority：固定 `REMOTE_CONNECTION_DENIED`；
+- `/推推 文檔|主體`：只授權 selected lane 的 frozen delivery/readback window；
+- scheduler/GitHub-only：只在 user-authored entry contract 明確指定 GitHub-only 且 trusted runtime provenance 成立時，建立該 invocation scope 的 authority；
+- `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`、Phase6 Preflight、Flow v2 bridge、工作槽/派工/closure、read-only/status/log query、GitHub tool/connector 可用，都不是 remote authority 來源。
+
+因此下方任何 GitHub-backed bootstrap/discovery/control transaction 都必須先通過同一 remote gate；Flow v2 只消費既有 authority，不自行創造 authority。
+
 ## Canonical authority
 
 - code / PR / CI authority：GitHub repository。

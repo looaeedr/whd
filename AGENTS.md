@@ -67,6 +67,7 @@ interactive/chat 直接讀 Google Drive root；scheduler/GitHub-only 可以從 r
    - 其他使用者明確點名的 GitHub/remote 操作；
    - user-authored scheduler entry contract 明確指定 GitHub-only 的該 invocation。
 4. 「確認最新」「Preflight」「工具可用」「Git read-only」都不構成 remote authority。既有文字若宣告 pre-delivery 可 `READ/FETCH/COMPARE`，以本節為準：network remote 仍是 DENY。
+5. **REMOTE_AUTHORITY_NON_PROPAGATION_HARD_GATE_V1**：Skill 自動觸發、Flow v2 bridge、工作槽/派工/closure、tracker=GitHub、Issue/PR reference、Connector/MCP 已連接、remote QA skill、read-only/status/log query 都不會產生或傳遞 GitHub authority。任何 GitHub repo metadata/code search/contents/branch/commit/Issue/PR/Actions/artifact/API/Connector/network-git action 都必須先通過 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`；沒有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 固定 `REMOTE_CONNECTION_DENIED`。
 5. `/推推` 開啟 remote window 後，先鎖 exact delivery fileset(path+hash/delete marker)，fresh-read target；merge 前再驗 latest target/head/locked blobs；readback 成功後只清本次已交付 paths。
 
 machine-readable behavior owner 必須由 root-local-first / 推推 Skill 與對應 contract tests 共同鎖定；後續文件不得重新長回 Git-first lookup。

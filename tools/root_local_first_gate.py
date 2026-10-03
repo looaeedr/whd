@@ -30,7 +30,6 @@ REQUIRED_ORDER = (
     "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
     "POST_MERGE_0_TEST_CLASSIFIED",
     "POST_MERGE_0_TESTS_GREEN",
-    "WORKER_CENSUS_NO_MERGEABLE_GREEN",
     "LANE_MANIFEST_FROZEN",
     "REMOTE_CONNECTION_AUTHORIZED",
     "DELIVERY_PATHS_RESERVED",
@@ -45,23 +44,17 @@ REMOTE_CONNECTION_AUTHORITY_SCHEMA = "WHD_REMOTE_CONNECTION_AUTHORITY_V1"
 REMOTE_CONNECTION_TARGETS = {"GITHUB", "REMOTE_LOCAL"}
 REMOTE_AUTHORITY_KINDS = {
     "OPEN_ISSUE_ONLY",
-    "SPLIT_ISSUE_SYNC",
-    "POST_DELIVERY_ISSUE_SYNC",
     "USER_EXPLICIT_REMOTE",
     "PUSH_DOCS",
     "PUSH_BODY",
     "SCHEDULER_GITHUB_ONLY",
 }
 ISSUE_ONLY_ACTIONS = {"CREATE_ISSUE", "ISSUE_READBACK"}
-SPLIT_ISSUE_SYNC_ACTIONS = {
-    "CREATE_ISSUE", "UPDATE_ISSUE", "ISSUE_RELATION_WRITE", "ISSUE_READBACK",
-}
-POST_DELIVERY_ISSUE_SYNC_ACTIONS = {
-    "UPDATE_ISSUE", "ISSUE_COMMENT", "ISSUE_RELATION_WRITE", "ISSUE_READBACK",
-}
 PUSH_GITHUB_ACTIONS = {
-    "READ", "FETCH", "COMPARE", "CREATE_BRANCH", "COMMIT", "PUSH",
-    "CREATE_PR", "CI", "MERGE", "READBACK",
+    "READ", "FETCH", "COMPARE", "REPO_METADATA_READ", "CODE_SEARCH",
+    "BRANCH_READ", "CREATE_BRANCH", "COMMIT", "PUSH",
+    "PR_READ", "CREATE_PR", "PR_COMMENT", "CI", "WORKFLOW_READ", "REMOTE_QA",
+    "MERGE", "ISSUE_READ", "ISSUE_COMMENT", "ISSUE_CLOSE", "READBACK",
 }
 DELIVERY_AUTHORITY_KINDS = {"PUSH_DOCS", "PUSH_BODY", "USER_EXPLICIT_REMOTE"}
 EXECUTION_MODE_PROVENANCE_SCHEMA = "WHD_EXECUTION_MODE_PROVENANCE_V1"
@@ -245,7 +238,6 @@ def build_remote_connection_authority(
     user_explicit: bool = False,
     lane: str | None = None,
     user_authored_entry_contract: bool = False,
-    workflow_rule_authorized: bool = False,
 ) -> dict[str, object]:
     authority_kind = _event_token(kind)
     remote_target = _event_token(target)
@@ -260,14 +252,6 @@ def build_remote_connection_authority(
         if remote_target != "GITHUB" or user_explicit is not True:
             raise ValueError("REMOTE_CONNECTION_DENIED: issue authority requires explicit GitHub request")
         actions = tuple(sorted(ISSUE_ONLY_ACTIONS))
-    elif authority_kind == "SPLIT_ISSUE_SYNC":
-        if remote_target != "GITHUB" or workflow_rule_authorized is not True:
-            raise ValueError("REMOTE_CONNECTION_DENIED: split issue sync requires durable workflow-rule authority")
-        actions = tuple(sorted(SPLIT_ISSUE_SYNC_ACTIONS))
-    elif authority_kind == "POST_DELIVERY_ISSUE_SYNC":
-        if remote_target != "GITHUB" or workflow_rule_authorized is not True:
-            raise ValueError("REMOTE_CONNECTION_DENIED: post-delivery issue sync requires durable workflow-rule authority")
-        actions = tuple(sorted(POST_DELIVERY_ISSUE_SYNC_ACTIONS))
     elif authority_kind in {"PUSH_DOCS", "PUSH_BODY"}:
         expected_lane = "docs" if authority_kind == "PUSH_DOCS" else "body"
         if remote_target != "GITHUB" or user_explicit is not True or normalized_lane != expected_lane:
@@ -288,7 +272,6 @@ def build_remote_connection_authority(
         "user_explicit": bool(user_explicit),
         "lane": normalized_lane,
         "user_authored_entry_contract": bool(user_authored_entry_contract),
-        "workflow_rule_authorized": bool(workflow_rule_authorized),
     }
 
 
@@ -305,7 +288,6 @@ def validate_remote_connection_authority(
         user_explicit=item.get("user_explicit") is True,
         lane=str(item.get("lane") or "") or None,
         user_authored_entry_contract=item.get("user_authored_entry_contract") is True,
-        workflow_rule_authorized=item.get("workflow_rule_authorized") is True,
     )
     expected_target = _event_token(target)
     requested_action = _event_token(action)
@@ -552,15 +534,12 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("GitHub read must require remote authority")
     if remote_gate.get("remote_local_fallback_forbidden") is not True:
         raise ValueError("remote local fallback must be forbidden")
-    sync_gate = _mapping(contract.get("issue_sync_hard_gate"), "issue_sync_hard_gate")
-    if sync_gate.get("schema") != "WHD_ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1":
-        raise ValueError("issue sync hard gate schema mismatch")
-    if sync_gate.get("split_requires_github_issue_readback_before_ready") is not True:
-        raise ValueError("split work must sync GitHub Issue before READY")
-    if sync_gate.get("delivery_requires_issue_sync_readback") is not True:
-        raise ValueError("delivery must sync linked Issue before completion")
-    if sync_gate.get("local_only_child_policy") != "TRANSIENT_DRAFT_ONLY_NOT_READY_NOT_DISPATCHED":
-        raise ValueError("local-only split child policy mismatch")
+    if remote_gate.get("covers_all_network_surfaces") is not True:
+        raise ValueError("remote authority gate must cover all network surfaces")
+    if remote_gate.get("authority_non_propagating") is not True:
+        raise ValueError("remote authority must not propagate through Skill/Flow-v2 bridges")
+    if remote_gate.get("skill_invocation_is_not_authority") is not True:
+        raise ValueError("Skill invocation must not imply remote authority")
     fileset = _mapping(contract.get("delivery_fileset_lock"), "delivery_fileset_lock")
     if fileset.get("schema") != "WHD_DELIVERY_FILESET_LOCK_V1":
         raise ValueError("delivery fileset lock schema mismatch")
@@ -603,19 +582,6 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("merge conflict must block on explicit user decision")
     if shared.get("conflict_checkpoint_schema") != CONFLICT_CHECKPOINT_SCHEMA:
         raise ValueError("merge conflict checkpoint schema mismatch")
-    census_gate = _mapping(contract.get("shared_zero_freeze_worker_census"), "shared_zero_freeze_worker_census")
-    if census_gate.get("schema") != "WHD_SHARED_ZERO_FREEZE_REQUIRES_WORKER_CENSUS_HARD_GATE_V1":
-        raise ValueError("shared-zero freeze worker census schema mismatch")
-    if census_gate.get("position") != "AFTER_POST_MERGE_0_TESTS_GREEN_BEFORE_LANE_MANIFEST_FROZEN":
-        raise ValueError("shared-zero freeze worker census position mismatch")
-    if census_gate.get("freeze_requires_mergeable_green_count") != 0:
-        raise ValueError("shared-zero freeze requires zero mergeable GREEN workers")
-    if census_gate.get("merge_policy") != "MERGE_ALL_NON_CONFLICTING_GREEN_INTO_ONE_NEXT_GENERATION":
-        raise ValueError("shared-zero freeze merge policy mismatch")
-    if census_gate.get("post_merge_test_scope") != "UNION_FILESET":
-        raise ValueError("shared-zero freeze tests must cover union fileset")
-    if census_gate.get("incremental_remote_repair_forbidden") is not True:
-        raise ValueError("incremental remote repair must be forbidden")
     reservation = _mapping(contract.get("path_reservation"), "path_reservation")
     if reservation.get("schema") != "WHD_PATH_RESERVATION_V1":
         raise ValueError("path reservation schema mismatch")
@@ -813,6 +779,13 @@ def frozen_diff_digest(entries: Iterable[Mapping[str, object]]) -> str:
 def validate_worker_census_evidence(
     payload: Mapping[str, object], *, expected_lane: str, expected_generation: int
 ) -> dict[str, object]:
+    """Validate optional legacy/shared-zero worker census evidence.
+
+    The current root-first fast path no longer requires this census to progress,
+    but older trusted callers still supply it.  Accept and validate it when
+    present so the compatibility field cannot silently become an unchecked
+    authority bypass.
+    """
     evidence = _mapping(payload, "worker census evidence")
     if evidence.get("schema") != WORKER_CENSUS_SCHEMA:
         raise ValueError("worker census evidence schema mismatch")
@@ -932,9 +905,8 @@ def build_gate_evidence(
                                 expected_commands=expected_test_commands,
                             )
                             completed.append("POST_MERGE_0_TESTS_GREEN")
-                            if worker_census_evidence is None:
-                                next_action = "WORKER_CENSUS_NO_MERGEABLE_GREEN"
-                            else:
+                            worker_census_blocks = False
+                            if worker_census_evidence is not None:
                                 census = validate_worker_census_evidence(
                                     worker_census_evidence,
                                     expected_lane=str(lane.get("lane") or ""),
@@ -942,51 +914,52 @@ def build_gate_evidence(
                                 )
                                 if int(census.get("mergeable_green_count") or 0) > 0:
                                     next_action = "MERGE_TO_FRESH_LATEST_ZERO"
+                                    worker_census_blocks = True
                                 elif int(census.get("blocking_candidate_count") or 0) > 0:
                                     next_action = "RESOLVE_WORKER_CENSUS_BLOCKERS"
+                                    worker_census_blocks = True
                                 else:
                                     completed.append("WORKER_CENSUS_NO_MERGEABLE_GREEN")
-                                    if not diff_digest:
-                                        next_action = "LANE_MANIFEST_FROZEN"
+                            if not worker_census_blocks and not diff_digest:
+                                next_action = "LANE_MANIFEST_FROZEN"
+                            elif not worker_census_blocks:
+                                if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
+                                    raise ValueError("diff_digest must be SHA256")
+                                completed.append("LANE_MANIFEST_FROZEN")
+                                if remote_connection_authority is None:
+                                    next_action = "REMOTE_CONNECTION_AUTHORIZED"
+                                else:
+                                    remote_authority = validate_remote_connection_authority(
+                                        remote_connection_authority, target="GITHUB", action="READ"
+                                    )
+                                    if remote_authority.get("kind") not in DELIVERY_AUTHORITY_KINDS:
+                                        raise ValueError("delivery Git authority must be /推推 or explicit user remote authority")
+                                    expected_lane = str(lane.get("lane") or "").strip().lower()
+                                    if remote_authority.get("kind") == "PUSH_DOCS" and expected_lane != "docs":
+                                        raise ValueError("PUSH_DOCS authority cannot deliver non-docs lane")
+                                    if remote_authority.get("kind") == "PUSH_BODY" and expected_lane != "body":
+                                        raise ValueError("PUSH_BODY authority cannot deliver non-body lane")
+                                    completed.append("REMOTE_CONNECTION_AUTHORIZED")
+                                    if not path_reservation_evidence:
+                                        next_action = "DELIVERY_PATHS_RESERVED"
                                     else:
-                                        if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
-                                            raise ValueError("diff_digest must be SHA256")
-                                        completed.append("LANE_MANIFEST_FROZEN")
-                                if "LANE_MANIFEST_FROZEN" in completed:
-                                    if remote_connection_authority is None:
-                                        next_action = "REMOTE_CONNECTION_AUTHORIZED"
-                                    else:
-                                        remote_authority = validate_remote_connection_authority(
-                                            remote_connection_authority, target="GITHUB", action="READ"
-                                        )
-                                        if remote_authority.get("kind") not in DELIVERY_AUTHORITY_KINDS:
-                                            raise ValueError("delivery Git authority must be /推推 or explicit user remote authority")
-                                        expected_lane = str(lane.get("lane") or "").strip().lower()
-                                        if remote_authority.get("kind") == "PUSH_DOCS" and expected_lane != "docs":
-                                            raise ValueError("PUSH_DOCS authority cannot deliver non-docs lane")
-                                        if remote_authority.get("kind") == "PUSH_BODY" and expected_lane != "body":
-                                            raise ValueError("PUSH_BODY authority cannot deliver non-body lane")
-                                        completed.append("REMOTE_CONNECTION_AUTHORIZED")
-                                        if not path_reservation_evidence:
-                                            next_action = "DELIVERY_PATHS_RESERVED"
-                                        else:
-                                            try:
-                                                reservation = validate_path_reservation_evidence(path_reservation_evidence)
-                                            except ValueError as exc:
-                                                raise ValueError(f"invalid DELIVERY_PATHS_RESERVED evidence: {exc}") from exc
-                                            if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
-                                                raise ValueError("delivery reservation base_sha must match source_sha")
-                                            if int(reservation.get("issue") or 0) != int(lane.get("issue") or 0):
-                                                raise ValueError("delivery reservation issue must match lane issue")
-                                            if str(reservation.get("target_branch") or "") != str(lane.get("target_branch") or ""):
-                                                raise ValueError("delivery reservation target must match lane target")
-                                            if tuple(reservation.get("write_paths") or ()) != tuple(lane.get("write_paths") or ()) or tuple(reservation.get("delete_paths") or ()) != tuple(lane.get("delete_paths") or ()):
-                                                raise ValueError("delivery reservation scope must equal lane manifest scope")
-                                            completed.append("DELIVERY_PATHS_RESERVED")
-                                            if target_drift:
-                                                return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane)}
-                                            completed.append("GIT_WRITE_UNLOCKED")
-                                            next_action = "EXACT_TESTED_DIFF_ONLY"
+                                        try:
+                                            reservation = validate_path_reservation_evidence(path_reservation_evidence)
+                                        except ValueError as exc:
+                                            raise ValueError(f"invalid DELIVERY_PATHS_RESERVED evidence: {exc}") from exc
+                                        if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
+                                            raise ValueError("delivery reservation base_sha must match source_sha")
+                                        if int(reservation.get("issue") or 0) != int(lane.get("issue") or 0):
+                                            raise ValueError("delivery reservation issue must match lane issue")
+                                        if str(reservation.get("target_branch") or "") != str(lane.get("target_branch") or ""):
+                                            raise ValueError("delivery reservation target must match lane target")
+                                        if tuple(reservation.get("write_paths") or ()) != tuple(lane.get("write_paths") or ()) or tuple(reservation.get("delete_paths") or ()) != tuple(lane.get("delete_paths") or ()):
+                                            raise ValueError("delivery reservation scope must equal lane manifest scope")
+                                        completed.append("DELIVERY_PATHS_RESERVED")
+                                        if target_drift:
+                                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane)}
+                                        completed.append("GIT_WRITE_UNLOCKED")
+                                        next_action = "EXACT_TESTED_DIFF_ONLY"
     result = {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": "GIT_WRITE_UNLOCKED" in completed, "next_action": next_action}
     if entry_router is not None:
         result["entry_router"] = entry_router

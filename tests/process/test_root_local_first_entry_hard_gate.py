@@ -38,17 +38,6 @@ def _lane(sha="a" * 40, generation=4, lane="docs"):
     }
 
 
-
-def _worker_census(generation=4, lane="docs", mergeable=0, blocking=0):
-    return {
-        "schema": "WHD_SHARED_ZERO_WORKER_CENSUS_V1",
-        "lane": lane,
-        "latest_zero_generation": generation,
-        "fresh": True,
-        "mergeable_green_count": mergeable,
-        "blocking_candidate_count": blocking,
-    }
-
 def _test_receipt(sha="a" * 40, issue=996, generation=4):
     return {
         "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
@@ -58,6 +47,17 @@ def _test_receipt(sha="a" * 40, issue=996, generation=4):
         "generation": generation,
         "exact_commands": ["python tools/control_plane_regression.py"],
         "manifest_digest": "e" * 64,
+    }
+
+
+def _worker_census(generation=4, *, mergeable=0, blocking=0, lane="docs"):
+    return {
+        "schema": "WHD_SHARED_ZERO_WORKER_CENSUS_V1",
+        "lane": lane,
+        "latest_zero_generation": generation,
+        "fresh": True,
+        "mergeable_green_count": mergeable,
+        "blocking_candidate_count": blocking,
     }
 
 def test_contract_and_skill_are_current_and_single_owner():
@@ -115,7 +115,7 @@ def test_interactive_order_uses_shared_zero_then_delivery_reservation():
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
         tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], worker_census_evidence=_worker_census(), diff_digest="c" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     assert merged["git_write_unlocked"] is False
     assert merged["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
@@ -124,7 +124,7 @@ def test_interactive_order_uses_shared_zero_then_delivery_reservation():
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
         tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], worker_census_evidence=_worker_census(), diff_digest="c" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
         remote_connection_authority=authority,
     )
     assert reserved["git_write_unlocked"] is False
@@ -134,13 +134,52 @@ def test_interactive_order_uses_shared_zero_then_delivery_reservation():
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
         tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], worker_census_evidence=_worker_census(), diff_digest="c" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
         remote_connection_authority=authority,
         path_reservation_evidence=_reservation(),
     )
     assert unlocked["git_write_unlocked"] is True
     assert unlocked["completed"][-1] == "GIT_WRITE_UNLOCKED"
     assert unlocked["next_action"] == "EXACT_TESTED_DIFF_ONLY"
+
+
+def test_worker_census_compatibility_bridge_is_optional_but_validated():
+    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
+
+    source = validate_source_current(
+        workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
+        live_source_sha="a" * 40, live_tree_sha="b" * 40,
+    )
+    common = dict(
+        execution_mode="INTERACTIVE", source_evidence=source,
+        unpushed_lane_evidence=_lane(), root_mutations_complete=True,
+        merge_to_zero_complete=True, test_classified=True, tests_green=True,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
+        diff_digest="c" * 64,
+    )
+
+    current = build_gate_evidence(**common)
+    assert current["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
+
+    compatible = build_gate_evidence(**common, worker_census_evidence=_worker_census())
+    assert compatible["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
+    assert "WORKER_CENSUS_NO_MERGEABLE_GREEN" in compatible["completed"]
+
+    mergeable = build_gate_evidence(
+        **common, worker_census_evidence=_worker_census(mergeable=1)
+    )
+    assert mergeable["next_action"] == "MERGE_TO_FRESH_LATEST_ZERO"
+
+    blocked = build_gate_evidence(
+        **common, worker_census_evidence=_worker_census(blocking=1)
+    )
+    assert blocked["next_action"] == "RESOLVE_WORKER_CENSUS_BLOCKERS"
+
+    bad = _worker_census()
+    bad["schema"] = "BROKEN"
+    with pytest.raises(ValueError, match="worker census evidence schema mismatch"):
+        build_gate_evidence(**common, worker_census_evidence=bad)
 
 
 def test_git_content_write_is_forbidden_before_unlock():
@@ -176,7 +215,7 @@ def test_target_drift_forces_resync_and_retest_before_git_write():
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
         tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], worker_census_evidence=_worker_census(), diff_digest="d" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="d" * 64,
         remote_connection_authority=authority,
         path_reservation_evidence=_reservation(), target_drift=True,
     )
@@ -294,7 +333,7 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True, tests_green=True,
         remote_connection_authority=authority, path_reservation_evidence=_reservation(),
-        test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], worker_census_evidence=_worker_census(), diff_digest="c" * 64,
+        test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     receipt = build_git_unlock_receipt(evidence)
     assert receipt["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
@@ -447,92 +486,76 @@ def test_root_gate_conflict_checkpoint_blocks_before_post_merge_tests():
     assert evidence["git_write_unlocked"] is False
 
 
-def test_issue_sync_workflow_rule_authorities_are_narrow_and_machine_enforced():
+def test_remote_connection_authority_covers_all_github_network_surfaces_and_does_not_propagate():
     from tools.root_local_first_gate import (
         assert_remote_connection_allowed,
         build_remote_connection_authority,
+        validate_contract,
     )
 
-    with pytest.raises(ValueError, match="durable workflow-rule authority"):
-        build_remote_connection_authority(
-            kind="SPLIT_ISSUE_SYNC", target="GITHUB"
-        )
+    payload = validate_contract(_contract())
+    gate = payload["remote_connection_hard_gate"]
+    assert gate["default"] == "DENY"
+    assert gate["covers_all_network_surfaces"] is True
+    assert gate["authority_non_propagating"] is True
+    assert gate["skill_invocation_is_not_authority"] is True
+    assert {
+        "repo_metadata", "code_search", "contents", "branches", "commits",
+        "issues", "pull_requests", "actions_workflows", "actions_runs",
+        "artifacts", "connector_api", "git_network_transport",
+    } <= set(gate["covered_github_surfaces"])
 
-    split = build_remote_connection_authority(
-        kind="SPLIT_ISSUE_SYNC",
-        target="GITHUB",
-        workflow_rule_authorized=True,
+    for action in ("REPO_METADATA_READ", "CODE_SEARCH", "ISSUE_READ", "PR_READ", "WORKFLOW_READ", "REMOTE_QA"):
+        with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
+            assert_remote_connection_allowed(None, target="GITHUB", action=action)
+
+    issue_only = build_remote_connection_authority(
+        kind="OPEN_ISSUE_ONLY", target="GITHUB", user_explicit=True
     )
-    for action in ("CREATE_ISSUE", "UPDATE_ISSUE", "ISSUE_RELATION_WRITE", "ISSUE_READBACK"):
-        assert_remote_connection_allowed(split, target="GITHUB", action=action)
+    assert_remote_connection_allowed(issue_only, target="GITHUB", action="CREATE_ISSUE")
+    assert_remote_connection_allowed(issue_only, target="GITHUB", action="ISSUE_READBACK")
     with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
-        assert_remote_connection_allowed(split, target="GITHUB", action="READ")
+        assert_remote_connection_allowed(issue_only, target="GITHUB", action="ISSUE_READ")
 
-    post = build_remote_connection_authority(
-        kind="POST_DELIVERY_ISSUE_SYNC",
-        target="GITHUB",
-        workflow_rule_authorized=True,
+    push = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
     )
-    for action in ("UPDATE_ISSUE", "ISSUE_COMMENT", "ISSUE_RELATION_WRITE", "ISSUE_READBACK"):
-        assert_remote_connection_allowed(post, target="GITHUB", action=action)
-    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
-        assert_remote_connection_allowed(post, target="GITHUB", action="COMMIT")
+    for action in ("WORKFLOW_READ", "REMOTE_QA", "ISSUE_CLOSE", "PR_READ", "CODE_SEARCH"):
+        assert_remote_connection_allowed(push, target="GITHUB", action=action)
 
 
-def test_issue_sync_contract_and_skills_require_split_and_post_delivery_readback():
-    payload = _contract()
-    gate = payload["issue_sync_hard_gate"]
-    assert gate["schema"] == "WHD_ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1"
-    assert gate["split_requires_github_issue_readback_before_ready"] is True
-    assert gate["delivery_requires_issue_sync_readback"] is True
-    assert gate["local_only_child_policy"] == "TRANSIENT_DRAFT_ONLY_NOT_READY_NOT_DISPATCHED"
-    assert gate["terminal_close_owner"] == "FLOW_V2_FINALIZE_ONLY"
-
-    dispatch = (ROOT / ".agents/skills/engineering/派工/SKILL.md").read_text(encoding="utf-8")
-    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    flow = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
-    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
-    for text in (dispatch, push, flow, root_skill):
-        assert "ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1" in text
-    assert "ISSUE_READBACK_VERIFIED → DISPATCH_READY_ALLOWED" in dispatch
-    assert "SYNC_LINKED_GITHUB_ISSUES" in push
-    assert "ISSUE_SYNC_READBACK_VERIFIED" in push
-    assert "close 仍由 canonical `FINALIZE`" in push
-
-
-def test_shared_zero_freeze_requires_complete_worker_census_before_push():
-    contract = json.loads((ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json").read_text(encoding="utf-8"))
-    gate = contract["shared_zero_freeze_worker_census"]
-    assert gate["schema"] == "WHD_SHARED_ZERO_FREEZE_REQUIRES_WORKER_CENSUS_HARD_GATE_V1"
-    assert gate["freeze_requires_mergeable_green_count"] == 0
-    assert gate["merge_policy"] == "MERGE_ALL_NON_CONFLICTING_GREEN_INTO_ONE_NEXT_GENERATION"
-    assert gate["post_merge_test_scope"] == "UNION_FILESET"
-    assert gate["incremental_remote_repair_forbidden"] is True
-    order = contract["required_order"]
-    assert order.index("POST_MERGE_0_TESTS_GREEN") < order.index("WORKER_CENSUS_NO_MERGEABLE_GREEN") < order.index("LANE_MANIFEST_FROZEN")
-
-    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
-    push_skill = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    for text in (root_skill, push_skill):
-        assert "SHARED_ZERO_FREEZE_REQUIRES_WORKER_CENSUS_HARD_GATE_V1" in text
-        assert "MERGEABLE_GREEN" in text
-    assert "先全部併 → 全部測 → freeze 一次 → 推一次" in push_skill
-    assert "禁止在 delivery branch 做 incremental remote repair" in push_skill
-
-
-def test_machine_blocks_freeze_until_worker_census_has_no_mergeable_green():
-    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
-    source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
-    base = dict(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
-        tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+def test_high_risk_skills_are_wired_to_remote_authority_gate_and_no_readonly_bypass_regrows():
+    required = (
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
+        ".agents/skills/engineering/code-review/SKILL.md",
+        ".agents/skills/engineering/triage/SKILL.md",
+        ".agents/skills/engineering/wayfinder/SKILL.md",
+        ".agents/skills/productivity/找技能/SKILL.md",
+        ".agents/skills/productivity/MCP工具操作/SKILL.md",
+        ".agents/skills/engineering/工作槽/SKILL.md",
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+        ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+        ".agents/skills/engineering/long-log-context-safe-execution/SKILL.md",
     )
-    missing = build_gate_evidence(**base)
-    assert missing["next_action"] == "WORKER_CENSUS_NO_MERGEABLE_GREEN"
-    mergeable = build_gate_evidence(**base, worker_census_evidence=_worker_census(mergeable=1))
-    assert mergeable["next_action"] == "MERGE_TO_FRESH_LATEST_ZERO"
-    clear = build_gate_evidence(**base, worker_census_evidence=_worker_census())
-    assert "WORKER_CENSUS_NO_MERGEABLE_GREEN" in clear["completed"]
-    assert "LANE_MANIFEST_FROZEN" in clear["completed"]
+    offenders = []
+    for rel in required:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        if "assert_remote_connection_allowed" not in text:
+            offenders.append((rel, "missing machine gate wiring"))
+        if "WHD_REMOTE_CONNECTION_AUTHORITY_V1" not in text:
+            offenders.append((rel, "missing authority schema"))
+    assert offenders == []
+
+    fallback = (ROOT / ".agents/skills/misc/git-remote-sync-fallback/SKILL.md").read_text(encoding="utf-8")
+    assert "before `GIT_WRITE_UNLOCKED`, GitHub/Contents/Connector is read-only" not in fallback
+    assert "READ / FETCH / COMPARE`" in fallback
+    assert "fully denied" in fallback
+
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
+    for text in (agents, root_skill):
+        assert "Skill 自動觸發" in text
+        assert "REMOTE_CONNECTION_DENIED" in text
+

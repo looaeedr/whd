@@ -15,6 +15,12 @@ whd_schema: WHD_DOC_META_V1
 
 任何 fallback 都必須 **fail closed、非強制、可追溯、遠端二次驗證**。
 
+## REMOTE_AUTHORITY_FIRST_HARD_GATE_V1
+
+這個 Skill **不會因為 push/fetch 失敗、DNS 問題或 Connector 可用就取得 GitHub authority**。在任何會碰網路的 `git ls-remote/fetch/pull/push`、GitHub API/Connector、remote HEAD/readback 之前，必須先以 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗證 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 的 exact target/action。沒有 authority 時立即 `REMOTE_CONNECTION_DENIED`；只能做 offline `git status/rev-parse/branch/remote -v` 與 root-local 診斷。
+
+`git-remote-sync-fallback` 只是在**既有 remote-authorized window 內**切換 transport，不是新 authority 來源；Skill invocation、read-only intent、DNS failure、authentication failure、connector availability 都不能擴張 scope。
+
 ## 固定流程
 
 1. **先確認本機 Git 真值**
@@ -27,7 +33,7 @@ whd_schema: WHD_DOC_META_V1
    工作樹有未提交內容時，先依專案 Git 備份規則落 commit / backup tag；禁止用遠端同步掩蓋本機 dirty state。
 
 2. **重現並分類傳輸失敗**
-   優先用 `git ls-remote origin`；必要時再用 `getent hosts github.com`/等價 DNS probe。
+   先驗 remote authority。只有 gate 已允許 `READ/FETCH/COMPARE` 類 action 才可用 `git ls-remote origin`；未授權時不得做任何 network probe。`getent hosts github.com` 也視為 remote network probe，未授權時禁止。
    - `Could not resolve host`、DNS/network unreachable、容器網路受限：屬 transport/environment blocker，可考慮 Connector fallback。
    - non-fast-forward、branch protection、權限拒絕、內容衝突：不是 DNS fallback 問題，禁止繞過。
    - 禁止因 push 失敗改用 `--force` / `push --force`。
@@ -70,7 +76,7 @@ whd_schema: WHD_DOC_META_V1
 
 For WHD interactive/default repository mutations, transport fallback cannot change the root-local-first order:
 
-- before `GIT_WRITE_UNLOCKED`, GitHub/Contents/Connector is read-only for repository content (`READ / FETCH / COMPARE`);
+- before explicit `WHD_REMOTE_CONNECTION_AUTHORITY_V1`, GitHub/Contents/Connector/network Git is **fully denied**, including `READ / FETCH / COMPARE`; after authority but before `GIT_WRITE_UNLOCKED`, only authority-listed read actions are allowed;
 - root workspace owns mutation, tests and frozen exact diff;
 - after unlock, create/fresh-read a dedicated work branch from current target; Contents API / GitHub Connector writes must target that work branch, never `cleanup/2d-3d-sync` or `main`;
 - only `EXACT_TESTED_DIFF_ONLY` may be transported; connector limitations do not authorize branch-side edits;

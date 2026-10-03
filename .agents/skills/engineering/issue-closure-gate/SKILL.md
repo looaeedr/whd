@@ -19,6 +19,11 @@ whd_schema: WHD_DOC_META_V1
 本 Skill 是入口／角色 bridge，不擁有 execution state machine。所有 execution authority、resume、mutation、lease、handoff、recovery、scheduler 與 closure 語意一律服從 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 
 ## Closure
+
+### REMOTE_AUTHORITY_GATE_V1
+
+FINALIZE 的 execution authority 不等於 GitHub Issue network authority。若 closure 需要 GitHub Issue read/comment/close/readback，trusted executor 必須先用 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 對 exact action 的允許；interactive/default 缺 remote authority 時不得因 FINALIZE/closure bridge 自動連 GitHub。`/推推` delivery window可包含 owning-Issue finalization actions；scheduler 則必須來自 user-authored GitHub-only entry contract。
+
 QA PASS或merge不等於完成。FINALIZE驗 target/merge/accepted QA，close Issue後fresh-read，再把同一 record寫成 DONE、清 lease/owner、next_action=null並保存 closure evidence。successor只由record.chain structured fields決定。
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。

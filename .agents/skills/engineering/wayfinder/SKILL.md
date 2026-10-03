@@ -16,6 +16,11 @@ The destination varies per effort, and naming it is the first act of charting: i
 
 ## RUNTIME_CAPABILITY_FALLBACK
 
+### REMOTE_AUTHORITY_GATE_V1
+
+WHD 的 issue-map workflow 不得把「GitHub 是 configured tracker」或 `wayfinder` Skill invocation 當成 remote authority。建立/讀取/更新/關閉 map issue、child issue、dependency、assignee 或 comment 前，先用 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 exact GitHub action。沒有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 時，使用 project-local Markdown/checkpoint map；不得自動切 GitHub Connector。
+
+
 Parallel/background agents are optional optimizations, not requirements. When unavailable, the same executor works the map as an **inline fallback**, one decision at a time, while keeping issue/checkpoint state durable. Canonical supporting identities are `深度質詢`, `領域建模`, `research`, and `prototype`; retired English aliases are never current invocation targets.
 
 Wayfinder is **planning** by default: each ticket resolves a decision, and the map is done when the way is clear, with nothing left to decide before someone goes and does the thing. The pull to just do the work is usually the signal you've reached the edge of the map and it's time to hand off. An effort can override this in its **Notes**, carrying execution into the map itself, but absent that, produce decisions, not deliverables.
