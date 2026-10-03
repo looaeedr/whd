@@ -1,0 +1,173 @@
+"""Machine validator/formatter for user-visible WHD runtime report identity.
+
+This module owns presentation provenance only.  It does not grant execution
+permission, acquire leases, change ownership, or mutate Flow v2 state.
+"""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+import re
+
+
+INTERACTIVE_HANDLERS = frozenset({"工作0", "工作1", "工作2", "工作3"})
+SCHEDULER_HANDLERS = frozenset({"排程A", "排程B"})
+RUNTIME_KINDS = frozenset({"INTERACTIVE", "SCHEDULER"})
+EXPLICIT_UNBOUND = frozenset({"NONE", "UNBOUND"})
+REPORT_EVENTS = frozenset({"PROGRESS", "CHECKPOINT", "TERMINAL", "EXIT", "STATUS"})
+
+
+class RuntimeReportIdentityError(ValueError):
+    """Raised when a user-visible report lacks exact runtime provenance."""
+
+
+@dataclass(frozen=True)
+class RuntimeReportIdentity:
+    handler: str
+    owner: str
+    issue: str
+    slot: str
+    invocation_identity: str
+    runtime_kind: str
+
+
+def _text(field: str, value: object) -> str:
+    result = str(value if value is not None else "").strip()
+    if not result:
+        raise RuntimeReportIdentityError(f"{field} must be nonblank")
+    return result
+
+
+def _normalize_issue(value: object) -> str:
+    if isinstance(value, bool):
+        raise RuntimeReportIdentityError("issue must be a positive integer or NONE/UNBOUND")
+    if isinstance(value, int):
+        if value <= 0:
+            raise RuntimeReportIdentityError("issue must be positive")
+        return str(value)
+    text = _text("issue", value)
+    if text.startswith("#"):
+        text = text[1:]
+    if text in EXPLICIT_UNBOUND:
+        return text
+    if not re.fullmatch(r"[1-9][0-9]*", text):
+        raise RuntimeReportIdentityError(
+            "issue must be a positive integer or explicit NONE/UNBOUND"
+        )
+    return text
+
+
+def _normalize_slot(value: object) -> str:
+    text = _text("slot", value)
+    if text in EXPLICIT_UNBOUND:
+        return text
+    if not re.fullmatch(r"worker\.slot\.[0-3]", text):
+        raise RuntimeReportIdentityError(
+            "slot must be worker.slot.0..3 or explicit NONE/UNBOUND"
+        )
+    return text
+
+
+def build_runtime_report_identity(
+    *,
+    handler: object,
+    owner: object,
+    issue: object,
+    slot: object,
+    invocation_identity: object,
+    runtime_kind: object,
+) -> RuntimeReportIdentity:
+    """Validate exact identity required by visible progress/checkpoint/exit reports.
+
+    Values must come from the fresh ExecutionRecord/runtime observation projection.
+    This function deliberately cannot infer or guess missing fields.
+    """
+
+    kind = _text("runtime_kind", runtime_kind).upper()
+    if kind not in RUNTIME_KINDS:
+        raise RuntimeReportIdentityError(
+            f"runtime_kind must be one of {sorted(RUNTIME_KINDS)}"
+        )
+    report_handler = _text("handler", handler)
+    report_owner = _text("owner", owner)
+    report_issue = _normalize_issue(issue)
+    report_slot = _normalize_slot(slot)
+    invocation = _text("invocation_identity", invocation_identity)
+    if invocation in {"NONE", "UNBOUND", "UNAVAILABLE"}:
+        raise RuntimeReportIdentityError(
+            "invocation_identity must be exact; NONE/UNBOUND/UNAVAILABLE are invalid"
+        )
+
+    if kind == "INTERACTIVE":
+        if report_handler not in INTERACTIVE_HANDLERS:
+            raise RuntimeReportIdentityError(
+                "interactive handler must be 工作0/工作1/工作2/工作3"
+            )
+        expected_slot = f"worker.slot.{report_handler[-1]}"
+        if report_slot not in {expected_slot, "UNBOUND"}:
+            raise RuntimeReportIdentityError(
+                f"interactive handler {report_handler} must bind slot {expected_slot}"
+            )
+    else:
+        if report_handler not in SCHEDULER_HANDLERS:
+            raise RuntimeReportIdentityError(
+                "scheduler handler must be 排程A or 排程B"
+            )
+
+    return RuntimeReportIdentity(
+        handler=report_handler,
+        owner=report_owner,
+        issue=report_issue,
+        slot=report_slot,
+        invocation_identity=invocation,
+        runtime_kind=kind,
+    )
+
+
+def format_runtime_report_prefix(identity: RuntimeReportIdentity) -> str:
+    """Render the complete CURRENT identity prefix; no fields are optional."""
+
+    if not isinstance(identity, RuntimeReportIdentity):
+        raise RuntimeReportIdentityError("identity must be RuntimeReportIdentity")
+    return (
+        f"【處理者：{identity.handler}｜owner={identity.owner}｜工單：#{identity.issue}"
+        f"｜slot={identity.slot}｜invocation_identity={identity.invocation_identity}】"
+    )
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Validate and render the mandatory WHD user-visible runtime identity prefix"
+    )
+    parser.add_argument("--event", required=True, choices=tuple(sorted(REPORT_EVENTS)))
+    parser.add_argument("--handler", required=True)
+    parser.add_argument("--owner", required=True)
+    parser.add_argument("--issue", required=True)
+    parser.add_argument("--slot", required=True)
+    parser.add_argument("--invocation-identity", required=True)
+    parser.add_argument("--runtime-kind", required=True, choices=tuple(sorted(RUNTIME_KINDS)))
+    return parser
+
+
+def main() -> int:
+    args = _build_parser().parse_args()
+    try:
+        identity = build_runtime_report_identity(
+            handler=args.handler,
+            owner=args.owner,
+            issue=args.issue,
+            slot=args.slot,
+            invocation_identity=args.invocation_identity,
+            runtime_kind=args.runtime_kind,
+        )
+    except RuntimeReportIdentityError as exc:
+        print(f"RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: {exc}")
+        return 2
+    print(format_runtime_report_prefix(identity))
+    print(f"RUNTIME_REPORT_IDENTITY_VALID event={args.event}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

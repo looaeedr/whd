@@ -8,6 +8,8 @@ WRITE_SCHED = ROOT / ".agents" / "skills" / "engineering" / "寫排程" / "SKILL
 MARKER = "REPORT_HANDLER_IDENTITY_PREFIX_V1"
 TEMPLATE = "【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】"
 SLOT_TEMPLATE = "slot=<worker.slot.N|NONE|UNBOUND>"
+INVOCATION_TEMPLATE = "invocation_identity=<exact invocation_identity>"
+MACHINE_OWNER = "tools/runtime_report_identity.py"
 
 
 def _read(path: Path) -> str:
@@ -20,6 +22,8 @@ def test_all_three_surfaces_require_same_report_prefix_contract() -> None:
         assert MARKER in text, path
         assert TEMPLATE in text, path
         assert SLOT_TEMPLATE in text, path
+        assert INVOCATION_TEMPLATE in text, path
+        assert MACHINE_OWNER in text, path
         assert "第一行" in text, path
         assert "user-visible" in text, path
 
@@ -27,7 +31,7 @@ def test_all_three_surfaces_require_same_report_prefix_contract() -> None:
 def test_work_slot_prefix_uses_fresh_binding_and_claim_owner() -> None:
     text = _read(WORK_SLOT)
     section = text.split(MARKER, 1)[1]
-    for token in ("worker.slot.1", "worker.slot.2", "worker.slot.3", "claim_owner", "UNBOUND"):
+    for token in ("worker.slot.1", "worker.slot.2", "worker.slot.3", "claim_owner", "UNBOUND", "invocation_identity"):
         assert token in section
     assert "不得猜" in section
     assert "query-only" in section
@@ -36,7 +40,7 @@ def test_work_slot_prefix_uses_fresh_binding_and_claim_owner() -> None:
 def test_scheduler_simulation_prefix_identifies_lane_issue_and_real_owner() -> None:
     text = _read(SCHED_SIM)
     section = text.split(MARKER, 1)[1]
-    for token in ("排程A", "排程B", "lane_owner", "claim_issue", "claim_worker"):
+    for token in ("排程A", "排程B", "lane_owner", "claim_issue", "claim_worker", "invocation_identity"):
         assert token in section
     assert "foreign" in section
     assert "不得" in section

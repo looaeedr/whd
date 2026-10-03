@@ -25,21 +25,7 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 4. recurring scheduler / `/排程A` / `/排程B` 若尚不知道 exact owning Issue，才可使用下面的 `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`；其他入口不得借此擴張 startup scope。
 5. 對 exact owning Issue + branch + HEAD 執行 Phase6 Knowledge Preflight；GitHub-only runtime 只可送 trusted `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`。
 6. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
-6.5. **STARTUP_TRANSITION_GATE_V1**：把本 invocation 的 `WHD_EXECUTION_ENTRY_EVIDENCE_V1` 與 exact owning `Issue + branch + HEAD` 的 `WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1` 收斂成單一 `WHD_EXECUTION_STARTUP_TRANSITION_V1`。fresh admission 只有這張 transition 仍為 `READY_FOR_EXECUTION` 才可進 execution mutation；TTL ≤ 300 秒。
 7. scheduler 若曾使用 bootstrap projection，必須丟棄該 projection 並再次 fresh-read canonical scheduler projection；只有到此時，才可進入 Flow v2 ExecutionRecord / transaction / lease / next_action 與正常 WAKE。
-
-### STARTUP_TRANSITION_GATE_V1 — 單一 freshness/admission receipt
-
-`PROJECT_STARTUP_HARD_GATE_V1` 的各步仍保留，但 mutation ingress 不再分散相信多張「各自 fresh」的證據。canonical owner=`tools/execution_entry_contract.py`。
-
-- Phase6 Preflight evidence 固定 schema=`WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1`，必須 `status=GREEN`、綁 exact `issue + branch + head_sha`，且 `required_skills ⊆ completed_skills`、`required_references ⊆ completed_references`。任一缺件固定 fail closed。
-- `startup_evidence` 與 Phase6 Preflight 必須綁**同一個 `invocation_identity`**，且 startup / preflight / transition 各自的 evidence age 都不得超過 300 秒。machine `startup_evidence` 可能在 trusted request materialize 時晚於 Preflight 生成，因此**不得用兩張 evidence 的時間先後冒充 authority**；前一 invocation、前一 wake、前一聊天留下的 GREEN 一律不得復用成 fresh admission。
-- `build_startup_transition(...)` 產生 `WHD_EXECUTION_STARTUP_TRANSITION_V1`，state=`READY_FOR_EXECUTION`，把 invocation identity、execution mode、Issue、exact branch/HEAD 與共同 expiry 綁成一張 receipt。
-- fresh control transaction admission 固定同時攜帶 `startup_evidence + preflight_evidence + startup_transition`；trusted ingress 先驗三者，再 fresh-read current ExecutionRecord，並呼叫 `assert_startup_transition_matches_record(...)`。Preflight 的 branch/HEAD 必須仍等於 current record 的 source/work/target 其中一組 exact identity；否則固定 `STARTUP_TRANSITION_STALE_IDENTITY`，舊 admission 永久失效，必須從最新 state 重做 startup/preflight。
-- `LIVE_LEASE_CONTINUATION` session reuse 只可在同一 live lease/invocation 下省略 fresh startup triple；它不得夾帶舊 `startup_evidence / preflight_evidence / startup_transition`，也不得跨 invocation、lease expiry 或 identity drift。
-- retired/MIRROR execution skill 不得作為 completed required skill 取得 admission。Registry 歷史關鍵字若命中 retired route，只能 redirect 到其 ACTIVE replacement；不得恢復 retired owner。
-
-這個 gate 的目的不是增加一層流程，而是把原本分散的 freshness 判斷**收成一張 machine-checkable transition receipt**，避免「每一步都說 fresh，但真正 mutation 時已不是同一個 Issue/HEAD」。
 
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
@@ -80,17 +66,6 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - explicit READY ingress：`tools/execution_dispatch_ingress.py`。
 - mutation policy：`tools/execution_authority_policy.py`。
 - runtime observability (NON_AUTHORITY)：`coord/monitor-v2:.dispatch/monitor/runtime/*.json`。
-
-### ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1
-
-Flow v2 對「拆工」與「delivery 完成」都要求 GitHub Issue durable synchronization：
-
-1. **Split before READY**：新 child/follow-up 在 GitHub Issue create/reuse、parent/sub-issue/dependency 更新與 fresh readback 完成前，只是 transient draft；不得建立 `WHD_EXECUTION_RECORD_V2 READY`。Issue sync failure 固定 `ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF`。
-2. **Delivery after merge**：`MERGE_READBACK_VERIFIED` + delivery receipt 後，必須同步 linked Issues 的 lane/generation/manifest/PR/merged SHA/test result 與 terminal/next_action/blocker，再 fresh-read為 `ISSUE_SYNC_READBACK_VERIFIED`。
-3. terminal close authority 不變：只有 Flow v2 `FINALIZE` 可 close/readback Issue；`/推推` 只負責 delivery-side sync，不可另造 closure state machine。
-4. `SPLIT_ISSUE_SYNC` / `POST_DELIVERY_ISSUE_SYNC` 是 narrow Issue-plane remote authority，不授權 repository content READ/FETCH/COMPARE/branch/commit/push/merge。
-
-因此「本地已拆好但 GitHub 沒工單」不是 READY；「推推 merge 好但工單沒同步」也不是完整 durable cycle。
 
 ## WORKSPACE_EXECUTION_POLICY_V2 — SHARED UNPUSHED 0
 
@@ -445,19 +420,6 @@ Remote QA 是外部等待，不得佔住同一 invocation 做 busy polling。對
 
 <!-- REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1 -->
 
-### BLOCKED_LEAF_CONTINUATION_HARD_GATE_V1
-
-任何單一 Issue/leaf 的 `BLOCKED / AUTHORITY_DENIED / MISSING_CAPABILITY / PLATFORM_FAILURE / external wait` 都只阻塞該 leaf，不得自動升格成整個 invocation/工作槽/排程 cycle 的停止權。
-
-1. current leaf 若需要等待外部條件，先完成其 canonical durable checkpoint／`YIELD`；不得持有 live lease 一邊切去別張造成雙 writer。
-2. durable `YIELD` 後必須 fresh-project 其他 candidate leaves。排除：terminal-tail、live foreign writer、`ACTIVE_DELEGATED_WORK`、same-path/reservation conflict、以及同樣缺少必要 authority/capability 的 leaf。
-3. 只要至少一個 candidate 仍為合法 executable leaf，`tools/execution_invocation_exit.py::classify_invocation_exit(..., alternative_executable_leaf_count=N)` 固定回 `CONTINUE_OTHER_EXECUTABLE_LEAF`，`may_return=false`；不得因原 leaf 已 YIELD/BLOCKED 就退出。
-4. `tools/execution_invocation_exit.py::assert_active_owning_issue_sticky` 對仍有 active writer 的 owning Issue 繼續 fail closed；但已 `lease=null + transaction=YIELD/RECONCILED` 的 nonterminal leaf 不再形成 foreign-issue pivot lock。terminal tail 永遠不適用此例外。
-5. 只有所有合法替代路徑都以 fresh durable evidence 證明不可執行，且確實沒有其他 executable leaf，才可形成 `NO_EXECUTABLE_ALTERNATIVE` / 合法 physical return。progress/status query、單一 blocker、等待 push/CI/使用者明確 authority 都不是全域停止理由。
-6. 這個 gate 不授權跳過 issue authority、path conflict、parent/child/delegated active-work gate 或 remote-connection gate；它只禁止「一個 leaf 卡住 = 整個 runtime 停止」的錯誤升格。
-
-<!-- BLOCKED_LEAF_CONTINUATION_HARD_GATE_V1 -->
-
 START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA 可從 ACTIVE / VERIFYING / INTEGRATING 進入 VERIFYING：INTEGRATING 只用於「原 accepted head 後續因合法 APPLY_COMMIT / target reconciliation 前進而需要重新 exact-head QA」；不得把這條路徑當成跳過既有 acceptance。active只 POLL_QA；success→ACCEPT_QA；若來源是 integration revalidation，ACCEPT_QA 必須以 next_state=INTEGRATING 回到 merge gate，且 MERGE 仍強制 qa.accepted_head_sha == current head。terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
 
 ## Blocker
@@ -508,9 +470,14 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 ## Progress
 
-進度/status是 non-blocking checkpoint。scheduler/長任務第一行固定：
-`【處理者：<handler>｜owner=<record owner|NONE>｜工單：#<issue|NONE>】`
-回報後只要 current invocation 還能合法施工，就立即繼續。
+### RUNTIME_REPORT_IDENTITY_MACHINE_GATE_V1
+
+進度/status是 non-blocking checkpoint。所有 interactive work-slot 與 scheduler 的 user-visible `PROGRESS / CHECKPOINT / terminal / EXIT` 第一行固定使用 **fresh current runtime identity**：
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
+
+唯一 machine owner=`tools/runtime_report_identity.py`。caller 必須先用 `build_runtime_report_identity(...)` 驗證 `handler / owner / issue / slot / invocation_identity / runtime_kind`，再用 `format_runtime_report_prefix(...)` 產生第一行；不得手工拼接。`invocation_identity` 缺失、空白、`NONE / UNBOUND / UNAVAILABLE` 或 handler/runtime/slot identity 不一致都 fail closed。owner/issue/slot 取 fresh canonical ExecutionRecord/projection；invocation_identity 取 exact current runtime observation/startup provenance，禁止由聊天時間、entrypoint、task id 或上一輪 runtime 推測。
+
+此 gate 只保證 user-visible provenance，不建立 execution authority。`tools/assistant_turn_exit_gate.py` 在允許正常 turn exit 前也必須驗 exact report identity，因此「無身份退出」不是合法 terminal path。回報後只要 current invocation 還能合法施工，就立即繼續。
 
 ## Production transaction transport
 
