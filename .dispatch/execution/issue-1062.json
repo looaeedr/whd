@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 41,
+  "generation": 42,
   "head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work1",
@@ -22,42 +22,24 @@
     "token": "lease:1062:37106475971:1"
   },
   "mutation_scope": {
-    "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+    "base_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
     "delete_paths": [],
-    "reservation_state": "RELEASED",
+    "reservation_state": "ACTIVE",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
-      "docs/superpowers/verification/issue678-poweroff-red/approved/test_behavioral_red_v5.py",
-      "docs/superpowers/verification/issue678-poweroff-red/approved/test_requirement_red_v4.py",
-      "gui_modules/application/manufacturing_adapter.py",
-      "tests/architecture/test_box_body_single_source.py",
-      "tests/process/test_issue1029_stale_plan_writer_guard.py",
-      "tests/process/test_issue423_phase5_t2_assembly_panel.py",
-      "tests/process/test_issue424_phase5_t3_box_piece_panel.py",
-      "tests/process/test_issue425_phase5_t4_final_scene_visibility.py",
-      "tests/process/test_issue426_phase5_t5_bridge_compression.py",
-      "tests/test_box_body_single_source_t2.py",
-      "tests/test_certified_relief_runtime_contract.py",
-      "tests/test_issue385_assembly_parent_child_groups.py",
-      "tests/test_issue386_default_assembly_collapsed.py",
-      "tests/test_joint_diagnostics_contract.py",
-      "tests/test_overlay_formed_fw_registry_contract.py",
-      "tests/test_overlay_fw_width_invariant.py",
-      "tests/test_phase6_3d_retain_and_baseline.py",
-      "tests/test_phase6_assembly_3d_view.py",
-      "tests/test_phase6_assembly_registry_gui_matrix.py",
-      "tests/test_phase6_corner_dimension_controls.py",
-      "tests/test_phase6_four_regressions.py",
-      "tests/test_phase6_receiving_multipart_integration.py",
-      "tests/test_phase6_receiving_projection_regression.py",
-      "tests/test_resolved_manufacturing_bridge.py",
-      "tests/ui/test_box_body_physical_child_navigation.py"
+      ".agents/skills/engineering/刪除/SKILL.md",
+      ".agents/skills/skill_registry.json",
+      "tests/process/test_delete_skill_contract.py",
+      "tests/process/test_issue870_execution_record_v2.py",
+      "tools/execution_record.py"
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Reserve frozen docs generation 13 exact delivery paths",
-    "kind": "RESERVE_PATHS"
+    "args": {
+      "diff_digest": "fe693c2cd1e7b271603ae99a05b816a08901b4586a2e7642e4b95ccbea7c42a0"
+    },
+    "display": "Start exact-tested docs generation 13 delivery branch",
+    "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -74,7 +56,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_RELEASED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
@@ -82,13 +64,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
   "transaction": {
-    "expected_fingerprint": "cf530bc6c346ed7c3360424c2d9cd5e4f8b276f5c4dce1b6b46ec9f8128ba348",
-    "id": "gha:37106642821:1062:RECONCILE:40",
+    "expected_fingerprint": "2c9b45a8c0a17a677fc4fd610f2c61739ff97799b123e9c2b3a19638e65e377e",
+    "id": "gha:37106725835:1062:RESERVE_PATHS:41",
     "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-    "kind": "RECONCILE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T07:32:06Z",
+  "updated_at": "2026-10-03T07:33:37Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
