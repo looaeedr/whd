@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 40,
-  "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "generation": 41,
+  "head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -56,8 +56,8 @@
   },
   "next_action": {
     "args": {},
-    "display": "Start exact-tested #1062 branch after expanded root repair is GREEN and frozen",
-    "kind": "START_BRANCH"
+    "display": "Reserve frozen docs generation 13 exact delivery paths",
+    "kind": "RESERVE_PATHS"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -80,15 +80,15 @@
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
   "transaction": {
-    "expected_fingerprint": "f5a886596cf45e77392a834c7faa7f379d1906a60cdcb78108c302250a0110c7",
-    "id": "gha:37106548590:1062:RELEASE_PATHS:39",
+    "expected_fingerprint": "cf530bc6c346ed7c3360424c2d9cd5e4f8b276f5c4dce1b6b46ec9f8128ba348",
+    "id": "gha:37106642821:1062:RECONCILE:40",
     "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-    "kind": "RELEASE_PATHS",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T07:30:33Z",
+  "updated_at": "2026-10-03T07:32:06Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
