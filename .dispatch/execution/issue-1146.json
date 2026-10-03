@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -42,8 +42,8 @@
       "generation": 8,
       "manifest_digest": "11b46c47fe076f264be4d20380a1c4570e2ab876a11c6705a3afbd4c714bd8e7"
     },
-    "display": "Start exact-tested #1146 docs generation 8 delivery branch",
-    "kind": "START_BRANCH"
+    "display": "Apply exact frozen docs generation 8 commit",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -60,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "BRANCH_READY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -68,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "6800120951738ac3c406fb0a32018d5d4c940c98c480af6d6f379f4b225cd307",
-    "id": "gha:37086119643:1146:RESERVE_PATHS:2",
+    "expected_fingerprint": "3716435304d1b98516aa7a2ec48a691a2066961d62ac955bf9dfd1619bd8af23",
+    "id": "gha:37086200370:1146:START_BRANCH:3",
     "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-    "kind": "RESERVE_PATHS",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T01:27:17Z",
+  "updated_at": "2026-10-03T01:28:30Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen7-20261003"
 }
