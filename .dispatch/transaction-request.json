@@ -1,14 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1146-b-acquire-docs-gen8",
+  "request_id": "issue1146-b-acquire-docs-gen8-v3",
   "issue": 1146,
   "kind": "ACQUIRE",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
   "expected_coord_head": "c7cfd19b052af7726e01182b8e1d2576fc0eece2",
   "expected_generation": 1,
-  "effect": {},
-  "purpose": "User-authorized delivery control-plane for #1146 from already GREEN/FROZEN canonical docs generation 8 into cleanup/2d-3d-sync; preserve carried-forward #1145 metadata repair and do no repository-content authoring in scheduler runtime.",
+  "effect": {
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {},
+      "display": "Reserve exact frozen docs generation 8 scope for #1146"
+    }
+  },
+  "purpose": "User-authorized delivery control-plane for #1146 from already GREEN/FROZEN canonical docs generation 8 into cleanup/2d-3d-sync; no repository-content authoring in scheduler runtime.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
