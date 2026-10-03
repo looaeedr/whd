@@ -5,8 +5,8 @@
   "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
-  "expected_coord_head": "ca25aded372774e7751469ce1c8cf8f173fac3e6",
-  "expected_generation": 9,
+  "expected_coord_head": "785b16550d30f206cb5655028167d4d6dcd27d4c",
+  "expected_generation": 10,
   "reuse_admission_session": true,
   "effect": {
     "run_id": 37130124841,
@@ -14,12 +14,8 @@
     "semantic_state": "GREEN",
     "next_action": {
       "kind": "MERGE",
-      "args": {
-        "pr_number": 1154,
-        "target_branch": "cleanup/2d-3d-sync",
-        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Merge PR #1154 after all post-push CI is GREEN"
+      "args": {},
+      "display": "Merge repaired docs generation 22 after exact-head GREEN"
     }
   }
 }
