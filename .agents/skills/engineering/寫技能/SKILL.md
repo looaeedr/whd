@@ -42,6 +42,12 @@ WHD 的 user-visible Skill 使用公告由 `AGENTS.md` 擁有全域硬閘門。�
 
 **專案規則優先**。通用「寫技能」不能取代專案自己的 root-local-first shared-0、`/推推` delivery gate、Preflight、TDD、QA、AI 庫回寫或 release gate。
 
+### ROOT_BASELINE_LOOKUP_AND_REMOTE_DENY_HARD_GATE_V1
+
+修改既有 Skill 前，baseline 必須從 canonical `/Google Drive/WHD` root 沿 parent-folder chain 解析到 exact repo path；**禁止先用 GitHub code search、Remote Desktop、remote checkout 或全域同名搜尋結果當 baseline**。全域 search 只能找候選，最後仍需 parent-chain readback 證明檔案位於 canonical root。
+
+未有使用者明確遠端指示時，寫 Skill 流程不得為了「找最新版／跑 Preflight／看 remote baseline」連 GitHub 或遠端本機。`/推推 文檔` 才開 GitHub delivery window；「開工單」只授權 issue transport，不授權 repository-content transport。
+
 若專案規定修改前必須執行 Preflight，先執行；若已知 changed files，再依專案規則帶 changed files 重跑。不能先改完再補做資格檢查。
 
 外部 Skill、模板或規格（例如 `make-skill-template`）只能作為**輸入參考**。若它的命名、frontmatter、工具或目錄慣例和目前專案衝突，仍以上述 authority 為準；不得為了照抄外部模板破壞 WHD 中文 canonical identity 或專案治理。
@@ -58,7 +64,7 @@ WHD 的 user-visible Skill 使用公告由 `AGENTS.md` 擁有全域硬閘門。�
 
 ## 2. 能力偵測：先看環境能做什麼
 
-在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具：
+在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具。**能力偵測只看 tool availability/config，不得以實際連線 GitHub 或遠端本機來探測能力；沒有 explicit remote authority 就保持離線。**
 
 - 能否讀/寫 repository 或檔案；
 - 能否建立 branch、commit、PR；
@@ -135,7 +141,7 @@ skill-name/
 
 ## 4. 修改既有 Skill
 
-修改既有 Skill 時，先建立 **baseline snapshot**：至少保留原始內容、原始 SHA/檔案雜湊或可回讀的原始 commit/ref。沒有 baseline 就無法知道修改改善了什麼，也無法安全回復。
+修改既有 Skill 時，先建立 **baseline snapshot**：至少保留 canonical root exact path、parent-chain identity、原始內容與檔案雜湊。只有已進入使用者明確授權的 remote/delivery window 時，才可附加 remote commit/ref；不得把 remote SHA 當成取得 root baseline 的前置條件。沒有 baseline 就無法知道修改改善了什麼，也無法安全回復。
 
 ### 4.1 名稱規則
 
@@ -150,9 +156,10 @@ WHD interactive/default Skill 修改固定：
 1. 先完成 `WHD_WORK_ROOT_HARD_GATE_V2` + `WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1`。
 2. 將 planned Skill/治理 paths 登記到 `.unpushed/docs/0`；若 path 已存在，fresh-read latest `0` generation+hash 作 base。worker candidate 留在 canonical root `.unpushed/docs/workers/...`，不開 Git branch。
 3. 在 root workspace 完成 RED→GREEN、required regression/final gate。
-4. freeze exact tested diff；fresh-read target 做 touched-path/base drift audit。
-5. worker GREEN 後 fresh latest `0` 三方合併；conflict 一律 `BLOCKED_USER_DECISION`。merge 後再跑治理/Skill tests，最新 docs `0` GREEN 才 freeze。
-6. 只有 `/推推 文檔` 才取得 delivery reservation並建立 branch；push scope 必須 exact 等於 docs manifest。補修一律回 shared `0`。
+4. freeze exact tested diff 與 docs `0` path/hash manifest；**此階段不得先連 GitHub 做 target drift audit**。
+5. worker GREEN 後 fresh latest `0` 三方合併；merge 前逐 path 重驗 latest generation/hash。conflict 一律 `BLOCKED_USER_DECISION`。merge 後再跑治理/Skill tests，最新 docs `0` GREEN 才 freeze。
+6. 只有使用者下達 `/推推 文檔` 才開 GitHub delivery window：先鎖 exact delivery fileset(path+hash/delete marker)，再 fresh-read target；push/PR changed files 必須 exact 等於 lock。merge 前再驗 latest target + locked blobs。補修一律回 shared `0`。
+7. merge readback exact 成功後，只清除本次 readback 已交付的 locked paths；未交付/後來變更保留。之後同檔再改要重新登記為新的 docs `0` 修改。
 
 不得直接 patch production target；正常 Skill 施工階段禁止先建 branch。merge conflict 禁止自動 ours/theirs，必須 checkpoint 並等使用者決策。
 

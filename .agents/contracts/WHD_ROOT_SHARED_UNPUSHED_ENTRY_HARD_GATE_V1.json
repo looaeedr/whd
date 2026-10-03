@@ -59,6 +59,35 @@
     "task_scope_sticky_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
     "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
   },
+  "entry_router_hard_gate": {
+    "allowed_before_ready": [
+      "READ_CANONICAL_ENTRY_CONTRACT",
+      "READ_ROOT_LOCAL_FIRST_SKILL"
+    ],
+    "applies_when": "INTERACTIVE_WHD_REPOSITORY_CONTENT",
+    "canonical_root": "/Google Drive/WHD",
+    "chat_memory_is_not_evidence": true,
+    "failure_action": "FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY",
+    "forbidden_before_ready": [
+      "GENERAL_FILE_DISCOVERY",
+      "GENERIC_DRIVE_SEARCH",
+      "REMOTE_DESKTOP",
+      "LOCAL_MACHINE_SEARCH",
+      "GITHUB_CONTENT_DISCOVERY",
+      "GITHUB_MUTATION",
+      "BRANCH_CREATE",
+      "CLAIM",
+      "FLOW_V2_DISCOVERY"
+    ],
+    "fresh_each_invocation": true,
+    "machine_owner": "tools/root_local_first_gate.py::build_entry_router_evidence/validate_entry_router_evidence/assert_entry_router_action_allowed",
+    "ready_state": "ENTRY_ROUTER_READY",
+    "required_fresh_read_order": [
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md"
+    ],
+    "schema": "WHD_ENTRY_ROUTER_FIRST_HARD_GATE_V1"
+  },
   "execution_mode_provenance": {
     "interactive_must_not_self_assert_remote_mode": true,
     "remote_exception_requires": "TRUSTED_RUNTIME_PROVENANCE",
@@ -75,11 +104,7 @@
     "REMOTE_ACTION": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF",
     "SCHEDULER_LANE": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
   },
-  "git_before_unlock": [
-    "READ",
-    "FETCH",
-    "COMPARE"
-  ],
+  "git_before_unlock": [],
   "git_write_mode": "EXACT_TESTED_DIFF_ONLY",
   "git_write_receipt": {
     "current_execution_fence": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
@@ -225,12 +250,8 @@
       "FINALIZATION",
       "READBACK"
     ],
-    "remote_allowed_before_root_unlock": [
-      "READ",
-      "DISCOVERY",
-      "COORDINATION",
-      "PREFLIGHT"
-    ]
+    "remote_allowed_before_root_unlock": [],
+    "remote_connection_authority_required": true
   },
   "required_order": [
     "ROOT_SOURCE_CURRENT",
@@ -241,6 +262,7 @@
     "POST_MERGE_0_TEST_CLASSIFIED",
     "POST_MERGE_0_TESTS_GREEN",
     "LANE_MANIFEST_FROZEN",
+    "REMOTE_CONNECTION_AUTHORIZED",
     "DELIVERY_PATHS_RESERVED",
     "GIT_WRITE_UNLOCKED"
   ],
@@ -279,5 +301,68 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 6
+  "version": 7,
+  "git_after_remote_authority_before_unlock": [
+    "READ",
+    "FETCH",
+    "COMPARE"
+  ],
+  "root_path_resolution_hard_gate": {
+    "schema": "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1",
+    "canonical_root": "/Google Drive/WHD",
+    "resolution_method": "CANONICAL_ROOT_PARENT_CHAIN",
+    "global_search_role": "CANDIDATE_ONLY",
+    "same_name_outside_parent_chain": "REJECT",
+    "failure_action": "ROOT_PATH_UNRESOLVED_FAIL_CLOSED",
+    "remote_fallback_forbidden": true,
+    "machine_owner": "tools/root_local_first_gate.py::build_root_path_resolution_evidence/validate_root_path_resolution_evidence"
+  },
+  "remote_connection_hard_gate": {
+    "schema": "WHD_REMOTE_CONNECTION_AUTHORITY_V1",
+    "default": "DENY",
+    "targets": [
+      "GITHUB",
+      "REMOTE_LOCAL"
+    ],
+    "pre_delivery_git_read_allowed_without_authority": false,
+    "issue_authority_scope": "ISSUE_CREATE_READBACK_ONLY",
+    "push_authorities": [
+      "PUSH_DOCS",
+      "PUSH_BODY"
+    ],
+    "explicit_user_authority": "USER_EXPLICIT_REMOTE",
+    "scheduler_exception_requires": "USER_AUTHORED_ENTRY_CONTRACT_AND_TRUSTED_RUNTIME_PROVENANCE",
+    "remote_local_fallback_forbidden": true,
+    "machine_owner": "tools/root_local_first_gate.py::build_remote_connection_authority/validate_remote_connection_authority/assert_remote_connection_allowed"
+  },
+  "delivery_fileset_lock": {
+    "schema": "WHD_DELIVERY_FILESET_LOCK_V1",
+    "phase": "AFTER_LANE_MANIFEST_FROZEN_BEFORE_REMOTE_CONTENT_WRITE",
+    "required_identity": [
+      "lane",
+      "generation",
+      "write_paths",
+      "delete_paths",
+      "path_hashes",
+      "manifest_digest",
+      "source_zero_identity",
+      "delivery_invocation_identity"
+    ],
+    "push_scope": "EXACT_LOCK_EQUALITY",
+    "mutation_after_lock": "INVALIDATE_RETURN_ROOT_RETEST_REFREEZE",
+    "merge_precheck": "FRESH_TARGET_HEAD_AND_LOCKED_BLOB_RECHECK"
+  },
+  "post_delivery_cleanup": {
+    "schema": "WHD_FINALIZE_DELIVERED_PATHS_V1",
+    "requires": "MERGE_READBACK_VERIFIED",
+    "clear_policy": "ONLY_LOCKED_PATHS_WITH_EXACT_READBACK_HASH",
+    "preserve": [
+      "UNDELIVERED_PATHS",
+      "LATER_HASH_CHANGES",
+      "OTHER_WORKER_MUTATIONS"
+    ],
+    "same_path_future_change": "REREGISTER_AS_NEW_ZERO_MODIFICATION",
+    "repository_file_delete_forbidden": true,
+    "receipt_required": true
+  }
 }

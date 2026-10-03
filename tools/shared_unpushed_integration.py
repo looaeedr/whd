@@ -13,6 +13,8 @@ from typing import Iterable, Mapping
 SCHEMA = "WHD_SHARED_UNPUSHED_INTEGRATION_V1"
 CONFLICT_CHECKPOINT_SCHEMA = "WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1"
 LANE_EVIDENCE_SCHEMA = "WHD_UNPUSHED_LANE_EVIDENCE_V1"
+DELIVERY_FILESET_LOCK_SCHEMA = "WHD_DELIVERY_FILESET_LOCK_V1"
+DELIVERY_FINALIZATION_SCHEMA = "WHD_FINALIZE_DELIVERED_PATHS_V1"
 CONFLICT_STATE = "BLOCKED_USER_DECISION"
 LANES = {"body", "docs"}
 
@@ -219,3 +221,195 @@ def assert_push_scope(*, selected_lane: str, manifest_paths: Iterable[str], stag
         raise UnpushedIntegrationError(
             f"PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST expected={expected} actual={actual}"
         )
+
+
+
+def _normalize_hash(value: object, *, label: str, allow_delete_marker: bool = False) -> str:
+    import re
+    text = str(value or "").strip().lower()
+    if allow_delete_marker and text == "delete":
+        return "DELETE"
+    if not re.fullmatch(r"[0-9a-f]{64}", text):
+        raise UnpushedIntegrationError(f"{label} must be SHA256")
+    return text
+
+
+def build_delivery_fileset_lock(
+    *,
+    lane: str,
+    generation: int,
+    manifest_digest: str,
+    source_zero_identity: str,
+    invocation_identity: str,
+    write_hashes: Mapping[str, str],
+    delete_paths: Iterable[str] = (),
+    target_base_hashes: Mapping[str, str] | None = None,
+) -> dict[str, object]:
+    """Freeze the exact file set that one /推推 delivery is allowed to carry."""
+    if lane not in LANES:
+        raise UnpushedIntegrationError(f"invalid lane: {lane}")
+    if isinstance(generation, bool) or int(generation) <= 0:
+        raise UnpushedIntegrationError("delivery fileset generation must be positive")
+    digest = _normalize_hash(manifest_digest, label="manifest_digest")
+    if not str(source_zero_identity or "").strip():
+        raise UnpushedIntegrationError("source_zero_identity must be nonblank")
+    if not str(invocation_identity or "").strip():
+        raise UnpushedIntegrationError("invocation_identity must be nonblank")
+
+    writes = {str(k): _normalize_hash(v, label=f"write_hash[{k}]") for k, v in write_hashes.items()}
+    deletes = sorted(set(map(str, delete_paths)))
+    overlap = set(writes) & set(deletes)
+    if overlap:
+        raise UnpushedIntegrationError(f"delivery write/delete overlap: {sorted(overlap)}")
+    paths = sorted(set(writes) | set(deletes))
+    if not paths:
+        raise UnpushedIntegrationError("delivery fileset lock cannot be empty")
+
+    base = {}
+    for path, value in (target_base_hashes or {}).items():
+        path = str(path)
+        if path not in paths:
+            raise UnpushedIntegrationError(f"target_base_hash path not locked: {path}")
+        base[path] = _normalize_hash(value, label=f"target_base_hash[{path}]", allow_delete_marker=True)
+
+    return {
+        "schema": DELIVERY_FILESET_LOCK_SCHEMA,
+        "lane": lane,
+        "generation": int(generation),
+        "manifest_digest": digest,
+        "source_zero_identity": str(source_zero_identity),
+        "invocation_identity": str(invocation_identity),
+        "write_hashes": dict(sorted(writes.items())),
+        "delete_paths": deletes,
+        "locked_paths": paths,
+        "target_base_hashes": dict(sorted(base.items())),
+        "scope_rule": "EXACT_LOCK_EQUALITY",
+    }
+
+
+def validate_delivery_fileset_lock(lock: Mapping[str, object]) -> dict[str, object]:
+    item = dict(lock)
+    if item.get("schema") != DELIVERY_FILESET_LOCK_SCHEMA:
+        raise UnpushedIntegrationError("invalid delivery fileset lock schema")
+    rebuilt = build_delivery_fileset_lock(
+        lane=str(item.get("lane") or ""),
+        generation=int(item.get("generation") or 0),
+        manifest_digest=str(item.get("manifest_digest") or ""),
+        source_zero_identity=str(item.get("source_zero_identity") or ""),
+        invocation_identity=str(item.get("invocation_identity") or ""),
+        write_hashes=item.get("write_hashes") if isinstance(item.get("write_hashes"), Mapping) else {},
+        delete_paths=item.get("delete_paths") if isinstance(item.get("delete_paths"), list) else (),
+        target_base_hashes=item.get("target_base_hashes") if isinstance(item.get("target_base_hashes"), Mapping) else {},
+    )
+    if item.get("locked_paths") != rebuilt["locked_paths"]:
+        raise UnpushedIntegrationError("delivery locked_paths do not match write/delete set")
+    if item.get("scope_rule") != "EXACT_LOCK_EQUALITY":
+        raise UnpushedIntegrationError("delivery scope rule must be EXACT_LOCK_EQUALITY")
+    return item
+
+
+def assert_push_scope_matches_lock(*, lock: Mapping[str, object], changed_paths: Iterable[str]) -> None:
+    item = validate_delivery_fileset_lock(lock)
+    expected = tuple(item["locked_paths"])
+    actual = tuple(sorted(set(map(str, changed_paths))))
+    if expected != actual:
+        raise UnpushedIntegrationError(
+            f"PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK expected={expected} actual={actual}"
+        )
+
+
+def assert_delivery_hashes_match_lock(*, lock: Mapping[str, object], delivery_hashes: Mapping[str, str]) -> None:
+    item = validate_delivery_fileset_lock(lock)
+    expected = dict(item["write_hashes"])
+    actual = {str(k): _normalize_hash(v, label=f"delivery_hash[{k}]") for k, v in delivery_hashes.items()}
+    if expected != actual:
+        raise UnpushedIntegrationError("DELIVERY_BLOB_HASH_MUST_EQUAL_FROZEN_LOCK")
+
+
+def assert_premerge_latest_file_recheck(
+    *,
+    lock: Mapping[str, object],
+    fresh_target_hashes: Mapping[str, str],
+    delivery_hashes: Mapping[str, str],
+    changed_paths: Iterable[str],
+) -> None:
+    """Fail closed if the target changed any locked path after the delivery lock was built."""
+    item = validate_delivery_fileset_lock(lock)
+    assert_push_scope_matches_lock(lock=item, changed_paths=changed_paths)
+    assert_delivery_hashes_match_lock(lock=item, delivery_hashes=delivery_hashes)
+    base = dict(item.get("target_base_hashes") or {})
+    if set(base) != set(item["locked_paths"]):
+        raise UnpushedIntegrationError("PRE_MERGE_RECHECK_REQUIRES_TARGET_BASE_HASH_FOR_EVERY_LOCKED_PATH")
+    fresh = {
+        str(k): _normalize_hash(v, label=f"fresh_target_hash[{k}]", allow_delete_marker=True)
+        for k, v in fresh_target_hashes.items()
+    }
+    if set(fresh) != set(item["locked_paths"]):
+        raise UnpushedIntegrationError("PRE_MERGE_RECHECK_REQUIRES_FRESH_HASH_FOR_EVERY_LOCKED_PATH")
+    touched = sorted(path for path in item["locked_paths"] if base[path] != fresh[path])
+    if touched:
+        raise UnpushedIntegrationError(
+            "TARGET_TOUCHED_LOCKED_PATH_REQUIRES_ROOT_0_RECONCILE_RETEST_REFREEZE "
+            f"paths={touched}"
+        )
+
+
+def finalize_delivered_paths(
+    *,
+    lock: Mapping[str, object],
+    merge_readback_verified: bool,
+    accepted_commit: str,
+    readback_hashes: Mapping[str, str],
+    current_zero_hashes: Mapping[str, str],
+    later_or_foreign_paths: Iterable[str] = (),
+    cleared_at: str,
+) -> dict[str, object]:
+    """Return the exact paths that may be cleared from unpushed state after durable readback."""
+    item = validate_delivery_fileset_lock(lock)
+    if not merge_readback_verified:
+        raise UnpushedIntegrationError("MERGE_READBACK_VERIFIED_REQUIRED_BEFORE_FINALIZE")
+    if not str(accepted_commit or "").strip():
+        raise UnpushedIntegrationError("accepted_commit must be nonblank")
+    if not str(cleared_at or "").strip():
+        raise UnpushedIntegrationError("cleared_at must be nonblank")
+
+    readback = {
+        str(k): _normalize_hash(v, label=f"readback_hash[{k}]")
+        for k, v in readback_hashes.items()
+    }
+    current = {
+        str(k): _normalize_hash(v, label=f"current_zero_hash[{k}]")
+        for k, v in current_zero_hashes.items()
+    }
+    foreign = set(map(str, later_or_foreign_paths))
+    expected_writes = dict(item["write_hashes"])
+    cleared: list[str] = []
+    preserved: list[str] = []
+    for path in item["locked_paths"]:
+        if path in foreign:
+            preserved.append(path)
+            continue
+        if path in expected_writes:
+            if readback.get(path) != expected_writes[path] or current.get(path) != expected_writes[path]:
+                preserved.append(path)
+                continue
+        else:
+            # Delete paths are cleared only when the accepted target no longer has the path.
+            if path in readback or path in current:
+                preserved.append(path)
+                continue
+        cleared.append(path)
+
+    return {
+        "schema": DELIVERY_FINALIZATION_SCHEMA,
+        "lane": item["lane"],
+        "generation": item["generation"],
+        "manifest_digest": item["manifest_digest"],
+        "accepted_commit": str(accepted_commit),
+        "cleared_paths": sorted(cleared),
+        "preserved_paths": sorted(preserved),
+        "delivered_hashes": dict(sorted(expected_writes.items())),
+        "cleared_at": str(cleared_at),
+        "repository_files_deleted": False,
+        "future_modification_rule": "RE_REGISTER_AS_NEW_UNPUSHED_CHANGE_FROM_CURRENT_ROOT_OR_LATEST_0",
+    }

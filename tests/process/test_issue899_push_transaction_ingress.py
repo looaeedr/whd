@@ -667,7 +667,10 @@ def test_scheduler_host_recovery_bootstrap_remains_non_authoritative():
 
 def _root_unlock_receipt():
     from tools.root_local_first_gate import (
-        build_gate_evidence, build_git_unlock_receipt, validate_source_current,
+        build_gate_evidence,
+        build_git_unlock_receipt,
+        build_remote_connection_authority,
+        validate_source_current,
     )
     source = validate_source_current(
         manifest={"source_sha": "a" * 40, "tree_sha": "b" * 40},
@@ -688,10 +691,14 @@ def _root_unlock_receipt():
         "phase": "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
         "record_fingerprint": "f" * 64,
     }
+    authority = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+    )
     gate = build_gate_evidence(
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=lane,
         root_mutations_complete=True, merge_to_zero_complete=True,
-        test_classified=True, tests_green=True, path_reservation_evidence=reservation,
+        test_classified=True, tests_green=True, remote_connection_authority=authority,
+        path_reservation_evidence=reservation,
         test_receipt={
             "schema": "WHD_TEST_EXECUTION_RECEIPT_V1", "status": "GREEN",
             "source_sha": "a" * 40, "issue": 940, "generation": 4,

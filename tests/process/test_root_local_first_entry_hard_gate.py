@@ -80,10 +80,17 @@ def test_contract_and_skill_are_current_and_single_owner():
 
 
 def test_interactive_order_uses_shared_zero_then_delivery_reservation():
-    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
+    from tools.root_local_first_gate import (
+        build_gate_evidence,
+        build_remote_connection_authority,
+        validate_source_current,
+    )
     source = validate_source_current(
         workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
         live_source_sha="a" * 40, live_tree_sha="b" * 40,
+    )
+    authority = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
     )
     locked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source)
     assert locked["next_action"] == "UNPUSHED_LANE_CLASSIFIED"
@@ -100,13 +107,24 @@ def test_interactive_order_uses_shared_zero_then_delivery_reservation():
         expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     assert merged["git_write_unlocked"] is False
-    assert merged["next_action"] == "DELIVERY_PATHS_RESERVED"
+    assert merged["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
+
+    reserved = build_gate_evidence(
+        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
+        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
+        tests_green=True, test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+        remote_connection_authority=authority,
+    )
+    assert reserved["git_write_unlocked"] is False
+    assert reserved["next_action"] == "DELIVERY_PATHS_RESERVED"
 
     unlocked = build_gate_evidence(
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
         tests_green=True, test_receipt=_test_receipt(),
         expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+        remote_connection_authority=authority,
         path_reservation_evidence=_reservation(),
     )
     assert unlocked["git_write_unlocked"] is True
@@ -115,17 +133,42 @@ def test_interactive_order_uses_shared_zero_then_delivery_reservation():
 
 
 def test_git_content_write_is_forbidden_before_unlock():
-    from tools.root_local_first_gate import assert_git_content_write_allowed, build_gate_evidence
+    from tools.root_local_first_gate import (
+        assert_git_content_write_allowed,
+        build_gate_evidence,
+        build_remote_connection_authority,
+    )
     evidence = build_gate_evidence(execution_mode="INTERACTIVE")
-    assert_git_content_write_allowed(evidence, action="READ")
+    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
+        assert_git_content_write_allowed(evidence, action="READ")
+
+    authority = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+    )
+    authorized = dict(evidence, remote_connection_authority=authority)
+    assert_git_content_write_allowed(authorized, action="READ")
     with pytest.raises(ValueError, match="GIT_WRITE_LOCKED"):
-        assert_git_content_write_allowed(evidence, action="COMMIT")
+        assert_git_content_write_allowed(authorized, action="COMMIT")
 
 
 def test_target_drift_forces_resync_and_retest_before_git_write():
-    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
+    from tools.root_local_first_gate import (
+        build_gate_evidence,
+        build_remote_connection_authority,
+        validate_source_current,
+    )
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
-    evidence = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(), root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True, tests_green=True, test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="d" * 64, path_reservation_evidence=_reservation(), target_drift=True)
+    authority = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+    )
+    evidence = build_gate_evidence(
+        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
+        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
+        tests_green=True, test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="d" * 64,
+        remote_connection_authority=authority,
+        path_reservation_evidence=_reservation(), target_drift=True,
+    )
     assert evidence["git_write_unlocked"] is False
     assert evidence["next_action"] == "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE"
 
@@ -153,7 +196,7 @@ def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_to
     )
     assert evidence["applicable"] is False
     assert evidence["next_action"] == "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"
-    with pytest.raises(ValueError, match="does not authorize"):
+    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
         assert_git_content_write_allowed(evidence, action="COMMIT")
 
     handoff = build_gate_evidence(
@@ -173,7 +216,12 @@ def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_to
 
 def test_agents_registry_authority_map_and_root_gate_wire_forward():
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    assert agents.index("WORK_ROOT_BOOTSTRAP_HARD_GATE_V2") < agents.index("ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1") < agents.index("# 0. 啟動硬閘門")
+    assert (
+        agents.index("ENTRY_ROUTER_FIRST_HARD_GATE_V1")
+        < agents.index("WORK_ROOT_BOOTSTRAP_HARD_GATE_V2")
+        < agents.index("## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1")
+        < agents.index("# 0. 啟動硬閘門")
+    )
     root_gate = json.loads((ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8"))
     assert root_gate["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
     assert "ROOT_SHARED_UNPUSHED_GATE_READ" in root_gate["required_sequence"]
@@ -220,12 +268,21 @@ def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():
 
 
 def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
-    from tools.root_local_first_gate import build_gate_evidence, build_git_unlock_receipt, validate_git_unlock_receipt, validate_source_current
+    from tools.root_local_first_gate import (
+        build_gate_evidence,
+        build_git_unlock_receipt,
+        build_remote_connection_authority,
+        validate_git_unlock_receipt,
+        validate_source_current,
+    )
     source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
+    authority = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+    )
     evidence = build_gate_evidence(
         execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
         root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True, tests_green=True,
-        path_reservation_evidence=_reservation(),
+        remote_connection_authority=authority, path_reservation_evidence=_reservation(),
         test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     receipt = build_git_unlock_receipt(evidence)

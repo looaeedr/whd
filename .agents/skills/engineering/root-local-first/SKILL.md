@@ -9,6 +9,28 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first / shared-unpushed V1
 
+## 0. ENTRY_ROUTER_FIRST_HARD_GATE_V1
+
+任何 WHD repository-content 任務（新任務、續作、修補、測試、治理修改）進場時，**第一個路由不得先做一般 discovery**。每個 invocation 都必須 fresh 依序完成：
+
+```text
+READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
+→ READ .agents/skills/engineering/root-local-first/SKILL.md
+→ ENTRY_ROUTER_READY
+```
+
+`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。以下動作全部 fail closed：
+
+- generic Google Drive / file search；
+- Remote Desktop / local-machine search；
+- GitHub content discovery / branch create / mutation；
+- claim / Flow v2 discovery；
+- 任何用聊天記憶、舊摘要或上一 invocation evidence 代替 fresh entry read 的行為。
+
+若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，回到 `/Google Drive/WHD` canonical entry 從兩個 fresh read 重新開始；不得因已經查到資料就沿錯路續做。
+
+machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / validate_entry_router_evidence / assert_entry_router_action_allowed`。
+
 本 Skill 是 WHD CURRENT repository-content workflow。舊的 `/work/active` per-Issue workspace、root-write 前 single-writer reservation、`source/manifests`/ZIP snapshot current authority、branch-first 都已 superseded。
 
 ## 1. Canonical root hard gate
@@ -22,6 +44,26 @@ whd_schema: WHD_DOC_META_V1
 full repo root 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engine/gui_modules/.unpushed`。`source/state/work/artifacts` 不再是 CURRENT content-root 前置結構。
 
 machine owner=`tools/work_root_gate.py`；contract=`.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`。
+
+### 1.1 ROOT_PATH_RESOLUTION_BEFORE_REMOTE_HARD_GATE_V1
+
+repository-content 任務的第一個檔案定位動作必須從 `/Google Drive/WHD` root 開始，沿實際 parent-folder chain 解析到目標 path。
+
+- 全域 Drive search、聊天記憶、GitHub code search、remote checkout、歷史 snapshot 只能提供候選，不得直接建立 baseline identity。
+- 同名檔只有在 parent chain exact 等於 canonical repo path 時才可用；其他 `.scratch`、`.unpushed`、backup、mirror、歷史副本一律不是施工 baseline。
+- 找檔、讀 baseline、判斷「目前版本」、建立 diff、修改與測試都必須先在 canonical root 完成。
+- root path 無法解析時固定 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED`；禁止為了找檔改連 GitHub 或遠端本機。
+
+### 1.2 REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1
+
+除非符合下列其中一項，interactive/default invocation 不得建立 GitHub 或遠端本機連線：
+
+1. 使用者明確要求「開工單」：只授權 issue create/readback 所需 GitHub 連線；
+2. 使用者明確要求 GitHub/遠端操作；
+3. 使用者下達 `/推推 文檔` 或 `/推推 主體`：只授權 selected lane delivery window；
+4. recurring/scheduler invocation 的 user-authored entry contract 明確指定 GitHub-only execution，且僅限該 invocation scope。
+
+「想確認最新」、「找不到檔」、「Preflight 需要」、「工具剛好可用」都不是 remote authority。Remote Desktop/遠端本機尤其不得被當成 root lookup fallback。
 
 ## 2. 兩條未推送 lineage
 
@@ -61,7 +103,9 @@ ROOT_IDENTITY_CURRENT
 
 ### 3.1 ROOT_IDENTITY_CURRENT
 
-fresh-read live `main` HEAD/tree，並驗證 canonical root 是完整 repo root。root tracked content 不能以舊 ZIP snapshot 或聊天記憶冒充 current。
+在未進入明確 remote-authorized delivery 前，只以 canonical root 的實際 repo tree、`.git` 本地 identity 與 exact parent-chain path 驗證 root identity；**不得為了做這一步先連 GitHub fresh-read `main`**。root tracked content 不能以舊 ZIP、聊天記憶、全域搜尋同名檔或 remote mirror 冒充 current。
+
+真正的 live target HEAD fresh-read 只在 `/推推` 已取得使用者遠端授權後執行。
 
 ### 3.2 LANE_CLASSIFIED
 
@@ -113,11 +157,13 @@ freeze 必須 exact 綁 lane、generation、source SHA、target branch、write/d
 
 ## 7. Git delivery 只由 /推推 開啟
 
-正常施工階段 Git content plane 只允許 READ/FETCH/COMPARE。**不得先建 branch。**
+正常施工階段 **GitHub network content plane 完全關閉**；本地 `.git` 只可作 root identity/diff 的 offline 輔助，不得 FETCH/PULL/remote compare，也不得先建 branch。
 
-只有 selected lane frozen GREEN 後才取得 delivery reservation，fresh-read `main`，然後執行 `/推推 文檔` 或 `/推推 主體`：
+只有使用者下達 `/推推 文檔` 或 `/推推 主體`，且 selected lane frozen GREEN 後，才開啟本次 GitHub delivery window，取得 delivery reservation、fresh-read live target，並固定：
 
-`DELIVERY_RESERVATION → PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST → CREATE_DELIVERY_BRANCH → EXACT_MANIFEST_APPLY → POST_PUSH_CI → MERGE_READBACK`
+`DELIVERY_FILESET_LOCKED → PUSH_SCOPE_MUST_EQUAL_LOCK → FRESH_TARGET_HEAD → DELIVERY_RESERVATION → CREATE_DELIVERY_BRANCH → EXACT_LOCKED_FILESET_APPLY → POST_PUSH_CI → PRE_MERGE_LATEST_FILE_RECHECK → MERGE_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
+
+fileset lock 必須 exact 綁 path + hash/delete marker；merge 前再次驗 target/head/changed filenames/locked blob hashes。任何 drift 都回 canonical root/shared-0 reconcile + retest + refreeze，不得 Git-side hotfix。
 
 Flow v2 path reservation 保留在這個 delivery phase，**不再作為 root 施工前置 single-writer gate**。
 
@@ -129,6 +175,8 @@ CURRENT 文件/Skill/contract 不得再宣告：
 - `source/manifests` 或 ZIP snapshot 是 current root authority；
 - root write 前必須 single-writer `PATHS_RESERVED`；
 - 建 branch 後才開始修改/測試；
+- pre-delivery 可以先連 GitHub READ/FETCH/COMPARE；
+- 可以用 GitHub/Remote Desktop/全域同名搜尋取代 canonical root parent-chain lookup；
 - conflict 可自動 ours/theirs。
 
 舊文字如需保留，只能明確標 `HISTORICAL/SUPERSEDED`，不得參與 routing。
@@ -143,6 +191,7 @@ CURRENT 文件/Skill/contract 不得再宣告：
 - `DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1`: root-capable execution must mutate/test shared-0 in the same invocation until GREEN or a real blocker.
 
 - delivery Git write mode 固定 `EXACT_TESTED_DIFF_ONLY`；任何 delivery branch 上新增內容變更都必須退回 shared-0 重測。
+- delivery 成功後只清除 readback 已證明交付的 locked paths；其他未推送/後續變更保留。之後同檔再改必須重新登記為新的 shared-0 未推送修改。
 
 
 ## 9. POST_INTEGRATION_DURABILITY_HARD_GATE_V2
