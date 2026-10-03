@@ -1,29 +1,60 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-handoff-work1-6f671299-20261002T1316-r2",
-  "issue": 1062,
-  "kind": "HANDOFF",
+  "request_id": "a20-1080-acquire-20261003T154900Z",
+  "issue": 1080,
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a.issue1062.current.20261002T1314+08",
-  "expected_coord_head": "798a30ca0e42145fb60aa6a5e3ea7c30822d9a6d",
-  "expected_generation": 31,
-  "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "lease": null
-  },
-  "purpose": "Consume the exact #1062 current HANDOFF after fresh Scheduler A ACQUIRE at 6f671299. Transfer repository-content full-regression classification to work1 while preserving exact source/head/target, semantic state, historical RELEASED audit scope and structured HANDOFF continuation. No repository-content mutation in this transaction.",
+  "invocation_identity": "a20.20261003T154800Z",
+  "expected_coord_head": "923ced5f7bc688232fb3e433a977c2b8a006e13e",
+  "expected_generation": 1,
+  "effect": {},
+  "purpose": "Acquire explicit A-lane scheduler smoke Issue #1080 after exact-head trusted Phase6 Preflight, then continue its structured next_action in the same invocation through clean finalization; no repository-content implementation is required.",
   "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GITHUB_MIRROR",
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "SCHEDULER_LANE",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1080,
+    "invocation_identity": "a20.20261003T154800Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+    "required_skills": [
+      "flow-v2-execution",
+      "phase6-gui-performance-integrity"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "phase6-gui-performance-integrity"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "observed_at": "2026-10-03T15:49:30Z"
   }
 }
