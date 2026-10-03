@@ -1,15 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1146-b-release-platform-safety-block",
+  "request_id": "issue1146-b-block-platform-governance-mutation-safety",
   "issue": 1146,
-  "kind": "RELEASE_PATHS",
+  "kind": "BLOCK",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-  "expected_coord_head": "c9ce3ee3a2439210e9e56e95eaa2dcc0e2861920",
-  "expected_generation": 4,
+  "expected_coord_head": "800ef4a5b5f1a705cf0091421a11d5a6f8e06cc4",
+  "expected_generation": 5,
   "effect": {
-    "reason": "Exact gen8 delivery cannot complete because platform safety blocks mutations to execution-governance files; release reserved scope before durable BLOCK.",
-    "semantic_state": "PATH_RESERVATION_RELEASED_PLATFORM_SAFETY_BLOCK"
+    "blocker_kind": "PLATFORM_GITHUB_GOVERNANCE_MUTATION_SAFETY_BLOCK",
+    "blocker_evidence": "Canonical /Google Drive/WHD docs generation 8 is FROZEN/GREEN and exact 7-path reservation was obtained then RELEASED. GitHub connector accepted ordinary Skill metadata/root-local-first Skill delivery commits but platform safety blocked mutations to AGENTS.md and WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json, and also blocked raw cross-source blob/tree delivery. X was not advanced and no PR was opened.",
+    "semantic_state": "BLOCKED_PLATFORM_GITHUB_GOVERNANCE_MUTATION_SAFETY",
+    "next_action": {
+      "kind": "WAIT_EXTERNAL",
+      "args": {
+        "blocker_kind": "PLATFORM_GITHUB_GOVERNANCE_MUTATION_SAFETY_BLOCK"
+      },
+      "display": "Wait for an authorized GitHub governance-file delivery transport, then resume from frozen docs generation 8"
+    }
   },
   "reuse_admission_session": true
 }
