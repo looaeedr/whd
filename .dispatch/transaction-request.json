@@ -1,54 +1,55 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-docs13-reserve-exact5-20261003T1513+08",
+  "request_id": "issue1062-docs13-start-branch-20261003T1513+08",
   "issue": 1062,
-  "kind": "RESERVE_PATHS",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-  "expected_coord_head": "98f8ee1f00a361d16f4faa4fdf00aef9b86044fd",
-  "expected_generation": 41,
+  "expected_coord_head": "ee79ebeb36128a048c90e3b39ae55f121c2968bf",
+  "expected_generation": 42,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
-    "write_paths": [
-      ".agents/skills/engineering/刪除/SKILL.md",
-      ".agents/skills/skill_registry.json",
-      "tests/process/test_delete_skill_contract.py",
-      "tests/process/test_issue870_execution_record_v2.py",
-      "tools/execution_record.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED",
+    "work_branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "semantic_state": "BRANCH_READY",
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+      "diff_digest": "fe693c2cd1e7b271603ae99a05b816a08901b4586a2e7642e4b95ccbea7c42a0",
+      "issue": 1062,
+      "generation": 42,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        ".agents/skills/engineering/\u522a\u9664/SKILL.md",
+        ".agents/skills/skill_registry.json",
+        "tests/process/test_delete_skill_contract.py",
+        "tests/process/test_issue870_execution_record_v2.py",
+        "tools/execution_record.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "220eba5f13c4dfbd3dcd31dafc3a74b51638dc306327b5c7752502b63aee74c4",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1062,
+      "generation": 42,
+      "record_fingerprint": "220eba5f13c4dfbd3dcd31dafc3a74b51638dc306327b5c7752502b63aee74c4",
+      "lease_token": "lease:1062:37106475971:1",
+      "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "test/issue1062-product-full-regression-recovery",
+      "expected_work_head": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+      "expected_target_head": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf"
+    },
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {
         "diff_digest": "fe693c2cd1e7b271603ae99a05b816a08901b4586a2e7642e4b95ccbea7c42a0"
       },
-      "display": "Start exact-tested docs generation 13 delivery branch"
+      "display": "Apply exact frozen docs generation 13 fileset"
     }
   },
-  "purpose": "Reserve exact frozen docs generation 13 fileset for /推推 文檔 delivery.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
-  }
+  "reuse_admission_session": true
 }
