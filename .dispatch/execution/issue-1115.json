@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "SCHEDULER_LANE",
+  "generation": 1,
+  "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "issue": 1115,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1115",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "0d57c20f4ce0bba4609c0d406b3198e1fb7b694b5606f864012fe5db78d0fd4b",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "github-issue:1115:WHD_SCHEDULER_DISPATCH_REQUEST_V1",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": null,
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "transaction": null,
+  "updated_at": "2026-10-01T15:19:43Z",
+  "version": 2,
+  "work_branch": "scheduler/issue1115-auto-dispatch"
+}
