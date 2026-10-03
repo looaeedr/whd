@@ -1,23 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-start-docs21-recovery-branch-20261003T2158+08",
+  "request_id": "issue1129-apply-docs21-20261003T2208+08",
   "issue": 1129,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
-  "expected_coord_head": "6857cf77044b914da3b04c152240d99aff15fd2d",
-  "expected_generation": 3,
+  "expected_coord_head": "1f2218835f9d71f3579299d7f495443e718f7fb0",
+  "expected_generation": 4,
   "reuse_admission_session": true,
   "effect": {
-    "work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
-    "head_sha": "c3461533d88636f327bdc7ec0935fff7d462e7c2",
-    "semantic_state": "IMPLEMENTING",
+    "head_sha": "96839193956b7457e2a9df98f85412e13f49c721",
+    "semantic_state": "PUSHED_EXACT_LOCKED_FILESET",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "391bb7b5aa9cd033068d7fc1d8e93e1002d8c2c3bf2f1f96ac6f0805811c6740"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Apply exact frozen docs generation 21 fileset"
+      "display": "Run post-push control-plane CI for docs generation 21 exact head"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -25,7 +24,7 @@
       "source_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
       "diff_digest": "391bb7b5aa9cd033068d7fc1d8e93e1002d8c2c3bf2f1f96ac6f0805811c6740",
       "issue": 1129,
-      "generation": 3,
+      "generation": 4,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
@@ -47,20 +46,20 @@
         "tools/root_local_first_gate.py"
       ],
       "delete_paths": [],
-      "record_fingerprint": "929c7b02b71a7350bb0368ef264d896e3bcd98c9145251892359b002d09ae39a",
+      "record_fingerprint": "2d338f7f71f4214870dfde4eeefb0fcffe6c6112128d00f4179f5e10a2044a64",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1129,
-      "generation": 3,
-      "record_fingerprint": "929c7b02b71a7350bb0368ef264d896e3bcd98c9145251892359b002d09ae39a",
+      "generation": 4,
+      "record_fingerprint": "2d338f7f71f4214870dfde4eeefb0fcffe6c6112128d00f4179f5e10a2044a64",
       "lease_token": "lease:1129:37127741368:1",
       "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
-      "expected_work_head": "456760e19373edf3e23e958d4222f6532f53f47a",
+      "expected_work_head": "c3461533d88636f327bdc7ec0935fff7d462e7c2",
       "expected_target_head": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692"
     }
   }
