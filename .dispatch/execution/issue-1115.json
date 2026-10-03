@@ -12,22 +12,18 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "issue": 1115,
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "lease": {
-    "expires_at": "2026-10-03T16:32:12Z",
-    "invocation_identity": "a20.20261003T154800Z",
-    "token": "lease:1115:37136265508:1"
-  },
+  "lane_id": "chatgpt.flowv2.work3",
+  "lease": null,
   "mutation_scope": null,
   "next_action": {
     "args": {},
     "display": "Complete #1115 repository-content implementation in canonical /Google Drive/WHD shared .unpushed root flow, freeze/test exact diff, then start delivery branch",
     "kind": "START_BRANCH"
   },
-  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
@@ -50,13 +46,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "transaction": {
-    "expected_fingerprint": "25a2bf8e36bf385ebc420b2fd9a717b305da87d9fa27791266ede2b5ca52f6dd",
-    "id": "gha:37136265508:1115:ACQUIRE:1",
+    "expected_fingerprint": "3d350d93ca1f7f87694655f5c8cd96a943de56c42fcf434b06b6864db5b0b832",
+    "id": "gha:37136362615:1115:HANDOFF:2",
     "invocation_identity": "a20.20261003T154800Z",
-    "kind": "ACQUIRE",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T16:17:12Z",
+  "updated_at": "2026-10-03T16:19:06Z",
   "version": 2,
   "work_branch": "scheduler/issue1115-auto-dispatch"
 }
