@@ -15,7 +15,7 @@
   "generation": 15,
   "head_sha": "07045a2024638d98cecda66568d19ae25fe75df9",
   "issue": 1146,
-  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "lane_id": null,
   "lease": null,
   "mutation_scope": {
     "base_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -38,8 +38,8 @@
     ]
   },
   "next_action": null,
-  "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "last_accepted_run": 37098270095,
     "accepted_head_sha": "07045a2024638d98cecda66568d19ae25fe75df9"
@@ -54,7 +54,7 @@
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
   "semantic_state": "TERMINAL_SUCCESS",
-  "slot_id": "worker.slot.0",
+  "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "state": "DONE",
