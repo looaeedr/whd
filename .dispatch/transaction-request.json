@@ -1,12 +1,108 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1143-finalize-terminal-tail-20261003T0100+08",
-  "issue": 1143,
-  "kind": "FINALIZE",
+  "request_id": "issue1129-reconcile-gen21-20261003T1327Z",
+  "issue": 1129,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1143.terminal.20261003T0054+08",
-  "expected_coord_head": "ec4e44f19ed08e867cae842db85c934b305d462b",
-  "expected_generation": 10,
-  "reuse_admission_session": true,
-  "effect": {}
+  "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1327Z",
+  "expected_coord_head": "ee79ebeb36128a048c90e3b39ae55f121c2968bf",
+  "expected_generation": 1,
+  "effect": {
+    "observed_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+    "observed_head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
+    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "semantic_state": "READY",
+    "next_action": {
+      "kind": "ACQUIRE",
+      "args": {},
+      "display": "Acquire #1129 for docs gen21 delivery"
+    }
+  },
+  "purpose": "Reconcile Issue #1129 to live accepted target before /推推 文檔 gen21 exact 17-path delivery.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1129,
+    "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1327Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "工作槽",
+      "找技能",
+      "MCP工具操作",
+      "Python測試實務",
+      "派工",
+      "issue-closure-gate",
+      "phase6-release-packaging",
+      "git-remote-sync-fallback",
+      "code-review",
+      "triage",
+      "wayfinder",
+      "long-log-context-safe-execution",
+      "monitoring-remote-qa",
+      "推推"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "工作槽",
+      "找技能",
+      "MCP工具操作",
+      "Python測試實務",
+      "派工",
+      "issue-closure-gate",
+      "phase6-release-packaging",
+      "git-remote-sync-fallback",
+      "code-review",
+      "triage",
+      "wayfinder",
+      "long-log-context-safe-execution",
+      "monitoring-remote-qa",
+      "推推"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-03T13:25:45Z"
+  }
 }
