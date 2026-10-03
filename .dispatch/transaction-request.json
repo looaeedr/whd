@@ -1,15 +1,89 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-release-stale-docs13-20261003T143201Z",
+  "request_id": "issue1062-reconcile-root-regression-20261003T143933Z",
   "issue": 1062,
-  "kind": "RELEASE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261003T143041Z",
-  "expected_coord_head": "212605db748b7a5ad2e7267f80c1b3e66e1ff5ab",
-  "expected_generation": 43,
+  "expected_coord_head": "785b16550d30f206cb5655028167d4d6dcd27d4c",
+  "expected_generation": 44,
   "effect": {
-    "reason": "Superseded docs-generation-13 delivery reservation; current production has advanced and stale START_BRANCH must not execute.",
-    "semantic_state": "PATH_RESERVATION_RELEASED"
+    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
+    "observed_head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "semantic_state": "ROOT_FULL_REGRESSION_REQUIRED",
+    "next_action": {
+      "kind": "WAIT_EXTERNAL",
+      "args": {
+        "blocker_kind": "ROOT_FULL_REGRESSION_EXECUTION_REQUIRED",
+        "target_branch": "cleanup/2d-3d-sync",
+        "target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+        "command": "python -m pytest -q"
+      },
+      "display": "Run canonical /Google Drive/WHD full product regression and classify every remaining failure"
+    }
   },
-  "reuse_admission_session": true
+  "purpose": "Retire #1062 superseded docs-generation-13 START_BRANCH after stale reservation release. Reconcile target identity to current cleanup/2d-3d-sync and route the ticket to its real canonical-root full-regression requirement without mutating repository content or #1115 frozen body/0.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1062,
+    "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261003T143041Z",
+    "branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "required_skills": [
+      "flow-v2-execution",
+      "phase6-corner-3d-model-integrity",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "phase6-corner-3d-model-integrity",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-03T14:39:33Z"
+  }
 }
