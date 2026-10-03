@@ -168,6 +168,40 @@ def test_completed_yield_is_machine_proof_for_physical_return():
     assert result.requires_yield is False
 
 
+def test_completed_yield_with_other_executable_leaf_must_continue_same_invocation():
+    record = _record("ACTIVE")
+    yielded = replace(
+        record,
+        lease=None,
+        transaction=TransactionState(
+            id="tx-yield-other-leaf",
+            kind="YIELD",
+            status="RECONCILED",
+            expected_fingerprint="e" * 64,
+            invocation_identity=INV,
+        ),
+    )
+    result = classify_invocation_exit(
+        yielded,
+        invocation_identity=INV,
+        now=NOW,
+        alternative_executable_leaf_count=1,
+    )
+    assert result.decision == "CONTINUE_OTHER_EXECUTABLE_LEAF"
+    assert result.may_return is False
+    assert result.requires_yield is False
+
+
+def test_alternative_executable_leaf_count_rejects_invalid_values():
+    with pytest.raises(InvocationExitError, match="alternative_executable_leaf_count"):
+        classify_invocation_exit(
+            _record("ACTIVE"),
+            invocation_identity=INV,
+            now=NOW,
+            alternative_executable_leaf_count=-1,
+        )
+
+
 def test_host_boundary_rejects_acquire_only_as_no_progress():
     record = _record("ACTIVE")
     acquire_tx = TransactionState(
