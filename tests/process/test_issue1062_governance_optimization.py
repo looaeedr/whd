@@ -397,3 +397,26 @@ def test_issue1062_flow_v2_documents_canonical_stale_branch_delete_transport():
     ):
         assert marker in text
 
+def test_issue1062_delete_stale_intent_is_rejected_outside_release_paths(tmp_path):
+    from tools.control_transaction_request_builder import REQUEST_SCHEMA
+    from tools.control_transaction_request_ingress import (
+        ProductionExecutorError,
+        _load_request,
+    )
+
+    request = {
+        "schema": REQUEST_SCHEMA,
+        "request_id": "bad-delete-intent",
+        "issue": 1062,
+        "kind": "ACQUIRE",
+        "lane_id": "chatgpt.flowv2.work1",
+        "invocation_identity": "chatgpt.flowv2.work1:test",
+        "expected_coord_head": "f" * 40,
+        "expected_generation": 44,
+        "effect": {"delete_stale_work_branch": True},
+    }
+    path = tmp_path / "request.json"
+    path.write_text(json.dumps(request), encoding="utf-8")
+    with pytest.raises(ProductionExecutorError, match="only valid as true on RELEASE_PATHS"):
+        _load_request(path)
+
