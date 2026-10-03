@@ -998,3 +998,72 @@ def test_issue1072_fresh_mutation_guard_still_fences_current_execution_identity(
             request,
             execution_mode="INTERACTIVE",
             record=record,
+            repo="looaeedr/whd",
+            token="token",
+        )
+
+
+def test_issue1072_root_contract_treats_generation_as_provenance_not_content_identity():
+    import json
+
+    contract = json.loads(
+        (ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    receipt = contract["test_execution_receipt"]
+    assert "generation" not in receipt["required_identity"]
+    assert receipt["generation_role"] == "HISTORICAL_FREEZE_PROVENANCE_ONLY"
+    git_receipt = contract["git_write_receipt"]
+    assert git_receipt["current_execution_fence"] == "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1"
+    assert git_receipt["lease_renewal_generation_drift"] == "DOES_NOT_INVALIDATE_UNCHANGED_FROZEN_EVIDENCE"
+
+
+def test_issue1072_frozen_root_receipt_still_fails_closed_on_content_identity_drift(monkeypatch):
+    import copy
+    import pytest
+    from tools.control_transaction import build_mutation_writer_guard
+    import tools.control_transaction_request_ingress as ingress
+
+    record = _issue1072_start_branch_record(generation=5)
+    invocation = record.lease.invocation_identity
+    guard = build_mutation_writer_guard(record, kind="START_BRANCH", invocation_identity=invocation)
+    monkeypatch.setattr(
+        ingress,
+        "_read_branch_head",
+        lambda repo, token, branch: record.target_sha if branch == record.target_branch else record.head_sha,
+    )
+
+    cases = [
+        ("source_sha", "d" * 40, "source/base drift"),
+        ("write_paths", ["README.md"], "reserved paths drift"),
+        ("diff_digest", "d" * 64, "diff digest drift"),
+    ]
+    for field, value, message in cases:
+        receipt = copy.deepcopy(_root_unlock_receipt())
+        receipt[field] = value
+        request = {
+            "kind": "START_BRANCH",
+            "invocation_identity": invocation,
+            "effect": {
+                "head_sha": record.head_sha,
+                "root_local_first_git_write_receipt": receipt,
+                "mutation_writer_guard": guard,
+            },
+        }
+        with pytest.raises(Exception, match=message):
+            ingress._validate_interactive_git_write_receipt(
+                request,
+                execution_mode="INTERACTIVE",
+                record=record,
+                repo="looaeedr/whd",
+                token="token",
+            )
+
+
+def test_issue1072_flow_skill_assigns_current_execution_fence_to_mutation_guard():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    assert "freeze-time provenance" in text
+    assert "mutation_writer_guard" in text
+    assert "lease renewal" in text
+    assert "不得要求重跑 root tests" in text
