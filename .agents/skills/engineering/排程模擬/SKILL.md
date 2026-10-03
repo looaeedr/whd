@@ -47,12 +47,6 @@ Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟�
 - takeover 前立即重讀一次完整 lineage；race 中重新出現 active writer 固定 `TAKEOVER_RACE_ACTIVE_WORK`。
 - takeover 成功只是 ownership recovery，**不是停止點**；同一 invocation 必須 fresh-read並立即續跑原 structured `next_action`。
 
-### BLOCKED_LEAF_CONTINUATION_BRIDGE_V1
-
-排程 A/B 固定 bridge 到 `flow-v2-execution::BLOCKED_LEAF_CONTINUATION_HARD_GATE_V1`。單一 current leaf 因外部等待／authority／capability blocker durable YIELD 後，必須重新投影 same-lane/ready candidates；若仍有合法 executable leaf，cycle 不得 return，固定續做 `CONTINUE_OTHER_EXECUTABLE_LEAF`。只有 current leaf 與所有合法 alternative leaves 都 fresh 證明不可執行時，才可形成 `NO_EXECUTABLE_ALTERNATIVE`。
-
-`LANE_BUSY` 只代表該 exact owner/leaf 需退讓，不代表整個 scheduler 沒工作；若 ready-index/explicit candidate 仍有其他合法 leaf，必須續選。terminal tail 不得 pivot；same-path conflict、active delegated work與 live writer仍 fail closed。
-
 ## Wake
 每次 host wake 先以 `tools/scheduler_entrypoint_observation.py` 寫 exact entrypoint NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。若 current/ready 都空，必須做 explicit marker candidate discovery；命中時 scheduler view 回 `INGRESS_REQUIRED`，完成 candidate-bound Preflight 後建立 READY、fresh-read並立即 ACQUIRE。live lease退讓、expired lease走 atomic reacquire。只有 current/ready/explicit candidate 全空才可回 NO_EXECUTABLE_WORK。正常 return 前必須寫 exact entrypoint EXIT；不能再留下 SEED-only host occurrence。
 
@@ -93,7 +87,9 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 
 所有 `/排程A`、`/排程B`、A00/A20/A40/B15/B45 的 **user-visible** progress / CHECKPOINT / terminal / exit 回報，**第一行**固定為：
 
-`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
+
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
 
 相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
 
@@ -101,6 +97,7 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 - scheduler 回報必須 fresh-read `lane_owner`、`claim_issue`、`claim_worker`；owner 必須是 real claim owner，不得因目前由排程A/B喚醒就改寫 ownership。
 - 沒有 active Issue 時工單=`NONE`；有 bootstrap projection 但尚未 durable bind 時=`UNBOUND`。slot 沒有 exact binding 時=`NONE/UNBOUND`，不得猜。
 - foreign owner / foreign lane 只能明確標示 foreign，不得偽裝成本 lane owner。
+- `invocation_identity` 必須取本輪 exact scheduler host/runtime observation；不得省略、不得用 entrypoint 名稱或 `last_run_time` 猜。
 - 此 prefix 只提供 provenance，**不建立 execution authority**；ownership authority 仍是 canonical ExecutionRecord + lease。
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
