@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "a20-1080-acquire-20261003T154900Z",
+  "request_id": "a20-1080-acquire-20261003T160020Z-r2",
   "issue": 1080,
   "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
@@ -55,6 +55,6 @@
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
-    "observed_at": "2026-10-03T15:49:30Z"
+    "observed_at": "2026-10-03T16:00:20Z"
   }
 }
