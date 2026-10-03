@@ -1,14 +1,45 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-docs13-release-stale-scope-20261003T1513+08",
+  "request_id": "issue1062-docs13-reconcile-live-target-20261003T1513+08",
   "issue": 1062,
-  "kind": "RELEASE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-  "expected_coord_head": "a75231f018da7d789ac7e89af77ae4db56787cc8",
-  "expected_generation": 39,
+  "expected_coord_head": "919eb269163d99c8be4a8fbc85d42ed8e439d891",
+  "expected_generation": 40,
   "effect": {
-    "reason": "Replace stale pre-shared0 reservation with frozen docs generation 13 exact scope."
+    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
+    "observed_head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "observed_target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "semantic_state": "PATH_RESERVATION_RELEASED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {},
+      "display": "Reserve frozen docs generation 13 exact delivery paths"
+    }
   },
-  "reuse_admission_session": true
+  "purpose": "Reconcile Issue #1062 stale target/head identity to live cleanup target before frozen docs generation 13 exact delivery reservation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  }
 }
