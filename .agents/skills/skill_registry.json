@@ -643,12 +643,14 @@
         ".agents/skills/engineering/executable-continuity-controller/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
-        "executable-continuity-controller"
+        "flow-v2-execution"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ]
+      ],
+      "routing_status": "RETIRED",
+      "replacement_route_id": "flow-v2-execution",
+      "retirement_reason": "Flow v2 is the only CURRENT execution/control-plane owner; legacy continuity remains audit/migration evidence only."
     },
     {
       "id": "remote-qa-monitoring",

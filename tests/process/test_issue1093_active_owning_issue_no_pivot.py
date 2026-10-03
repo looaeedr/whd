@@ -106,6 +106,27 @@ def test_active_owning_issue_rejects_foreign_reconcile_but_allows_same_issue_and
     )
 
 
+def test_durably_yielded_nonterminal_leaf_allows_foreign_issue_pivot():
+    current = _record(CURRENT)
+    yielded = replace(
+        current,
+        lease=None,
+        transaction=TransactionState(
+            id="tx-yield-current",
+            kind="YIELD",
+            status="RECONCILED",
+            expected_fingerprint="f" * 64,
+            invocation_identity=INV,
+        ),
+    )
+
+    assert assert_active_owning_issue_sticky(
+        yielded,
+        requested_issue=FOREIGN,
+        requested_action_kind="RECONCILE",
+    )
+
+
 def test_production_executor_blocks_foreign_reconcile_before_prepare_or_write(monkeypatch):
     from tools import control_transaction_production_executor as executor
 

@@ -171,11 +171,24 @@ FOREIGN_READ_ONLY_ACTIONS = frozenset({
 TERMINAL_TAIL_FOREIGN_READ_ONLY_ACTIONS = FOREIGN_READ_ONLY_ACTIONS
 
 
+def _yielded_nonterminal_leaf(record: ExecutionRecord) -> bool:
+    """Return whether this leaf durably yielded and has no active writer lease."""
+    if record.state == "DONE" or record.lease is not None or terminal_tail_active(record):
+        return False
+    tx = record.transaction
+    return (
+        tx is not None
+        and tx.status == "RECONCILED"
+        and tx.kind == "YIELD"
+    )
+
+
 def _durable_owning_identity_active(record: ExecutionRecord) -> bool:
     return (
         record.state != "DONE"
         and record.owner_kind != "NONE"
         and record.owner_id != "NONE"
+        and not _yielded_nonterminal_leaf(record)
     )
 
 
@@ -279,6 +292,7 @@ def classify_invocation_exit(
     root_sync_receipt: object | None = None,
     lane_delivery_receipt: object | None = None,
     remote_qa_active_observation_count: int = 1,
+    alternative_executable_leaf_count: int = 0,
 ) -> InvocationExitDecision:
     """Classify whether this physical invocation may return.
 
@@ -290,6 +304,12 @@ def classify_invocation_exit(
         raise InvocationExitError("record must be an ExecutionRecord")
     invocation = _text(invocation_identity, "invocation_identity")
     now_dt = _aware(now, "now")
+    if (
+        isinstance(alternative_executable_leaf_count, bool)
+        or not isinstance(alternative_executable_leaf_count, int)
+        or alternative_executable_leaf_count < 0
+    ):
+        raise InvocationExitError("alternative_executable_leaf_count must be a non-negative integer")
 
     if record.state == "DONE":
         assert_durable_terminal_exit(record)
@@ -316,6 +336,13 @@ def classify_invocation_exit(
             and tx.kind == "YIELD"
             and tx.invocation_identity == invocation
         ):
+            if alternative_executable_leaf_count > 0:
+                return _decision(
+                    record,
+                    "CONTINUE_OTHER_EXECUTABLE_LEAF",
+                    may_return=False,
+                    requires_yield=False,
+                )
             return _decision(record, "YIELDED", may_return=True, requires_yield=False)
         return _decision(record, "ACQUIRE_REQUIRED", may_return=False, requires_yield=False)
 

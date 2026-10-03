@@ -81,6 +81,21 @@ merge 前必須逐 path fresh-read latest `0` 的 generation/hash；只要任一
 
 machine owner：`tools/shared_unpushed_integration.py::build_conflict_checkpoint` 與 `assert_conflict_checkpoint_blocks_action`。
 
+## 4.5 SHARED_ZERO_FREEZE_REQUIRES_WORKER_CENSUS_HARD_GATE_V1
+
+任何 docs/body lane 要進入 `FROZEN` 前，必須 fresh census 該 lane 的全部 worker candidates；freeze 是**所有目前合法可合併工作已收斂後的批次邊界**，不是先凍結一部分、再把其他 GREEN candidate 留到下一輪。
+
+固定規則：
+
+1. fresh-list `.unpushed/{lane}/workers/**`，逐一分類為 `MERGED_TO_0 | HISTORICAL_SUPERSEDED | CONFLICT_BLOCKED | NOT_GREEN | ACTIVE_DELEGATED | MERGEABLE_GREEN`；
+2. 任一 `MERGEABLE_GREEN` 存在時，禁止 `LANE_MANIFEST_FROZEN`、禁止建立 delivery lock、禁止 `/推推`；必須先以 fresh latest `0` 做 reconcile/merge；
+3. 多個互不衝突且已 GREEN 的 candidates 必須合併進**同一個下一代 0**，再對 union fileset 跑 post-merge tests；
+4. 只有 census 證明 `MERGEABLE_GREEN=0` 且最新 `0` post-merge GREEN，才允許一次 freeze 完整 manifest；
+5. 若 post-push CI 發現需要 repository-content 修改，該 frozen generation 視為 delivery attempt failed：回 canonical root/shared-0 修完整、重新 census/merge/test/refreeze；**禁止在 delivery branch 做 incremental remote repair**；
+6. `FROZEN` 後新出現的合法 candidate 不得偷塞進既有 lock；若使用者要求「一起推」，必須回 shared-0 生成新的完整 generation，再以新 lock 整批 delivery。
+
+這個 gate 的目的就是保證：**先全部併 → 全部測 → freeze 一次 → 推一次**。
+
 ## 5. DELIVERY_FILESET_LOCK_HARD_GATE_V1
 
 selected lane 通過 post-merge tests 後，先 freeze manifest，再建立不可變的 delivery fileset lock：
@@ -115,6 +130,9 @@ DOCS_0_EXISTS
 → PRE_MERGE_LATEST_FILE_RECHECK
 → MERGE
 → MERGE_READBACK_VERIFIED
+→ DELIVERY_RECEIPT_BOUND
+→ SYNC_LINKED_GITHUB_ISSUES
+→ ISSUE_SYNC_READBACK_VERIFIED
 → FINALIZE_DELIVERED_PATHS
 ```
 
@@ -141,6 +159,9 @@ BODY_0_EXISTS
 → PRE_MERGE_LATEST_FILE_RECHECK
 → MERGE
 → MERGE_READBACK_VERIFIED
+→ DELIVERY_RECEIPT_BOUND
+→ SYNC_LINKED_GITHUB_ISSUES
+→ ISSUE_SYNC_READBACK_VERIFIED
 → FINALIZE_DELIVERED_PATHS
 ```
 
@@ -164,7 +185,21 @@ BODY_0_EXISTS
 
 任何額外 path 都必須 fail closed：`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK`。
 
-## 10. Push 完成後只清已交付 paths
+## 10. ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1 — 推推後半邊
+
+`/推推 文檔|主體` 在 `MERGE_READBACK_VERIFIED` 後還不能直接宣告整個 delivery cycle 完成。必須先把交付結果同步回本次 manifest/Flow v2 關聯的 GitHub Issue：
+
+`MERGE_READBACK_VERIFIED → DELIVERY_RECEIPT_BOUND → SYNC_LINKED_GITHUB_ISSUES → ISSUE_SYNC_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
+
+同步至少包含：lane、generation、manifest digest、PR、accepted/merged SHA、post-push test/CI 結果，以及 **terminal state 或 exact remaining next_action/blocker**。
+
+- 若工單已符合 Flow v2 terminal acceptance，close 仍由 canonical `FINALIZE` 執行並 fresh readback；`/推推` 不自行創造第二套 closure authority。
+- 若尚未 terminal，Issue 必須保持 open，並把 exact next action/blocker 同步回去；不能因 push/merge 成功就假裝工單完成。
+- carried-forward Issues 也必須 reconcile GitHub open/closed 狀態與本地 lane provenance，禁止只留 stale `carried_forward_issues` 數字。
+- remote authority 固定 `POST_DELIVERY_ISSUE_SYNC`，只允許 Issue update/comment/relation/readback；不能用它擴張 repository-content scope。
+- Issue sync/readback 失敗時，delivery content merge 可保留 VERIFIED，但 physical cycle 狀態固定 `ISSUE_SYNC_PENDING`，不得把整輪視為 durable cleanup complete。
+
+## 11. Push 完成後只清已交付 paths
 
 只有 `MERGE_READBACK_VERIFIED` 證明 production/accepted target 已含 exact locked file hashes 後，才允許 finalize selected `0`。
 
@@ -177,7 +212,7 @@ BODY_0_EXISTS
 
 這裡的「清除」是清掉已交付的未推送修改狀態，不是刪除 repository 實體檔案。
 
-## 11. Branch timing
+## 12. Branch timing
 
 正常施工階段不開 Git branch，也不連 GitHub/遠端本機做 repository-content discovery。
 

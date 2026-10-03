@@ -37,6 +37,22 @@ scheduler invocation 在 project startup 階段還不知道 exact owning Issue�
 
 Preflight GREEN 且 required Skill/reference 全部 fresh-read 後，必須丟棄 bootstrap projection，再 fresh-read canonical scheduler state，才進入下面的 Wake。禁止建立永久 bootstrap Issue，也不得把這個 bridge 擴張成第二套 scheduler authority。
 
+### STUCK_UNOWNED_FAMILY_TAKEOVER_BRIDGE_V1
+
+排程 A/B 判定既有工單「卡住、沒有人做」時，固定 bridge 到 `flow-v2-execution::STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1`。
+
+- 不得只因 lease expired、heartbeat stale、entrypoint 沒跑或 owner 沒回報就接手；必須 fresh-read target ExecutionRecord，並核對 canonical 父工單、子工單與 delegated lineage。
+- 父／子／delegated lineage 任一存在 live lease、valid heartbeat、active trusted transaction、active remote QA 或 `ACTIVE_DELEGATED_WORK`，即視為仍有 active work；scheduler 必須退讓，不得 takeover。
+- target 非 terminal 且整個相關 lineage 都無 active writer時，標記 `STUCK_UNOWNED_FAMILY_CONFIRMED` / `TAKEOVER_ELIGIBLE`；此時 A/B scheduler 或任何其他合法 executor 都可 atomic `ACQUIRE/HANDOFF` 接手，不受原 handler/owner 身分限制。
+- takeover 前立即重讀一次完整 lineage；race 中重新出現 active writer 固定 `TAKEOVER_RACE_ACTIVE_WORK`。
+- takeover 成功只是 ownership recovery，**不是停止點**；同一 invocation 必須 fresh-read並立即續跑原 structured `next_action`。
+
+### BLOCKED_LEAF_CONTINUATION_BRIDGE_V1
+
+排程 A/B 固定 bridge 到 `flow-v2-execution::BLOCKED_LEAF_CONTINUATION_HARD_GATE_V1`。單一 current leaf 因外部等待／authority／capability blocker durable YIELD 後，必須重新投影 same-lane/ready candidates；若仍有合法 executable leaf，cycle 不得 return，固定續做 `CONTINUE_OTHER_EXECUTABLE_LEAF`。只有 current leaf 與所有合法 alternative leaves 都 fresh 證明不可執行時，才可形成 `NO_EXECUTABLE_ALTERNATIVE`。
+
+`LANE_BUSY` 只代表該 exact owner/leaf 需退讓，不代表整個 scheduler 沒工作；若 ready-index/explicit candidate 仍有其他合法 leaf，必須續選。terminal tail 不得 pivot；same-path conflict、active delegated work與 live writer仍 fail closed。
+
 ## Wake
 每次 host wake 先以 `tools/scheduler_entrypoint_observation.py` 寫 exact entrypoint NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2`，優先 same-lane nonterminal record；其次才讀 derived ready-index。若 current/ready 都空，必須做 explicit marker candidate discovery；命中時 scheduler view 回 `INGRESS_REQUIRED`，完成 candidate-bound Preflight 後建立 READY、fresh-read並立即 ACQUIRE。live lease退讓、expired lease走 atomic reacquire。只有 current/ready/explicit candidate 全空才可回 NO_EXECUTABLE_WORK。正常 return 前必須寫 exact entrypoint EXIT；不能再留下 SEED-only host occurrence。
 

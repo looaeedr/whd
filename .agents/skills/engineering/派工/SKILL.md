@@ -20,6 +20,20 @@ whd_schema: WHD_DOC_META_V1
 
 ## Dispatch
 open Issue、dependency-unblocked、空工作槽都不等於 execution authority。新工作必須由 `tools/execution_dispatch_ingress.py` 以明確 authority建立 READY record，再由 ACQUIRE transaction取得 owner/lease。互動式新工作未指定 slot 時仍以 `/工作0` / `worker.slot.0` 為既有預設；建立 READY 前若 fresh-read 發現 slot0 已 BOUND，才使用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往 `1→2→3` overflow；全滿即 fail closed，不得搶槽。
+
+### ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1 — 拆工半邊
+
+只要 PM/Implementer 把一個 scope 拆成新的 child/follow-up，就必須在**同一拆工流程**同步 GitHub 工單：
+
+`DEFINE_CHILD_SCOPE → CREATE_OR_REUSE_GITHUB_ISSUE → SYNC_PARENT_CHILD_AND_DEPENDENCIES → ISSUE_READBACK_VERIFIED → DISPATCH_READY_ALLOWED`
+
+硬規則：
+
+- local draft 只能是 transient planning；沒有 GitHub issue number + fresh readback 的 child，狀態固定視為 `ISSUE_SYNC_PENDING`，不得稱為「已拆工完成」、不得進 READY/排程/工作槽/ExecutionRecord。
+- Issue 必須同步 child scope、acceptance、parent/sub-issue 與 blocked-by/dependency；若 reuse 既有 Issue，也要 fresh-read 證明關聯正確。
+- Issue sync 本身不授權 repository-content GitHub 操作；authority 固定 `SPLIT_ISSUE_SYNC`，只可 create/update/relation/readback。
+- sync 失敗不是整個 invocation 的停止點；留下 `ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF`，繼續其他合法 leaf。
+- 只有 `ISSUE_READBACK_VERIFIED` 後，才允許 `execution_dispatch_ingress.py` 建 READY。
 PM/Implementer/QA只是角色視角；branch/head/owner/QA/closure/next_action只寫同一 native record。
 UPDATE_ONLY只完成被點名更新與readback；EXECUTE_TICKET/CHAIN/SCHEDULER_LANE scope由使用者授權與record.chain決定。
 

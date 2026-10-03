@@ -33,6 +33,25 @@ def _root_gate_evidence(execution_mode: str = "INTERACTIVE") -> dict[str, object
     )
 
 
+
+
+def _preflight_evidence(*, issue: int, invocation_identity: str, observed_at=None) -> dict[str, object]:
+    from tools.execution_entry_contract import build_phase6_preflight_evidence
+
+    required_skills = ["flow-v2-execution"]
+    required_references = [".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"]
+    return build_phase6_preflight_evidence(
+        issue=issue,
+        invocation_identity=invocation_identity,
+        branch="cleanup/2d-3d-sync",
+        head_sha="a" * 40,
+        required_skills=required_skills,
+        completed_skills=required_skills,
+        required_references=required_references,
+        completed_references=required_references,
+        observed_at=observed_at,
+    )
+
 def _integrating_record(*, target_sha: str = "d" * 40):
     from tools.execution_record import execution_record_from_payload
 
@@ -107,6 +126,9 @@ def test_issue975_request_builder_owns_startup_evidence_and_lane_mode():
         effect={"semantic_state": "TEST"},
         purpose=purpose,
         work_root_gate_evidence=_root_gate_evidence(),
+        preflight_evidence=_preflight_evidence(
+            issue=975, invocation_identity=invocation, observed_at=issued
+        ),
         issued_at=issued,
     )
 

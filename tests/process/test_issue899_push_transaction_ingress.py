@@ -42,6 +42,57 @@ def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, exe
     )
 
 
+
+
+def _build_preflight_evidence(*, issue, invocation_identity, execution_mode="INTERACTIVE", observed_at=None, branch="cleanup/2d-3d-sync", head_sha="a" * 40):
+    from tools.execution_entry_contract import build_phase6_preflight_evidence
+
+    required_skills = ["flow-v2-execution"]
+    required_references = [".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"]
+    return build_phase6_preflight_evidence(
+        issue=issue,
+        invocation_identity=invocation_identity,
+        branch=branch,
+        head_sha=head_sha,
+        required_skills=required_skills,
+        completed_skills=required_skills,
+        required_references=required_references,
+        completed_references=required_references,
+        observed_at=observed_at,
+    )
+
+
+def _fresh_admission_fields(*, issue, invocation_identity, purpose, execution_mode="INTERACTIVE", issued_at=None, branch="cleanup/2d-3d-sync", head_sha="a" * 40):
+    from tools.execution_entry_contract import build_startup_transition
+
+    startup = _build_startup_evidence(
+        purpose=purpose,
+        invocation_identity=invocation_identity,
+        execution_mode=execution_mode,
+        issued_at=issued_at,
+    )
+    preflight = _build_preflight_evidence(
+        issue=issue,
+        invocation_identity=invocation_identity,
+        execution_mode=execution_mode,
+        observed_at=issued_at,
+        branch=branch,
+        head_sha=head_sha,
+    )
+    transition = build_startup_transition(
+        startup_evidence=startup,
+        preflight_evidence=preflight,
+        invocation_identity=invocation_identity,
+        issue=issue,
+        execution_mode=execution_mode,
+        now=issued_at,
+    )
+    return {
+        "startup_evidence": startup,
+        "preflight_evidence": preflight,
+        "startup_transition": transition,
+    }
+
 def _root_gate_evidence(execution_mode="INTERACTIVE"):
     import json
     from tools.work_root_gate import (
@@ -291,7 +342,7 @@ def test_non_seed_request_without_startup_evidence_is_rejected(tmp_path):
     }
     path = tmp_path / "request.json"
     path.write_text(json.dumps(request), encoding="utf-8")
-    with pytest.raises(Exception, match="request missing startup_evidence"):
+    with pytest.raises(Exception, match="startup_evidence"):
         ingress._load_request(path)
 
 
@@ -549,10 +600,13 @@ def test_push_ingress_accepts_fail_qa_kind(tmp_path):
         "expected_coord_head": "a" * 40,
         "expected_generation": 7,
         "effect": {},
-        "startup_evidence": _build_startup_evidence(
-            purpose="consume exact failed QA",
+        **_fresh_admission_fields(
+            issue=943,
             invocation_identity=invocation,
+            purpose="consume exact failed QA",
             execution_mode="INTERACTIVE",
+            branch="work/receiving-ui-regression-20260928",
+            head_sha="b" * 40,
         ),
     }
     path = tmp_path / "request.json"
@@ -610,6 +664,13 @@ def _issue992_semantic_intent():
         "effect": {},
         "purpose": "Resume Issue #945 through the canonical scheduler lane.",
         "work_root_gate_evidence": _root_gate_evidence("SCHEDULER_LANE"),
+        "preflight_evidence": _build_preflight_evidence(
+            issue=945,
+            invocation_identity="scheduler-b:b15:issue945:issue992-regression",
+            execution_mode="SCHEDULER_LANE",
+            branch="cleanup/2d-3d-sync",
+            head_sha="a" * 40,
+        ),
     }
 
 
@@ -705,7 +766,16 @@ def _root_unlock_receipt():
             "exact_commands": ["python tools/control_plane_regression.py"],
             "manifest_digest": "e" * 64,
         },
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"],
+        worker_census_evidence={
+            "schema": "WHD_SHARED_ZERO_WORKER_CENSUS_V1",
+            "lane": "docs",
+            "latest_zero_generation": 4,
+            "fresh": True,
+            "mergeable_green_count": 0,
+            "blocking_candidate_count": 0,
+        },
+        diff_digest="c" * 64,
     )
     return build_git_unlock_receipt(gate)
 
@@ -724,7 +794,9 @@ def test_interactive_start_branch_requires_root_unlock_receipt_before_state_read
         "kind": "START_BRANCH", "lane_id": "chatgpt.flowv2.work0",
         "invocation_identity": invocation, "expected_coord_head": "a" * 40, "expected_generation": 1,
         "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
-        "startup_evidence": _build_startup_evidence(purpose="Issue #940 branch", invocation_identity=invocation),
+        **_fresh_admission_fields(
+            issue=940, invocation_identity=invocation, purpose="Issue #940 branch"
+        ),
     }
     with pytest.raises(Exception, match="root-local-first Git write receipt"):
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
@@ -745,7 +817,9 @@ def test_interactive_start_branch_accepts_root_unlock_receipt_before_state_read(
         "invocation_identity": invocation, "expected_coord_head": "a" * 40, "expected_generation": 1,
         "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40,
                    "root_local_first_git_write_receipt": _root_unlock_receipt()},
-        "startup_evidence": _build_startup_evidence(purpose="Issue #940 branch", invocation_identity=invocation),
+        **_fresh_admission_fields(
+            issue=940, invocation_identity=invocation, purpose="Issue #940 branch"
+        ),
     }
     with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
@@ -766,8 +840,11 @@ def test_scheduler_start_branch_is_not_misclassified_as_interactive_root_write(m
         "kind": "START_BRANCH", "lane_id": lane, "invocation_identity": invocation,
         "expected_coord_head": "a" * 40, "expected_generation": 1,
         "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
-        "startup_evidence": _build_startup_evidence(
-            purpose="Issue #940 scheduler branch", invocation_identity=invocation, execution_mode="SCHEDULER_LANE"
+        **_fresh_admission_fields(
+            issue=940,
+            invocation_identity=invocation,
+            purpose="Issue #940 scheduler branch",
+            execution_mode="SCHEDULER_LANE",
         ),
     }
     with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
