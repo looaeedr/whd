@@ -8,10 +8,10 @@
   "invocation_identity":"a20.20261003T154800Z",
   "event":"HEARTBEAT",
   "last_wake_at":"2026-10-03T15:48:00Z",
-  "last_heartbeat_at":"2026-10-03T16:08:10Z",
-  "heartbeat_expires_at":"2026-10-03T16:13:10Z",
-  "last_progress_at":null,
+  "last_heartbeat_at":"2026-10-03T16:15:00Z",
+  "heartbeat_expires_at":"2026-10-03T16:20:00Z",
+  "last_progress_at":"2026-10-03T16:13:55Z",
   "exit_at":null,
   "exit_state":null,
-  "observed_at":"2026-10-03T16:08:10Z"
+  "observed_at":"2026-10-03T16:15:00Z"
 }
