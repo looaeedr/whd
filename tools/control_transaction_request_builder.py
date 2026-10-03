@@ -13,7 +13,12 @@ import json
 from pathlib import Path
 from typing import Mapping
 
-from tools.execution_entry_contract import DEFAULT_REPOSITORY, build_startup_evidence
+from tools.execution_entry_contract import (
+    DEFAULT_REPOSITORY,
+    build_startup_evidence,
+    build_startup_transition,
+    validate_phase6_preflight_evidence,
+)
 
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 INTENT_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1"
@@ -34,6 +39,7 @@ INTENT_REQUIRED_FIELDS = (
     "effect",
     "purpose",
     "work_root_gate_evidence",
+    "preflight_evidence",
 )
 
 LANE_EXECUTION_MODES = {
@@ -66,6 +72,7 @@ def build_control_transaction_request(
     effect: Mapping[str, object],
     purpose: str | None = None,
     work_root_gate_evidence: Mapping[str, object] | None = None,
+    preflight_evidence: Mapping[str, object] | None = None,
     reuse_admission_session: bool = False,
     repository: str = DEFAULT_REPOSITORY,
     issued_at: datetime | None = None,
@@ -102,6 +109,8 @@ def build_control_transaction_request(
         "effect": dict(effect),
     }
     if reuse_admission_session:
+        if preflight_evidence is not None:
+            raise ValueError("session reuse must not carry preflight_evidence")
         if kind not in SESSION_REUSE_KINDS:
             raise ValueError(f"transaction kind {kind} requires fresh admission")
         request["session_reuse"] = {
@@ -114,6 +123,8 @@ def build_control_transaction_request(
         raise ValueError("purpose is required for fresh admission")
     if not isinstance(work_root_gate_evidence, Mapping):
         raise ValueError("work_root_gate_evidence is required for fresh admission")
+    if not isinstance(preflight_evidence, Mapping):
+        raise ValueError("preflight_evidence is required for fresh admission")
     execution_mode = execution_mode_for_lane(lane_id)
     request["startup_evidence"] = build_startup_evidence(
         purpose=purpose,
@@ -122,6 +133,21 @@ def build_control_transaction_request(
         execution_mode=execution_mode,
         repository=repository,
         issued_at=issued_at,
+    )
+    request["preflight_evidence"] = validate_phase6_preflight_evidence(
+        preflight_evidence,
+        issue=int(issue),
+        invocation_identity=invocation_identity,
+        now=issued_at,
+    )
+    request["startup_transition"] = build_startup_transition(
+        startup_evidence=request["startup_evidence"],
+        preflight_evidence=request["preflight_evidence"],
+        invocation_identity=invocation_identity,
+        issue=int(issue),
+        execution_mode=execution_mode,
+        repository=repository,
+        now=issued_at,
     )
     return request
 
@@ -142,10 +168,10 @@ def build_control_transaction_request_from_intent(
         raise ValueError("intent must be a mapping")
     if intent.get("schema") != INTENT_SCHEMA:
         raise ValueError("unexpected transaction intent schema")
-    if "startup_evidence" in intent:
-        raise ValueError("transaction intent must not supply startup_evidence")
+    if "startup_evidence" in intent or "startup_transition" in intent:
+        raise ValueError("transaction intent must not supply startup_evidence/startup_transition")
     reuse = intent.get("reuse_admission_session") is True
-    required = tuple(field for field in INTENT_REQUIRED_FIELDS if not (reuse and field in {"purpose", "work_root_gate_evidence"}))
+    required = tuple(field for field in INTENT_REQUIRED_FIELDS if not (reuse and field in {"purpose", "work_root_gate_evidence", "preflight_evidence"}))
     missing = [field for field in required if field not in intent]
     if missing:
         raise ValueError(f"transaction intent missing {missing[0]}")
@@ -163,6 +189,7 @@ def build_control_transaction_request_from_intent(
         effect=intent["effect"],
         purpose=str(intent.get("purpose") or ""),
         work_root_gate_evidence=root_evidence if isinstance(root_evidence, Mapping) else None,
+        preflight_evidence=intent.get("preflight_evidence") if isinstance(intent.get("preflight_evidence"), Mapping) else None,
         reuse_admission_session=reuse,
         repository=repository,
         issued_at=issued_at,
@@ -187,6 +214,7 @@ def main() -> int:
     parser.add_argument("--expected-generation", type=int, required=True)
     parser.add_argument("--purpose")
     parser.add_argument("--work-root-evidence", type=Path)
+    parser.add_argument("--preflight-evidence", type=Path)
     parser.add_argument("--reuse-admission-session", action="store_true")
     parser.add_argument("--effect", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -209,6 +237,7 @@ def main() -> int:
         effect=_load_json(args.effect),
         purpose=args.purpose,
         work_root_gate_evidence=_load_json(args.work_root_evidence) if args.work_root_evidence else None,
+        preflight_evidence=_load_json(args.preflight_evidence) if args.preflight_evidence else None,
         reuse_admission_session=args.reuse_admission_session,
         repository=args.repository,
         issued_at=issued_at,
