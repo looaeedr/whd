@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 39,
+  "generation": 40,
   "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work1",
@@ -24,7 +24,7 @@
   "mutation_scope": {
     "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "docs/superpowers/verification/issue678-poweroff-red/approved/test_behavioral_red_v5.py",
@@ -74,7 +74,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "PATH_RESERVATION_RELEASED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
@@ -82,13 +82,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
   "transaction": {
-    "expected_fingerprint": "b3e201348a4badc84f635c663c3edf0929225c81bf276f7e12934dc9407b8bea",
-    "id": "gha:37106475971:1062:ACQUIRE:38",
+    "expected_fingerprint": "f5a886596cf45e77392a834c7faa7f379d1906a60cdcb78108c302250a0110c7",
+    "id": "gha:37106548590:1062:RELEASE_PATHS:39",
     "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-    "kind": "ACQUIRE",
+    "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T07:29:18Z",
+  "updated_at": "2026-10-03T07:30:33Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
