@@ -17,6 +17,10 @@ from typing import Iterable, Mapping, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / ".agents" / "skills" / "skill_registry.json"
+ROUTE_STATUS_ACTIVE = "ACTIVE"
+ROUTE_STATUS_RETIRED = "RETIRED"
+ROUTE_STATUS_VALUES = frozenset({ROUTE_STATUS_ACTIVE, ROUTE_STATUS_RETIRED})
+
 GLOBAL_REQUIRED_REFERENCES = (
     "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
 )
@@ -48,6 +52,45 @@ def _keyword_matches_task(keyword: str, task_text: str) -> bool:
     return keyword_text in task_text
 
 
+def _route_status(route: Mapping[str, object]) -> str:
+    status = str(route.get("routing_status") or ROUTE_STATUS_ACTIVE).strip().upper()
+    if status not in ROUTE_STATUS_VALUES:
+        raise ValueError(f"unsupported skill_registry routing_status: {status}")
+    return status
+
+
+def _route_index(data: Mapping[str, object]) -> dict[str, Mapping[str, object]]:
+    result: dict[str, Mapping[str, object]] = {}
+    for raw in data["routes"]:  # type: ignore[index]
+        if not isinstance(raw, Mapping):
+            raise ValueError("skill_registry route must be an object")
+        route_id = str(raw.get("id") or "").strip()
+        if not route_id:
+            raise ValueError("skill_registry route id must be nonblank")
+        if route_id in result:
+            raise ValueError(f"duplicate skill_registry route id: {route_id}")
+        result[route_id] = raw
+    return result
+
+
+def _effective_route(route: Mapping[str, object], data: Mapping[str, object]) -> Mapping[str, object]:
+    if _route_status(route) == ROUTE_STATUS_ACTIVE:
+        return route
+    replacement = str(route.get("replacement_route_id") or "").strip()
+    if not replacement:
+        raise ValueError(f"retired route {route.get('id')} missing replacement_route_id")
+    indexed = _route_index(data)
+    target = indexed.get(replacement)
+    if target is None:
+        raise ValueError(f"retired route replacement missing: {replacement}")
+    if _route_status(target) != ROUTE_STATUS_ACTIVE:
+        raise ValueError(f"retired route replacement must be ACTIVE: {replacement}")
+    retired_identity = str(route.get("id") or "").strip()
+    if retired_identity in set(map(str, route.get("required_skills", ()) or ())):
+        raise ValueError(f"retired route must not require retired skill identity: {retired_identity}")
+    return target
+
+
 def load_skill_registry(path: Path = REGISTRY) -> Mapping[str, object]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("schema_version") != 1:
@@ -55,6 +98,11 @@ def load_skill_registry(path: Path = REGISTRY) -> Mapping[str, object]:
     routes = data.get("routes")
     if not isinstance(routes, list) or not routes:
         raise ValueError("skill_registry routes must be a non-empty list")
+    indexed = _route_index(data)
+    for route in indexed.values():
+        status = _route_status(route)
+        if status == ROUTE_STATUS_RETIRED:
+            _effective_route(route, data)
     return data
 
 
@@ -78,7 +126,8 @@ def required_skills_for(
         matched_file = any(fnmatch.fnmatch(path, pattern) for path in files for pattern in globs)
         if not (matched_keyword or matched_file):
             continue
-        for skill in tuple(route.get("required_skills", ()) or ()):
+        effective = _effective_route(route, data)
+        for skill in tuple(effective.get("required_skills", ()) or ()):
             skill_name = str(skill)
             if skill_name not in required:
                 required.append(skill_name)
@@ -105,7 +154,8 @@ def required_references_for(
         matched_file = any(fnmatch.fnmatch(path, pattern) for path in files for pattern in globs)
         if not (matched_keyword or matched_file):
             continue
-        for reference in tuple(route.get("required_references", ()) or ()):
+        effective = _effective_route(route, data)
+        for reference in tuple(effective.get("required_references", ()) or ()):
             rel = _norm(str(reference))
             if rel not in required:
                 required.append(rel)
@@ -118,7 +168,7 @@ def completed_skills_from_evidence(paths: Iterable[str]) -> set[str]:
     skill_names = {
         str(skill)
         for route in data["routes"]  # type: ignore[index]
-        for skill in tuple(route.get("required_skills", ()) or ())
+        for skill in tuple(_effective_route(route, data).get("required_skills", ()) or ())
     }
     for raw in paths:
         path = Path(raw)
