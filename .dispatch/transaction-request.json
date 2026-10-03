@@ -1,58 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1146-b-reserve-docs-gen8",
+  "request_id": "issue1146-b-start-branch-docs-gen8",
   "issue": 1146,
-  "kind": "RESERVE_PATHS",
+  "kind": "START_BRANCH",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-  "expected_coord_head": "00dc10b535c5e608ea60634d452805e956f6184c",
-  "expected_generation": 2,
+  "expected_coord_head": "fdc4ae3e5833eaf8f22a115367d6a0df3697eb65",
+  "expected_generation": 3,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-    "write_paths": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/skills/engineering/root-local-first/SKILL.md",
-      ".agents/skills/engineering/推推/SKILL.md",
-      "AGENTS.md",
-      "tests/test_root_entry_router_hard_gate.py",
-      "tools/root_local_first_gate.py",
-      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
-    ],
-    "delete_paths": [],
-    "semantic_state": "PATHS_RESERVED",
+    "work_branch": "delivery/issue1146-docs-gen7-20261003",
+    "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+    "semantic_state": "BRANCH_READY",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {
         "diff_digest": "d1fa5871a6569fd5d3c12d127785aa06e7c83f44d70819c1f381ddccc9a71a99",
         "manifest_digest": "11b46c47fe076f264be4d20380a1c4570e2ab876a11c6705a3afbd4c714bd8e7",
         "generation": 8
       },
-      "display": "Start exact-tested #1146 docs generation 8 delivery branch"
+      "display": "Apply exact frozen docs generation 8 commit"
     }
   },
-  "purpose": "Reserve exactly the seven frozen docs generation 8 paths for #1146 delivery; no repository-content authoring occurs in scheduler runtime.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "SCHEDULER_LANE",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
-  }
+  "reuse_admission_session": true
 }
