@@ -1,18 +1,6 @@
 {
   "authority": "DERIVED_CACHE_ONLY",
-  "entries": [
-    {
-      "execution_intent": "EXECUTE_TICKET",
-      "generation": 2,
-      "issue": 1129,
-      "next_action_display": "Acquire Issue #1129 for docs generation 21 delivery",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "d3137cd8e37db3b57adce4b0e3f6050582b032e1023a0b88f3c1bae6ae44a251",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
-      "updated_at": "2026-10-03T13:50:47Z"
-    }
-  ],
+  "entries": [],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "f967c719f380f15a4ab7f042242046db943014474d9ed1146eb8b4a706555b64"
+  "source_digest": "3b30be3ec3a42fb979d62fe674a27255af7646e3e361efb75734bed04ed6b634"
 }

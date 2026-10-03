@@ -12,19 +12,49 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
   "issue": 1129,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1129 for docs generation 21 delivery",
-    "kind": "ACQUIRE"
+  "lane_id": "chatgpt.flowv2.work3",
+  "lease": {
+    "expires_at": "2026-10-03T14:09:14Z",
+    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
+    "token": "lease:1129:37127741368:1"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "mutation_scope": {
+    "base_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/code-review/SKILL.md",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".agents/skills/engineering/issue-closure-gate/SKILL.md",
+      ".agents/skills/engineering/long-log-context-safe-execution/SKILL.md",
+      ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".agents/skills/engineering/triage/SKILL.md",
+      ".agents/skills/engineering/wayfinder/SKILL.md",
+      ".agents/skills/engineering/工作槽/SKILL.md",
+      ".agents/skills/engineering/派工/SKILL.md",
+      ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
+      ".agents/skills/productivity/MCP工具操作/SKILL.md",
+      ".agents/skills/productivity/找技能/SKILL.md",
+      "AGENTS.md",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
+      "tools/root_local_first_gate.py"
+    ]
+  },
+  "next_action": {
+    "args": {
+      "diff_digest": "391bb7b5aa9cd033068d7fc1d8e93e1002d8c2c3bf2f1f96ac6f0805811c6740"
+    },
+    "display": "Create clean docs generation 21 delivery branch from exact live target",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work3",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,21 +68,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
   "transaction": {
-    "expected_fingerprint": "0d231978d2043702c4841f3a05bd2d7dafcf11ea6943d1f0ad977f8103b3806d",
-    "id": "gha:37127548095:1129:RECONCILE:1",
-    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2151+08",
-    "kind": "RECONCILE",
+    "expected_fingerprint": "d3137cd8e37db3b57adce4b0e3f6050582b032e1023a0b88f3c1bae6ae44a251",
+    "id": "gha:37127741368:1129:ACQUIRE:2",
+    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T13:50:47Z",
+  "updated_at": "2026-10-03T13:54:14Z",
   "version": 2,
   "work_branch": "governance/issue1129-runtime-report-identity-gate-20261002"
 }
