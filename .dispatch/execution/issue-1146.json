@@ -12,7 +12,7 @@
     "released_at": "2026-10-03T05:03:00Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
+  "generation": 15,
   "head_sha": "07045a2024638d98cecda66568d19ae25fe75df9",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -61,7 +61,7 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
   "transaction": {
-    "expected_fingerprint": "47684782e2afcefbb13aa08408c307663f7169e05df8444ae2b58002385f711c",
+    "expected_fingerprint": "d24807afd64071b0264baa57c17111ff6f00a946b16343825950ea9a844ec938",
     "id": "chat:20261003T1303+08:1146:FINALIZE:13",
     "invocation_identity": "chatgpt.push.docs.issue1146.gen10.20261003T1256+08",
     "kind": "FINALIZE",
