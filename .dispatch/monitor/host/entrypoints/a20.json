@@ -5,13 +5,13 @@
   "entrypoint": "A20",
   "task_id": "6ab4eaee5e008191a0e7e23303f64cea",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "a20.20261001T051941Z",
-  "event": "EXIT",
-  "last_wake_at": "2026-10-01T05:19:41Z",
+  "invocation_identity": "a20.20261003T132330Z",
+  "event": "WAKE",
+  "last_wake_at": "2026-10-03T13:23:30Z",
   "last_heartbeat_at": null,
   "heartbeat_expires_at": null,
   "last_progress_at": null,
-  "exit_at": "2026-10-01T05:20:30Z",
-  "exit_state": "NO_EXECUTABLE_WORK",
-  "observed_at": "2026-10-01T05:20:30Z"
+  "exit_at": null,
+  "exit_state": null,
+  "observed_at": "2026-10-03T13:23:30Z"
 }
