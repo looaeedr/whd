@@ -1,24 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-docs13-reconcile-live-target-20261003T1513+08",
+  "request_id": "issue1062-docs13-reserve-exact5-20261003T1513+08",
   "issue": 1062,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-  "expected_coord_head": "919eb269163d99c8be4a8fbc85d42ed8e439d891",
-  "expected_generation": 40,
+  "expected_coord_head": "98f8ee1f00a361d16f4faa4fdf00aef9b86044fd",
+  "expected_generation": 41,
   "effect": {
-    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
-    "observed_head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
-    "observed_target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
-    "semantic_state": "PATH_RESERVATION_RELEASED",
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "write_paths": [
+      ".agents/skills/engineering/刪除/SKILL.md",
+      ".agents/skills/skill_registry.json",
+      "tests/process/test_delete_skill_contract.py",
+      "tests/process/test_issue870_execution_record_v2.py",
+      "tools/execution_record.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED",
     "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {},
-      "display": "Reserve frozen docs generation 13 exact delivery paths"
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "fe693c2cd1e7b271603ae99a05b816a08901b4586a2e7642e4b95ccbea7c42a0"
+      },
+      "display": "Start exact-tested docs generation 13 delivery branch"
     }
   },
-  "purpose": "Reconcile Issue #1062 stale target/head identity to live cleanup target before frozen docs generation 13 exact delivery reservation.",
+  "purpose": "Reserve exact frozen docs generation 13 fileset for /推推 文檔 delivery.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
