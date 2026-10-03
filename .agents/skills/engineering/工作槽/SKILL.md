@@ -62,15 +62,6 @@ whd_schema: WHD_DOC_META_V1
 - takeover 只改 canonical owner/routing/lease；既有 `slot_id / branch / head_sha / structured next_action` 依 Flow v2 保留，除非 generation fencing 因 stale-writer salvage 明確要求更新。
 - `STALE_RUNTIME_SUSPECTED`、單一 heartbeat 過期或聊天沒有回覆本身都**不足以**授權接手；必須完成上述 execution + 父子 lineage 證明。
 
-## BLOCKED_LEAF_CONTINUATION_BRIDGE_V1
-
-工作槽固定 bridge 到 `flow-v2-execution::BLOCKED_LEAF_CONTINUATION_HARD_GATE_V1`。
-
-- 單一工單等待 delivery authority、remote QA、external dependency、capability 或其他合法 blocker時，先對該 leaf durable checkpoint/YIELD；**不得因此讓 /工作N 整體退出**。
-- YIELD 後 fresh-project 同工作槽／可合法接續的候選 leaf；只要仍有 executable leaf，就必須回 `CONTINUE_OTHER_EXECUTABLE_LEAF` 並繼續施工。
-- 已 YIELD 且無 live lease 的 nonterminal leaf 不得再用 `ACTIVE_OWNING_ISSUE_NO_PIVOT` 卡死別張；但 terminal tail、same-Issue other writer、父子/delegated active work、path conflict仍 fail closed。
-- 只有 fresh durable evidence 證明所有合法替代 leaf 都不可執行時，才允許本工作槽 physical return。
-
 ## Query / execution
 
 裸 `/工作0`、`/工作1`、`/工作2`、`/工作3` 只查 projection，不取得 authority。
@@ -101,14 +92,17 @@ Flow v2 透過 `tools/flow_v2_runtime_observation.py` adapter 投影至 `coord/m
 
 所有 `/工作0/1/2/3` 的 **user-visible** progress / CHECKPOINT / terminal / exit 回報，**第一行**固定使用 fresh durable binding；不得省略、不得猜：
 
-`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
 
-相容核心模板仍為：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`，但 CURRENT 輸出必須追加 exact `slot`。
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
+
+相容核心模板仍為：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`，但 CURRENT 輸出必須追加 exact `slot + invocation_identity`。
 
 - `<handler>` 對 interactive slot 固定為 `工作0` / `工作1` / `工作2` / `工作3`；`worker.slot.1`、`worker.slot.2`、`worker.slot.3` 皆依 fresh projection，不得由聊天上下文推測。
 - `owner` 必須取 canonical ExecutionRecord 的 `claim_owner`/owner_id；尚未 ACQUIRE 時用 `NONE`，不得先把 slot identity 冒充 ownership。
 - query-only / 裸槽查詢沒有綁定 Issue 時，工單=`UNBOUND`、slot 仍顯示被查詢的 exact slot；沒有 exact durable binding 就不得猜 Issue。
 - 若 fresh read 與 observation 不一致，先顯示 canonical owner/Issue/slot，liveness 另列 UNKNOWN；不得用 stale observation 改寫 owner。
+- `invocation_identity` 必須取 exact current runtime observation/startup provenance；不得由聊天時間、handler、slot 或舊 runtime 推測。
 - 此 prefix 只做 provenance / UI identity，**不建立 execution authority**；ownership 仍只由 Flow v2 ExecutionRecord/lease/transaction 決定。
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。

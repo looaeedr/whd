@@ -28,12 +28,15 @@ prompt 必須明寫：ACQUIRE 不是 progress/停止點；READY_CANDIDATES 使�
 
 所有生成或修復的 recurring **scheduler prompt** 都必須保留以下 user-visible **第一行** contract，且 progress / CHECKPOINT / terminal / exit 全部適用：
 
-`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>】`
+`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
+
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
 
 相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
 
 - prompt 必須明寫從 fresh durable state 取得 lane owner、active Issue、claim owner 與 slot；不得把 prompt 內靜態文字當 runtime identity。
 - 每個 progress / CHECKPOINT 都要重用 fresh identity；handoff/ACQUIRE 後下一次回報必須立即反映新 owner。
+- prompt 必須要求輸出本輪 exact `invocation_identity`；禁止沿用上一輪 invocation、用排程 task id/entrypoint/時間字串猜 invocation identity。
 - 產生或更新 scheduler prompt 時不得刪除本 section / marker / template；contract test 會 fail closed。
 - 此 prefix 只做 provenance，**不建立 execution authority**；ownership 仍由 Flow v2 canonical state machine 決定。
 
