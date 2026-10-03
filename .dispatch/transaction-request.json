@@ -1,21 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-consume-docs22-control-plane-green-20261003T2238+08",
+  "request_id": "issue1129-merge-docs22-pr1154-20261003T2240+08",
   "issue": 1129,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
   "expected_coord_head": "785b16550d30f206cb5655028167d4d6dcd27d4c",
   "expected_generation": 10,
   "reuse_admission_session": true,
-  "effect": {
-    "run_id": 37130124841,
-    "next_state": "INTEGRATING",
-    "semantic_state": "GREEN",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {},
-      "display": "Merge repaired docs generation 22 after exact-head GREEN"
-    }
-  }
+  "effect": {}
 }
