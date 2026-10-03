@@ -40,17 +40,20 @@ def _doc(role: str, contract: str, canonical: str | None, body: str) -> str:
     )
 
 
-def test_issue1043_newly_governed_or_reclassified_docs_have_structured_metadata() -> None:
-    governance = _load_governance()
-    for rel in (
+def test_issue1155_retired_execution_docs_are_deleted_and_live_handoff_keeps_metadata() -> None:
+    retired = (
         "UPDATE/AGENTS.md",
         "docs/governance/whd_scheduler_takeover_usage.md",
         "docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md",
-        "handoff/00_AI_HANDOFF_README.md",
-    ):
-        path = ROOT / rel
-        metadata = governance.parse_doc_metadata(path.read_text(encoding="utf-8"), path=rel)
-        assert metadata.role in {"HISTORICAL", "MIRROR"}
+    )
+    for rel in retired:
+        assert not (ROOT / rel).exists(), f"retired execution artifact regrew: {rel}"
+
+    governance = _load_governance()
+    rel = "handoff/00_AI_HANDOFF_README.md"
+    path = ROOT / rel
+    metadata = governance.parse_doc_metadata(path.read_text(encoding="utf-8"), path=rel)
+    assert metadata.role in {"HISTORICAL", "MIRROR"}
 
 
 def test_frozen_inventory_is_bootstrap_evidence_not_runtime_authority() -> None:
