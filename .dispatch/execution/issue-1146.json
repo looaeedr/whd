@@ -28,13 +28,13 @@
       ".agents/skills/engineering/寫技能/SKILL.md",
       ".agents/skills/engineering/推推/SKILL.md",
       "AGENTS.md",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tests/process/test_issue961_work_root_hard_gate.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py",
       "tests/test_root_entry_router_hard_gate.py",
       "tools/root_local_first_gate.py",
       "tools/shared_unpushed_integration.py",
-      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
-      "tests/process/test_issue899_push_transaction_ingress.py",
-      "tests/process/test_issue961_work_root_hard_gate.py",
-      "tests/process/test_root_local_first_entry_hard_gate.py"
+      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
     ]
   },
   "next_action": null,
