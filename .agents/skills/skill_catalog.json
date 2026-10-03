@@ -49,6 +49,11 @@
       "reason": "Flow v2 compatibility MIRROR; canonical execution authority is flow-v2-execution"
     },
     {
+      "glob": ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+      "classification": "retired",
+      "reason": "legacy continuity/checkpoint controller is audit/migration only; Flow v2 owns CURRENT execution and resume semantics"
+    },
+    {
       "glob": ".agents/skills/engineering/**/SKILL.md",
       "classification": "canonical",
       "reason": "stable WHD engineering skill bucket"
