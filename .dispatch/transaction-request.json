@@ -1,25 +1,15 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1146-b-start-branch-docs-gen8",
+  "request_id": "issue1146-b-release-platform-safety-block",
   "issue": 1146,
-  "kind": "START_BRANCH",
+  "kind": "RELEASE_PATHS",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-  "expected_coord_head": "fdc4ae3e5833eaf8f22a115367d6a0df3697eb65",
-  "expected_generation": 3,
+  "expected_coord_head": "c9ce3ee3a2439210e9e56e95eaa2dcc0e2861920",
+  "expected_generation": 4,
   "effect": {
-    "work_branch": "delivery/issue1146-docs-gen7-20261003",
-    "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-    "semantic_state": "BRANCH_READY",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "diff_digest": "d1fa5871a6569fd5d3c12d127785aa06e7c83f44d70819c1f381ddccc9a71a99",
-        "manifest_digest": "11b46c47fe076f264be4d20380a1c4570e2ab876a11c6705a3afbd4c714bd8e7",
-        "generation": 8
-      },
-      "display": "Apply exact frozen docs generation 8 commit"
-    }
+    "reason": "Exact gen8 delivery cannot complete because platform safety blocks mutations to execution-governance files; release reserved scope before durable BLOCK.",
+    "semantic_state": "PATH_RESERVATION_RELEASED_PLATFORM_SAFETY_BLOCK"
   },
   "reuse_admission_session": true
 }
