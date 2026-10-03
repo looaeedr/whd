@@ -1,10 +1,10 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-reconcile-gen21-20261003T1333Z",
+  "request_id": "issue1129-reconcile-gen21-20261003T1335Z",
   "issue": 1129,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1333Z",
+  "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1335Z",
   "expected_coord_head": "ee79ebeb36128a048c90e3b39ae55f121c2968bf",
   "expected_generation": 1,
   "effect": {
@@ -18,7 +18,7 @@
       "display": "Acquire #1129 for docs gen21 delivery"
     }
   },
-  "purpose": "Reconcile Issue #1129 to live accepted target before /推推 文檔 gen21 exact 17-path delivery.",
+  "purpose": "Reconcile stale #1129 identity to live accepted target before /推推 文檔 gen21 exact 17-path delivery.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -46,9 +46,9 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1129,
-    "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1333Z",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1335Z",
+    "branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+    "head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
     "required_skills": [
       "flow-v2-execution",
       "root-local-first",
@@ -65,8 +65,7 @@
       "triage",
       "wayfinder",
       "long-log-context-safe-execution",
-      "monitoring-remote-qa",
-      "推推"
+      "monitoring-remote-qa"
     ],
     "completed_skills": [
       "flow-v2-execution",
@@ -84,25 +83,22 @@
       "triage",
       "wayfinder",
       "long-log-context-safe-execution",
-      "monitoring-remote-qa",
-      "推推"
+      "monitoring-remote-qa"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
+      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
+      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-03T13:33:00Z"
+    "observed_at": "2026-10-03T13:35:38Z"
   }
 }
