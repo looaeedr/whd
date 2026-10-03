@@ -12,19 +12,23 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "issue": 1080,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lease": {
+    "expires_at": "2026-10-03T16:23:23Z",
+    "invocation_identity": "a20.20261003T154800Z",
+    "token": "lease:1080:37135710359:1"
+  },
   "mutation_scope": null,
   "next_action": {
     "args": {},
-    "display": "Acquire Issue #1080",
-    "kind": "ACQUIRE"
+    "display": "Repair the #1080 READY→ACQUIRE continuation contract from canonical root evidence, then start the exact-tested delivery branch",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +42,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
-  "transaction": null,
-  "updated_at": "2026-10-01T06:29:38Z",
+  "transaction": {
+    "expected_fingerprint": "8a768780e790503873c267a229d4193c1d01fdba9a947cc2b4882cd2a78abc89",
+    "id": "gha:37135710359:1080:ACQUIRE:1",
+    "invocation_identity": "a20.20261003T154800Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-03T16:08:23Z",
   "version": 2,
   "work_branch": "scheduler/issue1080-auto-dispatch"
 }
