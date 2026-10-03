@@ -12,22 +12,18 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "issue": 1080,
-  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "lease": {
-    "expires_at": "2026-10-03T16:23:23Z",
-    "invocation_identity": "a20.20261003T154800Z",
-    "token": "lease:1080:37135710359:1"
-  },
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": null,
   "mutation_scope": null,
   "next_action": {
     "args": {},
     "display": "Repair the #1080 READY→ACQUIRE continuation contract from canonical root evidence, then start the exact-tested delivery branch",
     "kind": "START_BRANCH"
   },
-  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
@@ -50,13 +46,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "transaction": {
-    "expected_fingerprint": "8a768780e790503873c267a229d4193c1d01fdba9a947cc2b4882cd2a78abc89",
-    "id": "gha:37135710359:1080:ACQUIRE:1",
+    "expected_fingerprint": "e88868f32a3e68d44df4715c5e5ea16501a70970b9d6b87d3b802e62ea9ea83e",
+    "id": "gha:37136057854:1080:HANDOFF:2",
     "invocation_identity": "a20.20261003T154800Z",
-    "kind": "ACQUIRE",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T16:08:23Z",
+  "updated_at": "2026-10-03T16:13:55Z",
   "version": 2,
   "work_branch": "scheduler/issue1080-auto-dispatch"
 }
