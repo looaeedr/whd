@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-takeover-20261003T1252+08",
+  "request_id": "issue1062-docs13-acquire-20261003T1513+08",
   "issue": 1062,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1062.takeover.20261003T1252+08",
-  "expected_coord_head": "57f25e577764b8a3ff1c64700144f65f99732c47",
+  "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
+  "expected_coord_head": "feb872b7b0ecb3cdac1ab3e2ffb17247e1b26a89",
   "expected_generation": 38,
   "effect": {},
-  "purpose": "Take over Issue #1062 after fresh family-lineage proof of no active writer, then continue the current root-local-first recovery without executing stale START_BRANCH.",
+  "purpose": "Resume Issue #1062 only to replace stale pre-shared0 delivery reservation with frozen docs generation 13 and complete exact /推推 文檔 delivery.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
