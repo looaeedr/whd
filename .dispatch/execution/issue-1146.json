@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -43,8 +43,8 @@
       "generation": 9,
       "manifest_digest": "6d2b896505b2f20270288f36560406695386e3593236926356055ad789587794"
     },
-    "display": "Start exact-tested #1146 docs generation 9 delivery branch",
-    "kind": "START_BRANCH"
+    "display": "Apply exact frozen docs generation 9 commit",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -61,7 +61,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "BRANCH_READY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -69,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "4411e258150da0cc16dbb9b0c8a8f3a273df312415a3656807bc2333f407243d",
-    "id": "chat:20261003T1208+08:1146:RESERVE_PATHS:5",
+    "expected_fingerprint": "7bc65340ffce53c486c8528a180a773d8c22c317a52eeff6e7d1369c27ea76a2",
+    "id": "chat:20261003T1208+08:1146:START_BRANCH:6",
     "invocation_identity": "chatgpt.push.docs.issue1146.gen9.20261003T1208+08",
-    "kind": "RESERVE_PATHS",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T04:08:00Z",
+  "updated_at": "2026-10-03T04:09:00Z",
   "version": 2,
-  "work_branch": "delivery/issue1146-docs-gen7-20261003"
+  "work_branch": "delivery/issue1146-docs-gen9-20261003"
 }
