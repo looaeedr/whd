@@ -192,3 +192,208 @@ def test_flow_v2_documents_single_startup_transition_gate():
         "startup_evidence + preflight_evidence + startup_transition",
     ):
         assert marker in text
+
+def _stale_release_record():
+    from tools.execution_record import execution_record_from_payload
+
+    return execution_record_from_payload(
+        {
+            "schema": "WHD_EXECUTION_RECORD_V2",
+            "version": 2,
+            "issue": 1062,
+            "generation": 44,
+            "execution_intent": "EXECUTE_TICKET",
+            "source_branch": "cleanup/2d-3d-sync",
+            "source_sha": "0" * 40,
+            "work_branch": "test/issue1062-product-full-regression-recovery",
+            "head_sha": "a" * 40,
+            "target_branch": "cleanup/2d-3d-sync",
+            "target_sha": "a" * 40,
+            "owner_kind": "SCHEDULER",
+            "owner_id": "chatgpt.flowv2.work1",
+            "lane_id": "chatgpt.flowv2.work1",
+            "slot_id": None,
+            "lease": {
+                "token": "lease:1062:test",
+                "invocation_identity": "chatgpt.flowv2.work1:stale",
+                "expires_at": "2026-10-03T14:47:01Z",
+            },
+            "state": "ACTIVE",
+            "semantic_state": "PATH_RESERVATION_RELEASED",
+            "next_action": {
+                "kind": "START_BRANCH",
+                "args": {},
+                "display": "stale continuation that must not run",
+            },
+            "active_run": None,
+            "qa": {"last_accepted_run": None, "accepted_head_sha": None},
+            "mutation_scope": {
+                "target_branch": "cleanup/2d-3d-sync",
+                "base_sha": "a" * 40,
+                "write_paths": ["tools/execution_record.py"],
+                "delete_paths": [],
+                "reservation_state": "RELEASED",
+            },
+            "blocker": None,
+            "closure": {
+                "merged_sha": None,
+                "released_at": None,
+                "issue_closed": False,
+            },
+            "chain": {
+                "parent_issue": 1059,
+                "next_issue": None,
+                "next_action": None,
+            },
+            "transaction": None,
+            "updated_at": "2026-10-03T14:33:56Z",
+            "recovery_history": [],
+        }
+    )
+
+
+def test_issue1062_trusted_release_paths_deletes_zero_unique_stale_branch(monkeypatch):
+    from urllib.error import HTTPError
+    import tools.control_transaction_production_executor as executor
+
+    record = _stale_release_record()
+    exists = {"value": True}
+    calls = []
+    target_sha = "b" * 40
+
+    monkeypatch.setattr(
+        executor,
+        "_now",
+        lambda: datetime(2026, 10, 4, 0, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_read_branch_head",
+        lambda repo, token, branch: target_sha,
+    )
+
+    def fake_api(repo, method, path, token, payload=None):
+        calls.append((method, path))
+        if path.startswith("/git/ref/heads/"):
+            if exists["value"]:
+                return {"object": {"sha": record.head_sha}}
+            raise HTTPError(path, 404, "not found", None, None)
+        if path.startswith("/branches/"):
+            return {"protected": False, "commit": {"sha": record.head_sha}}
+        if path.startswith("/compare/"):
+            return {"merge_base_commit": {"sha": record.head_sha}}
+        if method == "DELETE" and path.startswith("/git/refs/heads/"):
+            exists["value"] = False
+            return None
+        raise AssertionError((method, path))
+
+    monkeypatch.setattr(executor, "_api", fake_api)
+    effect = executor._trusted_stale_release_effect(
+        "looaeedr/whd",
+        "token",
+        record=record,
+        records={record.issue: record},
+        supplied={"reason": "stale reset", "delete_stale_work_branch": True},
+    )
+
+    assert effect["work_branch_exists"] is False
+    assert effect["fresh_target_sha"] == target_sha
+    assert effect["stale_work_branch_deleted"] is True
+    assert effect["stale_work_branch_readback"] == "ABSENT"
+    assert any(method == "DELETE" for method, _ in calls)
+
+
+def test_issue1062_stale_branch_delete_requires_explicit_release_paths_intent(monkeypatch):
+    import tools.control_transaction_production_executor as executor
+
+    record = _stale_release_record()
+    monkeypatch.setattr(
+        executor,
+        "_now",
+        lambda: datetime(2026, 10, 4, 0, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_read_branch_head",
+        lambda repo, token, branch: "b" * 40,
+    )
+    monkeypatch.setattr(
+        executor,
+        "_api",
+        lambda repo, method, path, token, payload=None: {"object": {"sha": record.head_sha}}
+        if path.startswith("/git/ref/heads/")
+        else {"protected": False, "commit": {"sha": record.head_sha}},
+    )
+
+    with pytest.raises(Exception, match="delete_stale_work_branch=true"):
+        executor._trusted_stale_release_effect(
+            "looaeedr/whd",
+            "token",
+            record=record,
+            records={record.issue: record},
+            supplied={"reason": "stale reset"},
+        )
+
+
+def test_issue1062_stale_branch_delete_rejects_protected_or_diverged_ref(monkeypatch):
+    import tools.control_transaction_production_executor as executor
+
+    record = _stale_release_record()
+    monkeypatch.setattr(
+        executor,
+        "_now",
+        lambda: datetime(2026, 10, 4, 0, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        executor,
+        "_read_branch_head",
+        lambda repo, token, branch: "b" * 40,
+    )
+
+    def protected_api(repo, method, path, token, payload=None):
+        if path.startswith("/git/ref/heads/"):
+            return {"object": {"sha": record.head_sha}}
+        if path.startswith("/branches/"):
+            return {"protected": True, "commit": {"sha": record.head_sha}}
+        raise AssertionError((method, path))
+
+    monkeypatch.setattr(executor, "_api", protected_api)
+    with pytest.raises(Exception, match="protected work branch"):
+        executor._trusted_stale_release_effect(
+            "looaeedr/whd",
+            "token",
+            record=record,
+            records={record.issue: record},
+            supplied={"reason": "stale reset", "delete_stale_work_branch": True},
+        )
+
+    def diverged_api(repo, method, path, token, payload=None):
+        if path.startswith("/git/ref/heads/"):
+            return {"object": {"sha": record.head_sha}}
+        if path.startswith("/branches/"):
+            return {"protected": False, "commit": {"sha": record.head_sha}}
+        if path.startswith("/compare/"):
+            return {"merge_base_commit": {"sha": "c" * 40}}
+        raise AssertionError((method, path))
+
+    monkeypatch.setattr(executor, "_api", diverged_api)
+    with pytest.raises(Exception, match="not contained in current target"):
+        executor._trusted_stale_release_effect(
+            "looaeedr/whd",
+            "token",
+            record=record,
+            records={record.issue: record},
+            supplied={"reason": "stale reset", "delete_stale_work_branch": True},
+        )
+
+
+def test_issue1062_flow_v2_documents_canonical_stale_branch_delete_transport():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    for marker in (
+        "STALE_RELEASED_BRANCH_CLEANUP_TRANSPORT_V1",
+        "delete_stale_work_branch=true",
+        "work HEAD 是 current target ancestor",
+        "DELETE 後必須再次 GET exact ref",
+    ):
+        assert marker in text
+
