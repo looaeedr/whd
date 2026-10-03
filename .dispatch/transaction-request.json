@@ -1,21 +1,37 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1146-b-acquire-docs-gen8-v3",
+  "request_id": "issue1146-b-reserve-docs-gen8",
   "issue": 1146,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-  "expected_coord_head": "c7cfd19b052af7726e01182b8e1d2576fc0eece2",
-  "expected_generation": 1,
+  "expected_coord_head": "00dc10b535c5e608ea60634d452805e956f6184c",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED",
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+    "write_paths": [
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".agents/skills/engineering/推推/SKILL.md",
+      "AGENTS.md",
+      "tests/test_root_entry_router_hard_gate.py",
+      "tools/root_local_first_gate.py",
+      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED",
     "next_action": {
-      "kind": "RESERVE_PATHS",
-      "args": {},
-      "display": "Reserve exact frozen docs generation 8 scope for #1146"
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "d1fa5871a6569fd5d3c12d127785aa06e7c83f44d70819c1f381ddccc9a71a99",
+        "manifest_digest": "11b46c47fe076f264be4d20380a1c4570e2ab876a11c6705a3afbd4c714bd8e7",
+        "generation": 8
+      },
+      "display": "Start exact-tested #1146 docs generation 8 delivery branch"
     }
   },
-  "purpose": "User-authorized delivery control-plane for #1146 from already GREEN/FROZEN canonical docs generation 8 into cleanup/2d-3d-sync; no repository-content authoring in scheduler runtime.",
+  "purpose": "Reserve exactly the seven frozen docs generation 8 paths for #1146 delivery; no repository-content authoring occurs in scheduler runtime.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
