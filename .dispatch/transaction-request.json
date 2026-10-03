@@ -1,19 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "a20-1080-handoff-work2-20261003T161250Z-r2",
-  "issue": 1080,
-  "kind": "HANDOFF",
+  "request_id": "a20-1115-acquire-20261003T161600Z",
+  "issue": 1115,
+  "kind": "ACQUIRE",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "a20.20261003T154800Z",
-  "expected_coord_head": "f3fdeb2aac3cebc9ab3567d71682a53d8fddbe86",
-  "expected_generation": 2,
+  "expected_coord_head": "af6af9eafc0b442e5778f8a779b4ca17ec003fd3",
+  "expected_generation": 1,
   "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work2",
-    "lane_id": "chatgpt.flowv2.work2",
-    "lease": null
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Complete #1115 repository-content implementation in canonical /Google Drive/WHD shared .unpushed root flow, freeze/test exact diff, then start delivery branch"
+    }
   },
-  "purpose": "Routing-only handoff of Issue #1080 from Scheduler A to the root-capable work2 executor after the live smoke exposed a READY→ACQUIRE continuation contract gap. Preserve the exact START_BRANCH continuation and exact source/head/target; scheduler performs no repository-content authoring.",
+  "purpose": "Acquire explicit A-lane Issue #1115 under CURRENT Flow v2. The requested implementation is repository-content work, so after ACQUIRE scheduler must route ownership to a root-capable executor before any START_BRANCH/Git content authoring.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -40,24 +42,28 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1080,
+    "issue": 1115,
     "invocation_identity": "a20.20261003T154800Z",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
     "required_skills": [
-      "phase6-gui-performance-integrity",
-      "handoff"
+      "root-local-first",
+      "phase6-gui-performance-integrity"
     ],
     "completed_skills": [
-      "phase6-gui-performance-integrity",
-      "handoff"
+      "root-local-first",
+      "phase6-gui-performance-integrity"
     ],
     "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
     ],
     "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
     ],
-    "observed_at": "2026-10-03T16:12:44Z"
+    "observed_at": "2026-10-03T16:15:26Z"
   }
 }
