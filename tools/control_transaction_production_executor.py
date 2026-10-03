@@ -726,7 +726,7 @@ def _trusted_stale_release_effect(
     token: str,
     *,
     record: ExecutionRecord,
-    records: dict[int, ExecutionRecord],
+    records: dict[int, ExecutionRecord] | None = None,
     supplied: dict[str, object],
 ) -> dict[str, object]:
     """Delete one proven-safe stale work ref, then prove absence before READY reset.
@@ -762,7 +762,8 @@ def _trusted_stale_release_effect(
             f"stale RELEASE_PATHS cleanup refuses protected/control branch {record.work_branch!r}"
         )
 
-    for other in records.values():
+    observed_records = records if records is not None else {record.issue: record}
+    for other in observed_records.values():
         if (
             other.issue != record.issue
             and other.state != "DONE"
