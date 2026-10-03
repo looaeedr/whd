@@ -8,23 +8,19 @@
   },
   "closure": {
     "merged_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
-    "issue_closed": false,
-    "released_at": null
+    "issue_closed": true,
+    "released_at": "2026-10-03T05:03:00Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "07045a2024638d98cecda66568d19ae25fe75df9",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
-  "lease": {
-    "expires_at": "2026-10-03T01:40:52Z",
-    "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-    "token": "lease:1146:37086038348:1"
-  },
+  "lease": null,
   "mutation_scope": {
     "base_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
@@ -41,11 +37,7 @@
       "tests/process/test_root_local_first_entry_hard_gate.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize merged docs generation 10 and release reservation",
-    "kind": "FINALIZE"
-  },
+  "next_action": null,
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
   "qa": {
@@ -61,21 +53,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
   "transaction": {
-    "expected_fingerprint": "4e694eb6430da1097b396a5ae4f8d75984379f112cd0664366642a788364ec51",
-    "id": "chat:20261003T1302+08:1146:MERGE:12",
+    "expected_fingerprint": "47684782e2afcefbb13aa08408c307663f7169e05df8444ae2b58002385f711c",
+    "id": "chat:20261003T1303+08:1146:FINALIZE:13",
     "invocation_identity": "chatgpt.push.docs.issue1146.gen10.20261003T1256+08",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T05:02:00Z",
+  "updated_at": "2026-10-03T05:03:00Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen9-20261003"
 }
