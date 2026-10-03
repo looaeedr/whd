@@ -1,21 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "a20-1115-acquire-20261003T161600Z",
+  "request_id": "a20-1115-handoff-work3-20261003T161800Z",
   "issue": 1115,
-  "kind": "ACQUIRE",
+  "kind": "HANDOFF",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity": "a20.20261003T154800Z",
-  "expected_coord_head": "af6af9eafc0b442e5778f8a779b4ca17ec003fd3",
-  "expected_generation": 1,
+  "expected_coord_head": "88121ff495fa6d98b5bae513d5e6e54d6cecf922",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Complete #1115 repository-content implementation in canonical /Google Drive/WHD shared .unpushed root flow, freeze/test exact diff, then start delivery branch"
-    }
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work3",
+    "lane_id": "chatgpt.flowv2.work3",
+    "lease": null
   },
-  "purpose": "Acquire explicit A-lane Issue #1115 under CURRENT Flow v2. The requested implementation is repository-content work, so after ACQUIRE scheduler must route ownership to a root-capable executor before any START_BRANCH/Git content authoring.",
+  "purpose": "Routing-only handoff of Issue #1115 from Scheduler A to root-capable work3 because the exact structured continuation requires repository-content implementation under /Google Drive/WHD shared .unpushed. Preserve exact START_BRANCH continuation; scheduler performs no GitHub-first content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
