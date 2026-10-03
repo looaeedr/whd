@@ -486,9 +486,15 @@ FINALIZE 是 Issue closure 的唯一 terminal gate。trusted production executor
 
 因此「merge + acceptance 完成但 Issue 還開著」不是合法 terminal；同一 FINALIZE 必須把 Issue 收乾淨並 readback。
 
-## Legacy compatibility
+## LEGACY_FLOW_HAS_NO_RUNTIME_COMPATIBILITY_RIGHT
 
-2026-09-28 前的舊 coordination、prewrite、separate finalization 與 turn-exit artifacts只作 audit/migration evidence。**例外：scheduler runtime liveness 與 #679 interactive runtime liveness 的既有 machine owners 仍為 CURRENT liveness capability，但只可經 Flow v2 observation adapter 投影為 NON_AUTHORITY observability，不得恢復成 execution authority。** 其他 legacy workflow 仍 fail-closed。
+**LEGACY_FLOW_HAS_NO_RUNTIME_COMPATIBILITY_RIGHT**：退休的 execution/control-plane 路徑沒有 production runtime 相容權。確認沒有 CURRENT inbound dependency 後，必須從 production tree 物理刪除；不得以 HISTORICAL、deprecated、fallback、compatibility alias、fenced procedure 或舊 executable-looking reference 的形式繼續保留。
+
+**ONE_CANONICAL_EXECUTION_PATH**：同一 execution purpose 只能有一條 CURRENT machine path。合法的 MIRROR/entry Skill 只能薄路由到本 Flow v2，不能保有第二套 ownership、claim、checkpoint、Guard、resume、scheduler、remote-QA、turn-exit、finalization 或 closure state machine。
+
+歷史證據只留在 Git history / closed Issues；production tree 不充當舊 execution procedure 的歷史博物館。若 CURRENT code/test/reference 仍依賴退休 artifact，先把 inbound dependency 遷移到 Flow v2 canonical owner，再刪除 retired artifact。CI/anti-regrowth tests 必須對已退休 path/symbol fail closed，禁止之後重新長回 production。
+
+scheduler runtime liveness 與 #679 interactive runtime liveness 若仍是 CURRENT machine capability，只能作 Flow v2 NON_AUTHORITY observability adapter 的 implementation dependency；這不構成 legacy execution compatibility，也不得恢復成 execution authority。
 
 ## Progress
 
