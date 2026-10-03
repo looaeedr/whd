@@ -998,3 +998,341 @@
         ".agents/skills/engineering/wayfinder/**"
       ],
       "required_skills": [
+        "wayfinder"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wizard",
+      "keywords": [
+        "wizard"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/wizard/**"
+      ],
+      "required_skills": [
+        "wizard"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-writing-for-agents",
+      "keywords": [
+        "writing-for-agents"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/writing-for-agents/**"
+      ],
+      "required_skills": [
+        "writing-for-agents"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-Python測試實務",
+      "keywords": [
+        "Python測試實務"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/Python測試實務/**"
+      ],
+      "required_skills": [
+        "Python測試實務"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-UI設計與去AI味",
+      "keywords": [
+        "UI設計與去AI味"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/UI設計與去AI味/**"
+      ],
+      "required_skills": [
+        "UI設計與去AI味"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-deterministic-repo-migration",
+      "keywords": [
+        "deterministic-repo-migration"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/deterministic-repo-migration/**"
+      ],
+      "required_skills": [
+        "flow-v2-execution",
+        "root-local-first",
+        "deterministic-repo-migration"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-diagnosing-bugs",
+      "keywords": [
+        "diagnosing-bugs"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/diagnosing-bugs/**"
+      ],
+      "required_skills": [
+        "diagnosing-bugs"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-executable-continuity-controller",
+      "keywords": [
+        "executable-continuity-controller"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/executable-continuity-controller/**"
+      ],
+      "required_skills": [
+        "flow-v2-execution",
+        "executable-continuity-controller"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-issue-closure-gate",
+      "keywords": [
+        "issue-closure-gate"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/issue-closure-gate/**"
+      ],
+      "required_skills": [
+        "flow-v2-execution",
+        "issue-closure-gate"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-long-log-context-safe-execution",
+      "keywords": [
+        "long-log-context-safe-execution"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/long-log-context-safe-execution/**"
+      ],
+      "required_skills": [
+        "long-log-context-safe-execution"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-monitoring-remote-qa",
+      "keywords": [
+        "monitoring-remote-qa"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/monitoring-remote-qa/**"
+      ],
+      "required_skills": [
+        "flow-v2-execution",
+        "monitoring-remote-qa"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-corner-3d-model-integrity",
+      "keywords": [
+        "phase6-corner-3d-model-integrity"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-corner-3d-model-integrity/**"
+      ],
+      "required_skills": [
+        "phase6-corner-3d-model-integrity"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-gui-performance-integrity",
+      "keywords": [
+        "phase6-gui-performance-integrity"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-gui-performance-integrity/**"
+      ],
+      "required_skills": [
+        "phase6-gui-performance-integrity"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-overlay-relief-basis",
+      "keywords": [
+        "phase6-overlay-relief-basis"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-overlay-relief-basis/**"
+      ],
+      "required_skills": [
+        "phase6-overlay-relief-basis"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-release-packaging",
+      "keywords": [
+        "phase6-release-packaging"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-release-packaging/**"
+      ],
+      "required_skills": [
+        "phase6-release-packaging"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-tdd",
+      "keywords": [
+        "tdd"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/tdd/**"
+      ],
+      "required_skills": [
+        "tdd"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-寫技能",
+      "keywords": [
+        "寫技能"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/寫技能/**"
+      ],
+      "required_skills": [
+        "寫技能"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-截角資料入口收斂",
+      "keywords": [
+        "截角資料入口收斂"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/截角資料入口收斂/**"
+      ],
+      "required_skills": [
+        "截角資料入口收斂"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-驗證板件與DXF",
+      "keywords": [
+        "驗證板件與DXF"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/驗證板件與DXF/**"
+      ],
+      "required_skills": [
+        "驗證板件與DXF"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-git-remote-sync-fallback",
+      "keywords": [
+        "git-remote-sync-fallback"
+      ],
+      "file_globs": [
+        ".agents/skills/misc/git-remote-sync-fallback/**"
+      ],
+      "required_skills": [
+        "git-remote-sync-fallback"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-MCP工具操作",
+      "keywords": [
+        "MCP工具操作"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/MCP工具操作/**"
+      ],
+      "required_skills": [
+        "MCP工具操作"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "force-takeover",
+      "keywords": [
+        "強制接手",
+        "force takeover",
+        "user-directed takeover",
+        "WHD_USER_DIRECTED_TAKEOVER_V1"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/強制接手/**"
+      ],
+      "required_skills": [
+        "flow-v2-execution",
+        "強制接手"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ]
+    },
+    {
+      "id": "推推",
+      "keywords": [
+        "推推",
+        "/推推",
+        "推推 文檔",
+        "推推 主體",
+        "delivery branch",
+        "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST"
+      ],
+      "file_globs": [
+        ".unpushed/**",
+        ".agents/skills/engineering/推推/**"
+      ],
+      "required_skills": [
+        "推推"
+      ],
+      "required_references": [
+        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+      ]
+    },
+    {
+      "id": "刪除",
+      "keywords": [
+        "刪除",
+        "刪掉",
+        "清除",
+        "清掉",
+        "清空",
+        "移除 staging",
+        "移除 0",
+        "清 staging",
+        "清 active 0",
+        "delete",
+        "remove"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/刪除/**",
+        "tests/process/test_delete_skill_contract.py"
+      ],
+      "required_skills": [
+        "刪除"
+      ],
+      "required_references": [
+        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+      ]
+    }
+  ]
+}
