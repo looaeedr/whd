@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "19b99baeeaa48946dce352e7906aac4dc5dc104f",
   "issue": 1129,
   "lane_id": "chatgpt.flowv2.work3",
@@ -48,16 +48,18 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "pr_number": 1154,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Run post-push control-plane CI for repaired docs generation 22 exact head",
-    "kind": "START_QA"
+    "display": "Merge PR #1154 after all post-push CI is GREEN",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "19b99baeeaa48946dce352e7906aac4dc5dc104f",
+    "last_accepted_run": 37130124841
   },
   "recovery_history": [
     {
@@ -68,21 +70,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PUSHED_EXACT_LOCKED_FILESET",
+  "semantic_state": "GREEN",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
   "transaction": {
-    "expected_fingerprint": "c5c14ab3c19e88e9393d150315ade5bd42696a3169383a784bc79c68e07e4dd0",
-    "id": "gha:37130158278:1129:APPLY_COMMIT:8",
+    "expected_fingerprint": "f4fd354b1399bdfcabfa2463eba829712b737850cf4ec9dac2718508d4cab993",
+    "id": "gha:37130266492:1129:CONSUME_QA:9",
     "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
-    "kind": "APPLY_COMMIT",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T14:36:07Z",
+  "updated_at": "2026-10-03T14:37:54Z",
   "version": 2,
   "work_branch": "governance/issue1129-runtime-report-identity-gate-20261002"
 }
