@@ -37,6 +37,7 @@ from tools.control_transaction_request_builder import (
 # WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1
 from tools.control_transaction_production_executor import (
     ProductionExecutorError,
+    _is_ancestor,
     _load_state,
     _read_branch_head,
     execute_one,
@@ -78,6 +79,7 @@ def _execution_mode_for_request(request: dict[str, object]) -> str:
 
 
 INTERACTIVE_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
+STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_SCHEMA = "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1"
 
 
 def _prevalidate_interactive_git_write_receipt(
@@ -96,6 +98,74 @@ def _prevalidate_interactive_git_write_receipt(
         validate_git_unlock_receipt(receipt)
     except ValueError as exc:
         raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
+
+
+def _text_field(payload: dict[str, object], key: str) -> str:
+    value = str(payload.get(key) or "").strip()
+    if not value:
+        raise ControlTransactionConflict(f"STALE_PLAN_MUST_DIE stale-record reconcile proof missing {key}")
+    return value
+
+
+def _validate_stale_record_live_target_reconcile_bridge(
+    *,
+    request: dict[str, object],
+    record,
+    repo: str,
+    token: str,
+    stale_identity_error: ValueError,
+) -> bool:
+    """Allow only explicit RECONCILE closure recovery from stale record identity."""
+    if not str(stale_identity_error).startswith("STARTUP_TRANSITION_STALE_IDENTITY "):
+        return False
+    if str(request.get("kind") or "") != "RECONCILE":
+        return False
+
+    effect = request.get("effect")
+    if not isinstance(effect, dict):
+        raise ProductionExecutorError("effect must be an object")
+    proof = effect.get("stale_record_live_target_reconcile_proof")
+    if not isinstance(proof, dict):
+        return False
+    if proof.get("schema") != STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_SCHEMA:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile proof schema mismatch")
+
+    transition = request.get("startup_transition")
+    if not isinstance(transition, dict):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile requires startup transition")
+
+    if int(proof.get("issue") or 0) != int(record.issue):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile issue mismatch")
+
+    live_target_branch = _text_field(proof, "live_target_branch")
+    live_target_sha = _text_field(proof, "live_target_sha").lower()
+    if live_target_branch != record.target_branch:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile target branch mismatch")
+
+    if str(transition.get("branch") or "").strip() != live_target_branch:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile transition branch mismatch")
+    if str(transition.get("head_sha") or "").strip().lower() != live_target_sha:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile transition head mismatch")
+
+    stale_source_branch = _text_field(proof, "stale_source_branch")
+    stale_source_sha = _text_field(proof, "stale_source_sha").lower()
+    stale_target_branch = _text_field(proof, "stale_target_branch")
+    stale_target_sha = _text_field(proof, "stale_target_sha").lower()
+    if stale_source_branch != record.source_branch or stale_source_sha != str(record.source_sha).lower():
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile source identity mismatch")
+    if stale_target_branch != record.target_branch or stale_target_sha != str(record.target_sha).lower():
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile target identity mismatch")
+
+    observed_live_target = _read_branch_head(repo, token, live_target_branch).lower()
+    if observed_live_target != live_target_sha:
+        raise ControlTransactionConflict(
+            f"STALE_PLAN_MUST_DIE stale-record reconcile live target drift: expected {live_target_sha}, observed {observed_live_target}"
+        )
+    if not _is_ancestor(repo, token, stale_target_sha, live_target_sha):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale target is not ancestor of live target")
+    if not _is_ancestor(repo, token, stale_source_sha, live_target_sha):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale source is not ancestor of live target")
+    return True
 
 
 def _validate_interactive_git_write_receipt(
@@ -209,7 +279,6 @@ def _validate_live_session_reuse(record, *, request: dict[str, object]) -> None:
         raise ControlTransactionConflict("session reuse lease expired; fresh ACQUIRE required")
     if record.owner_kind != "SCHEDULER" or record.owner_id != lane_id or record.lane_id != lane_id:
         raise ControlTransactionConflict("session reuse owner/lane identity mismatch")
-
 def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -341,7 +410,14 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
                 target_sha=record.target_sha,
             )
         except ValueError as exc:
-            raise ControlTransactionConflict(str(exc)) from exc
+            if not _validate_stale_record_live_target_reconcile_bridge(
+                request=request,
+                record=record,
+                repo=repo,
+                token=token,
+                stale_identity_error=exc,
+            ):
+                raise ControlTransactionConflict(str(exc)) from exc
 
     _validate_interactive_git_write_receipt(
         request,
