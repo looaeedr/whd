@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 
@@ -8,8 +7,6 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 FLOW = ".agents/skills/engineering/flow-v2-execution/SKILL.md"
-ROOT_GATE_ID = "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
-ROOT_GATE_PATH = "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
 REMOTE_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
 
 
@@ -32,26 +29,29 @@ def _canonical_payload_from_mirror(rel: str) -> dict[str, object]:
     return payload
 
 
-def test_root_local_drive_canonical_projection_validates_and_hashes_to_pointer() -> None:
+def test_root_shared_unpushed_contract_is_current_canonical_projection() -> None:
     from tools.root_local_first_gate import validate_contract
 
-    mirror = _json(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json")
-    canonical = _canonical_payload_from_mirror(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json")
-    validate_contract(canonical)
+    contract = _json(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
+    validate_contract(contract)
+    assert contract["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
+    assert contract["canonical_root"]["library_path"] == "/Google Drive/WHD"
+    assert contract["canonical_root"]["interactive_work_prefix"] == "/Google Drive/WHD/.unpushed"
     for mode in ("SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"):
-        assert canonical["execution_modes"][mode] == REMOTE_POLICY
-    source = mirror["canonical_source"]
-    assert source["library_path"] == ROOT_GATE_PATH
-    assert source["drive_file_id"] == ROOT_GATE_ID
-    assert source["canonical_payload_sha256"] == hashlib.sha256(_canonical_bytes(canonical)).hexdigest()
+        assert contract["execution_modes"][mode] == REMOTE_POLICY
+    old = _json(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json")
+    assert old["status"] == "SUPERSEDED"
 
 
-def test_work_root_pointer_tracks_current_drive_canonical_hash_and_next_gate() -> None:
-    mirror = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json")
-    assert mirror["canonical_source"]["canonical_payload_sha256"] == "f9623bc6364c856f9c09851232348930dda4a17231f1fd470390535c371cc512"
-    assert mirror["required_sequence"][-2] == "ROOT_LOCAL_FIRST_GATE_READ"
-    assert mirror["next_gate"]["drive_path"] == ROOT_GATE_PATH
-    assert mirror["override_policy"]["allowed_only_when"][-2] == "execution_mode is GITHUB_ONLY or REMOTE_ACTION"
+def test_work_root_v2_points_to_shared_unpushed_entry_gate() -> None:
+    contract = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json")
+    assert contract["status"] == "CURRENT"
+    assert contract["required_sequence"][-2] == "ROOT_SHARED_UNPUSHED_GATE_READ"
+    assert contract["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
+    assert contract["next_gate"]["repository_contract"] == ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+    old = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json")
+    assert old["status"] == "SUPERSEDED"
+
 
 def test_every_registry_route_loading_flow_v2_mirror_loads_canonical_first() -> None:
     registry = _json(".agents/skills/skill_registry.json")
@@ -138,49 +138,42 @@ def _done_record():
     })
 
 
-def _manifest(*, complete: bool) -> dict[str, object]:
-    base: dict[str, object] = {
-        "source_sha": "c" * 40,
-        "tree_sha": "d" * 40,
-        "root_local_gate_json_path": ROOT_GATE_PATH,
-        "root_local_gate_json_file_id": ROOT_GATE_ID,
-    }
-    if complete:
-        base.update({
-            "durable_snapshot_base_sha": "c" * 40,
-            "durable_snapshot_base_tree_sha": "d" * 40,
-            "durable_snapshot_file_id": "drive-file",
-            "durable_snapshot_name": "snapshot.zip",
-            "durable_snapshot_status": "CURRENT_EXACT_HEAD",
-            "export_writeback_status": "COMPLETE",
-            "post_integration_export_run_id": 1,
-            "post_integration_export_trigger_head_sha": "c" * 40,
-            "post_integration_export_artifact_id": 2,
-            "post_integration_export_artifact_digest": "sha256:" + "e" * 64,
-            "durable_snapshot_sha256": "f" * 64,
-            "durable_snapshot_readback": "VERIFIED",
-        })
-    return base
+def _root_sync_receipt():
+    from tools.post_integration_durability import build_root_sync_receipt
+    return build_root_sync_receipt(
+        accepted_sha="c" * 40, accepted_tree_sha="d" * 40,
+        root_head_sha="c" * 40, root_tree_sha="d" * 40,
+    )
 
 
-def test_repository_content_completion_blocks_after_done_until_durability_tail_complete() -> None:
+def _lane_delivery_receipt():
+    from tools.post_integration_durability import build_lane_delivery_receipt
+    return build_lane_delivery_receipt(
+        lane="docs", issue=1049, generation=2, merged_sha="c" * 40,
+        manifest_digest="e" * 64, delivered_paths=["AGENTS.md"], lane_state_after="EMPTY",
+    )
+
+
+def test_repository_content_completion_blocks_after_done_until_v2_durability_complete() -> None:
     from tools.execution_invocation_exit import InvocationExitError, assert_repository_content_cycle_complete
 
     record = _done_record()
-    with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:CONSUME_SOURCE_EXPORT"):
-        assert_repository_content_cycle_complete(record, source_manifest=_manifest(complete=False), workspace_location="ACTIVE")
-    with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:ARCHIVE_WORKSPACE_TO_DONE"):
-        assert_repository_content_cycle_complete(record, source_manifest=_manifest(complete=True), workspace_location="ACTIVE")
-    assert assert_repository_content_cycle_complete(record, source_manifest=_manifest(complete=True), workspace_location="DONE") is True
+    with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD"):
+        assert_repository_content_cycle_complete(record, root_sync_receipt=None, lane_delivery_receipt=None)
+    with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:FINALIZE_DELIVERED_LANE_ZERO"):
+        assert_repository_content_cycle_complete(record, root_sync_receipt=_root_sync_receipt(), lane_delivery_receipt=None)
+    assert assert_repository_content_cycle_complete(
+        record, root_sync_receipt=_root_sync_receipt(), lane_delivery_receipt=_lane_delivery_receipt()
+    ) is True
 
 
-def test_post_integration_manifest_writeback_self_heals_root_gate_pointer() -> None:
-    from tools.post_integration_durability import validate_completed_source_manifest
-    manifest = _manifest(complete=True)
-    assert validate_completed_source_manifest(manifest)["root_local_gate_json_file_id"] == ROOT_GATE_ID
-    stale = dict(manifest, root_local_gate_json_path="/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1_v4.json", root_local_gate_json_file_id="1vjSwAJNNwcEKIHh4iXqYuuYXJ_1YkA9L")
-    with pytest.raises(ValueError, match="root-local gate path is stale"):
-        validate_completed_source_manifest(stale)
+def test_post_integration_v2_rejects_legacy_snapshot_authority() -> None:
+    contract = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json")
+    assert set(contract["forbidden_current_authorities"]) == {
+        "SOURCE_SNAPSHOT", "CURRENT_SOURCE_MANIFEST", "WORK_ACTIVE_ARCHIVE"
+    }
+    old = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json")
+    assert old["status"] == "SUPERSEDED"
 
 
 def test_control_plane_regression_owns_v3_guard() -> None:
@@ -191,18 +184,16 @@ def test_control_plane_regression_owns_v3_guard() -> None:
     assert rel in workflow
 
 
-def test_connector_merge_has_post_integration_export_trigger() -> None:
-    workflow = _read(".github/workflows/drive-source-snapshot-export.yml")
-    assert "pull_request:" in workflow
-    assert "types: [closed]" in workflow
-    assert "github.event.pull_request.merged == true" in workflow
-    assert "github.event.pull_request.merge_commit_sha" in workflow
+def test_legacy_source_snapshot_workflow_is_absent() -> None:
+    assert not (ROOT / ".github/workflows/drive-source-snapshot-export.yml").exists()
 
 
-def test_pr_transport_head_is_not_reinterpreted_as_export_source_identity() -> None:
-    contract = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json")
-    assert contract["artifact_source_identity_policy"].startswith("TRUSTED_EXPORT_MANIFEST_SOURCE_SHA_PLUS_EXACT_ARTIFACT_NAME")
+def test_v2_durability_requires_root_sync_and_lane_finalization() -> None:
+    contract = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json")
+    assert "CANONICAL_ROOT_SYNCED_TO_MERGED_HEAD" in contract["required_order"]
+    assert "LANE_0_ROLLED_FORWARD_OR_EMPTY" in contract["required_order"]
     tool = _read("tools/post_integration_durability.py")
-    assert 'trigger_head_sha = _sha(run.get("head_sha"), "artifact head_sha")' in tool
-    assert 'artifact head_sha mismatch' not in tool
-    assert '"trigger_head_sha": trigger_head_sha' in tool
+    assert "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD" in tool
+    assert "FINALIZE_DELIVERED_LANE_ZERO" in tool
+    assert "/work/active" not in tool
+    assert "/source/snapshots" not in tool

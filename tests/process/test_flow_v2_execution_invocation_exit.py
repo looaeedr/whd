@@ -168,6 +168,40 @@ def test_completed_yield_is_machine_proof_for_physical_return():
     assert result.requires_yield is False
 
 
+def test_completed_yield_with_other_executable_leaf_must_continue_same_invocation():
+    record = _record("ACTIVE")
+    yielded = replace(
+        record,
+        lease=None,
+        transaction=TransactionState(
+            id="tx-yield-other-leaf",
+            kind="YIELD",
+            status="RECONCILED",
+            expected_fingerprint="e" * 64,
+            invocation_identity=INV,
+        ),
+    )
+    result = classify_invocation_exit(
+        yielded,
+        invocation_identity=INV,
+        now=NOW,
+        alternative_executable_leaf_count=1,
+    )
+    assert result.decision == "CONTINUE_OTHER_EXECUTABLE_LEAF"
+    assert result.may_return is False
+    assert result.requires_yield is False
+
+
+def test_alternative_executable_leaf_count_rejects_invalid_values():
+    with pytest.raises(InvocationExitError, match="alternative_executable_leaf_count"):
+        classify_invocation_exit(
+            _record("ACTIVE"),
+            invocation_identity=INV,
+            now=NOW,
+            alternative_executable_leaf_count=-1,
+        )
+
+
 def test_host_boundary_rejects_acquire_only_as_no_progress():
     record = _record("ACTIVE")
     acquire_tx = TransactionState(
@@ -323,19 +357,35 @@ def _repository_content_done_record():
     )
 
 
+def _root_sync_receipt_for_done():
+    from tools.post_integration_durability import build_root_sync_receipt
+    return build_root_sync_receipt(
+        accepted_sha="c" * 40, accepted_tree_sha="d" * 40,
+        root_head_sha="c" * 40, root_tree_sha="d" * 40,
+    )
+
+
+def _lane_delivery_receipt_for_done():
+    from tools.post_integration_durability import build_lane_delivery_receipt
+    return build_lane_delivery_receipt(
+        lane="docs", issue=844, generation=2, merged_sha="c" * 40,
+        manifest_digest="e" * 64, delivered_paths=["AGENTS.md"], lane_state_after="EMPTY",
+    )
+
+
 def test_repository_content_done_cannot_return_before_physical_cleanup_evidence():
     result = classify_invocation_exit(_repository_content_done_record(), invocation_identity=INV, now=NOW)
     assert result.decision == "CONTINUE_POST_INTEGRATION_DURABILITY"
     assert result.may_return is False
 
 
-def test_repository_content_done_returns_only_after_manifest_and_workspace_archive():
+def test_repository_content_done_returns_only_after_root_sync_and_lane_finalization():
     result = classify_invocation_exit(
         _repository_content_done_record(),
         invocation_identity=INV,
         now=NOW,
-        source_manifest=_complete_source_manifest_for_done(),
-        workspace_location="DONE",
+        root_sync_receipt=_root_sync_receipt_for_done(),
+        lane_delivery_receipt=_lane_delivery_receipt_for_done(),
     )
     assert result.decision == "TASK_TERMINAL"
     assert result.may_return is True

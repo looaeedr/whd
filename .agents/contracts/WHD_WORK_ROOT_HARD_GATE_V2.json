@@ -1,0 +1,50 @@
+{
+  "schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+  "version": 2,
+  "status": "CURRENT",
+  "owner": "tools/work_root_gate.py",
+  "default_work_root": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
+  },
+  "required_root_entries": [
+    ".git",
+    ".agents",
+    ".github",
+    "AGENTS.md",
+    "tools",
+    "tests",
+    "ae_engine",
+    "gui_modules",
+    ".unpushed"
+  ],
+  "forbidden_current_layout_assumptions": [
+    "LEGACY_SOURCE_MANIFEST_LAYOUT",
+    "LEGACY_SOURCE_SNAPSHOT_LAYOUT",
+    "LEGACY_WORK_ACTIVE_LAYOUT",
+    "LEGACY_STATE_LAYOUT",
+    "LEGACY_ARTIFACTS_LAYOUT"
+  ],
+  "unpushed": {
+    "root": "/Google Drive/WHD/.unpushed",
+    "body_zero": "/Google Drive/WHD/.unpushed/body/0",
+    "docs_zero": "/Google Drive/WHD/.unpushed/docs/0",
+    "body_workers": "/Google Drive/WHD/.unpushed/body/workers",
+    "docs_workers": "/Google Drive/WHD/.unpushed/docs/workers"
+  },
+  "required_sequence": [
+    "WHD_ROOT_RESOLVED",
+    "ROOT_IDENTITY_VERIFIED",
+    "FULL_REPO_ROOT_VERIFIED",
+    "SHARED_UNPUSHED_LAYOUT_VERIFIED",
+    "ROOT_SHARED_UNPUSHED_GATE_READ",
+    "REQUESTED_OPERATION"
+  ],
+  "next_gate": {
+    "schema": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1",
+    "repository_contract": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+    "machine_owner": "tools/root_local_first_gate.py"
+  },
+  "github_role": "GitHub is delivery/PR/CI/control-plane transport. Repository-content authoring and tests happen under the canonical Google Drive WHD root without a Git work branch."
+}

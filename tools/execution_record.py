@@ -1,4 +1,5 @@
-"""Canonical per-Issue execution state for the WHD control plane.
+﻿"""Canonical per-Issue execution state for the WHD control plane.
+
 
 V2 is the semantic authority. Legacy claim/checkpoint JSON remain readable only
 through :func:`execution_record_from_legacy` during migration. Callers should
@@ -6,7 +7,9 @@ consume one validated ``ExecutionRecord`` and must not reconstruct execution
 meaning from prose or independently interpret claim/checkpoint payloads.
 """
 
+
 from __future__ import annotations
+
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -15,6 +18,8 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 from typing import Mapping
+
+
 
 
 SCHEMA = "WHD_EXECUTION_RECORD_V2"
@@ -31,8 +36,12 @@ _SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 _FP_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
+
+
 class ExecutionRecordError(ValueError):
     """Raised when durable payloads cannot describe one valid execution record."""
+
+
 
 
 def _text(value: object, field_name: str, *, optional: bool = False) -> str | None:
@@ -44,6 +53,8 @@ def _text(value: object, field_name: str, *, optional: bool = False) -> str | No
             return None
         raise ExecutionRecordError(f"{field_name} must be nonblank")
     return result
+
+
 
 
 def _issue(value: object, field_name: str) -> int:
@@ -58,10 +69,14 @@ def _issue(value: object, field_name: str) -> int:
     return result
 
 
+
+
 def _optional_issue(value: object, field_name: str) -> int | None:
     if value in (None, ""):
         return None
     return _issue(value, field_name)
+
+
 
 
 def _legacy_slot_id(value: object) -> str | None:
@@ -72,12 +87,16 @@ def _legacy_slot_id(value: object) -> str | None:
     return slot
 
 
+
+
 def _positive_int(value: object, field_name: str, *, optional: bool = False) -> int | None:
     if value in (None, "") and optional:
         return None
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
         raise ExecutionRecordError(f"{field_name} must be a positive integer")
     return value
+
+
 
 
 def _sha(value: object, field_name: str, *, optional: bool = False) -> str | None:
@@ -89,6 +108,8 @@ def _sha(value: object, field_name: str, *, optional: bool = False) -> str | Non
     return text.lower()
 
 
+
+
 def _fingerprint(value: object, field_name: str, *, optional: bool = False) -> str | None:
     text = _text(value, field_name, optional=optional)
     if text is None:
@@ -96,6 +117,8 @@ def _fingerprint(value: object, field_name: str, *, optional: bool = False) -> s
     if not _FP_RE.fullmatch(text):
         raise ExecutionRecordError(f"{field_name} must be a 64-character SHA256 fingerprint")
     return text.lower()
+
+
 
 
 def _timestamp(value: object, field_name: str, *, optional: bool = False) -> str | None:
@@ -107,6 +130,8 @@ def _timestamp(value: object, field_name: str, *, optional: bool = False) -> str
     except ValueError as exc:
         raise ExecutionRecordError(f"{field_name} must be an ISO-8601 timestamp") from exc
     return text
+
+
 
 
 def _repo_path(value: object, field_name: str) -> str:
@@ -123,6 +148,8 @@ def _repo_path(value: object, field_name: str) -> str:
     return normalized
 
 
+
+
 def _repo_paths(value: object, field_name: str) -> tuple[str, ...]:
     if value in (None, ""):
         return ()
@@ -134,6 +161,8 @@ def _repo_paths(value: object, field_name: str) -> tuple[str, ...]:
     if tuple(sorted(rows)) != rows:
         raise ExecutionRecordError(f"{field_name} must be sorted")
     return rows
+
+
 
 
 def _mapping(value: object, field_name: str, *, optional: bool = False) -> dict[str, object] | None:
@@ -149,6 +178,8 @@ def _mapping(value: object, field_name: str, *, optional: bool = False) -> dict[
         raise ExecutionRecordError(f"{field_name} must be JSON-serializable") from exc
 
 
+
+
 def _history(value: object) -> tuple[dict[str, object], ...]:
     if value in (None, ""):
         return ()
@@ -162,11 +193,14 @@ def _history(value: object) -> tuple[dict[str, object], ...]:
     return tuple(rows)
 
 
+
+
 @dataclass(frozen=True)
 class ActionSpec:
     kind: str
     args: dict[str, object] = field(default_factory=dict)
     display: str = ""
+
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "kind", _text(self.kind, "next_action kind"))
@@ -176,11 +210,14 @@ class ActionSpec:
         object.__setattr__(self, "display", str(self.display or "").strip())
 
 
+
+
 @dataclass(frozen=True)
 class LeaseState:
     token: str
     invocation_identity: str
     expires_at: str
+
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "token", _text(self.token, "lease token"))
@@ -192,6 +229,8 @@ class LeaseState:
         object.__setattr__(self, "expires_at", _timestamp(self.expires_at, "lease expires_at"))
 
 
+
+
 @dataclass(frozen=True)
 class RunState:
     id: int
@@ -199,11 +238,14 @@ class RunState:
     purpose: str
     status: str | None = None
 
+
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _positive_int(self.id, "active_run id"))
         object.__setattr__(self, "head_sha", _sha(self.head_sha, "active_run head_sha"))
         object.__setattr__(self, "purpose", _text(self.purpose, "active_run purpose"))
         object.__setattr__(self, "status", _text(self.status, "active_run status", optional=True))
+
+
 
 
 @dataclass(frozen=True)
@@ -213,6 +255,7 @@ class TransactionState:
     status: str
     expected_fingerprint: str
     invocation_identity: str | None = None
+
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _text(self.id, "transaction id"))
@@ -235,6 +278,8 @@ class TransactionState:
         )
 
 
+
+
 @dataclass(frozen=True)
 class MutationScopeState:
     target_branch: str
@@ -242,6 +287,7 @@ class MutationScopeState:
     write_paths: tuple[str, ...] = ()
     delete_paths: tuple[str, ...] = ()
     reservation_state: str = "ACTIVE"
+
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_branch", _text(self.target_branch, "mutation_scope target_branch"))
@@ -264,15 +310,19 @@ class MutationScopeState:
         object.__setattr__(self, "delete_paths", delete_paths)
         object.__setattr__(self, "reservation_state", state)
 
+
     @property
     def paths(self) -> tuple[str, ...]:
         return tuple(sorted((*self.write_paths, *self.delete_paths)))
+
+
 
 
 @dataclass(frozen=True)
 class QAState:
     last_accepted_run: int | None = None
     accepted_head_sha: str | None = None
+
 
     def __post_init__(self) -> None:
         run = _positive_int(self.last_accepted_run, "qa last_accepted_run", optional=True)
@@ -285,11 +335,14 @@ class QAState:
         object.__setattr__(self, "accepted_head_sha", head)
 
 
+
+
 @dataclass(frozen=True)
 class BlockerState:
     kind: str
     evidence: str
     recheck_after: str | None = None
+
 
     def __post_init__(self) -> None:
         kind = _text(self.kind, "blocker kind")
@@ -304,11 +357,14 @@ class BlockerState:
         )
 
 
+
+
 @dataclass(frozen=True)
 class ClosureState:
     merged_sha: str | None = None
     issue_closed: bool = False
     released_at: str | None = None
+
 
     def __post_init__(self) -> None:
         if not isinstance(self.issue_closed, bool):
@@ -321,11 +377,14 @@ class ClosureState:
         object.__setattr__(self, "released_at", released_at)
 
 
+
+
 @dataclass(frozen=True)
 class ChainState:
     parent_issue: int | None = None
     next_issue: int | None = None
     next_action: ActionSpec | None = None
+
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "parent_issue", _optional_issue(self.parent_issue, "chain parent_issue"))
@@ -334,6 +393,8 @@ class ChainState:
             raise ExecutionRecordError("chain next_action must be an ActionSpec")
         if self.next_action is not None and self.next_issue is None:
             raise ExecutionRecordError("chain next_action requires next_issue")
+
+
 
 
 @dataclass(frozen=True)
@@ -364,6 +425,7 @@ class ExecutionRecord:
     recovery_history: tuple[dict[str, object], ...] = ()
     generation: int = 1
     updated_at: str | None = None
+
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "issue", _issue(self.issue, "issue"))
@@ -406,6 +468,7 @@ class ExecutionRecord:
         object.__setattr__(self, "updated_at", _timestamp(self.updated_at, "updated_at", optional=True))
         object.__setattr__(self, "recovery_history", _history(self.recovery_history))
 
+
         if state == "DONE":
             if self.next_action is not None:
                 raise ExecutionRecordError("DONE record must have next_action=null")
@@ -427,6 +490,7 @@ class ExecutionRecord:
             # so terminal-tail work cannot become a durable zombie record.
             raise ExecutionRecordError(f"{state} record requires a next_action")
 
+
         if state == "BLOCKED" and self.blocker is None:
             raise ExecutionRecordError("BLOCKED record requires blocker evidence")
         if state != "BLOCKED" and self.blocker is not None:
@@ -434,20 +498,26 @@ class ExecutionRecord:
         if self.active_run is not None and self.active_run.head_sha != self.head_sha:
             raise ExecutionRecordError("active_run head must match record head_sha")
 
+
     @property
     def owner(self) -> str:
         """Compatibility alias for the original #844 projection API."""
         return self.owner_id
+
 
     @property
     def branch(self) -> str:
         """Compatibility alias for the original #844 projection API."""
         return self.work_branch
 
+
     @property
     def parent_issue(self) -> int | None:
         """Compatibility alias for callers not yet migrated to ``chain``."""
         return self.chain.parent_issue
+
+
+
 
 
 
@@ -465,6 +535,8 @@ def _action_from_payload(value: object, field_name: str, *, optional: bool = Tru
     )
 
 
+
+
 def _lease_from_payload(value: object) -> LeaseState | None:
     if value is None:
         return None
@@ -475,6 +547,8 @@ def _lease_from_payload(value: object) -> LeaseState | None:
         invocation_identity=_text(payload.get("invocation_identity"), "lease invocation_identity"),
         expires_at=_text(payload.get("expires_at"), "lease expires_at"),
     )
+
+
 
 
 def _run_from_payload(value: object) -> RunState | None:
@@ -488,6 +562,8 @@ def _run_from_payload(value: object) -> RunState | None:
         purpose=_text(payload.get("purpose"), "active_run purpose"),
         status=_text(payload.get("status"), "active_run status", optional=True),
     )
+
+
 
 
 def _transaction_from_payload(value: object) -> TransactionState | None:
@@ -508,6 +584,8 @@ def _transaction_from_payload(value: object) -> TransactionState | None:
     )
 
 
+
+
 def _mutation_scope_from_payload(value: object) -> MutationScopeState | None:
     if value is None:
         return None
@@ -515,16 +593,25 @@ def _mutation_scope_from_payload(value: object) -> MutationScopeState | None:
         return value
     payload = _mapping(value, "mutation_scope")
     assert payload is not None
+    # Durable V2 records created before canonical path ordering became a hard
+    # invariant may contain otherwise-valid mutation paths in insertion order.
+    # Normalize ordering only at the payload compatibility boundary so current
+    # in-memory constructors and writers remain strict. Duplicate/invalid paths
+    # are still rejected by MutationScopeState/_repo_paths below.
+    write_paths = tuple(sorted(payload.get("write_paths") or ()))
+    delete_paths = tuple(sorted(payload.get("delete_paths") or ()))
     return MutationScopeState(
         target_branch=_text(payload.get("target_branch"), "mutation_scope target_branch"),
         base_sha=_text(payload.get("base_sha"), "mutation_scope base_sha"),
-        write_paths=tuple(payload.get("write_paths") or ()),
-        delete_paths=tuple(payload.get("delete_paths") or ()),
+        write_paths=write_paths,
+        delete_paths=delete_paths,
         reservation_state=_text(
             payload.get("reservation_state") or "ACTIVE",
             "mutation_scope reservation_state",
         ),
     )
+
+
 
 
 def _qa_from_payload(value: object) -> QAState:
@@ -540,6 +627,8 @@ def _qa_from_payload(value: object) -> QAState:
     )
 
 
+
+
 def _blocker_from_payload(value: object) -> BlockerState | None:
     if value is None:
         return None
@@ -552,6 +641,8 @@ def _blocker_from_payload(value: object) -> BlockerState | None:
     )
 
 
+
+
 def _closure_from_payload(value: object) -> ClosureState:
     payload = _mapping(value if value is not None else {}, "closure")
     assert payload is not None
@@ -560,6 +651,8 @@ def _closure_from_payload(value: object) -> ClosureState:
         issue_closed=payload.get("issue_closed", False),
         released_at=_text(payload.get("released_at"), "closure released_at", optional=True),
     )
+
+
 
 
 def _chain_from_payload(value: object) -> ChainState:
@@ -572,12 +665,15 @@ def _chain_from_payload(value: object) -> ChainState:
     )
 
 
+
+
 def execution_record_from_payload(payload: Mapping[str, object]) -> ExecutionRecord:
     """Load and validate a native V2 execution-record payload."""
     if not isinstance(payload, Mapping):
         raise ExecutionRecordError("execution record payload must be an object")
     if payload.get("schema") != SCHEMA or payload.get("version") != VERSION:
         raise ExecutionRecordError(f"execution record must use {SCHEMA} version {VERSION}")
+
 
     return ExecutionRecord(
         issue=_issue(payload.get("issue"), "issue"),
@@ -609,6 +705,8 @@ def execution_record_from_payload(payload: Mapping[str, object]) -> ExecutionRec
     )
 
 
+
+
 def _legacy_owner_kind(executor_source: object) -> str:
     source = str(executor_source or "").strip().lower()
     if source == "scheduler":
@@ -618,6 +716,8 @@ def _legacy_owner_kind(executor_source: object) -> str:
     if source == "local":
         return "LOCAL"
     return "LEGACY"
+
+
 
 
 def _legacy_state(checkpoint_state: str, *, closure: ClosureState) -> str:
@@ -643,9 +743,12 @@ def _legacy_state(checkpoint_state: str, *, closure: ClosureState) -> str:
     return "ACTIVE"
 
 
+
+
 def _legacy_lease(claim: Mapping[str, object]) -> LeaseState | None:
     token = _text(claim.get("lease_token"), "lease token", optional=True)
     expires = _text(claim.get("lease_expires_at"), "lease expires_at", optional=True)
+
 
     # Legacy scheduler claims already carried invocation provenance before Flow v2
     # introduced leases.  An invocation_identity by itself is therefore not lease
@@ -653,12 +756,15 @@ def _legacy_lease(claim: Mapping[str, object]) -> LeaseState | None:
     if token is None and expires is None:
         return None
 
+
     invocation = _text(
         claim.get("invocation_identity"), "lease invocation_identity", optional=True
     )
     if token is None or invocation is None or expires is None:
         raise ExecutionRecordError("legacy lease requires token, invocation_identity and expires_at")
     return LeaseState(token=token, invocation_identity=invocation, expires_at=expires)
+
+
 
 
 def _legacy_run(
@@ -675,6 +781,8 @@ def _legacy_run(
     ) or "LEGACY_REMOTE_RUN"
     status = _text(checkpoint.get("run_status"), "active_run status", optional=True)
     return RunState(id=run_id, head_sha=run_head, purpose=purpose, status=status)
+
+
 
 
 def _legacy_transaction(checkpoint: Mapping[str, object]) -> TransactionState | None:
@@ -696,17 +804,21 @@ def _legacy_transaction(checkpoint: Mapping[str, object]) -> TransactionState | 
     )
 
 
+
+
 def execution_record_from_legacy(
     claim: Mapping[str, object],
     checkpoint: Mapping[str, object],
 ) -> ExecutionRecord:
     """Project one legacy claim/checkpoint pair into a validated V2 record.
 
+
     The adapter preserves legacy text only as ``ActionSpec(kind='LEGACY_TEXT')``;
     it never parses prose to infer machine intent.
     """
     if not isinstance(claim, Mapping) or not isinstance(checkpoint, Mapping):
         raise ExecutionRecordError("legacy claim and checkpoint must be mappings")
+
 
     claim_issue = _issue(claim.get("issue"), "claim issue")
     checkpoint_issue = _issue(checkpoint.get("issue"), "checkpoint issue")
@@ -715,6 +827,7 @@ def execution_record_from_legacy(
             f"issue identity mismatch: claim={claim_issue} checkpoint={checkpoint_issue}"
         )
 
+
     claim_branch = _text(claim.get("work_branch"), "claim branch")
     checkpoint_branch = _text(checkpoint.get("branch"), "checkpoint branch")
     if claim_branch != checkpoint_branch:
@@ -722,12 +835,14 @@ def execution_record_from_legacy(
             f"branch identity mismatch: claim={claim_branch!r} checkpoint={checkpoint_branch!r}"
         )
 
+
     claim_head = _sha(claim.get("head_sha"), "claim head")
     checkpoint_head = _sha(checkpoint.get("head_sha"), "checkpoint head")
     if claim_head != checkpoint_head:
         raise ExecutionRecordError(
             f"head identity mismatch: claim={claim_head!r} checkpoint={checkpoint_head!r}"
         )
+
 
     claim_next = _text(claim.get("next_action"), "claim next_action", optional=True)
     checkpoint_next = _text(
@@ -739,6 +854,7 @@ def execution_record_from_legacy(
             f"claim={claim_next!r} checkpoint={checkpoint_next!r}"
         )
 
+
     claim_parent = _optional_issue(claim.get("master_issue"), "claim parent issue")
     checkpoint_parent = _optional_issue(
         checkpoint.get("master_issue"), "checkpoint parent issue"
@@ -749,11 +865,13 @@ def execution_record_from_legacy(
         )
     parent_issue = claim_parent if claim_parent is not None else checkpoint_parent
 
+
     target_branch = _text(claim.get("production_target"), "target branch")
     target_sha = _sha(claim.get("production_sha"), "target sha")
     source_branch = _text(claim.get("source_branch"), "source_branch", optional=True) or target_branch
     source_sha = _sha(claim.get("base_sha"), "source_sha", optional=True) or target_sha
     semantic_state = _text(checkpoint.get("state"), "checkpoint semantic state")
+
 
     issue_closed = bool(checkpoint.get("issue_closed", False))
     released_at = _text(checkpoint.get("released_at"), "closure released_at", optional=True)
@@ -763,6 +881,7 @@ def execution_record_from_legacy(
         issue_closed=issue_closed,
         released_at=released_at,
     )
+
 
     next_issue = _optional_issue(checkpoint.get("next_issue"), "chain next_issue")
     chain_next_text = _text(
@@ -774,11 +893,13 @@ def execution_record_from_legacy(
         else None
     )
 
+
     current_action = (
         ActionSpec(kind="LEGACY_TEXT", args={}, display=checkpoint_next)
         if checkpoint_next is not None
         else None
     )
+
 
     accepted_run = _positive_int(
         checkpoint.get("last_accepted_run_id"), "qa last_accepted_run", optional=True
@@ -788,11 +909,13 @@ def execution_record_from_legacy(
     )
     qa = QAState(last_accepted_run=accepted_run, accepted_head_sha=accepted_head)
 
+
     executor_source = claim.get("executor_source")
     owner = _text(claim.get("worker"), "claim owner")
     lane_id = _text(claim.get("scheduler_lane"), "lane_id", optional=True)
     if lane_id is None and str(executor_source or "").strip().lower() == "scheduler":
         lane_id = owner
+
 
     state = _legacy_state(semantic_state, closure=closure)
     blocker = None
@@ -811,6 +934,7 @@ def execution_record_from_legacy(
             ),
         )
 
+
     # Legacy terminal-success means the work may be ready for finalization, not
     # that the Issue is already closed/released. V2 only enters DONE when those
     # facts are explicit in durable evidence.  Current V2 also forbids passive
@@ -825,6 +949,7 @@ def execution_record_from_legacy(
             display="finalize legacy terminal-success",
         )
 
+
     owner_kind = _legacy_owner_kind(executor_source)
     owner_id = owner
     record_lane_id = lane_id
@@ -836,6 +961,7 @@ def execution_record_from_legacy(
         record_lane_id = None
         lease = None
         active_run = None
+
 
     return ExecutionRecord(
         issue=claim_issue,
@@ -877,6 +1003,8 @@ def execution_record_from_legacy(
     )
 
 
+
+
 def execution_record_to_payload(record: ExecutionRecord) -> dict[str, object]:
     """Serialize a validated record using deterministic V2 field names."""
     if not isinstance(record, ExecutionRecord):
@@ -894,6 +1022,8 @@ def execution_record_to_payload(record: ExecutionRecord) -> dict[str, object]:
     }
 
 
+
+
 def execution_record_fingerprint(record: ExecutionRecord) -> str:
     """Return the stable optimistic-concurrency fingerprint for ``record``."""
     canonical = json.dumps(
@@ -903,6 +1033,8 @@ def execution_record_fingerprint(record: ExecutionRecord) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
+
+
 
 
 def load_execution_record(path: str | Path) -> ExecutionRecord:

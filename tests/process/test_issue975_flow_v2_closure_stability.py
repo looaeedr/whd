@@ -11,29 +11,46 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _root_gate_evidence(execution_mode: str = "INTERACTIVE") -> dict[str, object]:
     from tools.work_root_gate import (
-        READ_MODE_GITHUB_MIRROR,
+        READ_MODE_GITHUB_REPO,
         READ_MODE_GOOGLE_DRIVE,
         build_work_root_gate_evidence,
     )
 
     payload = json.loads(
-        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").read_text(
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(
             encoding="utf-8"
         )
     )
-    if execution_mode == "INTERACTIVE":
-        payload.pop("role", None)
-        payload.pop("mirror_policy", None)
-        payload.pop("canonical_source", None)
-        mode = READ_MODE_GOOGLE_DRIVE
-    else:
-        mode = READ_MODE_GITHUB_MIRROR
+    mode = READ_MODE_GOOGLE_DRIVE if execution_mode == "INTERACTIVE" else READ_MODE_GITHUB_REPO
     return build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=mode,
         execution_mode=execution_mode,
+        root_entries=[
+            ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
+            "ae_engine", "gui_modules", ".unpushed",
+        ],
     )
 
+
+
+
+def _preflight_evidence(*, issue: int, invocation_identity: str, observed_at=None) -> dict[str, object]:
+    from tools.execution_entry_contract import build_phase6_preflight_evidence
+
+    required_skills = ["flow-v2-execution"]
+    required_references = [".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"]
+    return build_phase6_preflight_evidence(
+        issue=issue,
+        invocation_identity=invocation_identity,
+        branch="cleanup/2d-3d-sync",
+        head_sha="a" * 40,
+        required_skills=required_skills,
+        completed_skills=required_skills,
+        required_references=required_references,
+        completed_references=required_references,
+        observed_at=observed_at,
+    )
 
 def _integrating_record(*, target_sha: str = "d" * 40):
     from tools.execution_record import execution_record_from_payload
@@ -109,6 +126,9 @@ def test_issue975_request_builder_owns_startup_evidence_and_lane_mode():
         effect={"semantic_state": "TEST"},
         purpose=purpose,
         work_root_gate_evidence=_root_gate_evidence(),
+        preflight_evidence=_preflight_evidence(
+            issue=975, invocation_identity=invocation, observed_at=issued
+        ),
         issued_at=issued,
     )
 

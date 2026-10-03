@@ -102,7 +102,7 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 2. `UPDATE_ONLY` 不授權 implementation claim、implementation branch、successor chain 或 scheduler lane execution。
 3. `/排程A` / `/排程B` 與真正 scheduled invocation 才是 `SCHEDULER_LANE` execution entrypoint。
 4. `open / unblocked Issue`、空 work slot、legacy Guard 可用都不是 execution authority；只有 canonical READY/ACTIVE ExecutionRecord + valid transition/lease 能授權執行。
-5. `NORMAL_PATH_FIRST`：正常 implementation 走 `READY → atomic ACQUIRE+reservation → root implementation/tests/freeze → Git candidate → QA → MERGE → FINALIZE/DONE`；不得復活 legacy claim-first / branch-first。
+5. `NORMAL_PATH_FIRST`：正常 implementation 走 `READY → canonical root shared-0 authoring/tests → merge-to-latest-0 → post-merge GREEN → lane manifest freeze → delivery reservation → Git candidate → QA → MERGE → FINALIZE/DONE`；不得復活 legacy claim-first / branch-first / pre-write reservation。
 6. `RECOVERY_IS_EXCEPTION_NOT_PHASE`：takeover / reactivate / reconciliation / legacy repair 僅由 fresh machine evidence 觸發；condition 修復後立即回 normal path。
 7. 修改 live recurring automation prompt 時只改本次 scope；cadence、enabled、lane owner 若未被使用者點名就保持原值，並 post-update fresh readback。
 
@@ -120,8 +120,8 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 ## 排程 remote control-plane 與 root content surface 邊界 — CURRENT
 
 - 排程A/B 的 **control-plane / post-push integration** 保持 remote：GitHub/SCHEDULER/REMOTE_ACTION 負責 discovery、lease/transaction、preflight、CI/QA、merge、finalization/readback。
-- 只要下一個 action 需要產生 repository-content diff，固定 HANDOFF 到 canonical `/Google Drive/WHD/work/active/...`；這不是 workstation/local-shell fallback，而是 CURRENT root-local-first content surface。
-- `handoff_source=LOCAL` 等 legacy provenance 欄位不提供 authority；CURRENT authority仍是 Flow v2 record + live lease + mutation_scope。
+- 只要下一個 action 需要產生 repository-content diff，固定 HANDOFF 到 canonical `/Google Drive/WHD` full repo root 的 selected `.unpushed/{docs|body}/0` lineage；這不是 workstation/local-shell fallback，而是 CURRENT shared-unpushed content surface。
+- `handoff_source=LOCAL` 等 legacy provenance 欄位不提供 authority；CURRENT execution/control-plane authority 是 Flow v2 record + live lease，repository-content authority 是 selected shared `0` lineage；`mutation_scope` 只在 frozen lane delivery 階段作 reservation。
 - remote capability 暫時不可用時保存 genuine blocker；不得改走 Remote Desktop/任意 workstation repo，也不得以 legacy Remote Guard / GitHub-side hotfix繞過 root gate。
 - root-tested/frozen candidate push 後，scheduler 再接回 remote QA/merge/finalization tail。
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->

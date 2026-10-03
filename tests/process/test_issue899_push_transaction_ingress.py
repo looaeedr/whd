@@ -3,32 +3,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _root_entries():
+    return [
+        ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
+        "ae_engine", "gui_modules", ".unpushed",
+    ]
+
+
 def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, execution_mode="INTERACTIVE"):
     import json
     from tools.execution_entry_contract import build_startup_evidence as canonical_build_startup_evidence
     from tools.work_root_gate import (
-        READ_MODE_GITHUB_MIRROR,
+        READ_MODE_GITHUB_REPO,
         READ_MODE_GOOGLE_DRIVE,
         build_work_root_gate_evidence,
     )
 
-    mirror = json.loads(
-        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").read_text(encoding="utf-8")
+    payload = json.loads(
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8")
     )
-    if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}:
-        gate_payload = mirror
-        read_mode = READ_MODE_GITHUB_MIRROR
-    else:
-        gate_payload = dict(mirror)
-        gate_payload.pop("role", None)
-        gate_payload.pop("mirror_policy", None)
-        gate_payload.pop("canonical_source", None)
-        read_mode = READ_MODE_GOOGLE_DRIVE
-
+    read_mode = (
+        READ_MODE_GITHUB_REPO
+        if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
+        else READ_MODE_GOOGLE_DRIVE
+    )
     gate_evidence = build_work_root_gate_evidence(
-        gate_payload=gate_payload,
+        gate_payload=payload,
         read_mode=read_mode,
         execution_mode=execution_mode,
+        root_entries=_root_entries(),
     )
     return canonical_build_startup_evidence(
         purpose=purpose,
@@ -38,30 +41,78 @@ def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, exe
         issued_at=issued_at,
     )
 
+
+
+
+def _build_preflight_evidence(*, issue, invocation_identity, execution_mode="INTERACTIVE", observed_at=None, branch="cleanup/2d-3d-sync", head_sha="a" * 40):
+    from tools.execution_entry_contract import build_phase6_preflight_evidence
+
+    required_skills = ["flow-v2-execution"]
+    required_references = [".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"]
+    return build_phase6_preflight_evidence(
+        issue=issue,
+        invocation_identity=invocation_identity,
+        branch=branch,
+        head_sha=head_sha,
+        required_skills=required_skills,
+        completed_skills=required_skills,
+        required_references=required_references,
+        completed_references=required_references,
+        observed_at=observed_at,
+    )
+
+
+def _fresh_admission_fields(*, issue, invocation_identity, purpose, execution_mode="INTERACTIVE", issued_at=None, branch="cleanup/2d-3d-sync", head_sha="a" * 40):
+    from tools.execution_entry_contract import build_startup_transition
+
+    startup = _build_startup_evidence(
+        purpose=purpose,
+        invocation_identity=invocation_identity,
+        execution_mode=execution_mode,
+        issued_at=issued_at,
+    )
+    preflight = _build_preflight_evidence(
+        issue=issue,
+        invocation_identity=invocation_identity,
+        execution_mode=execution_mode,
+        observed_at=issued_at,
+        branch=branch,
+        head_sha=head_sha,
+    )
+    transition = build_startup_transition(
+        startup_evidence=startup,
+        preflight_evidence=preflight,
+        invocation_identity=invocation_identity,
+        issue=issue,
+        execution_mode=execution_mode,
+        now=issued_at,
+    )
+    return {
+        "startup_evidence": startup,
+        "preflight_evidence": preflight,
+        "startup_transition": transition,
+    }
+
 def _root_gate_evidence(execution_mode="INTERACTIVE"):
     import json
     from tools.work_root_gate import (
-        READ_MODE_GITHUB_MIRROR,
+        READ_MODE_GITHUB_REPO,
         READ_MODE_GOOGLE_DRIVE,
         build_work_root_gate_evidence,
     )
-
     payload = json.loads(
-        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").read_text(
-            encoding="utf-8"
-        )
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8")
     )
-    if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}:
-        read_mode = READ_MODE_GITHUB_MIRROR
-    else:
-        payload.pop("role", None)
-        payload.pop("mirror_policy", None)
-        payload.pop("canonical_source", None)
-        read_mode = READ_MODE_GOOGLE_DRIVE
+    read_mode = (
+        READ_MODE_GITHUB_REPO
+        if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
+        else READ_MODE_GOOGLE_DRIVE
+    )
     return build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=read_mode,
         execution_mode=execution_mode,
+        root_entries=_root_entries(),
     )
 
 
@@ -291,7 +342,7 @@ def test_non_seed_request_without_startup_evidence_is_rejected(tmp_path):
     }
     path = tmp_path / "request.json"
     path.write_text(json.dumps(request), encoding="utf-8")
-    with pytest.raises(Exception, match="request missing startup_evidence"):
+    with pytest.raises(Exception, match="startup_evidence"):
         ingress._load_request(path)
 
 
@@ -549,10 +600,13 @@ def test_push_ingress_accepts_fail_qa_kind(tmp_path):
         "expected_coord_head": "a" * 40,
         "expected_generation": 7,
         "effect": {},
-        "startup_evidence": _build_startup_evidence(
-            purpose="consume exact failed QA",
+        **_fresh_admission_fields(
+            issue=943,
             invocation_identity=invocation,
+            purpose="consume exact failed QA",
             execution_mode="INTERACTIVE",
+            branch="work/receiving-ui-regression-20260928",
+            head_sha="b" * 40,
         ),
     }
     path = tmp_path / "request.json"
@@ -610,6 +664,13 @@ def _issue992_semantic_intent():
         "effect": {},
         "purpose": "Resume Issue #945 through the canonical scheduler lane.",
         "work_root_gate_evidence": _root_gate_evidence("SCHEDULER_LANE"),
+        "preflight_evidence": _build_preflight_evidence(
+            issue=945,
+            invocation_identity="scheduler-b:b15:issue945:issue992-regression",
+            execution_mode="SCHEDULER_LANE",
+            branch="cleanup/2d-3d-sync",
+            head_sha="a" * 40,
+        ),
     }
 
 
@@ -627,7 +688,7 @@ def test_trusted_builder_materializes_scheduler_semantic_intent():
     )
     assert request["schema"] == REQUEST_SCHEMA
     assert request["startup_evidence"]["execution_mode"] == "SCHEDULER_LANE"
-    assert request["startup_evidence"]["work_root_gate"]["read_mode"] == "GITHUB_MIRROR"
+    assert request["startup_evidence"]["work_root_gate"]["read_mode"] == "GITHUB_REPO_CONTRACT"
 
 
 def test_semantic_intent_forbids_caller_supplied_startup_evidence(tmp_path):
@@ -667,30 +728,54 @@ def test_scheduler_host_recovery_bootstrap_remains_non_authoritative():
 
 def _root_unlock_receipt():
     from tools.root_local_first_gate import (
-        build_gate_evidence, build_git_unlock_receipt, validate_source_current,
+        build_gate_evidence,
+        build_git_unlock_receipt,
+        build_remote_connection_authority,
+        validate_source_current,
     )
     source = validate_source_current(
         manifest={"source_sha": "a" * 40, "tree_sha": "b" * 40},
         live_source_sha="a" * 40, live_tree_sha="b" * 40,
     )
+    lane = {
+        "schema": "WHD_UNPUSHED_LANE_EVIDENCE_V1",
+        "lane": "docs", "issue": 940, "source_sha": "a" * 40,
+        "target_branch": "cleanup/2d-3d-sync", "generation": 4,
+        "write_paths": ["AGENTS.md"], "delete_paths": [],
+        "manifest_digest": "", "state": "ACTIVE",
+    }
     reservation = {
         "schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
         "issue": 940, "generation": 4, "target_branch": "cleanup/2d-3d-sync",
         "base_sha": "a" * 40, "write_paths": ["AGENTS.md"], "delete_paths": [],
         "reservation_state": "ACTIVE",
-        "workspace_path": "/Google Drive/WHD/work/active/issue-940/aaaaaaaaaaaa",
+        "phase": "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
         "record_fingerprint": "f" * 64,
     }
+    authority = build_remote_connection_authority(
+        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+    )
     gate = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, path_reservation_evidence=reservation,
-        root_mutations_complete=True, test_classified=True, tests_green=True,
+        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=lane,
+        root_mutations_complete=True, merge_to_zero_complete=True,
+        test_classified=True, tests_green=True, remote_connection_authority=authority,
+        path_reservation_evidence=reservation,
         test_receipt={
             "schema": "WHD_TEST_EXECUTION_RECEIPT_V1", "status": "GREEN",
             "source_sha": "a" * 40, "issue": 940, "generation": 4,
             "exact_commands": ["python tools/control_plane_regression.py"],
             "manifest_digest": "e" * 64,
         },
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"],
+        worker_census_evidence={
+            "schema": "WHD_SHARED_ZERO_WORKER_CENSUS_V1",
+            "lane": "docs",
+            "latest_zero_generation": 4,
+            "fresh": True,
+            "mergeable_green_count": 0,
+            "blocking_candidate_count": 0,
+        },
+        diff_digest="c" * 64,
     )
     return build_git_unlock_receipt(gate)
 
@@ -709,7 +794,9 @@ def test_interactive_start_branch_requires_root_unlock_receipt_before_state_read
         "kind": "START_BRANCH", "lane_id": "chatgpt.flowv2.work0",
         "invocation_identity": invocation, "expected_coord_head": "a" * 40, "expected_generation": 1,
         "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
-        "startup_evidence": _build_startup_evidence(purpose="Issue #940 branch", invocation_identity=invocation),
+        **_fresh_admission_fields(
+            issue=940, invocation_identity=invocation, purpose="Issue #940 branch"
+        ),
     }
     with pytest.raises(Exception, match="root-local-first Git write receipt"):
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
@@ -730,7 +817,9 @@ def test_interactive_start_branch_accepts_root_unlock_receipt_before_state_read(
         "invocation_identity": invocation, "expected_coord_head": "a" * 40, "expected_generation": 1,
         "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40,
                    "root_local_first_git_write_receipt": _root_unlock_receipt()},
-        "startup_evidence": _build_startup_evidence(purpose="Issue #940 branch", invocation_identity=invocation),
+        **_fresh_admission_fields(
+            issue=940, invocation_identity=invocation, purpose="Issue #940 branch"
+        ),
     }
     with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
@@ -751,8 +840,11 @@ def test_scheduler_start_branch_is_not_misclassified_as_interactive_root_write(m
         "kind": "START_BRANCH", "lane_id": lane, "invocation_identity": invocation,
         "expected_coord_head": "a" * 40, "expected_generation": 1,
         "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
-        "startup_evidence": _build_startup_evidence(
-            purpose="Issue #940 scheduler branch", invocation_identity=invocation, execution_mode="SCHEDULER_LANE"
+        **_fresh_admission_fields(
+            issue=940,
+            invocation_identity=invocation,
+            purpose="Issue #940 scheduler branch",
+            execution_mode="SCHEDULER_LANE",
         ),
     }
     with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
@@ -992,7 +1084,7 @@ def test_issue1072_root_contract_treats_generation_as_provenance_not_content_ide
     import json
 
     contract = json.loads(
-        (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").read_text(
+        (ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json").read_text(
             encoding="utf-8"
         )
     )

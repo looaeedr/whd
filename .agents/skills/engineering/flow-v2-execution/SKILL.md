@@ -16,9 +16,9 @@ whd_schema: WHD_DOC_META_V1
 
 Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocation（recurring scheduler、/排程A、/排程B、/工作0..3、互動執行、takeover、resume、recovery）在任何 substantive analysis、claim、Guard、repository mutation 或一般 workflow dispatch 前，固定依序：
 
-0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V1**：任何一般 file/repo discovery 前先讀 root gate。互動式/chat runtime 先 bootstrap-read Google Drive mount → exact `/Google Drive/WHD` → `/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json` → Current Source Manifest，產生 `WHD_WORK_ROOT_GATE_EVIDENCE_V1`（`read_mode=GOOGLE_DRIVE_CANONICAL`）。GitHub-only / `SCHEDULER_LANE` / trusted remote action 若沒有 Drive connector，先 fresh-read `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json` pointer-only mirror 並產生 `read_mode=GITHUB_MIRROR` evidence；mirror 不得把 GitHub checkout 改成預設 workspace root。
-0.5. **ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1**：任何 execution mode 只要本輪會做 repository-content implementation，都必須 fresh-read `/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json` + `.agents/skills/engineering/root-local-first/SKILL.md`，先完成 `ROOT_SOURCE_CURRENT`；所有內容修改、test profile、root RED/GREEN/full gate 與 diff freeze 都在 `GIT_WRITE_UNLOCKED` 前完成。unlock 前 Git 只准 `READ/FETCH/COMPARE`；unlock 後才可把 `EXACT_TESTED_DIFF_ONLY` 送入 Git/GitHub。`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 只保留 control-plane 與 post-push verification 例外；一旦 next action 需要 repository-content mutation，必須先 `HANDOFF` 到 canonical root workspace implementation，禁止 GitHub-side authoring/hotfix。
-0.5.1. **DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1**：interactive/default runtime 只要已具備 canonical root capability，且本輪需要 repository-content implementation，在 `ROOT_SOURCE_CURRENT + PATHS_RESERVED` 後不得停在 plan / claim / owner / handoff / Guard GREEN / branch-created 等治理狀態；同一 invocation 的第一個 substantive content action 固定是 `ROOT_MUTATE`，並立即在**同一 root workspace**完成 `ROOT_TEST_CLASSIFIED → ROOT_TESTS_GREEN`，除非出現 fresh durable evidence 的真 fail-closed blocker。使用者詢問進度/狀態只算 non-blocking checkpoint，不構成 turn exit。`TEST_RED` 固定在 root 修正並重測；禁止改走 GitHub-side hotfix 或把 remote QA 當第一測試面。只有 runtime 真正沒有 root mutation/test capability 時才可 `HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK`。
+0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V2**：先驗 `/Google Drive/WHD` full repo root 與 folder id=`1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN`，讀 `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`，確認 `.unpushed/{body|docs}/0` layout。GitHub-only runtime 可讀 repository contract，但不得把 checkout 當內容施工面。
+0.5. **ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1**：repository-content implementation 不先建 branch；先走 `ROOT_IDENTITY_CURRENT → LANE_CLASSIFIED → ZERO_INITIALIZED_OR_FRESH_READ → WORKER_BASE_LATEST_ZERO → WORKER_MUTATION_COMPLETE → WORKER_TESTS_GREEN → MERGE_TO_FRESH_LATEST_ZERO → CONFLICT_GATE_OR_MERGED → POST_MERGE_ZERO_TESTS_GREEN → ZERO_MANIFEST_FROZEN`。只有 delivery 才取得 reservation 與 `GIT_WRITE_UNLOCKED`。
+0.5.1. **MERGE_CONFLICT_USER_DECISION_HARD_GATE_V1**：shared `0` 三方合併只要 conflict，立即寫 `WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1`、state=`BLOCKED_USER_DECISION`，記錄 conflict path/hunks/base/latest/worker identities 並通知使用者。沒有 `EXPLICIT_USER_CONFLICT_DECISION`，禁止 auto ours/theirs、禁止 generation advance、禁止 merge 回 0、禁止 delivery branch、禁止 push/PR。進度詢問只是 non-blocking checkpoint。
 1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
 2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
 3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。此時仍未取得 execution mutation authority。
@@ -29,9 +29,9 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
-對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical executable gate=`tools/root_local_first_gate.py::assert_outer_primary_action`；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
+對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content gate=`tools/shared_unpushed_integration.py`; Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
 
-外層只報 `FRESH_READ → ROOT_MUTATE → TARGETED_TEST → EXACT_DIFF → POST_PUSH_CI → MERGE_FINALIZE` 的 phase outcome。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
+外層只報 `FRESH_READ → LANE_0 → ROOT_MUTATE_TEST → MERGE_0 → POST_MERGE_TEST → /推推 → POST_PUSH_CI → MERGE_FINALIZE` 的 phase outcome。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
 
 
 ### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
@@ -67,65 +67,60 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - mutation policy：`tools/execution_authority_policy.py`。
 - runtime observability (NON_AUTHORITY)：`coord/monitor-v2:.dispatch/monitor/runtime/*.json`。
 
-## WORKSPACE_EXECUTION_POLICY_V1
+### ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1
 
-互動式 / chat runtime 的 **實際工作面**固定是 canonical Google Drive workspace，不只是做 root identity check：
+Flow v2 對「拆工」與「delivery 完成」都要求 GitHub Issue durable synchronization：
 
-- default root=`/Google Drive/WHD`；可在 workspace 完成的 source materialization、分析、編輯、測試、artifact 產生一律優先在 `/Google Drive/WHD/work/active/...` 執行。
-- canonical work path 由 `tools/work_root_gate.py::build_interactive_work_path(...)` 建立，並由 `validate_interactive_workspace_path(...)` fail closed；`/mnt/data`、Library `/WHD`、Windows 任意目錄與 GitHub checkout 都不得成為互動式預設施工根。
-- GitHub 仍是 source/code/PR/CI/scheduler/control-plane authority，但 **repository-content implementation surface 固定是 canonical root**。scheduler/GITHUB_ONLY/REMOTE_ACTION 可在 GitHub 做 read-only discovery、coordination、trusted preflight、已 push 候選的 CI/QA、merge 與 finalization；若需要新增／修改／刪除 repository content，必須先 HANDOFF 到 root workspace 完成修改、分類測試、full gate 與 diff freeze，禁止直接在 GitHub branch 熱修。
-- `WHD Current Source Manifest` 是 workspace materialization identity。開始 workspace mutation / local test 前，必須經 `root-local-first` 的 `ROOT_SOURCE_CURRENT` 驗 manifest 與 live source SHA/tree；durable snapshot stale 時只可作 bootstrap base，planned touched paths 必須 fresh-compare exact target blobs。未被 current identity 證明的 path 不得施工。
-- transient transport 可使用暫存檔，但暫存位置只屬搬運／轉碼，不能冒充 canonical work path、測試根或 durable completion evidence。
+1. **Split before READY**：新 child/follow-up 在 GitHub Issue create/reuse、parent/sub-issue/dependency 更新與 fresh readback 完成前，只是 transient draft；不得建立 `WHD_EXECUTION_RECORD_V2 READY`。Issue sync failure 固定 `ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF`。
+2. **Delivery after merge**：`MERGE_READBACK_VERIFIED` + delivery receipt 後，必須同步 linked Issues 的 lane/generation/manifest/PR/merged SHA/test result 與 terminal/next_action/blocker，再 fresh-read為 `ISSUE_SYNC_READBACK_VERIFIED`。
+3. terminal close authority 不變：只有 Flow v2 `FINALIZE` 可 close/readback Issue；`/推推` 只負責 delivery-side sync，不可另造 closure state machine。
+4. `SPLIT_ISSUE_SYNC` / `POST_DELIVERY_ISSUE_SYNC` 是 narrow Issue-plane remote authority，不授權 repository content READ/FETCH/COMPARE/branch/commit/push/merge。
 
-### REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V1
+因此「本地已拆好但 GitHub 沒工單」不是 READY；「推推 merge 好但工單沒同步」也不是完整 durable cycle。
 
-scheduler / GITHUB_ONLY / REMOTE_ACTION 的 remote authority **只擁有 control-plane 與 post-push integration**，不擁有另一套 repository-content 施工面。
+## WORKSPACE_EXECUTION_POLICY_V2 — SHARED UNPUSHED 0
 
-固定判斷：
-1. next action 若只需 discovery / lease / reservation / preflight / QA observation / merge / finalization，可留在 GitHub remote surface。
-2. next action 若要產生新的 repository-content diff（production、tests、docs、workflow、Skill、AI Library、Registry、fixtures），固定 `HANDOFF` 到 canonical root workspace。
-3. root worker 完成 `ROOT_TESTS_GREEN + ROOT_DIFF_FROZEN + GIT_WRITE_UNLOCKED` 後，才允許 exact tested diff 進 Git；GitHub Actions 只做 post-push integration/merge verification。
-4. remote QA 發現需要修內容時，不得在 work branch 直接修；回 root workspace修正、重測、refreeze，再 push 新候選。
-5. scheduler 不得把「有 GitHub write capability」解讀成「可以略過 root」。execution mode / connector capability 都不是 content-surface exception。
+互動式 / chat runtime 的 repository-content 工作面固定是 `/Google Drive/WHD` full repo root；正常施工**不建立 Git work branch**。
 
-<!-- REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V1 -->
+- docs authority=`.unpushed/docs/0`；body authority=`.unpushed/body/0`。
+- worker candidate 可放 `.unpushed/{lane}/workers/<worker>/issue-<N>`；candidate 不是 authority。
+- governance / Skill / AGENTS / process authority / governance tests → docs。產品 code/tests/UI/renderer/geometry/manufacturing → body。產品必要文件跟 body。
+- later worker 若 path 已進 `0`，固定以 fresh latest `0` generation+hash 為 base。
+- worker GREEN 後仍必須 fresh-read latest `0` 三方合併，並跑 post-merge tests；最新 `0` GREEN 才能 freeze。
+- conflict 固定 `BLOCKED_USER_DECISION`；沒有使用者明確決策不能自動解。
+- `source/manifests`、ZIP snapshot、`/work/active` 不再是 CURRENT repository-content authority。
 
-### FILE_PATH_RESERVATION_HARD_GATE_V1
+### REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V2
 
-不同 Issue／工作槽／scheduler lane 可以平行工作，但**同一 target branch 的同一 repository path 同時間只允許一個 authoritative writer**。
+scheduler / GITHUB_ONLY / REMOTE_ACTION 只擁有 control-plane 與 post-push integration。若 next action 會新增/修改/刪除 repository content，固定 handoff 到 canonical root shared-0 workflow；不得在 GitHub branch 直接 author/hotfix。
 
-Static contract=`.agents/contracts/WHD_PATH_RESERVATION_V1.json`。Canonical state 直接存在 `WHD_EXECUTION_RECORD_V2.mutation_scope`；不得新增第二套 lock database。Machine evaluator=`tools/execution_path_reservation.py`。
+root/shared-0 完成 `ZERO_MANIFEST_FROZEN` 後，remote lane 才可進 delivery。GitHub Actions 只作 post-push verification；verification 發現內容錯誤時回 root/shared-0 修正。
 
-固定流程：
+### DELIVERY_PATH_RESERVATION_HARD_GATE_V1
 
-1. **新 READY Issue** 在第一次 root/content write 前固定用 atomic `ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`，同一 coord CAS 一次取得 live lease + ACTIVE reservation。只有 legacy compatibility 或既有 ACTIVE scope 的 monotonic 擴張才送 `RESERVE_PATHS`；不得把 `ACQUIRE → RESERVE_PATHS` 當新 interactive work 的 normal path。
-2. trusted production executor 必須 fresh-read `coord/execution-v2` 全部 nonterminal records；同 target 的 ACTIVE reservation 若有 exact path overlap，固定回 `PATH_RESERVATION_CONFLICT`，並保留 `conflicting_issue + paths`，不得寫 coord。
-3. coord ref CAS 是 cross-Issue atomic fence：兩個 runtime 即使同時從無衝突快照起跑，也只有第一個 non-force coord update 可成功；另一個 fresh-read 後必須看到 reservation conflict。
-4. scope 擴張只可 atomic monotonic superset `RESERVE_PATHS`；不得先改新檔再補 reservation，也不得用 scope shrink 釋放局部 path。
-   - `RESERVE_PATHS` 若 caller 已提供 structured `next_action`，成功的同一 transaction 必須原子寫入該 continuation；不得 reservation 已成功卻讓 record 黏在舊 `RESERVE_PATHS`，再靠額外 `RECONCILE` 才進 `APPLY_COMMIT`。
-5. `HANDOFF` / takeover / YIELD 只改 owner/lease/runtime，不釋放 mutation scope；reservation 綁 Issue。
-6. explicit 放棄 mutation scope 走 `RELEASE_PATHS`；正常 terminal `FINALIZE` 自動把 ACTIVE scope 標 `RELEASED`。
-7. interactive workspace 依 `build_interactive_work_path(issue, source_sha)` 做 Issue 隔離；兩個 Issue 不得共用同一實體 `/work/active` 施工目錄。
-8. 等待衝突 path 的 Issue 在前一 Issue 整合／release 後，必須 fresh `ROOT_SOURCE_CURRENT`、重新 reserve、重跑受影響 tests 與 refreeze；舊 base 的 GREEN/freeze 不可直接沿用。
+Flow v2 `mutation_scope` / `RESERVE_PATHS` 保留，但**只在 selected lane 已 frozen GREEN、準備 `/推推 文檔|主體` 時作 delivery reservation**。它不再是 root/content write 前置 single-writer gate。
 
-`RESERVE_PATHS` / `RELEASE_PATHS` 是 coordination transaction，不算 substantive engineering progress；執行器不得「拿到檔案鎖」就停止本輪。
+固定：
 
-### INVOCATION_ADMISSION_SESSION_V1
+1. selected lane manifest frozen；
+2. fresh-read target `main`；
+3. 取得 delivery reservation，只綁本次 manifest exact paths；
+4. `PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST`；
+5. 才允許 `START_BRANCH / APPLY_COMMIT`；
+6. reservation conflict 只阻擋 delivery，不得抹掉既有 shared-0 worker成果；
+7. conflict 解除後 fresh target + revalidate manifest，再送 delivery。
 
-Startup/root identity 與 mutation admission 是 **invocation/session-level gate**，不是每顆 transaction 都重新從零跑一次的人工檢查。
+`RESERVE_PATHS / RELEASE_PATHS` 是 delivery coordination，不算 engineering progress。
 
-固定規則：
+### INVOCATION_ADMISSION_SESSION_V2
 
-1. 同一 `invocation_identity` 在已完成 `WORK_ROOT_BOOTSTRAP_HARD_GATE_V1 + ROOT_SOURCE_CURRENT + Preflight` 後，若 live lease、source/target identity、root identity 與 requested scope 未變，後續 continuation transaction 使用 `WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1`（`mode=LIVE_LEASE_CONTINUATION`）；不得為每個 APPLY/QA/MERGE/FINALIZE 再建立新的 5 分鐘 startup envelope 或重做 Drive mount/root/manifest discovery。
-2. 新 READY work 的 canonical 快速入口是 **atomic ACQUIRE + admission reservation**：`ACQUIRE.effect.admission_reservation={target_branch,base_sha,write_paths,delete_paths}`。trusted executor 必須在同一 coord CAS 前做既有 cross-Issue path-conflict check；成功後 record 直接成為 `ACTIVE + live lease + mutation_scope=ACTIVE`，不再要求第二顆 `RESERVE_PATHS` workflow round-trip。
-3. 舊的分離式 `ACQUIRE → RESERVE_PATHS` 保留 compatibility；但新 interactive execution 不應主動製造兩次等待。
-4. admission 只有在下列條件才失效並要求 fresh re-admission：new/different/expired lease、`ACQUIRE / HANDOFF / RECONCILE / SYNC_TARGET / RESERVE_PATHS`、target/source SHA drift、scope 擴張、root identity/gate status 改變。原始 startup evidence TTL 到期**不會單獨讓同一 live lease session 失效**；一般 transaction generation 前進也不是重新讀 Drive root 的理由。
-   - `WHD_TEST_EXECUTION_RECEIPT_V1` / `ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1` 的 `generation / record_fingerprint` 只保留 **freeze-time provenance**；same-scope `ACQUIRE` / lease renewal 若只推進 ExecutionRecord generation，且 source/base、target、reserved paths、diff digest、test profile/manifest 均未改變，**不得要求重跑 root tests 或 refreeze**。
-   - `START_BRANCH / APPLY_COMMIT` 的 current execution fence 永遠由 fresh `mutation_writer_guard` 負責；它仍必須 exact 綁 current generation、record fingerprint、lease token、invocation、next_action、work/target heads。source/target/scope/diff 任一內容 identity 漂移仍固定 `STALE_PLAN_MUST_DIE`。
-5. scope 擴張仍必須走 atomic `RESERVE_PATHS` monotonic superset；不得把 session reuse 解讀成可越過 reservation conflict。
-6. terminal tail 不建立新 admission session；同一 live invocation 直接沿用既有 lease/evidence drain 到 DONE。
+Startup/root identity 與 Flow v2 lease 仍是 invocation/session-level gate；但 root content authoring 的 authority 是 shared-0 lineage，不是 mutation_scope。
 
-Machine owner：`tools/control_transaction.py::_execute_acquire` + `tools/control_transaction_production_executor.py`。
+- ACQUIRE/lease 可先存在，用於 owning Issue 與 liveness；不能因此禁止另一 worker以 latest `0` 為 base 做 candidate。
+- delivery 前才要求 exact manifest reservation。
+- `START_BRANCH / APPLY_COMMIT` 仍必須 fresh `mutation_writer_guard` + shared-0 freeze/unlock receipt。
+- source/target/manifest 任一 identity drift，舊 delivery plan固定 `STALE_PLAN_MUST_DIE`。
+- terminal tail沿用既有 Flow v2 merge/finalize規則。
 
 ### STALE_PLAN_MUST_DIE / ONE_ISSUE_ONE_MUTATION_WRITER
 
@@ -284,6 +279,25 @@ Repository governance 的唯一 production authority 固定為 `cleanup/2d-3d-sy
 
 live lease 時其他 invocation 回 busy，不覆寫。`lease=null` 的 same-lane nonterminal record 必須先做 ACQUIRE；expired lease 只允許符合 owner/lane contract 的原子 reacquire。ACQUIRE 成功後同一 invocation 立即續原本 structured next_action，不得把『拿到 lease』當停止點。runtime 物理邊界但 task 未 terminal時用 YIELD 清 lease、保留 exact next_action。**trusted writer 必須先以 `tools/execution_invocation_exit.py::classify_invocation_exit(..., host_boundary=True)` 驗證 `requires_yield=true` 才能接受 YIELD；`ACQUIRE → 無 substantive action → YIELD` 必須 fail closed。** YIELD 不是 task complete；DONE 才是 terminal。
 
+### STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1
+
+「工單卡住且沒有人做」是合法 recovery condition；一旦 machine 證明成立，**任何合法 WHD executor**（互動工作槽、A/B scheduler 或其他具備 canonical transaction authority 的 executor）都可接手，不必等待原 owner 回來。但 takeover authority 必須由完整 issue-family fresh evidence 產生，不能只靠單一 stale signal。
+
+固定判定順序：
+
+1. fresh-read target Issue 的 canonical ExecutionRecord / lease / owner / slot / lane / `structured next_action` / QA state，以及 execution liveness evidence。target 已 `DONE`/terminal 不可 takeover。
+2. 解析 canonical issue relationship，至少核對 target 的 parent、children，以及由 parent/child delegation 可到達的 delegated lineage；不得只讀 target 一張工單。
+3. 對相關 lineage 每一個 nonterminal node 檢查 live lease、valid heartbeat、active trusted transaction、active remote QA 與 delegated state。任一 node 為 `ACTIVE_DELEGATED_WORK`，或可證明仍有 active writer，結果固定 `FAMILY_ACTIVE_WORK_NO_TAKEOVER`。
+4. `STALE_RUNTIME_SUSPECTED`、單一 heartbeat expiry、舊 checkpoint、owner 沒有聊天回覆、host invocation 已 EXIT，都只能觸發調查，**不能單獨授權 takeover**。liveness=`UNKNOWN` 且仍有未過期 lease / active transaction evidence 時一律 fail closed。
+5. 只有 target 仍 nonterminal/stuck，且 target + 相關 parent/child/delegated lineage 全部 fresh 證明沒有 active writer，才產生 `STUCK_UNOWNED_FAMILY_CONFIRMED`，並令 `takeover_eligibility=TAKEOVER_ELIGIBLE`。closed/DONE family node 不阻塞；expired/null lease 且沒有其他 active evidence 的 stale/unowned node也不阻塞。
+6. `TAKEOVER_ELIGIBLE` 後，新的合法 executor 可透過 atomic `ACQUIRE/HANDOFF` 接手 target；不得因原 owner、原 handler、原 scheduler lane 不同而要求人工等待。HANDOFF 仍只改 owner/routing/lease，保留 target 的 `slot_id / branch / head_sha / structured next_action`；若 stale-writer 仍可能寫入，先套既有 generation fencing + salvage。
+7. takeover mutation 前必須再 fresh-read target + family lineage 並以 CAS 驗證同一證據；若任何 writer 在 race 中恢復 ACTIVE，固定 `TAKEOVER_RACE_ACTIVE_WORK`，不得建立 duplicate writer。
+8. takeover 成功後同一 invocation 立即 fresh-read並續跑 target 原 exact `next_action`；`ACQUIRE/HANDOFF` 本身不是 substantive progress，也不是停止點。
+
+這個 gate 只解除「已證明 abandoned/stuck 的 ownership」；不削弱 `ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1`、terminal-tail focus lock、path conflict、QA、merge 或 closure gate。
+
+<!-- STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1 -->
+
 ## Scheduler A/B
 
 A owner=`scheduler.6ab13fa557fc8191935c671214b865e2`，entrypoints=`00/20/40`。
@@ -362,7 +376,7 @@ Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
 - 互動式使用者明確要求執行新 ticket，且未指定任何 `/工作N` / slot 時，**預設就是 `/工作0` / `worker.slot.0`**；這個既有 default 不變，`tools/execution_dispatch_ingress.py` 的 default normalization 仍保留 `worker.slot.0`。
 - 只有在**建立新 READY record 前**，fresh-read canonical ExecutionRecords 發現預設 slot0 已 BOUND 時，才呼叫 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 做 overflow，依 `worker.slot.1 → 2 → 3` 找第一個 EMPTY；slot0 EMPTY 時仍使用原本預設 `worker.slot.0`。
 - 新工作明確使用 `/工作0` 時同樣套用上述 overflow；這不是改變 default identity，而是「0 忙時才 +1」的 capacity routing。
-- 0–3 全部 BOUND 時，結果固定為 fail closed / `NO_AVAILABLE_WORK_SLOT`；不得覆蓋現有 occupant、不得 takeover、不得建立 duplicate slot occupancy。
+- 0–3 全部 BOUND 時，結果固定為 fail closed / `NO_AVAILABLE_WORK_SLOT`；不得覆蓋現有 occupant、不得 takeover、不得建立 duplicate slot occupancy。 此句只約束「新 READY 工作的 capacity routing」；既有 Issue 若通過 `STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1`，可對該既有 record 執行 recovery takeover，兩者不得混用。
 - 若 ticket 已有 nonterminal ExecutionRecord，必須 resume 其原 `slot_id`，不得重新跑自動遞增。
 - 裸 `/工作0` query/status 仍只查 slot0；不因 slot0 BOUND 而跳去 slot1。
 - `/工作1`、`/工作2`、`/工作3` 明確指定時保持原 fixed slot，不套用 auto-increment。
@@ -404,6 +418,18 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 偵測到可能仍存活的舊 writer時：bump generation、換 canonical branch、綁 exact base/head/fingerprint。舊 generation後續寫入=`ORPHAN_WRITE`，不可直接 merge/accept。舊成果仍可 freeze donor HEAD 後分類 `ADOPTABLE / PARTIAL / STALE_CONFLICT`；可用部分收編到 current generation，只重做不能證明相容的部分。
 
 ## Remote QA
+
+### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
+
+Remote QA 是外部等待，不得佔住同一 invocation 做 busy polling。對同一 `issue + run_id + head_sha`，**每個 invocation 的 active-status observation budget 固定為 1**：
+
+1. fresh-read exact run/head 一次；若已 terminal，立刻走 `CONSUME_QA / ACCEPT_QA / FAIL_QA` 的既有 terminal 路徑。
+2. 若第一次 observation 仍為 `queued / in_progress / pending / waiting / requested`，立即呼叫 `classify_invocation_exit(..., remote_qa_active_observation_count=1)`；其結果必須是 `YIELD_REQUIRED_REMOTE_WAIT`，接著 durable `YIELD`。
+3. **同一 invocation 禁止第二次讀同一 active run 的 workflow/job/status**；machine budget owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget`。第二次 active observation 固定 `REMOTE_QA_POLL_BUDGET_EXHAUSTED`。
+4. remote wait 不算 executable engineering progress，也不得阻止 scheduler/worker 在 durable YIELD 後處理另一個合法 executable leaf；原 QA 只在後續 wake/resume 再觀測。
+5. progress/status 回報是 non-blocking checkpoint，不得用「再看一次 CI」延長本 invocation。
+
+<!-- REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1 -->
 
 START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA 可從 ACTIVE / VERIFYING / INTEGRATING 進入 VERIFYING：INTEGRATING 只用於「原 accepted head 後續因合法 APPLY_COMMIT / target reconciliation 前進而需要重新 exact-head QA」；不得把這條路徑當成跳過既有 acceptance。active只 POLL_QA；success→ACCEPT_QA；若來源是 integration revalidation，ACCEPT_QA 必須以 next_state=INTEGRATING 回到 merge gate，且 MERGE 仍強制 qa.accepted_head_sha == current head。terminal non-success→FAIL_QA。FAIL_QA 必須綁 exact run_id + run_head_sha，清除 active_run、保持 work_branch/head/target/owner/lane/slot 不變，回 ACTIVE/QA_FAILED_REPAIR，並寫入一個 executable repair next_action；不得把 failed QA 當 blocker 或 acceptance。
 
@@ -495,3 +521,14 @@ Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 w
 POLL_QA 是 observation。若 fresh-read 已存在 **exact-head + exact-workflow + completed/success** 的 terminal run，且 record 是 `START_QA` continuation、沒有 `active_run`，**優先送單顆 `CONSUME_QA`**，不得先做 `START_QA → ACCEPT_QA`。只有真的需要啟動新 run 時才走 `START_QA → POLL_QA → ACCEPT_QA`；terminal non-success 送 `FAIL_QA` 回 repair。PR merge 仍是 GitHub external side effect：merge前驗 exact PR identity，merge後 fresh-read target SHA，再送 MERGE request。FINALIZE由 trusted production writer自行 close/readback Issue，並由 fresh `closed_at` 產生 authoritative `released_at`；caller 的 FINALIZE effect 不得必填或授權 `released_at`。request workflow固定具有 `issues: write`。
 
 手動 `whd-control-transaction-v2.yml` 只保留管理/診斷用途；scheduler不得依賴 connector 未提供的 workflow_dispatch。
+
+
+### DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1
+Repository-content implementation uses shared `.unpushed/{body|docs}/0`; no delivery branch or path reservation is allowed before post-merge-0 GREEN and freeze.
+
+- 使用者詢問進度/狀態只算 non-blocking checkpoint，不得把 status/progress query 當停止理由。
+
+- 若 runtime 無 canonical root content capability：`HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK`；禁止 GitHub-side content hotfix。
+
+### Frozen root evidence current-fence rule
+`generation` in the root test receipt is **freeze-time provenance** only. The current execution fence is `mutation_writer_guard`. A pure lease renewal / generation advance with unchanged source, lane manifest, paths, diff digest and test receipt must not invalidate frozen evidence and **不得要求重跑 root tests**.

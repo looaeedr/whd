@@ -5,23 +5,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FLOW = ".agents/skills/engineering/flow-v2-execution/SKILL.md"
-UNVERSIONED_DRIVE_GATE_ID = "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV"
 
 
 def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_drive_root_gate_mirror_has_one_unversioned_v5_identity() -> None:
-    contract = json.loads(_read(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"))
-    assert contract["version"] == 5
-    source = contract["canonical_source"]
-    assert source["library_path"] == "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
-    assert source["drive_file_id"] == UNVERSIONED_DRIVE_GATE_ID
-    assert source["canonical_filename"] == "WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"
-    assert source["versioned_aliases_must_not_be_current"] is True
-    work_root = json.loads(_read(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json"))
-    assert work_root["next_gate"]["drive_path"] == source["library_path"]
+def test_current_root_gate_is_v2_full_repo_shared_unpushed() -> None:
+    work_root = json.loads(_read(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"))
+    assert work_root["status"] == "CURRENT"
+    assert work_root["default_work_root"]["drive_folder_id"] == "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
+    assert set(work_root["required_root_entries"]) >= {".git", ".unpushed", ".agents", "tools", "tests"}
+    assert work_root["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
+    root_gate = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
+    assert root_gate["status"] == "CURRENT"
+    assert json.loads(_read(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json"))["status"] == "SUPERSEDED"
+    assert json.loads(_read(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"))["status"] == "SUPERSEDED"
 
 
 def test_dispatch_and_ask_matt_cannot_recreate_a_second_execution_state_machine() -> None:

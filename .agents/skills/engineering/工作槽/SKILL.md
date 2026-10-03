@@ -50,6 +50,18 @@ whd_schema: WHD_DOC_META_V1
 - chain successor 已帶既有 `slot_id`；
 - explicit `/工作1/2/3`。
 
+## STUCK_UNOWNED_FAMILY_TAKEOVER_BRIDGE_V1
+
+工作槽接手既有工單時，固定 bridge 到 `flow-v2-execution::STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1`；不得只看本 slot 是否沒 heartbeat 就直接 takeover。
+
+- 先 fresh-read 目標 Issue 的 canonical ExecutionRecord，再沿 canonical issue relationship 讀父工單、子工單與 delegated lineage。
+- 只要父／子／delegated lineage 任一仍有 live lease、valid heartbeat、active trusted transaction、active remote QA，或 machine state=`ACTIVE_DELEGATED_WORK`，就視為**仍有人施工**，本次接手 fail closed。
+- 只有 target 已 nonterminal/stuck，且整個相關父子 lineage 都能 fresh 證明沒有 active writer，才標記 `STUCK_UNOWNED_FAMILY_CONFIRMED` / `TAKEOVER_ELIGIBLE`。
+- 一旦 `TAKEOVER_ELIGIBLE`，`/工作0..3` 任一合法執行者都可走 atomic `ACQUIRE/HANDOFF` 接手；不得因原 owner、原 handler 或原 lane 不同而要求人工等候。
+- 接手 mutation 前必須再次 fresh-read target + parent/child/delegated lineage；若 race 中任何 writer 重新 ACTIVE，固定回 `TAKEOVER_RACE_ACTIVE_WORK`，不得 duplicate writer。
+- takeover 只改 canonical owner/routing/lease；既有 `slot_id / branch / head_sha / structured next_action` 依 Flow v2 保留，除非 generation fencing 因 stale-writer salvage 明確要求更新。
+- `STALE_RUNTIME_SUSPECTED`、單一 heartbeat 過期或聊天沒有回覆本身都**不足以**授權接手；必須完成上述 execution + 父子 lineage 證明。
+
 ## Query / execution
 
 裸 `/工作0`、`/工作1`、`/工作2`、`/工作3` 只查 projection，不取得 authority。

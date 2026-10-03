@@ -19,6 +19,7 @@ SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
     "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA", "MERGE", "HANDOFF", "FINALIZE", "RECONCILE", "BLOCK"
 })
 REMOTE_ACTIVE_STATUSES = frozenset({"queued", "in_progress", "pending", "waiting", "requested"})
+REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = 1
 
 
 class InvocationExitError(ValueError):
@@ -64,6 +65,26 @@ def _decision(record: ExecutionRecord, name: str, *, may_return: bool, requires_
     )
 
 
+def assert_remote_qa_active_observation_budget(
+    *,
+    observation_count: int,
+    run_status: str,
+) -> bool:
+    """Reject same-invocation busy polling of one active remote QA run."""
+    if isinstance(observation_count, bool) or not isinstance(observation_count, int):
+        raise InvocationExitError("observation_count must be an integer")
+    if observation_count <= 0:
+        raise InvocationExitError("observation_count must be positive")
+    status = _text(run_status, "run_status").lower()
+    if status in REMOTE_ACTIVE_STATUSES and observation_count > REMOTE_QA_ACTIVE_OBSERVATION_BUDGET:
+        raise InvocationExitError(
+            "REMOTE_QA_POLL_BUDGET_EXHAUSTED "
+            f"observation_count={observation_count} budget={REMOTE_QA_ACTIVE_OBSERVATION_BUDGET} "
+            f"run_status={status}"
+        )
+    return True
+
+
 def durable_terminal_exit_blockers(record: ExecutionRecord) -> tuple[str, ...]:
     """Return machine reasons that forbid a task-complete/terminal claim.
 
@@ -107,23 +128,21 @@ def assert_durable_terminal_exit(record: ExecutionRecord) -> bool:
 def assert_repository_content_cycle_complete(
     record: ExecutionRecord,
     *,
-    source_manifest: object,
-    workspace_location: str,
+    root_sync_receipt: object,
+    lane_delivery_receipt: object,
 ) -> bool:
-    """Fail closed until execution DONE is followed by durable root cleanup.
+    """Fail closed until DONE is followed by root sync + lane finalization.
 
-    ``assert_durable_terminal_exit`` proves only the Flow v2 execution tuple.
-    Repository-content work is not user-visible/physical-cycle complete until
-    the exact source export has been written/read back and the issue workspace
-    has left ``/work/active``.
+    The current full-repo/shared-unpushed workflow has no Current Source
+    snapshot/manifest or per-Issue workspace archival completion authority.
     """
     assert_durable_terminal_exit(record)
     from tools.post_integration_durability import classify_post_integration_durability
 
     result = classify_post_integration_durability(
         execution_record=execution_record_to_payload(record),
-        source_manifest=source_manifest,
-        workspace_location=workspace_location,
+        root_sync_receipt=root_sync_receipt,
+        lane_delivery_receipt=lane_delivery_receipt,
     )
     if result.get("state") != "DURABLE_CLEANUP_COMPLETE":
         next_action = str(result.get("next_action") or "UNKNOWN")
@@ -152,12 +171,56 @@ FOREIGN_READ_ONLY_ACTIONS = frozenset({
 TERMINAL_TAIL_FOREIGN_READ_ONLY_ACTIONS = FOREIGN_READ_ONLY_ACTIONS
 
 
+def _yielded_nonterminal_leaf(record: ExecutionRecord) -> bool:
+    """Return whether this leaf durably yielded and has no active writer lease."""
+    if record.state == "DONE" or record.lease is not None or terminal_tail_active(record):
+        return False
+    tx = record.transaction
+    return (
+        tx is not None
+        and tx.status == "RECONCILED"
+        and tx.kind == "YIELD"
+    )
+
+
 def _durable_owning_identity_active(record: ExecutionRecord) -> bool:
     return (
         record.state != "DONE"
         and record.owner_kind != "NONE"
         and record.owner_id != "NONE"
+        and not _yielded_nonterminal_leaf(record)
     )
+
+
+def released_stale_reset_residue(
+    record: ExecutionRecord,
+    *,
+    observed_at: str,
+) -> bool:
+    """Return whether a nonterminal record is only stale RELEASED residue.
+
+    This classification is deliberately side-effect-free and uses only durable
+    ExecutionRecord facts.  Work-branch absence remains a trusted GitHub
+    readback owned by the RELEASE_PATHS cleanup seam; this helper never grants
+    cleanup authority by itself.
+    """
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    observed = _aware(observed_at, "observed_at")
+    if record.state == "DONE" or terminal_tail_active(record):
+        return False
+    scope = record.mutation_scope
+    if scope is None or scope.reservation_state != "RELEASED":
+        return False
+    if record.lease is None:
+        return False
+    if _aware(record.lease.expires_at, "lease.expires_at") >= observed:
+        return False
+    if record.active_run is not None:
+        return False
+    if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
+        return False
+    return True
 
 
 def assert_active_owning_issue_sticky(
@@ -226,8 +289,10 @@ def classify_invocation_exit(
     invocation_identity: str,
     now: str,
     host_boundary: bool = False,
-    source_manifest: object | None = None,
-    workspace_location: str | None = None,
+    root_sync_receipt: object | None = None,
+    lane_delivery_receipt: object | None = None,
+    remote_qa_active_observation_count: int = 1,
+    alternative_executable_leaf_count: int = 0,
 ) -> InvocationExitDecision:
     """Classify whether this physical invocation may return.
 
@@ -239,11 +304,17 @@ def classify_invocation_exit(
         raise InvocationExitError("record must be an ExecutionRecord")
     invocation = _text(invocation_identity, "invocation_identity")
     now_dt = _aware(now, "now")
+    if (
+        isinstance(alternative_executable_leaf_count, bool)
+        or not isinstance(alternative_executable_leaf_count, int)
+        or alternative_executable_leaf_count < 0
+    ):
+        raise InvocationExitError("alternative_executable_leaf_count must be a non-negative integer")
 
     if record.state == "DONE":
         assert_durable_terminal_exit(record)
         if record.mutation_scope is not None:
-            if source_manifest is None or workspace_location is None:
+            if root_sync_receipt is None or lane_delivery_receipt is None:
                 return _decision(
                     record,
                     "CONTINUE_POST_INTEGRATION_DURABILITY",
@@ -252,8 +323,8 @@ def classify_invocation_exit(
                 )
             assert_repository_content_cycle_complete(
                 record,
-                source_manifest=source_manifest,
-                workspace_location=workspace_location,
+                root_sync_receipt=root_sync_receipt,
+                lane_delivery_receipt=lane_delivery_receipt,
             )
         return _decision(record, "TASK_TERMINAL", may_return=True, requires_yield=False)
 
@@ -265,6 +336,13 @@ def classify_invocation_exit(
             and tx.kind == "YIELD"
             and tx.invocation_identity == invocation
         ):
+            if alternative_executable_leaf_count > 0:
+                return _decision(
+                    record,
+                    "CONTINUE_OTHER_EXECUTABLE_LEAF",
+                    may_return=False,
+                    requires_yield=False,
+                )
             return _decision(record, "YIELDED", may_return=True, requires_yield=False)
         return _decision(record, "ACQUIRE_REQUIRED", may_return=False, requires_yield=False)
 
@@ -282,6 +360,10 @@ def classify_invocation_exit(
     if record.active_run is not None and record.next_action is not None:
         run_status = str(record.active_run.status or "").strip().lower()
         if record.next_action.kind == "POLL_QA" and record.next_action.kind in OBSERVATION_ACTION_KINDS and run_status in REMOTE_ACTIVE_STATUSES:
+            assert_remote_qa_active_observation_budget(
+                observation_count=remote_qa_active_observation_count,
+                run_status=run_status,
+            )
             return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
 
     if terminal_tail_active(record):
