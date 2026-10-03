@@ -313,3 +313,4 @@ def test_pitfall_records_parent_chain_stale_zero_and_remote_deny_regression():
     assert "ROOT_PARENT_CHAIN_AND_LATEST_ZERO_PITFALL_V1" in text
     assert "全域同名搜尋只能是 `CANDIDATE_ONLY`" in text
     assert "未授權時連 GitHub `READ/FETCH/COMPARE` 都不能" in text
+
