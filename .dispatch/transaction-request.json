@@ -1,19 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-handoff-none-after-stale-release-20261003T2148+08",
-  "issue": 1128,
-  "kind": "HANDOFF",
+  "request_id": "issue1129-reconcile-docs21-20261003T2151+08",
+  "issue": 1129,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "chatgpt.flowv2.work3.issue1128.stale-release.20261003T2143+08",
-  "expected_coord_head": "07047f1fc7ddfacd08012a97e33d91fca5b5bdfa",
-  "expected_generation": 7,
+  "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2151+08",
+  "expected_coord_head": "fd41da5a56b02fc0c18619e6429a7d2a60bae92b",
+  "expected_generation": 1,
   "effect": {
-    "owner_kind": "NONE",
-    "owner_id": "NONE",
-    "lane_id": null,
-    "lease": null
+    "observed_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+    "observed_head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
+    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "semantic_state": "READY",
+    "next_action": {
+      "kind": "ACQUIRE",
+      "args": {},
+      "display": "Acquire Issue #1129 for docs generation 21 delivery"
+    }
   },
-  "purpose": "Clear stale work3 ownership after #1128 path reservation release; preserve Issue state, slot, next_action, branch and repository content.",
+  "purpose": "Reconcile stale Issue #1129 execution identity to live production before delivering frozen docs generation 21 exact fileset.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -40,16 +45,18 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1128,
-    "invocation_identity": "chatgpt.flowv2.work3.issue1128.stale-release.20261003T2143+08",
-    "branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
-    "head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
+    "issue": 1129,
+    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2151+08",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
     "required_skills": [
       "root-local-first",
+      "推推",
       "flow-v2-execution"
     ],
     "completed_skills": [
       "root-local-first",
+      "推推",
       "flow-v2-execution"
     ],
     "required_references": [
@@ -58,6 +65,6 @@
     "completed_references": [
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
     ],
-    "observed_at": "2026-10-03T13:48:00Z"
+    "observed_at": "2026-10-03T13:51:00Z"
   }
 }
