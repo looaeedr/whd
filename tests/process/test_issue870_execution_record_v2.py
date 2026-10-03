@@ -1,6 +1,8 @@
-import json
+﻿import json
+
 
 import pytest
+
 
 from tools.execution_record import (
     ActionSpec,
@@ -19,6 +21,8 @@ from tools.execution_record import (
     execution_record_to_payload,
     load_execution_record,
 )
+
+
 
 
 def _claim(**overrides):
@@ -40,6 +44,8 @@ def _claim(**overrides):
     }
     payload.update(overrides)
     return payload
+
+
 
 
 def _checkpoint(**overrides):
@@ -70,6 +76,8 @@ def _checkpoint(**overrides):
     }
     payload.update(overrides)
     return payload
+
+
 
 
 def _native_payload(**overrides):
@@ -114,8 +122,11 @@ def _native_payload(**overrides):
     return payload
 
 
+
+
 def test_legacy_claim_and_checkpoint_project_to_one_execution_record():
     record = execution_record_from_legacy(_claim(), _checkpoint())
+
 
     assert record.issue == 844
     assert record.owner_id == "scheduler.6ab13fa557fc8191935c671214b865e2"
@@ -126,6 +137,8 @@ def test_legacy_claim_and_checkpoint_project_to_one_execution_record():
     assert record.semantic_state == "RUNNING"
     assert record.next_action.display == "run focused GREEN"
     assert record.chain.parent_issue == 842
+
+
 
 
 @pytest.mark.parametrize(
@@ -147,10 +160,15 @@ def test_legacy_projection_rejects_conflicting_identity_or_resume_meaning(
         )
 
 
+
+
 def test_legacy_projection_normalizes_unbound_slot_sentinel_to_none():
     record = execution_record_from_legacy(_claim(slot_id="UNBOUND"), _checkpoint())
 
+
     assert record.slot_id is None
+
+
 
 
 def test_legacy_invocation_provenance_without_lease_fields_does_not_synthesize_lease():
@@ -159,7 +177,10 @@ def test_legacy_invocation_provenance_without_lease_fields_does_not_synthesize_l
         _checkpoint(),
     )
 
+
     assert record.lease is None
+
+
 
 
 def test_legacy_projection_uses_explicit_execution_intent_lane_slot_and_lease():
@@ -174,6 +195,7 @@ def test_legacy_projection_uses_explicit_execution_intent_lane_slot_and_lease():
         _checkpoint(),
     )
 
+
     assert record.execution_intent == "SCHEDULER_LANE"
     assert record.owner_kind == "SCHEDULER"
     assert record.lane_id == "scheduler.6ab13fa557fc8191935c671214b865e2"
@@ -185,15 +207,20 @@ def test_legacy_projection_uses_explicit_execution_intent_lane_slot_and_lease():
     )
 
 
+
+
 def test_legacy_projection_does_not_infer_missing_execution_intent_from_prose():
     record = execution_record_from_legacy(
         _claim(execution_intent=None, next_action="please continue implementation carefully"),
         _checkpoint(next_action="please continue implementation carefully"),
     )
 
+
     assert record.execution_intent == "LEGACY_UNSPECIFIED"
     assert record.next_action.kind == "LEGACY_TEXT"
     assert record.next_action.display == "please continue implementation carefully"
+
+
 
 
 def test_legacy_projection_carries_run_acceptance_transaction_and_recovery_history():
@@ -217,6 +244,7 @@ def test_legacy_projection_carries_run_acceptance_transaction_and_recovery_histo
         ),
     )
 
+
     assert record.state == "VERIFYING"
     assert record.active_run == RunState(
         id=36357957512,
@@ -239,6 +267,8 @@ def test_legacy_projection_carries_run_acceptance_transaction_and_recovery_histo
     )
 
 
+
+
 def test_terminal_successor_projects_exact_next_issue_and_chain_action():
     record = execution_record_from_legacy(
         _claim(next_action=None),
@@ -251,6 +281,7 @@ def test_terminal_successor_projects_exact_next_issue_and_chain_action():
             closure_state="CLOSED",
         ),
     )
+
 
     assert record.state == "INTEGRATING"
     assert record.next_action == ActionSpec(
@@ -269,26 +300,87 @@ def test_terminal_successor_projects_exact_next_issue_and_chain_action():
     )
 
 
+
+
 def test_native_v2_round_trip_and_fingerprint_are_stable_across_mapping_order():
     payload = _native_payload()
     record_a = execution_record_from_payload(payload)
     record_b = execution_record_from_payload(json.loads(json.dumps(payload, sort_keys=True)))
+
 
     assert execution_record_to_payload(record_a) == execution_record_to_payload(record_b)
     assert execution_record_fingerprint(record_a) == execution_record_fingerprint(record_b)
     assert len(execution_record_fingerprint(record_a)) == 64
 
 
+
+
+
+
+def test_native_v2_payload_normalizes_legacy_unsorted_mutation_scope_paths():
+    payload = _native_payload(
+        mutation_scope={
+            "target_branch": "cleanup/2d-3d-sync",
+            "base_sha": "c" * 40,
+            "write_paths": ["tests/z.py", "gui_modules/a.py", "tests/a.py"],
+            "delete_paths": ["tests/old_z.py", "tests/old_a.py"],
+            "reservation_state": "ACTIVE",
+        }
+    )
+
+
+    record = execution_record_from_payload(payload)
+
+
+    assert record.mutation_scope.write_paths == (
+        "gui_modules/a.py",
+        "tests/a.py",
+        "tests/z.py",
+    )
+    assert record.mutation_scope.delete_paths == (
+        "tests/old_a.py",
+        "tests/old_z.py",
+    )
+    serialized = execution_record_to_payload(record)
+    assert serialized["mutation_scope"]["write_paths"] == [
+        "gui_modules/a.py",
+        "tests/a.py",
+        "tests/z.py",
+    ]
+
+
+
+
+def test_native_v2_payload_unsorted_compatibility_does_not_weaken_path_validation():
+    payload = _native_payload(
+        mutation_scope={
+            "target_branch": "cleanup/2d-3d-sync",
+            "base_sha": "c" * 40,
+            "write_paths": ["tests/b.py", "tests/b.py"],
+            "delete_paths": [],
+            "reservation_state": "ACTIVE",
+        }
+    )
+
+
+    with pytest.raises(ExecutionRecordError, match="duplicate paths"):
+        execution_record_from_payload(payload)
+
+
 def test_load_execution_record_reads_v2_file(tmp_path):
     path = tmp_path / "issue-844.json"
     path.write_text(json.dumps(_native_payload(), ensure_ascii=False), encoding="utf-8")
 
+
     record = load_execution_record(path)
+
 
     assert isinstance(record, ExecutionRecord)
     assert record.issue == 844
     assert record.next_action.kind == "RUN_TESTS"
     assert record.lease.token == "lease-844-a"
+
+
 
 
 @pytest.mark.parametrize(
@@ -308,6 +400,8 @@ def test_native_v2_rejects_impossible_combinations(overrides, match):
         execution_record_from_payload(_native_payload(**overrides))
 
 
+
+
 def test_blocked_record_requires_allowed_external_blocker_kind():
     payload = _native_payload(
         state="BLOCKED",
@@ -317,11 +411,14 @@ def test_blocked_record_requires_allowed_external_blocker_kind():
     )
     record = execution_record_from_payload(payload)
 
+
     assert record.blocker == BlockerState(
         kind="MISSING_CAPABILITY",
         evidence="connector unavailable",
         recheck_after=None,
     )
+
+
 
 
 def test_done_record_requires_closed_and_released_closure():
@@ -339,6 +436,7 @@ def test_done_record_requires_closed_and_released_closure():
         },
     )
     record = execution_record_from_payload(payload)
+
 
     assert record.closure == ClosureState(
         merged_sha="e" * 40,
