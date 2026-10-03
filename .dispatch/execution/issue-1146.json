@@ -1,44 +1,37 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1146,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-  "work_branch": "delivery/issue1146-docs-gen7-20261003",
-  "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1146"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "issue": 1146,
+  "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "lease": {
+    "expires_at": "2026-10-03T01:40:52Z",
+    "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
+    "token": "lease:1146:37086038348:1"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Reserve exact frozen docs generation 8 scope for #1146",
+    "kind": "RESERVE_PATHS"
+  },
+  "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
@@ -48,5 +41,22 @@
       "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-10-02T23:16:02Z"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "transaction": {
+    "expected_fingerprint": "524369ae87221aeaae8220bd4ad1a3b02a2015cea20992ffa4e122ada3cb80fb",
+    "id": "gha:37086038348:1146:ACQUIRE:1",
+    "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-03T01:25:52Z",
+  "version": 2,
+  "work_branch": "delivery/issue1146-docs-gen7-20261003"
 }
