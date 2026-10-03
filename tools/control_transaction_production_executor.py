@@ -726,12 +726,21 @@ def _trusted_stale_release_effect(
     token: str,
     *,
     record: ExecutionRecord,
+    records: dict[int, ExecutionRecord] | None = None,
     supplied: dict[str, object],
 ) -> dict[str, object]:
-    """Prove the five narrow stale-release reset conditions with fresh readback."""
+    """Delete one proven-safe stale work ref, then prove absence before READY reset.
+
+    The GitHub connector/runtime is not granted an ad-hoc branch-delete bypass.
+    RELEASE_PATHS remains the sole semantic owner: this trusted GitHub executor
+    may delete only the exact stale work ref after proving that it is released,
+    inactive, unprotected, unshared, unchanged, and fully contained in the live
+    target history.  If the ref is already absent, the operation is idempotent.
+    """
     scope = record.mutation_scope
     if scope is None or scope.reservation_state != "RELEASED":
         return dict(supplied)
+
     now = _now()
     if record.lease is None:
         raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires an expired lease")
@@ -745,20 +754,90 @@ def _trusted_stale_release_effect(
     if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
         raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires no QA lock")
 
+    if (
+        record.work_branch in {"main", "cleanup/2d-3d-sync", record.source_branch, record.target_branch}
+        or record.work_branch.startswith("coord/")
+    ):
+        raise ProductionExecutorError(
+            f"stale RELEASE_PATHS cleanup refuses protected/control branch {record.work_branch!r}"
+        )
+
+    observed_records = records if records is not None else {record.issue: record}
+    for other in observed_records.values():
+        if (
+            other.issue != record.issue
+            and other.state != "DONE"
+            and other.work_branch == record.work_branch
+        ):
+            raise ProductionExecutorError(
+                "stale RELEASE_PATHS cleanup refuses work branch referenced by another nonterminal Issue"
+            )
+
+    fresh_target_sha = _read_branch_head(repo, token, record.target_branch)
     encoded_work = quote(record.work_branch, safe="")
+    branch_exists = False
+    observed_work_sha: str | None = None
     try:
-        _api(repo, "GET", f"/git/ref/heads/{encoded_work}", token)
+        ref = _api(repo, "GET", f"/git/ref/heads/{encoded_work}", token) or {}
+        observed_work_sha = str((ref.get("object") or {}).get("sha") or "").strip()
+        if not observed_work_sha:
+            raise ProductionExecutorError(
+                "stale RELEASE_PATHS cleanup work branch resolved without SHA"
+            )
+        branch_exists = True
     except HTTPError as exc:
         if exc.code != 404:
             raise
-    else:
-        raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires absent work branch")
+
+    deleted = False
+    if branch_exists:
+        if supplied.get("delete_stale_work_branch") is not True:
+            raise ProductionExecutorError(
+                "stale RELEASE_PATHS cleanup requires delete_stale_work_branch=true while work branch exists"
+            )
+        if observed_work_sha != record.head_sha:
+            raise ControlTransactionConflict(
+                "stale RELEASE_PATHS cleanup work branch head drift: "
+                f"expected {record.head_sha}, observed {observed_work_sha}"
+            )
+
+        branch_meta = _api(repo, "GET", f"/branches/{encoded_work}", token) or {}
+        branch_meta_sha = str((branch_meta.get("commit") or {}).get("sha") or "").strip()
+        if branch_meta_sha and branch_meta_sha != observed_work_sha:
+            raise ControlTransactionConflict(
+                "stale RELEASE_PATHS cleanup branch metadata head drift"
+            )
+        if branch_meta.get("protected") is True:
+            raise ProductionExecutorError(
+                "stale RELEASE_PATHS cleanup refuses protected work branch"
+            )
+
+        if not _is_ancestor(repo, token, observed_work_sha, fresh_target_sha):
+            raise ControlTransactionConflict(
+                "stale RELEASE_PATHS cleanup refuses branch with commits not contained in current target"
+            )
+
+        _api(repo, "DELETE", f"/git/refs/heads/{encoded_work}", token)
+        deleted = True
+
+        try:
+            _api(repo, "GET", f"/git/ref/heads/{encoded_work}", token)
+        except HTTPError as exc:
+            if exc.code != 404:
+                raise
+        else:
+            raise ProductionExecutorError(
+                "stale RELEASE_PATHS cleanup delete readback still resolves work branch"
+            )
 
     effect = dict(supplied)
     effect.update(
         {
             "work_branch_exists": False,
-            "fresh_target_sha": _read_branch_head(repo, token, record.target_branch),
+            "fresh_target_sha": fresh_target_sha,
+            "stale_work_branch_sha": observed_work_sha or record.head_sha,
+            "stale_work_branch_deleted": deleted,
+            "stale_work_branch_readback": "ABSENT",
             "updated_at": _iso(now),
         }
     )
@@ -982,6 +1061,7 @@ def _execute_one_attempt(
             repo,
             token,
             record=record,
+            records=records,
             supplied=effect,
         )
     elif kind == "FINALIZE":
