@@ -1,44 +1,70 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-reserve-root-tested-scope-20261002T1746+08",
-  "issue": 1128,
-  "kind": "RESERVE_PATHS",
+  "request_id": "issue1129-reconcile-docs21-20261003T2137+08",
+  "issue": 1129,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "chatgpt.flowv2.work3.issue1128.20261002T1741+08",
-  "expected_coord_head": "21829b152a62f2d0013c5b6b1d355a21f2127054",
-  "expected_generation": 5,
+  "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2137+08",
+  "expected_coord_head": "ee79ebeb36128a048c90e3b39ae55f121c2968bf",
+  "expected_generation": 1,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-    "write_paths": [
-      "fold_designer_bridge.py",
-      "gui_modules/application/fold_designer_adapter.py",
-      "tests/test_issue1128_derived_sync_composition_owner.py",
-      "tests/test_issue480_derived_part_projection_plan.py",
-      "tests/test_issue481_derived_apply_linked_endcap_owner.py",
-      "tools/product_ci_regression.py"
-    ],
-    "delete_paths": [],
-    "semantic_state": "ROOT_TESTED_DIFF_FROZEN",
+    "observed_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+    "observed_head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
+    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "semantic_state": "READY",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {
-        "diff_digest": "9427b2f3e022c6eadc7dfbb62dc88ea5c8bf21ff0efc68b4251058e6799d22c5"
-      },
-      "display": "Create clean #1128 branch from exact root-tested source and frozen diff"
+      "kind": "ACQUIRE",
+      "args": {},
+      "display": "Acquire Issue #1129"
     }
   },
-  "purpose": "Monotonic reservation refresh for user-selected #1128 after root RED/GREEN and product full gate. Keep the two legacy reserved paths and add every actual frozen diff path; no repository-content mutation.",
+  "purpose": "Reconcile stale Issue #1129 execution identity to the live production target before delivering frozen docs generation 21 exact fileset.",
   "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1129,
+    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2137+08",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+    "required_skills": [
+      "root-local-first",
+      "推推",
+      "flow-v2-execution"
+    ],
+    "completed_skills": [
+      "root-local-first",
+      "推推",
+      "flow-v2-execution"
+    ],
+    "required_references": [
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+    ],
+    "completed_references": [
+      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+    ],
+    "observed_at": "2026-10-03T13:37:39Z"
   }
 }
