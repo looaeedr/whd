@@ -21,6 +21,7 @@ DEFAULT_WORK_PREFIX = "/Google Drive/WHD/.unpushed"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
 TEST_EXECUTION_RECEIPT_SCHEMA = "WHD_TEST_EXECUTION_RECEIPT_V1"
+WORKER_CENSUS_SCHEMA = "WHD_SHARED_ZERO_WORKER_CENSUS_V1"
 REQUIRED_ORDER = (
     "ROOT_SOURCE_CURRENT",
     "UNPUSHED_LANE_CLASSIFIED",
@@ -775,6 +776,36 @@ def frozen_diff_digest(entries: Iterable[Mapping[str, object]]) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
+def validate_worker_census_evidence(
+    payload: Mapping[str, object], *, expected_lane: str, expected_generation: int
+) -> dict[str, object]:
+    """Validate optional legacy/shared-zero worker census evidence.
+
+    The current root-first fast path no longer requires this census to progress,
+    but older trusted callers still supply it.  Accept and validate it when
+    present so the compatibility field cannot silently become an unchecked
+    authority bypass.
+    """
+    evidence = _mapping(payload, "worker census evidence")
+    if evidence.get("schema") != WORKER_CENSUS_SCHEMA:
+        raise ValueError("worker census evidence schema mismatch")
+    lane = str(evidence.get("lane") or "").strip().lower()
+    if lane != str(expected_lane or "").strip().lower():
+        raise ValueError("worker census lane mismatch")
+    generation = evidence.get("latest_zero_generation")
+    if not isinstance(generation, int) or isinstance(generation, bool):
+        raise ValueError("worker census latest_zero_generation must be integer")
+    if generation != int(expected_generation):
+        raise ValueError("worker census generation mismatch")
+    if evidence.get("fresh") is not True:
+        raise ValueError("worker census must be fresh")
+    for key in ("mergeable_green_count", "blocking_candidate_count"):
+        value = evidence.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"worker census {key} must be non-negative integer")
+    return dict(evidence)
+
+
 def build_gate_evidence(
     *,
     execution_mode: str,
@@ -790,6 +821,7 @@ def build_gate_evidence(
     tests_green: bool = False,
     test_receipt: Mapping[str, object] | None = None,
     expected_test_commands: Iterable[str] = (),
+    worker_census_evidence: Mapping[str, object] | None = None,
     diff_digest: str | None = None,
     remote_connection_authority: Mapping[str, object] | None = None,
     path_reservation_evidence: Mapping[str, object] | None = None,
@@ -873,9 +905,24 @@ def build_gate_evidence(
                                 expected_commands=expected_test_commands,
                             )
                             completed.append("POST_MERGE_0_TESTS_GREEN")
-                            if not diff_digest:
+                            worker_census_blocks = False
+                            if worker_census_evidence is not None:
+                                census = validate_worker_census_evidence(
+                                    worker_census_evidence,
+                                    expected_lane=str(lane.get("lane") or ""),
+                                    expected_generation=int(lane.get("generation") or 0),
+                                )
+                                if int(census.get("mergeable_green_count") or 0) > 0:
+                                    next_action = "MERGE_TO_FRESH_LATEST_ZERO"
+                                    worker_census_blocks = True
+                                elif int(census.get("blocking_candidate_count") or 0) > 0:
+                                    next_action = "RESOLVE_WORKER_CENSUS_BLOCKERS"
+                                    worker_census_blocks = True
+                                else:
+                                    completed.append("WORKER_CENSUS_NO_MERGEABLE_GREEN")
+                            if not worker_census_blocks and not diff_digest:
                                 next_action = "LANE_MANIFEST_FROZEN"
-                            else:
+                            elif not worker_census_blocks:
                                 if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
                                     raise ValueError("diff_digest must be SHA256")
                                 completed.append("LANE_MANIFEST_FROZEN")

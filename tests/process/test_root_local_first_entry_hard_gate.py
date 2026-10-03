@@ -49,6 +49,17 @@ def _test_receipt(sha="a" * 40, issue=996, generation=4):
         "manifest_digest": "e" * 64,
     }
 
+
+def _worker_census(generation=4, *, mergeable=0, blocking=0, lane="docs"):
+    return {
+        "schema": "WHD_SHARED_ZERO_WORKER_CENSUS_V1",
+        "lane": lane,
+        "latest_zero_generation": generation,
+        "fresh": True,
+        "mergeable_green_count": mergeable,
+        "blocking_candidate_count": blocking,
+    }
+
 def test_contract_and_skill_are_current_and_single_owner():
     from tools.root_local_first_gate import validate_contract
     payload = validate_contract(_contract())
@@ -130,6 +141,45 @@ def test_interactive_order_uses_shared_zero_then_delivery_reservation():
     assert unlocked["git_write_unlocked"] is True
     assert unlocked["completed"][-1] == "GIT_WRITE_UNLOCKED"
     assert unlocked["next_action"] == "EXACT_TESTED_DIFF_ONLY"
+
+
+def test_worker_census_compatibility_bridge_is_optional_but_validated():
+    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
+
+    source = validate_source_current(
+        workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
+        live_source_sha="a" * 40, live_tree_sha="b" * 40,
+    )
+    common = dict(
+        execution_mode="INTERACTIVE", source_evidence=source,
+        unpushed_lane_evidence=_lane(), root_mutations_complete=True,
+        merge_to_zero_complete=True, test_classified=True, tests_green=True,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
+        diff_digest="c" * 64,
+    )
+
+    current = build_gate_evidence(**common)
+    assert current["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
+
+    compatible = build_gate_evidence(**common, worker_census_evidence=_worker_census())
+    assert compatible["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
+    assert "WORKER_CENSUS_NO_MERGEABLE_GREEN" in compatible["completed"]
+
+    mergeable = build_gate_evidence(
+        **common, worker_census_evidence=_worker_census(mergeable=1)
+    )
+    assert mergeable["next_action"] == "MERGE_TO_FRESH_LATEST_ZERO"
+
+    blocked = build_gate_evidence(
+        **common, worker_census_evidence=_worker_census(blocking=1)
+    )
+    assert blocked["next_action"] == "RESOLVE_WORKER_CENSUS_BLOCKERS"
+
+    bad = _worker_census()
+    bad["schema"] = "BROKEN"
+    with pytest.raises(ValueError, match="worker census evidence schema mismatch"):
+        build_gate_evidence(**common, worker_census_evidence=bad)
 
 
 def test_git_content_write_is_forbidden_before_unlock():
