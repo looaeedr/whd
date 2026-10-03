@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-reconcile-root-regression-20261003T143933Z",
+  "request_id": "issue1062-reconcile-root-regression-20261003T143933Z-r2",
   "issue": 1062,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261003T143041Z",
-  "expected_coord_head": "785b16550d30f206cb5655028167d4d6dcd27d4c",
+  "expected_coord_head": "5358d5cf411951ccd413906220ce8f61cc2d2231",
   "expected_generation": 44,
   "effect": {
     "observed_work_branch": "test/issue1062-product-full-regression-recovery",
