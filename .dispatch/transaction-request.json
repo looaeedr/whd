@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-docs13-acquire-20261003T1513+08-retry1",
+  "request_id": "issue1062-docs13-acquire-20261003T1513+08-retry2",
   "issue": 1062,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.flowv2.work1.issue1062.docs13.20261003T1513+08",
-  "expected_coord_head": "b9430d7381fc502ede6dd085b2e3b240c82e2cac",
+  "expected_coord_head": "8af5590ee99e2b480112e32bd91b52d621e9564b",
   "expected_generation": 38,
   "effect": {},
   "purpose": "Resume Issue #1062 only to replace stale pre-shared0 delivery reservation with frozen docs generation 13 and complete exact /推推 文檔 delivery.",
