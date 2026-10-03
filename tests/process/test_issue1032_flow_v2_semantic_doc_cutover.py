@@ -155,24 +155,21 @@ def test_skill_catalog_canonical_classification_is_routing_not_semantic_current(
     assert policy["canonical_classification_does_not_imply_doc_role_current"] is True
     assert policy["active_mirror_skill_allowed"] is True
 
-def test_legacy_scheduler_and_update_docs_are_locally_fenced_from_current_execution() -> None:
-    scheduler = _read("docs/governance/whd_scheduler_takeover_usage.md")
-    spec = _read("docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md")
-    update_agents = _read("UPDATE/AGENTS.md")
+def test_retired_legacy_execution_artifacts_are_absent_from_production_tree() -> None:
+    retired = (
+        "docs/governance/whd_scheduler_takeover_usage.md",
+        "docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md",
+        "UPDATE/AGENTS.md",
+    )
+    for path in retired:
+        assert not (ROOT / path).exists(), f"retired legacy execution artifact regrew: {path}"
 
-    assert "whd_doc_role: HISTORICAL" in scheduler
-    assert "HISTORICAL / SUPERSEDED EXECUTION PROCEDURE — FLOW V2" in scheduler
-    assert "Chunk-local rule" in scheduler
 
-    assert spec.startswith("---\n")
-    assert "whd_doc_role: HISTORICAL" in spec
-    assert "HISTORICAL / SUPERSEDED EXECUTION SPEC — FLOW V2" in spec
-    assert "Chunk-local rule" in spec
-
-    assert update_agents.startswith("---\n")
-    assert "whd_doc_role: HISTORICAL" in update_agents
-    assert "HISTORICAL / SUPERSEDED AGENT STARTUP COPY" in update_agents
-    assert "CURRENT startup authority 唯一是 repository root `AGENTS.md`" in update_agents
+def test_flow_v2_declares_no_runtime_compatibility_right_for_legacy_execution() -> None:
+    flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
+    assert "LEGACY_FLOW_HAS_NO_RUNTIME_COMPATIBILITY_RIGHT" in flow
+    assert "ONE_CANONICAL_EXECUTION_PATH" in flow
+    assert "歷史證據只留在 Git history / closed Issues" in flow
 
 
 def test_control_plane_workflow_watches_semantic_authority_surfaces() -> None:
