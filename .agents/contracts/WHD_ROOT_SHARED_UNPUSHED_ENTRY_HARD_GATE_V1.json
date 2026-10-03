@@ -261,7 +261,6 @@
     "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
     "POST_MERGE_0_TEST_CLASSIFIED",
     "POST_MERGE_0_TESTS_GREEN",
-    "WORKER_CENSUS_NO_MERGEABLE_GREEN",
     "LANE_MANIFEST_FROZEN",
     "REMOTE_CONNECTION_AUTHORIZED",
     "DELIVERY_PATHS_RESERVED",
@@ -302,7 +301,7 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 8,
+  "version": 7,
   "git_after_remote_authority_before_unlock": [
     "READ",
     "FETCH",
@@ -335,21 +334,32 @@
     "scheduler_exception_requires": "USER_AUTHORED_ENTRY_CONTRACT_AND_TRUSTED_RUNTIME_PROVENANCE",
     "remote_local_fallback_forbidden": true,
     "machine_owner": "tools/root_local_first_gate.py::build_remote_connection_authority/validate_remote_connection_authority/assert_remote_connection_allowed",
-    "workflow_rule_authorities": {
-      "TASK_SPLIT_ISSUE_SYNC": "SPLIT_ISSUE_SYNC",
-      "POST_DELIVERY_ISSUE_SYNC": "POST_DELIVERY_ISSUE_SYNC"
-    },
-    "split_issue_sync_scope": [
-      "CREATE_ISSUE",
-      "UPDATE_ISSUE",
-      "ISSUE_RELATION_WRITE",
-      "ISSUE_READBACK"
+    "covers_all_network_surfaces": true,
+    "authority_non_propagating": true,
+    "skill_invocation_is_not_authority": true,
+    "covered_github_surfaces": [
+      "repo_metadata",
+      "code_search",
+      "contents",
+      "branches",
+      "commits",
+      "issues",
+      "pull_requests",
+      "actions_workflows",
+      "actions_runs",
+      "artifacts",
+      "connector_api",
+      "git_network_transport"
     ],
-    "post_delivery_issue_sync_scope": [
-      "UPDATE_ISSUE",
-      "ISSUE_COMMENT",
-      "ISSUE_RELATION_WRITE",
-      "ISSUE_READBACK"
+    "non_authority_examples": [
+      "SKILL_AUTO_TRIGGER",
+      "FLOW_V2_BRIDGE",
+      "TRACKER_CONFIGURED_GITHUB",
+      "CONNECTOR_AVAILABLE",
+      "READ_ONLY_INTENT",
+      "PREFLIGHT_NEEDS_HEAD",
+      "CONFIRM_LATEST",
+      "COMMIT_HAS_ISSUE_REFERENCE"
     ]
   },
   "delivery_fileset_lock": {
@@ -381,59 +391,5 @@
     "same_path_future_change": "REREGISTER_AS_NEW_ZERO_MODIFICATION",
     "repository_file_delete_forbidden": true,
     "receipt_required": true
-  },
-  "issue_sync_hard_gate": {
-    "schema": "WHD_ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1",
-    "split_trigger": "WORK_DECOMPOSED_INTO_CHILD_OR_FOLLOWUP",
-    "split_requires_github_issue_readback_before_ready": true,
-    "split_sequence": [
-      "DEFINE_CHILD_SCOPE",
-      "CREATE_OR_REUSE_GITHUB_ISSUE",
-      "SYNC_PARENT_CHILD_AND_DEPENDENCIES",
-      "ISSUE_READBACK_VERIFIED",
-      "DISPATCH_READY_ALLOWED"
-    ],
-    "local_only_child_policy": "TRANSIENT_DRAFT_ONLY_NOT_READY_NOT_DISPATCHED",
-    "split_sync_failure_state": "ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF",
-    "delivery_trigger": "MERGE_READBACK_VERIFIED",
-    "delivery_requires_issue_sync_readback": true,
-    "delivery_sequence": [
-      "MERGE_READBACK_VERIFIED",
-      "DELIVERY_RECEIPT_BOUND",
-      "SYNC_LINKED_GITHUB_ISSUES",
-      "ISSUE_SYNC_READBACK_VERIFIED",
-      "FINALIZE_DELIVERED_PATHS"
-    ],
-    "delivery_issue_fields": [
-      "lane",
-      "generation",
-      "manifest_digest",
-      "pull_request",
-      "merged_sha",
-      "test_status",
-      "remaining_next_action_or_terminal_state"
-    ],
-    "terminal_close_owner": "FLOW_V2_FINALIZE_ONLY",
-    "nonterminal_policy": "KEEP_OPEN_AND_SYNC_EXACT_NEXT_ACTION_OR_BLOCKER",
-    "repository_content_authority_from_issue_sync": false
-  },
-  "shared_zero_freeze_worker_census": {
-    "schema": "WHD_SHARED_ZERO_FREEZE_REQUIRES_WORKER_CENSUS_HARD_GATE_V1",
-    "position": "AFTER_POST_MERGE_0_TESTS_GREEN_BEFORE_LANE_MANIFEST_FROZEN",
-    "worker_census_scope": ".unpushed/{lane}/workers/**",
-    "candidate_states": [
-      "MERGED_TO_0",
-      "HISTORICAL_SUPERSEDED",
-      "CONFLICT_BLOCKED",
-      "NOT_GREEN",
-      "ACTIVE_DELEGATED",
-      "MERGEABLE_GREEN"
-    ],
-    "freeze_requires_mergeable_green_count": 0,
-    "merge_policy": "MERGE_ALL_NON_CONFLICTING_GREEN_INTO_ONE_NEXT_GENERATION",
-    "post_merge_test_scope": "UNION_FILESET",
-    "ci_content_failure_action": "RETURN_TO_CANONICAL_ROOT_SHARED_0_REPAIR_RETEST_REFREEZE",
-    "incremental_remote_repair_forbidden": true,
-    "batch_invariant": "MERGE_ALL_LEGAL_GREEN_THEN_TEST_THEN_ONE_COMPLETE_FREEZE_THEN_PUSH"
   }
 }

@@ -16,6 +16,11 @@ The two axes stay logically separate so one cannot mask the other. They may run 
 
 ## RUNTIME_CAPABILITY_FALLBACK
 
+### REMOTE_AUTHORITY_GATE_V1
+
+在 WHD，review 需要 GitHub Issue/PR、commit reference `#123`、PR diff、GitHub metadata 或 connected tracker 時，**不得因「來源可用」就自動連線**。先用 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 exact GitHub action。沒有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 時，只使用 canonical root、使用者已提供內容與本回合已存在的非遠端 context；把 remote source 標成 `REMOTE_SOURCE_NOT_AUTHORIZED`，不可自行 fetch。
+
+
 Use the issue/spec sources actually available in this repo/session: owning GitHub Issue/PR, user-provided spec path, project docs, commit messages, or connected tracker tools. There is no required tracker supporting file. If no separate reviewer runtime exists, perform both axes as an **inline fallback** and report them separately.
 
 ## Process

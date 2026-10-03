@@ -13,6 +13,13 @@ whd_schema: WHD_DOC_META_V1
 
 ## 1. Authority 與邊界
 
+### GITHUB_CONNECTOR_REMOTE_AUTHORITY_HARD_GATE_V1
+
+MCP/connector **能力存在不等於 remote authority**。當 exact server/tool 會連到 GitHub-backed WHD repository（包含 read-only repo metadata/code search/Issues/PR/Actions，也包含 mutation）時，呼叫前固定以 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 exact target=`GITHUB` + action。缺 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 固定 `REMOTE_CONNECTION_DENIED`；不得用「只是 schema inspect/read-only/connector 已登入」繞過。
+
+這條 gate 只限制 GitHub/remote transport，不阻止離線 MCP schema inspection。remote authority 不從 MCP Skill invocation、server discovery 或已連接帳號自動產生。
+
+
 執行順序的 authority：
 
 1. 使用者本輪明確要求與授權範圍。
