@@ -1,10 +1,10 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-work0-acquire-body-gen4-20261003T1802Z",
+  "request_id": "issue1062-work0-acquire-body-gen4-20261003T180950Z",
   "issue": 1062,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1062.body-gen4-delivery.20261003T1802Z",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1062.body-gen4-delivery.20261003T180950Z",
   "expected_coord_head": "497ffd890e5ae9ca8f8119d6d330e57e0b161d8e",
   "expected_generation": 45,
   "effect": {
@@ -77,7 +77,7 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1062,
-    "invocation_identity": "chatgpt.flowv2.work0.issue1062.body-gen4-delivery.20261003T1802Z",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1062.body-gen4-delivery.20261003T180950Z",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
     "required_skills": [
@@ -120,6 +120,6 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-03T18:02:24Z"
+    "observed_at": "2026-10-03T18:09:50Z"
   }
 }
