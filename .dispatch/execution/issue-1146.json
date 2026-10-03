@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "dcc2c88f02b9eb1eb8da98727124af432f740c4c",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -35,15 +35,19 @@
       "tests/test_root_entry_router_hard_gate.py",
       "tools/root_local_first_gate.py",
       "tools/shared_unpushed_integration.py",
-      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
+      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
+      "tests/process/test_issue899_push_transaction_ingress.py",
+      "tests/process/test_issue961_work_root_hard_gate.py",
+      "tests/process/test_root_local_first_entry_hard_gate.py"
     ]
   },
   "next_action": {
     "args": {
-      "workflow": "whd-control-plane-regression.yml"
+      "generation": 10,
+      "manifest_digest": "f3a1997b9a56453e788310577272caf2f1bce1a485c68b02b7c7c2de714102ec"
     },
-    "display": "Run post-push governance CI for docs generation 9",
-    "kind": "START_QA"
+    "display": "Apply exact frozen docs generation 10 commit",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -60,7 +64,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "COMMIT_APPLIED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -68,13 +72,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "fe8d1e222acd2f0b66b6c7476f65f974752d49635615ac8bfa97309728b9092b",
-    "id": "chat:20261003T1208+08:1146:APPLY_COMMIT:7",
-    "invocation_identity": "chatgpt.push.docs.issue1146.gen9.20261003T1208+08",
-    "kind": "APPLY_COMMIT",
+    "expected_fingerprint": "5efbb347240e86820e1e51893960c1444788e8359fd990be9aca44c9e52d1b1a",
+    "id": "chat:20261003T1256+08:1146:RESERVE_PATHS:8",
+    "invocation_identity": "chatgpt.push.docs.issue1146.gen10.20261003T1256+08",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T04:20:00Z",
+  "updated_at": "2026-10-03T04:56:00Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen9-20261003"
 }
