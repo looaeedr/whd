@@ -12,19 +12,23 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "issue": 1115,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "lease": {
+    "expires_at": "2026-10-03T16:32:12Z",
+    "invocation_identity": "a20.20261003T154800Z",
+    "token": "lease:1115:37136265508:1"
+  },
   "mutation_scope": null,
   "next_action": {
     "args": {},
-    "display": "Acquire Issue #1115",
-    "kind": "ACQUIRE"
+    "display": "Complete #1115 repository-content implementation in canonical /Google Drive/WHD shared .unpushed root flow, freeze/test exact diff, then start delivery branch",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +42,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
-  "transaction": null,
-  "updated_at": "2026-10-01T15:19:43Z",
+  "transaction": {
+    "expected_fingerprint": "25a2bf8e36bf385ebc420b2fd9a717b305da87d9fa27791266ede2b5ca52f6dd",
+    "id": "gha:37136265508:1115:ACQUIRE:1",
+    "invocation_identity": "a20.20261003T154800Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-03T16:17:12Z",
   "version": 2,
   "work_branch": "scheduler/issue1115-auto-dispatch"
 }
