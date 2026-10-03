@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-acquire-reserve-docs21-20261003T2154+08",
+  "request_id": "issue1129-acquire-reserve-docs21-retry-20261003T2153+08",
   "issue": 1129,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
@@ -88,6 +88,6 @@
     "completed_references": [
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
     ],
-    "observed_at": "2026-10-03T13:54:00Z"
+    "observed_at": "2026-10-03T13:52:39Z"
   }
 }
