@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -24,26 +24,27 @@
   "mutation_scope": {
     "base_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
     "delete_paths": [],
-    "reservation_state": "RELEASED",
+    "reservation_state": "ACTIVE",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
       ".agents/skills/engineering/root-local-first/SKILL.md",
+      ".agents/skills/engineering/寫技能/SKILL.md",
       ".agents/skills/engineering/推推/SKILL.md",
       "AGENTS.md",
       "tests/test_root_entry_router_hard_gate.py",
       "tools/root_local_first_gate.py",
+      "tools/shared_unpushed_integration.py",
       "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md"
     ]
   },
   "next_action": {
     "args": {
-      "diff_digest": "d1fa5871a6569fd5d3c12d127785aa06e7c83f44d70819c1f381ddccc9a71a99",
-      "generation": 8,
-      "manifest_digest": "11b46c47fe076f264be4d20380a1c4570e2ab876a11c6705a3afbd4c714bd8e7"
+      "generation": 9,
+      "manifest_digest": "6d2b896505b2f20270288f36560406695386e3593236926356055ad789587794"
     },
-    "display": "Apply exact frozen docs generation 8 commit",
-    "kind": "APPLY_COMMIT"
+    "display": "Start exact-tested #1146 docs generation 9 delivery branch",
+    "kind": "START_BRANCH"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -60,7 +61,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_RELEASED_PLATFORM_SAFETY_BLOCK",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -68,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "36a6c9cbc173b84d5177d3d2f68d1c1230d775cdabec8ba95b2aee129f36e83b",
-    "id": "gha:37086696129:1146:RELEASE_PATHS:4",
-    "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-    "kind": "RELEASE_PATHS",
+    "expected_fingerprint": "4411e258150da0cc16dbb9b0c8a8f3a273df312415a3656807bc2333f407243d",
+    "id": "chat:20261003T1208+08:1146:RESERVE_PATHS:5",
+    "invocation_identity": "chatgpt.push.docs.issue1146.gen9.20261003T1208+08",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T01:36:23Z",
+  "updated_at": "2026-10-03T04:08:00Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen7-20261003"
 }
