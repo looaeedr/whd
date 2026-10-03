@@ -1,55 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-work0-acquire-body-gen4-20261003T180950Z",
-  "issue": 1062,
-  "kind": "ACQUIRE",
+  "request_id": "issue1112-work0-reconcile-stale-closed-20261003T181640Z",
+  "issue": 1112,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1062.body-gen4-delivery.20261003T180950Z",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1112.stale-closure-recovery.20261003T181640Z",
   "expected_coord_head": "497ffd890e5ae9ca8f8119d6d330e57e0b161d8e",
-  "expected_generation": 45,
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "PATHS_RESERVED",
+    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
+    "observed_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
+    "observed_target_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
+    "semantic_state": "STALE_CLOSED_RECORD_QA_RECONCILE",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "START_QA",
       "args": {
-        "lane": "body",
-        "generation": 4,
-        "manifest_digest": "7150707dac4eb041c6ab18cabb23023e3e4f4e6e34dcd8e83a92916dcd00cb65",
-        "target_branch": "cleanup/2d-3d-sync"
+        "workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Create exact frozen body gen4 delivery branch"
-    },
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
-      "write_paths": [
-        "ae_engine/manufacturing_api.py",
-        "ae_engine/manufacturing_export.py",
-        "ae_engine/manufacturing_verification.py",
-        "ae_engine/receiving_manufacturing_readiness.py",
-        "fold_designer_bridge.py",
-        "gui_modules/application/fold_designer_adapter.py",
-        "gui_modules/application/manufacturing_adapter.py",
-        "gui_modules/application/receiving_set_bay_adapter.py",
-        "gui_modules/project/export_actions.py",
-        "tests/test_box_body_single_source_t2.py",
-        "tests/test_certified_relief_runtime_contract.py",
-        "tests/test_issue1062_finalscene_oracle_migration.py",
-        "tests/test_issue1115_receiving_manufacturing_readiness.py",
-        "tests/test_issue1128_derived_sync_composition_owner.py",
-        "tests/test_issue480_derived_part_projection_plan.py",
-        "tests/test_joint_diagnostics_contract.py",
-        "tests/test_overlay_formed_fw_registry_contract.py",
-        "tests/test_overlay_fw_width_invariant.py",
-        "tests/test_phase6_3d_retain_and_baseline.py",
-        "tests/test_phase6_assembly_3d_view.py",
-        "tests/test_phase6_corner_dimension_controls.py",
-        "tests/test_resolved_manufacturing_bridge.py"
-      ],
-      "delete_paths": []
+      "display": "Consume existing exact-head Product Regression for already-merged #1112"
     }
   },
-  "purpose": "Continue user-authorized /推推 主體 delivery for frozen body generation 4: acquire #1062, atomically reserve the exact 22-path frozen manifest, then deliver exact-tested bytes through post-push CI, latest-file recheck, merge/readback, linked Issue sync, and delivered-path finalization.",
+  "purpose": "Closure-only stale #1112 ExecutionRecord recovery to release chatgpt.flowv2.work0 for the user-selected #1062 delivery. Bind the stale record to already-existing PR #1134 head and current target; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -76,50 +47,32 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1062,
-    "invocation_identity": "chatgpt.flowv2.work0.issue1062.body-gen4-delivery.20261003T180950Z",
+    "issue": 1112,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.stale-closure-recovery.20261003T181640Z",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
     "required_skills": [
-      "root-local-first",
-      "性質導向測試",
-      "phase6-corner-3d-model-integrity",
-      "phase6-overlay-relief-basis",
       "flow-v2-execution",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "推推"
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
     ],
     "completed_skills": [
-      "root-local-first",
-      "性質導向測試",
-      "phase6-corner-3d-model-integrity",
-      "phase6-overlay-relief-basis",
       "flow-v2-execution",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "推推"
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "release_required_artifacts.json"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-03T18:09:50Z"
+    "observed_at": "2026-10-03T18:16:40Z"
   }
 }
