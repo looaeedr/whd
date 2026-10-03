@@ -9,6 +9,28 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first / shared-unpushed V1
 
+## 0. ENTRY_ROUTER_FIRST_HARD_GATE_V1
+
+任何 WHD repository-content 任務（新任務、續作、修補、測試、治理修改）進場時，**第一個路由不得先做一般 discovery**。每個 invocation 都必須 fresh 依序完成：
+
+```text
+READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
+→ READ .agents/skills/engineering/root-local-first/SKILL.md
+→ ENTRY_ROUTER_READY
+```
+
+`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。以下動作全部 fail closed：
+
+- generic Google Drive / file search；
+- Remote Desktop / local-machine search；
+- GitHub content discovery / branch create / mutation；
+- claim / Flow v2 discovery；
+- 任何用聊天記憶、舊摘要或上一 invocation evidence 代替 fresh entry read 的行為。
+
+若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，回到 `/Google Drive/WHD` canonical entry 從兩個 fresh read 重新開始；不得因已經查到資料就沿錯路續做。
+
+machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / validate_entry_router_evidence / assert_entry_router_action_allowed`。
+
 本 Skill 是 WHD CURRENT repository-content workflow。舊的 `/work/active` per-Issue workspace、root-write 前 single-writer reservation、`source/manifests`/ZIP snapshot current authority、branch-first 都已 superseded。
 
 ## 1. Canonical root hard gate
