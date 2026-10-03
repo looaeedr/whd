@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "id": 37098270095,
+    "head_sha": "07045a2024638d98cecda66568d19ae25fe75df9",
+    "purpose": "WHD Control Plane Regression",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "07045a2024638d98cecda66568d19ae25fe75df9",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -43,10 +48,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": "whd-control-plane-regression.yml"
+      "run_id": 37098270095,
+      "head_sha": "07045a2024638d98cecda66568d19ae25fe75df9"
     },
-    "display": "Run post-push governance CI for docs generation 10",
-    "kind": "START_QA"
+    "display": "Accept successful docs generation 10 QA",
+    "kind": "ACCEPT_QA"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -63,21 +69,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "COMMIT_APPLIED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "ffd40b3a0ac3a6867a6c61a90b2b0a2841df91968d1c94624f6e4a9fadcbc5ea",
-    "id": "chat:20261003T1258+08:1146:APPLY_COMMIT:9",
+    "expected_fingerprint": "39236b48b9074db6a9d4e2457a81335a57b88936c1e4691f7e927bd705288348",
+    "id": "chat:20261003T1300+08:1146:START_QA:10",
     "invocation_identity": "chatgpt.push.docs.issue1146.gen10.20261003T1256+08",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T04:58:00Z",
+  "updated_at": "2026-10-03T05:00:00Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen9-20261003"
 }
