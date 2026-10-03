@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
@@ -24,7 +24,7 @@
   "mutation_scope": {
     "base_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
@@ -60,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "BRANCH_READY",
+  "semantic_state": "PATH_RESERVATION_RELEASED_PLATFORM_SAFETY_BLOCK",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -68,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "3716435304d1b98516aa7a2ec48a691a2066961d62ac955bf9dfd1619bd8af23",
-    "id": "gha:37086200370:1146:START_BRANCH:3",
+    "expected_fingerprint": "36a6c9cbc173b84d5177d3d2f68d1c1230d775cdabec8ba95b2aee129f36e83b",
+    "id": "gha:37086696129:1146:RELEASE_PATHS:4",
     "invocation_identity": "scheduler-b.issue1146.docs-gen8.20261003T0920+08",
-    "kind": "START_BRANCH",
+    "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T01:28:30Z",
+  "updated_at": "2026-10-03T01:36:23Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen7-20261003"
 }
