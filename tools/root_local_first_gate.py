@@ -43,12 +43,20 @@ REMOTE_CONNECTION_AUTHORITY_SCHEMA = "WHD_REMOTE_CONNECTION_AUTHORITY_V1"
 REMOTE_CONNECTION_TARGETS = {"GITHUB", "REMOTE_LOCAL"}
 REMOTE_AUTHORITY_KINDS = {
     "OPEN_ISSUE_ONLY",
+    "SPLIT_ISSUE_SYNC",
+    "POST_DELIVERY_ISSUE_SYNC",
     "USER_EXPLICIT_REMOTE",
     "PUSH_DOCS",
     "PUSH_BODY",
     "SCHEDULER_GITHUB_ONLY",
 }
 ISSUE_ONLY_ACTIONS = {"CREATE_ISSUE", "ISSUE_READBACK"}
+SPLIT_ISSUE_SYNC_ACTIONS = {
+    "CREATE_ISSUE", "UPDATE_ISSUE", "ISSUE_RELATION_WRITE", "ISSUE_READBACK",
+}
+POST_DELIVERY_ISSUE_SYNC_ACTIONS = {
+    "UPDATE_ISSUE", "ISSUE_COMMENT", "ISSUE_RELATION_WRITE", "ISSUE_READBACK",
+}
 PUSH_GITHUB_ACTIONS = {
     "READ", "FETCH", "COMPARE", "CREATE_BRANCH", "COMMIT", "PUSH",
     "CREATE_PR", "CI", "MERGE", "READBACK",
@@ -235,6 +243,7 @@ def build_remote_connection_authority(
     user_explicit: bool = False,
     lane: str | None = None,
     user_authored_entry_contract: bool = False,
+    workflow_rule_authorized: bool = False,
 ) -> dict[str, object]:
     authority_kind = _event_token(kind)
     remote_target = _event_token(target)
@@ -249,6 +258,14 @@ def build_remote_connection_authority(
         if remote_target != "GITHUB" or user_explicit is not True:
             raise ValueError("REMOTE_CONNECTION_DENIED: issue authority requires explicit GitHub request")
         actions = tuple(sorted(ISSUE_ONLY_ACTIONS))
+    elif authority_kind == "SPLIT_ISSUE_SYNC":
+        if remote_target != "GITHUB" or workflow_rule_authorized is not True:
+            raise ValueError("REMOTE_CONNECTION_DENIED: split issue sync requires durable workflow-rule authority")
+        actions = tuple(sorted(SPLIT_ISSUE_SYNC_ACTIONS))
+    elif authority_kind == "POST_DELIVERY_ISSUE_SYNC":
+        if remote_target != "GITHUB" or workflow_rule_authorized is not True:
+            raise ValueError("REMOTE_CONNECTION_DENIED: post-delivery issue sync requires durable workflow-rule authority")
+        actions = tuple(sorted(POST_DELIVERY_ISSUE_SYNC_ACTIONS))
     elif authority_kind in {"PUSH_DOCS", "PUSH_BODY"}:
         expected_lane = "docs" if authority_kind == "PUSH_DOCS" else "body"
         if remote_target != "GITHUB" or user_explicit is not True or normalized_lane != expected_lane:
@@ -269,6 +286,7 @@ def build_remote_connection_authority(
         "user_explicit": bool(user_explicit),
         "lane": normalized_lane,
         "user_authored_entry_contract": bool(user_authored_entry_contract),
+        "workflow_rule_authorized": bool(workflow_rule_authorized),
     }
 
 
@@ -285,6 +303,7 @@ def validate_remote_connection_authority(
         user_explicit=item.get("user_explicit") is True,
         lane=str(item.get("lane") or "") or None,
         user_authored_entry_contract=item.get("user_authored_entry_contract") is True,
+        workflow_rule_authorized=item.get("workflow_rule_authorized") is True,
     )
     expected_target = _event_token(target)
     requested_action = _event_token(action)
@@ -531,6 +550,15 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("GitHub read must require remote authority")
     if remote_gate.get("remote_local_fallback_forbidden") is not True:
         raise ValueError("remote local fallback must be forbidden")
+    sync_gate = _mapping(contract.get("issue_sync_hard_gate"), "issue_sync_hard_gate")
+    if sync_gate.get("schema") != "WHD_ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1":
+        raise ValueError("issue sync hard gate schema mismatch")
+    if sync_gate.get("split_requires_github_issue_readback_before_ready") is not True:
+        raise ValueError("split work must sync GitHub Issue before READY")
+    if sync_gate.get("delivery_requires_issue_sync_readback") is not True:
+        raise ValueError("delivery must sync linked Issue before completion")
+    if sync_gate.get("local_only_child_policy") != "TRANSIENT_DRAFT_ONLY_NOT_READY_NOT_DISPATCHED":
+        raise ValueError("local-only split child policy mismatch")
     fileset = _mapping(contract.get("delivery_fileset_lock"), "delivery_fileset_lock")
     if fileset.get("schema") != "WHD_DELIVERY_FILESET_LOCK_V1":
         raise ValueError("delivery fileset lock schema mismatch")

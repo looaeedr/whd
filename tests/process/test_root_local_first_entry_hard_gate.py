@@ -434,3 +434,56 @@ def test_root_gate_conflict_checkpoint_blocks_before_post_merge_tests():
     assert evidence["blocked_state"] == "BLOCKED_USER_DECISION"
     assert evidence["next_action"] == "USER_CONFLICT_DECISION"
     assert evidence["git_write_unlocked"] is False
+
+
+def test_issue_sync_workflow_rule_authorities_are_narrow_and_machine_enforced():
+    from tools.root_local_first_gate import (
+        assert_remote_connection_allowed,
+        build_remote_connection_authority,
+    )
+
+    with pytest.raises(ValueError, match="durable workflow-rule authority"):
+        build_remote_connection_authority(
+            kind="SPLIT_ISSUE_SYNC", target="GITHUB"
+        )
+
+    split = build_remote_connection_authority(
+        kind="SPLIT_ISSUE_SYNC",
+        target="GITHUB",
+        workflow_rule_authorized=True,
+    )
+    for action in ("CREATE_ISSUE", "UPDATE_ISSUE", "ISSUE_RELATION_WRITE", "ISSUE_READBACK"):
+        assert_remote_connection_allowed(split, target="GITHUB", action=action)
+    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
+        assert_remote_connection_allowed(split, target="GITHUB", action="READ")
+
+    post = build_remote_connection_authority(
+        kind="POST_DELIVERY_ISSUE_SYNC",
+        target="GITHUB",
+        workflow_rule_authorized=True,
+    )
+    for action in ("UPDATE_ISSUE", "ISSUE_COMMENT", "ISSUE_RELATION_WRITE", "ISSUE_READBACK"):
+        assert_remote_connection_allowed(post, target="GITHUB", action=action)
+    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
+        assert_remote_connection_allowed(post, target="GITHUB", action="COMMIT")
+
+
+def test_issue_sync_contract_and_skills_require_split_and_post_delivery_readback():
+    payload = _contract()
+    gate = payload["issue_sync_hard_gate"]
+    assert gate["schema"] == "WHD_ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1"
+    assert gate["split_requires_github_issue_readback_before_ready"] is True
+    assert gate["delivery_requires_issue_sync_readback"] is True
+    assert gate["local_only_child_policy"] == "TRANSIENT_DRAFT_ONLY_NOT_READY_NOT_DISPATCHED"
+    assert gate["terminal_close_owner"] == "FLOW_V2_FINALIZE_ONLY"
+
+    dispatch = (ROOT / ".agents/skills/engineering/派工/SKILL.md").read_text(encoding="utf-8")
+    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
+    flow = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
+    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
+    for text in (dispatch, push, flow, root_skill):
+        assert "ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1" in text
+    assert "ISSUE_READBACK_VERIFIED → DISPATCH_READY_ALLOWED" in dispatch
+    assert "SYNC_LINKED_GITHUB_ISSUES" in push
+    assert "ISSUE_SYNC_READBACK_VERIFIED" in push
+    assert "close 仍由 canonical `FINALIZE`" in push

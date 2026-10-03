@@ -65,6 +65,17 @@ repository-content 任務的第一個檔案定位動作必須從 `/Google Drive/
 
 「想確認最新」、「找不到檔」、「Preflight 需要」、「工具剛好可用」都不是 remote authority。Remote Desktop/遠端本機尤其不得被當成 root lookup fallback。
 
+### 1.3 ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1
+
+使用者已把「拆工同步工單、推推完成後再同步工單」定為 WHD durable workflow rule。這只開放 **GitHub Issue plane**，不開放 repository-content plane：
+
+- **拆工同步**：一個工作被拆成 child/follow-up 時，child 可以先存在 transient local draft，但在 GitHub Issue create/reuse + parent/child/dependency sync + fresh readback 完成前，禁止標成 READY、禁止排程/派工、禁止建立 Flow v2 READY record。同步失敗固定 `ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF`，不得把 local-only child 當 executable work。
+- **推推後同步**：selected lane `MERGE_READBACK_VERIFIED` + delivery receipt 後，必須把 lane/generation/manifest/PR/merged SHA/test result 與 terminal state 或 exact next_action/blocker 同步到 linked GitHub Issue，再 fresh-read 成 `ISSUE_SYNC_READBACK_VERIFIED`，之後才可視為完整 delivery cycle。
+- terminal Issue 的 close authority 仍只有 Flow v2 `FINALIZE`；`/推推` 不另造 closure state machine。非 terminal Issue 必須保持 open 並同步 exact next action/blocker。
+- 這兩個例外對應 `SPLIT_ISSUE_SYNC` / `POST_DELIVERY_ISSUE_SYNC` remote authority，只允許 Issue create/update/relation/comment/readback；**不得**藉此 READ/FETCH/COMPARE repository content、建 branch、commit、push、merge。
+
+machine owner=`tools/root_local_first_gate.py::build_remote_connection_authority/validate_remote_connection_authority`；contract=`issue_sync_hard_gate`。
+
 ## 2. 兩條未推送 lineage
 
 固定：

@@ -115,6 +115,9 @@ DOCS_0_EXISTS
 → PRE_MERGE_LATEST_FILE_RECHECK
 → MERGE
 → MERGE_READBACK_VERIFIED
+→ DELIVERY_RECEIPT_BOUND
+→ SYNC_LINKED_GITHUB_ISSUES
+→ ISSUE_SYNC_READBACK_VERIFIED
 → FINALIZE_DELIVERED_PATHS
 ```
 
@@ -141,6 +144,9 @@ BODY_0_EXISTS
 → PRE_MERGE_LATEST_FILE_RECHECK
 → MERGE
 → MERGE_READBACK_VERIFIED
+→ DELIVERY_RECEIPT_BOUND
+→ SYNC_LINKED_GITHUB_ISSUES
+→ ISSUE_SYNC_READBACK_VERIFIED
 → FINALIZE_DELIVERED_PATHS
 ```
 
@@ -164,7 +170,21 @@ BODY_0_EXISTS
 
 任何額外 path 都必須 fail closed：`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK`。
 
-## 10. Push 完成後只清已交付 paths
+## 10. ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1 — 推推後半邊
+
+`/推推 文檔|主體` 在 `MERGE_READBACK_VERIFIED` 後還不能直接宣告整個 delivery cycle 完成。必須先把交付結果同步回本次 manifest/Flow v2 關聯的 GitHub Issue：
+
+`MERGE_READBACK_VERIFIED → DELIVERY_RECEIPT_BOUND → SYNC_LINKED_GITHUB_ISSUES → ISSUE_SYNC_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
+
+同步至少包含：lane、generation、manifest digest、PR、accepted/merged SHA、post-push test/CI 結果，以及 **terminal state 或 exact remaining next_action/blocker**。
+
+- 若工單已符合 Flow v2 terminal acceptance，close 仍由 canonical `FINALIZE` 執行並 fresh readback；`/推推` 不自行創造第二套 closure authority。
+- 若尚未 terminal，Issue 必須保持 open，並把 exact next action/blocker 同步回去；不能因 push/merge 成功就假裝工單完成。
+- carried-forward Issues 也必須 reconcile GitHub open/closed 狀態與本地 lane provenance，禁止只留 stale `carried_forward_issues` 數字。
+- remote authority 固定 `POST_DELIVERY_ISSUE_SYNC`，只允許 Issue update/comment/relation/readback；不能用它擴張 repository-content scope。
+- Issue sync/readback 失敗時，delivery content merge 可保留 VERIFIED，但 physical cycle 狀態固定 `ISSUE_SYNC_PENDING`，不得把整輪視為 durable cleanup complete。
+
+## 11. Push 完成後只清已交付 paths
 
 只有 `MERGE_READBACK_VERIFIED` 證明 production/accepted target 已含 exact locked file hashes 後，才允許 finalize selected `0`。
 
@@ -177,7 +197,7 @@ BODY_0_EXISTS
 
 這裡的「清除」是清掉已交付的未推送修改狀態，不是刪除 repository 實體檔案。
 
-## 11. Branch timing
+## 12. Branch timing
 
 正常施工階段不開 Git branch，也不連 GitHub/遠端本機做 repository-content discovery。
 

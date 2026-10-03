@@ -333,7 +333,23 @@
     "explicit_user_authority": "USER_EXPLICIT_REMOTE",
     "scheduler_exception_requires": "USER_AUTHORED_ENTRY_CONTRACT_AND_TRUSTED_RUNTIME_PROVENANCE",
     "remote_local_fallback_forbidden": true,
-    "machine_owner": "tools/root_local_first_gate.py::build_remote_connection_authority/validate_remote_connection_authority/assert_remote_connection_allowed"
+    "machine_owner": "tools/root_local_first_gate.py::build_remote_connection_authority/validate_remote_connection_authority/assert_remote_connection_allowed",
+    "workflow_rule_authorities": {
+      "TASK_SPLIT_ISSUE_SYNC": "SPLIT_ISSUE_SYNC",
+      "POST_DELIVERY_ISSUE_SYNC": "POST_DELIVERY_ISSUE_SYNC"
+    },
+    "split_issue_sync_scope": [
+      "CREATE_ISSUE",
+      "UPDATE_ISSUE",
+      "ISSUE_RELATION_WRITE",
+      "ISSUE_READBACK"
+    ],
+    "post_delivery_issue_sync_scope": [
+      "UPDATE_ISSUE",
+      "ISSUE_COMMENT",
+      "ISSUE_RELATION_WRITE",
+      "ISSUE_READBACK"
+    ]
   },
   "delivery_fileset_lock": {
     "schema": "WHD_DELIVERY_FILESET_LOCK_V1",
@@ -364,5 +380,40 @@
     "same_path_future_change": "REREGISTER_AS_NEW_ZERO_MODIFICATION",
     "repository_file_delete_forbidden": true,
     "receipt_required": true
+  },
+  "issue_sync_hard_gate": {
+    "schema": "WHD_ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1",
+    "split_trigger": "WORK_DECOMPOSED_INTO_CHILD_OR_FOLLOWUP",
+    "split_requires_github_issue_readback_before_ready": true,
+    "split_sequence": [
+      "DEFINE_CHILD_SCOPE",
+      "CREATE_OR_REUSE_GITHUB_ISSUE",
+      "SYNC_PARENT_CHILD_AND_DEPENDENCIES",
+      "ISSUE_READBACK_VERIFIED",
+      "DISPATCH_READY_ALLOWED"
+    ],
+    "local_only_child_policy": "TRANSIENT_DRAFT_ONLY_NOT_READY_NOT_DISPATCHED",
+    "split_sync_failure_state": "ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF",
+    "delivery_trigger": "MERGE_READBACK_VERIFIED",
+    "delivery_requires_issue_sync_readback": true,
+    "delivery_sequence": [
+      "MERGE_READBACK_VERIFIED",
+      "DELIVERY_RECEIPT_BOUND",
+      "SYNC_LINKED_GITHUB_ISSUES",
+      "ISSUE_SYNC_READBACK_VERIFIED",
+      "FINALIZE_DELIVERED_PATHS"
+    ],
+    "delivery_issue_fields": [
+      "lane",
+      "generation",
+      "manifest_digest",
+      "pull_request",
+      "merged_sha",
+      "test_status",
+      "remaining_next_action_or_terminal_state"
+    ],
+    "terminal_close_owner": "FLOW_V2_FINALIZE_ONLY",
+    "nonterminal_policy": "KEEP_OPEN_AND_SYNC_EXACT_NEXT_ACTION_OR_BLOCKER",
+    "repository_content_authority_from_issue_sync": false
   }
 }

@@ -81,6 +81,17 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 - mutation policy：`tools/execution_authority_policy.py`。
 - runtime observability (NON_AUTHORITY)：`coord/monitor-v2:.dispatch/monitor/runtime/*.json`。
 
+### ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1
+
+Flow v2 對「拆工」與「delivery 完成」都要求 GitHub Issue durable synchronization：
+
+1. **Split before READY**：新 child/follow-up 在 GitHub Issue create/reuse、parent/sub-issue/dependency 更新與 fresh readback 完成前，只是 transient draft；不得建立 `WHD_EXECUTION_RECORD_V2 READY`。Issue sync failure 固定 `ISSUE_SYNC_PENDING_CONTINUE_OTHER_EXECUTABLE_LEAF`。
+2. **Delivery after merge**：`MERGE_READBACK_VERIFIED` + delivery receipt 後，必須同步 linked Issues 的 lane/generation/manifest/PR/merged SHA/test result 與 terminal/next_action/blocker，再 fresh-read為 `ISSUE_SYNC_READBACK_VERIFIED`。
+3. terminal close authority 不變：只有 Flow v2 `FINALIZE` 可 close/readback Issue；`/推推` 只負責 delivery-side sync，不可另造 closure state machine。
+4. `SPLIT_ISSUE_SYNC` / `POST_DELIVERY_ISSUE_SYNC` 是 narrow Issue-plane remote authority，不授權 repository content READ/FETCH/COMPARE/branch/commit/push/merge。
+
+因此「本地已拆好但 GitHub 沒工單」不是 READY；「推推 merge 好但工單沒同步」也不是完整 durable cycle。
+
 ## WORKSPACE_EXECUTION_POLICY_V2 — SHARED UNPUSHED 0
 
 互動式 / chat runtime 的 repository-content 工作面固定是 `/Google Drive/WHD` full repo root；正常施工**不建立 Git work branch**。
