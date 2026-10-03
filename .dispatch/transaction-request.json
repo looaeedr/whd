@@ -1,14 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-renew-docs22-repair-20261003T2231+08",
+  "request_id": "issue1129-reconcile-docs22-root-repair-20261003T2233+08",
   "issue": 1129,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs22.20261003T2231+08",
-  "expected_coord_head": "e356256a7dbeab867df0c38123222f7512651c6a",
-  "expected_generation": 6,
-  "effect": {},
-  "purpose": "Renew the same #1129 delivery writer after PR #1154 control-plane RED; continue only the root-repaired frozen docs generation 22 without changing delivery scope.",
+  "expected_coord_head": "212605db748b7a5ad2e7267f80c1b3e66e1ff5ab",
+  "expected_generation": 7,
+  "effect": {
+    "observed_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+    "observed_head_sha": "96839193956b7457e2a9df98f85412e13f49c721",
+    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+    "semantic_state": "ROOT_REPAIRED_GEN22_FROZEN",
+    "next_action": {
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "diff_digest": "d2288e6e4b2e3b6481143f9259300aff94c379a92382d7bd5aa8141060847032"
+      },
+      "display": "Apply root-repaired frozen docs generation 22 exact fileset"
+    }
+  },
+  "purpose": "Reconcile #1129 after PR #1154 control-plane RED was repaired in canonical root and refrozen as docs generation 22; preserve exact target and delivery scope.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -55,6 +67,6 @@
     "completed_references": [
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
     ],
-    "observed_at": "2026-10-03T14:31:11Z"
+    "observed_at": "2026-10-03T14:33:21Z"
   }
 }
