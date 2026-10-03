@@ -6,12 +6,12 @@
   "task_id":"6ab4eaee5e008191a0e7e23303f64cea",
   "lane_id":"scheduler.6ab13fa557fc8191935c671214b865e2",
   "invocation_identity":"a20.20261003T154800Z",
-  "event":"HEARTBEAT",
+  "event":"PROGRESS",
   "last_wake_at":"2026-10-03T15:48:00Z",
-  "last_heartbeat_at":"2026-10-03T16:15:00Z",
-  "heartbeat_expires_at":"2026-10-03T16:20:00Z",
-  "last_progress_at":"2026-10-03T16:13:55Z",
+  "last_heartbeat_at":"2026-10-03T16:19:35Z",
+  "heartbeat_expires_at":"2026-10-03T16:24:35Z",
+  "last_progress_at":"2026-10-03T16:19:35Z",
   "exit_at":null,
   "exit_state":null,
-  "observed_at":"2026-10-03T16:15:00Z"
+  "observed_at":"2026-10-03T16:19:35Z"
 }
