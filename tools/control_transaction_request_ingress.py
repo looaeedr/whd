@@ -226,6 +226,13 @@ def _load_request(path: Path) -> dict[str, object]:
     if not isinstance(payload["effect"], dict):
         raise ProductionExecutorError("effect must be an object")
 
+    delete_stale_intent = payload["effect"].get("delete_stale_work_branch")
+    if delete_stale_intent is not None:
+        if kind != "RELEASE_PATHS" or delete_stale_intent is not True:
+            raise ProductionExecutorError(
+                "delete_stale_work_branch is only valid as true on RELEASE_PATHS"
+            )
+
     if schema == REQUEST_SCHEMA:
         reuse = _session_reuse_requested(payload)
         if kind != "SEED" and not reuse:
