@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
-  "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "generation": 8,
+  "head_sha": "dcc2c88f02b9eb1eb8da98727124af432f740c4c",
   "issue": 1146,
   "lane_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "lease": {
@@ -40,11 +40,10 @@
   },
   "next_action": {
     "args": {
-      "generation": 9,
-      "manifest_digest": "6d2b896505b2f20270288f36560406695386e3593236926356055ad789587794"
+      "workflow": "whd-control-plane-regression.yml"
     },
-    "display": "Apply exact frozen docs generation 9 commit",
-    "kind": "APPLY_COMMIT"
+    "display": "Run post-push governance CI for docs generation 9",
+    "kind": "START_QA"
   },
   "owner_id": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "owner_kind": "SCHEDULER",
@@ -61,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "BRANCH_READY",
+  "semantic_state": "COMMIT_APPLIED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
@@ -69,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
   "transaction": {
-    "expected_fingerprint": "7bc65340ffce53c486c8528a180a773d8c22c317a52eeff6e7d1369c27ea76a2",
-    "id": "chat:20261003T1208+08:1146:START_BRANCH:6",
+    "expected_fingerprint": "fe8d1e222acd2f0b66b6c7476f65f974752d49635615ac8bfa97309728b9092b",
+    "id": "chat:20261003T1208+08:1146:APPLY_COMMIT:7",
     "invocation_identity": "chatgpt.push.docs.issue1146.gen9.20261003T1208+08",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T04:09:00Z",
+  "updated_at": "2026-10-03T04:20:00Z",
   "version": 2,
   "work_branch": "delivery/issue1146-docs-gen9-20261003"
 }
