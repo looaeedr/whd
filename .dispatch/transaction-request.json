@@ -1,24 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-acquire-reserve-docs21-retry-20261003T2153+08",
+  "request_id": "issue1129-start-docs21-recovery-branch-20261003T2158+08",
   "issue": 1129,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
-  "expected_coord_head": "1e9bc7d503b17a4008a29846b113809a05956276",
-  "expected_generation": 2,
+  "expected_coord_head": "6857cf77044b914da3b04c152240d99aff15fd2d",
+  "expected_generation": 3,
+  "reuse_admission_session": true,
   "effect": {
-    "semantic_state": "PATHS_RESERVED",
+    "work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+    "head_sha": "c3461533d88636f327bdc7ec0935fff7d462e7c2",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {
         "diff_digest": "391bb7b5aa9cd033068d7fc1d8e93e1002d8c2c3bf2f1f96ac6f0805811c6740"
       },
-      "display": "Create clean docs generation 21 delivery branch from exact live target"
+      "display": "Apply exact frozen docs generation 21 fileset"
     },
-    "admission_reservation": {
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
+      "diff_digest": "391bb7b5aa9cd033068d7fc1d8e93e1002d8c2c3bf2f1f96ac6f0805811c6740",
+      "issue": 1129,
+      "generation": 3,
       "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
       "write_paths": [
         ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
         ".agents/skills/engineering/code-review/SKILL.md",
@@ -38,56 +46,22 @@
         "tests/process/test_root_local_first_entry_hard_gate.py",
         "tools/root_local_first_gate.py"
       ],
-      "delete_paths": []
+      "delete_paths": [],
+      "record_fingerprint": "929c7b02b71a7350bb0368ef264d896e3bcd98c9145251892359b002d09ae39a",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1129,
+      "generation": 3,
+      "record_fingerprint": "929c7b02b71a7350bb0368ef264d896e3bcd98c9145251892359b002d09ae39a",
+      "lease_token": "lease:1129:37127741368:1",
+      "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
+      "expected_work_head": "456760e19373edf3e23e958d4222f6532f53f47a",
+      "expected_target_head": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692"
     }
-  },
-  "purpose": "Acquire Issue #1129 and atomically reserve the exact 17-path frozen docs generation 21 fileset for user-authorized /推推 文檔 delivery.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1129,
-    "invocation_identity": "chatgpt.flowv2.work3.issue1129.docs21.20261003T2154+08",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
-    "required_skills": [
-      "root-local-first",
-      "推推",
-      "flow-v2-execution"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "推推",
-      "flow-v2-execution"
-    ],
-    "required_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    ],
-    "completed_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    ],
-    "observed_at": "2026-10-03T13:52:39Z"
   }
 }
