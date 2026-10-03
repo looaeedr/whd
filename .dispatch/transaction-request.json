@@ -1,14 +1,17 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1146-work0-acquire-docs-gen8",
-  "issue": 1146,
-  "kind": "ACQUIRE",
+  "request_id": "issue1062-work0-stale-release-cleanup-20261003T175410Z",
+  "issue": 1062,
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1146.entry-router-gen8",
-  "expected_coord_head": "c7cfd19b052af7726e01182b8e1d2576fc0eece2",
-  "expected_generation": 1,
-  "effect": {},
-  "purpose": "User-authorized delivery of #1146 ENTRY_ROUTER_FIRST_HARD_GATE_V1 from canonical /Google Drive/WHD .unpushed/docs/0 generation 8 into cleanup/2d-3d-sync, preserving carried-forward #1145 metadata repair.",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-release-cleanup.20261003T175410Z",
+  "expected_coord_head": "997496b7cf16bc01086542791fe534756f464d69",
+  "expected_generation": 44,
+  "effect": {
+    "reason": "Delete proven stale zero-unique-commit work branch and reset released residue to READY",
+    "delete_stale_work_branch": true
+  },
+  "purpose": "User-authorized #1062 stale RELEASE_PATHS cleanup only: trusted delete/readback of test/issue1062-product-full-regression-recovery, then READY reset; do not execute obsolete START_BRANCH.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -31,5 +34,32 @@
     ],
     "unpushed_root": "/Google Drive/WHD/.unpushed",
     "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1062,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-release-cleanup.20261003T175410Z",
+    "branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "required_skills": [
+      "flow-v2-execution",
+      "phase6-release-packaging"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "phase6-release-packaging"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-03T17:54:10Z"
   }
 }
