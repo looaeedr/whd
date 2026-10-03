@@ -72,10 +72,11 @@ def test_root_gate_rejects_wrong_root_identity_and_legacy_control_layout():
 
 def test_agents_places_v2_work_root_then_shared_zero_gate_before_preflight():
     text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    entry = text.index("ENTRY_ROUTER_FIRST_HARD_GATE_V1")
     work = text.index("WORK_ROOT_BOOTSTRAP_HARD_GATE_V2")
-    shared = text.index("ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1")
+    shared = text.index("## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1")
     phase6 = text.index("# 0. 啟動硬閘門")
-    assert work < shared < phase6
+    assert entry < work < shared < phase6
     assert ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json" in text
     assert ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json" in text
     assert "/Google Drive/WHD/.unpushed/body/0" in text
