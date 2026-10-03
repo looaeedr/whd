@@ -261,6 +261,24 @@ MERGE precheck 必須 fresh-read並 exact 比對：
 
 若 push ingress 回 `CONFLICT` 且 `retryable=true`，固定執行 `FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION`：fresh-read `coord/execution-v2`、generation、lease、target/head，再用 builder 重建**同一 semantic action**。不得沿用 stale request payload，也不得因 coord/generation/live-lease race 重放外部副作用。startup evidence 驗證失敗不是 retryable conflict；先由 builder 重建 fresh evidence。
 
+### STALE_RELEASED_BRANCH_CLEANUP_TRANSPORT_V1
+
+`RELEASE_PATHS` 對已 `reservation_state=RELEASED` 的 stale-reset residue，仍以「work branch 必須不存在」作為 READY reset 硬條件；不得放寬成 connector 無法刪 branch 就直接改 coord record。
+
+canonical branch-delete side effect 固定由 `tools/control_transaction_production_executor.py` 的 trusted GitHub executor 擁有，透過既有 transaction request transport 執行，不新增旁路 state machine。caller 只能在 `RELEASE_PATHS` effect 明確帶 `delete_stale_work_branch=true`；其他 transaction kind 帶此欄位一律 fail closed。
+
+trusted executor 在 DELETE 前必須 fresh 證明全部成立：
+- exact record 的 mutation scope 已 `RELEASED`；
+- lease 已 expired、`active_run=null`、無 accepted QA lock；
+- work branch 不得等於 source/target、不得為 `main`、`cleanup/2d-3d-sync` 或任何 `coord/*` control branch；
+- 沒有其他 non-DONE ExecutionRecord 引用同一 work branch；
+- live work ref HEAD 必須 exact 等於 record `head_sha`，branch metadata 不得 drift，且 `protected=false`；
+- fresh target HEAD 必須包含 work HEAD（work HEAD 是 current target ancestor），因此 stale branch 沒有 target 未包含的獨有 commit。
+
+DELETE 後必須再次 GET exact ref，只有 404/ABSENT 才可產生 `work_branch_exists=false` 並繼續既有 stale `RELEASE_PATHS → READY` transition。若 ref 在進入 transaction 前已 absent，視為 idempotent cleanup；若 branch delete 已成功但 shared coord CAS 因 unrelated Issue 前進而競態，既有 `UNRELATED_COORD_CAS_RETRY_V1` 必須在同 workflow 內重建同一 post-record，不要求再刪一次。任何 head drift、divergence、protected/shared branch、readback 仍存在都 fail closed。
+
+<!-- STALE_RELEASED_BRANCH_CLEANUP_TRANSPORT_V1 -->
+
 ### MERGE_ANCHOR_DESCENDANT_FINALIZATION_V1
 
 accepted merge SHA is an anchor，不是「target branch 永遠不可再前進」的 freeze point。ticket 已有 exact-head accepted QA 且 `closure.merged_sha` 已成立後，其他合法 ticket 可繼續推進同一 target branch；FINALIZE 不得因此強迫原 ticket 重跑 merge/QA/ancestry。
