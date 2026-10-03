@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 44,
-  "head_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+  "generation": 45,
+  "head_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
   "issue": 1062,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-03T14:47:01Z",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261003T143041Z",
-    "token": "lease:1062:37129895427:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
     "delete_paths": [],
@@ -35,14 +31,12 @@
     ]
   },
   "next_action": {
-    "args": {
-      "diff_digest": "fe693c2cd1e7b271603ae99a05b816a08901b4586a2e7642e4b95ccbea7c42a0"
-    },
-    "display": "Start exact-tested docs generation 13 delivery branch",
-    "kind": "START_BRANCH"
+    "args": {},
+    "display": "Acquire fresh execution",
+    "kind": "ACQUIRE"
   },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -56,21 +50,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_RELEASED",
+  "semantic_state": "READY",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
-  "state": "ACTIVE",
+  "source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
+  "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+  "target_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
   "transaction": {
-    "expected_fingerprint": "de0333251bb07e73515fd70431a1b33a96bdb9f66de9fc054cb0e780d7dceaba",
-    "id": "gha:37130011013:1062:RELEASE_PATHS:43",
-    "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261003T143041Z",
+    "expected_fingerprint": "fed542c916395bc7279320a4991d48a785c6875f5754e23a5eb988b58c98af40",
+    "id": "gha:37142237703:1062:RELEASE_PATHS:44",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-release-cleanup.20261003T175410Z",
     "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T14:33:56Z",
+  "updated_at": "2026-10-03T17:55:07Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
