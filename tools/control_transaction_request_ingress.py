@@ -17,7 +17,12 @@ from tools.control_transaction import (
     ControlTransactionConflict,
     assert_mutation_writer_guard,
 )
-from tools.execution_entry_contract import validate_startup_evidence
+from tools.execution_entry_contract import (
+    assert_startup_transition_matches_record,
+    validate_phase6_preflight_evidence,
+    validate_startup_evidence,
+    validate_startup_transition,
+)
 from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
     INTENT_SCHEMA,
@@ -180,8 +185,8 @@ def _session_reuse_requested(request: dict[str, object]) -> bool:
     kind = str(request.get("kind") or "")
     if kind not in SESSION_REUSE_KINDS:
         raise ProductionExecutorError(f"transaction kind {kind} requires fresh admission")
-    if "startup_evidence" in request:
-        raise ProductionExecutorError("session reuse must not carry startup_evidence")
+    if any(key in request for key in ("startup_evidence", "preflight_evidence", "startup_transition")):
+        raise ProductionExecutorError("session reuse must not carry fresh startup/preflight evidence")
     return True
 
 
@@ -223,21 +228,25 @@ def _load_request(path: Path) -> dict[str, object]:
 
     if schema == REQUEST_SCHEMA:
         reuse = _session_reuse_requested(payload)
-        if kind != "SEED" and "startup_evidence" not in payload and not reuse:
-            raise ProductionExecutorError("request missing startup_evidence or valid session_reuse")
+        if kind != "SEED" and not reuse:
+            missing = [key for key in ("startup_evidence", "preflight_evidence", "startup_transition") if key not in payload]
+            if missing:
+                raise ProductionExecutorError(f"request missing fresh admission field: {missing[0]}")
         return payload
 
     if kind == "SEED":
         raise ProductionExecutorError("semantic intent does not support SEED")
-    if "startup_evidence" in payload:
-        raise ProductionExecutorError("semantic intent must not supply startup_evidence")
+    if "startup_evidence" in payload or "startup_transition" in payload:
+        raise ProductionExecutorError("semantic intent must not supply startup_evidence/startup_transition")
     reuse = payload.get("reuse_admission_session") is True
     if not reuse:
-        for key in ("purpose", "work_root_gate_evidence"):
+        for key in ("purpose", "work_root_gate_evidence", "preflight_evidence"):
             if key not in payload:
                 raise ProductionExecutorError(f"transaction intent missing {key}")
         if not isinstance(payload["work_root_gate_evidence"], dict):
             raise ProductionExecutorError("work_root_gate_evidence must be an object")
+        if not isinstance(payload["preflight_evidence"], dict):
+            raise ProductionExecutorError("preflight_evidence must be an object")
     return payload
 
 
@@ -275,6 +284,18 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
                 execution_mode=execution_mode,
                 repository=repo,
             )
+            validate_phase6_preflight_evidence(
+                request.get("preflight_evidence"),
+                issue=int(request["issue"]),
+                invocation_identity=str(request["invocation_identity"]),
+            )
+            validate_startup_transition(
+                request.get("startup_transition"),
+                invocation_identity=str(request["invocation_identity"]),
+                issue=int(request["issue"]),
+                execution_mode=execution_mode,
+                repository=repo,
+            )
         except ValueError as exc:
             raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
 
@@ -300,6 +321,20 @@ def execute_request(*, request: dict[str, object], repo: str, token: str, coord_
         )
     if reuse_session:
         _validate_live_session_reuse(record, request=request)
+    else:
+        try:
+            assert_startup_transition_matches_record(
+                request.get("startup_transition"),
+                issue=record.issue,
+                source_branch=record.source_branch,
+                source_sha=record.source_sha,
+                work_branch=record.work_branch,
+                head_sha=record.head_sha,
+                target_branch=record.target_branch,
+                target_sha=record.target_sha,
+            )
+        except ValueError as exc:
+            raise ControlTransactionConflict(str(exc)) from exc
 
     _validate_interactive_git_write_receipt(
         request,
