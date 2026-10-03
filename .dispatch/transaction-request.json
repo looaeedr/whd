@@ -1,24 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-takeover-20261002T2019+08",
+  "request_id": "issue1062-takeover-20261003T1252+08",
   "issue": 1062,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261002T2019+08",
-  "expected_coord_head": "21829b152a62f2d0013c5b6b1d355a21f2127054",
-  "expected_generation": 37,
+  "invocation_identity": "chatgpt.flowv2.work1.issue1062.takeover.20261003T1252+08",
+  "expected_coord_head": "57f25e577764b8a3ff1c64700144f65f99732c47",
+  "expected_generation": 38,
   "effect": {},
-  "purpose": "Take over #1062 after expired lease and continue the existing product regression scope only; no governance changes.",
+  "purpose": "Take over Issue #1062 after fresh family-lineage proof of no active writer, then continue the current root-local-first recovery without executing stale START_BRANCH.",
   "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-    "gate_status": "CURRENT",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
     "provider": "google_drive",
     "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-    "current_source_manifest_file_id": "1NnUvzJGz7_SPpHvQ_IJvGR-3QgwbMfGCfgfj1hlpD9U"
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
   }
 }
