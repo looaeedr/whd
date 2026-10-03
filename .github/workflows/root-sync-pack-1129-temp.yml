@@ -1,0 +1,33 @@
+name: WHD Temp Root Sync Pack 1129
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build-root-sync-pack:
+    if: github.ref == 'refs/heads/governance/issue1129-runtime-report-identity-gate-20261002'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build incremental git objects and accepted index
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW=8d931a7ad070f1d5fccde45da9508f1ad911cda5
+          OLD=d1036c60f67c1eb4308eb693fa89de4c7d98180f
+          mkdir -p /tmp/root-sync
+          printf '%s\n^%s\n' "$NEW" "$OLD" | git pack-objects /tmp/root-sync/pack >/tmp/root-sync/pack-hash.txt
+          GIT_INDEX_FILE=/tmp/root-sync/index git read-tree "$NEW"
+          git rev-parse "$NEW^{tree}" > /tmp/root-sync/tree.txt
+          printf '%s\n' "$NEW" > /tmp/root-sync/head.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whd-root-sync-1129
+          path: /tmp/root-sync/
+          if-no-files-found: error
+          retention-days: 2
