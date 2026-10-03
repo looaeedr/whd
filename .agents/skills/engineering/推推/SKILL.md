@@ -3,6 +3,7 @@ name: 推推
 description: WHD shared-unpushed integration 的唯一 Git delivery 出口。只允許 `/推推 文檔` 或 `/推推 主體`，從對應 `.unpushed/{docs|body}/0` manifest 建立 delivery branch；merge conflict 必須 checkpoint 並等待使用者決策，禁止自動選邊。
 whd_doc_role: CURRENT
 whd_contract: shared-unpushed-integration
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
