@@ -1,58 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1128-acquire-stale-release-20261003T2143+08",
+  "request_id": "issue1128-release-stale-paths-20261003T2146+08",
   "issue": 1128,
-  "kind": "ACQUIRE",
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.flowv2.work3.issue1128.stale-release.20261003T2143+08",
-  "expected_coord_head": "ee79ebeb36128a048c90e3b39ae55f121c2968bf",
-  "expected_generation": 5,
-  "effect": {},
-  "purpose": "Renew the expired #1128 owner only to release its stale active path reservation and free work3 for the user-authorized docs delivery; do not author or alter repository content.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
+  "expected_coord_head": "237cd36d62bc0b38818c9709eff63c4bd5babd59",
+  "expected_generation": 6,
+  "effect": {
+    "reason": "Release stale #1128 reservation after STUCK_UNOWNED_FAMILY_CONFIRMED; no repository-content mutation."
   },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1128,
-    "invocation_identity": "chatgpt.flowv2.work3.issue1128.stale-release.20261003T2143+08",
-    "branch": "refactor/issue1128-derived-sync-composition-owner-20261002",
-    "head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
-    "required_skills": [
-      "root-local-first",
-      "flow-v2-execution"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "flow-v2-execution"
-    ],
-    "required_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    ],
-    "completed_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    ],
-    "observed_at": "2026-10-03T13:43:15Z"
-  }
+  "reuse_admission_session": true
 }
