@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1145-closure-acquire-20261004T1106Z",
+  "request_id": "issue1145-closure-acquire-20261004T1119Z",
   "issue": 1145,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
@@ -17,7 +17,7 @@
       "display": "Consume accepted PR #1150 exact-head QA"
     }
   },
-  "purpose": "Close already-delivered Issue #1145 through canonical Flow v2: acquire the recovered READY record, consume exact-head accepted QA from merged PR #1150, reconcile ALREADY_MERGED, then FINALIZE. No repository-content mutation.",
+  "purpose": "Close already-delivered Issue #1145 through canonical Flow v2: acquire recovered READY record, consume exact-head accepted QA from merged PR #1150, reconcile ALREADY_MERGED, then FINALIZE. No repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -66,6 +66,6 @@
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-04T11:06:35Z"
+    "observed_at": "2026-10-04T11:19:03Z"
   }
 }
