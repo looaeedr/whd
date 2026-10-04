@@ -16,7 +16,7 @@ from tools.shared_unpushed_integration import (
 
 SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
 EVIDENCE_SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_GATE_EVIDENCE_V1"
-DEFAULT_ROOT = "/workspace/whd"
+WORKSPACE_ROOT_POLICY = "EXECUTOR_LOCAL_REPO_WORKSPACE"
 CANONICAL_DRIVE_ROOT = "/Google Drive/WHD"
 DEFAULT_WORK_PREFIX = "/Google Drive/WHD/.unpushed"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
@@ -34,7 +34,7 @@ REQUIRED_ORDER = (
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
 REMOTE_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
 REMOTE_CONTENT_POLICY = "WORKSPACE_MIRROR_IMPLEMENTATION"
-WORKSPACE_ROOT = "/workspace/whd"
+WORKSPACE_ROOT = WORKSPACE_ROOT_POLICY
 PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
 WORKSPACE_BASELINE_ACTIONS = {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
 READ_ONLY_GIT_ACTIONS = WORKSPACE_BASELINE_ACTIONS
@@ -147,11 +147,12 @@ def _event_token(value: object) -> str:
 
 
 def build_entry_router_evidence(
-    *, canonical_root: str, fresh_reads: Iterable[str]
+    *, fresh_reads: Iterable[str], workspace_root: str | None = None, canonical_root: str | None = None
 ) -> dict[str, object]:
-    """Bind an interactive WHD content invocation to the canonical entry before discovery."""
-    if str(canonical_root) != DEFAULT_ROOT:
-        raise ValueError("ENTRY_ROUTER_FIRST_REQUIRED: canonical root mismatch")
+    """Bind an interactive WHD content invocation to its executor-local repository workspace."""
+    resolved_root = str(workspace_root or canonical_root or "").strip()
+    if not resolved_root:
+        raise ValueError("ENTRY_ROUTER_FIRST_REQUIRED: executor workspace_root missing")
     reads = tuple(str(item).strip() for item in fresh_reads if str(item).strip())
     if reads != ENTRY_ROUTER_FRESH_READS:
         raise ValueError(
@@ -161,7 +162,8 @@ def build_entry_router_evidence(
         "schema": ENTRY_ROUTER_EVIDENCE_SCHEMA,
         "gate_schema": ENTRY_ROUTER_SCHEMA,
         "state": ENTRY_ROUTER_READY,
-        "canonical_root": DEFAULT_ROOT,
+        "workspace_root": resolved_root,
+        "workspace_policy": WORKSPACE_ROOT_POLICY,
         "fresh_reads": list(reads),
         "fresh_each_invocation": True,
         "chat_memory_used_as_evidence": False,
@@ -176,8 +178,10 @@ def validate_entry_router_evidence(evidence: object) -> dict[str, object]:
         raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: invalid gate schema")
     if item.get("state") != ENTRY_ROUTER_READY:
         raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: entry router is not READY")
-    if item.get("canonical_root") != DEFAULT_ROOT:
-        raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: canonical root mismatch")
+    if item.get("workspace_policy") != WORKSPACE_ROOT_POLICY:
+        raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: workspace policy mismatch")
+    if not str(item.get("workspace_root") or "").strip():
+        raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: executor workspace_root missing")
     if tuple(item.get("fresh_reads") or ()) != ENTRY_ROUTER_FRESH_READS:
         raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: fresh-read order mismatch")
     if item.get("fresh_each_invocation") is not True:
@@ -200,19 +204,24 @@ def assert_entry_router_action_allowed(evidence: object | None, *, action: str) 
 
 
 def build_root_path_resolution_evidence(
-    *, repo_relative_path: str, resolved_absolute_path: str, resolution_method: str = "WORKSPACE_REPO_RELATIVE_PATH"
+    *, workspace_root: str, repo_relative_path: str, resolved_absolute_path: str,
+    resolution_method: str = "WORKSPACE_REPO_RELATIVE_PATH"
 ) -> dict[str, object]:
     relative = str(repo_relative_path or "").strip().replace("\\", "/").lstrip("/")
     if not relative or relative == "." or any(part in {"", ".", ".."} for part in relative.split("/")):
         raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: invalid repo-relative path")
-    expected = f"{DEFAULT_ROOT}/{relative}"
+    root = str(workspace_root or "").strip().replace("\\", "/").rstrip("/")
+    if not root:
+        raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: workspace_root missing")
+    expected = f"{root}/{relative}"
     if str(resolved_absolute_path or "").strip().replace("\\", "/") != expected:
         raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: workspace path mismatch")
     if str(resolution_method or "").strip().upper() != "WORKSPACE_REPO_RELATIVE_PATH":
         raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: non-workspace resolution method")
     return {
         "schema": ROOT_PATH_RESOLUTION_SCHEMA,
-        "canonical_root": DEFAULT_ROOT,
+        "workspace_root": root,
+        "workspace_policy": WORKSPACE_ROOT_POLICY,
         "repo_relative_path": relative,
         "resolved_absolute_path": expected,
         "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
@@ -226,18 +235,19 @@ def validate_root_path_resolution_evidence(evidence: object) -> dict[str, object
     if item.get("schema") != ROOT_PATH_RESOLUTION_SCHEMA:
         raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: invalid evidence schema")
     return build_root_path_resolution_evidence(
+        workspace_root=str(item.get("workspace_root") or ""),
         repo_relative_path=str(item.get("repo_relative_path") or ""),
         resolved_absolute_path=str(item.get("resolved_absolute_path") or ""),
         resolution_method=str(item.get("resolution_method") or ""),
     )
 
-def select_repository_content_route(*, shared_zero_drift_present: bool) -> dict[str, object]:
+def select_repository_content_route(*, shared_zero_drift_present: bool, workspace_root: str = WORKSPACE_ROOT_POLICY) -> dict[str, object]:
     """Choose the ordinary workspace path unless fresh shared-zero drift requires reconcile."""
     if shared_zero_drift_present:
         return {
             "schema": CONTENT_ROUTE_SCHEMA,
             "route": "SHARED_ZERO_FALLBACK",
-            "workspace_root": WORKSPACE_ROOT,
+            "workspace_root": str(workspace_root),
             "production_branch": PRODUCTION_BRANCH,
             "workspace_canonical_sync_required": True,
             "shared_zero_required": True,
@@ -245,7 +255,7 @@ def select_repository_content_route(*, shared_zero_drift_present: bool) -> dict[
     return {
         "schema": CONTENT_ROUTE_SCHEMA,
         "route": "WORKSPACE_DEFAULT",
-        "workspace_root": WORKSPACE_ROOT,
+        "workspace_root": str(workspace_root),
         "production_branch": PRODUCTION_BRANCH,
         "workspace_canonical_sync_required": False,
         "shared_zero_required": False,
@@ -542,7 +552,7 @@ def validate_contract(payload: object) -> dict[str, object]:
     if contract.get("status") != "CURRENT":
         raise ValueError("root-local-first contract is not CURRENT")
     root = _mapping(contract.get("canonical_root"), "canonical_root")
-    if root.get("library_path") != DEFAULT_ROOT or root.get("provider") != "workspace_mirror":
+    if root.get("provider") != "executor_local_workspace" or root.get("path_policy") != WORKSPACE_ROOT_POLICY:
         raise ValueError("workspace root identity mismatch")
     if root.get("production_branch") != PRODUCTION_BRANCH or root.get("authority") is not False:
         raise ValueError("workspace root production identity mismatch")
@@ -561,8 +571,8 @@ def validate_contract(payload: object) -> dict[str, object]:
     root_path_gate = _mapping(contract.get("root_path_resolution_hard_gate"), "root_path_resolution_hard_gate")
     if root_path_gate.get("schema") != "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1":
         raise ValueError("root path resolution hard gate schema mismatch")
-    if root_path_gate.get("default_workspace_root") != DEFAULT_ROOT:
-        raise ValueError("workspace path root mismatch")
+    if root_path_gate.get("default_workspace_root_policy") != WORKSPACE_ROOT_POLICY:
+        raise ValueError("workspace path policy mismatch")
     if root_path_gate.get("resolution_method") != "WORKSPACE_REPO_RELATIVE_PATH":
         raise ValueError("workspace path resolution method mismatch")
     if root_path_gate.get("shared_zero_fallback_root") != CANONICAL_DRIVE_ROOT:
