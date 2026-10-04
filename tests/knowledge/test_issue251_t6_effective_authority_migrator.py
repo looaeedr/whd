@@ -28,19 +28,23 @@ def test_repository_effective_authority_builds_total_plan(tmp_path: Path) -> Non
     must not be backfilled into the frozen T1 matrix or #255 resolution overlay.
     """
     migrator = _load_migrator()
-    from tools.knowledge_authority_overlay import merge_effective_authority
+    from tools.knowledge_authority_overlay import merge_effective_authority, retired_paths
 
     effective = tuple(merge_effective_authority(MATRIX, OVERLAY))
     frozen_paths = tuple(sorted(str(row["path"]) for row in effective))
     assert len(frozen_paths) == 398
 
     snapshot = tmp_path / "frozen-t6-snapshot"
+    retired = set(retired_paths(ROOT))
     for rel in frozen_paths:
         source = ROOT / rel
-        assert source.is_file(), f"frozen T6 governed path disappeared: {rel}"
         target = snapshot / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, target)
+        if source.is_file():
+            shutil.copyfile(source, target)
+            continue
+        assert rel in retired, f"frozen T6 path disappeared without CURRENT retirement authority: {rel}"
+        target.write_text("# retired frozen-path placeholder\n", encoding="utf-8")
 
     plan = migrator.build_plan(snapshot, MATRIX, OVERLAY)
     assert len(plan) == 398
