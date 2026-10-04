@@ -132,10 +132,17 @@ def test_registry_does_not_auto_route_current_execution_into_legacy_guard_or_con
     by_id = {route["id"]: route for route in registry["routes"]}
     remote_guard = by_id["remote-execution-guard"]
     assert remote_guard["required_skills"] == ["flow-v2-execution"]
+    assert remote_guard["routing_status"] == "RETIRED"
+    assert remote_guard["replacement_route_id"] == "flow-v2-execution"
+    assert remote_guard["file_globs"] == []
     assert "scheduler no shell" not in remote_guard["keywords"]
     assert "GUARD_EXECUTION_CAPABILITY_BLOCKER" not in remote_guard["keywords"]
 
     continuity = by_id["executable-continuity-controller"]
+    assert continuity["routing_status"] == "RETIRED"
+    assert continuity["replacement_route_id"] == "flow-v2-execution"
+    assert continuity["file_globs"] == []
+    assert "explicit-skill-executable-continuity-controller" not in by_id
     for broad in ("不停工", "持續執行", "runtime cut", "task chain", "implement spec"):
         assert broad not in continuity["keywords"]
 
