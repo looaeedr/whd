@@ -156,7 +156,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/phase6_remote_preflight.py \
+          python -m tools.phase6_remote_preflight \
             --request-file /tmp/phase6-preflight-request.json \
             --run-id "$GITHUB_RUN_ID_VALUE" \
             --output /tmp/phase6-preflight-result.json
