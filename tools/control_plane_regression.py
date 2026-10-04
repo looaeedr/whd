@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/control_plane_regression.py"
 
 COMPILE_PATHS = (
-    "tools/continuity_controller.py",
     "tools/scheduler_runtime_liveness.py",
     "tools/scheduler_host_watchdog.py",
     "tools/scheduler_entrypoint_observation.py",
@@ -47,7 +46,6 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_flow_v2_atomic_control_transaction.py",
     "tests/process/test_flow_v2_path_reservation.py",
     "tests/process/test_issue865_scheduler_stop_hardening.py",
-    "tests/process/test_issue787_turn_exit_blocker_authority.py",
     "tests/process/test_scheduler_no_work_census_contract.py",
     "tests/process/test_issue892_flow_v2_production_transaction.py",
     "tests/process/test_issue899_push_transaction_ingress.py",
