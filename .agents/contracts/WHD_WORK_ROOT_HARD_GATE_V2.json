@@ -1,12 +1,13 @@
 {
   "schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-  "version": 2,
+  "version": 3,
   "status": "CURRENT",
   "owner": "tools/work_root_gate.py",
   "default_work_root": {
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
+    "provider": "workspace_mirror",
+    "library_path": "/workspace/whd",
+    "production_branch": "cleanup/2d-3d-sync",
+    "authority": false
   },
   "required_root_entries": [
     ".git",
@@ -16,8 +17,7 @@
     "tools",
     "tests",
     "ae_engine",
-    "gui_modules",
-    ".unpushed"
+    "gui_modules"
   ],
   "forbidden_current_layout_assumptions": [
     "LEGACY_SOURCE_MANIFEST_LAYOUT",
@@ -31,13 +31,15 @@
     "body_zero": "/Google Drive/WHD/.unpushed/body/0",
     "docs_zero": "/Google Drive/WHD/.unpushed/docs/0",
     "body_workers": "/Google Drive/WHD/.unpushed/body/workers",
-    "docs_workers": "/Google Drive/WHD/.unpushed/docs/workers"
+    "docs_workers": "/Google Drive/WHD/.unpushed/docs/workers",
+    "mode": "CONDITIONAL_FALLBACK_ONLY",
+    "ordinary_startup_required": false
   },
   "required_sequence": [
-    "WHD_ROOT_RESOLVED",
-    "ROOT_IDENTITY_VERIFIED",
-    "FULL_REPO_ROOT_VERIFIED",
-    "SHARED_UNPUSHED_LAYOUT_VERIFIED",
+    "WORKSPACE_ROOT_RESOLVED",
+    "WORKSPACE_GIT_IDENTITY_VERIFIED",
+    "PRODUCTION_BASELINE_CURRENT",
+    "CONDITIONAL_SHARED_ZERO_DRIFT_CHECK",
     "ROOT_SHARED_UNPUSHED_GATE_READ",
     "REQUESTED_OPERATION"
   ],
@@ -46,15 +48,23 @@
     "repository_contract": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
     "machine_owner": "tools/root_local_first_gate.py"
   },
-  "github_role": "GitHub is delivery/PR/CI/control-plane transport. Repository-content authoring and tests happen under the canonical Google Drive WHD root without a Git work branch.",
+  "github_role": "GitHub cleanup/2d-3d-sync is the ordinary workspace production baseline and delivery/PR/CI transport. Google Drive shared-0 participates only when fresh drift evidence exists.",
   "root_identity_recovery": {
     "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
-    "cli": "python tools/work_root_gate.py recover-current-production",
+    "cli": "python tools/work_root_gate.py recover-current-production --root /workspace/whd",
     "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
     "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
     "policy": "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION",
     "terminal_gate": false,
     "closure_authority": false,
-    "purpose": "OPTIONAL_ROOT_CATCHUP_MAINTENANCE"
+    "purpose": "OPTIONAL_WORKSPACE_BASELINE_CATCHUP"
+  },
+  "canonical_drive_overlay": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "activation": "ONLY_WHEN_FRESH_SHARED_ZERO_DRIFT_EXISTS",
+    "ordinary_startup_required": false,
+    "machine_owner": "tools/workspace_canonical_sync.py"
   }
 }
