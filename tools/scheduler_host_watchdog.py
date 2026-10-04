@@ -53,11 +53,11 @@ LANE_B = "scheduler.e58ea936e7d0b12bd0d475314709d6f1"
 
 ENTRYPOINTS: tuple[EntrypointSpec, ...] = (
     EntrypointSpec(
-        "a00", "00", 0, "6ab13f881c34819180cee63f5dd9446b", LANE_A,
+        "a00", "00", 0, "6abe13e395b88191898bbaa2993db13e", LANE_A,
         ".dispatch/monitor/host/entrypoints/a00.json",
     ),
     EntrypointSpec(
-        "b15", "B15", 15, "6ab51d9226808191b9ae0c624e28c246", LANE_B,
+        "b15", "B15", 15, "6abe1471dc4481919e423c0df1ed7e00", LANE_B,
         ".dispatch/monitor/host/entrypoints/b15.json",
     ),
     EntrypointSpec(
