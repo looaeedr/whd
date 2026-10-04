@@ -109,7 +109,7 @@ def test_legacy_source_snapshot_workflow_stays_retired_under_durability_v2() -> 
     contract = json.loads((ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json").read_text(encoding="utf-8"))
     assert contract["status"] == "CURRENT"
     tool = (ROOT / "tools/post_integration_durability.py").read_text(encoding="utf-8")
-    assert "ROOT_SYNC_PENDING" in tool
-    assert "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD" in tool
+    assert "ROOT_SYNC_PENDING" not in tool
+    assert "INVALID_NON_BLOCKING" in tool
     assert "LANE_CLEANUP_PENDING" in tool
     assert "FINALIZE_DELIVERED_LANE_ZERO" in tool
