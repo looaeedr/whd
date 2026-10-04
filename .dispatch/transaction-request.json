@@ -1,25 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-consume-gen7-qa-live-session-minimal-20261004T0434Z",
+  "request_id": "issue1062-record-merged-pr1165-20261004T0436Z",
   "issue": 1062,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-  "expected_coord_head": "5fd0298b6f783db27b168f5bd4951c013f91710b",
-  "expected_generation": 53,
+  "expected_coord_head": "4627ef92cdb37d9ffa69e38236d6fb19c4324e56",
+  "expected_generation": 54,
   "effect": {
-    "run_id": 37176982169,
-    "run_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
-    "run_status": "completed",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
+    "merge_precheck_status": "ALREADY_MERGED",
+    "merged_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
+    "target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
+    "semantic_state": "MERGED",
     "next_action": {
-      "kind": "MERGE",
+      "kind": "FINALIZE",
       "args": {
         "pr_number": 1165
       },
-      "display": "Merge PR #1165 after fresh latest-file recheck"
+      "display": "Close #1062 and finalize merged delivery"
     }
   },
   "session_reuse": {
