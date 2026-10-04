@@ -156,10 +156,11 @@ def test_repository_content_completion_blocks_after_done_until_v2_durability_com
     from tools.execution_invocation_exit import InvocationExitError, assert_repository_content_cycle_complete
 
     record = _done_record()
-    with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD"):
-        assert_repository_content_cycle_complete(record, root_sync_receipt=None, lane_delivery_receipt=None)
     with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:FINALIZE_DELIVERED_LANE_ZERO"):
-        assert_repository_content_cycle_complete(record, root_sync_receipt=_root_sync_receipt(), lane_delivery_receipt=None)
+        assert_repository_content_cycle_complete(record, root_sync_receipt=None, lane_delivery_receipt=None)
+    assert assert_repository_content_cycle_complete(
+        record, root_sync_receipt=None, lane_delivery_receipt=_lane_delivery_receipt()
+    ) is True
     assert assert_repository_content_cycle_complete(
         record, root_sync_receipt=_root_sync_receipt(), lane_delivery_receipt=_lane_delivery_receipt()
     ) is True
@@ -185,12 +186,15 @@ def test_legacy_source_snapshot_workflow_is_absent() -> None:
     assert not (ROOT / ".github/workflows/drive-source-snapshot-export.yml").exists()
 
 
-def test_v2_durability_requires_root_sync_and_lane_finalization() -> None:
+def test_v2_durability_keeps_root_sync_optional_and_lane_finalization_required() -> None:
     contract = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json")
-    assert "CANONICAL_ROOT_SYNCED_TO_MERGED_HEAD" in contract["required_order"]
+    assert "CANONICAL_ROOT_SYNCED_TO_MERGED_HEAD" not in contract["required_order"]
+    assert contract["root_sync_policy"]["terminal_gate"] is False
+    assert contract["root_sync_policy"]["closure_authority"] is False
     assert "LANE_0_ROLLED_FORWARD_OR_EMPTY" in contract["required_order"]
     tool = _read("tools/post_integration_durability.py")
-    assert "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD" in tool
+    assert "ROOT_SYNC_PENDING" not in tool
+    assert "INVALID_NON_BLOCKING" in tool
     assert "FINALIZE_DELIVERED_LANE_ZERO" in tool
     assert "/work/active" not in tool
     assert "/source/snapshots" not in tool
