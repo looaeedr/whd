@@ -1,25 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-terminal-consume-qa-20261004T1410Z",
+  "request_id": "issue1112-terminal-merge-20261004T1413Z",
   "issue": 1112,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-  "expected_coord_head": "9b6e49a133ff1ae250a4a0a408f1922281304c57",
-  "expected_generation": 8,
-  "effect": {
-    "run_id": 36955190871,
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED_FOR_CLOSURE_RECONCILIATION",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1134,
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Reconcile already-merged PR #1134"
-    }
-  },
-  "purpose": "Closure-only drain for already-completed Issue #1112 using exact-head successful Product Regression and merged PR #1134.",
+  "expected_coord_head": "ba6eeac2e5144e625e1f54cc601f6a3d41dbeede",
+  "expected_generation": 9,
+  "effect": {},
   "reuse_admission_session": true
 }
