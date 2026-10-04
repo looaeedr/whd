@@ -143,18 +143,26 @@ def test_legacy_turn_exit_workflow_is_removed_after_flow_v2_cutover() -> None:
     assert not (ROOT / ".github/workflows/whd-turn-exit-gate.yml").exists()
 
 
-def test_remote_phase6_preflight_is_read_only_fixed_schema_transport() -> None:
-    text = (ROOT / ".github/workflows/whd-phase6-preflight.yml").read_text(
+def test_remote_phase6_preflight_transports_share_one_read_only_canonical_runner() -> None:
+    comment = (ROOT / ".github/workflows/whd-phase6-preflight.yml").read_text(
         encoding="utf-8"
     )
-    assert "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1" in text
-    assert "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1" in text
-    assert "tools/phase6_skill_preflight.py" in text
-    assert "contents: read" in text
-    assert "issues: write" in text
-    assert "contents: write" not in text
-    assert "workflow_dispatch" not in text
-    assert "arbitrary command" not in text.lower()
+    push = (ROOT / ".github/workflows/whd-phase6-preflight-push.yml").read_text(
+        encoding="utf-8"
+    )
+    runner = (ROOT / "tools/phase6_remote_preflight.py").read_text(encoding="utf-8")
+    for text in (comment, push):
+        assert "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1" in text
+        assert "python -m tools.phase6_remote_preflight" in text
+        assert "contents: read" in text
+        assert "issues: write" in text
+        assert "contents: write" not in text
+        assert "workflow_dispatch" not in text
+        assert "arbitrary command" not in text.lower()
+    assert "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1" in comment
+    assert "coord/preflight-requests-a" in push
+    assert "coord/preflight-requests-b" in push
+    assert "tools.phase6_skill_preflight" in runner
 
 
 def test_scheduler_authoring_uses_flow_v2_yield_and_recurring_lifecycle() -> None:
