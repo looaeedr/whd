@@ -13,7 +13,7 @@ whd_schema: WHD_DOC_META_V1
 
 **GitHub Connector 內容同步 ≠ git push。** Connector 可以把內容安全同步到遠端，但可能建立新的遠端 commit SHA；若任務要求保留本機 commit identity / 原始 commit graph，就不能把 Connector 同步宣稱成 `git push` 成功。
 
-任何 fallback 都必須 **fail closed、非強制、可追溯、遠端二次驗證**。
+在 `looaeedr/whd` 中，本 Skill **不是獨立 delivery authority**。任何 `git push / fetch / pull` 類需求都必須先進 `.agents/skills/engineering/推推/SKILL.md`，由 `/推推 文檔|主體` 選定 lane，完成 `LANE_MANIFEST_FROZEN → DELIVERY_FILESET_LOCK → PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK` 後，才可把本 Skill 當作同一 delivery window 內的 transport helper。\n\n缺少 selected lane、generation、frozen manifest digest 或 exact fileset lock 時固定 fail closed：`RETURN_TO_PUSH_SKILL`。本 Skill 不得自行建立第二套 branch/fileset/merge authority，也不得讓 `SCHEDULER_LANE` 的 `START_BRANCH / APPLY_COMMIT` 變成 repository-content 入口；scheduler content work 必須 handoff 回 root/shared-0。\n\n任何 fallback 都必須 **fail closed、非強制、可追溯、遠端二次驗證**。
 
 ## REMOTE_AUTHORITY_FIRST_HARD_GATE_V1
 
