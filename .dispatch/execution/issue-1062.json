@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 47,
+  "generation": 48,
   "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
@@ -55,8 +55,8 @@
   },
   "next_action": {
     "args": {},
-    "display": "Create body gen6 delivery branch",
-    "kind": "START_BRANCH"
+    "display": "Bind exact body gen6 candidate commit",
+    "kind": "RECONCILE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -73,7 +73,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
@@ -81,13 +81,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "transaction": {
-    "expected_fingerprint": "1adce0cf90f2da8811eab9ac586768d53e485a5591af4b6a487bca6aa737502c",
-    "id": "gha:37174590888:1062:ACQUIRE:46",
+    "expected_fingerprint": "8039972c48de6536400e61abf87603fbd92143db876c2981321f741c77981309",
+    "id": "gha:37175129013:1062:START_BRANCH:47",
     "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T03:37:37Z",
+  "updated_at": "2026-10-04T03:49:05Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
