@@ -13,6 +13,7 @@ EXPECTED = {
     "whd-control-transaction-v2.yml",
     "whd-governance-single-authority-gate.yml",
     "whd-phase6-preflight.yml",
+    "whd-phase6-preflight-push.yml",
 }
 
 LEGACY_PRODUCT_WORKFLOWS = {
