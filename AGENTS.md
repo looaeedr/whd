@@ -58,7 +58,7 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 1. 修改與測試在 executor-local workspace 完成。
 2. production target 禁止 direct push；只接受 exact tested delivery branch → PR → required checks → merge。
 3. target 前進時 refresh baseline；碰到 touched path 就 retest，再 delivery。
-4. GitHub baseline read 不等於一般 Issue/PR/Actions 或任意 remote authority；非 baseline 動作仍走原 authority gate。
+4. GitHub baseline read 不等於一般 Issue/PR/Actions 或任意 remote authority；Skill 自動觸發也不會擴張 authority，非 baseline 動作仍走原 authority gate，未授權固定 `REMOTE_CONNECTION_DENIED`。
 5. `/Google Drive/WHD/.unpushed/{docs|body}/0` 只有 fresh evidence 證明 touched paths 有 GitHub/workspace 沒有的未推送 drift 才介入。
 ## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：conditional shared-0 fallback
 
