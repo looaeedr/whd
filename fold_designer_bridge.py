@@ -106,16 +106,24 @@ from gui_modules.application.fold_designer_adapter import (
     install_fold_designer_bridge_facade,
 )
 from gui_modules.application.receiving_set_bay_adapter import (
-    ReceivingDestructiveEditConfirmationRequired,
     ReceivingSetBayAdapter,
     receiving_layout_stable_ids,
 )
 from gui_modules.application.receiving_set_bay_controls import (
+    RECEIVING_SWITCH_BRANDS,
     build_receiving_set_bay_controls,
+    refresh_receiving_layer_rows,
+)
+from gui_modules.application.receiving_switch_layout_adapter import (
+    ReceivingSwitchLayoutAdapter,
 )
 from ae_engine.receiving_layout import (
     ensure_receiving_layout,
     project_receiving_bay_legacy_aliases,
+)
+from ae_engine.receiving_switch_layout import (
+    RECEIVING_SWITCH_LAYOUT_KEY,
+    normalize_receiving_switch_layout,
 )
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
@@ -1975,98 +1983,159 @@ def _phase6_commit_receiving_current_bay_controls(self):
     return True
 
 
+def _phase6_receiving_switch_adapter(self, *, reset=False):
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    layout = normalize_receiving_switch_layout(snapshot.get(RECEIVING_SWITCH_LAYOUT_KEY))
+    fingerprint = stable_fingerprint(layout)
+    adapter = None if reset else getattr(self, "_phase6_receiving_switch_layout_adapter", None)
+    if adapter is None or getattr(self, "_phase6_receiving_switch_layout_fingerprint", None) != fingerprint:
+        adapter = ReceivingSwitchLayoutAdapter(layout)
+        self._phase6_receiving_switch_layout_adapter = adapter
+        self._phase6_receiving_switch_layout_fingerprint = fingerprint
+    return adapter
+
+
+def _phase6_mark_receiving_switch_layout_dirty(self, adapter):
+    layout = adapter.layout
+    self._phase6_input_snapshot[RECEIVING_SWITCH_LAYOUT_KEY] = layout
+    self._phase6_receiving_switch_layout_fingerprint = stable_fingerprint(layout)
+    workspace = getattr(self, "designer_workspace", None)
+    if workspace is not None:
+        workspace.mark_dirty()
+
+
 def _phase6_refresh_receiving_set_bay_control(self):
+    """Refresh the operator-facing layer/connection editor.
+
+    The legacy function name is retained because callers still use it.  It does
+    not project or mutate the multi-cabinet ``receiving_layout`` Set/Bay state.
+    """
+    controls = getattr(self, "receiving_layer_controls", None)
     frame = getattr(self, "receiving_set_bay_control", None)
-    set_selector = getattr(self, "receiving_set_selector", None)
-    bay_selector = getattr(self, "receiving_bay_selector", None)
-    if frame is None or set_selector is None or bay_selector is None:
+    if controls is None or frame is None:
         return False
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
+    if not _phase6_receiving_layout_applicable(self):
         if frame.winfo_manager():
             frame.pack_forget()
         return False
-    set_values = tuple(f"Set {number}" for number in adapter.visible_set_numbers())
-    bay_values = tuple(f"Bay {number}" for number in range(1, adapter.bay_count() + 1))
-    set_selector.configure(values=set_values)
-    bay_selector.configure(values=bay_values)
-    self._phase6_receiving_set_bay_guard = True
-    try:
-        self.receiving_set_var.set(f"Set {adapter.selection.set_index + 1}")
-        self.receiving_bay_var.set(f"Bay {adapter.selection.bay_index + 1}")
-    finally:
-        self._phase6_receiving_set_bay_guard = False
-    remove_set = getattr(self, "receiving_remove_set_button", None)
-    if remove_set is not None:
-        existing = len(adapter.layout["sets"])
-        allowed = adapter.selection.set_index == existing - 1 and existing > 1
-        remove_set.configure(state=("normal" if allowed else "disabled"))
+
+    adapter = _phase6_receiving_switch_adapter(self)
+    controls.switch_brand_var.set(adapter.brand)
+    refresh_receiving_layer_rows(
+        controls,
+        tk=original.tk,
+        ttk=original.ttk,
+        connection_counts=adapter.connection_counts(),
+        on_resize_connections=lambda layer_index, delta: _phase6_resize_receiving_bays(
+            self, layer_index, delta
+        ),
+        on_preview=lambda layer_index: _phase6_open_receiving_layer_preview(
+            self, layer_index
+        ),
+    )
     if not frame.winfo_manager():
         frame.pack(fill=original.tk.X, pady=(0, 4))
     return True
 
 
-def _phase6_receiving_parse_number(value, prefix):
-    text = str(value or "").strip()
-    if not text.startswith(prefix):
-        raise ValueError(f"invalid Receiving selector value: {text!r}")
-    return int(text[len(prefix):].strip())
+def _phase6_on_receiving_switch_brand_selected(self, brand):
+    adapter = _phase6_receiving_switch_adapter(self)
+    if not adapter.set_brand(brand):
+        return adapter.brand
+    _phase6_mark_receiving_switch_layout_dirty(self, adapter)
+    return adapter.brand
 
 
-def _phase6_on_receiving_set_selected(self):
-    if getattr(self, "_phase6_receiving_set_bay_guard", False):
-        return
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
-        return
-    number = _phase6_receiving_parse_number(self.receiving_set_var.get(), "Set")
-    adapter.select_set(number)
-    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
-    _phase6_sync_receiving_current_bay(self)
-    self.do_update()
+def _phase6_add_receiving_layer(self):
+    adapter = _phase6_receiving_switch_adapter(self)
+    adapter.add_layer()
+    _phase6_mark_receiving_switch_layout_dirty(self, adapter)
+    _phase6_refresh_receiving_set_bay_control(self)
+    return True
 
 
-def _phase6_on_receiving_bay_selected(self):
-    if getattr(self, "_phase6_receiving_set_bay_guard", False):
-        return
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
-        return
-    number = _phase6_receiving_parse_number(self.receiving_bay_var.get(), "Bay")
-    adapter.select_bay(number)
-    _phase6_sync_receiving_current_bay(self)
-    self.do_update()
+def _phase6_resize_receiving_bays(self, layer_index, delta):
+    """Change one switch layer's connection count without touching 3D/manufacturing."""
+    adapter = _phase6_receiving_switch_adapter(self)
+    if not adapter.resize_connections(int(layer_index), int(delta)):
+        return False
+    _phase6_mark_receiving_switch_layout_dirty(self, adapter)
+    _phase6_refresh_receiving_set_bay_control(self)
+    return True
 
 
-def _phase6_resize_receiving_bays(self, delta):
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
-        return
+def _phase6_confirm_receiving_opening(self, layer_index, connection_index, brand):
+    """Commit one selected connection only through an authoritative opening resolver."""
+    resolver = getattr(self, "_phase6_receiving_switch_opening_resolver", None)
+    if not callable(resolver):
+        from tkinter import messagebox
+        messagebox.showwarning(
+            "開孔規格尚未建立",
+            f"{brand} 的 canonical 開孔規格尚未建立；未修改 3D 或截角資料。",
+            parent=getattr(self, "root", None),
+        )
+        return False
+    committed = resolver(
+        layer_index=int(layer_index),
+        connection_index=int(connection_index),
+        brand=str(brand),
+    )
+    if not committed:
+        return False
+    # The resolver owns the canonical feature mutation. One committed mutation
+    # produces one authoritative geometry flush shared by 3D/Corner Data.
+    submit = getattr(self, "submit_update_intent", None)
+    if callable(submit):
+        submit("geometry", commit=True)
+    return True
+
+
+def _phase6_open_receiving_layer_preview(self, layer_index):
+    controls = getattr(self, "receiving_layer_controls", None)
+    if controls is None:
+        return False
+    adapter = _phase6_receiving_switch_adapter(self)
+    index = int(layer_index)
+    count = adapter.connection_count(index)
+    brand = adapter.brand
+
+    win = original.tk.Toplevel(self.root)
+    win.title(f"第{index + 1}層預覽")
+    win.transient(self.root)
     try:
-        adapter.set_bay_count(adapter.bay_count() + int(delta))
-    except ReceivingDestructiveEditConfirmationRequired:
-        _phase6_refresh_receiving_set_bay_control(self)
-        return
-    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
-    _phase6_sync_receiving_current_bay(self)
-    self.do_update()
+        win.grab_set()
+    except Exception:
+        pass
+    body = original.ttk.Frame(win, padding=12)
+    body.pack(fill=original.tk.BOTH, expand=True)
+    original.ttk.Label(
+        body, text=f"第{index + 1}層｜{count}連｜開關：{brand}"
+    ).grid(row=0, column=0, columnspan=min(max(count, 1), 5), sticky="w", pady=(0, 10))
 
+    selected = original.tk.IntVar(master=win, value=0)
+    for connection_index in range(count):
+        original.ttk.Radiobutton(
+            body,
+            text=f"第{connection_index + 1}連",
+            variable=selected,
+            value=connection_index + 1,
+        ).grid(row=1 + connection_index // 5, column=connection_index % 5, padx=4, pady=4, sticky="ew")
 
-def _phase6_remove_current_receiving_set(self):
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
-        return
-    existing = len(adapter.layout["sets"])
-    if existing <= 1 or adapter.selection.set_index != existing - 1:
-        return
-    try:
-        adapter.set_set_count(existing - 1)
-    except ReceivingDestructiveEditConfirmationRequired:
-        _phase6_refresh_receiving_set_bay_control(self)
-        return
-    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
-    _phase6_sync_receiving_current_bay(self)
-    self.do_update()
+    actions = original.ttk.Frame(body)
+    actions.grid(row=2 + (count - 1) // 5, column=0, columnspan=min(max(count, 1), 5), sticky="e", pady=(10, 0))
+    original.ttk.Button(actions, text="取消", command=win.destroy).pack(side=original.tk.LEFT, padx=(0, 6))
+
+    def confirm():
+        number = int(selected.get())
+        if number <= 0:
+            from tkinter import messagebox
+            messagebox.showinfo("請選擇", "請先選擇一連。", parent=win)
+            return
+        if _phase6_confirm_receiving_opening(self, index, number - 1, brand):
+            win.destroy()
+
+    original.ttk.Button(actions, text="確定", command=confirm).pack(side=original.tk.LEFT)
+    return True
 
 
 _BACK_PANEL_MODE_LABELS = {
@@ -3971,7 +4040,9 @@ def _phase6_operator_finished_dimensions(self, part_key=None, *, triangles=None)
     )
 def _phase6_on_assembly_diagnostic_changed(self):
     if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
-        self.do_update()
+        submit = getattr(self, "submit_update_intent", None)
+        if callable(submit):
+            submit("display", commit=True)
     return True
 
 
@@ -4063,7 +4134,9 @@ def _hide_original_structure_mode_controls(root_widget):
 
 def _phase6_on_assembly_part_visibility_changed(self):
     if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
-        self.do_update()
+        submit = getattr(self, "submit_update_intent", None)
+        if callable(submit):
+            submit("display", commit=True)
 
 
 def _phase6_install_assembly_panel_aliases(self, owner):
@@ -4348,9 +4421,9 @@ def _phase6_install_part_editor_compatibility(self):
         "<Button-1>", lambda event: _phase6_on_structure_tree_click(self, event), add="+"
     )
 
-    # Legacy multipart tabs remain internal compatibility state only; the
-    # Structure Tree is the single visible child-navigation surface.
-    self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1, takefocus=False)
+    # BoxBody keeps one nested physical-child selector. It is visible only while
+    # the aggregate BoxBody or one of its physical children is active.
+    self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1, takefocus=True)
     self._phase6_box_body_piece_tab_keys = ()
     self._phase6_box_body_piece_tab_map = {}
     self._phase6_box_body_piece_tab_guard = False
@@ -4380,23 +4453,22 @@ def _phase6_install_part_editor_compatibility(self):
     self.fold_editor_host = self.input_content_host
     self.shared_content_host = self.left
 
-    # Receiving Set/Bay selection is UI/session state only. The adapter mutates
-    # canonical receiving_layout; selection itself is never persisted.
+    # Operator-facing Receiving topology is projected as one row per 層.  The
+    # existing ReceivingSetBayAdapter remains the topology owner; row widgets
+    # never execute 3D/manufacturing work.
     receiving_controls = build_receiving_set_bay_controls(
         self.input_content_host,
         tk=original.tk,
         ttk=original.ttk,
-        on_set_selected=lambda: _phase6_on_receiving_set_selected(self),
-        on_bay_selected=lambda: _phase6_on_receiving_bay_selected(self),
-        on_resize_bays=lambda delta: _phase6_resize_receiving_bays(self, delta),
-        on_remove_set=lambda: _phase6_remove_current_receiving_set(self),
+        on_switch_brand_selected=lambda brand: _phase6_on_receiving_switch_brand_selected(
+            self, brand
+        ),
+        on_add_layer=lambda: _phase6_add_receiving_layer(self),
     )
+    self.receiving_layer_controls = receiving_controls
     self.receiving_set_bay_control = receiving_controls.frame
-    self.receiving_set_var = receiving_controls.set_var
-    self.receiving_bay_var = receiving_controls.bay_var
-    self.receiving_set_selector = receiving_controls.set_selector
-    self.receiving_bay_selector = receiving_controls.bay_selector
-    self.receiving_remove_set_button = receiving_controls.remove_set_button
+    self.receiving_switch_brand_var = receiving_controls.switch_brand_var
+    self.receiving_switch_brand_selector = receiving_controls.switch_brand_selector
 
     # Receiving 後面板形式 is a normal product choice, not an advanced
     # parameter.  Keep one normal-input projection bound to the existing

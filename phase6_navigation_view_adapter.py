@@ -84,7 +84,7 @@ def refresh_box_body_piece_selector(
     frame_factory: Callable[[object], object],
     resolve_remembered: Callable[[Iterable[object], str | None], object],
 ):
-    """Project BoxBody physical children into the hidden compatibility Notebook."""
+    """Project BoxBody physical children into the nested visible Notebook."""
     notebook = getattr(host, "box_body_piece_selector", None)
     if notebook is None:
         return ()
@@ -143,9 +143,14 @@ def refresh_box_body_piece_selector(
             finally:
                 host._phase6_box_body_piece_tab_guard = False
 
-    # #124: the Notebook is compatibility state only; Structure Tree is the sole
-    # visible physical-child navigator.
-    if notebook.winfo_manager():
+    # The aggregate remains the top-level operator identity, while physical
+    # children stay directly reachable beneath it. Other parts hide this nested
+    # selector so child navigation never becomes a second top-level part list.
+    show_for_box_body = bool(wanted) and (active == "box_body" or active in wanted)
+    if show_for_box_body:
+        if not notebook.winfo_manager():
+            notebook.pack(fill="x", pady=(0, 4))
+    elif notebook.winfo_manager():
         notebook.pack_forget()
     return wanted
 
