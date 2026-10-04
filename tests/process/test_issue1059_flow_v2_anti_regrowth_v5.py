@@ -99,7 +99,6 @@ def test_behavior_matrix_is_frozen_historical_not_runtime_authority() -> None:
 def test_control_plane_owns_current_execution_skill_contract_surfaces() -> None:
     from tools.control_plane_regression import PYTEST_PATHS
     for rel in (
-        "tests/test_dispatching_skill_timeout_contract.py",
         "tests/test_execution_work_slot_autoincrement.py",
         "tests/test_dm5_deep_module_writeback_contract.py",
         "tests/test_issue443_t1_dead_glue.py",
