@@ -102,11 +102,13 @@ def run_remote_preflight(
         "reason": "PHASE6_PREFLIGHT_EXECUTED_AND_REQUIREMENTS_RESOLVED",
         "run_id": int(run_id),
     }
-    for key in ("request_comment_id", "request_id", "request_source"):
+    for key in ("request_comment_id", "request_id", "request_source", "lane_id"):
         if key in request:
             receipt[key] = request[key]
 
     invocation = str(request.get("invocation_identity") or "").strip()
+    if invocation:
+        receipt["invocation_identity"] = invocation
     if invocation:
         receipt["preflight_evidence"] = build_phase6_preflight_evidence(
             issue=int(request["issue"]),
