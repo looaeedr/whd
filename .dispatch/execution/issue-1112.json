@@ -7,20 +7,16 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "662c1e03c1d425d033dc7346ef2e923b96d8f86d",
-    "released_at": null
+    "released_at": "2026-10-02T03:23:08Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
   "issue": 1112,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-04T14:17:47Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-    "token": "lease:1112:37207766328:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
@@ -33,13 +29,9 @@
       "tests/test_issue1112_receiving_set_bay_editor.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
     "last_accepted_run": 36955190871
@@ -53,21 +45,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "662c1e03c1d425d033dc7346ef2e923b96d8f86d",
   "transaction": {
-    "expected_fingerprint": "53986cd095aa79654f38e390ffedc040e125034ad74017e36f0a172e5628fec4",
-    "id": "gha:37208502005:1112:MERGE:9",
+    "expected_fingerprint": "b48b21e51018138cacfc755b15fc06e57078b578d67ccd25200a927a0b557382",
+    "id": "gha:37208502005:1112:FINALIZE:10",
     "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T14:14:30Z",
+  "updated_at": "2026-10-04T14:14:51Z",
   "version": 2,
   "work_branch": "work/issue1112-receiving-set-bay-editor-20261002"
 }
