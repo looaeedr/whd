@@ -26,6 +26,7 @@ CONTRACT_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 AUTHORITY_RE = re.compile(r"<!--\s+WHD_AUTHORITY(?:_ROW)?\s+(?P<attrs>.*?)\s*-->", re.DOTALL)
 ATTR_RE = re.compile(r"(?P<key>[A-Za-z_][A-Za-z0-9_-]*)=(?P<value>\"[^\"]*\"|'[^']*'|[^\s]+)")
 SKIP_PARTS = {".git", ".scratch", "BACKUP", "__pycache__", ".pytest_cache"}
+RETIREMENT_MANIFEST = Path("tests/process/WHD_PROCESS_TEST_CLASSIFICATION_V1.json")
 
 
 class AuthorityOverlayError(ValueError):
@@ -85,6 +86,18 @@ def governed_paths(root: Path) -> tuple[str, ...]:
         for path in root.rglob("*.md")
         if path.is_file() and is_governed_markdown(path.relative_to(root))
     ))
+
+
+def retired_paths(root: Path) -> tuple[str, ...]:
+    """Return CURRENT hard-retired paths allowed to remain only in frozen history."""
+    root = root.resolve()
+    payload = _load_json(root / RETIREMENT_MANIFEST)
+    if payload.get("policy") != "RETIRED_EXECUTION_SURFACES_MUST_BE_ABSENT":
+        raise AuthorityOverlayError("retirement manifest policy mismatch")
+    raw = payload.get("retired_paths")
+    if not isinstance(raw, list) or not all(isinstance(item, str) and item.strip() for item in raw):
+        raise AuthorityOverlayError("retirement manifest retired_paths must be nonblank strings")
+    return tuple(sorted({_norm(item) for item in raw}))
 
 
 def _valid_contract(value: object) -> bool:
@@ -336,7 +349,8 @@ def build_overlay(root: Path, matrix_path: Path) -> dict[str, object]:
 
     governed = governed_paths(root)
     governed_set = set(governed)
-    nonexistent = sorted(set(frozen_by_path) - governed_set)
+    retired_set = set(retired_paths(root))
+    nonexistent = sorted(set(frozen_by_path) - governed_set - retired_set)
     if nonexistent:
         raise AuthorityOverlayError(f"frozen matrix paths no longer governed: {nonexistent}")
 
@@ -426,8 +440,14 @@ def validate_total(root: Path, matrix_path: Path, overlay_path: Path) -> tuple[s
         return (str(exc),)
     by_path = {str(row.get("path")): row for row in effective}
     governed = set(governed_paths(root))
-    if set(by_path) != governed:
-        errors.append(f"effective/governed path mismatch missing={sorted(governed-set(by_path))} extra={sorted(set(by_path)-governed)}")
+    retired = set(retired_paths(root))
+    effective_paths = set(by_path)
+    missing = sorted(governed - effective_paths)
+    unexpected_extra = sorted(effective_paths - governed - retired)
+    if missing or unexpected_extra:
+        errors.append(
+            f"effective/governed path mismatch missing={missing} extra={unexpected_extra}"
+        )
     for rel, row in sorted(by_path.items()):
         role = row.get("target_role")
         if role not in VALID_ROLES:
