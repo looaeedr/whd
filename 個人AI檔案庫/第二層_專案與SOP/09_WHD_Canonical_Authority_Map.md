@@ -71,7 +71,6 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
 <!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
 
-<!-- WHD_AUTHORITY contract=continuous-execution-operations role=MIRROR path=.agents/skills/engineering/executable-continuity-controller/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
 <!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
 
 <!-- WHD_AUTHORITY contract=remote-qa-monitoring role=MIRROR path=.agents/skills/engineering/monitoring-remote-qa/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->

@@ -33,7 +33,6 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 - **[prototype](./prototype/SKILL.md)**
 - **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**
-- **[executable-continuity-controller](./executable-continuity-controller/SKILL.md)**: Flow v2 runtime resume bridge；native record + lease/YIELD。
 - **[deterministic-repo-migration](./deterministic-repo-migration/SKILL.md)**: authority-driven repository migration；先 inventory，再 deterministic apply、strict validation、idempotence 與 drift audit，validator 不得成為 authority。
 - **[long-log-context-safe-execution](./long-log-context-safe-execution/SKILL.md)**: 超長 pytest/Xvfb/remote CI 輸出的落檔、bounded tail、failure slice、cursor 與 Runtime-cut 續接規則。
 - **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**

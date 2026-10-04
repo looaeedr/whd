@@ -39,8 +39,7 @@ def test_root_shared_unpushed_contract_is_current_canonical_projection() -> None
     assert contract["canonical_root"]["interactive_work_prefix"] == "/Google Drive/WHD/.unpushed"
     for mode in ("SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"):
         assert contract["execution_modes"][mode] == REMOTE_POLICY
-    old = _json(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json")
-    assert old["status"] == "SUPERSEDED"
+    assert not (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").exists()
 
 
 def test_work_root_v2_points_to_shared_unpushed_entry_gate() -> None:
@@ -49,8 +48,7 @@ def test_work_root_v2_points_to_shared_unpushed_entry_gate() -> None:
     assert contract["required_sequence"][-2] == "ROOT_SHARED_UNPUSHED_GATE_READ"
     assert contract["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
     assert contract["next_gate"]["repository_contract"] == ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
-    old = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json")
-    assert old["status"] == "SUPERSEDED"
+    assert not (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").exists()
 
 
 def test_every_registry_route_loading_flow_v2_mirror_loads_canonical_first() -> None:
@@ -172,8 +170,7 @@ def test_post_integration_v2_rejects_legacy_snapshot_authority() -> None:
     assert set(contract["forbidden_current_authorities"]) == {
         "SOURCE_SNAPSHOT", "CURRENT_SOURCE_MANIFEST", "WORK_ACTIVE_ARCHIVE"
     }
-    old = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json")
-    assert old["status"] == "SUPERSEDED"
+    assert not (ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json").exists()
 
 
 def test_control_plane_regression_owns_v3_guard() -> None:

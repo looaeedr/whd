@@ -4,7 +4,6 @@ ROOT = Path(__file__).resolve().parents[2]
 EXECUTION = ROOT / ".agents" / "skills" / "engineering" / "執行開發任務" / "SKILL.md"
 DISPATCH = ROOT / ".agents" / "skills" / "engineering" / "派工" / "SKILL.md"
 SCHEDULER = ROOT / ".agents" / "skills" / "engineering" / "排程模擬" / "SKILL.md"
-REMOTE_GUARD = ROOT / ".agents" / "skills" / "engineering" / "remote-execution-guard" / "SKILL.md"
 
 
 def _read(path: Path) -> str:
@@ -47,20 +46,15 @@ def test_task_start_declaration_preserves_update_only_scope_boundary() -> None:
 
 
 def test_governance_skills_bridge_to_single_canonical_owner() -> None:
-    for path in (DISPATCH, SCHEDULER, REMOTE_GUARD):
+    for path in (DISPATCH, SCHEDULER):
         text = _read(path)
         assert "TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE" in text, path
         assert "執行開發任務::TASK_START_AUTHORITY_DECLARATION_V1" in text, path
         assert "第二套" in text, path
 
 
-def test_remote_guard_does_not_create_authority_from_the_declaration() -> None:
-    text = _read(REMOTE_GUARD)
-    section = text.split("TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE", 1)[1]
-    assert "不建立 execution authority" in section
-    assert "Guard GREEN" in section
-    assert "不" in section
-
+def test_retired_remote_guard_has_no_filesystem_skill_surface() -> None:
+    assert not (ROOT / ".agents/skills/engineering/remote-execution-guard/SKILL.md").exists()
 
 def test_scheduler_declares_lane_scope_before_claim_or_mutation() -> None:
     text = _read(SCHEDULER)

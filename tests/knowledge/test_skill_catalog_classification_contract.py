@@ -115,11 +115,9 @@ def test_catalog_marks_reference_skill_without_promoting_second_governance_syste
     assert _classification_for(setup_skill, catalog) == "reference"
 
 
-def test_flow_v2_remote_guard_mirror_is_not_promoted_to_active_canonical() -> None:
+def test_flow_v2_remote_guard_identity_is_retired_without_filesystem_shim() -> None:
     catalog = _load_catalog()
     mirror = SKILLS / "engineering/remote-execution-guard/SKILL.md"
-    assert mirror.is_file()
-    mirror_text = mirror.read_text(encoding="utf-8")
-    assert "whd_doc_role: MIRROR" in mirror_text
-    assert "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in mirror_text
-    assert _classification_for(mirror, catalog) == "reference"
+    assert not mirror.exists()
+    aliases = {row["identity"]: row for row in catalog["retired_aliases"]}
+    assert aliases["remote-execution-guard"]["replacement_identity"] == "flow-v2-execution"

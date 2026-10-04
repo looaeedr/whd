@@ -18,7 +18,7 @@ whd_schema: WHD_DOC_META_V1
 - 沒有 concrete RUN 但 owning plan 需要 RUN：分類 `RUN_NOT_CREATED`，立即處理會建立 RUN 的 prerequisite/trigger/fix，禁止等待。
 - `status update != exit`；GREEN/RED 都不是自動停點。
 - 若平台被迫切斷，先留下完整 durable checkpoint，下一次 wake-up 從 exact next action 恢復。
-- 本段是 REFERENCE/pitfall；唯一 scheduled-wakeup execution authority 是 `flow-v2-execution` 的 ExecutionRecord + scheduler view + invocation-exit machine。`executable-continuity-controller` 只作 MIRROR/compatibility entry。
+- 本段是 REFERENCE/pitfall；唯一 scheduled-wakeup execution authority 是 `flow-v2-execution` 的 ExecutionRecord + scheduler view + invocation-exit machine。`executable-continuity-controller` 舊名稱只作 registry retired alias；filesystem Skill shim 已移除。
 
 ## Authority status
 
@@ -26,7 +26,7 @@ whd_schema: WHD_DOC_META_V1
 
 - executable semantic CURRENT：`WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + `tools/execution_invocation_exit.py`。
 - operational CURRENT：`.agents/skills/engineering/flow-v2-execution/SKILL.md`。
-- `executable-continuity-controller` Skill 與 `tools/continuity_controller.py` 只保留 MIRROR / historical compatibility；marker/string presence 不是 executable enforcement。
+- legacy continuity runtime 已從 CURRENT tree 移除；`executable-continuity-controller` 只保留 retired alias 與 historical provenance，marker/string presence 不是 executable enforcement。
 - 本文件若與 Flow v2 CURRENT authority 衝突，以 Flow v2 為準；不得從舊 checkpoint marker、字串或舊 test 反推 machine state/finalization 行為。
 
 ## 事故模式：把派工完成當成停工點
@@ -133,7 +133,7 @@ Scheduled Resume 已能自行工作，但 active work 期間完全靜默。對�
 - 沒有 active work 才可靜默。
 - heartbeat 只是 visibility observation；**進度回報不是停工點**，回報後有自主 next action 就繼續。
 
-CURRENT authority：Flow v2 ExecutionRecord + NON_AUTHORITY runtime observation；`executable-continuity-controller` 只作 compatibility bridge。
+CURRENT authority：Flow v2 ExecutionRecord + NON_AUTHORITY runtime observation；`executable-continuity-controller` filesystem bridge 已退休，只保留 alias。
 
 ## TERMINAL_EVIDENCE_DELAYED_REPORT_PITFALL
 
@@ -182,7 +182,7 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
 - `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
 - Canonical CURRENT execution continuity is single-source in Flow v2: durable semantic state=`WHD_EXECUTION_RECORD_V2`; atomic transition=`tools/control_transaction.py`; trusted side-effect/reconcile=`tools/control_transaction_production_executor.py`; invocation exit=`tools/execution_invocation_exit.py`; scheduler projection=`tools/execution_scheduler_view.py`。
-- `tools/continuity_controller.py`、`execution_claim_guard.py`、Claim Activation / legacy Remote Guard 只保留歷史 migration/compatibility evidence，不得由 Entry Skill/prompt 重新升格成 competing CURRENT state machine。
+- legacy continuity/claim/Claim Activation/Remote Guard runtime 已從 CURRENT tree 移除；歷史 knowledge provenance 不得由 Entry Skill/prompt 重新升格成 competing CURRENT state machine。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
 

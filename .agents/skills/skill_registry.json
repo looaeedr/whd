@@ -388,15 +388,16 @@
         "WHD_REMOTE_GUARD_RECEIPT_V1",
         "remote-execution-guard"
       ],
-      "file_globs": [
-        ".agents/skills/engineering/remote-execution-guard/**"
-      ],
+      "file_globs": [],
       "required_skills": [
         "flow-v2-execution"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ]
+      ],
+      "routing_status": "RETIRED",
+      "replacement_route_id": "flow-v2-execution",
+      "retirement_reason": "Remote Guard operational Skill surface is retired; legacy keywords redirect to Flow v2 without a filesystem shim."
     },
     {
       "id": "issue-closure-gate",
@@ -633,15 +634,9 @@
         "continuity controller",
         "executable-continuity-controller",
         "legacy checkpoint resume",
-        "legacy finalization gate",
-        "tools/continuity_controller.py"
+        "legacy finalization gate"
       ],
-      "file_globs": [
-        "tools/continuity_controller.py",
-        "tests/process/test_continuity_controller.py",
-        "tests/process/test_continuous_execution_durable_contract.py",
-        ".agents/skills/engineering/executable-continuity-controller/**"
-      ],
+      "file_globs": [],
       "required_skills": [
         "flow-v2-execution"
       ],
@@ -650,7 +645,7 @@
       ],
       "routing_status": "RETIRED",
       "replacement_route_id": "flow-v2-execution",
-      "retirement_reason": "Flow v2 is the only CURRENT execution/control-plane owner; legacy continuity remains audit/migration evidence only."
+      "retirement_reason": "Retired continuity identity is keyword-only compatibility; Flow v2 is the only CURRENT execution/control-plane owner."
     },
     {
       "id": "remote-qa-monitoring",
@@ -1079,20 +1074,6 @@
       ],
       "required_skills": [
         "diagnosing-bugs"
-      ],
-      "required_references": []
-    },
-    {
-      "id": "explicit-skill-executable-continuity-controller",
-      "keywords": [
-        "executable-continuity-controller"
-      ],
-      "file_globs": [
-        ".agents/skills/engineering/executable-continuity-controller/**"
-      ],
-      "required_skills": [
-        "flow-v2-execution",
-        "executable-continuity-controller"
       ],
       "required_references": []
     },

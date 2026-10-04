@@ -14,13 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/control_plane_regression.py"
 
 COMPILE_PATHS = (
-    "tools/continuity_controller.py",
     "tools/scheduler_runtime_liveness.py",
     "tools/scheduler_host_watchdog.py",
     "tools/scheduler_entrypoint_observation.py",
     "tools/scheduler_ready_ingress.py",
-    "tools/scheduled_resume_executor.py",
-    "tools/scheduled_resume_runtime.py",
     "tools/control_transaction.py",
     "tools/control_transaction_production_executor.py",
     "tools/control_transaction_request_ingress.py",
@@ -47,7 +44,6 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_flow_v2_atomic_control_transaction.py",
     "tests/process/test_flow_v2_path_reservation.py",
     "tests/process/test_issue865_scheduler_stop_hardening.py",
-    "tests/process/test_issue787_turn_exit_blocker_authority.py",
     "tests/process/test_scheduler_no_work_census_contract.py",
     "tests/process/test_issue892_flow_v2_production_transaction.py",
     "tests/process/test_issue899_push_transaction_ingress.py",
@@ -71,7 +67,6 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_issue1045_post_integration_durability.py",
     "tests/process/test_issue1059_flow_v2_anti_regrowth_v5.py",
     "tests/process/test_issue1063_actions_workflow_cleanup.py",
-    "tests/test_dispatching_skill_timeout_contract.py",
     "tests/test_execution_work_slot_autoincrement.py",
     "tests/test_dm5_deep_module_writeback_contract.py",
     "tests/test_issue443_t1_dead_glue.py",

@@ -122,12 +122,16 @@ def test_repository_effective_authority_is_total_and_unblocked() -> None:
     rows = tool.merge_effective_authority(FROZEN, OVERLAY)
     effective = {row["path"]: row for row in rows}
     governed = set(tool.governed_paths(ROOT))
+    retired = set(tool.retired_paths(ROOT))
 
     # #255 completed a frozen 398-path T6 authority snapshot. Current repository
     # growth must not mutate that reviewed authority; post-T6 documents are owned
     # by current strict/permanent governance instead.
     assert len(effective) == len(rows) == 398
-    assert set(effective) <= governed
+    assert set(effective) <= governed | retired
+    retired_frozen = set(effective) - governed
+    assert retired_frozen <= retired
+    assert ".agents/skills/engineering/executable-continuity-controller/SKILL.md" in retired_frozen
     post_t6_paths = governed - set(effective)
     assert "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md" in post_t6_paths
     frozen_payload = json.loads(FROZEN.read_text(encoding="utf-8"))

@@ -42,30 +42,6 @@ def test_red_stop_16_owner_renders_authorization_purpose_scope_first():
     assert "不取代 claim / Guard / Preflight" in lines[3]
 
 
-def test_red_stop_16_scheduled_resume_prompt_starts_with_canonical_block():
-    if not OWNER.is_file():
-        pytest.fail("RED-STOP-16: canonical startup contract owner is missing")
-    from tools.continuity_controller import Checkpoint, ContinuityState
-    from tools.scheduled_resume_executor import build_headless_agent_prompt
-    from tools.scheduled_resume_runtime import ScheduledWakeDisposition, ScheduledWakeEvaluation
-
-    checkpoint = Checkpoint(
-        issue="696",
-        branch="work/issue696-startup-auth-purpose-20260926",
-        head_sha="3c048f5e2adc3f0bc99b1c60b3aae85ab8893931",
-        state=ContinuityState.RUNNING,
-        next_action="run exact next action",
-    )
-    evaluation = ScheduledWakeEvaluation(
-        disposition=ScheduledWakeDisposition.EXECUTE_NEXT_ACTION,
-        checkpoint=checkpoint,
-        next_action="run exact next action",
-    )
-    prompt = build_headless_agent_prompt(evaluation)
-    assert prompt.startswith("WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：")
-    assert "目的：Scheduled Resume for Issue #696: run exact next action" in prompt
-
-
 def test_red_stop_16_all_interactive_entry_surfaces_bridge_same_owner():
     agents = _read(AGENTS)
     assert BRIDGE_MARKER in agents

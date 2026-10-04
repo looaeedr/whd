@@ -1,6 +1,0 @@
-{
-  "schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-  "status": "SUPERSEDED",
-  "superseded_by": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-  "reason": "Canonical /Google Drive/WHD is now a full Git working tree with shared .unpushed lanes."
-}

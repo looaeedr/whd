@@ -19,8 +19,8 @@ def test_current_root_gate_is_v2_full_repo_shared_unpushed() -> None:
     assert work_root["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
     root_gate = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
     assert root_gate["status"] == "CURRENT"
-    assert json.loads(_read(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json"))["status"] == "SUPERSEDED"
-    assert json.loads(_read(".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json"))["status"] == "SUPERSEDED"
+    assert not (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").exists()
+    assert not (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").exists()
 
 
 def test_dispatch_and_ask_matt_cannot_recreate_a_second_execution_state_machine() -> None:
@@ -42,7 +42,6 @@ def test_exact_mirror_skill_routes_always_load_flow_v2_first() -> None:
     for route_id in (
         "explicit-skill-monitoring-remote-qa",
         "explicit-skill-issue-closure-gate",
-        "explicit-skill-executable-continuity-controller",
         "explicit-skill-執行開發任務",
     ):
         assert by_id[route_id]["required_skills"][0] == "flow-v2-execution", route_id
