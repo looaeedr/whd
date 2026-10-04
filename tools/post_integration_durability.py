@@ -11,12 +11,15 @@ SUPERSEDED and must not participate in CURRENT completion decisions.
 from __future__ import annotations
 
 import re
+import subprocess
+from pathlib import Path
 from collections.abc import Iterable, Mapping
 
 CONTRACT_SCHEMA = "WHD_POST_INTEGRATION_DURABILITY_V2"
 ROOT_SYNC_RECEIPT_SCHEMA = "WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1"
 LANE_DELIVERY_RECEIPT_SCHEMA = "WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1"
 CANONICAL_ROOT = "/Google Drive/WHD"
+PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
 LANES = frozenset({"body", "docs"})
 LANE_FINAL_STATES = frozenset({"EMPTY", "ROLLED_FORWARD"})
 
@@ -65,6 +68,8 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("canonical root mismatch")
     if item.get("root_sync_receipt_schema") != ROOT_SYNC_RECEIPT_SCHEMA:
         raise ValueError("root sync receipt schema mismatch")
+    if item.get("root_sync_transport") != "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head":
+        raise ValueError("root sync transport owner mismatch")
     if item.get("lane_delivery_receipt_schema") != LANE_DELIVERY_RECEIPT_SCHEMA:
         raise ValueError("lane delivery receipt schema mismatch")
     forbidden = set(map(str, item.get("forbidden_current_authorities") or ()))
@@ -95,6 +100,101 @@ def validate_terminal_execution(execution_record: object) -> dict[str, object]:
         "merged_sha": merged_sha,
     }
 
+
+
+class RootSyncError(RuntimeError):
+    """Raised when canonical-root synchronization cannot be proven safe."""
+
+
+def _run_git(root: Path, *args: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        detail = getattr(exc, "stderr", "") or str(exc)
+        raise RootSyncError(
+            f"canonical root git command failed: {' '.join(args)}: {str(detail).strip()}"
+        ) from exc
+    return str(completed.stdout or "").strip()
+
+
+def sync_canonical_root_to_accepted_head(
+    *,
+    execution_record: object,
+    accepted_tree_sha: str,
+    root_path: str = CANONICAL_ROOT,
+    remote: str = "origin",
+    production_branch: str = PRODUCTION_BRANCH,
+) -> dict[str, object]:
+    """Synchronize canonical root to one exact already-accepted terminal head.
+
+    This is post-integration durability plumbing, not a Flow v2 state
+    transition. The ExecutionRecord must already be terminal DONE/RELEASED.
+    The transport refuses tracked worktree/index changes, proves the canonical
+    remote branch still equals the accepted merge, updates only the checked-out
+    production branch, and issues a receipt only after exact HEAD/tree readback.
+    Untracked shared-0 state is intentionally untouched.
+    """
+    terminal = validate_terminal_execution(execution_record)
+    accepted_sha = str(terminal["merged_sha"])
+    accepted_tree_sha = _sha(accepted_tree_sha, "accepted_tree_sha")
+    root = Path(str(root_path))
+    if str(root) != CANONICAL_ROOT:
+        raise RootSyncError("canonical root path mismatch")
+    if not root.is_dir():
+        raise RootSyncError("canonical root directory is unavailable")
+
+    branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    if branch != str(production_branch):
+        raise RootSyncError(
+            f"canonical root branch mismatch: expected {production_branch}, observed {branch}"
+        )
+
+    tracked_status = _run_git(root, "status", "--porcelain", "--untracked-files=no")
+    if tracked_status:
+        raise RootSyncError("canonical root has tracked worktree/index changes")
+
+    remote = str(remote or "").strip()
+    if not remote:
+        raise RootSyncError("canonical root remote must be nonblank")
+    production_branch = str(production_branch or "").strip()
+    if not production_branch:
+        raise RootSyncError("canonical production branch must be nonblank")
+
+    remote_ref = f"refs/remotes/{remote}/{production_branch}"
+    fetch_refspec = f"refs/heads/{production_branch}:{remote_ref}"
+    _run_git(root, "fetch", "--no-tags", remote, fetch_refspec)
+    remote_sha = _run_git(root, "rev-parse", remote_ref).lower()
+    if remote_sha != accepted_sha:
+        raise RootSyncError(
+            f"canonical remote head mismatch: expected {accepted_sha}, observed {remote_sha}"
+        )
+
+    _run_git(root, "reset", "--hard", accepted_sha)
+
+    root_head = _run_git(root, "rev-parse", "HEAD").lower()
+    root_tree = _run_git(root, "rev-parse", "HEAD^{tree}").lower()
+    if root_head != accepted_sha:
+        raise RootSyncError(
+            f"canonical root HEAD readback mismatch: expected {accepted_sha}, observed {root_head}"
+        )
+    if root_tree != accepted_tree_sha:
+        raise RootSyncError(
+            f"canonical root tree readback mismatch: expected {accepted_tree_sha}, observed {root_tree}"
+        )
+
+    return build_root_sync_receipt(
+        accepted_sha=accepted_sha,
+        accepted_tree_sha=accepted_tree_sha,
+        root_head_sha=root_head,
+        root_tree_sha=root_tree,
+        root_path=str(root),
+    )
 
 def build_root_sync_receipt(
     *, accepted_sha: str, accepted_tree_sha: str, root_head_sha: str,
