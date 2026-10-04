@@ -7,28 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
-    "released_at": null
+    "released_at": "2026-10-04T06:33:50Z"
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1115,
-  "lane_id": "chatgpt.flowv2.work3",
-  "lease": {
-    "expires_at": "2026-10-04T06:46:39Z",
-    "invocation_identity": "gha:looaeedr/whd:run:37183037120:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "token": "lease:1115:37183037120:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work3",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
     "last_accepted_run": 37176982169
@@ -42,21 +34,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "4066ea02041d1daab44d8cc839d5f543b2b17784d0bc359f066ba6b2d7f06f0a",
-    "id": "gha:37183122596:1115:MERGE:6",
+    "expected_fingerprint": "8a5e762934c6481c88cf9372fda776fb758c4c229630c09962d100b9db029408",
+    "id": "gha:37183122596:1115:FINALIZE:7",
     "invocation_identity": "gha:looaeedr/whd:run:37183037120:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T06:33:25Z",
+  "updated_at": "2026-10-04T06:33:50Z",
   "version": 2,
   "work_branch": "scheduler/issue1115-auto-dispatch"
 }
