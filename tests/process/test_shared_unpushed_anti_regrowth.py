@@ -148,7 +148,7 @@ def test_codex_cloud_mount_invisibility_uses_workspace_bridge_not_blocker():
     assert bridge["local_machine_unavailable"] is False
     assert bridge["authority_loss"] is False
     assert bridge["codex_must_not_require_direct_canonical_mount"] is True
-    assert bridge["stage_exact_paths_only"] is True
+    assert bridge["stage_exact_paths_only"] is False
     assert bridge["mismatch_state"] == "CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH"
     assert bridge["mismatch_action"] == "RESTAGE_FROM_CANONICAL_AUTHORITY"
     assert bridge["invariant"] == "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY"
@@ -172,4 +172,34 @@ def test_codex_workspace_bridge_requires_exact_stage_identity():
         "sha256",
         "source_generation_or_manifest_digest",
     ]
+
+def test_codex_workspace_keeps_persistent_latest_mirror_without_becoming_authority():
+    import json
+
+    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
+    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    contract = json.loads(
+        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    mirror = contract["delivery_transport"]["workspace_staged_fallback"][
+        "codex_cloud_mount_bridge"
+    ]["workspace_mirror_policy"]
+
+    assert "CODEX_WORKSPACE_LATEST_MIRROR_V1" in push
+    assert "CODEX_WORKSPACE_LATEST_MIRROR_V1" in root_skill
+    assert mirror["persistence"] == "RETAIN_ACROSS_INVOCATIONS"
+    assert mirror["mirror_scope"] == "FULL_REPOSITORY_CACHE_ALLOWED"
+    assert mirror["authority"] is False
+    assert mirror["canonical_latest_owner"] == "/Google Drive/WHD"
+    assert mirror["startup_reconcile_required"] is True
+    assert mirror["sync_mode"] == "INCREMENTAL_CHANGED_PATHS"
+    assert mirror["preserve_dirty_work"] is True
+    assert mirror["dirty_path_conflict_state"] == "CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED"
+    assert mirror["delivery_scope_still_locked"] is True
+    assert mirror["terminal_cleanup"] == "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY"
+    assert mirror["invariant"] == "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY"
 
