@@ -192,13 +192,22 @@ BODY_0_EXISTS
 
 machine invariant：`CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY`。
 
-### 9.4.1 CODEX_WORKSPACE_LATEST_MIRROR_V1
+### 9.4.1 WORKSPACE_CANONICAL_SYNC_V1
 
-Codex workspace 應保留一份**持久、可重用的最新 repo mirror/cache**；此 mirror 可包含完整 repository tree，目的只是讓 Codex 有穩定 execution surface，不必每次任務重新從 cloud mount materialize 全部依賴。
+ChatGPT / Codex / C2C 共用 `/workspace/whd` 這份**持久、可重用的最新 repo mirror/cache**；此 mirror 可包含完整 repository tree，目的只是提供穩定 execution surface，不必每次任務重新從 cloud mount materialize 全部依賴。
+
+CURRENT machine owner：`tools/workspace_canonical_sync.py`。`CODEX_WORKSPACE_LATEST_MIRROR_V1` 只作 compatibility alias，不得新增 `codex_workspace_sync.py` 或其他 Codex-only 第二套 sync state machine。
 
 固定同步模型：
 
 `CANONICAL_MANIFEST_READ → WORKSPACE_MIRROR_RECONCILE → INCREMENTAL_PATH_SYNC → MIRROR_READBACK_VERIFIED → CODEX_EXECUTION`
+
+固定命令：
+
+- `sync-in`：以 `WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1` 增量同步 canonical/shared-0 到 `/workspace/whd`，產生 `WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1`。
+- `status`：回報 workspace/canonical generation、dirty paths、drifted paths 與 sync state。
+- `prepare-outbound`：把 selected docs/body workspace changes 包成 `WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1`，綁 base canonical generation/digest 與 exact path hashes。
+- `verify-outbound`：Drive connector 寫回 shared-0 後，以 `WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1` readback 驗證 exact path/hash，只有 GREEN 才可宣告 `CANONICAL_SHARED_0_UPDATED`。
 
 規則：
 
@@ -207,8 +216,8 @@ Codex workspace 應保留一份**持久、可重用的最新 repo mirror/cache**
 - 若 canonical 前進，只同步新增/刪除/變更的 paths，然後更新 mirror receipt；不要求每輪重新複製整 repo。
 - mirror receipt 至少綁 `canonical_root_identity + canonical_generation_or_manifest_digest + mirror_root + verified_at`，並保存每個 changed path 的 `size + sha256` readback。
 - 完整 mirror 存在不代表 `/推推` scope 擴大；delivery 仍只能使用 selected lane fileset lock，禁止把 workspace 其他檔案一起 commit/push。
-- Codex 修改中的 dirty paths 是 execution result，不得被 background/latest-sync覆蓋；同步前必須先分離 clean mirror baseline 與 active dirty work。若 canonical 同 path 同時前進，固定 `CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED`，先 reconcile，不得 silent overwrite。
-- machine invariant：`PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY`。
+- workspace dirty paths 是 execution result，不得被 background/latest-sync覆蓋；同步前必須先分離 clean mirror baseline 與 active dirty work。若 canonical 同 path 同時前進，固定 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`，先 reconcile，不得 silent overwrite。
+- machine invariant：`PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY` 與 `WORKSPACE_CANONICAL_SYNC_OWNER_IS_SHARED_NOT_CODEX_ONLY`。
 ## 9.5 WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1
 
 當 selected lane 已 `FROZEN`、fileset lock 已建立，而且來源 connector 不能直接作為 Git content-write 輸入時，允許使用 **workspace-staged relay** 作為同一 delivery window 內的相容 transport。這不是新的 authority，也不能改變 lock。

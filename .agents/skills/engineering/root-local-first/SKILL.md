@@ -63,8 +63,8 @@ repository-content 任務的第一個檔案定位動作必須從 `/Google Drive/
 - 必須由具 canonical-read authority 的 ChatGPT/connector 將 exact task paths stage 到 Codex 可見 workspace，並在交付前後以 canonical path/hash/manifest驗證。
 - staged workspace 只屬 execution surface；任何 edit/test/git結果要回到 shared-0 / delivery lane 時都必須 reconcile 到 canonical authority。workspace 舊副本不得反向升格成 baseline。
 - 只有 canonical ChatGPT/connector path 本身無法解析，才使用 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED`；Codex mount 不可見本身不能觸發它。
-- Codex workspace 應維持 `CODEX_WORKSPACE_LATEST_MIRROR_V1`：允許完整 repo mirror/cache 持久存在，開工前以 canonical generation/manifest 做增量 reconcile；一致時直接 reuse，不必每次重新 materialize 全 repo。
-- persistent mirror 仍只是 cache/execution surface；canonical root 才能決定「最新」。workspace dirty work不得被同步覆蓋；遇 canonical 同 path前進時先進 `CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED`。
+- ChatGPT / Codex / C2C workspace 應共用 `tools/workspace_canonical_sync.py` 的 `WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1` / `WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1`：允許 `/workspace/whd` 作為完整 repo mirror/cache 持久存在，開工前以 canonical generation/manifest 做增量 reconcile；一致時直接 reuse，不必每次重新 materialize 全 repo。`CODEX_WORKSPACE_LATEST_MIRROR_V1` 只保留 compatibility alias，CURRENT owner 不得變成 Codex-only 第二套 sync machine。
+- persistent mirror 仍只是 cache/execution surface；canonical root 才能決定「最新」。workspace dirty work不得被同步覆蓋；遇 canonical 同 path前進時先進 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`。
 ### 1.2 REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1
 
 除非符合下列其中一項，interactive/default invocation 不得建立 GitHub 或遠端本機連線：

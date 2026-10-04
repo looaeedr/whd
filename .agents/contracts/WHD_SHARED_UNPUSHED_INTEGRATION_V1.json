@@ -133,14 +133,31 @@
         "mismatch_action": "RESTAGE_FROM_CANONICAL_AUTHORITY",
         "invariant": "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY",
         "workspace_mirror_policy": {
-          "schema": "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1",
+          "schema": "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
+          "compatibility_aliases": [
+            "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1"
+          ],
+          "machine_owner": "tools/workspace_canonical_sync.py",
           "persistence": "RETAIN_ACROSS_INVOCATIONS",
           "mirror_scope": "FULL_REPOSITORY_CACHE_ALLOWED",
           "authority": false,
           "canonical_latest_owner": "/Google Drive/WHD",
+          "workspace_root": "/workspace/whd",
           "startup_reconcile_required": true,
           "reconcile_key": "CANONICAL_GENERATION_OR_MANIFEST_DIGEST",
           "sync_mode": "INCREMENTAL_CHANGED_PATHS",
+          "commands": [
+            "sync-in",
+            "status",
+            "prepare-outbound",
+            "verify-outbound"
+          ],
+          "required_schemas": [
+            "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
+            "WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1",
+            "WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1",
+            "WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1"
+          ],
           "required_mirror_receipt": [
             "canonical_root_identity",
             "canonical_generation_or_manifest_digest",
@@ -153,10 +170,11 @@
             "sha256"
           ],
           "preserve_dirty_work": true,
-          "dirty_path_conflict_state": "CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED",
+          "dirty_path_conflict_state": "WORKSPACE_CANONICAL_RECONCILE_REQUIRED",
           "delivery_scope_still_locked": true,
           "terminal_cleanup": "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY",
-          "invariant": "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY"
+          "invariant": "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY",
+          "shared_workspace_invariant": "WORKSPACE_CANONICAL_SYNC_OWNER_IS_SHARED_NOT_CODEX_ONLY"
         }
       }
     }
