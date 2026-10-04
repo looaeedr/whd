@@ -1,6 +1,10 @@
 """Machine validation for the WHD V2 full-repo Google Drive root."""
 from __future__ import annotations
 
+import argparse
+import json
+import subprocess
+from pathlib import Path
 from typing import Mapping
 
 GATE_SCHEMA = "WHD_WORK_ROOT_HARD_GATE_V2"
@@ -18,6 +22,9 @@ REQUIRED_ROOT_ENTRIES = frozenset({
 READ_MODE_GOOGLE_DRIVE = "GOOGLE_DRIVE_CANONICAL"
 READ_MODE_GITHUB_REPO = "GITHUB_REPO_CONTRACT"
 REMOTE_MODES = frozenset({"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"})
+PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
+ROOT_RECOVERY_RECEIPT_SCHEMA = "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1"
+ROOT_RECOVERY_RESULT_SCHEMA = "WHD_WORK_ROOT_RECOVERY_RESULT_V1"
 
 
 def _mapping(value: Mapping[str, object] | object, label: str) -> Mapping[str, object]:
@@ -117,3 +124,140 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
     if item.get("unpushed_root") != UNPUSHED_ROOT:
         raise ValueError("work-root gate evidence unpushed root mismatch")
     return {str(k): v for k, v in item.items()}
+
+class WorkRootRecoveryError(RuntimeError):
+    """Raised when canonical work-root catch-up cannot be proven safe."""
+
+
+def _run_git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=check,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        detail = getattr(exc, "stderr", "") or str(exc)
+        raise WorkRootRecoveryError(
+            f"canonical root git command failed: {' '.join(args)}: {str(detail).strip()}"
+        ) from exc
+
+
+def recover_canonical_root_to_current_production(
+    *,
+    root_path: str = DEFAULT_LIBRARY_PATH,
+    remote: str = "origin",
+    production_branch: str = PRODUCTION_BRANCH,
+) -> dict[str, object]:
+    """Fast-forward a clean canonical root to the current production ref.
+
+    This is startup/root-identity recovery only. It does not create or mutate
+    ExecutionRecords, does not close Issues, and does not emit a
+    post-integration durability receipt.
+    """
+    root = Path(str(root_path))
+    if str(root) != DEFAULT_LIBRARY_PATH:
+        raise WorkRootRecoveryError("canonical root path mismatch")
+    if not root.is_dir():
+        raise WorkRootRecoveryError("canonical root directory is unavailable")
+
+    branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD").stdout.strip()
+    if branch != str(production_branch):
+        raise WorkRootRecoveryError(
+            f"canonical root branch mismatch: expected {production_branch}, observed {branch}"
+        )
+
+    tracked_status = _run_git(
+        root, "status", "--porcelain", "--untracked-files=no"
+    ).stdout.strip()
+    if tracked_status:
+        raise WorkRootRecoveryError("canonical root has tracked worktree/index changes")
+
+    remote = str(remote or "").strip()
+    if not remote:
+        raise WorkRootRecoveryError("canonical root remote must be nonblank")
+    production_branch = str(production_branch or "").strip()
+    if not production_branch:
+        raise WorkRootRecoveryError("canonical production branch must be nonblank")
+
+    previous_head = _run_git(root, "rev-parse", "HEAD").stdout.strip().lower()
+    remote_ref = f"refs/remotes/{remote}/{production_branch}"
+    fetch_refspec = f"refs/heads/{production_branch}:{remote_ref}"
+    _run_git(root, "fetch", "--no-tags", remote, fetch_refspec)
+    remote_head = _run_git(root, "rev-parse", remote_ref).stdout.strip().lower()
+
+    ancestry = _run_git(
+        root, "merge-base", "--is-ancestor", previous_head, remote_head, check=False
+    )
+    if ancestry.returncode != 0:
+        raise WorkRootRecoveryError(
+            "canonical root history diverged from current production; automatic catch-up refused"
+        )
+
+    if previous_head != remote_head:
+        _run_git(root, "reset", "--hard", remote_head)
+
+    root_head = _run_git(root, "rev-parse", "HEAD").stdout.strip().lower()
+    root_tree = _run_git(root, "rev-parse", "HEAD^{tree}").stdout.strip().lower()
+    if root_head != remote_head:
+        raise WorkRootRecoveryError(
+            f"canonical root HEAD readback mismatch: expected {remote_head}, observed {root_head}"
+        )
+
+    return {
+        "schema": ROOT_RECOVERY_RECEIPT_SCHEMA,
+        "status": "VERIFIED",
+        "canonical_root": DEFAULT_LIBRARY_PATH,
+        "production_branch": production_branch,
+        "remote": remote,
+        "previous_head_sha": previous_head,
+        "remote_head_sha": remote_head,
+        "root_head_sha": root_head,
+        "root_tree_sha": root_tree,
+        "recovery_mode": "FAST_FORWARD_CATCH_UP",
+        "execution_record_mutated": False,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="WHD canonical work-root gate and recovery")
+    sub = parser.add_subparsers(dest="command", required=True)
+    recover = sub.add_parser(
+        "recover-current-production",
+        help="fast-forward a clean canonical root to current production",
+    )
+    recover.add_argument("--root", default=DEFAULT_LIBRARY_PATH)
+    recover.add_argument("--remote", default="origin")
+    recover.add_argument("--production-branch", default=PRODUCTION_BRANCH)
+    recover.add_argument("--output", type=Path)
+    args = parser.parse_args(argv)
+
+    try:
+        receipt = recover_canonical_root_to_current_production(
+            root_path=args.root,
+            remote=args.remote,
+            production_branch=args.production_branch,
+        )
+        rendered = json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        if args.output:
+            args.output.write_text(rendered, encoding="utf-8")
+        print(rendered, end="")
+        return 0
+    except (WorkRootRecoveryError, OSError, ValueError) as exc:
+        result = {
+            "schema": ROOT_RECOVERY_RESULT_SCHEMA,
+            "status": "FAILED",
+            "reason": str(exc),
+        }
+        rendered = json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        if getattr(args, "output", None):
+            args.output.write_text(rendered, encoding="utf-8")
+        print(rendered, end="")
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
