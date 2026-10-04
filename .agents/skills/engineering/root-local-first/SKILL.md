@@ -77,7 +77,7 @@ workspace dirty work 不得被 fallback sync silent overwrite；同 path drift �
 
 ### 1.3 Authority boundary
 
-executor-local workspace 是 execution surface/cache，不是新的 canonical content authority。普通共同 baseline authority 是 GitHub `cleanup/2d-3d-sync`；Drive shared-0 在 fallback active 時只對該未推送 lineage 擁有較新 overlay authority。
+executor-local workspace 是 execution surface/cache，不是新的 canonical content authority。普通共同 baseline authority 是 GitHub `cleanup/2d-3d-sync`；Drive shared-0 在 fallback active 時只對該未推送 lineage 擁有較新 overlay authority。Skill 自動觸發只會選 route，不會授權非-baseline GitHub/remote action；未授權動作仍 `REMOTE_CONNECTION_DENIED`。
 
 ## 2. 兩條未推送 lineage
 
@@ -94,7 +94,7 @@ executor-local workspace 是 execution surface/cache，不是新的 canonical co
 
 machine owner=`tools/shared_unpushed_integration.py::classify_lane`。
 
-## 3. 每一步硬閘門
+## 3. SHARED_ZERO_FALLBACK 專用硬閘門
 
 唯一順序：
 
@@ -113,7 +113,7 @@ ROOT_IDENTITY_CURRENT
 → GIT_WRITE_UNLOCKED
 ```
 
-任一步沒有 machine evidence，下一步 fail closed。
+本節 **只在 `SHARED_ZERO_FALLBACK` active 時適用**；普通 `WORKSPACE_DEFAULT` 不進本節。任一步沒有 machine evidence，下一步 fail closed。
 
 ### 3.1 ROOT_IDENTITY_CURRENT
 
