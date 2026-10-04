@@ -1,7 +1,7 @@
 {
   "canonical_root": {
-    "provider": "workspace_mirror",
-    "library_path": "/workspace/whd",
+    "provider": "executor_local_workspace",
+    "path_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "production_branch": "cleanup/2d-3d-sync",
     "authority": false,
     "canonical_drive_overlay": "/Google Drive/WHD"
@@ -66,7 +66,6 @@
       "READ_ROOT_LOCAL_FIRST_SKILL"
     ],
     "applies_when": "INTERACTIVE_WHD_REPOSITORY_CONTENT",
-    "canonical_root": "/workspace/whd",
     "chat_memory_is_not_evidence": true,
     "failure_action": "FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY",
     "forbidden_before_ready": [
@@ -87,7 +86,8 @@
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
       ".agents/skills/engineering/root-local-first/SKILL.md"
     ],
-    "schema": "WHD_ENTRY_ROUTER_FIRST_HARD_GATE_V1"
+    "schema": "WHD_ENTRY_ROUTER_FIRST_HARD_GATE_V1",
+    "canonical_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE"
   },
   "execution_mode_provenance": {
     "interactive_must_not_self_assert_remote_mode": true,
@@ -316,7 +316,7 @@
   ],
   "root_path_resolution_hard_gate": {
     "schema": "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1",
-    "default_workspace_root": "/workspace/whd",
+    "default_workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
     "applies_when": "WORKSPACE_DEFAULT",
     "shared_zero_fallback_root": "/Google Drive/WHD",
@@ -413,7 +413,6 @@
   "default_repository_content_flow": {
     "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",
     "status": "CURRENT",
-    "workspace_root": "/workspace/whd",
     "production_branch": "cleanup/2d-3d-sync",
     "baseline": "GITHUB_PRODUCTION_BRANCH",
     "startup_requires_drive": false,
@@ -430,6 +429,12 @@
     "delivery": "TESTED_DELIVERY_BRANCH_PR",
     "direct_production_push_forbidden": true,
     "shared_zero_fallback_trigger": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
-    "shared_zero_fallback_machine": "tools/workspace_canonical_sync.py"
+    "shared_zero_fallback_machine": "tools/workspace_canonical_sync.py",
+    "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "executor_examples": {
+      "codex": "/workspace/whd",
+      "chatgpt": "RUNTIME_LOCAL_WORKSPACE",
+      "other": "RUNTIME_LOCAL_WORKSPACE"
+    }
   }
 }
