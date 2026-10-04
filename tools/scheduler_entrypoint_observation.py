@@ -68,10 +68,13 @@ def build_entrypoint_observation(
 
     if prev and prev.get("schema") not in {None, SCHEMA}:
         raise SchedulerEntrypointObservationError("previous observation schema mismatch")
-    for field, current in (("entrypoint", entrypoint), ("task_id", task_id), ("lane_id", lane_id)):
+    for field, current in (("entrypoint", entrypoint), ("lane_id", lane_id)):
         prior = prev.get(field)
         if prior not in {None, current}:
             raise SchedulerEntrypointObservationError(f"previous {field} identity mismatch")
+    prior_task_id = prev.get("task_id")
+    if prior_task_id not in {None, task_id} and event != "WAKE":
+        raise SchedulerEntrypointObservationError("previous task_id identity mismatch")
 
     out: dict[str, object] = {
         "schema": SCHEMA,
