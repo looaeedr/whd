@@ -1,12 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1145-closure-merge-20261004T1122Z",
+  "request_id": "issue1145-finalize-20261004T1123Z",
   "issue": 1145,
-  "kind": "MERGE",
+  "kind": "FINALIZE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1145.closure.20261004T1106Z",
-  "expected_coord_head": "df8cc3452c844d368234c9851fa9f88a501c12a1",
-  "expected_generation": 3,
+  "expected_coord_head": "0eab2e3f5789b73e0acbeda4ba8e5fbf0cfdae52",
+  "expected_generation": 4,
   "effect": {},
   "reuse_admission_session": true
 }
