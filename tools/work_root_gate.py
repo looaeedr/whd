@@ -122,12 +122,17 @@ def build_work_root_gate_evidence(
         source = REPO_CONTRACT_PATH
         resolved_workspace = str(workspace_root or "REMOTE_RUNTIME_WORKSPACE").strip()
     else:
-        if read_mode != READ_MODE_WORKSPACE:
+        if read_mode == READ_MODE_WORKSPACE:
+            source = REPO_CONTRACT_PATH
+            resolved_workspace = str(workspace_root or "").strip()
+            if not resolved_workspace:
+                raise ValueError("interactive executor workspace_root must be nonblank")
+        elif read_mode == READ_MODE_GOOGLE_DRIVE:
+            # Compatibility only for durable callers created before workspace-first cutover.
+            source = DRIVE_CONTRACT_PATH
+            resolved_workspace = str(workspace_root or CANONICAL_DRIVE_ROOT).strip()
+        else:
             raise ValueError("interactive mode must use executor-local workspace Git baseline")
-        source = REPO_CONTRACT_PATH
-        resolved_workspace = str(workspace_root or "").strip()
-        if not resolved_workspace:
-            raise ValueError("interactive executor workspace_root must be nonblank")
     verified = verify_root_entries(root_entries)
     head = str(production_head_sha or "").strip().lower()
     if head and (len(head) != 40 or any(ch not in "0123456789abcdef" for ch in head)):
