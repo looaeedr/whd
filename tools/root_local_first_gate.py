@@ -778,12 +778,11 @@ def validate_source_current(
     manifest: object | None = None,
     touched_path_proofs: Iterable[Mapping[str, object]] = (),
 ) -> dict[str, object]:
-    """Prove the Google Drive root is based on the live target.
+    """Prove one executor-local repo workspace is based on the live production target.
 
-    CURRENT mode is the real repo working tree under `/Google Drive/WHD`: its
-    `.git` HEAD/tree is compared directly to the live target.  Legacy source
-    manifests and scoped blob recovery are historical only and no longer mint
-    ROOT_SOURCE_CURRENT evidence.
+    CURRENT mode compares that workspace's .git HEAD/tree directly to the live
+    cleanup/2d-3d-sync target. Legacy source manifests and scoped blob recovery
+    remain historical only and cannot mint current-source evidence.
     """
     live_sha = _sha(live_source_sha, "live_source_sha")
     live_tree = _sha(live_tree_sha, "live_tree_sha")
@@ -799,7 +798,7 @@ def validate_source_current(
             "status": "EXACT_SOURCE_CURRENT",
             "source_sha": live_sha,
             "tree_sha": live_tree,
-            "source_mode": "ROOT_GIT_WORKTREE",
+            "source_mode": "EXECUTOR_LOCAL_GIT_WORKTREE",
         }
 
     if manifest is not None or tuple(touched_path_proofs):
