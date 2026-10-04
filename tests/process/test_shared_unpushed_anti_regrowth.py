@@ -97,15 +97,16 @@ def test_push_root_sync_is_optional_maintenance_not_terminal_authority():
     assert policy["issue_closure_authority"] is False
 
 
-def test_push_remote_deny_does_not_override_control_plane_authority():
+def test_push_skill_is_shared_zero_fallback_and_does_not_override_control_plane():
     import json
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
     contract = json.loads((ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(encoding="utf-8"))
     scope = contract["remote_authority_scope"]
-    assert "只約束 **interactive/default repository-content discovery / authoring / delivery**" in push
-    assert "不得拿本節去撤銷 Flow v2、scheduler、trusted Preflight" in push
+    assert "普通 workspace-first 施工不經 `/推推`" in push
+    assert "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS" in push
     assert scope["control_plane_authority"] == "OWN_CURRENT_CONTRACTS_NOT_OVERRIDDEN_BY_PUSH_SKILL"
     assert scope["control_plane_cannot_author_root_content"] is True
+    assert scope["interactive_repository_content"] == "WORKSPACE_BASELINE_READ_ALLOWED_OTHER_ACTIONS_REQUIRE_EXPLICIT_AUTHORITY"
 
 
 def test_workspace_staged_delivery_fallback_preserves_exact_lock():
@@ -124,13 +125,10 @@ def test_workspace_staged_delivery_fallback_preserves_exact_lock():
     assert fallback["git_tree_must_expand_to_exact_locked_paths"] is True
     assert fallback["invariant"] == "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET"
 
-def test_codex_cloud_mount_invisibility_uses_workspace_bridge_not_blocker():
+def test_cloud_mount_invisibility_does_not_activate_sync_without_shared_zero_drift():
     import json
 
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(
-        encoding="utf-8"
-    )
     contract = json.loads(
         (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
             encoding="utf-8"
@@ -139,19 +137,13 @@ def test_codex_cloud_mount_invisibility_uses_workspace_bridge_not_blocker():
     fallback = contract["delivery_transport"]["workspace_staged_fallback"]
     bridge = fallback["codex_cloud_mount_bridge"]
 
-    assert "CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX" in fallback["triggers"]
-    assert "CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX" in push
-    assert "CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX" in root_skill
-    assert "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY" in push
+    assert "CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX" not in fallback["triggers"]
+    assert "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS" in fallback["triggers"]
+    assert "不要求 Drive mount" in push
     assert bridge["classification_kind"] == "EXECUTION_SURFACE_TRANSPORT_MISMATCH"
     assert bridge["blocker"] is False
-    assert bridge["local_machine_unavailable"] is False
-    assert bridge["authority_loss"] is False
-    assert bridge["codex_must_not_require_direct_canonical_mount"] is True
-    assert bridge["stage_exact_paths_only"] is False
-    assert bridge["mismatch_state"] == "CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH"
-    assert bridge["mismatch_action"] == "RESTAGE_FROM_CANONICAL_AUTHORITY"
-    assert bridge["invariant"] == "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY"
+    assert bridge["activation_requires_shared_zero_drift"] is True
+    assert bridge["stage_exact_paths_only"] is True
 
 
 def test_codex_workspace_bridge_requires_exact_stage_identity():
@@ -173,7 +165,7 @@ def test_codex_workspace_bridge_requires_exact_stage_identity():
         "source_generation_or_manifest_digest",
     ]
 
-def test_codex_workspace_keeps_persistent_latest_mirror_without_becoming_authority():
+def test_workspace_canonical_sync_is_conditional_and_workspace_path_is_executor_local():
     import json
 
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
@@ -189,28 +181,19 @@ def test_codex_workspace_keeps_persistent_latest_mirror_without_becoming_authori
         "codex_cloud_mount_bridge"
     ]["workspace_mirror_policy"]
 
-    assert "CODEX_WORKSPACE_LATEST_MIRROR_V1" in push
-    assert "CODEX_WORKSPACE_LATEST_MIRROR_V1" in root_skill
     assert "tools/workspace_canonical_sync.py" in push
+    assert "普通 workspace startup **不要求**" in root_skill
     assert mirror["schema"] == "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1"
     assert mirror["machine_owner"] == "tools/workspace_canonical_sync.py"
-    assert "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1" in mirror["compatibility_aliases"]
-    assert mirror["persistence"] == "RETAIN_ACROSS_INVOCATIONS"
-    assert mirror["mirror_scope"] == "FULL_REPOSITORY_CACHE_ALLOWED"
+    assert mirror["activation"] == "SHARED_ZERO_FALLBACK_ONLY"
+    assert mirror["ordinary_startup_required"] is False
+    assert mirror["workspace_root_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
+    assert "workspace_root" not in mirror
+    assert mirror["startup_reconcile_required"] is False
+    assert mirror["persistence"] == "EXECUTOR_DEFINED"
+    assert mirror["mirror_scope"] == "FALLBACK_RECONCILE_CACHE"
     assert mirror["authority"] is False
-    assert mirror["canonical_latest_owner"] == "/Google Drive/WHD"
-    assert mirror["startup_reconcile_required"] is True
-    assert mirror["sync_mode"] == "INCREMENTAL_CHANGED_PATHS"
-    assert mirror["commands"] == ["sync-in", "status", "prepare-outbound", "verify-outbound"]
-    assert mirror["required_schemas"] == [
-        "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
-        "WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1",
-        "WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1",
-        "WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1",
-    ]
-    assert mirror["preserve_dirty_work"] is True
     assert mirror["dirty_path_conflict_state"] == "WORKSPACE_CANONICAL_RECONCILE_REQUIRED"
-    assert mirror["delivery_scope_still_locked"] is True
-    assert mirror["terminal_cleanup"] == "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY"
-    assert mirror["invariant"] == "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY"
-    assert mirror["shared_workspace_invariant"] == "WORKSPACE_CANONICAL_SYNC_OWNER_IS_SHARED_NOT_CODEX_ONLY"
+    assert mirror["invariant"] == "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP"
+    assert mirror["shared_workspace_invariant"] == "SYNC_MACHINE_IS_SHARED_BUT_WORKSPACE_PATH_IS_EXECUTOR_LOCAL"
+
