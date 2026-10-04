@@ -7,28 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
-    "released_at": null
+    "released_at": "2026-10-04T12:20:11Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "ce247922ffd8f1eb2409b5e4b3ebe09e3ecc0515",
   "issue": 1178,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-04T12:35:28Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1178.closure.20261004T1219Z",
-    "token": "lease:1178:37201726124:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "ce247922ffd8f1eb2409b5e4b3ebe09e3ecc0515",
     "last_accepted_run": 37199877058
@@ -42,21 +34,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue1178-terminal-closure-no-root-sync-gate",
   "source_sha": "ce247922ffd8f1eb2409b5e4b3ebe09e3ecc0515",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
   "transaction": {
-    "expected_fingerprint": "18d5fe9b9802577df710da934a83350825df1f5c8b57a5e4160f416f48329406",
-    "id": "gha:37201881312:1178:MERGE:3",
+    "expected_fingerprint": "6c1399b1318e3207f68105cb6810b7e03728beafa5258c030270a5650ba78817",
+    "id": "gha:37201881312:1178:FINALIZE:4",
     "invocation_identity": "chatgpt.flowv2.work0.issue1178.closure.20261004T1219Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T12:22:59Z",
+  "updated_at": "2026-10-04T12:23:21Z",
   "version": 2,
   "work_branch": "governance/issue1178-terminal-closure-no-root-sync-gate"
 }
