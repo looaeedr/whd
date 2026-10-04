@@ -1,12 +1,47 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1145-finalize-20261004T1123Z",
-  "issue": 1145,
-  "kind": "FINALIZE",
+  "request_id": "issue1160-closure-acquire-20261004T1211Z",
+  "issue": 1160,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1145.closure.20261004T1106Z",
-  "expected_coord_head": "0eab2e3f5789b73e0acbeda4ba8e5fbf0cfdae52",
-  "expected_generation": 4,
-  "effect": {},
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
+  "expected_coord_head": "65bc86c291c552fbe82bc36181b64a58113645ee",
+  "expected_generation": 1,
+  "effect": {
+    "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Consume accepted PR #1175 exact-head QA"
+    }
+  },
+  "purpose": "Close already-delivered Issue #1160 through canonical Flow v2.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [".agents", ".git", ".github", ".unpushed", "AGENTS.md", "ae_engine", "gui_modules", "tests", "tools"],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1160,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
+    "required_skills": ["flow-v2-execution", "phase6-release-packaging"],
+    "completed_skills": ["flow-v2-execution", "phase6-release-packaging"],
+    "required_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md", "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md", "release_required_artifacts.json"],
+    "completed_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md", "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md", "release_required_artifacts.json"],
+    "observed_at": "2026-10-04T12:11:15Z"
+  }
 }
