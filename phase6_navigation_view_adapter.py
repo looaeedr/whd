@@ -2,13 +2,109 @@
 """Tk-only navigation projection for Fold Designer.
 
 This owner renders already-authoritative workspace/navigation state into the
-Structure Tree and the hidden BoxBody compatibility Notebook. It never mutates
+Structure Tree and the nested BoxBody child Notebook. It never mutates
 workspace topology, manufacturing state, geometry, persistence, or selection
 authority.
 """
 from __future__ import annotations
 
 from typing import Callable, Iterable
+
+
+def build_part_navigation_widgets(
+    host,
+    *,
+    tk,
+    ttk,
+    configure_menu: Callable[[object], object],
+    hidden_foreground: str,
+    on_structure_tree_select: Callable[[object], object],
+    on_structure_tree_click: Callable[[object], object],
+    on_box_body_piece_tab_changed: Callable[[object], object],
+    remove_selected_part: Callable[[], object],
+):
+    """Create the compact Part Editor navigation presentation.
+
+    The adapter owns widget construction only. Authoritative navigation,
+    workspace mutation, activation ordering, and persistence remain with their
+    existing owners and are supplied through callbacks/host state.
+    """
+    host.part_selector = ttk.Frame(host.left)
+    host.part_selector.pack(fill=tk.X, pady=(0, 4))
+    host.part_var = tk.StringVar(master=host.part_selector, value="箱身")
+    host.part_buttons = {}
+
+    host.part_choice_button = ttk.Menubutton(
+        host.part_selector,
+        textvariable=host.part_var,
+        style="Selector.TMenubutton",
+        takefocus=True,
+    )
+    host.part_choice_menu = configure_menu(tk.Menu(host.part_choice_button, tearoff=False))
+    host.part_choice_button.configure(menu=host.part_choice_menu)
+    host.part_choice_button.pack(fill=tk.X, pady=(0, 4))
+
+    host.structure_tree_spacer = ttk.Frame(host.left, height=1)
+    host.structure_tree_spacer.pack_propagate(False)
+    host.structure_tree_host = ttk.Frame(host.left)
+    host.structure_tree = ttk.Treeview(
+        host.structure_tree_host,
+        columns=("visibility",),
+        show="tree headings",
+        selectmode="browse",
+        height=9,
+        takefocus=True,
+    )
+    host.structure_tree.heading("#0", text="板件 / 功能", anchor=tk.W)
+    host.structure_tree.heading("visibility", text="狀態", anchor=tk.CENTER)
+    host.structure_tree.column("#0", width=190, minwidth=120, stretch=True)
+    host.structure_tree.column(
+        "visibility", width=58, minwidth=52, stretch=False, anchor=tk.CENTER
+    )
+    host.structure_tree_scrollbar = ttk.Scrollbar(
+        host.structure_tree_host,
+        orient=tk.VERTICAL,
+        command=host.structure_tree.yview,
+    )
+    host.structure_tree.configure(yscrollcommand=host.structure_tree_scrollbar.set)
+    host.structure_tree_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    host.structure_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    host.structure_tree.tag_configure("hidden", foreground=hidden_foreground)
+    host._phase6_structure_tree_guard = False
+    host.structure_tree.bind("<<TreeviewSelect>>", on_structure_tree_select)
+    host.structure_tree.bind("<Button-1>", on_structure_tree_click, add="+")
+
+    # BoxBody keeps one nested physical-child selector. It is visible only while
+    # the aggregate BoxBody or one of its physical children is active.
+    host.box_body_piece_selector = ttk.Notebook(host.left, height=1, takefocus=True)
+    host._phase6_box_body_piece_tab_keys = ()
+    host._phase6_box_body_piece_tab_map = {}
+    host._phase6_box_body_piece_tab_guard = False
+    host.box_body_piece_selector.bind(
+        "<<NotebookTabChanged>>", on_box_body_piece_tab_changed
+    )
+
+    host.part_action_row = ttk.Frame(host.part_selector)
+    host.part_action_row.pack(fill=tk.X, pady=(0, 4))
+    host.add_part_button = ttk.Menubutton(
+        host.part_action_row,
+        text="新增 ▼",
+        style="Secondary.TMenubutton",
+        takefocus=True,
+    )
+    host.add_part_menu = configure_menu(tk.Menu(host.add_part_button, tearoff=False))
+    host.add_part_button.configure(menu=host.add_part_menu)
+    host.add_part_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
+    host.remove_part_button = ttk.Button(
+        host.part_action_row,
+        text="刪除",
+        command=remove_selected_part,
+        state="disabled",
+        style="Secondary.TButton",
+        takefocus=True,
+    )
+    host.remove_part_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(2, 0))
+    return host.part_selector
 
 
 def refresh_structure_tree(
