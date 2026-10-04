@@ -11,8 +11,6 @@ BRIDGES = [
     ROOT / ".agents/skills/engineering/派工/SKILL.md",
     ROOT / ".agents/skills/engineering/工作槽/SKILL.md",
     ROOT / ".agents/skills/engineering/寫排程/SKILL.md",
-    ROOT / ".agents/skills/engineering/remote-execution-guard/SKILL.md",
-    ROOT / ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
     ROOT / ".agents/skills/engineering/issue-closure-gate/SKILL.md",
     ROOT / ".agents/skills/engineering/執行開發任務/SKILL.md",
     ROOT / ".agents/skills/engineering/強制接手/SKILL.md",
@@ -73,6 +71,10 @@ def test_registry_routes_workflow_entries_through_flow_v2():
         "force-takeover",
     ]:
         assert "flow-v2-execution" in routes[route_id]["required_skills"], route_id
+    for route_id in ("remote-execution-guard", "executable-continuity-controller"):
+        assert routes[route_id]["routing_status"] == "RETIRED"
+        assert routes[route_id]["replacement_route_id"] == "flow-v2-execution"
+        assert routes[route_id]["file_globs"] == []
 
 
 def test_ai_library_execution_authority_is_flow_v2():
