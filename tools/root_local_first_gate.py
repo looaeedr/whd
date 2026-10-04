@@ -16,7 +16,8 @@ from tools.shared_unpushed_integration import (
 
 SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
 EVIDENCE_SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_GATE_EVIDENCE_V1"
-DEFAULT_ROOT = "/Google Drive/WHD"
+DEFAULT_ROOT = "/workspace/whd"
+CANONICAL_DRIVE_ROOT = "/Google Drive/WHD"
 DEFAULT_WORK_PREFIX = "/Google Drive/WHD/.unpushed"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
@@ -199,22 +200,22 @@ def assert_entry_router_action_allowed(evidence: object | None, *, action: str) 
 
 
 def build_root_path_resolution_evidence(
-    *, repo_relative_path: str, resolved_absolute_path: str, resolution_method: str = "CANONICAL_ROOT_PARENT_CHAIN"
+    *, repo_relative_path: str, resolved_absolute_path: str, resolution_method: str = "WORKSPACE_REPO_RELATIVE_PATH"
 ) -> dict[str, object]:
     relative = str(repo_relative_path or "").strip().replace("\\", "/").lstrip("/")
     if not relative or relative == "." or any(part in {"", ".", ".."} for part in relative.split("/")):
-        raise ValueError("ROOT_PATH_UNRESOLVED_FAIL_CLOSED: invalid repo-relative path")
+        raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: invalid repo-relative path")
     expected = f"{DEFAULT_ROOT}/{relative}"
     if str(resolved_absolute_path or "").strip().replace("\\", "/") != expected:
-        raise ValueError("ROOT_PATH_UNRESOLVED_FAIL_CLOSED: canonical parent-chain mismatch")
-    if str(resolution_method or "").strip().upper() != "CANONICAL_ROOT_PARENT_CHAIN":
-        raise ValueError("ROOT_PATH_UNRESOLVED_FAIL_CLOSED: noncanonical resolution method")
+        raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: workspace path mismatch")
+    if str(resolution_method or "").strip().upper() != "WORKSPACE_REPO_RELATIVE_PATH":
+        raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: non-workspace resolution method")
     return {
         "schema": ROOT_PATH_RESOLUTION_SCHEMA,
         "canonical_root": DEFAULT_ROOT,
         "repo_relative_path": relative,
         "resolved_absolute_path": expected,
-        "resolution_method": "CANONICAL_ROOT_PARENT_CHAIN",
+        "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
         "global_search_role": "CANDIDATE_ONLY",
         "remote_fallback_used": False,
     }
@@ -223,13 +224,12 @@ def build_root_path_resolution_evidence(
 def validate_root_path_resolution_evidence(evidence: object) -> dict[str, object]:
     item = _mapping(evidence, "root path resolution evidence")
     if item.get("schema") != ROOT_PATH_RESOLUTION_SCHEMA:
-        raise ValueError("ROOT_PATH_UNRESOLVED_FAIL_CLOSED: invalid evidence schema")
+        raise ValueError("WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED: invalid evidence schema")
     return build_root_path_resolution_evidence(
         repo_relative_path=str(item.get("repo_relative_path") or ""),
         resolved_absolute_path=str(item.get("resolved_absolute_path") or ""),
         resolution_method=str(item.get("resolution_method") or ""),
     )
-
 
 def select_repository_content_route(*, shared_zero_drift_present: bool) -> dict[str, object]:
     """Choose the ordinary workspace path unless fresh shared-zero drift requires reconcile."""
@@ -542,10 +542,12 @@ def validate_contract(payload: object) -> dict[str, object]:
     if contract.get("status") != "CURRENT":
         raise ValueError("root-local-first contract is not CURRENT")
     root = _mapping(contract.get("canonical_root"), "canonical_root")
-    if root.get("library_path") != DEFAULT_ROOT:
-        raise ValueError("canonical root path mismatch")
-    if root.get("interactive_work_prefix") != DEFAULT_WORK_PREFIX:
-        raise ValueError("interactive work prefix mismatch")
+    if root.get("library_path") != DEFAULT_ROOT or root.get("provider") != "workspace_mirror":
+        raise ValueError("workspace root identity mismatch")
+    if root.get("production_branch") != PRODUCTION_BRANCH or root.get("authority") is not False:
+        raise ValueError("workspace root production identity mismatch")
+    if root.get("canonical_drive_overlay") != CANONICAL_DRIVE_ROOT:
+        raise ValueError("canonical Drive overlay mismatch")
     if tuple(contract.get("required_order") or ()) != REQUIRED_ORDER:
         raise ValueError("root-local-first required order mismatch")
     if contract.get("test_profile_schema") != TEST_PROFILE_SCHEMA:
@@ -559,10 +561,12 @@ def validate_contract(payload: object) -> dict[str, object]:
     root_path_gate = _mapping(contract.get("root_path_resolution_hard_gate"), "root_path_resolution_hard_gate")
     if root_path_gate.get("schema") != "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1":
         raise ValueError("root path resolution hard gate schema mismatch")
-    if root_path_gate.get("resolution_method") != "CANONICAL_ROOT_PARENT_CHAIN":
-        raise ValueError("root path resolution method mismatch")
-    if root_path_gate.get("remote_fallback_forbidden") is not True:
-        raise ValueError("root path remote fallback must be forbidden")
+    if root_path_gate.get("default_workspace_root") != DEFAULT_ROOT:
+        raise ValueError("workspace path root mismatch")
+    if root_path_gate.get("resolution_method") != "WORKSPACE_REPO_RELATIVE_PATH":
+        raise ValueError("workspace path resolution method mismatch")
+    if root_path_gate.get("shared_zero_fallback_root") != CANONICAL_DRIVE_ROOT:
+        raise ValueError("shared-zero fallback root mismatch")
     remote_gate = _mapping(contract.get("remote_connection_hard_gate"), "remote_connection_hard_gate")
     if remote_gate.get("schema") != REMOTE_CONNECTION_AUTHORITY_SCHEMA:
         raise ValueError("remote connection hard gate schema mismatch")
