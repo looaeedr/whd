@@ -46,5 +46,12 @@
     "repository_contract": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
     "machine_owner": "tools/root_local_first_gate.py"
   },
-  "github_role": "GitHub is delivery/PR/CI/control-plane transport. Repository-content authoring and tests happen under the canonical Google Drive WHD root without a Git work branch."
+  "github_role": "GitHub is delivery/PR/CI/control-plane transport. Repository-content authoring and tests happen under the canonical Google Drive WHD root without a Git work branch.",
+  "root_identity_recovery": {
+    "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
+    "cli": "python tools/work_root_gate.py recover-current-production",
+    "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
+    "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
+    "policy": "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION"
+  }
 }
