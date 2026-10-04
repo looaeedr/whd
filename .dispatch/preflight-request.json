@@ -1,13 +1,13 @@
 {
   "schema": "WHD_REMOTE_PHASE6_PREFLIGHT_PUSH_REQUEST_V1",
-  "request_id": "a20-issue1080-takeover-20261005T0020+08",
+  "request_id": "a00-issue1080-takeover-20261005T0300+08",
   "issue": 1080,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "a20:issue1080:takeover:20261005T0020+08",
+  "invocation_identity": "a00:issue1080:takeover:20261005T0300+08",
   "executor_source": "scheduler",
   "branch": "cleanup/2d-3d-sync",
-  "head_sha": "1e6778b1ea9e767a46b13135d9332190424821c8",
+  "head_sha": "961eb9f667ee96df73b8ebdba6b1dbc9375b48c3",
   "task": "Resume A-lane scheduler execution for #1080: validate TAKEOVER_CANDIDATE, reconcile stale ExecutionRecord target to live X if still eligible, routing-only HANDOFF to scheduler A, ACQUIRE, and immediately continue preserved structured next_action START_BRANCH under CURRENT Flow v2.",
   "changed_files": []
 }
