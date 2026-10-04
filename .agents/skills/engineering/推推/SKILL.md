@@ -166,6 +166,49 @@ BODY_0_EXISTS
 
 任何額外 path 都必須 fail closed：`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK`。
 
+## 9.4 CHATGPT_CLOUD_MOUNT_TO_CODEX_WORKSPACE_BRIDGE_V1
+
+`/Google Drive/WHD` 是 ChatGPT/connector 可解析的 canonical authority path；它**不是 Codex execution runtime 必須直接掛載的 filesystem path**。
+
+當 ChatGPT/connector 已能 fresh-read canonical root，但 Codex/C2C execution surface 無法看到聊天室 cloud mount 時，固定分類：
+
+`CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX`
+
+此分類只代表 **execution-surface transport mismatch**，不得轉譯成 `LOCAL_MACHINE_UNAVAILABLE`、`ROOT_PATH_UNRESOLVED_FAIL_CLOSED`、authority loss、repository-content blocker，亦不得要求 Codex 直接 `cd /Google Drive/WHD`。
+
+固定 bridge：
+
+`CLOUD_AUTHORITY_READ → WORKSPACE_STAGE_EXACT_PATHS → PATH_HASH_MANIFEST_VERIFY → CODEX_WORKSPACE_EXECUTION → DELIVERY_LOCK_REVERIFY`
+
+硬規則：
+
+1. authority 仍固定 `/Google Drive/WHD` / selected shared-0 lineage；Codex workspace 永遠不是 authority。
+2. 只 materialize 本次 task / selected lane 所需的 exact paths；不得把整個 cloud mount 假裝成本機 mount。
+3. staging receipt 至少記錄 `canonical_path + workspace_path + size + sha256 + source_generation/manifest_digest`；Codex 執行前逐檔 readback，全部 exact match 才可進入 execution。
+4. Codex 只能在 staged workspace 做 edit/test/git preparation；任何結果回到 shared-0 或 delivery lock 前，必須再次以 canonical manifest/hash reconcile。
+5. 任一 path/hash/size/manifest mismatch 固定 `CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH`，fail closed並從 canonical authority重新 stage；禁止拿 workspace 舊副本續做。
+6. Codex 回報「找不到 `/Google Drive/WHD`」時，視為 bridge trigger，不得要求額外 mount 權限、不得改走 GitHub mirror baseline、不得宣告永久 blocker。
+7. 若 ChatGPT/connector 自己也無法讀 canonical authority，才回到 CURRENT root/connector capability classification；不得把那種情況和 Codex mount invisibility混為一談。
+
+machine invariant：`CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY`。
+
+### 9.4.1 CODEX_WORKSPACE_LATEST_MIRROR_V1
+
+Codex workspace 應保留一份**持久、可重用的最新 repo mirror/cache**；此 mirror 可包含完整 repository tree，目的只是讓 Codex 有穩定 execution surface，不必每次任務重新從 cloud mount materialize 全部依賴。
+
+固定同步模型：
+
+`CANONICAL_MANIFEST_READ → WORKSPACE_MIRROR_RECONCILE → INCREMENTAL_PATH_SYNC → MIRROR_READBACK_VERIFIED → CODEX_EXECUTION`
+
+規則：
+
+- mirror 可跨 invocation 保留；不得在每次 terminal 後刪掉整個 workspace mirror。
+- 每次 Codex 開工前先 fresh-read canonical generation/manifest；mirror 若已綁同 generation/digest，且所需 task paths hash仍一致，可直接 reuse。
+- 若 canonical 前進，只同步新增/刪除/變更的 paths，然後更新 mirror receipt；不要求每輪重新複製整 repo。
+- mirror receipt 至少綁 `canonical_root_identity + canonical_generation_or_manifest_digest + mirror_root + verified_at`，並保存每個 changed path 的 `size + sha256` readback。
+- 完整 mirror 存在不代表 `/推推` scope 擴大；delivery 仍只能使用 selected lane fileset lock，禁止把 workspace 其他檔案一起 commit/push。
+- Codex 修改中的 dirty paths 是 execution result，不得被 background/latest-sync覆蓋；同步前必須先分離 clean mirror baseline 與 active dirty work。若 canonical 同 path 同時前進，固定 `CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED`，先 reconcile，不得 silent overwrite。
+- machine invariant：`PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY`。
 ## 9.5 WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1
 
 當 selected lane 已 `FROZEN`、fileset lock 已建立，而且來源 connector 不能直接作為 Git content-write 輸入時，允許使用 **workspace-staged relay** 作為同一 delivery window 內的相容 transport。這不是新的 authority，也不能改變 lock。
