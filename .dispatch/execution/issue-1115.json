@@ -12,16 +12,18 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 3,
-  "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "generation": 4,
+  "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1115,
   "lane_id": "chatgpt.flowv2.work3",
   "lease": null,
   "mutation_scope": null,
   "next_action": {
-    "args": {},
-    "display": "Complete #1115 repository-content implementation in canonical /Google Drive/WHD shared .unpushed root flow, freeze/test exact diff, then start delivery branch",
-    "kind": "START_BRANCH"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "Consume exact already-terminal Product Regression for carried-forward delivery",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
@@ -38,21 +40,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "POST_DELIVERY_ACCEPTED_PENDING_QA_CONSUME",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
   "transaction": {
-    "expected_fingerprint": "3d350d93ca1f7f87694655f5c8cd96a943de56c42fcf434b06b6864db5b0b832",
-    "id": "gha:37136362615:1115:HANDOFF:2",
-    "invocation_identity": "a20.20261003T154800Z",
-    "kind": "HANDOFF",
+    "expected_fingerprint": "1359e1fa9360fe3459bf3d680cd70daa606bf54afa40b0e38c7f113ee6ea2138",
+    "id": "gha:37182970499:1115:RECONCILE:3",
+    "invocation_identity": "gha:looaeedr/whd:run:37182970499:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T16:19:06Z",
+  "updated_at": "2026-10-04T06:30:28Z",
   "version": 2,
   "work_branch": "scheduler/issue1115-auto-dispatch"
 }
