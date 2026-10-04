@@ -21,13 +21,11 @@ def _entries():
 
 def test_v2_is_only_current_work_root_contract():
     current = _payload()
-    old = json.loads(SUPERSEDED.read_text(encoding="utf-8"))
     assert current["schema"] == "WHD_WORK_ROOT_HARD_GATE_V2"
     assert current["status"] == "CURRENT"
     assert current["default_work_root"]["library_path"] == "/Google Drive/WHD"
     assert current["default_work_root"]["drive_folder_id"] == "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
-    assert old["status"] == "SUPERSEDED"
-    assert old["superseded_by"] == ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"
+    assert not SUPERSEDED.exists()
 
 
 def test_interactive_and_remote_use_same_root_identity_but_different_read_transport():
