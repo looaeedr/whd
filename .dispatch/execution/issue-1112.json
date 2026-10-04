@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
-  "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
+  "generation": 6,
+  "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "issue": 1112,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-04T02:14:48Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
-    "token": "lease:1112:37169651535:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
@@ -34,14 +30,12 @@
     ]
   },
   "next_action": {
-    "args": {
-      "reason": "issue #1112 already closed and PR #1134 already merged; release stale reservation"
-    },
-    "display": "Release stale #1112 reservation after live-target reconcile",
-    "kind": "RELEASE_PATHS"
+    "args": {},
+    "display": "Acquire fresh execution",
+    "kind": "ACQUIRE"
   },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -55,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_RELEASED",
-  "slot_id": "worker.slot.0",
+  "semantic_state": "READY",
+  "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-  "state": "ACTIVE",
+  "source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+  "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
+  "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "transaction": {
-    "expected_fingerprint": "4325af9df751e993a683c3ba686e1dba5473bb1bf08f20852944b5f6d163f361",
-    "id": "gha:37169774749:1112:RELEASE_PATHS:4",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
+    "expected_fingerprint": "dff4a7b6e7a9d0157e8db4490ecd8afbf828cf9b6ea5939b1458339fbeff0cc4",
+    "id": "gha:37173664435:1112:RELEASE_PATHS:5",
+    "invocation_identity": "gha:looaeedr/whd:run:37173664435:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T02:01:16Z",
+  "updated_at": "2026-10-04T03:18:32Z",
   "version": 2,
   "work_branch": "work/issue1112-receiving-set-bay-editor-20261002"
 }
