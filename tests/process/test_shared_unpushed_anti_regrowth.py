@@ -191,15 +191,26 @@ def test_codex_workspace_keeps_persistent_latest_mirror_without_becoming_authori
 
     assert "CODEX_WORKSPACE_LATEST_MIRROR_V1" in push
     assert "CODEX_WORKSPACE_LATEST_MIRROR_V1" in root_skill
+    assert "tools/workspace_canonical_sync.py" in push
+    assert mirror["schema"] == "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1"
+    assert mirror["machine_owner"] == "tools/workspace_canonical_sync.py"
+    assert "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1" in mirror["compatibility_aliases"]
     assert mirror["persistence"] == "RETAIN_ACROSS_INVOCATIONS"
     assert mirror["mirror_scope"] == "FULL_REPOSITORY_CACHE_ALLOWED"
     assert mirror["authority"] is False
     assert mirror["canonical_latest_owner"] == "/Google Drive/WHD"
     assert mirror["startup_reconcile_required"] is True
     assert mirror["sync_mode"] == "INCREMENTAL_CHANGED_PATHS"
+    assert mirror["commands"] == ["sync-in", "status", "prepare-outbound", "verify-outbound"]
+    assert mirror["required_schemas"] == [
+        "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
+        "WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1",
+        "WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1",
+        "WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1",
+    ]
     assert mirror["preserve_dirty_work"] is True
-    assert mirror["dirty_path_conflict_state"] == "CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED"
+    assert mirror["dirty_path_conflict_state"] == "WORKSPACE_CANONICAL_RECONCILE_REQUIRED"
     assert mirror["delivery_scope_still_locked"] is True
     assert mirror["terminal_cleanup"] == "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY"
     assert mirror["invariant"] == "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY"
-
+    assert mirror["shared_workspace_invariant"] == "WORKSPACE_CANONICAL_SYNC_OWNER_IS_SHARED_NOT_CODEX_ONLY"
