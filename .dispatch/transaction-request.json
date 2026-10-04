@@ -1,34 +1,17 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-bodygen5-reconcile-live-target-retry1",
-  "issue": 1062,
-  "kind": "RECONCILE",
+  "request_id": "issue1112-stale-release-delete-branch-20261004T0220Z",
+  "issue": 1112,
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1062.bodygen5",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1112.stale-release.20261004T0220Z",
   "expected_coord_head": "d5a64b1df7dc4074ecbae9632706d2ab26e4fa14",
-  "expected_generation": 45,
+  "expected_generation": 5,
   "effect": {
-    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
-    "observed_head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
-    "observed_target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
-    "semantic_state": "READY",
-    "next_action": {
-      "kind": "ACQUIRE",
-      "args": {},
-      "display": "Acquire fresh execution"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1062,
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f"
-    }
+    "reason": "already-closed issue; released stale residue blocks work0",
+    "delete_stale_work_branch": true
   },
-  "purpose": "Reconcile Issue #1062 READY Flow v2 record from stale accepted target 3022188a to current live cleanup/2d-3d-sync b7a8e712 before exact body generation 5 delivery.",
+  "purpose": "Closure-only Flow v2 stale RELEASE_PATHS cleanup for already-completed Issue #1112; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -55,52 +38,28 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1062,
-    "invocation_identity": "chatgpt.flowv2.work0.issue1062.bodygen5",
+    "issue": 1112,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.stale-release.20261004T0220Z",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
     "required_skills": [
       "flow-v2-execution",
-      "root-local-first",
-      "性質導向測試",
-      "phase6-corner-3d-model-integrity",
-      "phase6-overlay-relief-basis",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "推推"
+      "phase6-release-packaging"
     ],
     "completed_skills": [
       "flow-v2-execution",
-      "root-local-first",
-      "性質導向測試",
-      "phase6-corner-3d-model-integrity",
-      "phase6-overlay-relief-basis",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "推推"
+      "phase6-release-packaging"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+      "release_required_artifacts.json"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+      "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-04T02:02:50Z"
+    "observed_at": "2026-10-04T02:20:24Z"
   }
 }
