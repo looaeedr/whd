@@ -452,14 +452,13 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK"
 
 
-def test_flow_v2_skill_requires_direct_root_modify_and_test_in_same_invocation():
+def test_flow_v2_skill_defaults_to_workspace_and_keeps_shared_zero_as_fallback():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
-    assert "DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1" in text
-    assert "同一 invocation" in text
-    assert "ROOT_MUTATE" in text
-    assert "POST_MERGE_ZERO_TESTS_GREEN" in text
-    assert "使用者詢問進度/狀態只算 non-blocking checkpoint" in text
-    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" in text
+    assert "WORKSPACE_DEFAULT" in text
+    assert "WORKSPACE_MUTATIONS_COMPLETE" in text
+    assert "WORKSPACE_TESTS_GREEN" in text
+    assert "SHARED_ZERO_FALLBACK" in text
+    assert "shared-unpushed machine只在 fallback active" in text
 
 
 def test_test_receipt_generation_is_historical_provenance_not_exact_lease_generation():
