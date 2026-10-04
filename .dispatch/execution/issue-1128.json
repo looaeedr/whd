@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1128,
   "lane_id": "chatgpt.flowv2.work3",
@@ -32,15 +32,9 @@
     ]
   },
   "next_action": {
-    "args": {
-      "expected_target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
-      "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
-      "pr_number": 1165,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Bind already-merged PR #1165 after exact-head QA acceptance",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
@@ -57,7 +51,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED_POST_DELIVERY",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
@@ -65,13 +59,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "d65fbebc8eff9935557411ef3e18ff1a8b2b983b70485ef70ddc7bc1fae26b50",
-    "id": "gha:37185224903:1128:CONSUME_QA:11",
+    "expected_fingerprint": "bad7231a6bfbef30004b7209daa5b56f404f9ea43cb39543715b7d8e13d5d450",
+    "id": "gha:37185286242:1128:MERGE:12",
     "invocation_identity": "gha:looaeedr/whd:run:37185117737:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T07:15:45Z",
+  "updated_at": "2026-10-04T07:17:05Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
