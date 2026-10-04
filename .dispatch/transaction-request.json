@@ -1,23 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1160-closure-acquire-20261004T1211Z",
+  "request_id": "issue1160-closure-consume-qa-20261004T1214Z",
   "issue": 1160,
-  "kind": "ACQUIRE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
-  "expected_coord_head": "65bc86c291c552fbe82bc36181b64a58113645ee",
-  "expected_generation": 1,
+  "expected_coord_head": "765a4bc9e5c96c6a2c80389a58db2d25991d7cfd",
+  "expected_generation": 2,
   "effect": {
-    "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
+    "run_id": 37190651040,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED_FOR_CLOSURE_RECONCILIATION",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "pr_number": 1175,
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Consume accepted PR #1175 exact-head QA"
+      "display": "Reconcile already-merged PR #1175"
     }
   },
-  "purpose": "Close already-delivered Issue #1160 through canonical Flow v2.",
+  "purpose": "Consume the existing exact-head successful WHD Control Plane Regression for merged PR #1175 and continue #1160 directly to trusted ALREADY_MERGED reconciliation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
