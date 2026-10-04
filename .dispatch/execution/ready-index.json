@@ -3,16 +3,16 @@
   "entries": [
     {
       "execution_intent": "EXECUTE_TICKET",
-      "generation": 6,
+      "generation": 7,
       "issue": 1112,
-      "next_action_display": "Acquire fresh execution",
+      "next_action_display": "Acquire closure-only continuation",
       "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "c1a558398be8c6a48cc1b0b21aaa97ed134d571736aa6cb30a08cf063f404a43",
+      "record_fingerprint": "f9d2c503c64671c6e912985e8c8183a89a14a5cd30f7b18515ef0c463de999fa",
       "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-      "updated_at": "2026-10-04T03:18:32Z"
+      "target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
+      "updated_at": "2026-10-04T13:59:00Z"
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "37878cb8589aeb5c4a6b941a61cf63c6875eaa9f98d8b64faef75b21eb7525b3"
+  "source_digest": "262a4a3b9a0a3620633240078fc31a0f06fca2eababe26ed0d3a31f8a67b76f7"
 }

@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
-  "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+  "generation": 7,
+  "head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
   "issue": 1112,
   "lane_id": null,
   "lease": null,
@@ -31,7 +31,7 @@
   },
   "next_action": {
     "args": {},
-    "display": "Acquire fresh execution",
+    "display": "Acquire closure-only continuation",
     "kind": "ACQUIRE"
   },
   "owner_id": "NONE",
@@ -49,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "READY_MERGED_EVIDENCE_RECONCILED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+  "target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
   "transaction": {
-    "expected_fingerprint": "dff4a7b6e7a9d0157e8db4490ecd8afbf828cf9b6ea5939b1458339fbeff0cc4",
-    "id": "gha:37173664435:1112:RELEASE_PATHS:5",
-    "invocation_identity": "gha:looaeedr/whd:run:37173664435:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "kind": "RELEASE_PATHS",
+    "expected_fingerprint": "c1a558398be8c6a48cc1b0b21aaa97ed134d571736aa6cb30a08cf063f404a43",
+    "id": "gha:37207552200:1112:RECONCILE:6",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T03:18:32Z",
+  "updated_at": "2026-10-04T13:59:00Z",
   "version": 2,
   "work_branch": "work/issue1112-receiving-set-bay-editor-20261002"
 }
