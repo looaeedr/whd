@@ -139,7 +139,10 @@ def validate_path_reservation_evidence(evidence: object) -> dict[str, object]:
         raise PathReservationError(f"path reservation evidence missing fields: {missing}")
     if evidence.get("schema") != EVIDENCE_SCHEMA:
         raise PathReservationError("unexpected path reservation evidence schema")
-    if evidence.get("phase") != DELIVERY_PHASE:
+    if evidence.get("phase") not in {
+        DELIVERY_PHASE,
+        "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
+    }:
         raise PathReservationError("path reservation evidence is not delivery-only")
     if evidence.get("reservation_state") != "ACTIVE":
         raise PathReservationError("path reservation evidence is not ACTIVE")
