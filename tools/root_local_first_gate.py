@@ -934,7 +934,20 @@ def build_gate_evidence(
                         if remote_authority.get("kind") not in {"WORKSPACE_DELIVERY", "USER_EXPLICIT_REMOTE"}:
                             raise ValueError("workspace delivery authority kind mismatch")
                         completed.append("WORKSPACE_DELIVERY_AUTHORIZED")
-                        next_action = "EXACT_TESTED_DIFF_ONLY"
+                        if not path_reservation_evidence:
+                            next_action = "DELIVERY_PATHS_RESERVED"
+                        else:
+                            reservation = validate_path_reservation_evidence(path_reservation_evidence)
+                            if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
+                                raise ValueError("workspace delivery reservation base_sha must match source_sha")
+                            if str(reservation.get("target_branch") or "") != PRODUCTION_BRANCH:
+                                raise ValueError("workspace delivery reservation target branch mismatch")
+                            completed.append("DELIVERY_PATHS_RESERVED")
+                            if target_drift:
+                                next_action = "REFRESH_WORKSPACE_BASELINE_RETEST_BEFORE_DELIVERY"
+                            else:
+                                completed.append("GIT_WRITE_UNLOCKED")
+                                next_action = "EXACT_TESTED_DIFF_ONLY"
         result = {
             "schema": EVIDENCE_SCHEMA,
             "execution_mode": mode,
@@ -956,6 +969,8 @@ def build_gate_evidence(
             result["diff_digest"] = str(diff_digest)
         if remote_authority:
             result["remote_connection_authority"] = dict(remote_authority)
+        if reservation:
+            result["path_reservation"] = dict(reservation)
         return result
 
     if repository_content_implementation and shared_zero_drift_present:
