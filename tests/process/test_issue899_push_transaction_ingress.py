@@ -143,10 +143,12 @@ def test_request_ingress_binds_coord_head_and_generation():
     assert "execute_one(" in text
 
 
-def test_manual_production_workflow_can_finalize_issues():
-    text = (ROOT / ".github/workflows/whd-control-transaction-v2.yml").read_text(encoding="utf-8")
+def test_direct_production_workflow_stays_retired_and_request_ingress_owns_writes():
+    assert not (ROOT / ".github/workflows/whd-control-transaction-v2.yml").exists()
+    text = (ROOT / ".github/workflows/whd-control-transaction-v2-request.yml").read_text(encoding="utf-8")
     assert "contents: write" in text
     assert "issues: write" in text
+    assert "control_transaction_request_ingress.py" in text
 
 
 def test_canonical_skill_uses_push_request_not_scheduler_workflow_dispatch():
@@ -766,16 +768,7 @@ def _root_unlock_receipt():
             "exact_commands": ["python tools/control_plane_regression.py"],
             "manifest_digest": "e" * 64,
         },
-        expected_test_commands=["python tools/control_plane_regression.py"],
-        worker_census_evidence={
-            "schema": "WHD_SHARED_ZERO_WORKER_CENSUS_V1",
-            "lane": "docs",
-            "latest_zero_generation": 4,
-            "fresh": True,
-            "mergeable_green_count": 0,
-            "blocking_candidate_count": 0,
-        },
-        diff_digest="c" * 64,
+        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
     )
     return build_git_unlock_receipt(gate)
 

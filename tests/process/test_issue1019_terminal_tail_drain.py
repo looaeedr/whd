@@ -1,9 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
+
 
 from dataclasses import replace
 from pathlib import Path
 
+
 import pytest
+
 
 from tools.control_transaction import (
     ControlTransactionConflict,
@@ -16,9 +19,12 @@ from tools.execution_record import (
     execution_record_from_payload,
 )
 
+
 ROOT = Path(__file__).resolve().parents[2]
 INV = "interactive:work1:issue1019:test"
 LANE = "chatgpt.flowv2.work1"
+
+
 
 
 def _payload(**overrides):
@@ -64,8 +70,12 @@ def _payload(**overrides):
     return payload
 
 
+
+
 def _record(**overrides):
     return execution_record_from_payload(_payload(**overrides))
+
+
 
 
 def _ready_record():
@@ -78,6 +88,8 @@ def _ready_record():
         lease=None,
         next_action={"kind": "ACQUIRE", "args": {}, "display": "acquire"},
     )
+
+
 
 
 def _integrating_finalize_record(*, lease_invocation: str = INV):
@@ -93,6 +105,8 @@ def _integrating_finalize_record(*, lease_invocation: str = INV):
         qa={"last_accepted_run": 36570000001, "accepted_head_sha": "b" * 40},
         closure={"merged_sha": "c" * 40, "issue_closed": False, "released_at": None},
     )
+
+
 
 
 def test_atomic_acquire_can_reserve_paths_in_same_admission_transaction():
@@ -132,6 +146,7 @@ def test_atomic_acquire_can_reserve_paths_in_same_admission_transaction():
         },
     )
 
+
     assert updated.state == "ACTIVE"
     assert updated.semantic_state == "PATHS_RESERVED"
     assert updated.lease.invocation_identity == INV
@@ -140,8 +155,11 @@ def test_atomic_acquire_can_reserve_paths_in_same_admission_transaction():
     assert updated.next_action.kind == "START_BRANCH"
 
 
+
+
 def test_atomic_acquire_reservation_still_checks_cross_issue_conflicts(monkeypatch):
     import tools.control_transaction_production_executor as executor
+
 
     candidate = _ready_record()
     other = _record(
@@ -166,6 +184,7 @@ def test_atomic_acquire_reservation_still_checks_cross_issue_conflicts(monkeypat
         "_write_state",
         lambda *args, **kwargs: pytest.fail("conflicting admission must not write coord"),
     )
+
 
     # #1093 ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1 now wins earlier:
     # the same durable lane may not pivot to a READY foreign Issue merely to
@@ -195,6 +214,8 @@ def test_atomic_acquire_reservation_still_checks_cross_issue_conflicts(monkeypat
         )
 
 
+
+
 def test_integrating_record_without_structured_next_action_is_rejected():
     with pytest.raises(ExecutionRecordError, match="INTEGRATING record requires a next_action"):
         execution_record_from_payload(
@@ -204,6 +225,8 @@ def test_integrating_record_without_structured_next_action_is_rejected():
                 next_action=None,
             )
         )
+
+
 
 
 def test_finalize_releases_durable_owner_and_lane():
@@ -227,6 +250,7 @@ def test_finalize_releases_durable_owner_and_lane():
         },
     )
 
+
     assert done.state == "DONE"
     assert done.owner_kind == "NONE"
     assert done.owner_id == "NONE"
@@ -234,8 +258,11 @@ def test_finalize_releases_durable_owner_and_lane():
     assert done.lease is None
 
 
+
+
 def test_trusted_finalize_checks_current_invocation_lease_before_issue_close(monkeypatch):
     import tools.control_transaction_production_executor as executor
+
 
     record = _integrating_finalize_record(lease_invocation="interactive:work0:other")
     monkeypatch.setattr(
@@ -245,11 +272,14 @@ def test_trusted_finalize_checks_current_invocation_lease_before_issue_close(mon
     )
     called = {"close": False}
 
+
     def forbidden_close(*args, **kwargs):
         called["close"] = True
         raise AssertionError("issue close must not run for a foreign lease")
 
+
     monkeypatch.setattr(executor, "_ensure_issue_closed_for_finalize", forbidden_close)
+
 
     with pytest.raises(ControlTransactionConflict, match="different invocation"):
         executor._execute_one_attempt(
@@ -265,8 +295,11 @@ def test_trusted_finalize_checks_current_invocation_lease_before_issue_close(mon
     assert called["close"] is False
 
 
+
+
 def test_sync_target_reconciles_already_applied_merge_after_coord_cas_loss(monkeypatch):
     import tools.control_transaction_production_executor as executor
+
 
     record = _record(
         state="INTEGRATING",
@@ -284,12 +317,14 @@ def test_sync_target_reconciles_already_applied_merge_after_coord_cas_loss(monke
         qa={"last_accepted_run": 36570000001, "accepted_head_sha": "b" * 40},
     )
 
+
     def fake_head(repo, token, branch):
         if branch == "cleanup/2d-3d-sync":
             return "c" * 40
         if branch == record.work_branch:
             return "d" * 40
         raise AssertionError(branch)
+
 
     monkeypatch.setattr(executor, "_read_branch_head", fake_head)
     monkeypatch.setattr(executor, "_is_ancestor", lambda *args, **kwargs: True)
@@ -298,6 +333,7 @@ def test_sync_target_reconciles_already_applied_merge_after_coord_cas_loss(monke
         "_api",
         lambda *args, **kwargs: pytest.fail("already-applied reconciliation must not POST another merge"),
     )
+
 
     effect = executor._trusted_sync_target_effect(
         "looaeedr/whd",
@@ -310,12 +346,16 @@ def test_sync_target_reconciles_already_applied_merge_after_coord_cas_loss(monke
     assert effect["next_action"]["kind"] == "START_QA"
 
 
+
+
 def test_monitor_failure_does_not_turn_committed_transaction_into_failed(monkeypatch):
     import tools.control_transaction_production_executor as executor
+
 
     initial = _record()
     written = {}
     loads = {"count": 0}
+
 
     def fake_load(*args, **kwargs):
         loads["count"] += 1
@@ -323,9 +363,11 @@ def test_monitor_failure_does_not_turn_committed_transaction_into_failed(monkeyp
             return "f" * 40, "e" * 40, {1019: initial}
         return "1" * 40, "2" * 40, {1019: written["record"]}
 
+
     def fake_write(repo, token, coord_branch, *, parent_sha, base_tree_sha, records, issue):
         written["record"] = records[issue]
         return "1" * 40, "3" * 40
+
 
     monkeypatch.setattr(executor, "_load_state", fake_load)
     monkeypatch.setattr(executor, "_write_state", fake_write)
@@ -334,6 +376,7 @@ def test_monitor_failure_does_not_turn_committed_transaction_into_failed(monkeyp
         "_publish_transaction_progress",
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("monitor unavailable")),
     )
+
 
     result = executor._execute_one_attempt(
         repo="looaeedr/whd",
@@ -355,15 +398,20 @@ def test_monitor_failure_does_not_turn_committed_transaction_into_failed(monkeyp
         },
     )
 
+
     assert result["result"] == "APPLIED"
     assert result["runtime_observation_status"] == "DEGRADED"
     assert "monitor unavailable" in result["runtime_observation_error"]
 
 
+
+
 def test_trusted_side_effect_coord_race_retries_inside_same_workflow(monkeypatch):
     import tools.control_transaction_production_executor as executor
 
+
     calls = {"count": 0}
+
 
     def fake_attempt(**kwargs):
         calls["count"] += 1
@@ -380,6 +428,7 @@ def test_trusted_side_effect_coord_race_retries_inside_same_workflow(monkeypatch
             "lease_invocation_identity": None,
         }
 
+
     monkeypatch.setattr(executor, "_execute_one_attempt", fake_attempt)
     result = executor.execute_one(
         repo="looaeedr/whd",
@@ -395,10 +444,14 @@ def test_trusted_side_effect_coord_race_retries_inside_same_workflow(monkeypatch
     assert calls["count"] == 2
 
 
+
+
 def test_merge_terminal_tail_is_drained_without_second_push_request(monkeypatch):
     import tools.control_transaction_production_executor as executor
 
+
     calls = []
+
 
     def fake_attempt(**kwargs):
         calls.append(kwargs["kind"])
@@ -423,6 +476,7 @@ def test_merge_terminal_tail_is_drained_without_second_push_request(monkeypatch)
             "runtime_observation_status": "APPLIED",
         }
 
+
     monkeypatch.setattr(executor, "_execute_one_attempt", fake_attempt)
     result = executor.execute_one(
         repo="looaeedr/whd",
@@ -435,17 +489,20 @@ def test_merge_terminal_tail_is_drained_without_second_push_request(monkeypatch)
         supplied_effect={},
     )
 
+
     assert calls == ["MERGE", "FINALIZE"]
     assert result["terminal_tail_drained"] is True
     assert result["post_state"] == "DONE"
     assert result["post_next_action"] is None
 
 
+
+
 def test_flow_skill_marks_admission_as_session_level_and_atomic():
     text = (
         ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
     ).read_text(encoding="utf-8")
-    assert "INVOCATION_ADMISSION_SESSION_V1" in text
+    assert "INVOCATION_ADMISSION_SESSION_V2" in text
     assert "invocation/session-level gate" in text
-    assert "atomic ACQUIRE + admission reservation" in text
-    assert "admission_reservation" in text
+    assert "delivery 前才要求 exact manifest reservation" in text
+    assert "SCHEDULER_CONTROL_ONLY_AUTO_FINALIZE_V1" in text

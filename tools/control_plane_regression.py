@@ -30,9 +30,9 @@ COMPILE_PATHS = (
     "tools/work_root_gate.py",
     "tools/change_test_profile.py",
     "tools/post_integration_durability.py",
+    "tools/shared_unpushed_integration.py",
     "tools/phase6_remote_preflight.py",
     "tools/phase6_preflight_push_request.py",
-    "tools/shared_unpushed_integration.py",
     "tools/control_plane_regression.py",
 )
 
@@ -68,10 +68,10 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_issue1049_flow_v2_anti_regrowth_v3.py",
     "tests/process/test_issue1056_flow_v2_anti_regrowth_v4.py",
     "tests/process/test_issue1045_post_integration_durability.py",
-    "tests/process/test_issue1183_scheduler_phase6_push_preflight.py",
     "tests/process/test_shared_unpushed_integration.py",
     "tests/process/test_shared_unpushed_anti_regrowth.py",
     "tests/process/test_issue1059_flow_v2_anti_regrowth_v5.py",
+    "tests/process/test_issue1183_scheduler_phase6_push_preflight.py",
     "tests/process/test_issue1063_actions_workflow_cleanup.py",
     "tests/test_execution_work_slot_autoincrement.py",
     "tests/test_dm5_deep_module_writeback_contract.py",

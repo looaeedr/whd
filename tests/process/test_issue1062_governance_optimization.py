@@ -420,3 +420,30 @@ def test_issue1062_delete_stale_intent_is_rejected_outside_release_paths(tmp_pat
     with pytest.raises(ProductionExecutorError, match="only valid as true on RELEASE_PATHS"):
         _load_request(path)
 
+
+
+def test_control_plane_regression_keeps_anti_regrowth_tests_but_not_retired_runtime():
+    runner = (ROOT / "tools/control_plane_regression.py").read_text(encoding="utf-8")
+    for retired_runtime in (
+        "tools/continuity_controller.py",
+        "tools/scheduled_resume_executor.py",
+        "tools/scheduled_resume_runtime.py",
+    ):
+        assert retired_runtime not in runner
+    for anti_regrowth in (
+        "tests/process/test_checkpoint_resume_contract.py",
+        "tests/process/test_continuous_execution_durable_contract.py",
+        "tests/process/test_issue952_governance_ancestry_reconcile.py",
+    ):
+        assert anti_regrowth in runner
+
+
+def test_retired_remote_guard_tools_are_physically_absent():
+    assert not (ROOT / "tools/execution_claim_guard.py").exists()
+    assert not (ROOT / "tools/stale_claim_takeover.py").exists()
+
+
+def test_stale_machine_looking_root_artifacts_are_not_current():
+    assert not (ROOT / ".flow-v2/execution-fence.json").exists()
+    assert not (ROOT / ".tmp-gen10").exists()
+

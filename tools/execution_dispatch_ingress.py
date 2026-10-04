@@ -1,17 +1,22 @@
-"""Explicit-authority ingress for WHD Flow v2 READY execution records.
+﻿"""Explicit-authority ingress for WHD Flow v2 READY execution records.
+
 
 Open Issues are not work authority.  This module only creates a READY candidate
 from a typed dispatch authority supplied by an upstream trusted/user/chain
 boundary.  The resulting record is unclaimed; schedulers still need ACQUIRE.
 """
 
+
 from __future__ import annotations
+
 
 from dataclasses import asdict, dataclass
 import hashlib
 import json
 from typing import Mapping
 
+
+from tools.execution_action_contract import ActionContractError, validate_execution_action
 from tools.execution_record import (
     ActionSpec,
     ChainState,
@@ -21,14 +26,19 @@ from tools.execution_record import (
     execution_record_fingerprint,
 )
 
+
 INGRESS_SCHEMA = "WHD_EXECUTION_DISPATCH_INGRESS_V1"
 DEFAULT_INTERACTIVE_SLOT_ID = "worker.slot.0"
 ALLOWED_EXECUTION_INTENTS = frozenset({"EXECUTE_TICKET", "EXECUTE_CHAIN", "SCHEDULER_LANE"})
 AUTHORITY_KINDS = frozenset({"USER_EXPLICIT", "CHAIN_SUCCESSOR", "WORK_SLOT_ASSIGNMENT"})
 
 
+
+
 class DispatchIngressError(ValueError):
     """Raised when a READY record would be created without exact authority."""
+
+
 
 
 def _text(value: object, name: str, *, optional: bool = False) -> str | None:
@@ -40,6 +50,8 @@ def _text(value: object, name: str, *, optional: bool = False) -> str | None:
             return None
         raise DispatchIngressError(f"{name} must be nonblank")
     return result
+
+
 
 
 def _issue(value: object, name: str, *, optional: bool = False) -> int | None:
@@ -56,6 +68,8 @@ def _issue(value: object, name: str, *, optional: bool = False) -> int | None:
     return result
 
 
+
+
 @dataclass(frozen=True)
 class DispatchIngressRequest:
     issue: int
@@ -67,9 +81,12 @@ class DispatchIngressRequest:
     work_branch: str
     target_branch: str
     target_sha: str
+    post_acquire: ActionSpec | None = None
     parent_issue: int | None = None
     slot_id: str | None = None
     created_at: str | None = None
+
+
 
 
 @dataclass(frozen=True)
@@ -80,13 +97,19 @@ class DispatchIngressPlan:
     record: ExecutionRecord
 
 
+
+
 def _request_payload(request: DispatchIngressRequest) -> dict[str, object]:
     return {"schema": INGRESS_SCHEMA, "version": 1, **asdict(request)}
+
+
 
 
 def _digest(value: object) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
+
+
 
 
 def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPlan:
@@ -107,6 +130,19 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
     authority_ref = _text(request.authority_ref, "authority_ref")
     parent_issue = _issue(request.parent_issue, "parent_issue", optional=True)
     slot_id = _text(request.slot_id, "slot_id", optional=True)
+    post_acquire = request.post_acquire
+    if post_acquire is not None:
+        if not isinstance(post_acquire, ActionSpec):
+            raise DispatchIngressError("post_acquire must be an ActionSpec")
+        if execution_intent != "SCHEDULER_LANE":
+            raise DispatchIngressError("post_acquire is only supported for SCHEDULER_LANE ingress")
+        if post_acquire.kind == "ACQUIRE":
+            raise DispatchIngressError("post_acquire cannot recursively ACQUIRE")
+        try:
+            validate_execution_action(post_acquire)
+        except ActionContractError as exc:
+            raise DispatchIngressError(f"invalid post_acquire action: {exc}") from exc
+
 
     # DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
     if (
@@ -116,10 +152,12 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
     ):
         slot_id = DEFAULT_INTERACTIVE_SLOT_ID
 
+
     if authority_kind == "CHAIN_SUCCESSOR" and parent_issue is None:
         raise DispatchIngressError("CHAIN_SUCCESSOR requires parent_issue")
     if authority_kind == "WORK_SLOT_ASSIGNMENT" and slot_id is None:
         raise DispatchIngressError("WORK_SLOT_ASSIGNMENT requires slot_id")
+
 
     request_payload = _request_payload(request)
     request_payload["effective_slot_id"] = slot_id
@@ -133,6 +171,16 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
             "slot_id": slot_id,
         }
     )
+
+
+    acquire_args: dict[str, object] = {}
+    if post_acquire is not None:
+        acquire_args["post_acquire"] = {
+            "kind": post_acquire.kind,
+            "args": dict(post_acquire.args),
+            "display": post_acquire.display,
+        }
+
 
     record = ExecutionRecord(
         issue=issue,
@@ -149,7 +197,7 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
         target_sha=_text(request.target_sha, "target_sha"),
         state="READY",
         semantic_state="READY",
-        next_action=ActionSpec(kind="ACQUIRE", args={}, display=f"Acquire Issue #{issue}"),
+        next_action=ActionSpec(kind="ACQUIRE", args=acquire_args, display=f"Acquire Issue #{issue}"),
         lease=None,
         active_run=None,
         transaction=None,
