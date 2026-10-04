@@ -1,25 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-reconcile-body-gen6-fresh-20261004T035405Z",
+  "request_id": "issue1062-resume-body-gen6-qa-20261004T040352Z",
   "issue": 1062,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
-  "expected_coord_head": "24144720a61989221d170682baa8b5fa99aa5dc3",
-  "expected_generation": 48,
-  "effect": {
-    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
-    "observed_head_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829",
-    "observed_target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "semantic_state": "CANDIDATE_BOUND",
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Run exact-head body gen6 product regression"
-    }
-  },
+  "expected_coord_head": "c5b68d77f3c5ca231e71bd331ff161339c5b7dbf",
+  "expected_generation": 49,
+  "effect": {},
   "runtime_provenance": {
     "schema": "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_PROVENANCE_REQUEST_V1",
     "mode": "MINT_EXACT_INVOCATION_IDENTITY"
@@ -39,51 +27,56 @@
       "library_path": "/Google Drive/WHD",
       "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
       "root_entries": [
-        ".git",
         ".agents",
+        ".git",
         ".github",
+        ".unpushed",
         "AGENTS.md",
-        "tools",
-        "tests",
         "ae_engine",
         "gui_modules",
-        ".unpushed"
+        "tests",
+        "tools"
       ],
       "unpushed_root": "/Google Drive/WHD/.unpushed",
       "status": "GREEN"
     },
-    "purpose": "Fresh-admission RECONCILE for Issue #1062: bind the canonical work branch test/issue1062-product-full-regression-recovery to the already-created exact body/0 generation 6 candidate commit 5286e3518d60db70d88709bf8a7f4e37328b3829, preserving the exact reserved 24-path scope.",
-    "issued_at": "2026-10-04T03:54:05Z",
-    "expires_at": "2026-10-04T03:59:05Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Fresh-admission RECONCILE for Issue #1062: bind the canonical work branch test/issue1062-product-full-regression-recovery to the already-created exact body/0 generation 6 candidate commit 5286e3518d60db70d88709bf8a7f4e37328b3829, preserving the exact reserved 24-path scope.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
+    "purpose": "Resume expired #1062 body gen6 candidate lease at exact work head 5286e351 and continue unchanged START_QA product regression.",
+    "issued_at": "2026-10-04T04:03:52Z",
+    "expires_at": "2026-10-04T04:08:52Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Resume expired #1062 body gen6 candidate lease at exact work head 5286e351 and continue unchanged START_QA product regression.\n範圍：只續跑既有 #1062 body gen6 CANDIDATE_BOUND → START_QA；不改 candidate、不改 24-path reservation、不擴張 scope。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1062,
     "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+    "branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829",
     "required_skills": [
+      "flow-v2-execution",
       "root-local-first",
       "性質導向測試",
       "phase6-corner-3d-model-integrity",
       "phase6-overlay-relief-basis",
-      "flow-v2-execution",
+      "diagnosing-bugs",
+      "tdd",
       "驗證板件與DXF",
       "monitoring-remote-qa"
     ],
     "completed_skills": [
+      "flow-v2-execution",
       "root-local-first",
       "性質導向測試",
       "phase6-corner-3d-model-integrity",
       "phase6-overlay-relief-basis",
-      "flow-v2-execution",
+      "diagnosing-bugs",
+      "tdd",
       "驗證板件與DXF",
       "monitoring-remote-qa"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
       ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -94,6 +87,7 @@
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
       ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -102,7 +96,7 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-04T03:54:00Z"
+    "observed_at": "2026-10-04T04:03:52Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -111,11 +105,11 @@
     "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
     "execution_mode": "INTERACTIVE",
     "issue": 1062,
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "startup_issued_at": "2026-10-04T03:54:05Z",
-    "preflight_observed_at": "2026-10-04T03:54:00Z",
-    "issued_at": "2026-10-04T03:54:05Z",
-    "expires_at": "2026-10-04T03:59:05Z"
+    "branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829",
+    "startup_issued_at": "2026-10-04T04:03:52Z",
+    "preflight_observed_at": "2026-10-04T04:03:52Z",
+    "issued_at": "2026-10-04T04:03:52Z",
+    "expires_at": "2026-10-04T04:08:52Z"
   }
 }
