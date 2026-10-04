@@ -325,13 +325,8 @@ def _resolve_scheduler_preflight_receipt_ref(
 def _prevalidate_interactive_git_write_receipt(
     request: dict[str, object], *, execution_mode: str
 ) -> None:
-    """Fail closed on content-write authority before any execution-state read."""
-    kind = str(request.get("kind") or "")
-    if execution_mode == "SCHEDULER_LANE" and kind in INTERACTIVE_GIT_WRITE_KINDS:
-        raise ProductionExecutorError(
-            "SCHEDULER_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
-        )
-    if execution_mode != "INTERACTIVE" or kind not in INTERACTIVE_GIT_WRITE_KINDS:
+    """Fail closed on the root-local-first receipt before any execution-state read."""
+    if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
         return
     effect = request.get("effect")
     if not isinstance(effect, dict):
@@ -353,12 +348,7 @@ def _validate_interactive_git_write_receipt(
     repo: str,
     token: str,
 ) -> None:
-    kind = str(request.get("kind") or "")
-    if execution_mode == "SCHEDULER_LANE" and kind in INTERACTIVE_GIT_WRITE_KINDS:
-        raise ProductionExecutorError(
-            "SCHEDULER_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
-        )
-    if execution_mode != "INTERACTIVE" or kind not in INTERACTIVE_GIT_WRITE_KINDS:
+    if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
         return
     effect = request.get("effect")
     if not isinstance(effect, dict):
