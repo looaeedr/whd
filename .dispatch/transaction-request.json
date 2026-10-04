@@ -1,17 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-stale-release-delete-branch-20261004T0220Z",
+  "request_id": "issue1112-reconcile-stale-work-head-20261004T0222Z",
   "issue": 1112,
-  "kind": "RELEASE_PATHS",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1112.stale-release.20261004T0220Z",
   "expected_coord_head": "d5a64b1df7dc4074ecbae9632706d2ab26e4fa14",
   "expected_generation": 5,
   "effect": {
-    "reason": "already-closed issue; released stale residue blocks work0",
-    "delete_stale_work_branch": true
+    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
+    "observed_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
+    "observed_target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
+    "semantic_state": "PATH_RESERVATION_RELEASED",
+    "next_action": {
+      "kind": "RELEASE_PATHS",
+      "args": {
+        "reason": "issue #1112 already closed and merged; clear stale released residue"
+      },
+      "display": "Release stale #1112 reservation after live-target reconcile"
+    }
   },
-  "purpose": "Closure-only Flow v2 stale RELEASE_PATHS cleanup for already-completed Issue #1112; no repository-content mutation.",
+  "purpose": "Closure-only Flow v2 reconciliation of Issue #1112 stale work-head identity before trusted RELEASE_PATHS cleanup; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
