@@ -52,6 +52,9 @@
     "cli": "python tools/work_root_gate.py recover-current-production",
     "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
     "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
-    "policy": "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION"
+    "policy": "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION",
+    "terminal_gate": false,
+    "closure_authority": false,
+    "purpose": "OPTIONAL_ROOT_CATCHUP_MAINTENANCE"
   }
 }
