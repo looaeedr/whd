@@ -3,15 +3,15 @@
   "version": 1,
   "authority": "NON_AUTHORITY",
   "entrypoint": "A40",
-  "task_id": "6ab13fa557fc8191935c671214b865e2",
+  "task_id": "6abe0efee140819190b5d215eb3bceba",
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "scheduler-a:40:20260928T174200Z:889:g7",
-  "event": "HEARTBEAT",
-  "last_wake_at": "2026-09-28T17:42:00Z",
-  "last_heartbeat_at": "2026-09-28T17:48:30Z",
-  "heartbeat_expires_at": "2026-09-28T17:53:30Z",
+  "invocation_identity": null,
+  "event": "SEED",
+  "last_wake_at": null,
+  "last_heartbeat_at": null,
+  "heartbeat_expires_at": null,
   "last_progress_at": null,
   "exit_at": null,
   "exit_state": null,
-  "observed_at": "2026-09-28T17:48:30Z"
+  "observed_at": "2026-10-04T22:51:21Z"
 }
