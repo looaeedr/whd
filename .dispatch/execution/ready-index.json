@@ -3,17 +3,6 @@
   "entries": [
     {
       "execution_intent": "EXECUTE_TICKET",
-      "generation": 46,
-      "issue": 1062,
-      "next_action_display": "Acquire fresh execution",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "1adce0cf90f2da8811eab9ac586768d53e485a5591af4b6a487bca6aa737502c",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-      "updated_at": "2026-10-04T03:25:56Z"
-    },
-    {
-      "execution_intent": "EXECUTE_TICKET",
       "generation": 6,
       "issue": 1112,
       "next_action_display": "Acquire fresh execution",
@@ -25,5 +14,5 @@
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "e3e06eb1e867177c26b1527fb9b53af39800a71bc03ed9b4ca71766d8c1fe4b5"
+  "source_digest": "9054930c5ff2bd6a21f0395501f58349dad95bfc4ba22c4703665abfa033fea6"
 }

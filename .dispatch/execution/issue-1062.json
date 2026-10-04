@@ -12,31 +12,54 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 46,
+  "generation": 47,
   "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "issue": 1062,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-04T03:52:37Z",
+    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+    "token": "lease:1062:37174590888:1"
+  },
   "mutation_scope": {
-    "base_sha": "87d6df3890199afe0ca2c0d6879b0db0f5ea71bf",
+    "base_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
     "delete_paths": [],
-    "reservation_state": "RELEASED",
+    "reservation_state": "ACTIVE",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
-      ".agents/skills/engineering/刪除/SKILL.md",
-      ".agents/skills/skill_registry.json",
-      "tests/process/test_delete_skill_contract.py",
-      "tests/process/test_issue870_execution_record_v2.py",
-      "tools/execution_record.py"
+      "ae_engine/manufacturing_api.py",
+      "ae_engine/manufacturing_export.py",
+      "ae_engine/manufacturing_verification.py",
+      "ae_engine/receiving_manufacturing_readiness.py",
+      "fold_designer_bridge.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "gui_modules/application/manufacturing_adapter.py",
+      "gui_modules/application/receiving_set_bay_adapter.py",
+      "gui_modules/project/export_actions.py",
+      "phase6_workspace_controller.py",
+      "tests/test_box_body_single_source_t2.py",
+      "tests/test_certified_relief_runtime_contract.py",
+      "tests/test_issue1062_finalscene_oracle_migration.py",
+      "tests/test_issue1115_receiving_manufacturing_readiness.py",
+      "tests/test_issue1128_derived_sync_composition_owner.py",
+      "tests/test_issue1158_multi_door_indicator_workspace.py",
+      "tests/test_issue480_derived_part_projection_plan.py",
+      "tests/test_joint_diagnostics_contract.py",
+      "tests/test_overlay_formed_fw_registry_contract.py",
+      "tests/test_overlay_fw_width_invariant.py",
+      "tests/test_phase6_3d_retain_and_baseline.py",
+      "tests/test_phase6_assembly_3d_view.py",
+      "tests/test_phase6_corner_dimension_controls.py",
+      "tests/test_resolved_manufacturing_bridge.py"
     ]
   },
   "next_action": {
     "args": {},
-    "display": "Acquire fresh execution",
-    "kind": "ACQUIRE"
+    "display": "Create body gen6 delivery branch",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "NONE",
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -50,21 +73,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "transaction": {
-    "expected_fingerprint": "54fccc6dca2ee861fa330037943ac10c524038415749f556ebfe02958b43463e",
-    "id": "gha:37174040577:1062:RECONCILE:45",
-    "invocation_identity": "gha:looaeedr/whd:run:37174040577:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "kind": "RECONCILE",
+    "expected_fingerprint": "1adce0cf90f2da8811eab9ac586768d53e485a5591af4b6a487bca6aa737502c",
+    "id": "gha:37174590888:1062:ACQUIRE:46",
+    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T03:25:56Z",
+  "updated_at": "2026-10-04T03:37:37Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
