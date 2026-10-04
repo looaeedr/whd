@@ -290,6 +290,12 @@ def _resolve_scheduler_preflight_receipt_ref(
             "scheduler Phase6 receipt reference requires request_id + branch + head_sha"
         )
 
+    live_head = _read_branch_head(repo, token, branch).lower()
+    if live_head != head_sha:
+        raise ProductionExecutorError(
+            f"scheduler Phase6 receipt live branch/head drift: expected {head_sha}, observed {live_head}"
+        )
+
     comment = _fetch_issue_comment(repo, token, comment_id)
     receipt = _receipt_from_trusted_comment(
         comment,
