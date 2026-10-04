@@ -61,9 +61,38 @@
   },
   "push": {
     "entry_skill": "/推推",
-    "allowed_targets": ["文檔", "主體"],
+    "allowed_targets": [
+      "文檔",
+      "主體"
+    ],
     "branch_creation_timing": "DELIVERY_ONLY_AFTER_LANE_GREEN",
     "scope_gate": "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST",
     "cross_lane_leakage": "FORBIDDEN"
+  },
+  "remote_authority_scope": {
+    "interactive_repository_content": "DENY_BY_DEFAULT_UNTIL_EXPLICIT_AUTHORITY",
+    "control_plane_authority": "OWN_CURRENT_CONTRACTS_NOT_OVERRIDDEN_BY_PUSH_SKILL",
+    "control_plane_cannot_author_root_content": true
+  },
+  "post_delivery_tail": {
+    "execution_terminal_owner": "WHD_EXECUTION_RECORD_V2",
+    "issue_sync_authority": "POST_DELIVERY_ISSUE_SYNC",
+    "required_order": [
+      "MERGE_READBACK_VERIFIED",
+      "DELIVERY_RECEIPT_BOUND",
+      "SYNC_LINKED_GITHUB_ISSUES",
+      "ISSUE_SYNC_READBACK_VERIFIED",
+      "FLOW_V2_DONE",
+      "LANE_DELIVERY_RECEIPT_BOUND",
+      "FINALIZE_DELIVERED_LANE_ZERO",
+      "DURABLE_CLEANUP_COMPLETE"
+    ],
+    "lane_cleanup_requires_flow_v2_done": true
+  },
+  "root_sync_policy": {
+    "mode": "OPTIONAL_MAINTENANCE",
+    "terminal_gate": false,
+    "issue_closure_authority": false,
+    "missing_or_invalid_receipt": "NON_BLOCKING_MAINTENANCE_DRIFT"
   }
 }
