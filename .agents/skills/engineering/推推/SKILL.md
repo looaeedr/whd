@@ -1,6 +1,6 @@
 ---
 name: 推推
-description: WHD shared-unpushed integration 的唯一 interactive Git delivery 出口。只允許 `/推推 文檔` 或 `/推推 主體`；delivery 前鎖定 exact 檔案集合與 hash，merge 前重新驗最新檔；merge 後先同步 Issue/Flow v2，只有 Flow v2 DONE 才進 selected lane durable cleanup。root sync/recovery 只屬 optional maintenance，不得阻塞 terminal closure。
+description: WHD shared-0 fallback 的 interactive Git delivery 出口。普通 executor-local workspace flow 直接走 tested delivery branch + PR/checks，不需要 `/推推`；只有 fresh Drive/shared-0 drift 啟動 fallback 時才使用 `/推推 文檔|主體`。
 whd_doc_role: CURRENT
 whd_contract: shared-unpushed-integration
 whd_canonical: null
@@ -9,22 +9,19 @@ whd_schema: WHD_DOC_META_V1
 
 # /推推
 
-`/推推` 是 WHD 新流程中唯一允許把 canonical root 內「未推送整合 0」送進 Git/GitHub 的 delivery Skill。
+`/推推` 只負責 **shared-0 fallback lane** 的 Git delivery。普通 workspace-first 施工不經 `/推推`。
 
-## 0. ROOT_FIRST_AND_REMOTE_DENY_DEFAULT_HARD_GATE_V1
+## 0. WORKSPACE_DEFAULT_AND_SHARED_ZERO_FALLBACK_V1
 
-任何 repository-content 的找檔、baseline、比對、修改、測試與 shared-0 合併，**一律先從 canonical root `/Google Drive/WHD` 開始**。
+普通 repository-content 預設路徑：
 
-本節 remote-deny 只約束 **interactive/default repository-content discovery / authoring / delivery**；不得拿本節去撤銷 Flow v2、scheduler、trusted Preflight、Issue create/readback、post-delivery Issue sync 等 control-plane 自己已由 CURRENT contract 授權的遠端能力。反過來，這些 control-plane authority 也不得被拿來取代 canonical root 施工面。
+`cleanup/2d-3d-sync → executor-local repo workspace → edit/test → tested delivery branch → PR/checks → cleanup/2d-3d-sync`
 
-對 interactive/default repository-content 而言，未取得下列任一明確 authority 前，禁止把 GitHub checkout/mirror、Remote Desktop、遠端本機或其他遠端內容來源升格為 repository-content baseline / authoring surface：
+每個 executor 使用自己的 workspace。GitHub `cleanup/2d-3d-sync` 是共同 production baseline；普通 startup 可直接做 `READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ`，不需要 `/推推`、Drive generation、shared-0 manifest 或 `workspace_canonical_sync.py`。
 
-1. 使用者明確要求「開工單」：只授權 issue create/readback 所需 GitHub 連線，不授權 repository-content 讀寫；
-2. 使用者明確下達遠端 repository-content 操作指示；
-3. 使用者下達 `/推推 文檔` 或 `/推推 主體`：只授權本次 selected lane 的 Git delivery window。
+只有 fresh evidence 證明 touched paths 存在 GitHub/workspace 沒有的 `/Google Drive/WHD/.unpushed/{docs|body}/0` drift，才切入 `SHARED_ZERO_FALLBACK`。這時才使用本 Skill、selected lane freeze、fileset lock、Drive readback 與 `CANONICAL_SHARED_0_UPDATED`。
 
-一般 interactive 任務、Skill 自動觸發、想確認「GitHub 是否更新」、或 root 找不到檔案，**都不是 repository-content remote authority**。不得先從 GitHub 找同名檔再回 root，也不得用 remote copy 取代 root baseline。trusted Preflight / scheduler bootstrap / Flow v2 control-plane 是否可讀 GitHub，完全依各自 CURRENT contract 判定，不由本節額外阻擋或放寬。
-
+普通 WORKSPACE_DEFAULT 的 Git write 仍禁止 direct push production target；只能把 exact tested diff 推到 delivery branch，跑 required checks，再 merge。
 ## 1. 指令
 
 只接受：
@@ -166,58 +163,26 @@ BODY_0_EXISTS
 
 任何額外 path 都必須 fail closed：`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK`。
 
-## 9.4 CHATGPT_CLOUD_MOUNT_TO_CODEX_WORKSPACE_BRIDGE_V1
+## 9.4 CONDITIONAL_SHARED_ZERO_RECONCILE_V1
 
-`/Google Drive/WHD` 是 ChatGPT/connector 可解析的 canonical authority path；它**不是 Codex execution runtime 必須直接掛載的 filesystem path**。
+`tools/workspace_canonical_sync.py` 保留為 CURRENT fallback/reconcile machine，**不是普通 startup hard path**。
 
-當 ChatGPT/connector 已能 fresh-read canonical root，但 Codex/C2C execution surface 無法看到聊天室 cloud mount 時，固定分類：
+只有 route machine fresh 判定：`FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS=true` 才啟動：
 
-`CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX`
+`Drive/shared-0 → executor workspace reconcile → edit/test → outbound relay → Drive readback → CANONICAL_SHARED_0_UPDATED → /推推`
 
-此分類只代表 **execution-surface transport mismatch**，不得轉譯成 `LOCAL_MACHINE_UNAVAILABLE`、`ROOT_PATH_UNRESOLVED_FAIL_CLOSED`、authority loss、repository-content blocker，亦不得要求 Codex 直接 `cd /Google Drive/WHD`。
+普通 WORKSPACE_DEFAULT：
+- 不要求 Drive mount；
+- 不要求 `sync-in/status/prepare-outbound/verify-outbound`；
+- 不要求 canonical generation/manifest；
+- 不要求 `CANONICAL_SHARED_0_UPDATED`；
+- 直接使用各 executor 自己的 repo workspace + fresh `cleanup/2d-3d-sync` baseline。
 
-固定 bridge：
+Codex 的 `/workspace/whd` 只是 Codex 自己的 workspace 實例；ChatGPT 與其他 executor 使用各自 runtime workspace，不得硬編單一共享實體目錄。
 
-`CLOUD_AUTHORITY_READ → WORKSPACE_STAGE_EXACT_PATHS → PATH_HASH_MANIFEST_VERIFY → CODEX_WORKSPACE_EXECUTION → DELIVERY_LOCK_REVERIFY`
+shared-0 fallback active 時，workspace dirty paths 不得被 sync silent overwrite；同 path drift 固定 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`。
 
-硬規則：
-
-1. authority 仍固定 `/Google Drive/WHD` / selected shared-0 lineage；Codex workspace 永遠不是 authority。
-2. 只 materialize 本次 task / selected lane 所需的 exact paths；不得把整個 cloud mount 假裝成本機 mount。
-3. staging receipt 至少記錄 `canonical_path + workspace_path + size + sha256 + source_generation/manifest_digest`；Codex 執行前逐檔 readback，全部 exact match 才可進入 execution。
-4. Codex 只能在 staged workspace 做 edit/test/git preparation；任何結果回到 shared-0 或 delivery lock 前，必須再次以 canonical manifest/hash reconcile。
-5. 任一 path/hash/size/manifest mismatch 固定 `CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH`，fail closed並從 canonical authority重新 stage；禁止拿 workspace 舊副本續做。
-6. Codex 回報「找不到 `/Google Drive/WHD`」時，視為 bridge trigger，不得要求額外 mount 權限、不得改走 GitHub mirror baseline、不得宣告永久 blocker。
-7. 若 ChatGPT/connector 自己也無法讀 canonical authority，才回到 CURRENT root/connector capability classification；不得把那種情況和 Codex mount invisibility混為一談。
-
-machine invariant：`CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY`。
-
-### 9.4.1 WORKSPACE_CANONICAL_SYNC_V1
-
-ChatGPT / Codex / C2C 共用 `/workspace/whd` 這份**持久、可重用的最新 repo mirror/cache**；此 mirror 可包含完整 repository tree，目的只是提供穩定 execution surface，不必每次任務重新從 cloud mount materialize 全部依賴。
-
-CURRENT machine owner：`tools/workspace_canonical_sync.py`。`CODEX_WORKSPACE_LATEST_MIRROR_V1` 只作 compatibility alias，不得新增 `codex_workspace_sync.py` 或其他 Codex-only 第二套 sync state machine。
-
-固定同步模型：
-
-`CANONICAL_MANIFEST_READ → WORKSPACE_MIRROR_RECONCILE → INCREMENTAL_PATH_SYNC → MIRROR_READBACK_VERIFIED → CODEX_EXECUTION`
-
-固定命令：
-
-- `sync-in`：以 `WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1` 增量同步 canonical/shared-0 到 `/workspace/whd`，產生 `WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1`。
-- `status`：回報 workspace/canonical generation、dirty paths、drifted paths 與 sync state。
-- `prepare-outbound`：把 selected docs/body workspace changes 包成 `WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1`，綁 base canonical generation/digest 與 exact path hashes。
-- `verify-outbound`：Drive connector 寫回 shared-0 後，以 `WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1` readback 驗證 exact path/hash，只有 GREEN 才可宣告 `CANONICAL_SHARED_0_UPDATED`。
-
-規則：
-
-- mirror 可跨 invocation 保留；不得在每次 terminal 後刪掉整個 workspace mirror。
-- 每次 Codex 開工前先 fresh-read canonical generation/manifest；mirror 若已綁同 generation/digest，且所需 task paths hash仍一致，可直接 reuse。
-- 若 canonical 前進，只同步新增/刪除/變更的 paths，然後更新 mirror receipt；不要求每輪重新複製整 repo。
-- mirror receipt 至少綁 `canonical_root_identity + canonical_generation_or_manifest_digest + mirror_root + verified_at`，並保存每個 changed path 的 `size + sha256` readback。
-- 完整 mirror 存在不代表 `/推推` scope 擴大；delivery 仍只能使用 selected lane fileset lock，禁止把 workspace 其他檔案一起 commit/push。
-- workspace dirty paths 是 execution result，不得被 background/latest-sync覆蓋；同步前必須先分離 clean mirror baseline 與 active dirty work。若 canonical 同 path 同時前進，固定 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`，先 reconcile，不得 silent overwrite。
-- machine invariant：`PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY` 與 `WORKSPACE_CANONICAL_SYNC_OWNER_IS_SHARED_NOT_CODEX_ONLY`。
+machine invariant：`WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP`。
 ## 9.5 WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1
 
 當 selected lane 已 `FROZEN`、fileset lock 已建立，而且來源 connector 不能直接作為 Git content-write 輸入時，允許使用 **workspace-staged relay** 作為同一 delivery window 內的相容 transport。這不是新的 authority，也不能改變 lock。
