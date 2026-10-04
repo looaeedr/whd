@@ -1,7 +1,7 @@
 {
   "canonical_delivery_reservation": {
-    "phase": "AFTER_LANE_MANIFEST_FROZEN",
-    "result": "ACTIVE_DELIVERY_RESERVATION_BOUND_TO_FROZEN_LANE_MANIFEST",
+    "phase": "AFTER_TESTED_DIFF_FROZEN",
+    "result": "ACTIVE_DELIVERY_RESERVATION_BOUND_TO_EXACT_TESTED_DIFF",
     "transaction": "ACQUIRE_OR_RESERVE_PATHS_AT_DELIVERY"
   },
   "conflict_domain": "SAME_TARGET_BRANCH_EXACT_REPOSITORY_PATH",
@@ -15,7 +15,7 @@
   "execution_authority": "WHD_EXECUTION_RECORD_V2_LEASE_PLUS_MUTATION_SCOPE",
   "expansion_policy": "MONOTONIC_SUPERSET_CAS",
   "handoff_policy": "RESERVATION_STAYS_WITH_ISSUE",
-  "phase": "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
+  "phase": "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN",
   "record_owner": "tools/execution_record.py",
   "release_policy": "FINALIZE_OR_EXPLICIT_RELEASE_PATHS",
   "reservation_counts_as_substantive_progress": false,
@@ -24,7 +24,7 @@
     "RESERVE_PATHS",
     "RELEASE_PATHS"
   ],
-  "root_authoring_policy": "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION",
+  "root_authoring_policy": "NO_PREWRITE_RESERVATION__RESERVE_ONLY_FOR_GIT_DELIVERY",
   "schema": "WHD_PATH_RESERVATION_V1",
   "scope_expansion_policy": "DELIVERY_ONLY_MONOTONIC_SUPERSET",
   "second_database_forbidden": true,
@@ -32,8 +32,8 @@
   "status": "CURRENT",
   "transaction_owner": "tools/control_transaction.py",
   "trusted_executor": "tools/control_transaction_production_executor.py",
-  "version": 2,
-  "workspace_authority": "NONE__UNPUSHED_LANE_0_IS_ROOT_CONTENT_AUTHORITY",
-  "workspace_policy": "SHARED_UNPUSHED_LANE_0",
+  "version": 3,
+  "workspace_authority": "NONE__EXECUTOR_WORKSPACE_OR_SHARED_ZERO_REMAINS_CONTENT_SURFACE",
+  "workspace_policy": "EXECUTOR_LOCAL_WORKSPACE_DEFAULT__SHARED_ZERO_CONDITIONAL_FALLBACK",
   "writer_policy": "SINGLE_AUTHORITATIVE_WRITER_PER_PATH_AT_DELIVERY_ONLY"
 }
