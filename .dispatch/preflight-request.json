@@ -1,10 +1,10 @@
 {
   "schema": "WHD_REMOTE_PHASE6_PREFLIGHT_PUSH_REQUEST_V1",
-  "request_id": "a00-issue1080-takeover-20261005T0300+08",
+  "request_id": "a00-issue1080-takeover-20261005T0604+08",
   "issue": 1080,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "a00:issue1080:takeover:20261005T0300+08",
+  "invocation_identity": "a00:issue1080:takeover:20261005T0604+08",
   "executor_source": "scheduler",
   "branch": "cleanup/2d-3d-sync",
   "head_sha": "961eb9f667ee96df73b8ebdba6b1dbc9375b48c3",
