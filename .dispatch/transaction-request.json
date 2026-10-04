@@ -1,34 +1,15 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1112-reconcile-live-work-and-target-20261004T030808Z",
+  "request_id": "issue1112-release-after-ref-alignment-20261004T031718Z",
   "issue": 1112,
-  "kind": "RECONCILE",
+  "kind": "RELEASE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
   "expected_coord_head": "d5a64b1df7dc4074ecbae9632706d2ab26e4fa14",
   "expected_generation": 5,
   "effect": {
-    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
-    "observed_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
-    "observed_target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "semantic_state": "PATH_RESERVATION_RELEASED",
-    "next_action": {
-      "kind": "RELEASE_PATHS",
-      "args": {
-        "reason": "Issue #1112 already merged; delete stale contained work branch and release work0"
-      },
-      "display": "Delete stale #1112 work branch and release work0"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1112,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f"
-    }
+    "reason": "Issue #1112 already merged; delete stale contained work branch after exact non-force ref alignment to the recorded head",
+    "delete_stale_work_branch": true
   },
   "runtime_provenance": {
     "schema": "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_PROVENANCE_REQUEST_V1",
@@ -62,18 +43,18 @@
       "unpushed_root": "/Google Drive/WHD/.unpushed",
       "status": "GREEN"
     },
-    "purpose": "Reconcile #1112 released residue to the real stale work head and current production target before trusted stale-branch cleanup.",
-    "issued_at": "2026-10-04T03:08:08Z",
-    "expires_at": "2026-10-04T03:13:08Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reconcile #1112 released residue to the real stale work head and current production target before trusted stale-branch cleanup.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
+    "purpose": "Complete stale #1112 cleanup by trusted RELEASE_PATHS so work0 returns to READY and #1062 can proceed.",
+    "issued_at": "2026-10-04T03:17:18Z",
+    "expires_at": "2026-10-04T03:22:18Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Complete stale #1112 cleanup by trusted RELEASE_PATHS so work0 returns to READY and #1062 can proceed.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1112,
     "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+    "branch": "work/issue1112-receiving-set-bay-editor-20261002",
+    "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
     "required_skills": [
       "flow-v2-execution",
       "phase6-release-packaging"
@@ -92,7 +73,7 @@
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-04T03:08:08Z"
+    "observed_at": "2026-10-04T03:17:18Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -101,11 +82,11 @@
     "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
     "execution_mode": "INTERACTIVE",
     "issue": 1112,
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "startup_issued_at": "2026-10-04T03:08:08Z",
-    "preflight_observed_at": "2026-10-04T03:08:08Z",
-    "issued_at": "2026-10-04T03:08:08Z",
-    "expires_at": "2026-10-04T03:13:08Z"
+    "branch": "work/issue1112-receiving-set-bay-editor-20261002",
+    "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
+    "startup_issued_at": "2026-10-04T03:17:18Z",
+    "preflight_observed_at": "2026-10-04T03:17:18Z",
+    "issued_at": "2026-10-04T03:17:18Z",
+    "expires_at": "2026-10-04T03:22:18Z"
   }
 }
