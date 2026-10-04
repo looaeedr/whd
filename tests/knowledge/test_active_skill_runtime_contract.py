@@ -132,11 +132,11 @@ def test_catalog_active_classification_does_not_promote_mirror_skill_to_semantic
 
     continuity = ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
     classified = {row.path: row.classification for row in inventory()}
-    assert classified[continuity] == "retired"
+    assert continuity not in classified
     assert continuity not in active
-    continuity_text = (ROOT / continuity).read_text(encoding="utf-8")
-    assert "whd_doc_role: MIRROR" in continuity_text
-    assert "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in continuity_text
+    assert not (ROOT / continuity).exists()
+    aliases = {row["identity"]: row for row in CATALOG["retired_aliases"]}
+    assert aliases["executable-continuity-controller"]["replacement_identity"] == "flow-v2-execution"
 
 def test_flow_v2_mirror_bridge_policy_is_explicit_and_cannot_own_second_state_machine() -> None:
     rules = (ROOT / "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md").read_text(encoding="utf-8")
@@ -150,12 +150,12 @@ def test_flow_v2_mirror_bridge_policy_is_explicit_and_cannot_own_second_state_ma
         ".agents/skills/engineering/工作槽/SKILL.md",
         ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
         ".agents/skills/engineering/issue-closure-gate/SKILL.md",
-        ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
-        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
         ".agents/skills/engineering/強制接手/SKILL.md",
         ".agents/skills/engineering/執行開發任務/SKILL.md",
         ".agents/skills/engineering/寫排程/SKILL.md",
     }
+    assert not (ROOT / ".agents/skills/engineering/executable-continuity-controller/SKILL.md").exists()
+    assert not (ROOT / ".agents/skills/engineering/remote-execution-guard/SKILL.md").exists()
     for rel in bridge_paths:
         text = (ROOT / rel).read_text(encoding="utf-8")
         assert "whd_doc_role: MIRROR" in text, rel
