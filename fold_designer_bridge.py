@@ -113,6 +113,7 @@ from gui_modules.application.receiving_set_bay_adapter import (
 from gui_modules.application.receiving_set_bay_controls import (
     RECEIVING_SWITCH_BRANDS,
     build_receiving_set_bay_controls,
+    open_receiving_layer_preview,
     refresh_receiving_layer_rows,
 )
 from gui_modules.application.receiving_switch_layout_adapter import (
@@ -2092,52 +2093,17 @@ def _phase6_confirm_receiving_opening(self, layer_index, connection_index, brand
 
 
 def _phase6_open_receiving_layer_preview(self, layer_index):
-    controls = getattr(self, "receiving_layer_controls", None)
-    if controls is None:
+    if getattr(self, "receiving_layer_controls", None) is None:
         return False
     adapter = _phase6_receiving_switch_adapter(self)
-    index = int(layer_index)
-    count = adapter.connection_count(index)
-    brand = adapter.brand
-
-    win = original.tk.Toplevel(self.root)
-    win.title(f"第{index + 1}層預覽")
-    win.transient(self.root)
-    try:
-        win.grab_set()
-    except Exception:
-        pass
-    body = original.ttk.Frame(win, padding=12)
-    body.pack(fill=original.tk.BOTH, expand=True)
-    original.ttk.Label(
-        body, text=f"第{index + 1}層｜{count}連｜開關：{brand}"
-    ).grid(row=0, column=0, columnspan=min(max(count, 1), 5), sticky="w", pady=(0, 10))
-
-    selected = original.tk.IntVar(master=win, value=0)
-    for connection_index in range(count):
-        original.ttk.Radiobutton(
-            body,
-            text=f"第{connection_index + 1}連",
-            variable=selected,
-            value=connection_index + 1,
-        ).grid(row=1 + connection_index // 5, column=connection_index % 5, padx=4, pady=4, sticky="ew")
-
-    actions = original.ttk.Frame(body)
-    actions.grid(row=2 + (count - 1) // 5, column=0, columnspan=min(max(count, 1), 5), sticky="e", pady=(10, 0))
-    original.ttk.Button(actions, text="取消", command=win.destroy).pack(side=original.tk.LEFT, padx=(0, 6))
-
-    def confirm():
-        number = int(selected.get())
-        if number <= 0:
-            from tkinter import messagebox
-            messagebox.showinfo("請選擇", "請先選擇一連。", parent=win)
-            return
-        if _phase6_confirm_receiving_opening(self, index, number - 1, brand):
-            win.destroy()
-
-    original.ttk.Button(actions, text="確定", command=confirm).pack(side=original.tk.LEFT)
-    return True
-
+    index, brand = int(layer_index), adapter.brand
+    return open_receiving_layer_preview(
+        self.root, tk=original.tk, ttk=original.ttk, layer_index=index,
+        connection_count=adapter.connection_count(index), brand=brand,
+        on_confirm=lambda connection_index: _phase6_confirm_receiving_opening(
+            self, index, connection_index, brand
+        ),
+    )
 
 _BACK_PANEL_MODE_LABELS = {
     BackPanelMode.FULL: "全板",
