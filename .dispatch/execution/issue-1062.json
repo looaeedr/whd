@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 52,
-  "head_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829",
+  "generation": 53,
+  "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -58,7 +58,7 @@
     "args": {
       "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Rebuild exact body gen7 candidate then run exact-head product regression",
+    "display": "Consume exact-head body gen7 product regression",
     "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -76,7 +76,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CANDIDATE_REPAIR_RESERVED",
+  "semantic_state": "CANDIDATE_BOUND",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
@@ -84,13 +84,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "transaction": {
-    "expected_fingerprint": "55c479924a6a4f076b389af656186c44d325bc3828843abc31cdcc5acdd399d4",
-    "id": "gha:37176881481:1062:RESERVE_PATHS:51",
-    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "kind": "RESERVE_PATHS",
+    "expected_fingerprint": "0b5d4e5493931d04b260777911922ea4873144979e993072dd558d43d5b74432",
+    "id": "gha:37177186957:1062:RECONCILE:52",
+    "invocation_identity": "gha:looaeedr/whd:run:37177186957:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T04:24:32Z",
+  "updated_at": "2026-10-04T04:30:42Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
