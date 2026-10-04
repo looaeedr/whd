@@ -233,14 +233,21 @@ def test_t013_last_bay_uses_x_even_in_multi_bay_set():
     }
 
 
-def test_t014_symbol_formula_is_centered_without_locking_open02_absolute_value():
+def test_t014_symbol_formula_is_centered_and_open02_is_locked_to_5mm():
     _snapshot, _base, _world, result = _resolve(bay_count=2, mode="FULL", bay_index=0)
-    assert PAIRING_SYMBOL_INSET > 0.0
+    assert PAIRING_SYMBOL_INSET == pytest.approx(5.0)
     size = pairing_symbol_size(inset=PAIRING_SYMBOL_INSET)
     assert size == pytest.approx(50.0 - 2.0 * PAIRING_SYMBOL_INSET)
-    assert result.result.evidence["symbol_size"] == pytest.approx(size)
+    assert result.result.evidence["symbol_size"] == pytest.approx(40.0)
 
     left = _piece(result.geometry, "left_side")
+    metadata = dict(left.metadata or {})
+    assert "receiving_pairing_mark_provisional" not in metadata
+    assert metadata["receiving_pairing_mark_authority"] == {
+        "PAIRING_SYMBOL_INSET": pytest.approx(5.0),
+        "status": "OWNER_CONFIRMED",
+        "issue": 1116,
+    }
     rows = {str(row["role"]): row for row in _pairing_rows(left)}
     circle = _role_map(left)["right_lock_circle"]
     assert isinstance(circle, CirclePrimitive)
