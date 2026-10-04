@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1145,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "delivery/issue1062-docs-gen16-batch-20261003",
+  "source_sha": "7f9f7db224281d6ce8407c4cd9fcb98f4fd55347",
+  "work_branch": "delivery/issue1062-docs-gen16-batch-20261003",
+  "head_sha": "7f9f7db224281d6ce8407c4cd9fcb98f4fd55347",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1145"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "github-issue:1145:user-explicit-closure-reconciliation:5979299737",
+      "authority_fingerprint": "5d7d147f84369c6095d32f255b7302fb323c5dec8952fa24a3604f2c516209b9"
+    }
+  ],
+  "updated_at": "2026-10-04T11:06:35Z"
+}
