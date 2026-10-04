@@ -80,6 +80,15 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("root sync ingress success schema mismatch")
     if ingress.get("failure_schema") != "WHD_CANONICAL_ROOT_SYNC_RESULT_V1":
         raise ValueError("root sync ingress failure schema mismatch")
+    if ingress.get("terminal_gate") is not False:
+        raise ValueError("root sync ingress must not be a terminal gate")
+    policy = _mapping(item.get("root_sync_policy"), "root sync policy")
+    if policy.get("terminal_gate") is not False:
+        raise ValueError("root sync policy must not block terminal completion")
+    if policy.get("closure_authority") is not False:
+        raise ValueError("root sync policy must not own Issue closure")
+    if policy.get("mode") != "OPTIONAL_MAINTENANCE":
+        raise ValueError("root sync policy mode must be OPTIONAL_MAINTENANCE")
     if item.get("lane_delivery_receipt_schema") != LANE_DELIVERY_RECEIPT_SCHEMA:
         raise ValueError("lane delivery receipt schema mismatch")
     forbidden = set(map(str, item.get("forbidden_current_authorities") or ()))
