@@ -121,7 +121,7 @@
         "local_machine_unavailable": false,
         "authority_loss": false,
         "codex_must_not_require_direct_canonical_mount": true,
-        "stage_exact_paths_only": true,
+        "stage_exact_paths_only": false,
         "required_stage_identity": [
           "canonical_path",
           "workspace_path",
@@ -131,7 +131,33 @@
         ],
         "mismatch_state": "CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH",
         "mismatch_action": "RESTAGE_FROM_CANONICAL_AUTHORITY",
-        "invariant": "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY"
+        "invariant": "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY",
+        "workspace_mirror_policy": {
+          "schema": "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1",
+          "persistence": "RETAIN_ACROSS_INVOCATIONS",
+          "mirror_scope": "FULL_REPOSITORY_CACHE_ALLOWED",
+          "authority": false,
+          "canonical_latest_owner": "/Google Drive/WHD",
+          "startup_reconcile_required": true,
+          "reconcile_key": "CANONICAL_GENERATION_OR_MANIFEST_DIGEST",
+          "sync_mode": "INCREMENTAL_CHANGED_PATHS",
+          "required_mirror_receipt": [
+            "canonical_root_identity",
+            "canonical_generation_or_manifest_digest",
+            "mirror_root",
+            "verified_at"
+          ],
+          "changed_path_readback": [
+            "path",
+            "size",
+            "sha256"
+          ],
+          "preserve_dirty_work": true,
+          "dirty_path_conflict_state": "CODEX_WORKSPACE_MIRROR_RECONCILE_REQUIRED",
+          "delivery_scope_still_locked": true,
+          "terminal_cleanup": "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY",
+          "invariant": "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY"
+        }
       }
     }
   }
