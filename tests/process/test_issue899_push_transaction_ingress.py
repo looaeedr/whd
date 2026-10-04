@@ -818,30 +818,36 @@ def test_interactive_start_branch_accepts_root_unlock_receipt_before_state_read(
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
 
 
-def test_scheduler_start_branch_is_not_misclassified_as_interactive_root_write(monkeypatch):
+def test_scheduler_repository_content_git_write_requires_root_workspace_handoff_before_state_read(monkeypatch):
     import pytest
     import tools.control_transaction_request_ingress as ingress
 
     def _state_read(*args, **kwargs):
-        raise RuntimeError("STATE_READ_REACHED")
+        raise AssertionError("execution state must not be read before scheduler content-write rejection")
 
     monkeypatch.setattr(ingress, "_load_state", _state_read)
     lane = "scheduler.6ab13fa557fc8191935c671214b865e2"
-    invocation = "scheduler:a:issue940:branch"
-    request = {
-        "schema": ingress.REQUEST_SCHEMA, "request_id": "scheduler-branch", "issue": 940,
-        "kind": "START_BRANCH", "lane_id": lane, "invocation_identity": invocation,
-        "expected_coord_head": "a" * 40, "expected_generation": 1,
-        "effect": {"work_branch": "work/issue940", "head_sha": "a" * 40},
-        **_fresh_admission_fields(
-            issue=940,
-            invocation_identity=invocation,
-            purpose="Issue #940 scheduler branch",
-            execution_mode="SCHEDULER_LANE",
-        ),
-    }
-    with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
-        ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
+    for kind in ("START_BRANCH", "APPLY_COMMIT"):
+        invocation = f"scheduler:a:issue940:{kind.lower()}"
+        request = {
+            "schema": ingress.REQUEST_SCHEMA, "request_id": f"scheduler-{kind.lower()}", "issue": 940,
+            "kind": kind, "lane_id": lane, "invocation_identity": invocation,
+            "expected_coord_head": "a" * 40, "expected_generation": 1,
+            "effect": {"work_branch": "work/issue940", "head_sha": "b" * 40},
+            **_fresh_admission_fields(
+                issue=940,
+                invocation_identity=invocation,
+                purpose=f"Issue #940 scheduler {kind.lower()}",
+                execution_mode="SCHEDULER_LANE",
+            ),
+        }
+        with pytest.raises(Exception, match="SCHEDULER_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"):
+            ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
+
+
+def test_control_transaction_semantics_also_reject_scheduler_repository_content():
+    text = (ROOT / "tools/control_transaction.py").read_text(encoding="utf-8")
+    assert text.count("SCHEDULER_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF") >= 2
 
 
 def test_push_request_workflow_reads_cleanup_single_production_authority():
