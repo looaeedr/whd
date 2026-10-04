@@ -23,22 +23,22 @@ TEST_PROFILE_OWNER = "tools/change_test_profile.py"
 TEST_EXECUTION_RECEIPT_SCHEMA = "WHD_TEST_EXECUTION_RECEIPT_V1"
 WORKER_CENSUS_SCHEMA = "WHD_SHARED_ZERO_WORKER_CENSUS_V1"
 REQUIRED_ORDER = (
-    "ROOT_SOURCE_CURRENT",
-    "UNPUSHED_LANE_CLASSIFIED",
-    "LATEST_0_BASE_BOUND",
-    "ROOT_MUTATIONS_COMPLETE",
-    "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
-    "POST_MERGE_0_TEST_CLASSIFIED",
-    "POST_MERGE_0_TESTS_GREEN",
-    "LANE_MANIFEST_FROZEN",
-    "REMOTE_CONNECTION_AUTHORIZED",
-    "DELIVERY_PATHS_RESERVED",
-    "GIT_WRITE_UNLOCKED",
+    "WORKSPACE_SOURCE_CURRENT",
+    "WORKSPACE_MUTATIONS_COMPLETE",
+    "WORKSPACE_TESTS_GREEN",
+    "DELIVERY_BRANCH_READY",
+    "POST_PUSH_CI",
+    "MERGE_READBACK_VERIFIED",
 )
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
 REMOTE_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-REMOTE_CONTENT_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
-READ_ONLY_GIT_ACTIONS = {"READ", "FETCH", "COMPARE"}
+REMOTE_CONTENT_POLICY = "WORKSPACE_MIRROR_IMPLEMENTATION"
+WORKSPACE_ROOT = "/workspace/whd"
+PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
+WORKSPACE_BASELINE_ACTIONS = {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
+READ_ONLY_GIT_ACTIONS = WORKSPACE_BASELINE_ACTIONS
+WORKSPACE_DELIVERY_ACTIONS = WORKSPACE_BASELINE_ACTIONS | {"CREATE_BRANCH", "COMMIT", "PUSH", "PR_READ", "CREATE_PR", "CI", "WORKFLOW_READ", "READBACK", "MERGE"}
+CONTENT_ROUTE_SCHEMA = "WHD_REPOSITORY_CONTENT_ROUTE_V1"
 ROOT_PATH_RESOLUTION_SCHEMA = "WHD_ROOT_PATH_RESOLUTION_EVIDENCE_V1"
 REMOTE_CONNECTION_AUTHORITY_SCHEMA = "WHD_REMOTE_CONNECTION_AUTHORITY_V1"
 REMOTE_CONNECTION_TARGETS = {"GITHUB", "REMOTE_LOCAL"}
@@ -47,6 +47,7 @@ REMOTE_AUTHORITY_KINDS = {
     "USER_EXPLICIT_REMOTE",
     "PUSH_DOCS",
     "PUSH_BODY",
+    "WORKSPACE_DELIVERY",
     "SCHEDULER_GITHUB_ONLY",
 }
 ISSUE_ONLY_ACTIONS = {"CREATE_ISSUE", "ISSUE_READBACK"}
@@ -56,7 +57,7 @@ PUSH_GITHUB_ACTIONS = {
     "PR_READ", "CREATE_PR", "PR_COMMENT", "CI", "WORKFLOW_READ", "REMOTE_QA",
     "MERGE", "ISSUE_READ", "ISSUE_COMMENT", "ISSUE_CLOSE", "READBACK",
 }
-DELIVERY_AUTHORITY_KINDS = {"PUSH_DOCS", "PUSH_BODY", "USER_EXPLICIT_REMOTE"}
+DELIVERY_AUTHORITY_KINDS = {"WORKSPACE_DELIVERY", "PUSH_DOCS", "PUSH_BODY", "USER_EXPLICIT_REMOTE"}
 EXECUTION_MODE_PROVENANCE_SCHEMA = "WHD_EXECUTION_MODE_PROVENANCE_V1"
 GIT_UNLOCK_RECEIPT_SCHEMA = "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
 SCHEDULER_LANE_IDS = {
@@ -230,6 +231,27 @@ def validate_root_path_resolution_evidence(evidence: object) -> dict[str, object
     )
 
 
+def select_repository_content_route(*, shared_zero_drift_present: bool) -> dict[str, object]:
+    """Choose the ordinary workspace path unless fresh shared-zero drift requires reconcile."""
+    if shared_zero_drift_present:
+        return {
+            "schema": CONTENT_ROUTE_SCHEMA,
+            "route": "SHARED_ZERO_FALLBACK",
+            "workspace_root": WORKSPACE_ROOT,
+            "production_branch": PRODUCTION_BRANCH,
+            "workspace_canonical_sync_required": True,
+            "shared_zero_required": True,
+        }
+    return {
+        "schema": CONTENT_ROUTE_SCHEMA,
+        "route": "WORKSPACE_DEFAULT",
+        "workspace_root": WORKSPACE_ROOT,
+        "production_branch": PRODUCTION_BRANCH,
+        "workspace_canonical_sync_required": False,
+        "shared_zero_required": False,
+    }
+
+
 def build_remote_connection_authority(
     *,
     kind: str,
@@ -257,6 +279,10 @@ def build_remote_connection_authority(
         if remote_target != "GITHUB" or user_explicit is not True or normalized_lane != expected_lane:
             raise ValueError("REMOTE_CONNECTION_DENIED: /推推 authority lane/target mismatch")
         actions = tuple(sorted(PUSH_GITHUB_ACTIONS))
+    elif authority_kind == "WORKSPACE_DELIVERY":
+        if remote_target != "GITHUB" or user_explicit is not True:
+            raise ValueError("REMOTE_CONNECTION_DENIED: workspace delivery requires explicit repository-content task")
+        actions = tuple(sorted(WORKSPACE_DELIVERY_ACTIONS))
     elif authority_kind == "USER_EXPLICIT_REMOTE":
         if user_explicit is not True or not actions:
             raise ValueError("REMOTE_CONNECTION_DENIED: explicit remote authority requires exact actions")
@@ -301,6 +327,18 @@ def validate_remote_connection_authority(
 def assert_remote_connection_allowed(
     authority: object | None, *, target: str, action: str
 ) -> dict[str, object]:
+    remote_target = _event_token(target)
+    requested_action = _event_token(action)
+    if authority is None and remote_target == "GITHUB" and requested_action in WORKSPACE_BASELINE_ACTIONS:
+        return {
+            "schema": REMOTE_CONNECTION_AUTHORITY_SCHEMA,
+            "kind": "WORKSPACE_BASELINE_READ",
+            "target": "GITHUB",
+            "allowed_actions": sorted(WORKSPACE_BASELINE_ACTIONS),
+            "user_explicit": False,
+            "lane": None,
+            "user_authored_entry_contract": False,
+        }
     if authority is None:
         raise ValueError("REMOTE_CONNECTION_DENIED: explicit authority required")
     return validate_remote_connection_authority(authority, target=target, action=action)
@@ -514,10 +552,10 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("test-profile schema mismatch")
     if contract.get("test_profile_owner") != TEST_PROFILE_OWNER:
         raise ValueError("test-profile owner mismatch")
-    if set(contract.get("git_before_unlock") or ()):
-        raise ValueError("pre-authority Git network actions must be empty")
-    if set(contract.get("git_after_remote_authority_before_unlock") or ()) != READ_ONLY_GIT_ACTIONS:
-        raise ValueError("post-authority pre-unlock Git read policy mismatch")
+    if set(contract.get("git_before_unlock") or ()) != WORKSPACE_BASELINE_ACTIONS:
+        raise ValueError("workspace baseline Git read policy mismatch")
+    if set(contract.get("git_after_remote_authority_before_unlock") or ()) != WORKSPACE_BASELINE_ACTIONS:
+        raise ValueError("post-authority workspace Git read policy mismatch")
     root_path_gate = _mapping(contract.get("root_path_resolution_hard_gate"), "root_path_resolution_hard_gate")
     if root_path_gate.get("schema") != "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1":
         raise ValueError("root path resolution hard gate schema mismatch")
@@ -528,10 +566,12 @@ def validate_contract(payload: object) -> dict[str, object]:
     remote_gate = _mapping(contract.get("remote_connection_hard_gate"), "remote_connection_hard_gate")
     if remote_gate.get("schema") != REMOTE_CONNECTION_AUTHORITY_SCHEMA:
         raise ValueError("remote connection hard gate schema mismatch")
-    if remote_gate.get("default") != "DENY":
-        raise ValueError("remote connection must be deny-by-default")
-    if remote_gate.get("pre_delivery_git_read_allowed_without_authority") is not False:
-        raise ValueError("GitHub read must require remote authority")
+    if remote_gate.get("default") != "ALLOW_WORKSPACE_BASELINE_READ_ONLY":
+        raise ValueError("remote connection default must allow only workspace baseline reads")
+    if remote_gate.get("pre_delivery_git_read_allowed_without_authority") is not True:
+        raise ValueError("workspace baseline Git reads must be allowed without extra authority")
+    if set(remote_gate.get("workspace_baseline_actions") or ()) != WORKSPACE_BASELINE_ACTIONS:
+        raise ValueError("workspace baseline Git action set mismatch")
     if remote_gate.get("remote_local_fallback_forbidden") is not True:
         raise ValueError("remote local fallback must be forbidden")
     if remote_gate.get("covers_all_network_surfaces") is not True:
@@ -556,8 +596,21 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("post-delivery cleanup must not delete repository files")
     if contract.get("git_write_mode") != "EXACT_TESTED_DIFF_ONLY":
         raise ValueError("Git write mode must be EXACT_TESTED_DIFF_ONLY")
-    if contract.get("target_drift_action") != "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE":
+    if contract.get("target_drift_action") != "REFRESH_WORKSPACE_BASELINE_RETEST_BEFORE_DELIVERY":
         raise ValueError("target drift action mismatch")
+    default_flow = _mapping(contract.get("default_repository_content_flow"), "default_repository_content_flow")
+    if default_flow.get("schema") != "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1" or default_flow.get("status") != "CURRENT":
+        raise ValueError("workspace-first default flow schema mismatch")
+    if default_flow.get("workspace_root") != WORKSPACE_ROOT or default_flow.get("production_branch") != PRODUCTION_BRANCH:
+        raise ValueError("workspace-first default identity mismatch")
+    if any(default_flow.get(key) is not False for key in (
+        "startup_requires_drive", "startup_requires_shared_zero", "startup_requires_workspace_canonical_sync"
+    )):
+        raise ValueError("ordinary workspace startup must not require Drive/shared-zero sync")
+    if default_flow.get("shared_zero_fallback_trigger") != "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS":
+        raise ValueError("shared-zero fallback trigger mismatch")
+    if default_flow.get("delivery") != "TESTED_DELIVERY_BRANCH_PR" or default_flow.get("direct_production_push_forbidden") is not True:
+        raise ValueError("workspace delivery policy mismatch")
     entry_router = _mapping(contract.get("entry_router_hard_gate"), "entry_router_hard_gate")
     if entry_router.get("schema") != ENTRY_ROUTER_SCHEMA:
         raise ValueError("entry router hard gate schema mismatch")
@@ -582,6 +635,10 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("merge conflict must block on explicit user decision")
     if shared.get("conflict_checkpoint_schema") != CONFLICT_CHECKPOINT_SCHEMA:
         raise ValueError("merge conflict checkpoint schema mismatch")
+    if shared.get("mode") != "CONDITIONAL_FALLBACK_ONLY" or shared.get("default_route") is not False:
+        raise ValueError("shared-zero must remain conditional fallback only")
+    if shared.get("activation") != "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS":
+        raise ValueError("shared-zero activation mismatch")
     reservation = _mapping(contract.get("path_reservation"), "path_reservation")
     if reservation.get("schema") != "WHD_PATH_RESERVATION_V1":
         raise ValueError("path reservation schema mismatch")
@@ -594,18 +651,16 @@ def validate_contract(payload: object) -> dict[str, object]:
     if reservation.get("release_policy") != "FINALIZE_OR_EXPLICIT_RELEASE_PATHS":
         raise ValueError("path reservation release policy mismatch")
     modes = _mapping(contract.get("execution_modes"), "execution_modes")
-    if modes.get("INTERACTIVE") != "ROOT_LOCAL_FIRST_REQUIRED":
-        raise ValueError("interactive execution mode must require root-local-first")
+    if modes.get("INTERACTIVE") != "WORKSPACE_FIRST_CONTENT":
+        raise ValueError("interactive execution mode must be workspace-first")
     for mode in REMOTE_MODES:
         if modes.get(mode) != REMOTE_CONTENT_POLICY:
             raise ValueError(f"remote execution mode must require root-workspace handoff for content: {mode}")
     remote_content = _mapping(contract.get("remote_content_implementation"), "remote_content_implementation")
-    if remote_content.get("policy") != "ROOT_WORKSPACE_HANDOFF_REQUIRED":
-        raise ValueError("remote repository-content implementation must require root workspace handoff")
-    if remote_content.get("github_side_hotfix_forbidden") is not True:
-        raise ValueError("GitHub-side hotfix must be forbidden for remote content implementation")
-    if remote_content.get("qa_failure_action") != "RETURN_TO_ROOT_RETEST_REFREEZE_REPUSH":
-        raise ValueError("remote QA failure must return to root and retest/refreeze")
+    if remote_content.get("policy") != "WORKSPACE_MIRROR_IMPLEMENTATION":
+        raise ValueError("remote repository-content implementation must use workspace mirror")
+    if remote_content.get("qa_failure_action") != "FIX_IN_WORKSPACE_RETEST_REPUSH":
+        raise ValueError("remote QA failure must return to workspace and retest")
     provenance = _mapping(contract.get("execution_mode_provenance"), "execution_mode_provenance")
     if provenance.get("schema") != EXECUTION_MODE_PROVENANCE_SCHEMA:
         raise ValueError("execution mode provenance schema mismatch")
@@ -625,6 +680,8 @@ def validate_contract(payload: object) -> dict[str, object]:
     direct_gate = _mapping(contract.get("direct_root_mutation_test_gate"), "direct_root_mutation_test_gate")
     if direct_gate.get("schema") != "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1":
         raise ValueError("direct root mutation/test gate schema mismatch")
+    if direct_gate.get("applies_when") != "SHARED_ZERO_FALLBACK_ACTIVE":
+        raise ValueError("direct root mutation/test gate must be shared-zero fallback only")
     if direct_gate.get("canonical_surface") != DEFAULT_WORK_PREFIX:
         raise ValueError("direct root mutation/test canonical surface mismatch")
     if direct_gate.get("interactive_first_substantive_action") != "ROOT_MUTATE":
