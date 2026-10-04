@@ -51,8 +51,6 @@ on:
       - 'AGENTS.md'
       - 'tools/scheduler_runtime_liveness.py'
       - 'tools/scheduler_host_watchdog.py'
-      - 'tools/scheduled_resume_executor.py'
-      - 'tools/scheduled_resume_runtime.py'
       - 'tools/control_transaction.py'
       - 'tools/control_transaction_production_executor.py'
       - 'tools/execution_invocation_exit.py'
