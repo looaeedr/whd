@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1115,
   "lane_id": "chatgpt.flowv2.work3",
@@ -24,16 +24,20 @@
   "mutation_scope": null,
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
+      "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
+      "pr_number": 1165,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume exact already-terminal Product Regression for carried-forward delivery",
-    "kind": "START_QA"
+    "display": "Bind already-merged PR #1165 after exact-head QA acceptance",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
+    "last_accepted_run": 37176982169
   },
   "recovery_history": [
     {
@@ -44,21 +48,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_ACCEPTED_PENDING_QA_CONSUME",
+  "semantic_state": "QA_ACCEPTED_POST_DELIVERY",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
   "transaction": {
-    "expected_fingerprint": "10579eec838a6ec79c4cd8b05d44f9c1370bdaef24ac0676619bee81debd17b3",
-    "id": "gha:37183037120:1115:ACQUIRE:4",
+    "expected_fingerprint": "3bf300788d06d2bc26be55aed728faf881d756c58b4d5f4fd487ad2ea6440631",
+    "id": "gha:37183081373:1115:CONSUME_QA:5",
     "invocation_identity": "gha:looaeedr/whd:run:37183037120:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "ACQUIRE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T06:31:39Z",
+  "updated_at": "2026-10-04T06:32:34Z",
   "version": 2,
   "work_branch": "scheduler/issue1115-auto-dispatch"
 }
