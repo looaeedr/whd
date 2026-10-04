@@ -141,21 +141,22 @@ python tools/phase6_skill_preflight.py --task "<本次任務完整描述>"
 
 ### GITHUB_ONLY_REMOTE_PHASE6_PREFLIGHT_V1
 
-GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力，**不得**因無法直接執行上面的 Python command 就把 mandatory Preflight 降級、略過或永久 BLOCKED。固定 remote transport 為：
+GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力，**不得**因無法直接執行上面的 Python command 就把 mandatory Preflight 降級、略過或永久 BLOCKED。remote Preflight 共用同一 canonical runner `tools/phase6_remote_preflight.py`，transport 依 runtime surface 固定：
 
-`.github/workflows/whd-phase6-preflight.yml`
+- interactive/chat owner-authored Issue comment → `.github/workflows/whd-phase6-preflight.yml`；
+- A/B scheduler push request → `.github/workflows/whd-phase6-preflight-push.yml`，request branches=`coord/preflight-requests-a|b`，path=`.dispatch/preflight-request.json`。
 
 #### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
 GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在 AI Library gate、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。
 
 - 只准讀 `coord/execution-v2`、derived `ready-index`、`coord/monitor-v2:.dispatch/monitor/runtime/*.json` 的 NON_AUTHORITY latest-owner runtime observations、`tools/execution_scheduler_view.py` 的純 read-only projection，以及取得 exact owning Issue / branch / HEAD 必需的 GitHub metadata。scheduler bootstrap decision 順序固定 same-lane current → `TAKEOVER_CANDIDATE` → READY → explicit ingress；monitor evidence 不得單獨授權 takeover。若 current/ready 都空，允許額外用 `tools/scheduler_ready_ingress.py` 只掃 repository-owner-authored open Issue 第一個 nonblank `WHD_SCHEDULER_DISPATCH_REQUEST_V1` marker 與 `lane=ANY|A|B`；普通 open Issue 仍不是 execution authority。
-- bootstrap 唯一輸出用途是綁定 owning Issue 後送 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`；不得另造永久 bootstrap Issue。
+- bootstrap 唯一輸出用途是綁定 owning Issue 後啟動 trusted Phase6 Preflight；A/B scheduler 必須用 lane-bound push request transport，不得自行 create Issue request comment；不得另造永久 bootstrap Issue。
 - `PRE_PREFLIGHT_MUTATION_FORBIDDEN`：receipt GREEN 且 REQUIRED SKILLS / REQUIRED REFERENCES 全部 fresh-read 前，禁止 canonical lane/runtime WAKE / HEARTBEAT / PROGRESS monitor write、claim、ACQUIRE、transaction request、Guard、repository mutation、QA、merge、closure、takeover、lease / ExecutionRecord mutation，亦不得 dispatch 除 trusted Phase6 Preflight request 外的其他 workflow / mutation transport。唯一例外是 `tools/scheduler_entrypoint_observation.py` 對 fixed A00/A20/A40/B15/B45 host entrypoint file 的 `authority=NON_AUTHORITY` WAKE/HEARTBEAT/EXIT；它只證明 host occurrence，永遠不得授權 execution。
 - Preflight 完成後必須丟棄 bootstrap projection，重新 fresh-read canonical ExecutionRecord / scheduler view，才可進正常 Flow v2 WAKE / ownership / next_action。
 - 這是 read-only issue-binding bootstrap，不是 Preflight bypass、execution authority 或第二套 scheduler state machine。
 
-owner-authored owning-Issue request 第一行固定 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`，並 exact 綁定 `issue + worker + executor_source + branch + head_sha + task`；預計修改檔已知時逐一加入 `changed_file=`。trusted runner 只允許 checkout/read exact HEAD、執行 canonical `tools/phase6_skill_preflight.py`、讀取 required Skill/reference 並發布 `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`；不接受 arbitrary command，也沒有 repository contents write 權限。
+interactive/chat 的 owner-authored owning-Issue comment request 第一行固定 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`，並 exact 綁定 `issue + worker + executor_source + branch + head_sha + task`；預計修改檔已知時逐一加入 `changed_file=`。A/B scheduler 則固定寫 `WHD_REMOTE_PHASE6_PREFLIGHT_PUSH_REQUEST_V1` 到 lane-bound request branch，exact 綁 `request_id + issue + lane_id + worker + invocation_identity + branch + head_sha + task + changed_files`；request branch 與 lane owner mismatch fail closed。兩種 transport 都只允許 checkout/read exact HEAD、經 `tools/phase6_remote_preflight.py` 執行 canonical Phase6、讀取 required Skill/reference並由 Actions發布 `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`；不接受 arbitrary command，也沒有 repository contents write 權限。
 
 remote result `GREEN` 只證明 exact task/HEAD 的 canonical Preflight 已執行且 requirements 可解析；**呼叫端仍必須 fresh-read result列出的每一個 required Skill / required reference，並留下自己的 `READ_SKILL` / `READ_REFERENCE` evidence，才可開始 substantive analysis 或 mutation。** generic Remote Guard 內部的 preflight 若未綁本次完整 task，不得替代這個 startup Preflight。
 

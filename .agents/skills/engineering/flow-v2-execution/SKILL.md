@@ -23,7 +23,7 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
 3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。此時仍未取得 execution mutation authority。
 4. recurring scheduler / `/排程A` / `/排程B` 若尚不知道 exact owning Issue，才可使用下面的 `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`；其他入口不得借此擴張 startup scope。
-5. 對 exact owning Issue + branch + HEAD 執行 Phase6 Knowledge Preflight；GitHub-only runtime 只可送 trusted `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1`。
+5. 對 exact owning Issue + branch + HEAD 執行 Phase6 Knowledge Preflight。interactive/chat 可用 owner-authored `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1` Issue comment transport；A/B scheduler **不得依賴 scheduler-side Issue comment mutation**，固定用 `.dispatch/preflight-request.json` existing-file CAS push 到 `coord/preflight-requests-a|b`，由 `.github/workflows/whd-phase6-preflight-push.yml` 執行同一 canonical remote runner並由 Actions 發 result comment。
 6. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
 7. scheduler 若曾使用 bootstrap projection，必須丟棄該 projection 並再次 fresh-read canonical scheduler projection；只有到此時，才可進入 Flow v2 ExecutionRecord / transaction / lease / next_action 與正常 WAKE。
 
@@ -531,6 +531,17 @@ scheduler runtime liveness 與 #679 interactive runtime liveness 若仍是 CURRE
 <!-- FLOW_V2_PRODUCTION_TRANSACTION_V2 -->
 
 Scheduler runtime 的 canonical mutation ingress 是 **push request**，不是 workflow_dispatch。
+
+Phase6 Preflight 亦遵守同一能力模型：A/B scheduler 的 startup Preflight request 不走 Issue-comment mutation，固定使用 scheduler-owned push branches：
+- A Preflight request branch: `coord/preflight-requests-a`
+- B Preflight request branch: `coord/preflight-requests-b`
+- request path: `.dispatch/preflight-request.json`
+- request schema: `WHD_REMOTE_PHASE6_PREFLIGHT_PUSH_REQUEST_V1`
+- trusted workflow: `.github/workflows/whd-phase6-preflight-push.yml`
+- validator: `tools/phase6_preflight_push_request.py`
+- canonical runner: `tools/phase6_remote_preflight.py`
+- push branch/lane identity hard-bound；scheduler 只用 existing-file CAS 更新 request。Actions success 後由 trusted workflow 對 owning Issue 發 `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`，其中 `preflight_evidence` 必須是 exact invocation-bound `WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1`。scheduler fresh-read receipt後直接用該 canonical evidence 建 transaction request；不得再嘗試自行 create Issue request comment。
+
 
 - A request branch: `coord/transaction-requests-a`
 - B request branch: `coord/transaction-requests-b`
