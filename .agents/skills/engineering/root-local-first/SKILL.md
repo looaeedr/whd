@@ -1,6 +1,6 @@
 ---
 name: root-local-first
-description: WHD repository-content implementation 的 CURRENT shared-unpushed 入口硬閘門。所有修改與測試先在 `/Google Drive/WHD` 完整 repo root 完成；不先開 Git branch。文檔/治理/Skill 與產品主體分成 docs/body 兩條共享 `0` lineage；只有 `/推推 文檔|主體` 在 lane GREEN 後建立 delivery branch。
+description: WHD repository-content implementation 的 CURRENT workspace-first 入口。每個 executor 使用自己的 repo workspace，以 `cleanup/2d-3d-sync` 作共同 production baseline；修改/測試在該 workspace 完成後走 delivery branch + PR/checks。Google Drive shared-0 只在 fresh unpushed drift 存在時作 fallback/reconcile。
 whd_doc_role: CURRENT
 whd_contract: root-shared-unpushed-v1
 whd_canonical: null
@@ -31,54 +31,53 @@ READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
 
 machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / validate_entry_router_evidence / assert_entry_router_action_allowed`。
 
-本 Skill 是 WHD CURRENT repository-content workflow。舊的 `/work/active` per-Issue workspace、root-write 前 single-writer reservation、`source/manifests`/ZIP snapshot current authority、branch-first 都已 superseded。
+本 Skill 是 WHD CURRENT repository-content workflow。預設路徑是 executor-local workspace-first；`cleanup/2d-3d-sync` 是共同 production baseline。舊的 `/work/active`、固定 Google Drive-first、每次 shared-0 generation/freeze、以及任何單一實體 workspace 路徑都不是普通工作前置。
 
-## 1. Canonical root hard gate
+## 1. EXECUTOR_LOCAL_WORKSPACE_FIRST_V1
 
-唯一預設 root：`/Google Drive/WHD`，Drive folder id=`1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN`。
+普通 repository-content 任務固定：
 
-開始任何內容工作前固定：
+`cleanup/2d-3d-sync → executor-local repo workspace → edit/test → tested delivery branch → PR/checks → cleanup/2d-3d-sync`
 
-`WHD_ROOT_RESOLVED → ROOT_IDENTITY_VERIFIED → FULL_REPO_ROOT_VERIFIED → SHARED_UNPUSHED_LAYOUT_VERIFIED`
+每個 executor 使用自己的 workspace；**不得硬編單一全域路徑**：
+- Codex 可是 `/workspace/whd`；
+- ChatGPT 使用自己的 runtime workspace；
+- 其他 executor 使用各自 runtime repo workspace。
 
-full repo root 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engine/gui_modules/.unpushed`。`source/state/work/artifacts` 不再是 CURRENT content-root 前置結構。
+共同 identity 是 production branch `cleanup/2d-3d-sync` 與 fresh HEAD，不是某個實體資料夾。
 
-machine owner=`tools/work_root_gate.py`；contract=`.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`。
+開工前只需：
+`WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT`
 
-### 1.1 ROOT_PATH_RESOLUTION_BEFORE_REMOTE_HARD_GATE_V1
+普通 workspace startup **不要求** Google Drive generation/manifest、shared-0、`workspace_canonical_sync.py` 或 `CANONICAL_SHARED_0_UPDATED`。
 
-repository-content 任務的第一個檔案定位動作必須從 `/Google Drive/WHD` root 開始，沿實際 parent-folder chain 解析到目標 path。
+### 1.1 Workspace baseline / GitHub read policy
 
-- 全域 Drive search、聊天記憶、GitHub code search、remote checkout、歷史 snapshot 只能提供候選，不得直接建立 baseline identity。
-- 同名檔只有在 parent chain exact 等於 canonical repo path 時才可用；其他 `.scratch`、`.unpushed`、backup、mirror、歷史副本一律不是施工 baseline。
-- 找檔、讀 baseline、判斷「目前版本」、建立 diff、修改與測試都必須先在 canonical root 完成。
-- root path 無法解析時固定 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED`；禁止為了找檔改連 GitHub 或遠端本機。
+為了把 executor workspace 對齊 production baseline，普通 content work 可直接做窄化 GitHub baseline：
+`READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ`。
 
-### 1.1.1 CANONICAL_AUTHORITY_VS_CODEX_EXECUTION_SURFACE_V1
+這些 read-only baseline actions 不需要額外 `/推推` authority。Git write 仍受限：
+- 禁止 direct push `cleanup/2d-3d-sync`；
+- 修改與測試先在 executor workspace；
+- 測試 GREEN + exact diff 後，只能建立 delivery branch、push、PR、跑 required checks；
+- target drift 時 refresh workspace baseline、retest，再 delivery。
 
-`/Google Drive/WHD` 是 canonical repository-content authority 的**邏輯/connector path**，不要求每個 execution runtime 都原生掛載同一路徑。
+### 1.2 Conditional Drive/shared-0 fallback
 
-- ChatGPT/Drive connector 能解析 canonical root，而 Codex/C2C workspace看不到聊天室 cloud mount時，固定 `CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX`。
-- 此狀態不是 root authority失效，不得標 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED` 或 `LOCAL_MACHINE_UNAVAILABLE`；也不得要求 Codex自行尋找、mount或 `cd /Google Drive/WHD`。
-- 必須由具 canonical-read authority 的 ChatGPT/connector 將 exact task paths stage 到 Codex 可見 workspace，並在交付前後以 canonical path/hash/manifest驗證。
-- staged workspace 只屬 execution surface；任何 edit/test/git結果要回到 shared-0 / delivery lane 時都必須 reconcile 到 canonical authority。workspace 舊副本不得反向升格成 baseline。
-- 只有 canonical ChatGPT/connector path 本身無法解析，才使用 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED`；Codex mount 不可見本身不能觸發它。
-- ChatGPT / Codex / C2C workspace 應共用 `tools/workspace_canonical_sync.py` 的 `WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1` / `WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1`：允許 `/workspace/whd` 作為完整 repo mirror/cache 持久存在，開工前以 canonical generation/manifest 做增量 reconcile；一致時直接 reuse，不必每次重新 materialize 全 repo。`CODEX_WORKSPACE_LATEST_MIRROR_V1` 只保留 compatibility alias，CURRENT owner 不得變成 Codex-only 第二套 sync machine。
-- persistent mirror 仍只是 cache/execution surface；canonical root 才能決定「最新」。workspace dirty work不得被同步覆蓋；遇 canonical 同 path前進時先進 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`。
-### 1.2 REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1
+`/Google Drive/WHD/.unpushed/{docs|body}/0` 保留，但只在 **fresh evidence 證明 touched paths 存在 GitHub/workspace 沒有的 unpushed overlay/drift** 時啟動。
 
-除非符合下列其中一項，interactive/default invocation 不得建立 GitHub 或遠端本機連線：
+route machine owner=`tools/root_local_first_gate.py::select_repository_content_route`：
 
-1. 使用者明確要求「開工單」：只授權 issue create/readback 所需 GitHub 連線；
-2. 使用者明確要求 GitHub/遠端操作；
-3. 使用者下達 `/推推 文檔` 或 `/推推 主體`：只授權 selected lane delivery window；
-4. recurring/scheduler invocation 的 user-authored entry contract 明確指定 GitHub-only execution，且僅限該 invocation scope。
+- `shared_zero_drift_present=false → WORKSPACE_DEFAULT`
+- `shared_zero_drift_present=true → SHARED_ZERO_FALLBACK`
 
-「想確認最新」、「找不到檔」、「Preflight 需要」、「工具剛好可用」都不是 remote authority。Remote Desktop/遠端本機尤其不得被當成 root lookup fallback。
+只有 `SHARED_ZERO_FALLBACK` 才啟動既有 `tools/workspace_canonical_sync.py`、generation/hash、三方合併、conflict checkpoint、manifest freeze、`CANONICAL_SHARED_0_UPDATED` 與 `/推推 文檔|主體`。
 
-**ALL_NETWORK_SURFACES_ARE_GATED_V1**：上述 deny/default 套用到所有 GitHub network surface，不只 repository contents：repo metadata、code search、branch/commit read、Issues/PR、Actions/workflow/run/artifact、GitHub Connector/API、`git fetch/pull/ls-remote/push` 都必須先有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1`。Skill 自動觸發／被觸發、Flow v2 bridge、tracker 設為 GitHub、connector/tool 可用、read-only 意圖，都**不會**自動產生或傳遞 remote authority。
+workspace dirty work 不得被 fallback sync silent overwrite；同 path drift 固定 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`。
 
-machine owner=`tools/root_local_first_gate.py::build_remote_connection_authority / validate_remote_connection_authority / assert_remote_connection_allowed`。任何下游 Skill 要碰 GitHub/remote，必須先把 exact `target + action` 送進這個 gate；沒有 authority 固定 `REMOTE_CONNECTION_DENIED`。
+### 1.3 Authority boundary
+
+executor-local workspace 是 execution surface/cache，不是新的 canonical content authority。普通共同 baseline authority 是 GitHub `cleanup/2d-3d-sync`；Drive shared-0 在 fallback active 時只對該未推送 lineage 擁有較新 overlay authority。
 
 ## 2. 兩條未推送 lineage
 
@@ -174,9 +173,9 @@ freeze 必須 exact 綁 lane、generation、source SHA、target branch、write/d
 
 ## 7. Git delivery 只由 /推推 開啟
 
-正常施工階段 **GitHub network content plane 完全關閉**；本地 `.git` 只可作 root identity/diff 的 offline 輔助，不得 FETCH/PULL/remote compare，也不得先建 branch。
+正常施工階段允許為 production baseline 做 `READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ`；內容修改與測試仍在 executor-local workspace。Git write 只在 exact tested diff 準備完成後進 delivery branch，production target 禁止直推。
 
-只有使用者下達 `/推推 文檔` 或 `/推推 主體`，且 selected lane frozen GREEN 後，才開啟本次 GitHub delivery window，取得 delivery reservation、fresh-read live target，並固定：
+普通 WORKSPACE_DEFAULT 不需要 `/推推`；tests GREEN + exact diff 後即可開 tested delivery branch / PR window。只有 SHARED_ZERO_FALLBACK 才要求使用者下達 `/推推 文檔` 或 `/推推 主體` 並走 selected lane frozen delivery：
 
 `DELIVERY_FILESET_LOCKED → PUSH_SCOPE_MUST_EQUAL_LOCK → FRESH_TARGET_HEAD → DELIVERY_RESERVATION → CREATE_DELIVERY_BRANCH → EXACT_LOCKED_FILESET_APPLY → POST_PUSH_CI → PRE_MERGE_LATEST_FILE_RECHECK → MERGE_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
 
@@ -192,7 +191,7 @@ CURRENT 文件/Skill/contract 不得再宣告：
 - `source/manifests` 或 ZIP snapshot 是 current root authority；
 - root write 前必須 single-writer `PATHS_RESERVED`；
 - 建 branch 後才開始修改/測試；
-- pre-delivery 可以先連 GitHub READ/FETCH/COMPARE；
+- 把 GitHub `cleanup/2d-3d-sync` 當普通 workspace production baseline；
 - 可以用 GitHub/Remote Desktop/全域同名搜尋取代 canonical root parent-chain lookup；
 - conflict 可自動 ours/theirs。
 
@@ -205,7 +204,7 @@ CURRENT 文件/Skill/contract 不得再宣告：
 
 - `INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1`: outer layer reports phase outcomes; low-level control transactions 不得由聊天層逐顆手動編排。
 
-- `DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1`: root-capable execution must mutate/test shared-0 in the same invocation until GREEN or a real blocker.
+- `DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1`: 只在 `SHARED_ZERO_FALLBACK_ACTIVE` 生效；普通 WORKSPACE_DEFAULT 不進 shared-0。
 
 - delivery Git write mode 固定 `EXACT_TESTED_DIFF_ONLY`；任何 delivery branch 上新增內容變更都必須退回 shared-0 重測。
 - delivery 成功後只清除 readback 已證明交付的 locked paths；其他未推送/後續變更保留。之後同檔再改必須重新登記為新的 shared-0 未推送修改。
