@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
   "issue": 1160,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,12 +23,9 @@
   },
   "mutation_scope": null,
   "next_action": {
-    "args": {
-      "pr_number": 1175,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-    },
-    "display": "Reconcile already-merged PR #1175",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -45,7 +42,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED_FOR_CLOSURE_RECONCILIATION",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue1160-legacy-purge",
   "source_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
@@ -53,13 +50,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
   "transaction": {
-    "expected_fingerprint": "552dad29609cdfde25c7c5eee2e79debf40b4b5feb2f94bbc2718063b5e552bd",
-    "id": "gha:37201412220:1160:CONSUME_QA:2",
+    "expected_fingerprint": "029ef9bbfd08e704b258aed147e9e721841e51abdd61721aaa9de4feaa698ba3",
+    "id": "gha:37201465142:1160:MERGE:3",
     "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T12:14:41Z",
+  "updated_at": "2026-10-04T12:15:52Z",
   "version": 2,
   "work_branch": "governance/issue1160-legacy-purge"
 }
