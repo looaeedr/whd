@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1115,
   "lane_id": "chatgpt.flowv2.work3",
@@ -23,15 +23,9 @@
   },
   "mutation_scope": null,
   "next_action": {
-    "args": {
-      "expected_target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
-      "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
-      "pr_number": 1165,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Bind already-merged PR #1165 after exact-head QA acceptance",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
@@ -48,21 +42,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED_POST_DELIVERY",
+  "semantic_state": "MERGED",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
+  "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "3bf300788d06d2bc26be55aed728faf881d756c58b4d5f4fd487ad2ea6440631",
-    "id": "gha:37183081373:1115:CONSUME_QA:5",
+    "expected_fingerprint": "4066ea02041d1daab44d8cc839d5f543b2b17784d0bc359f066ba6b2d7f06f0a",
+    "id": "gha:37183122596:1115:MERGE:6",
     "invocation_identity": "gha:looaeedr/whd:run:37183037120:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T06:32:34Z",
+  "updated_at": "2026-10-04T06:33:25Z",
   "version": 2,
   "work_branch": "scheduler/issue1115-auto-dispatch"
 }
