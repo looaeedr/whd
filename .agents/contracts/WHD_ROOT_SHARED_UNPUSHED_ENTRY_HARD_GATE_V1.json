@@ -118,7 +118,7 @@
     ],
     "ingress_owner": "tools/control_transaction_request_ingress.py",
     "lease_renewal_generation_drift": "DOES_NOT_INVALIDATE_UNCHANGED_FROZEN_EVIDENCE",
-    "required_for_interactive_actions": [
+    "required_for_repository_content_actions": [
       "START_BRANCH",
       "APPLY_COMMIT"
     ],

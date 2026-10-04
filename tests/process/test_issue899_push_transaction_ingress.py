@@ -736,7 +736,7 @@ def _root_unlock_receipt():
         validate_source_current,
     )
     source = validate_source_current(
-        manifest={"source_sha": "a" * 40, "tree_sha": "b" * 40},
+        workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
         live_source_sha="a" * 40, live_tree_sha="b" * 40,
     )
     lane = {
@@ -818,14 +818,14 @@ def test_interactive_start_branch_accepts_root_unlock_receipt_before_state_read(
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
 
 
-def test_scheduler_start_branch_is_not_misclassified_as_interactive_root_write(monkeypatch):
+def test_scheduler_start_branch_requires_root_receipt_before_state_read(monkeypatch):
     import pytest
     import tools.control_transaction_request_ingress as ingress
 
-    def _state_read(*args, **kwargs):
-        raise RuntimeError("STATE_READ_REACHED")
+    def _unexpected_state_read(*args, **kwargs):
+        raise AssertionError("execution state must not be read before root-local-first Git receipt")
 
-    monkeypatch.setattr(ingress, "_load_state", _state_read)
+    monkeypatch.setattr(ingress, "_load_state", _unexpected_state_read)
     lane = "scheduler.6ab13fa557fc8191935c671214b865e2"
     invocation = "scheduler:a:issue940:branch"
     request = {
@@ -840,7 +840,7 @@ def test_scheduler_start_branch_is_not_misclassified_as_interactive_root_write(m
             execution_mode="SCHEDULER_LANE",
         ),
     }
-    with pytest.raises(RuntimeError, match="STATE_READ_REACHED"):
+    with pytest.raises(Exception, match="SCHEDULER_LANE repository-content Git write requires root-local-first"):
         ingress.execute_request(request=request, repo="looaeedr/whd", token="unused", coord_branch="coord/execution-v2")
 
 
@@ -1028,7 +1028,7 @@ def test_issue1072_lease_renewal_generation_does_not_invalidate_frozen_root_rece
         lambda repo, token, branch: record.target_sha if branch == record.target_branch else record.head_sha,
     )
 
-    ingress._validate_interactive_git_write_receipt(
+    ingress._validate_repository_content_git_write_receipt(
         request,
         execution_mode="INTERACTIVE",
         record=record,
@@ -1064,7 +1064,7 @@ def test_issue1072_fresh_mutation_guard_still_fences_current_execution_identity(
     )
 
     with pytest.raises(Exception, match="mutation guard generation drift"):
-        ingress._validate_interactive_git_write_receipt(
+        ingress._validate_repository_content_git_write_receipt(
             request,
             execution_mode="INTERACTIVE",
             record=record,
@@ -1122,7 +1122,7 @@ def test_issue1072_frozen_root_receipt_still_fails_closed_on_content_identity_dr
             },
         }
         with pytest.raises(Exception, match=message):
-            ingress._validate_interactive_git_write_receipt(
+            ingress._validate_repository_content_git_write_receipt(
                 request,
                 execution_mode="INTERACTIVE",
                 record=record,

@@ -90,7 +90,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 - canonical work-root contract: `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json` inside the full `/Google Drive/WHD` repo root.
 - scheduler/GitHub-only runtimes may read the same repository V2 contract for root identity, but repository content authoring remains under `/Google Drive/WHD/.unpushed/{body|docs}/0`.
 - machine validator: `tools/work_root_gate.py`.
-- interactive/chat runtime must read the Google Drive canonical gate + Current Source Manifest; GitHub-only / `SCHEDULER_LANE` uses the mirror and may not reinterpret GitHub checkout, `/mnt/data`, `/`, or Library `/WHD` as the default workspace root.
+- interactive/chat runtime must read the Google Drive canonical gate and verify the real workspace `.git` HEAD/tree against the live target; legacy Current Source Manifest evidence is historical only. GitHub-only / `SCHEDULER_LANE` uses the mirror and may not reinterpret GitHub checkout, `/mnt/data`, `/`, or Library `/WHD` as the default workspace root.
 - Flow v2 mutation startup evidence must include `WHD_WORK_ROOT_GATE_EVIDENCE_V2`; missing/mismatched full-root identity fails closed before ExecutionRecord state read.
 
 ## Permanent routing boundaries
