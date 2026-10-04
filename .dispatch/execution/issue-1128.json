@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1128,
   "lane_id": "chatgpt.flowv2.work3",
@@ -33,16 +33,20 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
+      "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
+      "pr_number": 1165,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume exact already-terminal Product Regression for carried-forward delivery",
-    "kind": "START_QA"
+    "display": "Bind already-merged PR #1165 after exact-head QA acceptance",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work3",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
+    "last_accepted_run": 37176982169
   },
   "recovery_history": [
     {
@@ -53,21 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_ACCEPTED_PENDING_QA_CONSUME",
+  "semantic_state": "QA_ACCEPTED_POST_DELIVERY",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "33547f1a35d96915ee4e7b801eac288ab7ccc1d456d0a230b9cac40b5213203c",
-    "id": "gha:37185117737:1128:ACQUIRE:10",
+    "expected_fingerprint": "d65fbebc8eff9935557411ef3e18ff1a8b2b983b70485ef70ddc7bc1fae26b50",
+    "id": "gha:37185224903:1128:CONSUME_QA:11",
     "invocation_identity": "gha:looaeedr/whd:run:37185117737:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "ACQUIRE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T07:13:50Z",
+  "updated_at": "2026-10-04T07:15:45Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
