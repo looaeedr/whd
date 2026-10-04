@@ -5,6 +5,8 @@ state projection. Project persistence remains Phase6ProjectController authority;
 manufacturing geometry/DXF generation remains manufacturing_api authority.
 """
 import os
+import shutil
+import tempfile
 from dataclasses import replace
 from tkinter import filedialog, messagebox
 
@@ -289,6 +291,45 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     return exported, errors
 
 
+
+
+def _commit_staged_project_export(stage_folder, output_folder):
+    """Commit one already-successful export batch with rollback on move failure."""
+    stage_root = os.path.abspath(stage_folder)
+    output_root = os.path.abspath(output_folder)
+    entries = [
+        name for name in sorted(os.listdir(stage_root))
+        if os.path.isfile(os.path.join(stage_root, name))
+    ]
+    backup_root = tempfile.mkdtemp(prefix=".whd-export-backup-", dir=output_root)
+    committed = []
+    backups = {}
+    try:
+        for name in entries:
+            destination = os.path.join(output_root, name)
+            if os.path.exists(destination):
+                backup = os.path.join(backup_root, name)
+                os.replace(destination, backup)
+                backups[destination] = backup
+        for name in entries:
+            source = os.path.join(stage_root, name)
+            destination = os.path.join(output_root, name)
+            os.replace(source, destination)
+            committed.append(destination)
+        return tuple(os.path.basename(path) for path in committed)
+    except Exception:
+        for destination in reversed(committed):
+            try:
+                os.remove(destination)
+            except FileNotFoundError:
+                pass
+        for destination, backup in backups.items():
+            if os.path.exists(backup):
+                os.replace(backup, destination)
+        raise
+    finally:
+        shutil.rmtree(backup_root, ignore_errors=True)
+
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
@@ -314,22 +355,30 @@ def export_selected_dxf(self):
     if not folder:
         return
 
-    exported, errors = _export_selected_parts(
-        self, folder, val, flags, bool(self.draw_stock_var.get())
+    # T-012 project-batch atomicity: serialize every requested file into an
+    # isolated staging directory first. Any validation/serialization failure
+    # leaves the operator-selected destination untouched.
+    with tempfile.TemporaryDirectory(prefix=".whd-export-stage-", dir=folder) as stage_folder:
+        exported, errors = _export_selected_parts(
+            self, stage_folder, val, flags, bool(self.draw_stock_var.get())
+        )
+        if errors:
+            messagebox.showerror("輸出失敗", "\n".join(errors))
+            return
+        if not exported:
+            messagebox.showerror("輸出失敗", "沒有產生任何 DXF 檔案。")
+            return
+        try:
+            committed = _commit_staged_project_export(stage_folder, folder)
+        except Exception as ex:
+            messagebox.showerror("輸出失敗", f"批次提交失敗：{ex}")
+            return
+
+    messagebox.showinfo(
+        "輸出成功",
+        f"已成功輸出 {len(committed)} 個檔案至：\n{folder}\n\n"
+        + "\n".join(f"  • {name}" for name in committed),
     )
-    if exported and not errors:
-        messagebox.showinfo(
-            "輸出成功",
-            f"已成功輸出 {len(exported)} 個檔案至：\n{folder}\n\n"
-            + "\n".join(f"  • {name}" for name in exported),
-        )
-    elif exported and errors:
-        messagebox.showwarning(
-            "部分成功",
-            f"成功輸出：{', '.join(exported)}\n失敗：{', '.join(errors)}",
-        )
-    else:
-        messagebox.showerror("輸出失敗", "\n".join(errors))
 
 
 def _single_door_indicator_state_snapshot(self):

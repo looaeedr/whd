@@ -87,7 +87,7 @@ def test_vault_overlay_fw_width_invariant_2d_single3d_assembly_and_reload(tmp_pa
         designer = app.open_original_fold_designer()
         designer.preview_3d_enabled = False
         designer._phase6_3d_display_mode = 'assembly'
-        bundle = bridge._phase6_query_assembly_render_data(designer)
+        bundle = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
         assert dict(getattr(designer, '_phase6_last_relief_errors', {}) or {}) == {}
         assembly = {part.part_key: part.render_data for part in bundle.assembly_parts}
 
