@@ -462,8 +462,8 @@ def test_static_contract_declares_execution_record_as_only_dynamic_state_owner()
     assert payload["state_owner"] == "WHD_EXECUTION_RECORD_V2.mutation_scope"
     assert payload["evaluator"] == "tools/execution_path_reservation.py"
     assert payload["writer_policy"] == "SINGLE_AUTHORITATIVE_WRITER_PER_PATH_AT_DELIVERY_ONLY"
-    assert payload["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
-    assert payload["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
+    assert payload["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
+    assert payload["root_authoring_policy"] == "NO_PREWRITE_RESERVATION__RESERVE_ONLY_FOR_GIT_DELIVERY"
     assert payload["second_database_forbidden"] is True
     assert payload["reservation_counts_as_substantive_progress"] is False
 
@@ -478,6 +478,6 @@ def test_path_reservation_evidence_binds_issue_base_and_delivery_phase_only():
     evidence = build_path_reservation_evidence(record)
     assert evidence["issue"] == 1001
     assert evidence["base_sha"] == "c" * 40
-    assert evidence["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert evidence["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
     assert "workspace_path" not in evidence
     assert validate_path_reservation_evidence(evidence) == evidence
