@@ -39,7 +39,7 @@ def test_conflict_and_push_scope_hard_gates_are_current():
     joined = "\n".join((ROOT / rel).read_text(encoding="utf-8") for rel in CURRENT)
     assert "BLOCKED_USER_DECISION" in joined
     assert "EXPLICIT_USER_CONFLICT_DECISION" in joined
-    assert "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST" in joined
+    assert "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK" in joined
     assert ".unpushed/docs/0" in joined
     assert ".unpushed/body/0" in joined
     assert "DELIVERY_RESERVATION" in joined
@@ -60,7 +60,7 @@ def test_unpushed_workspace_is_never_git_delivery_content():
     ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     assert ".unpushed/" in ignore
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    assert "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST" in push
+    assert "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK" in push
     assert ".unpushed" in push
 
 def test_push_delivery_tail_requires_flow_v2_done_before_lane_cleanup():
