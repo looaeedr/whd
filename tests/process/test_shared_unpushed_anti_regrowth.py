@@ -49,10 +49,10 @@ def test_conflict_and_push_scope_hard_gates_are_current():
 def test_delivery_reservation_is_never_a_root_prewrite_gate():
     import json
     payload = json.loads((ROOT / ".agents/contracts/WHD_PATH_RESERVATION_V1.json").read_text(encoding="utf-8"))
-    assert payload["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert payload["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
     assert payload["reservation_required_before"] == "CREATE_DELIVERY_BRANCH_OR_GIT_WRITE"
-    assert payload["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
-    assert payload["workspace_policy"] == "SHARED_UNPUSHED_LANE_0"
+    assert payload["root_authoring_policy"] == "NO_PREWRITE_RESERVATION__RESERVE_ONLY_FOR_GIT_DELIVERY"
+    assert payload["workspace_policy"] == "EXECUTOR_LOCAL_WORKSPACE_DEFAULT__SHARED_ZERO_CONDITIONAL_FALLBACK"
     assert "FIRST_ROOT_OR_CONTENT_WRITE" not in json.dumps(payload, ensure_ascii=False)
 
 
