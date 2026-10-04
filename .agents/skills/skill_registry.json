@@ -634,8 +634,7 @@
         "continuity controller",
         "executable-continuity-controller",
         "legacy checkpoint resume",
-        "legacy finalization gate",
-        "tools/continuity_controller.py"
+        "legacy finalization gate"
       ],
       "file_globs": [],
       "required_skills": [
