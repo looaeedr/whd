@@ -223,17 +223,26 @@ def test_t015_transient_current_bay_projection_never_mutates_persisted_layout_or
     assert all(key not in persisted for key in ("w", "h", "d"))
 
 
-def test_bridge_keeps_set_bay_topology_in_adapter_and_only_wires_ui_selection():
+def test_bridge_projects_receiving_layers_as_rows_without_legacy_set_bay_selectors():
     from pathlib import Path
 
     source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
     assert "ReceivingSetBayAdapter" in source
     assert "self.receiving_set_bay_control" in source
-    assert "self.receiving_set_selector" in source
-    assert "self.receiving_bay_selector" in source
-    assert "_phase6_commit_receiving_current_bay_controls(self)" in source
-    assert 'self._phase6_input_snapshot["receiving_layout"] = adapter.layout' in source
-    assert "project_receiving_bay_legacy_aliases(" in source
-    # Selection is session/UI state; no persisted selection key is introduced.
+    assert "self.receiving_layer_controls" in source
+    assert "self.receiving_switch_brand_selector" in source
+    assert "refresh_receiving_layer_rows(" in source
+    assert "self.receiving_set_selector" not in source
+    assert "self.receiving_bay_selector" not in source
+    assert "_phase6_confirm_receiving_opening" in source
+    assert "_phase6_open_receiving_layer_preview" in source
+    # +/- connection changes are configuration-only and must not redraw 3D.
+    start = source.index("def _phase6_resize_receiving_bays")
+    end = source.index("def _phase6_confirm_receiving_opening", start)
+    resize_source = source[start:end]
+    assert "self.do_update()" not in resize_source
+    assert "submit_update_intent" not in resize_source
+    assert "_phase6_sync_receiving_current_bay" not in resize_source
+    # Selection remains UI/session state; no persisted selector index is introduced.
     assert '"current_set_index"' not in source
     assert '"current_bay_index"' not in source

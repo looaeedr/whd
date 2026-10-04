@@ -151,8 +151,10 @@ class Phase6FinalSceneViewAdapter:
 
     def query_assembly_render_data(self):
         dependencies = self.dependencies
+        # Geometry publication is owned by the update scheduler/executor.  A
+        # display-only assembly redraw must consume the committed/cache-resolved
+        # geometry without forcing a second live-sync publication.
         resolved = dependencies.resolve_geometry()
-        dependencies.publish_live_state(force=True)
 
         part_cls = dependencies.assembly_part_cls
         parts = tuple(
