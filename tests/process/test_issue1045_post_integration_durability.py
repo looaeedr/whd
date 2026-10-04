@@ -142,7 +142,7 @@ def test_legacy_snapshot_and_work_active_are_not_current_authorities():
 def test_root_local_skill_and_authority_map_point_to_v2_cleanup():
     skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
-    assert "POST_INTEGRATION_DURABILITY_HARD_GATE_V2" in skill
+    assert "## 9. POST_INTEGRATION_DURABILITY_V2" in skill
     assert "ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1" in skill
     assert "FINALIZE_DELIVERED_LANE_ZERO" in skill
     assert "contract=post-integration-durability-v2 role=CURRENT path=tools/post_integration_durability.py" in authority
