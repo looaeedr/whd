@@ -47,6 +47,9 @@ def test_v2_contract_keeps_execution_authority_in_flow_v2_and_retires_v1():
     assert payload["required_order"][-1] == "DURABLE_CLEANUP_COMPLETE"
     assert payload["canonical_root"] == "/Google Drive/WHD"
     assert payload["root_sync_transport"] == "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head"
+    assert payload["root_sync_policy"]["terminal_gate"] is False
+    assert "CANONICAL_ROOT_SYNCED_TO_MERGED_HEAD" not in payload["required_order"]
+    assert "root_not_synced" not in payload["fail_closed"]
     assert not retired_v1.exists()
 
 
@@ -76,20 +79,38 @@ def test_lane_delivery_receipt_requires_finalized_shared_zero_state():
         )
 
 
-def test_cleanup_tail_requires_done_root_sync_then_lane_finalization():
+def test_cleanup_tail_requires_done_and_lane_finalization_but_not_root_sync():
     from tools.post_integration_durability import classify_post_integration_durability
     result = classify_post_integration_durability(
         execution_record=_record(), root_sync_receipt=None, lane_delivery_receipt=None,
     )
-    assert result["next_action"] == "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD"
-    result = classify_post_integration_durability(
-        execution_record=_record(), root_sync_receipt=_root_receipt(), lane_delivery_receipt=None,
-    )
     assert result["next_action"] == "FINALIZE_DELIVERED_LANE_ZERO"
+    assert result["root_sync_status"] == "NOT_REQUESTED"
+
+    result = classify_post_integration_durability(
+        execution_record=_record(), root_sync_receipt=None, lane_delivery_receipt=_lane_receipt(),
+    )
+    assert result["state"] == "DURABLE_CLEANUP_COMPLETE"
+    assert result["root_sync_status"] == "NOT_REQUESTED"
+
     result = classify_post_integration_durability(
         execution_record=_record(), root_sync_receipt=_root_receipt(), lane_delivery_receipt=_lane_receipt(),
     )
     assert result["state"] == "DURABLE_CLEANUP_COMPLETE"
+    assert result["root_sync_status"] == "VERIFIED"
+
+
+def test_invalid_root_sync_receipt_is_maintenance_drift_not_terminal_blocker():
+    from tools.post_integration_durability import classify_post_integration_durability
+    invalid = dict(_root_receipt())
+    invalid["root_head_sha"] = "d" * 40
+    result = classify_post_integration_durability(
+        execution_record=_record(), root_sync_receipt=invalid, lane_delivery_receipt=_lane_receipt(),
+    )
+    assert result["state"] == "DURABLE_CLEANUP_COMPLETE"
+    assert result["next_action"] is None
+    assert result["root_sync_status"] == "INVALID_NON_BLOCKING"
+    assert "root HEAD mismatch" in result["root_sync_reason"]
 
 
 def test_nonterminal_or_live_record_never_completes_physical_cycle():
@@ -121,7 +142,7 @@ def test_legacy_snapshot_and_work_active_are_not_current_authorities():
 def test_root_local_skill_and_authority_map_point_to_v2_cleanup():
     skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(encoding="utf-8")
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
-    assert "POST_INTEGRATION_DURABILITY_HARD_GATE_V2" in skill
-    assert "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD" in skill
+    assert "## 9. POST_INTEGRATION_DURABILITY_V2" in skill
+    assert "ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1" in skill
     assert "FINALIZE_DELIVERED_LANE_ZERO" in skill
     assert "contract=post-integration-durability-v2 role=CURRENT path=tools/post_integration_durability.py" in authority

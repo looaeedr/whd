@@ -111,7 +111,7 @@ ROOT_IDENTITY_CURRENT
 
 真正的 live target HEAD fresh-read 只在 `/推推` 已取得使用者遠端授權後執行。
 
-窄化 recovery 例外：只有 durable delivery/readback evidence 已明確證明 canonical root 為 `ROOT_IDENTITY_NOT_CURRENT`（root 落後已接受的 production lineage），才可由 root-capable runtime 執行 `python tools/work_root_gate.py recover-current-production`。machine owner=`tools/work_root_gate.py::recover_canonical_root_to_current_production`；它只允許 tracked-clean、同一 production branch、local HEAD 為 fresh remote HEAD ancestor 的 fast-forward catch-up，保留 untracked `.unpushed`，不建立/修改 ExecutionRecord、不關 Issue、不簽 post-integration durability receipt。dirty/diverged/wrong-branch 一律 fail closed。此例外不得用作一般 startup remote discovery。
+窄化 recovery 例外：durable delivery/readback evidence 已明確證明 canonical root 落後 accepted production lineage 時，有 root-capable runtime 才可選擇執行 `python tools/work_root_gate.py recover-current-production`。machine owner=`tools/work_root_gate.py::recover_canonical_root_to_current_production`；它只允許 tracked-clean、同一 production branch、local HEAD 為 fresh remote HEAD ancestor 的 fast-forward catch-up，保留 untracked `.unpushed`，不建立/修改 ExecutionRecord、不關 Issue、不簽 closure authority。**此 recovery 是 optional maintenance，不是 terminal/startup closure hard gate；沒有 root-capable surface 時不得因此要求額外權限或阻塞已完成 Issue。**
 
 ### 3.2 LANE_CLASSIFIED
 
@@ -200,21 +200,24 @@ CURRENT 文件/Skill/contract 不得再宣告：
 - delivery 成功後只清除 readback 已證明交付的 locked paths；其他未推送/後續變更保留。之後同檔再改必須重新登記為新的 shared-0 未推送修改。
 
 
-## 9. POST_INTEGRATION_DURABILITY_HARD_GATE_V2
+## 9. POST_INTEGRATION_DURABILITY_V2
 
-Flow v2 `DONE` 之後，repository-content physical cycle 還必須完成：
+Flow v2 `FINALIZE → DONE` 加上 trusted GitHub merge/Issue readback就是 terminal authority；**不得再以 canonical Drive root sync/recovery receipt 阻塞已完成 Issue closure**。
 
-`MERGE_READBACK_VERIFIED → SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD → LANE_DELIVERY_RECEIPT_BOUND → FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`
+repository-content cleanup 固定：
 
-硬規則：
+`MERGE_READBACK_VERIFIED → LANE_DELIVERY_RECEIPT_BOUND → FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`
 
-- canonical `/Google Drive/WHD` 的 `.git` HEAD/tree 必須 exact 等於 accepted merged commit/tree；
-- `SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD` 由 `tools/post_integration_durability.py::sync_canonical_root_to_accepted_head` 執行；只在 Flow v2 已 `DONE + RELEASED` 後運作，拒絕 tracked dirty/index state，fresh-fetch production ref 並要求 remote head exact 等於 accepted SHA，完成後 fresh-read HEAD/tree，只有 exact match 才可簽 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1`；
-- root-capable runtime 的標準 ingress 固定為 `python tools/post_integration_durability.py --execution-record <record.json> --accepted-tree-sha <sha>`；成功輸出 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1`，失敗輸出 `WHD_CANONICAL_ROOT_SYNC_RESULT_V1 status=FAILED` 並以 non-zero exit，不得用 ad-hoc Python snippet 或 GitHub-hosted runner 冒充 canonical root execution；
-- selected `.unpushed/{body|docs}/0` 的已交付 generation 必須變成 `EMPTY` 或 `ROLLED_FORWARD`，並留下 `WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1`；
-- `source/snapshots`、`Current Source Manifest`、`/work/active` archive 全部是 SUPERSEDED，不得再作完成 authority；
+### ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1
+
+- canonical `/Google Drive/WHD` root sync/recovery 保留為 maintenance / next-start catch-up，不是 terminal gate、不是 closure authority。
+- 有 root-capable runtime 時，可執行 `tools/post_integration_durability.py::sync_canonical_root_to_accepted_head` 或 `tools/work_root_gate.py::recover_canonical_root_to_current_production` 並留下 VERIFIED receipt。
+- execution surface 無法存取 `/Google Drive/WHD/.git` 時，固定記錄 maintenance drift；**不得要求額外「root-capable 權限」、不得保持 Issue OPEN、不得撤銷既有 DONE/FINALIZE**。
+- 缺少 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1` / `WHD_WORK_ROOT_RECOVERY_RECEIPT_V1` 不得成為 `FINALIZE`、Issue close、scheduler cycle return 的 blocker。
+- 若有人提供 root receipt，machine 仍驗 exact accepted head/tree；receipt 無效只代表 maintenance drift，不得重新打開 terminal Issue。
+- selected `.unpushed/{body|docs}/0` 的已交付 generation 仍必須變成 `EMPTY` 或 `ROLLED_FORWARD`，並留下 `WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1`。
+- `source/snapshots`、`Current Source Manifest`、`/work/active` archive 全部是 SUPERSEDED，不得再作完成 authority。
 - machine owner=`tools/post_integration_durability.py`；contract=`.agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json`。
-
 - production target 的 ref advancement 一律交回 Flow v2 trusted `MERGE` / `SYNC_TARGET`；chat/runtime connector `update_ref` 不得直接推進 main/production target。
 
 

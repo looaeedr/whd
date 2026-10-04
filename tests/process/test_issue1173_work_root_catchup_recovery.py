@@ -163,3 +163,6 @@ def test_work_root_contract_binds_recovery_owner_and_policy():
     assert recovery["success_schema"] == "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1"
     assert recovery["failure_schema"] == "WHD_WORK_ROOT_RECOVERY_RESULT_V1"
     assert recovery["policy"] == "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION"
+    assert recovery["terminal_gate"] is False
+    assert recovery["closure_authority"] is False
+    assert recovery["purpose"] == "OPTIONAL_ROOT_CATCHUP_MAINTENANCE"

@@ -57,6 +57,12 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
         raise ValueError("work-root recovery success schema mismatch")
     if recovery.get("failure_schema") != ROOT_RECOVERY_RESULT_SCHEMA:
         raise ValueError("work-root recovery failure schema mismatch")
+    if recovery.get("terminal_gate") is not False:
+        raise ValueError("work-root recovery must not be a terminal gate")
+    if recovery.get("closure_authority") is not False:
+        raise ValueError("work-root recovery must not own Issue closure")
+    if recovery.get("purpose") != "OPTIONAL_ROOT_CATCHUP_MAINTENANCE":
+        raise ValueError("work-root recovery purpose must be optional maintenance")
     return {str(k): v for k, v in gate.items()}
 
 

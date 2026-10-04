@@ -1,12 +1,13 @@
 """Post-integration durability for the full-repo/shared-unpushed WHD workflow.
 
-After Flow v2 reaches durable DONE, physical completion means two things only:
-1. the canonical full repo root is synced to the accepted merged commit/tree; and
-2. the selected shared-unpushed lane has a delivery receipt and no longer
-   exposes the delivered generation as pending work.
+Flow v2 DONE + merge/Issue readback is terminal execution authority. Canonical
+root synchronization is optional maintenance and must never keep a terminal
+Issue open when the current execution surface cannot access /Google Drive/WHD/.git.
 
-Legacy snapshot/manifests and per-Issue workspace archival are
-SUPERSEDED and must not participate in CURRENT completion decisions.
+Physical shared-unpushed cleanup still requires the selected lane delivery
+receipt and no longer exposing the delivered generation as pending work.
+Legacy snapshot/manifests and per-Issue workspace archival are SUPERSEDED and
+must not participate in CURRENT completion decisions.
 """
 from __future__ import annotations
 
@@ -79,6 +80,15 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("root sync ingress success schema mismatch")
     if ingress.get("failure_schema") != "WHD_CANONICAL_ROOT_SYNC_RESULT_V1":
         raise ValueError("root sync ingress failure schema mismatch")
+    if ingress.get("terminal_gate") is not False:
+        raise ValueError("root sync ingress must not be a terminal gate")
+    policy = _mapping(item.get("root_sync_policy"), "root sync policy")
+    if policy.get("terminal_gate") is not False:
+        raise ValueError("root sync policy must not block terminal completion")
+    if policy.get("closure_authority") is not False:
+        raise ValueError("root sync policy must not own Issue closure")
+    if policy.get("mode") != "OPTIONAL_MAINTENANCE":
+        raise ValueError("root sync policy mode must be OPTIONAL_MAINTENANCE")
     if item.get("lane_delivery_receipt_schema") != LANE_DELIVERY_RECEIPT_SCHEMA:
         raise ValueError("lane delivery receipt schema mismatch")
     forbidden = set(map(str, item.get("forbidden_current_authorities") or ()))
@@ -302,28 +312,31 @@ def classify_post_integration_durability(
     except ValueError as exc:
         return {"state": "NOT_TERMINAL", "next_action": "WAIT_EXECUTION_DONE", "reason": str(exc)}
 
-    if root_sync_receipt is None:
-        return {
-            "state": "ROOT_SYNC_PENDING",
-            "next_action": "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD",
-            "issue": terminal["issue"],
-        }
-    try:
-        validate_root_sync_receipt(root_sync_receipt, expected_merged_sha=terminal["merged_sha"])
-    except ValueError as exc:
-        return {
-            "state": "ROOT_SYNC_PENDING",
-            "next_action": "SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD",
-            "issue": terminal["issue"],
-            "reason": str(exc),
-        }
+    # #1178: root synchronization is maintenance, not terminal authority.
+    # Absence or invalidity of a root receipt must never reopen/block an Issue
+    # after Flow v2 has reached DONE with trusted merge + Issue readback.
+    root_sync_status = "NOT_REQUESTED"
+    root_sync_reason = None
+    if root_sync_receipt is not None:
+        try:
+            validate_root_sync_receipt(
+                root_sync_receipt, expected_merged_sha=terminal["merged_sha"]
+            )
+            root_sync_status = "VERIFIED"
+        except ValueError as exc:
+            root_sync_status = "INVALID_NON_BLOCKING"
+            root_sync_reason = str(exc)
 
     if lane_delivery_receipt is None:
-        return {
+        result = {
             "state": "LANE_CLEANUP_PENDING",
             "next_action": "FINALIZE_DELIVERED_LANE_ZERO",
             "issue": terminal["issue"],
+            "root_sync_status": root_sync_status,
         }
+        if root_sync_reason is not None:
+            result["root_sync_reason"] = root_sync_reason
+        return result
     try:
         validate_lane_delivery_receipt(
             lane_delivery_receipt,
@@ -331,14 +344,26 @@ def classify_post_integration_durability(
             expected_merged_sha=terminal["merged_sha"],
         )
     except ValueError as exc:
-        return {
+        result = {
             "state": "LANE_CLEANUP_PENDING",
             "next_action": "FINALIZE_DELIVERED_LANE_ZERO",
             "issue": terminal["issue"],
             "reason": str(exc),
+            "root_sync_status": root_sync_status,
         }
+        if root_sync_reason is not None:
+            result["root_sync_reason"] = root_sync_reason
+        return result
 
-    return {"state": "DURABLE_CLEANUP_COMPLETE", "next_action": None, "issue": terminal["issue"]}
+    result = {
+        "state": "DURABLE_CLEANUP_COMPLETE",
+        "next_action": None,
+        "issue": terminal["issue"],
+        "root_sync_status": root_sync_status,
+    }
+    if root_sync_reason is not None:
+        result["root_sync_reason"] = root_sync_reason
+    return result
 
 def _load_json_file(path: Path) -> object:
     try:
