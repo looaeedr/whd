@@ -431,3 +431,90 @@ def test_takeover_handoff_effect_changes_only_scheduler_owner_routing():
         "lane_id": LANE_A,
     }
 
+def test_same_lane_current_work_beats_foreign_takeover_candidate():
+    current = _record(844, "ACTIVE", lane=LANE_A)
+    stranded = _record(
+        1080,
+        "ACTIVE",
+        lane="chatgpt.flowv2.work2",
+        owner_id="chatgpt.flowv2.work2",
+    )
+
+    view = build_scheduler_view(
+        [stranded, current],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={
+            "chatgpt.flowv2.work2": _runtime_observation(
+                stranded, issue=1143, state="ENDED"
+            )
+        },
+    )
+
+    assert view.decision == "RESUME_CURRENT"
+    assert view.current_issue == 844
+
+
+def test_legitimate_blocked_foreign_work_is_not_takeover_candidate():
+    blocked = _record(
+        1080,
+        "BLOCKED",
+        lane="chatgpt.flowv2.work2",
+        owner_id="chatgpt.flowv2.work2",
+    )
+
+    view = build_scheduler_view(
+        [blocked],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={
+            "chatgpt.flowv2.work2": _runtime_observation(
+                blocked, issue=1143, state="ENDED"
+            )
+        },
+    )
+
+    assert view.decision == "NO_EXECUTABLE_WORK"
+
+
+def test_issue1080_shape_projects_takeover_before_new_work():
+    stranded = replace(
+        _record(
+            1080,
+            "ACTIVE",
+            lane="chatgpt.flowv2.work2",
+            owner_kind="SCHEDULER",
+            owner_id="chatgpt.flowv2.work2",
+        ),
+        next_action=ActionSpec(
+            kind="START_BRANCH",
+            args={},
+            display="Repair READY→ACQUIRE continuation then start exact-tested delivery branch",
+        ),
+        semantic_state="TARGET_RECONCILED_FOR_TAKEOVER",
+    )
+    ready = _record(1112, "READY")
+    work2_latest = _runtime_observation(
+        stranded,
+        issue=1143,
+        state="ENDED",
+        observed_at="2026-09-28T01:58:00Z",
+    )
+    work2_latest["branch"] = "delivery/issue1143-docs-gen4"
+    work2_latest["head_sha"] = "e" * 40
+
+    view = build_scheduler_view(
+        [ready, stranded],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={"chatgpt.flowv2.work2": work2_latest},
+    )
+
+    assert view.decision == "TAKEOVER_CANDIDATE"
+    assert view.selected_issue == 1080
+    assert view.requires_transaction == "HANDOFF"
+    assert view.next_action_kind == "START_BRANCH"
+
