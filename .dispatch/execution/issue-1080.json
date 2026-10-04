@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 3,
-  "head_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "generation": 4,
+  "head_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
   "issue": 1080,
   "lane_id": "chatgpt.flowv2.work2",
   "lease": null,
@@ -38,21 +38,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "TARGET_RECONCILED_FOR_TAKEOVER",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+  "target_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
   "transaction": {
-    "expected_fingerprint": "e88868f32a3e68d44df4715c5e5ea16501a70970b9d6b87d3b802e62ea9ea83e",
-    "id": "gha:37136057854:1080:HANDOFF:2",
-    "invocation_identity": "a20.20261003T154800Z",
-    "kind": "HANDOFF",
+    "expected_fingerprint": "d53e8d0f0c2314cb1f74660830ec90c5aca66d0d31545494d62d7f5857ce3d9f",
+    "id": "gha:37197578624:1080:RECONCILE:3",
+    "invocation_identity": "chat.work0.issue1080.takeover.20261004T1104Z",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T16:13:55Z",
+  "updated_at": "2026-10-04T11:06:44Z",
   "version": 2,
   "work_branch": "scheduler/issue1080-auto-dispatch"
 }
