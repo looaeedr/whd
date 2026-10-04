@@ -12,11 +12,15 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
   "issue": 1112,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-04T14:17:47Z",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
+    "token": "lease:1112:37207766328:1"
+  },
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
@@ -30,12 +34,14 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Acquire closure-only continuation",
-    "kind": "ACQUIRE"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "Consume existing exact-head Product Regression",
+    "kind": "START_QA"
   },
-  "owner_id": "NONE",
-  "owner_kind": "NONE",
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -49,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY_MERGED_EVIDENCE_RECONCILED",
+  "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
   "transaction": {
-    "expected_fingerprint": "c1a558398be8c6a48cc1b0b21aaa97ed134d571736aa6cb30a08cf063f404a43",
-    "id": "gha:37207552200:1112:RECONCILE:6",
+    "expected_fingerprint": "f9d2c503c64671c6e912985e8c8183a89a14a5cd30f7b18515ef0c463de999fa",
+    "id": "gha:37207766328:1112:ACQUIRE:7",
     "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-    "kind": "RECONCILE",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T13:59:00Z",
+  "updated_at": "2026-10-04T14:02:47Z",
   "version": 2,
   "work_branch": "work/issue1112-receiving-set-bay-editor-20261002"
 }
