@@ -1,24 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-record-merged-pr1165-20261004T0436Z",
+  "request_id": "issue1062-finalize-gen7-20261004T043747Z",
   "issue": 1062,
-  "kind": "MERGE",
+  "kind": "FINALIZE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-  "expected_coord_head": "4627ef92cdb37d9ffa69e38236d6fb19c4324e56",
-  "expected_generation": 54,
+  "expected_coord_head": "e106aad73bcfcef6fdc7e1125a39bcf7f3670e38",
+  "expected_generation": 55,
   "effect": {
-    "merge_precheck_status": "ALREADY_MERGED",
-    "merged_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
-    "target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
-    "semantic_state": "MERGED",
-    "next_action": {
-      "kind": "FINALIZE",
-      "args": {
-        "pr_number": 1165
-      },
-      "display": "Close #1062 and finalize merged delivery"
-    }
+    "issue_closed": true,
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "released_at": "2026-10-04T04:37:47Z",
+    "observed_target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
+    "semantic_state": "TERMINAL_SUCCESS"
   },
   "session_reuse": {
     "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
