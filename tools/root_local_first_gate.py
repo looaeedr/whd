@@ -707,58 +707,35 @@ def validate_source_current(
     manifest: object | None = None,
     touched_path_proofs: Iterable[Mapping[str, object]] = (),
 ) -> dict[str, object]:
-    """Prove the Google Drive root is based on the live target.
+    """Prove the canonical Google Drive root is exactly on the live target.
 
-    CURRENT mode is the real repo working tree under `/Google Drive/WHD`: its
-    `.git` HEAD/tree is compared directly to the live target.  The legacy source
-    manifest remains accepted only as a migration fallback so old callers fail
-    closed instead of silently inventing source identity.
+    CURRENT authority is only the real `/Google Drive/WHD/.git` worktree.
+    Historical source manifests and touched-path scoped recovery are accepted as
+    input only so old callers fail closed with an explicit retirement reason;
+    they can never mint ROOT_SOURCE_CURRENT evidence.
     """
     live_sha = _sha(live_source_sha, "live_source_sha")
     live_tree = _sha(live_tree_sha, "live_tree_sha")
-    if workspace_git is not None:
-        item = _mapping(workspace_git, "workspace git evidence")
-        workspace_sha = _sha(item.get("head_sha"), "workspace head_sha")
-        workspace_tree = _sha(item.get("tree_sha"), "workspace tree_sha")
-        if workspace_sha != live_sha or workspace_tree != live_tree:
+    if workspace_git is None:
+        if manifest is not None or tuple(touched_path_proofs):
             raise ValueError(
-                "ROOT_SOURCE_CURRENT_FAILED: workspace .git HEAD/tree does not match live target"
+                "ROOT_SOURCE_CURRENT_FAILED: legacy manifest/scoped recovery is retired; "
+                "workspace_git evidence is required"
             )
-        return {
-            "status": "EXACT_SOURCE_CURRENT",
-            "source_sha": live_sha,
-            "tree_sha": live_tree,
-            "source_mode": "ROOT_GIT_WORKTREE",
-        }
-
-    if manifest is None:
         raise ValueError("ROOT_SOURCE_CURRENT_FAILED: workspace_git evidence is required")
-    item = _mapping(manifest, "legacy source manifest")
-    manifest_sha = _sha(item.get("source_sha"), "manifest source_sha")
-    manifest_tree = _sha(item.get("tree_sha"), "manifest tree_sha")
-    if manifest_sha == live_sha and manifest_tree == live_tree:
-        return {
-            "status": "EXACT_SOURCE_CURRENT",
-            "source_sha": live_sha,
-            "tree_sha": live_tree,
-            "source_mode": "LEGACY_MANIFEST_FALLBACK",
-            "snapshot_status": str(item.get("durable_snapshot_status") or "UNKNOWN"),
-        }
-    proofs = list(touched_path_proofs)
-    if not proofs:
-        raise ValueError("ROOT_SOURCE_CURRENT_FAILED: legacy manifest stale and no touched-path proof")
-    for proof in proofs:
-        path = str(proof.get("path") or "").strip()
-        expected = str(proof.get("live_blob_sha") or "").strip().lower()
-        observed = str(proof.get("workspace_blob_sha") or "").strip().lower()
-        if not path or not re.fullmatch(r"[0-9a-f]{40}", expected) or expected != observed:
-            raise ValueError(f"ROOT_SOURCE_CURRENT_FAILED: invalid touched-path proof for {path!r}")
+
+    item = _mapping(workspace_git, "workspace git evidence")
+    workspace_sha = _sha(item.get("head_sha"), "workspace head_sha")
+    workspace_tree = _sha(item.get("tree_sha"), "workspace tree_sha")
+    if workspace_sha != live_sha or workspace_tree != live_tree:
+        raise ValueError(
+            "ROOT_SOURCE_CURRENT_FAILED: workspace .git HEAD/tree does not match live target"
+        )
     return {
-        "status": "SCOPED_CURRENT_RECOVERY",
+        "status": "EXACT_SOURCE_CURRENT",
         "source_sha": live_sha,
         "tree_sha": live_tree,
-        "source_mode": "LEGACY_SCOPED_RECOVERY",
-        "verified_paths": sorted(str(p["path"]) for p in proofs),
+        "source_mode": "ROOT_GIT_WORKTREE",
     }
 
 
