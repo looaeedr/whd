@@ -18,8 +18,6 @@ COMPILE_PATHS = (
     "tools/scheduler_host_watchdog.py",
     "tools/scheduler_entrypoint_observation.py",
     "tools/scheduler_ready_ingress.py",
-    "tools/scheduled_resume_executor.py",
-    "tools/scheduled_resume_runtime.py",
     "tools/control_transaction.py",
     "tools/control_transaction_production_executor.py",
     "tools/control_transaction_request_ingress.py",
