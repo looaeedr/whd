@@ -420,3 +420,55 @@ def test_issue1062_delete_stale_intent_is_rejected_outside_release_paths(tmp_pat
     with pytest.raises(ProductionExecutorError, match="only valid as true on RELEASE_PATHS"):
         _load_request(path)
 
+
+
+def test_control_plane_regression_does_not_keep_retired_continuity_runtime_alive():
+    runner = (ROOT / "tools/control_plane_regression.py").read_text(encoding="utf-8")
+    for retired in (
+        "tools/continuity_controller.py",
+        "tools/scheduled_resume_executor.py",
+        "tools/scheduled_resume_runtime.py",
+        "tests/process/test_checkpoint_resume_contract.py",
+        "tests/process/test_continuous_execution_durable_contract.py",
+        "tests/process/test_issue952_governance_ancestry_reconcile.py",
+    ):
+        assert retired not in runner
+
+
+def test_legacy_github_readers_fail_closed_without_remote_authority(monkeypatch):
+    import tools.execution_claim_guard as claim_guard
+    import tools.stale_claim_takeover as takeover
+
+    for name in ("WHD_REMOTE_CONNECTION_AUTHORITY_JSON", "GH_TOKEN", "GITHUB_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "looaeedr/whd")
+
+    with pytest.raises(claim_guard.ExecutionClaimError, match="REMOTE_CONNECTION_DENIED"):
+        claim_guard._github_api_json("issues/1")
+    with pytest.raises(takeover.StaleTakeoverError, match="REMOTE_CONNECTION_DENIED"):
+        takeover._github_api_json("issues/1")
+
+
+def test_legacy_github_readers_delegate_to_current_remote_authority_gate(monkeypatch):
+    import tools.execution_claim_guard as claim_guard
+    import tools.stale_claim_takeover as takeover
+
+    authority = {
+        "schema": "WHD_REMOTE_CONNECTION_AUTHORITY_V1",
+        "kind": "USER_EXPLICIT_REMOTE",
+        "target": "GITHUB",
+        "allowed_actions": ["READ"],
+        "user_explicit": True,
+        "lane": None,
+        "user_authored_entry_contract": False,
+    }
+    monkeypatch.setenv("WHD_REMOTE_CONNECTION_AUTHORITY_JSON", json.dumps(authority))
+    assert claim_guard._require_remote_connection_authority(action="READ")["target"] == "GITHUB"
+    assert takeover._require_remote_connection_authority(action="READ")["target"] == "GITHUB"
+
+
+
+def test_stale_machine_looking_root_artifacts_are_not_current():
+    assert not (ROOT / ".flow-v2/execution-fence.json").exists()
+    assert not (ROOT / ".tmp-gen10").exists()
+
