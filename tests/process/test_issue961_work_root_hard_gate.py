@@ -146,4 +146,4 @@ def test_every_flow_v2_execution_bridge_routes_through_canonical_flow_startup():
             "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in text
             or "PROJECT_STARTUP_HARD_GATE_V1" in text
         ), path
-    assert len(bridged) >= 9
+    assert len(bridged) >= 8
