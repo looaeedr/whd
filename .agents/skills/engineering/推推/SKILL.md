@@ -1,6 +1,6 @@
 ---
 name: 推推
-description: WHD shared-unpushed integration 的唯一 Git delivery 出口。只允許 `/推推 文檔` 或 `/推推 主體`；delivery 前鎖定 exact 檔案集合與 hash，merge 前重新驗最新檔，完成 readback 後只清除已交付 paths；未收到 `/推推` 或其他使用者明確遠端指示時禁止連 GitHub/遠端本機。
+description: WHD shared-unpushed integration 的唯一 interactive Git delivery 出口。只允許 `/推推 文檔` 或 `/推推 主體`；delivery 前鎖定 exact 檔案集合與 hash，merge 前重新驗最新檔；merge 後先同步 Issue/Flow v2，只有 Flow v2 DONE 才進 selected lane durable cleanup。root sync/recovery 只屬 optional maintenance，不得阻塞 terminal closure。
 whd_doc_role: CURRENT
 whd_contract: shared-unpushed-integration
 whd_canonical: null
@@ -15,13 +15,15 @@ whd_schema: WHD_DOC_META_V1
 
 任何 repository-content 的找檔、baseline、比對、修改、測試與 shared-0 合併，**一律先從 canonical root `/Google Drive/WHD` 開始**。
 
-未取得下列任一明確 authority 前，禁止連線 GitHub、Remote Desktop、遠端本機、GitHub checkout/mirror 或其他遠端內容來源：
+本節 remote-deny 只約束 **interactive/default repository-content discovery / authoring / delivery**；不得拿本節去撤銷 Flow v2、scheduler、trusted Preflight、Issue create/readback、post-delivery Issue sync 等 control-plane 自己已由 CURRENT contract 授權的遠端能力。反過來，這些 control-plane authority 也不得被拿來取代 canonical root 施工面。
+
+對 interactive/default repository-content 而言，未取得下列任一明確 authority 前，禁止把 GitHub checkout/mirror、Remote Desktop、遠端本機或其他遠端內容來源升格為 repository-content baseline / authoring surface：
 
 1. 使用者明確要求「開工單」：只授權 issue create/readback 所需 GitHub 連線，不授權 repository-content 讀寫；
-2. 使用者明確下達遠端操作指示；
+2. 使用者明確下達遠端 repository-content 操作指示；
 3. 使用者下達 `/推推 文檔` 或 `/推推 主體`：只授權本次 selected lane 的 Git delivery window。
 
-一般任務、Skill 自動觸發、Preflight、想確認「GitHub 是否更新」、或找不到檔案，**都不是遠端連線 authority**。不得先從 GitHub 找同名檔再回 root，也不得用 remote copy 取代 root baseline。
+一般 interactive 任務、Skill 自動觸發、想確認「GitHub 是否更新」、或 root 找不到檔案，**都不是 repository-content remote authority**。不得先從 GitHub 找同名檔再回 root，也不得用 remote copy 取代 root baseline。trusted Preflight / scheduler bootstrap / Flow v2 control-plane 是否可讀 GitHub，完全依各自 CURRENT contract 判定，不由本節額外阻擋或放寬。
 
 ## 1. 指令
 
@@ -133,7 +135,10 @@ DOCS_0_EXISTS
 → DELIVERY_RECEIPT_BOUND
 → SYNC_LINKED_GITHUB_ISSUES
 → ISSUE_SYNC_READBACK_VERIFIED
-→ FINALIZE_DELIVERED_PATHS
+→ FLOW_V2_DONE
+→ LANE_DELIVERY_RECEIPT_BOUND
+→ FINALIZE_DELIVERED_LANE_ZERO
+→ DURABLE_CLEANUP_COMPLETE
 ```
 
 任一步不成立，不得進下一步。
@@ -162,7 +167,10 @@ BODY_0_EXISTS
 → DELIVERY_RECEIPT_BOUND
 → SYNC_LINKED_GITHUB_ISSUES
 → ISSUE_SYNC_READBACK_VERIFIED
-→ FINALIZE_DELIVERED_PATHS
+→ FLOW_V2_DONE
+→ LANE_DELIVERY_RECEIPT_BOUND
+→ FINALIZE_DELIVERED_LANE_ZERO
+→ DURABLE_CLEANUP_COMPLETE
 ```
 
 主體 lane 的測試 profile 必須由 `tools/change_test_profile.py` 決定；GitHub Actions 只做 post-push verification，不是第一測試面。
@@ -187,31 +195,42 @@ BODY_0_EXISTS
 
 ## 10. ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1 — 推推後半邊
 
-`/推推 文檔|主體` 在 `MERGE_READBACK_VERIFIED` 後還不能直接宣告整個 delivery cycle 完成。必須先把交付結果同步回本次 manifest/Flow v2 關聯的 GitHub Issue：
+`/推推 文檔|主體` 在 `MERGE_READBACK_VERIFIED` 後還不能直接宣告整個 delivery cycle 完成。必須先把交付結果同步回本次 manifest/Flow v2 關聯的 GitHub Issue，再由 Flow v2 自己 drain terminal tail：
 
-`MERGE_READBACK_VERIFIED → DELIVERY_RECEIPT_BOUND → SYNC_LINKED_GITHUB_ISSUES → ISSUE_SYNC_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
+`MERGE_READBACK_VERIFIED → DELIVERY_RECEIPT_BOUND → SYNC_LINKED_GITHUB_ISSUES → ISSUE_SYNC_READBACK_VERIFIED → FLOW_V2_FINALIZE → FLOW_V2_DONE`
 
 同步至少包含：lane、generation、manifest digest、PR、accepted/merged SHA、post-push test/CI 結果，以及 **terminal state 或 exact remaining next_action/blocker**。
 
-- 若工單已符合 Flow v2 terminal acceptance，close 仍由 canonical `FINALIZE` 執行並 fresh readback；`/推推` 不自行創造第二套 closure authority。
-- 若尚未 terminal，Issue 必須保持 open，並把 exact next action/blocker 同步回去；不能因 push/merge 成功就假裝工單完成。
-- carried-forward Issues 也必須 reconcile GitHub open/closed 狀態與本地 lane provenance，禁止只留 stale `carried_forward_issues` 數字。
+- merge/readback 或 Issue sync **都不等於 Flow v2 terminal**。若工單已符合 terminal acceptance，close 只由 canonical `FINALIZE` 執行並 fresh readback成 `state=DONE`；`/推推` 不自行創造第二套 closure authority。
+- 若尚未 terminal，Issue 必須保持 open，並把 exact next action/blocker 同步回去；不能因 push/merge 成功就假裝工單完成，也不能提前清 selected shared-0。
+- carried-forward Issues 也必須 reconcile GitHub open/closed 狀態與 lane provenance，禁止只留 stale `carried_forward_issues` 數字。
 - remote authority 固定 `POST_DELIVERY_ISSUE_SYNC`，只允許 Issue update/comment/relation/readback；不能用它擴張 repository-content scope。
 - Issue sync/readback 失敗時，delivery content merge 可保留 VERIFIED，但 physical cycle 狀態固定 `ISSUE_SYNC_PENDING`，不得把整輪視為 durable cleanup complete。
+## 11. POST_INTEGRATION_DURABILITY_V2 — DONE 後才清 selected lane
 
-## 11. Push 完成後只清已交付 paths
+`MERGE_READBACK_VERIFIED` 只證明 Git delivery 成功；selected `0` 的 durable cleanup 還必須服從 CURRENT `WHD_POST_INTEGRATION_DURABILITY_V2`。
 
-只有 `MERGE_READBACK_VERIFIED` 證明 production/accepted target 已含 exact locked file hashes 後，才允許 finalize selected `0`。
+固定順序：
+
+`FLOW_V2_DONE → MERGE_READBACK_VERIFIED → LANE_DELIVERY_RECEIPT_BOUND → FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`
 
 固定規則：
 
-- 只清除本次 lock 中且 readback 已證明交付成功的 paths；
-- 未推送、後來新增、hash 已不同、其他 worker 正在修改的 paths 必須保留；
-- 清除後留下 delivery receipt，記錄 delivered generation、manifest digest、path/hash、accepted commit、cleared_at；
+- **Flow v2 尚未 DONE 時不得把 selected lane 視為 cleanup complete**；先續 exact `next_action` 到 canonical FINALIZE/DONE。
+- DONE 後，對本次 delivered generation 綁定 `WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1`；receipt 必須 exact 綁 issue、lane、generation、manifest digest、merged SHA、delivered paths 與 cleanup 後 lane state。
+- 只清除本次 lock 中且 readback 已證明交付成功的 paths；未推送、後來新增、hash 已不同、其他 worker 正在修改的 paths 必須保留並形成 `ROLLED_FORWARD`，否則 lane state 為 `EMPTY`。
+- `FINALIZE_DELIVERED_LANE_ZERO` 成功後才能宣告 `DURABLE_CLEANUP_COMPLETE`。
 - 若同一檔之後要再修改，必須重新從當下 canonical root/latest `0` 登記成新的未推送修改；舊 receipt 只作歷史證據，不得讓舊內容自動再推。
 
 這裡的「清除」是清掉已交付的未推送修改狀態，不是刪除 repository 實體檔案。
 
+### 11.1 ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1
+
+canonical root sync / recovery **不是** `/推推` terminal gate，也不是 Issue closure authority。
+
+- 缺少 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1` 或 `WHD_WORK_ROOT_RECOVERY_RECEIPT_V1`，不得阻擋 Flow v2 `FINALIZE → DONE`、Issue close/readback、scheduler cycle return，亦不得阻擋 `FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`。
+- 有 root-capable runtime 時可依 CURRENT transport 做 optional maintenance；成功 receipt 只證明 root catch-up。
+- 沒有 root-capable runtime、receipt 缺失或 receipt invalid 時，只記 `ROOT_SYNC_MAINTENANCE_DRIFT` / non-blocking maintenance evidence；**不得因此保持 Issue OPEN、撤銷 DONE、或重開已完成 delivery**。
 ## 12. Branch timing
 
 正常施工階段不開 Git branch，也不連 GitHub/遠端本機做 repository-content discovery。
