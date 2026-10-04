@@ -69,7 +69,6 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_issue1045_post_integration_durability.py",
     "tests/process/test_issue1059_flow_v2_anti_regrowth_v5.py",
     "tests/process/test_issue1063_actions_workflow_cleanup.py",
-    "tests/test_dispatching_skill_timeout_contract.py",
     "tests/test_execution_work_slot_autoincrement.py",
     "tests/test_dm5_deep_module_writeback_contract.py",
     "tests/test_issue443_t1_dead_glue.py",
