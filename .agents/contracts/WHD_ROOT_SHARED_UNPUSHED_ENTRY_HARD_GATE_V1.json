@@ -247,7 +247,7 @@
       "fixtures",
       "other_repository_content"
     ],
-    "github_side_hotfix_forbidden": false,
+    "github_side_hotfix_forbidden": true,
     "policy": "WORKSPACE_MIRROR_IMPLEMENTATION",
     "qa_failure_action": "FIX_IN_WORKSPACE_RETEST_REPUSH",
     "remote_allowed_after_candidate_push": [
