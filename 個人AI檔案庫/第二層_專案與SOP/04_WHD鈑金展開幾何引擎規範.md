@@ -290,3 +290,20 @@ Public facade 可以 re-export / delegate，但不得重新持有第二份 verif
 
 Accepted provenance：Phase 7 #618/#620/#621/#623 與 Combined Acceptance #626；combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
 
+### Receiving V1.6 — accepted Set/Bay/Joint / pairing-mark contract (#1116)
+
+以下為 Receiving multi-set/multi-bay V1.6 在 #1111～#1116 完成後的 CURRENT manufacturing invariants；它們屬本文件既有 manufacturing-architecture authority 的 Receiving 子契約，不建立第二份 authority：
+
+- **Set/Bay/Joint identity**：Receiving v2 只持久化 authoritative Set/Bay/Joint state 與 stable IDs；legacy v1 aliases 僅供 migration / transient compatibility，不得重新成為 v2 persisted authority。
+- **Joint scope**：Joint 僅存在於同一 Set 的相鄰 Bay；2×2 等 multi-Set layout 不得產生 cross-set Joint。
+- **Direction contract（R-029，owner-approved）**：FRONT=`+Z`、REAR=`-Z`、LEFT=`-X`、RIGHT=`+X`；Joint local `u` 固定 FRONT→REAR，`v` 固定 BOTTOM→TOP。程式／測試若與此衝突，視為 implementation/test bug，不得自行改寫方向語意。
+- **Joint alignment**：FRONT/REAR × BOTTOM/TOP 四種 alignment 都必須讓 mating lock holes 在 world space 重合；不同 Bay D/H 只影響合法 alignment offset，不得產生第二套 lock-coordinate generator。
+- **Pairing MARKING ownership**：每個 Bay pairing mark 只落在該 Bay 的 `box_body:left_side`，○ 表示右側有 Joint lock，X 表示右側無 Joint lock；每個 Set 重新計算自己的 ○/X，不跨 Set 串接。
+- **Pairing placement**：標記位置先由 formed left-side authoritative main-face geometry 決定，再經同一份 formed/world→flat backprojection 寫入 DXF；export 不得額外 mirror / rotate，也不得把 renderer/UI 座標升格成 manufacturing datum。
+- **OPEN-02（owner-approved）**：`PAIRING_SYMBOL_INSET = 5.0 mm` 為正式 release 值。它是 authoritative 50×50 pairing-symbol region 的內縮量，因此 ○/X 的 `symbol_size = 40.0 mm`；**不是** DXF 板外框／零件外緣 5 mm offset。
+- **Back-panel variants**：FULL 使用固定 50×100 frame；HALF 只使用 TOP 50×50；BACK_OPENING 使用固定 50×100 frame，並在 BOTTOM 50×50 區域置中固定 30×20 horizontal glyph。不得因空間不足自動縮放或裁切。
+- **Bounds / conflict**：pairing geometry 必須同時落在 formed authoritative face 與 Final Material 內；與同件 CUTTING / BLIND_HOLE / MARKING 的 zero-clearance touching / endpoint contact 都視為 conflict，fail closed。
+- **Manufacturing readiness / export**：Receiving requested Set / project batch export 以 canonical resolved manufacturing geometry 為唯一來源；blocked Bay/Joint 的 invalidity 依 R-028 做 bounded propagation，不得意外 chain 到不相干 Bay/Set。multi-instance physical DXF 檔名必須帶 stable Set/Bay namespace，禁止 collision / overwrite；batch 驗收以重新開啟 DXF 後 CUTTING / BLIND_HOLE / MARKING inventory 與 canonical PartRenderData 一致為準。
+- **Validation one-way**：1×1、1×2、1×4、2×2、mixed W/H/D、mixed FULL/HALF/BACK_OPENING、Save→Reload、DXF reopen 與 regression 都是 acceptance evidence；它們驗證上述 authority，但不得反向創造新產品規格或 offset。
+
+Durable signoff provenance：#1116 owner signoff 記錄 R-029 與 OPEN-02；OPEN-02 implementation finalization 由 PR #1167 merge 至 `cleanup/2d-3d-sync`。後續若要改方向、5 mm inset、pairing ownership 或 Joint scope，必須以新的 product-owner decision 更新本 CURRENT authority，不能只改 code/test。
