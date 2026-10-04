@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 50,
+  "generation": 51,
   "head_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829",
   "issue": 1062,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
-    "expires_at": "2026-10-04T04:21:43Z",
-    "invocation_identity": "gha:looaeedr/whd:run:37176008983:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "token": "lease:1062:37176008983:1"
+    "expires_at": "2026-10-04T04:37:57Z",
+    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+    "token": "lease:1062:37176823281:1"
   },
   "mutation_scope": {
     "base_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
@@ -83,13 +83,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "transaction": {
-    "expected_fingerprint": "5b6719a7944f1a37feba5ee52c6f769c9536bf24c661a44864bffd5511cea886",
-    "id": "gha:37176008983:1062:ACQUIRE:49",
-    "invocation_identity": "gha:looaeedr/whd:run:37176008983:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+    "expected_fingerprint": "3eda3fd4c5f482ebd3da72048759d45c35a0eb70025028d70e27ab341f521d25",
+    "id": "gha:37176823281:1062:ACQUIRE:50",
+    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T04:06:43Z",
+  "updated_at": "2026-10-04T04:22:57Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
