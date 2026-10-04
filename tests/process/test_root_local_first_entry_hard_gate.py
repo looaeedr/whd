@@ -71,12 +71,12 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert "tools/change_test_profile.py" in text
     assert "EXACT_TESTED_DIFF_ONLY" in text
     assert payload["required_order"][:4] == [
-        "ROOT_SOURCE_CURRENT", "UNPUSHED_LANE_CLASSIFIED",
-        "LATEST_0_BASE_BOUND", "ROOT_MUTATIONS_COMPLETE",
+        "WORKSPACE_SOURCE_CURRENT", "WORKSPACE_MUTATIONS_COMPLETE",
+        "WORKSPACE_TESTS_GREEN", "DELIVERY_BRANCH_READY",
     ]
     assert payload["shared_unpushed_integration"]["machine_owner"] == "tools/shared_unpushed_integration.py"
     assert payload["shared_unpushed_integration"]["conflict_state"] == "BLOCKED_USER_DECISION"
-    assert payload["path_reservation"]["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert payload["path_reservation"]["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
     assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
     assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
