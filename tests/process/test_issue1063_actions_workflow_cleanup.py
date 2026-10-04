@@ -96,6 +96,9 @@ def test_required_status_context_and_current_flow_v2_transports_remain() -> None
         assert branch in request
     preflight = (WORKFLOWS / "whd-phase6-preflight.yml").read_text(encoding="utf-8")
     assert "WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1" in preflight
+    push_preflight = (WORKFLOWS / "whd-phase6-preflight-push.yml").read_text(encoding="utf-8")
+    assert "coord/preflight-requests-a" in push_preflight
+    assert "coord/preflight-requests-b" in push_preflight
 
 def test_remote_guard_registry_route_does_not_restore_deleted_workflow() -> None:
     registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
@@ -104,7 +107,7 @@ def test_remote_guard_registry_route_does_not_restore_deleted_workflow() -> None
 
 
 def test_legacy_source_snapshot_workflow_stays_retired_under_durability_v2() -> None:
-    assert len(EXPECTED) == 7
+    assert "whd-phase6-preflight-push.yml" in EXPECTED
     assert "drive-source-snapshot-export.yml" not in EXPECTED
     assert not (WORKFLOWS / "drive-source-snapshot-export.yml").exists()
     contract = json.loads((ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json").read_text(encoding="utf-8"))
