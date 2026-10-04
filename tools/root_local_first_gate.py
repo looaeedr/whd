@@ -660,8 +660,8 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("path reservation state owner mismatch")
     if reservation.get("evaluator") != "tools/execution_path_reservation.py":
         raise ValueError("path reservation evaluator mismatch")
-    if reservation.get("phase") != "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN":
-        raise ValueError("path reservation must be delivery-only")
+    if reservation.get("phase") != "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN":
+        raise ValueError("path reservation must be tested-diff delivery-only")
     if reservation.get("release_policy") != "FINALIZE_OR_EXPLICIT_RELEASE_PATHS":
         raise ValueError("path reservation release policy mismatch")
     modes = _mapping(contract.get("execution_modes"), "execution_modes")
