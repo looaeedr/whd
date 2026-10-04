@@ -648,6 +648,10 @@ def _execute_start_branch(
     plan: ControlTransactionPlan,
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
+    if record.execution_intent == "SCHEDULER_LANE":
+        raise ControlTransactionError(
+            "SCHEDULER_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
+        )
     if record.state != "ACTIVE":
         raise ControlTransactionError("START_BRANCH requires ACTIVE state")
     work_branch = _text(effect.get("work_branch"), "work_branch")
@@ -671,6 +675,10 @@ def _execute_apply_commit(
     plan: ControlTransactionPlan,
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
+    if record.execution_intent == "SCHEDULER_LANE":
+        raise ControlTransactionError(
+            "SCHEDULER_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
+        )
     if record.state not in {"ACTIVE", "INTEGRATING"}:
         raise ControlTransactionError("APPLY_COMMIT requires ACTIVE or INTEGRATING state")
     head_sha = _text(effect.get("head_sha"), "head_sha")
