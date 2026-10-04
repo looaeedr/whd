@@ -10,7 +10,6 @@ EXPECTED = {
     "whd-product-regression.yml",
     "whd-control-plane-regression.yml",
     "whd-control-transaction-v2-request.yml",
-    "whd-control-transaction-v2.yml",
     "whd-governance-single-authority-gate.yml",
     "whd-phase6-preflight.yml",
     "whd-phase6-preflight-push.yml",
@@ -32,6 +31,7 @@ def test_no_issue_scoped_branch_specific_or_retired_legacy_workflow_regrows() ->
     forbidden = {
         "whd-control-transaction-v2-shadow.yml",
         "whd-control-transaction-v2-terminal-shadow.yml",
+        "whd-control-transaction-v2.yml",
         "whd-remote-claim-activation.yml",
         "whd-remote-execution-guard.yml",
         "whd-remote-finalization.yml",
@@ -117,3 +117,11 @@ def test_legacy_source_snapshot_workflow_stays_retired_under_durability_v2() -> 
     assert "INVALID_NON_BLOCKING" in tool
     assert "LANE_CLEANUP_PENDING" in tool
     assert "FINALIZE_DELIVERED_LANE_ZERO" in tool
+
+
+def test_direct_control_transaction_workflow_and_cli_stay_retired() -> None:
+    assert not (WORKFLOWS / "whd-control-transaction-v2.yml").exists()
+    executor = (ROOT / "tools/control_transaction_production_executor.py").read_text(encoding="utf-8")
+    assert "DIRECT_PRODUCTION_EXECUTOR_CLI_RETIRED_V1" in executor
+    assert "use tools/control_transaction_request_ingress.py" in executor
+

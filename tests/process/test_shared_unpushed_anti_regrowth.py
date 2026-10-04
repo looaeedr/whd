@@ -63,16 +63,11 @@ def test_unpushed_workspace_is_never_git_delivery_content():
     assert "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK" in push
     assert ".unpushed" in push
 
+
 def test_push_delivery_tail_requires_flow_v2_done_before_lane_cleanup():
     import json
-
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    contract = json.loads(
-        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
-            encoding="utf-8"
-        )
-    )
-
+    contract = json.loads((ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(encoding="utf-8"))
     ordered = [
         "MERGE_READBACK_VERIFIED",
         "DELIVERY_RECEIPT_BOUND",
@@ -92,15 +87,9 @@ def test_push_delivery_tail_requires_flow_v2_done_before_lane_cleanup():
 
 def test_push_root_sync_is_optional_maintenance_not_terminal_authority():
     import json
-
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    contract = json.loads(
-        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    contract = json.loads((ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(encoding="utf-8"))
     policy = contract["root_sync_policy"]
-
     assert "ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1" in push
     assert "不得因此保持 Issue OPEN" in push
     assert policy["mode"] == "OPTIONAL_MAINTENANCE"
@@ -110,17 +99,27 @@ def test_push_root_sync_is_optional_maintenance_not_terminal_authority():
 
 def test_push_remote_deny_does_not_override_control_plane_authority():
     import json
-
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    contract = json.loads(
-        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    contract = json.loads((ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(encoding="utf-8"))
     scope = contract["remote_authority_scope"]
-
     assert "只約束 **interactive/default repository-content discovery / authoring / delivery**" in push
     assert "不得拿本節去撤銷 Flow v2、scheduler、trusted Preflight" in push
     assert scope["control_plane_authority"] == "OWN_CURRENT_CONTRACTS_NOT_OVERRIDDEN_BY_PUSH_SKILL"
     assert scope["control_plane_cannot_author_root_content"] is True
 
+
+def test_workspace_staged_delivery_fallback_preserves_exact_lock():
+    import json
+    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
+    contract = json.loads((ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(encoding="utf-8"))
+    fallback = contract["delivery_transport"]["workspace_staged_fallback"]
+    assert "WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1" in push
+    assert "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET" in push
+    assert "bundle 只作 transport capsule / audit evidence" in push
+    assert fallback["status"] == "CURRENT"
+    assert fallback["workspace_authority"] is False
+    assert fallback["requires_frozen_manifest"] is True
+    assert fallback["requires_exact_hash_readback"] is True
+    assert fallback["bundle_role"] == "TRANSPORT_CAPSULE_ONLY_NOT_REPOSITORY_CONTENT"
+    assert fallback["git_tree_must_expand_to_exact_locked_paths"] is True
+    assert fallback["invariant"] == "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET"

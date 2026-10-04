@@ -83,21 +83,6 @@ merge 前必須逐 path fresh-read latest `0` 的 generation/hash；只要任一
 
 machine owner：`tools/shared_unpushed_integration.py::build_conflict_checkpoint` 與 `assert_conflict_checkpoint_blocks_action`。
 
-## 4.5 SHARED_ZERO_FREEZE_REQUIRES_WORKER_CENSUS_HARD_GATE_V1
-
-任何 docs/body lane 要進入 `FROZEN` 前，必須 fresh census 該 lane 的全部 worker candidates；freeze 是**所有目前合法可合併工作已收斂後的批次邊界**，不是先凍結一部分、再把其他 GREEN candidate 留到下一輪。
-
-固定規則：
-
-1. fresh-list `.unpushed/{lane}/workers/**`，逐一分類為 `MERGED_TO_0 | HISTORICAL_SUPERSEDED | CONFLICT_BLOCKED | NOT_GREEN | ACTIVE_DELEGATED | MERGEABLE_GREEN`；
-2. 任一 `MERGEABLE_GREEN` 存在時，禁止 `LANE_MANIFEST_FROZEN`、禁止建立 delivery lock、禁止 `/推推`；必須先以 fresh latest `0` 做 reconcile/merge；
-3. 多個互不衝突且已 GREEN 的 candidates 必須合併進**同一個下一代 0**，再對 union fileset 跑 post-merge tests；
-4. 只有 census 證明 `MERGEABLE_GREEN=0` 且最新 `0` post-merge GREEN，才允許一次 freeze 完整 manifest；
-5. 若 post-push CI 發現需要 repository-content 修改，該 frozen generation 視為 delivery attempt failed：回 canonical root/shared-0 修完整、重新 census/merge/test/refreeze；**禁止在 delivery branch 做 incremental remote repair**；
-6. `FROZEN` 後新出現的合法 candidate 不得偷塞進既有 lock；若使用者要求「一起推」，必須回 shared-0 生成新的完整 generation，再以新 lock 整批 delivery。
-
-這個 gate 的目的就是保證：**先全部併 → 全部測 → freeze 一次 → 推一次**。
-
 ## 5. DELIVERY_FILESET_LOCK_HARD_GATE_V1
 
 selected lane 通過 post-merge tests 後，先 freeze manifest，再建立不可變的 delivery fileset lock：
@@ -132,13 +117,7 @@ DOCS_0_EXISTS
 → PRE_MERGE_LATEST_FILE_RECHECK
 → MERGE
 → MERGE_READBACK_VERIFIED
-→ DELIVERY_RECEIPT_BOUND
-→ SYNC_LINKED_GITHUB_ISSUES
-→ ISSUE_SYNC_READBACK_VERIFIED
-→ FLOW_V2_DONE
-→ LANE_DELIVERY_RECEIPT_BOUND
-→ FINALIZE_DELIVERED_LANE_ZERO
-→ DURABLE_CLEANUP_COMPLETE
+→ FINALIZE_DELIVERED_PATHS
 ```
 
 任一步不成立，不得進下一步。
@@ -164,13 +143,7 @@ BODY_0_EXISTS
 → PRE_MERGE_LATEST_FILE_RECHECK
 → MERGE
 → MERGE_READBACK_VERIFIED
-→ DELIVERY_RECEIPT_BOUND
-→ SYNC_LINKED_GITHUB_ISSUES
-→ ISSUE_SYNC_READBACK_VERIFIED
-→ FLOW_V2_DONE
-→ LANE_DELIVERY_RECEIPT_BOUND
-→ FINALIZE_DELIVERED_LANE_ZERO
-→ DURABLE_CLEANUP_COMPLETE
+→ FINALIZE_DELIVERED_PATHS
 ```
 
 主體 lane 的測試 profile 必須由 `tools/change_test_profile.py` 決定；GitHub Actions 只做 post-push verification，不是第一測試面。
@@ -193,6 +166,22 @@ BODY_0_EXISTS
 
 任何額外 path 都必須 fail closed：`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK`。
 
+## 9.5 WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1
+
+當 selected lane 已 `FROZEN`、fileset lock 已建立，而且來源 connector 不能直接作為 Git content-write 輸入時，允許使用 **workspace-staged relay** 作為同一 delivery window 內的相容 transport。這不是新的 authority，也不能改變 lock。
+
+固定規則：
+
+1. 只把 frozen manifest 的 exact write paths materialize 到本 invocation 的工作區；workspace 只是 staging surface，不是 canonical authority。
+2. materialize 後逐檔重新計算 hash，必須 exact 等於 frozen manifest；任一不符立即 fail closed。
+3. 建立一個 deterministic frozen bundle（建議 `tar.xz`），至少包含 payload + manifest；bundle 只作 transport capsule / audit evidence，**不得把 bundle 檔本身提交進 repository 取代 locked paths**。
+4. Git object 建立只能使用已通過 hash readback 的 workspace bytes；若 connector 需要文字 relay，可由同一 workspace 產生 temporary encoded relay，再建立 exact Git blobs。relay 不得改內容、不得新增 path、不得跨 lane。
+5. Git tree 必須展開成原本 fileset lock 的 exact write/delete paths；changed filenames 仍必須 exact 等於 lock。
+6. bundle / temporary relay 都不是 repository content；delivery terminal 後應移出 active scope或清除。
+7. 若 direct transport 恢復，兩條 transport 的產物仍必須由同一 frozen manifest/hash 驗證；不得因 transport 差異跳過 CI、pre-merge recheck、Issue sync、Flow v2 DONE 或 lane cleanup。
+
+machine invariant：`WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET`。
+
 ## 10. ISSUE_SYNC_ON_SPLIT_AND_DELIVERY_HARD_GATE_V1 — 推推後半邊
 
 `/推推 文檔|主體` 在 `MERGE_READBACK_VERIFIED` 後還不能直接宣告整個 delivery cycle 完成。必須先把交付結果同步回本次 manifest/Flow v2 關聯的 GitHub Issue，再由 Flow v2 自己 drain terminal tail：
@@ -206,6 +195,7 @@ BODY_0_EXISTS
 - carried-forward Issues 也必須 reconcile GitHub open/closed 狀態與 lane provenance，禁止只留 stale `carried_forward_issues` 數字。
 - remote authority 固定 `POST_DELIVERY_ISSUE_SYNC`，只允許 Issue update/comment/relation/readback；不能用它擴張 repository-content scope。
 - Issue sync/readback 失敗時，delivery content merge 可保留 VERIFIED，但 physical cycle 狀態固定 `ISSUE_SYNC_PENDING`，不得把整輪視為 durable cleanup complete。
+
 ## 11. POST_INTEGRATION_DURABILITY_V2 — DONE 後才清 selected lane
 
 `MERGE_READBACK_VERIFIED` 只證明 Git delivery 成功；selected `0` 的 durable cleanup 還必須服從 CURRENT `WHD_POST_INTEGRATION_DURABILITY_V2`。
@@ -231,6 +221,7 @@ canonical root sync / recovery **不是** `/推推` terminal gate，也不是 Is
 - 缺少 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1` 或 `WHD_WORK_ROOT_RECOVERY_RECEIPT_V1`，不得阻擋 Flow v2 `FINALIZE → DONE`、Issue close/readback、scheduler cycle return，亦不得阻擋 `FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`。
 - 有 root-capable runtime 時可依 CURRENT transport 做 optional maintenance；成功 receipt 只證明 root catch-up。
 - 沒有 root-capable runtime、receipt 缺失或 receipt invalid 時，只記 `ROOT_SYNC_MAINTENANCE_DRIFT` / non-blocking maintenance evidence；**不得因此保持 Issue OPEN、撤銷 DONE、或重開已完成 delivery**。
+
 ## 12. Branch timing
 
 正常施工階段不開 Git branch，也不連 GitHub/遠端本機做 repository-content discovery。

@@ -95,5 +95,21 @@
     "terminal_gate": false,
     "issue_closure_authority": false,
     "missing_or_invalid_receipt": "NON_BLOCKING_MAINTENANCE_DRIFT"
+  },
+  "delivery_transport": {
+    "primary": "DIRECT_EXACT_LOCKED_FILESET_APPLY",
+    "workspace_staged_fallback": {
+      "schema": "WHD_WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1",
+      "status": "CURRENT",
+      "trigger": "SOURCE_CONNECTOR_NOT_DIRECTLY_USABLE_AS_GIT_CONTENT_WRITE_INPUT",
+      "workspace_authority": false,
+      "requires_frozen_manifest": true,
+      "requires_exact_hash_readback": true,
+      "bundle_role": "TRANSPORT_CAPSULE_ONLY_NOT_REPOSITORY_CONTENT",
+      "git_tree_must_expand_to_exact_locked_paths": true,
+      "temporary_relay_is_repository_content": false,
+      "cleanup_after_terminal": true,
+      "invariant": "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET"
+    }
   }
 }
