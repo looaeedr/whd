@@ -111,6 +111,8 @@ ROOT_IDENTITY_CURRENT
 
 真正的 live target HEAD fresh-read 只在 `/推推` 已取得使用者遠端授權後執行。
 
+窄化 recovery 例外：只有 durable delivery/readback evidence 已明確證明 canonical root 為 `ROOT_IDENTITY_NOT_CURRENT`（root 落後已接受的 production lineage），才可由 root-capable runtime 執行 `python tools/work_root_gate.py recover-current-production`。machine owner=`tools/work_root_gate.py::recover_canonical_root_to_current_production`；它只允許 tracked-clean、同一 production branch、local HEAD 為 fresh remote HEAD ancestor 的 fast-forward catch-up，保留 untracked `.unpushed`，不建立/修改 ExecutionRecord、不關 Issue、不簽 post-integration durability receipt。dirty/diverged/wrong-branch 一律 fail closed。此例外不得用作一般 startup remote discovery。
+
 ### 3.2 LANE_CLASSIFIED
 
 planned paths 全部先分類到 docs/body。未分類 path fail closed；同一 path 不得同時存在兩 lane manifest。
