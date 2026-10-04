@@ -615,7 +615,7 @@ def validate_contract(payload: object) -> dict[str, object]:
     default_flow = _mapping(contract.get("default_repository_content_flow"), "default_repository_content_flow")
     if default_flow.get("schema") != "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1" or default_flow.get("status") != "CURRENT":
         raise ValueError("workspace-first default flow schema mismatch")
-    if default_flow.get("workspace_root") != WORKSPACE_ROOT or default_flow.get("production_branch") != PRODUCTION_BRANCH:
+    if default_flow.get("workspace_root_policy") != WORKSPACE_ROOT_POLICY or default_flow.get("production_branch") != PRODUCTION_BRANCH:
         raise ValueError("workspace-first default identity mismatch")
     if any(default_flow.get(key) is not False for key in (
         "startup_requires_drive", "startup_requires_shared_zero", "startup_requires_workspace_canonical_sync"
