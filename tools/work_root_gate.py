@@ -50,6 +50,13 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
     unpushed = _mapping(gate.get("unpushed"), "unpushed")
     if unpushed.get("root") != UNPUSHED_ROOT:
         raise ValueError("shared unpushed root mismatch")
+    recovery = _mapping(gate.get("root_identity_recovery"), "root_identity_recovery")
+    if recovery.get("owner") != "tools/work_root_gate.py::recover_canonical_root_to_current_production":
+        raise ValueError("work-root recovery owner mismatch")
+    if recovery.get("success_schema") != ROOT_RECOVERY_RECEIPT_SCHEMA:
+        raise ValueError("work-root recovery success schema mismatch")
+    if recovery.get("failure_schema") != ROOT_RECOVERY_RESULT_SCHEMA:
+        raise ValueError("work-root recovery failure schema mismatch")
     return {str(k): v for k, v in gate.items()}
 
 
