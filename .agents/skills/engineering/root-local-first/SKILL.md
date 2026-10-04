@@ -54,6 +54,15 @@ repository-content 任務的第一個檔案定位動作必須從 `/Google Drive/
 - 找檔、讀 baseline、判斷「目前版本」、建立 diff、修改與測試都必須先在 canonical root 完成。
 - root path 無法解析時固定 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED`；禁止為了找檔改連 GitHub 或遠端本機。
 
+### 1.1.1 CANONICAL_AUTHORITY_VS_CODEX_EXECUTION_SURFACE_V1
+
+`/Google Drive/WHD` 是 canonical repository-content authority 的**邏輯/connector path**，不要求每個 execution runtime 都原生掛載同一路徑。
+
+- ChatGPT/Drive connector 能解析 canonical root，而 Codex/C2C workspace看不到聊天室 cloud mount時，固定 `CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX`。
+- 此狀態不是 root authority失效，不得標 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED` 或 `LOCAL_MACHINE_UNAVAILABLE`；也不得要求 Codex自行尋找、mount或 `cd /Google Drive/WHD`。
+- 必須由具 canonical-read authority 的 ChatGPT/connector 將 exact task paths stage 到 Codex 可見 workspace，並在交付前後以 canonical path/hash/manifest驗證。
+- staged workspace 只屬 execution surface；任何 edit/test/git結果要回到 shared-0 / delivery lane 時都必須 reconcile 到 canonical authority。workspace 舊副本不得反向升格成 baseline。
+- 只有 canonical ChatGPT/connector path 本身無法解析，才使用 `ROOT_PATH_UNRESOLVED_FAIL_CLOSED`；Codex mount 不可見本身不能觸發它。
 ### 1.2 REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1
 
 除非符合下列其中一項，interactive/default invocation 不得建立 GitHub 或遠端本機連線：
