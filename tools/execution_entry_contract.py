@@ -13,8 +13,11 @@ DEFAULT_REPOSITORY = "looaeedr/whd"
 SCHEMA = "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1"
 EVIDENCE_SCHEMA = "WHD_EXECUTION_ENTRY_EVIDENCE_V1"
 PREFLIGHT_EVIDENCE_SCHEMA = "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1"
+REMOTE_PHASE6_RESULT_SCHEMA = "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1"
+SCHEDULER_PREFLIGHT_REBIND_SCHEMA = "WHD_SCHEDULER_PHASE6_PREFLIGHT_REBIND_V1"
 TRANSITION_SCHEMA = "WHD_EXECUTION_STARTUP_TRANSITION_V1"
 EVIDENCE_MAX_AGE_SECONDS = 300
+SCHEDULER_PREFLIGHT_RECEIPT_MAX_AGE_SECONDS = 2400
 _FUTURE_SKEW_SECONDS = 30
 
 
@@ -266,6 +269,7 @@ def validate_phase6_preflight_evidence(
     issue: int,
     invocation_identity: str,
     now: datetime | None = None,
+    max_age_seconds: int = EVIDENCE_MAX_AGE_SECONDS,
 ) -> dict[str, object]:
     """Validate GREEN Phase6 preflight bound to one exact Issue/branch/HEAD."""
     if not isinstance(evidence, Mapping):
@@ -296,9 +300,104 @@ def validate_phase6_preflight_evidence(
     current = current.astimezone(timezone.utc)
     if observed > current + timedelta(seconds=_FUTURE_SKEW_SECONDS):
         raise ValueError("Phase6 preflight observed_at is in the future")
-    if current - observed > timedelta(seconds=EVIDENCE_MAX_AGE_SECONDS):
+    if isinstance(max_age_seconds, bool) or int(max_age_seconds) <= 0:
+        raise ValueError("Phase6 preflight max_age_seconds must be positive")
+    if current - observed > timedelta(seconds=int(max_age_seconds)):
         raise ValueError("Phase6 preflight evidence expired")
     return {str(k): v for k, v in evidence.items()}
+
+
+def rebind_scheduler_phase6_preflight_receipt(
+    receipt: Mapping[str, object] | object,
+    *,
+    issue: int,
+    lane_id: str,
+    invocation_identity: str,
+    branch: str,
+    head_sha: str,
+    request_id: str,
+    now: datetime | None = None,
+) -> dict[str, object]:
+    """Rebind one trusted scheduler push-Preflight GREEN to a later same-lane invocation.
+
+    The caller must already have established that the receipt came from the trusted
+    GitHub Actions comment transport. This function validates the receipt payload
+    itself and never accepts interactive/comment-origin receipts.
+    """
+    if not isinstance(receipt, Mapping):
+        raise ValueError("scheduler Phase6 receipt must be an object")
+    if receipt.get("schema") != REMOTE_PHASE6_RESULT_SCHEMA or receipt.get("result") != "GREEN":
+        raise ValueError("scheduler Phase6 receipt is not canonical GREEN")
+    if receipt.get("request_source") != "push":
+        raise ValueError("scheduler Phase6 receipt must come from push transport")
+    if receipt.get("executor_source") != "scheduler":
+        raise ValueError("scheduler Phase6 receipt executor_source mismatch")
+
+    expected_lane = str(lane_id or "").strip()
+    if not expected_lane.startswith("scheduler."):
+        raise ValueError("scheduler Phase6 receipt requires scheduler lane")
+    observed_lane = str(receipt.get("lane_id") or "").strip()
+    observed_worker = str(receipt.get("worker") or "").strip()
+    if observed_lane != expected_lane or observed_worker != expected_lane:
+        raise ValueError("scheduler Phase6 receipt lane/worker mismatch")
+
+    expected_request = str(request_id or "").strip()
+    if not expected_request or str(receipt.get("request_id") or "").strip() != expected_request:
+        raise ValueError("scheduler Phase6 receipt request_id mismatch")
+    if _positive_issue(receipt.get("issue"), "scheduler receipt issue") != _positive_issue(issue):
+        raise ValueError("scheduler Phase6 receipt issue mismatch")
+
+    expected_branch = str(branch or "").strip()
+    if not expected_branch or str(receipt.get("branch") or "").strip() != expected_branch:
+        raise ValueError("scheduler Phase6 receipt branch mismatch")
+    expected_head = _sha(head_sha, "scheduler receipt expected head_sha")
+    if _sha(receipt.get("head_sha"), "scheduler receipt head_sha") != expected_head:
+        raise ValueError("scheduler Phase6 receipt head mismatch")
+
+    source_invocation = str(receipt.get("invocation_identity") or "").strip()
+    if not source_invocation:
+        raise ValueError("scheduler Phase6 receipt source invocation missing")
+    source_evidence = receipt.get("preflight_evidence")
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None or current.utcoffset() is None:
+        raise ValueError("scheduler Phase6 rebind clock must be timezone-aware")
+    current = current.astimezone(timezone.utc)
+    validated = validate_phase6_preflight_evidence(
+        source_evidence,
+        issue=int(issue),
+        invocation_identity=source_invocation,
+        now=current,
+        max_age_seconds=SCHEDULER_PREFLIGHT_RECEIPT_MAX_AGE_SECONDS,
+    )
+    if str(validated.get("branch") or "").strip() != expected_branch:
+        raise ValueError("scheduler Phase6 nested evidence branch mismatch")
+    if str(validated.get("head_sha") or "").strip().lower() != expected_head:
+        raise ValueError("scheduler Phase6 nested evidence head mismatch")
+
+    current_invocation = str(invocation_identity or "").strip()
+    if not current_invocation:
+        raise ValueError("scheduler Phase6 current invocation must be nonblank")
+    rebound = build_phase6_preflight_evidence(
+        issue=int(issue),
+        invocation_identity=current_invocation,
+        branch=expected_branch,
+        head_sha=expected_head,
+        required_skills=_strings(validated.get("required_skills"), "required_skills"),
+        completed_skills=_strings(validated.get("completed_skills"), "completed_skills"),
+        required_references=_strings(validated.get("required_references"), "required_references"),
+        completed_references=_strings(validated.get("completed_references"), "completed_references"),
+        observed_at=current,
+    )
+    rebound["scheduler_rebind"] = {
+        "schema": SCHEDULER_PREFLIGHT_REBIND_SCHEMA,
+        "lane_id": expected_lane,
+        "request_id": expected_request,
+        "source_invocation_identity": source_invocation,
+        "source_run_id": receipt.get("run_id"),
+        "source_observed_at": validated.get("observed_at"),
+        "max_age_seconds": SCHEDULER_PREFLIGHT_RECEIPT_MAX_AGE_SECONDS,
+    }
+    return rebound
 
 
 def build_startup_transition(
