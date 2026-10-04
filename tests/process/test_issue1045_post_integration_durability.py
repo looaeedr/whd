@@ -42,12 +42,12 @@ def _lane_receipt(state="EMPTY"):
 def test_v2_contract_keeps_execution_authority_in_flow_v2_and_retires_v1():
     from tools.post_integration_durability import validate_contract
     payload = validate_contract(json.loads(CONTRACT.read_text(encoding="utf-8")))
-    old = json.loads((ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json").read_text(encoding="utf-8"))
+    retired_v1 = ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json"
     assert payload["execution_state_owner"] == "WHD_EXECUTION_RECORD_V2"
     assert payload["required_order"][-1] == "DURABLE_CLEANUP_COMPLETE"
     assert payload["canonical_root"] == "/Google Drive/WHD"
     assert payload["root_sync_transport"] == "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head"
-    assert old["status"] == "SUPERSEDED"
+    assert not retired_v1.exists()
 
 
 def test_root_sync_receipt_requires_exact_accepted_head_and_tree():
