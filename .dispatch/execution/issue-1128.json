@@ -7,20 +7,16 @@
     "parent_issue": 1084
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
-    "released_at": null
+    "released_at": "2026-10-04T07:17:34Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1128,
-  "lane_id": "chatgpt.flowv2.work3",
-  "lease": {
-    "expires_at": "2026-10-04T07:28:50Z",
-    "invocation_identity": "gha:looaeedr/whd:run:37185117737:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "token": "lease:1128:37185117737:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
@@ -31,13 +27,9 @@
       "tests/test_issue1128_derived_sync_composition_owner.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work3",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
     "last_accepted_run": 37176982169
@@ -51,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "bad7231a6bfbef30004b7209daa5b56f404f9ea43cb39543715b7d8e13d5d450",
-    "id": "gha:37185286242:1128:MERGE:12",
+    "expected_fingerprint": "942397d80f46032c432f3f9a8b48c6577d1201118a21a49f0b86b67ad8eeb2a2",
+    "id": "gha:37185286242:1128:FINALIZE:13",
     "invocation_identity": "gha:looaeedr/whd:run:37185117737:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T07:17:05Z",
+  "updated_at": "2026-10-04T07:17:33Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
