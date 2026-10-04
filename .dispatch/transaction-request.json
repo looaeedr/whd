@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-start-body-gen6-branch-20261004T034642Z",
+  "request_id": "issue1062-start-body-gen6-branch-20261004",
   "issue": 1062,
   "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work0",
@@ -8,111 +8,68 @@
   "expected_coord_head": "3be135ecde954a151af30753d87e7bd5511835e3",
   "expected_generation": 47,
   "effect": {
-    "work_branch": "delivery/body-gen6-20261004",
+    "work_branch": "test/issue1062-product-full-regression-recovery",
     "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
     "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {
-        "candidate_commit_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829"
-      },
-      "display": "Apply exact frozen body gen6 commit"
+      "kind": "RECONCILE",
+      "args": {},
+      "display": "Bind exact body gen6 candidate commit"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+      "diff_digest": "e2a6a3375175274d1a327d263adaeb686b7bcee0efd31bcaffbdce8bc4365a2a",
+      "issue": 1062,
+      "generation": 47,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "ae_engine/manufacturing_api.py",
+        "ae_engine/manufacturing_export.py",
+        "ae_engine/manufacturing_verification.py",
+        "ae_engine/receiving_manufacturing_readiness.py",
+        "fold_designer_bridge.py",
+        "gui_modules/application/fold_designer_adapter.py",
+        "gui_modules/application/manufacturing_adapter.py",
+        "gui_modules/application/receiving_set_bay_adapter.py",
+        "gui_modules/project/export_actions.py",
+        "phase6_workspace_controller.py",
+        "tests/test_box_body_single_source_t2.py",
+        "tests/test_certified_relief_runtime_contract.py",
+        "tests/test_issue1062_finalscene_oracle_migration.py",
+        "tests/test_issue1115_receiving_manufacturing_readiness.py",
+        "tests/test_issue1128_derived_sync_composition_owner.py",
+        "tests/test_issue1158_multi_door_indicator_workspace.py",
+        "tests/test_issue480_derived_part_projection_plan.py",
+        "tests/test_joint_diagnostics_contract.py",
+        "tests/test_overlay_formed_fw_registry_contract.py",
+        "tests/test_overlay_fw_width_invariant.py",
+        "tests/test_phase6_3d_retain_and_baseline.py",
+        "tests/test_phase6_assembly_3d_view.py",
+        "tests/test_phase6_corner_dimension_controls.py",
+        "tests/test_resolved_manufacturing_bridge.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "8039972c48de6536400e61abf87603fbd92143db876c2981321f741c77981309",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1062,
+      "generation": 47,
+      "record_fingerprint": "8039972c48de6536400e61abf87603fbd92143db876c2981321f741c77981309",
+      "lease_token": "lease:1062:37174590888:1",
+      "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "test/issue1062-product-full-regression-recovery",
+      "expected_work_head": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+      "expected_target_head": "45932f4f3b888ceb039dd8908b7d1da8511fa507"
     }
   },
-  "startup_evidence": {
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "execution_mode": "INTERACTIVE",
-    "work_root_gate": {
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-      "execution_mode": "INTERACTIVE",
-      "read_mode": "GOOGLE_DRIVE_CANONICAL",
-      "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-      "provider": "google_drive",
-      "library_path": "/Google Drive/WHD",
-      "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-      "root_entries": [
-        ".git",
-        ".agents",
-        ".github",
-        "AGENTS.md",
-        "tools",
-        "tests",
-        "ae_engine",
-        "gui_modules",
-        ".unpushed"
-      ],
-      "unpushed_root": "/Google Drive/WHD/.unpushed",
-      "status": "GREEN"
-    },
-    "purpose": "Record the already-created exact body gen6 delivery branch and bind the exact frozen candidate commit for Issue #1062 continuation.",
-    "issued_at": "2026-10-04T03:46:42Z",
-    "expires_at": "2026-10-04T03:51:42Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Record the already-created exact body gen6 delivery branch and bind the exact frozen candidate commit for Issue #1062 continuation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1062,
-    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "required_skills": [
-      "root-local-first",
-      "性質導向測試",
-      "phase6-corner-3d-model-integrity",
-      "phase6-overlay-relief-basis",
-      "flow-v2-execution",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "推推"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "性質導向測試",
-      "phase6-corner-3d-model-integrity",
-      "phase6-overlay-relief-basis",
-      "flow-v2-execution",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "推推"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
-    ],
-    "observed_at": "2026-10-04T03:46:42Z"
-  },
-  "startup_transition": {
-    "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-    "status": "READY_FOR_EXECUTION",
-    "repository": "looaeedr/whd",
-    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "execution_mode": "INTERACTIVE",
-    "issue": 1062,
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "startup_issued_at": "2026-10-04T03:46:42Z",
-    "preflight_observed_at": "2026-10-04T03:46:42Z",
-    "issued_at": "2026-10-04T03:46:42Z",
-    "expires_at": "2026-10-04T03:51:42Z"
+  "session_reuse": {
+    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
+    "mode": "LIVE_LEASE_CONTINUATION"
   }
 }
