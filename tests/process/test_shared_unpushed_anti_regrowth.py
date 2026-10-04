@@ -62,3 +62,65 @@ def test_unpushed_workspace_is_never_git_delivery_content():
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
     assert "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST" in push
     assert ".unpushed" in push
+
+def test_push_delivery_tail_requires_flow_v2_done_before_lane_cleanup():
+    import json
+
+    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
+    contract = json.loads(
+        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    ordered = [
+        "MERGE_READBACK_VERIFIED",
+        "DELIVERY_RECEIPT_BOUND",
+        "SYNC_LINKED_GITHUB_ISSUES",
+        "ISSUE_SYNC_READBACK_VERIFIED",
+        "FLOW_V2_DONE",
+        "LANE_DELIVERY_RECEIPT_BOUND",
+        "FINALIZE_DELIVERED_LANE_ZERO",
+        "DURABLE_CLEANUP_COMPLETE",
+    ]
+    positions = [push.index(marker) for marker in ordered]
+    assert positions == sorted(positions)
+    assert contract["post_delivery_tail"]["required_order"] == ordered
+    assert contract["post_delivery_tail"]["lane_cleanup_requires_flow_v2_done"] is True
+    assert contract["post_delivery_tail"]["execution_terminal_owner"] == "WHD_EXECUTION_RECORD_V2"
+
+
+def test_push_root_sync_is_optional_maintenance_not_terminal_authority():
+    import json
+
+    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
+    contract = json.loads(
+        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    policy = contract["root_sync_policy"]
+
+    assert "ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1" in push
+    assert "不得因此保持 Issue OPEN" in push
+    assert policy["mode"] == "OPTIONAL_MAINTENANCE"
+    assert policy["terminal_gate"] is False
+    assert policy["issue_closure_authority"] is False
+
+
+def test_push_remote_deny_does_not_override_control_plane_authority():
+    import json
+
+    push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
+    contract = json.loads(
+        (ROOT / ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    scope = contract["remote_authority_scope"]
+
+    assert "只約束 **interactive/default repository-content discovery / authoring / delivery**" in push
+    assert "不得拿本節去撤銷 Flow v2、scheduler、trusted Preflight" in push
+    assert scope["control_plane_authority"] == "OWN_CURRENT_CONTRACTS_NOT_OVERRIDDEN_BY_PUSH_SKILL"
+    assert scope["control_plane_cannot_author_root_content"] is True
+
