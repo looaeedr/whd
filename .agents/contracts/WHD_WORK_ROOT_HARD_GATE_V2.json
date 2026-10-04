@@ -4,8 +4,8 @@
   "status": "CURRENT",
   "owner": "tools/work_root_gate.py",
   "default_work_root": {
-    "provider": "workspace_mirror",
-    "library_path": "/workspace/whd",
+    "provider": "executor_local_workspace",
+    "path_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "production_branch": "cleanup/2d-3d-sync",
     "authority": false
   },
@@ -48,10 +48,10 @@
     "repository_contract": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
     "machine_owner": "tools/root_local_first_gate.py"
   },
-  "github_role": "GitHub cleanup/2d-3d-sync is the ordinary workspace production baseline and delivery/PR/CI transport. Google Drive shared-0 participates only when fresh drift evidence exists.",
+  "github_role": "GitHub cleanup/2d-3d-sync is the ordinary production baseline shared by executor-local workspaces. Delivery remains branch + PR + checks; direct production push is forbidden.",
   "root_identity_recovery": {
     "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
-    "cli": "python tools/work_root_gate.py recover-current-production --root /workspace/whd",
+    "cli": "python tools/work_root_gate.py recover-current-production --root <executor-workspace>",
     "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
     "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
     "policy": "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION",
