@@ -14,7 +14,7 @@ from tools.execution_record import ExecutionRecord, MutationScopeState
 
 SCHEMA = "WHD_PATH_RESERVATION_V1"
 EVIDENCE_SCHEMA = "WHD_PATH_RESERVATION_EVIDENCE_V1"
-DELIVERY_PHASE = "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+DELIVERY_PHASE = "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
 
 
 class PathReservationError(ValueError):
@@ -102,9 +102,9 @@ def require_no_path_reservation_conflict(
 def build_path_reservation_evidence(record: ExecutionRecord) -> dict[str, object]:
     """Project one ACTIVE delivery reservation into Git-write gate evidence.
 
-    Root authoring is governed by shared `.unpushed/{body|docs}/0`; this
-    reservation exists only after a lane manifest is frozen and therefore must
-    never recreate a per-Issue root workspace authority.
+    Reservation exists only after the candidate repository diff is tested and
+    frozen for delivery. It applies to both WORKSPACE_DEFAULT and shared-zero
+    fallback and must never recreate a second workspace/content authority.
     """
     if not isinstance(record, ExecutionRecord):
         raise PathReservationError("record must be an ExecutionRecord")
