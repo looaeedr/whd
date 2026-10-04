@@ -72,6 +72,13 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("root sync receipt schema mismatch")
     if item.get("root_sync_transport") != "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head":
         raise ValueError("root sync transport owner mismatch")
+    ingress = _mapping(item.get("root_sync_ingress"), "root sync ingress")
+    if ingress.get("owner") != "tools/post_integration_durability.py::main":
+        raise ValueError("root sync ingress owner mismatch")
+    if ingress.get("success_schema") != ROOT_SYNC_RECEIPT_SCHEMA:
+        raise ValueError("root sync ingress success schema mismatch")
+    if ingress.get("failure_schema") != "WHD_CANONICAL_ROOT_SYNC_RESULT_V1":
+        raise ValueError("root sync ingress failure schema mismatch")
     if item.get("lane_delivery_receipt_schema") != LANE_DELIVERY_RECEIPT_SCHEMA:
         raise ValueError("lane delivery receipt schema mismatch")
     forbidden = set(map(str, item.get("forbidden_current_authorities") or ()))
