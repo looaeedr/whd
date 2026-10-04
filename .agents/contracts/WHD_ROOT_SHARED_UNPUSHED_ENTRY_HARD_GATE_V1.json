@@ -13,7 +13,7 @@
     "versioned_aliases_must_not_be_current": true
   },
   "direct_root_mutation_test_gate": {
-    "applies_when": "REPOSITORY_CONTENT_IMPLEMENTATION_REQUIRED",
+    "applies_when": "SHARED_ZERO_FALLBACK_ACTIVE",
     "canonical_surface": "/Google Drive/WHD/.unpushed",
     "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK",
     "forbidden_pre_root_green_outcomes": [
@@ -100,11 +100,17 @@
   },
   "execution_modes": {
     "GITHUB_ONLY": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF",
-    "INTERACTIVE": "ROOT_LOCAL_FIRST_REQUIRED",
+    "INTERACTIVE": "WORKSPACE_FIRST_CONTENT",
     "REMOTE_ACTION": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF",
     "SCHEDULER_LANE": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
   },
-  "git_before_unlock": [],
+  "git_before_unlock": [
+    "READ",
+    "FETCH",
+    "COMPARE",
+    "BRANCH_READ",
+    "REPO_METADATA_READ"
+  ],
   "git_write_mode": "EXACT_TESTED_DIFF_ONLY",
   "git_write_receipt": {
     "current_execution_fence": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
@@ -240,9 +246,9 @@
       "fixtures",
       "other_repository_content"
     ],
-    "github_side_hotfix_forbidden": true,
-    "policy": "ROOT_WORKSPACE_HANDOFF_REQUIRED",
-    "qa_failure_action": "RETURN_TO_ROOT_RETEST_REFREEZE_REPUSH",
+    "github_side_hotfix_forbidden": false,
+    "policy": "WORKSPACE_MIRROR_IMPLEMENTATION",
+    "qa_failure_action": "FIX_IN_WORKSPACE_RETEST_REPUSH",
     "remote_allowed_after_candidate_push": [
       "CI",
       "REMOTE_QA",
@@ -254,17 +260,12 @@
     "remote_connection_authority_required": true
   },
   "required_order": [
-    "ROOT_SOURCE_CURRENT",
-    "UNPUSHED_LANE_CLASSIFIED",
-    "LATEST_0_BASE_BOUND",
-    "ROOT_MUTATIONS_COMPLETE",
-    "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
-    "POST_MERGE_0_TEST_CLASSIFIED",
-    "POST_MERGE_0_TESTS_GREEN",
-    "LANE_MANIFEST_FROZEN",
-    "REMOTE_CONNECTION_AUTHORIZED",
-    "DELIVERY_PATHS_RESERVED",
-    "GIT_WRITE_UNLOCKED"
+    "WORKSPACE_SOURCE_CURRENT",
+    "WORKSPACE_MUTATIONS_COMPLETE",
+    "WORKSPACE_TESTS_GREEN",
+    "DELIVERY_BRANCH_READY",
+    "POST_PUSH_CI",
+    "MERGE_READBACK_VERIFIED"
   ],
   "role": "CURRENT",
   "schema": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1",
@@ -281,11 +282,14 @@
     "later_worker_base": "LATEST_0_GENERATION_AND_HASH",
     "machine_owner": "tools/shared_unpushed_integration.py",
     "merge_mode": "THREE_WAY",
-    "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1"
+    "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
+    "mode": "CONDITIONAL_FALLBACK_ONLY",
+    "default_route": false,
+    "activation": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS"
   },
   "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
   "status": "CURRENT",
-  "target_drift_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE",
+  "target_drift_action": "REFRESH_WORKSPACE_BASELINE_RETEST_BEFORE_DELIVERY",
   "test_execution_receipt": {
     "bare_tests_green_boolean_sufficient": false,
     "generation_role": "HISTORICAL_FREEZE_PROVENANCE_ONLY",
@@ -301,11 +305,13 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 7,
+  "version": 8,
   "git_after_remote_authority_before_unlock": [
     "READ",
     "FETCH",
-    "COMPARE"
+    "COMPARE",
+    "BRANCH_READ",
+    "REPO_METADATA_READ"
   ],
   "root_path_resolution_hard_gate": {
     "schema": "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1",
@@ -319,14 +325,15 @@
   },
   "remote_connection_hard_gate": {
     "schema": "WHD_REMOTE_CONNECTION_AUTHORITY_V1",
-    "default": "DENY",
+    "default": "ALLOW_WORKSPACE_BASELINE_READ_ONLY",
     "targets": [
       "GITHUB",
       "REMOTE_LOCAL"
     ],
-    "pre_delivery_git_read_allowed_without_authority": false,
+    "pre_delivery_git_read_allowed_without_authority": true,
     "issue_authority_scope": "ISSUE_CREATE_READBACK_ONLY",
     "push_authorities": [
+      "WORKSPACE_DELIVERY",
       "PUSH_DOCS",
       "PUSH_BODY"
     ],
@@ -360,6 +367,13 @@
       "PREFLIGHT_NEEDS_HEAD",
       "CONFIRM_LATEST",
       "COMMIT_HAS_ISSUE_REFERENCE"
+    ],
+    "workspace_baseline_actions": [
+      "READ",
+      "FETCH",
+      "COMPARE",
+      "BRANCH_READ",
+      "REPO_METADATA_READ"
     ]
   },
   "delivery_fileset_lock": {
@@ -391,5 +405,27 @@
     "same_path_future_change": "REREGISTER_AS_NEW_ZERO_MODIFICATION",
     "repository_file_delete_forbidden": true,
     "receipt_required": true
+  },
+  "default_repository_content_flow": {
+    "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",
+    "status": "CURRENT",
+    "workspace_root": "/workspace/whd",
+    "production_branch": "cleanup/2d-3d-sync",
+    "baseline": "GITHUB_PRODUCTION_BRANCH",
+    "startup_requires_drive": false,
+    "startup_requires_shared_zero": false,
+    "startup_requires_workspace_canonical_sync": false,
+    "baseline_git_actions_without_extra_authority": [
+      "READ",
+      "FETCH",
+      "COMPARE",
+      "BRANCH_READ",
+      "REPO_METADATA_READ"
+    ],
+    "implementation": "EDIT_AND_TEST_IN_WORKSPACE",
+    "delivery": "TESTED_DELIVERY_BRANCH_PR",
+    "direct_production_push_forbidden": true,
+    "shared_zero_fallback_trigger": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
+    "shared_zero_fallback_machine": "tools/workspace_canonical_sync.py"
   }
 }
