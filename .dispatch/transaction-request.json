@@ -1,35 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-terminal-reconcile-20261004T1359Z",
+  "request_id": "issue1112-terminal-acquire-20261004T1401Z",
   "issue": 1112,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-  "expected_coord_head": "df4aa10096b4a025e159e09ee19580117a120cd5",
-  "expected_generation": 6,
+  "expected_coord_head": "cee02b1784cbe41bacae7e2fcac710a701b5be6c",
+  "expected_generation": 7,
   "effect": {
-    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
-    "observed_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
-    "observed_target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
-    "semantic_state": "READY_MERGED_EVIDENCE_RECONCILED",
+    "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
     "next_action": {
-      "kind": "ACQUIRE",
-      "args": {},
-      "display": "Acquire closure-only continuation"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1112,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507"
-    },
-    "updated_at": "2026-10-04T13:59:00Z"
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Consume existing exact-head Product Regression"
+    }
   },
-  "purpose": "Closure-only stale canonical record reconciliation for already-completed Issue #1112; no repository-content mutation.",
+  "purpose": "Closure-only continuation for already-completed Issue #1112 using existing merged PR #1134 evidence; no repository-content mutation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
