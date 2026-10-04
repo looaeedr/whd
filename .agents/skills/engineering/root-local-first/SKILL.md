@@ -208,6 +208,7 @@ Flow v2 `DONE` 之後，repository-content physical cycle 還必須完成：
 
 - canonical `/Google Drive/WHD` 的 `.git` HEAD/tree 必須 exact 等於 accepted merged commit/tree；
 - `SYNC_CANONICAL_ROOT_TO_ACCEPTED_HEAD` 由 `tools/post_integration_durability.py::sync_canonical_root_to_accepted_head` 執行；只在 Flow v2 已 `DONE + RELEASED` 後運作，拒絕 tracked dirty/index state，fresh-fetch production ref 並要求 remote head exact 等於 accepted SHA，完成後 fresh-read HEAD/tree，只有 exact match 才可簽 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1`；
+- root-capable runtime 的標準 ingress 固定為 `python tools/post_integration_durability.py --execution-record <record.json> --accepted-tree-sha <sha>`；成功輸出 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1`，失敗輸出 `WHD_CANONICAL_ROOT_SYNC_RESULT_V1 status=FAILED` 並以 non-zero exit，不得用 ad-hoc Python snippet 或 GitHub-hosted runner 冒充 canonical root execution；
 - selected `.unpushed/{body|docs}/0` 的已交付 generation 必須變成 `EMPTY` 或 `ROLLED_FORWARD`，並留下 `WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1`；
 - `source/snapshots`、`Current Source Manifest`、`/work/active` archive 全部是 SUPERSEDED，不得再作完成 authority；
 - machine owner=`tools/post_integration_durability.py`；contract=`.agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json`。
