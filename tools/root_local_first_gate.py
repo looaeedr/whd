@@ -874,6 +874,10 @@ def build_gate_evidence(
     remote_connection_authority: Mapping[str, object] | None = None,
     path_reservation_evidence: Mapping[str, object] | None = None,
     target_drift: bool = False,
+    shared_zero_drift_present: bool = False,
+    workspace_mutations_complete: bool = False,
+    workspace_tests_green: bool = False,
+    workspace_delivery_authority: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     mode = str(execution_mode or "INTERACTIVE").strip().upper()
     if mode in REMOTE_MODES:
@@ -896,6 +900,68 @@ def build_gate_evidence(
     lane = None
     reservation = None
     remote_authority = None
+
+    if repository_content_implementation and not shared_zero_drift_present:
+        route = select_repository_content_route(
+            shared_zero_drift_present=False,
+            workspace_root=str((entry_router or {}).get("workspace_root") or WORKSPACE_ROOT_POLICY),
+        )
+        if not source_evidence:
+            next_action = "WORKSPACE_SOURCE_CURRENT"
+            source = None
+        else:
+            status = str(source_evidence.get("status") or "")
+            if status not in {"EXACT_SOURCE_CURRENT", "SCOPED_CURRENT_RECOVERY"}:
+                raise ValueError("invalid WORKSPACE_SOURCE_CURRENT evidence")
+            source = {str(k): v for k, v in source_evidence.items()}
+            completed.append("WORKSPACE_SOURCE_CURRENT")
+            if not workspace_mutations_complete:
+                next_action = "WORKSPACE_MUTATIONS_COMPLETE"
+            else:
+                completed.append("WORKSPACE_MUTATIONS_COMPLETE")
+                if not workspace_tests_green:
+                    next_action = "WORKSPACE_TESTS_GREEN"
+                elif not diff_digest or not re.fullmatch(r"[0-9a-f]{64}", str(diff_digest)):
+                    next_action = "WORKSPACE_EXACT_DIFF_FROZEN"
+                else:
+                    completed.extend(("WORKSPACE_TESTS_GREEN", "WORKSPACE_EXACT_DIFF_FROZEN"))
+                    if workspace_delivery_authority is None:
+                        next_action = "WORKSPACE_DELIVERY_AUTHORIZED"
+                    else:
+                        remote_authority = validate_remote_connection_authority(
+                            workspace_delivery_authority, target="GITHUB", action="CREATE_BRANCH"
+                        )
+                        if remote_authority.get("kind") not in {"WORKSPACE_DELIVERY", "USER_EXPLICIT_REMOTE"}:
+                            raise ValueError("workspace delivery authority kind mismatch")
+                        completed.append("WORKSPACE_DELIVERY_AUTHORIZED")
+                        next_action = "EXACT_TESTED_DIFF_ONLY"
+        result = {
+            "schema": EVIDENCE_SCHEMA,
+            "execution_mode": mode,
+            "applicable": True,
+            "route": route["route"],
+            "workspace_root": route["workspace_root"],
+            "production_branch": PRODUCTION_BRANCH,
+            "shared_zero_required": False,
+            "workspace_canonical_sync_required": False,
+            "completed": completed,
+            "git_write_unlocked": next_action == "EXACT_TESTED_DIFF_ONLY",
+            "next_action": next_action,
+        }
+        if entry_router is not None:
+            result["entry_router"] = entry_router
+        if source is not None:
+            result["source_evidence"] = source
+        if diff_digest:
+            result["diff_digest"] = str(diff_digest)
+        if remote_authority:
+            result["remote_connection_authority"] = dict(remote_authority)
+        return result
+
+    if repository_content_implementation and shared_zero_drift_present:
+        # Fall through to the historical shared-zero machinery only when fresh drift exists.
+        completed.append("SHARED_ZERO_FALLBACK_ACTIVE")
+
     if not source_evidence:
         next_action = "ROOT_SOURCE_CURRENT"
     else:
