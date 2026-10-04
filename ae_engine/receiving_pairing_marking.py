@@ -39,8 +39,9 @@ RECEIVING_PAIRING_MARK_SELECTION_UNAVAILABLE = (
     "RECEIVING_PAIRING_MARK_SELECTION_UNAVAILABLE"
 )
 
-# OPEN-02: provisional until product/manufacturing signoff. Tests must assert
-# only the formula/centering relation, never this absolute value.
+# OPEN-02 owner signoff (#1116): final release value.
+# 5.0 mm is the inset inside the authoritative 50x50 pairing-symbol region,
+# yielding a 40x40 circle/X symbol; it is not a DXF part-edge offset.
 PAIRING_SYMBOL_INSET = 5.0
 PAIRING_FRAME_WIDTH = 50.0
 PAIRING_FRAME_HEIGHT = 100.0
@@ -597,9 +598,10 @@ def resolve_receiving_pairing_marking(
         scene.extend(primitives)
         metadata = dict(cleaned.metadata or {})
         metadata["receiving_pairing_markings"] = metadata_rows
-        metadata["receiving_pairing_mark_provisional"] = {
+        metadata["receiving_pairing_mark_authority"] = {
             "PAIRING_SYMBOL_INSET": float(symbol_inset),
-            "open_item": "OPEN-02",
+            "status": "OWNER_CONFIRMED",
+            "issue": 1116,
         }
         updated = replace(cleaned, scene=scene, metadata=metadata)
         enriched = _replace_owner_render_data(cleaned_geometry, _OWNER_KEY, updated)
