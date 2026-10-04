@@ -108,7 +108,7 @@ def test_true_mesh_renderer_uses_exact_final_scene_without_baseline_merge(monkey
         _phase6_input_snapshot={}, _settings_values={}, _phase6_box_whd={},
         _phase6_corner_state={},
     )
-    monkeypatch.setattr(bridge, "_phase6_active_mesh_profiles", lambda self, material: (
+    monkeypatch.setattr(bridge, "_phase6_mesh_profiles_for_part", lambda self, part_key, material: (
         [{"len":20.0},{"len":60.0},{"len":20.0}],
         [{"len":15.0},{"len":30.0},{"len":15.0}],
     ))

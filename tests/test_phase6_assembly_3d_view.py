@@ -547,7 +547,7 @@ def test_bridge_assembly_query_applies_verified_backprojected_relief_with_cleara
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     by_key = {part.part_key: part for part in bundle.assembly_parts}
     assert by_key["head"].render_data is solved_head
@@ -646,7 +646,7 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
     )
     monkeypatch.setattr(application_adapter, "AssemblySceneRenderData", LegacyAssemblySceneRenderData)
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     assert isinstance(bundle, LegacyAssemblySceneRenderData)
     assert [part.part_key for part in bundle.assembly_parts] == ["box_body"]
@@ -740,7 +740,7 @@ def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     by_key = {part.part_key: part for part in bundle.assembly_parts}
 
     assert by_key["head"].render_data is canonical["head"]
@@ -809,7 +809,7 @@ def test_assembly_relief_is_atomic_when_one_endcap_fails_verification(monkeypatc
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     by_key = {part.part_key: part for part in bundle.assembly_parts}
 
     assert by_key["head"].render_data is raw["head"]
@@ -910,7 +910,7 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     displayed = {part.part_key: part.render_data for part in bundle.assembly_parts}
     probes = {part.part_key: part.render_data for part in bundle.interference_probe_parts}
@@ -1054,7 +1054,7 @@ def test_bridge_keeps_hidden_box_body_as_assembly_geometry_reference(monkeypatch
         },
     )
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     assert [part.part_key for part in bundle.assembly_parts] == ["box_body", "head", "tail"]
     assert bundle.visible_part_keys == ("head", "tail")

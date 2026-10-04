@@ -87,7 +87,7 @@ def test_overlay_3d_solver_uses_certified_standard_material_rule_and_zero_illega
         designer = app.open_original_fold_designer()
         designer.preview_3d_enabled = False
         designer._phase6_3d_display_mode = "assembly"
-        bundle = bridge._phase6_query_assembly_render_data(designer)
+        bundle = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
         assert dict(getattr(designer, "_phase6_last_relief_errors", {}) or {}) == {}
         assert bundle.assembly_parts
         for part_key in ("head", "tail"):

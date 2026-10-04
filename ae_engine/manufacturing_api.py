@@ -2258,10 +2258,16 @@ def _resolved_physical_render_parts(resolved_geometry):
     return _manufacturing_export.resolved_physical_render_parts(resolved_geometry)
 
 
-def _resolved_physical_dxf_filename(part_id: str) -> str:
+def _resolved_physical_dxf_filename(part_id: str, *, instance_namespace: str | None = None) -> str:
     return _manufacturing_export.resolved_physical_dxf_filename(
-        part_id, box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES
+        part_id,
+        box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
+        instance_namespace=instance_namespace,
     )
+
+
+def receiving_manufacturing_instance_namespace(*, set_id: str, bay_id: str) -> str:
+    return _manufacturing_export.receiving_instance_namespace(set_id=set_id, bay_id=bay_id)
 
 
 def save_resolved_manufacturing_geometry_dxf(
@@ -2269,10 +2275,28 @@ def save_resolved_manufacturing_geometry_dxf(
     output_dir: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    instance_namespace: str | None = None,
 ) -> dict[str, str]:
     """Export exact canonical physical parts to stable per-part DXF files."""
     return _manufacturing_export.save_resolved_manufacturing_geometry_dxf(
         resolved_geometry,
+        output_dir,
+        save_part_render_data_dxf=save_part_render_data_dxf,
+        box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
+        overwrite=overwrite,
+        instance_namespace=instance_namespace,
+    )
+
+
+def save_resolved_manufacturing_geometry_batch_dxf(
+    instances,
+    output_dir: str | os.PathLike[str],
+    *,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    """Atomically export a stable multi-instance physical DXF inventory."""
+    return _manufacturing_export.save_resolved_manufacturing_geometry_batch_dxf(
+        instances,
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
@@ -2306,6 +2330,7 @@ def verify_saved_resolved_manufacturing_geometry_dxf(
     *,
     coordinate_tolerance: float = 1e-6,
     area_tolerance: float = 1e-6,
+    instance_namespace: str | None = None,
 ):
     """Reopen and verify every canonical physical-part DXF as one acceptance set."""
     return _manufacturing_verification.verify_saved_resolved_manufacturing_geometry_dxf(
@@ -2316,4 +2341,24 @@ def verify_saved_resolved_manufacturing_geometry_dxf(
         verify_part_dxf=verify_saved_part_render_data_dxf,
         coordinate_tolerance=coordinate_tolerance,
         area_tolerance=area_tolerance,
+        instance_namespace=instance_namespace,
     )
+
+def verify_saved_resolved_manufacturing_geometry_batch_dxf(
+    instances,
+    output_dir: str | os.PathLike[str],
+    *,
+    coordinate_tolerance: float = 1e-6,
+    area_tolerance: float = 1e-6,
+):
+    """Reopen and verify an exact namespaced multi-instance DXF inventory."""
+    return _manufacturing_verification.verify_saved_resolved_manufacturing_geometry_batch_dxf(
+        instances,
+        output_dir,
+        resolved_physical_render_parts=_resolved_physical_render_parts,
+        resolved_physical_dxf_filename=_resolved_physical_dxf_filename,
+        verify_part_dxf=verify_saved_part_render_data_dxf,
+        coordinate_tolerance=coordinate_tolerance,
+        area_tolerance=area_tolerance,
+    )
+

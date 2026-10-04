@@ -225,7 +225,7 @@ def test_bridge_fallback_toggle_does_not_disable_certified_lookup(monkeypatch):
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
     monkeypatch.setattr(bridge, "_phase6_publish_live_state", lambda self, force=False: True)
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     assert len(solver_calls) == 2
     assert all(call["allow_3d_fallback"] is False for call in solver_calls)
     assert all(call["cabinet_family"] == "金庫型" for call in solver_calls)
@@ -254,7 +254,7 @@ def test_bridge_commits_certified_formula_even_when_shadow_reports_engine_confli
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
     monkeypatch.setattr(bridge, "_phase6_publish_live_state", lambda self, force=False: True)
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     by_key = {part.part_key: part.render_data for part in bundle.assembly_parts}
     assert by_key["head"] is canonical["head"]
     assert by_key["tail"] is canonical["tail"]
