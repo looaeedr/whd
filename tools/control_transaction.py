@@ -1,20 +1,26 @@
-"""Pure WHD Flow v2 atomic control-transaction semantics.
+﻿"""Pure WHD Flow v2 atomic control-transaction semantics.
+
 
 This module deliberately owns only deterministic execution-record transitions.
 It does not call GitHub, Drive, Actions, or any other side-effecting transport.
 A trusted executor can use ``prepare_transaction`` to bind an exact record and
 ``execute_transaction`` after performing/reading back one deterministic effect.
 
+
 There is no persisted "GREEN but not yet consumed" authorization state. A
 successful transition records only the reconciled transaction result.
 """
 
+
 from __future__ import annotations
+
 
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Mapping
 
+
+from tools.execution_action_contract import CONTROL_ONLY_COMPLETION_MODE
 from tools.execution_invocation_exit import classify_invocation_exit
 from tools.execution_record import (
     ActionSpec,
@@ -31,8 +37,14 @@ from tools.execution_record import (
 )
 
 
+
+
 TARGET_ADVANCE_PROOF_SCHEMA = "WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1"
+CONTROL_ONLY_TARGET_READBACK_SCHEMA = "WHD_FLOW_V2_CONTROL_ONLY_TARGET_READBACK_V1"
 MUTATION_WRITER_GUARD_SCHEMA = "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1"
+
+
+
 
 
 
@@ -58,16 +70,24 @@ TRANSACTION_KINDS = frozenset(
 )
 
 
+
+
 class ControlTransactionError(RuntimeError):
     """Base class for invalid atomic control transactions."""
+
+
 
 
 class ControlTransactionConflict(ControlTransactionError):
     """Raised when optimistic-concurrency identity no longer matches."""
 
 
+
+
 class ControlTransactionReplay(ControlTransactionError):
     """Raised when a reconciled transaction is submitted again."""
+
+
 
 
 @dataclass(frozen=True)
@@ -85,6 +105,8 @@ class ControlTransactionPlan:
     invocation_identity: str | None = None
 
 
+
+
 def _text(value: object, name: str, *, optional: bool = False) -> str | None:
     if value is None and optional:
         return None
@@ -96,10 +118,14 @@ def _text(value: object, name: str, *, optional: bool = False) -> str | None:
     return text
 
 
+
+
 def _mapping(value: object, name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise ControlTransactionError(f"{name} must be an object")
     return value
+
+
 
 
 def _action(value: object, name: str = "next_action", *, optional: bool = False) -> ActionSpec | None:
@@ -118,6 +144,46 @@ def _action(value: object, name: str = "next_action", *, optional: bool = False)
     )
 
 
+
+
+def _is_control_only_finalize_action(action: ActionSpec | None) -> bool:
+    return bool(
+        action is not None
+        and action.kind == "FINALIZE"
+        and str(action.args.get("completion_mode") or "").strip().upper()
+        == CONTROL_ONLY_COMPLETION_MODE
+    )
+
+
+
+
+def is_control_only_finalize_record(record: ExecutionRecord) -> bool:
+    """Return whether an ACTIVE scheduler record is eligible for no-content finalization.
+
+
+    This is deliberately narrower than ordinary FINALIZE: the issue must have
+    entered through a scheduler lane, must still be on its source content
+    identity, must have no mutation reservation/run/QA/merge evidence, and its
+    structured continuation must explicitly declare CONTROL_ONLY.
+    """
+
+
+    return bool(
+        record.execution_intent == "SCHEDULER_LANE"
+        and record.state == "ACTIVE"
+        and _is_control_only_finalize_action(record.next_action)
+        and record.mutation_scope is None
+        and record.active_run is None
+        and record.head_sha == record.source_sha
+        and record.work_branch == record.source_branch
+        and record.qa.last_accepted_run is None
+        and record.qa.accepted_head_sha is None
+        and record.closure.merged_sha is None
+    )
+
+
+
+
 def _lease(value: object, *, optional: bool = False) -> LeaseState | None:
     if value is None and optional:
         return None
@@ -133,8 +199,12 @@ def _lease(value: object, *, optional: bool = False) -> LeaseState | None:
     )
 
 
+
+
 def _updated_at(effect: Mapping[str, object]) -> str:
     return _text(effect.get("updated_at"), "effect.updated_at")
+
+
 
 
 def _aware_timestamp(value: object, name: str) -> datetime:
@@ -148,6 +218,8 @@ def _aware_timestamp(value: object, name: str) -> datetime:
     return parsed
 
 
+
+
 def _reconciled_transaction(plan: ControlTransactionPlan) -> TransactionState:
     return TransactionState(
         id=plan.transaction_id,
@@ -156,6 +228,8 @@ def _reconciled_transaction(plan: ControlTransactionPlan) -> TransactionState:
         expected_fingerprint=plan.expected_fingerprint,
         invocation_identity=plan.invocation_identity,
     )
+
+
 
 
 def prepare_transaction(
@@ -188,6 +262,8 @@ def prepare_transaction(
         expected_next_action_kind=(record.next_action.kind if record.next_action is not None else None),
         invocation_identity=invocation,
     )
+
+
 
 
 def _assert_plan_matches(record: ExecutionRecord, plan: ControlTransactionPlan) -> None:
@@ -237,6 +313,8 @@ def _assert_plan_matches(record: ExecutionRecord, plan: ControlTransactionPlan) 
         )
 
 
+
+
 def build_mutation_writer_guard(
     record: ExecutionRecord,
     *,
@@ -272,6 +350,8 @@ def build_mutation_writer_guard(
     }
 
 
+
+
 def assert_mutation_writer_guard(
     record: ExecutionRecord,
     guard: Mapping[str, object],
@@ -296,6 +376,8 @@ def assert_mutation_writer_guard(
             )
 
 
+
+
 def _base_update(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -311,6 +393,8 @@ def _base_update(
     )
 
 
+
+
 def _execute_acquire(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -318,6 +402,7 @@ def _execute_acquire(
 ) -> ExecutionRecord:
     if record.state == "DONE":
         raise ControlTransactionError("ACQUIRE cannot mutate DONE record")
+
 
     lease = _lease(effect.get("lease"))
     observed_at = _aware_timestamp(effect.get("observed_at"), "observed_at")
@@ -327,13 +412,30 @@ def _execute_acquire(
     if plan.invocation_identity is not None and lease.invocation_identity != plan.invocation_identity:
         raise ControlTransactionError("ACQUIRE lease invocation must match transaction invocation")
 
+
     owner_kind = _text(effect.get("owner_kind"), "owner_kind")
     owner_id = _text(effect.get("owner_id"), "owner_id")
     lane_id = _text(effect.get("lane_id"), "lane_id", optional=True)
     slot_id = _text(effect.get("slot_id"), "slot_id", optional=True)
     next_action = _action(effect.get("next_action"))
 
+
     if record.state == "READY":
+        if _is_control_only_finalize_action(next_action):
+            if record.execution_intent != "SCHEDULER_LANE":
+                raise ControlTransactionError("CONTROL_ONLY FINALIZE is scheduler-lane only")
+            if record.work_branch != record.source_branch or record.head_sha != record.source_sha:
+                raise ControlTransactionError(
+                    "CONTROL_ONLY ACQUIRE requires source identity without a work branch/content head"
+                )
+            if record.source_branch != record.target_branch or record.source_sha != record.target_sha:
+                raise ControlTransactionError(
+                    "CONTROL_ONLY ACQUIRE requires identical source/target identity at ingress"
+                )
+            if effect.get("admission_reservation") is not None:
+                raise ControlTransactionError(
+                    "CONTROL_ONLY ACQUIRE forbids admission_reservation/content mutation scope"
+                )
         # INVOCATION_ADMISSION_SESSION_V1: a new READY record may acquire its
         # lease and reserve its exact mutation scope in one atomic transition.
         # This removes the old ACQUIRE -> workflow wait -> RESERVE_PATHS ->
@@ -372,6 +474,7 @@ def _execute_acquire(
             blocker=None,
         )
 
+
     # Non-terminal resume is lease renewal only. Ownership, lane, slot, state,
     # blocker/run identity and exact continuation meaning cannot change here.
     if effect.get("admission_reservation") is not None:
@@ -392,7 +495,10 @@ def _execute_acquire(
         if prior_expires > observed_at:
             raise ControlTransactionConflict("ACQUIRE cannot replace a live lease")
 
+
     return _base_update(record, plan, effect, lease=lease)
+
+
 
 
 def _require_reservation_lease(record: ExecutionRecord, plan: ControlTransactionPlan) -> None:
@@ -402,6 +508,8 @@ def _require_reservation_lease(record: ExecutionRecord, plan: ControlTransaction
         raise ControlTransactionError("path reservation transaction requires invocation_identity")
     if record.lease.invocation_identity != plan.invocation_identity:
         raise ControlTransactionError("path reservation lease invocation mismatch")
+
+
 
 
 def _scope_from_effect(effect: Mapping[str, object]) -> MutationScopeState:
@@ -419,6 +527,8 @@ def _scope_from_effect(effect: Mapping[str, object]) -> MutationScopeState:
         )
     except ValueError as exc:
         raise ControlTransactionError(str(exc)) from exc
+
+
 
 
 def _execute_reserve_paths(
@@ -443,9 +553,11 @@ def _execute_reserve_paths(
         if not set(existing.delete_paths).issubset(scope.delete_paths):
             raise ControlTransactionError("RESERVE_PATHS cannot shrink active delete_paths")
 
+
     if "next_action" not in effect:
         raise ControlTransactionError("next_action must be an object")
     next_action = _action(effect.get("next_action"))
+
 
     return _base_update(
         record,
@@ -455,6 +567,8 @@ def _execute_reserve_paths(
         semantic_state=str(effect.get("semantic_state") or "PATHS_RESERVED"),
         next_action=next_action,
     )
+
+
 
 
 def _execute_release_paths(
@@ -468,6 +582,7 @@ def _execute_release_paths(
     if scope is None:
         raise ControlTransactionError("RELEASE_PATHS requires a mutation_scope")
     _text(effect.get("reason"), "reason")
+
 
     # Surgical stale-release cleanup only. Reuse RELEASE_PATHS rather than
     # introducing a parallel recovery API. The trusted executor must prove
@@ -506,6 +621,7 @@ def _execute_release_paths(
             blocker=None,
         )
 
+
     if scope.reservation_state != "ACTIVE":
         raise ControlTransactionError("RELEASE_PATHS requires ACTIVE or RELEASED mutation_scope")
     _require_reservation_lease(record, plan)
@@ -523,6 +639,8 @@ def _execute_release_paths(
         mutation_scope=released,
         semantic_state=str(effect.get("semantic_state") or "PATH_RESERVATION_RELEASED"),
     )
+
+
 
 
 def _execute_start_branch(
@@ -544,6 +662,8 @@ def _execute_start_branch(
         semantic_state=str(effect.get("semantic_state") or "IMPLEMENTING"),
         next_action=next_action,
     )
+
+
 
 
 def _execute_apply_commit(
@@ -570,12 +690,15 @@ def _execute_apply_commit(
     )
 
 
+
+
 def _execute_sync_target(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
     """Reconcile a trusted target->work branch sync.
+
 
     If the work head advanced, accepted QA is intentionally invalidated by the
     head mismatch and the next action must be START_QA.  If the work head was
@@ -586,9 +709,11 @@ def _execute_sync_target(
     if record.qa.accepted_head_sha != record.head_sha or record.qa.last_accepted_run is None:
         raise ControlTransactionError("SYNC_TARGET requires accepted QA for current head")
 
+
     head_sha = _text(effect.get("head_sha"), "head_sha")
     target_sha = _text(effect.get("target_sha"), "target_sha")
     next_action = _action(effect.get("next_action"))
+
 
     if head_sha == record.head_sha:
         if target_sha == record.target_sha:
@@ -601,6 +726,7 @@ def _execute_sync_target(
             raise ControlTransactionError("SYNC_TARGET head advance must require START_QA")
         semantic_state = str(effect.get("semantic_state") or "QA_INVALIDATED_BY_TARGET_SYNC")
 
+
     return _base_update(
         record,
         plan,
@@ -612,6 +738,8 @@ def _execute_sync_target(
         next_action=next_action,
         blocker=None,
     )
+
+
 
 
 def _execute_start_qa(
@@ -648,6 +776,9 @@ def _execute_start_qa(
         next_action=next_action,
         blocker=None,
     )
+
+
+
 
 
 
@@ -689,6 +820,7 @@ def _execute_consume_qa(
         blocker=None,
     )
 
+
 def _execute_accept_qa(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -722,6 +854,8 @@ def _execute_accept_qa(
     )
 
 
+
+
 _QA_FAILURE_CONCLUSIONS = frozenset({
     "failure",
     "cancelled",
@@ -729,6 +863,8 @@ _QA_FAILURE_CONCLUSIONS = frozenset({
     "action_required",
     "startup_failure",
 })
+
+
 
 
 def _execute_fail_qa(
@@ -763,6 +899,8 @@ def _execute_fail_qa(
     )
 
 
+
+
 def _execute_merge(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -772,6 +910,7 @@ def _execute_merge(
         raise ControlTransactionError("MERGE requires INTEGRATING state")
     if record.qa.accepted_head_sha != record.head_sha or record.qa.last_accepted_run is None:
         raise ControlTransactionError("MERGE requires accepted_head equal to current head")
+
 
     precheck_status = str(effect.get("merge_precheck_status") or "").strip()
     if precheck_status == "TARGET_DRIFT":
@@ -792,8 +931,10 @@ def _execute_merge(
             blocker=None,
         )
 
+
     if precheck_status and precheck_status not in {"READY_TO_MERGE", "ALREADY_MERGED"}:
         raise ControlTransactionError(f"MERGE rejected by precheck status {precheck_status}")
+
 
     merged_sha = _text(effect.get("merged_sha"), "merged_sha")
     target_sha = _text(effect.get("target_sha"), "target_sha")
@@ -818,6 +959,8 @@ def _execute_merge(
     )
 
 
+
+
 def _execute_handoff(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -825,6 +968,7 @@ def _execute_handoff(
 ) -> ExecutionRecord:
     if record.state == "DONE":
         raise ControlTransactionError("HANDOFF cannot mutate DONE record")
+
 
     # Handoff is routing-only. Slot/work identity and exact continuation meaning
     # stay on the same canonical record; changing them would create a hidden
@@ -844,6 +988,7 @@ def _execute_handoff(
         if requested_semantic_state != record.semantic_state:
             raise ControlTransactionError("HANDOFF cannot rewrite semantic_state")
 
+
     lease = _lease(effect.get("lease"), optional=True)
     return _base_update(
         record,
@@ -859,6 +1004,33 @@ def _execute_handoff(
     )
 
 
+
+
+def _control_only_finalize_target_sha(
+    record: ExecutionRecord,
+    effect: Mapping[str, object],
+) -> str:
+    observed_target = _text(effect.get("observed_target_sha"), "observed_target_sha")
+    proof = effect.get("control_only_target_readback")
+    if not isinstance(proof, Mapping):
+        raise ControlTransactionError(
+            "CONTROL_ONLY FINALIZE requires trusted fresh target readback"
+        )
+    if proof.get("schema") != CONTROL_ONLY_TARGET_READBACK_SCHEMA:
+        raise ControlTransactionError("CONTROL_ONLY target readback schema mismatch")
+    if str(proof.get("target_branch") or "").strip() != record.target_branch:
+        raise ControlTransactionError("CONTROL_ONLY target readback branch mismatch")
+    if str(proof.get("observed_target_sha") or "").strip() != observed_target:
+        raise ControlTransactionError("CONTROL_ONLY target readback SHA mismatch")
+    if proof.get("fresh_readback") is not True:
+        raise ControlTransactionError("CONTROL_ONLY FINALIZE requires fresh target readback")
+    if str(proof.get("trusted_source") or "").strip() != "control_transaction_production_executor":
+        raise ControlTransactionError("CONTROL_ONLY target readback has untrusted source")
+    return observed_target
+
+
+
+
 def _finalize_target_sha(
     record: ExecutionRecord,
     effect: Mapping[str, object],
@@ -871,8 +1043,10 @@ def _finalize_target_sha(
         optional=True,
     ) or record.target_sha
 
+
     if observed_target == anchor:
         return observed_target
+
 
     proof = effect.get("target_advance_proof")
     if not isinstance(proof, Mapping):
@@ -896,18 +1070,30 @@ def _finalize_target_sha(
     return observed_target
 
 
+
+
 def _execute_finalize(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
-    if record.state != "INTEGRATING":
-        raise ControlTransactionError("FINALIZE requires INTEGRATING state")
-    if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
-        raise ControlTransactionError("FINALIZE requires accepted QA for current head")
-    if not record.closure.merged_sha:
-        raise ControlTransactionError("FINALIZE requires fresh merged target readback or a merged anchor")
-    final_target_sha = _finalize_target_sha(record, effect)
+    control_only = is_control_only_finalize_record(record)
+    if control_only:
+        final_target_sha = _control_only_finalize_target_sha(record, effect)
+        merged_sha = None
+    else:
+        if record.state != "INTEGRATING":
+            if _is_control_only_finalize_action(record.next_action):
+                raise ControlTransactionError(
+                    "CONTROL_ONLY FINALIZE record failed no-content eligibility invariants"
+                )
+            raise ControlTransactionError("FINALIZE requires INTEGRATING state")
+        if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+            raise ControlTransactionError("FINALIZE requires accepted QA for current head")
+        if not record.closure.merged_sha:
+            raise ControlTransactionError("FINALIZE requires fresh merged target readback or a merged anchor")
+        final_target_sha = _finalize_target_sha(record, effect)
+        merged_sha = record.closure.merged_sha
     if effect.get("issue_closed") is not True:
         raise ControlTransactionError("FINALIZE requires issue_closed=true readback")
     if str(effect.get("issue_state") or "").strip().lower() != "closed":
@@ -916,7 +1102,7 @@ def _execute_finalize(
         raise ControlTransactionError("FINALIZE requires issue_state_reason=completed readback")
     released_at = _text(effect.get("released_at"), "released_at")
     closure = ClosureState(
-        merged_sha=record.closure.merged_sha,
+        merged_sha=merged_sha,
         issue_closed=True,
         released_at=released_at,
     )
@@ -944,7 +1130,10 @@ def _execute_finalize(
         plan,
         effect,
         state="DONE",
-        semantic_state=str(effect.get("semantic_state") or "TERMINAL_SUCCESS"),
+        semantic_state=str(
+            effect.get("semantic_state")
+            or ("CONTROL_ONLY_TERMINAL_SUCCESS" if control_only else "TERMINAL_SUCCESS")
+        ),
         owner_kind="NONE",
         owner_id="NONE",
         lane_id=None,
@@ -959,6 +1148,8 @@ def _execute_finalize(
     )
 
 
+
+
 def _execute_block(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -968,6 +1159,7 @@ def _execute_block(
         raise ControlTransactionError("BLOCK cannot mutate DONE record")
     if record.active_run is not None:
         raise ControlTransactionError("BLOCK requires active_run to be cleared first")
+
 
     blocker_kind = _text(effect.get("blocker_kind"), "blocker_kind")
     blocker_evidence = _text(effect.get("blocker_evidence"), "blocker_evidence")
@@ -984,6 +1176,7 @@ def _execute_block(
     if action_blocker_kind != blocker.kind:
         raise ControlTransactionError("BLOCK next_action blocker_kind must match blocker")
 
+
     return _base_update(
         record,
         plan,
@@ -995,6 +1188,8 @@ def _execute_block(
     )
 
 
+
+
 def _execute_reconcile(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -1003,20 +1198,24 @@ def _execute_reconcile(
     if record.state == "DONE":
         raise ControlTransactionError("RECONCILE cannot mutate DONE record")
 
+
     observed_branch = _text(
         effect.get("observed_work_branch"), "observed_work_branch"
     )
     if observed_branch != record.work_branch:
         raise ControlTransactionError("RECONCILE cannot change work_branch identity")
 
+
     observed_head = _text(effect.get("observed_head_sha"), "observed_head_sha")
     observed_target = _text(effect.get("observed_target_sha"), "observed_target_sha")
     next_action = _action(effect.get("next_action"))
+
 
     if record.active_run is not None and observed_head != record.head_sha:
         raise ControlTransactionError(
             "RECONCILE cannot move head while active_run is bound to the current head"
         )
+
 
     if "owner_kind" in effect and _text(effect.get("owner_kind"), "owner_kind") != record.owner_kind:
         raise ControlTransactionError("RECONCILE cannot change owner_kind")
@@ -1026,6 +1225,7 @@ def _execute_reconcile(
         raise ControlTransactionError("RECONCILE cannot change lane_id")
     if "slot_id" in effect and _text(effect.get("slot_id"), "slot_id", optional=True) != record.slot_id:
         raise ControlTransactionError("RECONCILE cannot change slot_id")
+
 
     requested_state = str(effect.get("state") or record.state).strip()
     clear_blocker = effect.get("clear_blocker") is True
@@ -1038,6 +1238,7 @@ def _execute_reconcile(
         raise ControlTransactionError("RECONCILE clear_blocker requires BLOCKED -> ACTIVE transition")
     requested_semantic = str(effect.get("semantic_state") or record.semantic_state).strip()
 
+
     return _base_update(
         record,
         plan,
@@ -1049,6 +1250,8 @@ def _execute_reconcile(
         semantic_state=requested_semantic,
         next_action=next_action,
     )
+
+
 
 
 def _execute_yield(
@@ -1073,6 +1276,7 @@ def _execute_yield(
         if requested_semantic != record.semantic_state:
             raise ControlTransactionError("YIELD cannot rewrite semantic_state")
 
+
     exit_decision = classify_invocation_exit(
         record,
         invocation_identity=plan.invocation_identity,
@@ -1092,6 +1296,8 @@ def _execute_yield(
         next_action=record.next_action,
         semantic_state=record.semantic_state,
     )
+
+
 
 
 _EXECUTORS = {
@@ -1114,6 +1320,8 @@ _EXECUTORS = {
 }
 
 
+
+
 def execute_transaction(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -1121,6 +1329,7 @@ def execute_transaction(
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
     """Apply one fully read-back effect to the exact record bound by ``plan``.
+
 
     This is deliberately a one-step semantic transition: there is no durable
     AUTHORIZED/GREEN record that can later be consumed by a different runtime.

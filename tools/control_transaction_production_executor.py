@@ -1,12 +1,15 @@
 """Trusted production writer for one WHD Flow v2 control transaction.
 
+
 This is the missing production companion to the read-only terminal shadow.
 It fresh-reads coord/execution-v2, binds a transaction to the exact canonical
 record, applies the pure transaction semantics, and atomically commits both the
 post-record and rebuilt DERIVED_CACHE_ONLY ready-index with a non-force ref CAS.
 """
 
+
 from __future__ import annotations
+
 
 import argparse
 import base64
@@ -21,16 +24,20 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
 
 from tools.control_transaction import (
     ControlTransactionError,
     ControlTransactionConflict,
     ControlTransactionReplay,
     execute_transaction,
+    is_control_only_finalize_record,
     prepare_transaction,
+    CONTROL_ONLY_TARGET_READBACK_SCHEMA,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
 from tools.execution_invocation_exit import (
@@ -65,21 +72,30 @@ from tools.execution_record import (
     execution_record_to_payload,
 )
 
+
 RESULT_SCHEMA = "WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2"
 MONITOR_BRANCH = "coord/monitor-v2"
 _RECORD_RE = re.compile(r"^\.dispatch/execution/issue-(\d+)\.json$")
+
+
 
 
 class ProductionExecutorError(RuntimeError):
     pass
 
 
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+
+
 def _iso(value: datetime) -> str:
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 
 
 def _api(repo: str, method: str, path: str, token: str, payload: object | None = None) -> Any:
@@ -100,11 +116,15 @@ def _api(repo: str, method: str, path: str, token: str, payload: object | None =
     return json.loads(raw.decode("utf-8")) if raw else None
 
 
+
+
 def _read_blob(repo: str, token: str, sha: str) -> str:
     obj = _api(repo, "GET", f"/git/blobs/{sha}", token)
     if obj.get("encoding") != "base64":
         raise ProductionExecutorError("execution blob is not base64 encoded")
     return base64.b64decode(obj["content"]).decode("utf-8")
+
+
 
 
 def _load_state(repo: str, token: str, coord_branch: str) -> tuple[str, str, dict[int, ExecutionRecord]]:
@@ -127,14 +147,20 @@ def _load_state(repo: str, token: str, coord_branch: str) -> tuple[str, str, dic
     return parent_sha, tree_sha, records
 
 
+
+
 def _action_payload(action: ActionSpec | None) -> dict[str, object] | None:
     if action is None:
         return None
     return {"kind": action.kind, "args": dict(action.args), "display": action.display}
 
 
+
+
 def _monitor_path(source: str) -> str:
     return f".dispatch/monitor/runtime/{source}.json"
+
+
 
 
 def _read_monitor_observation(repo: str, token: str, source: str) -> tuple[dict[str, object] | None, str | None]:
@@ -155,6 +181,8 @@ def _read_monitor_observation(repo: str, token: str, source: str) -> tuple[dict[
     return payload, str(row.get("sha") or "") or None
 
 
+
+
 def _write_monitor_observation(repo: str, token: str, observation: dict[str, object]) -> str:
     source = str(observation.get("source") or "")
     if not source:
@@ -163,6 +191,7 @@ def _write_monitor_observation(repo: str, token: str, observation: dict[str, obj
     encoded_path = quote(path, safe="/")
     body = json.dumps(observation, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     content = base64.b64encode(body.encode("utf-8")).decode("ascii")
+
 
     last_error: Exception | None = None
     for _ in range(3):
@@ -184,6 +213,8 @@ def _write_monitor_observation(repo: str, token: str, observation: dict[str, obj
     raise ProductionExecutorError(
         f"runtime observation CAS failed after retries: {last_error}"
     )
+
+
 
 
 def _publish_transaction_progress(
@@ -219,6 +250,8 @@ def _publish_transaction_progress(
     return commit_sha, observation
 
 
+
+
 def _normalize_effect(
     record: ExecutionRecord,
     *,
@@ -231,6 +264,7 @@ def _normalize_effect(
     now = _now()
     effect.setdefault("updated_at", _iso(now))
 
+
     if kind == "ACQUIRE":
         if record.state != "READY":
             if record.owner_kind != "SCHEDULER" or record.owner_id != lane_id or record.lane_id != lane_id:
@@ -239,9 +273,37 @@ def _normalize_effect(
             owner_kind, owner_id, record_lane = record.owner_kind, record.owner_id, record.lane_id
         else:
             owner_kind, owner_id, record_lane = "SCHEDULER", lane_id, lane_id
-            next_action = effect.get("next_action")
-            if not isinstance(next_action, dict):
-                raise ProductionExecutorError("READY ACQUIRE requires explicit post-acquire next_action")
+            bound_post_acquire = None
+            if record.next_action is not None and record.next_action.kind == "ACQUIRE":
+                candidate = record.next_action.args.get("post_acquire")
+                if candidate is not None:
+                    if not isinstance(candidate, dict):
+                        raise ProductionExecutorError(
+                            "READY ACQUIRE bound post-acquire continuation must be an object"
+                        )
+                    bound_post_acquire = dict(candidate)
+            supplied_next_action = effect.get("next_action")
+            if bound_post_acquire is not None:
+                if supplied_next_action is not None and supplied_next_action != bound_post_acquire:
+                    raise ProductionExecutorError(
+                        "READY ACQUIRE caller next_action conflicts with bound post-acquire continuation"
+                    )
+                next_action = bound_post_acquire
+                if (
+                    str(next_action.get("kind") or "").strip() == "FINALIZE"
+                    and str((next_action.get("args") or {}).get("completion_mode") or "").strip().upper()
+                    == "CONTROL_ONLY"
+                    and effect.get("admission_reservation") is not None
+                ):
+                    raise ProductionExecutorError(
+                        "CONTROL_ONLY bound post-acquire continuation forbids admission reservation"
+                    )
+            else:
+                next_action = supplied_next_action
+                if not isinstance(next_action, dict):
+                    raise ProductionExecutorError(
+                        "READY ACQUIRE requires explicit or ingress-bound post-acquire next_action"
+                    )
         effect.update(
             {
                 "observed_at": _iso(now),
@@ -262,6 +324,9 @@ def _normalize_effect(
 
 
 
+
+
+
 def _require_current_invocation_lease(
     record: ExecutionRecord,
     invocation_identity: str,
@@ -274,6 +339,8 @@ def _require_current_invocation_lease(
         )
 
 
+
+
 def _read_branch_head(repo: str, token: str, branch: str) -> str:
     encoded = quote(branch, safe="")
     ref = _api(repo, "GET", f"/git/ref/heads/{encoded}", token)
@@ -283,8 +350,11 @@ def _read_branch_head(repo: str, token: str, branch: str) -> str:
     return sha
 
 
+
+
 def _is_ancestor(repo: str, token: str, ancestor: str, descendant: str) -> bool:
     """Return whether ``ancestor`` is proven to reach ``descendant``.
+
 
     This is used only for side-effect reconciliation after a trusted GitHub
     mutation may already have succeeded while the coord CAS lost a race.
@@ -294,6 +364,8 @@ def _is_ancestor(repo: str, token: str, ancestor: str, descendant: str) -> bool:
     compare = _api(repo, "GET", f"/compare/{ancestor}...{descendant}", token) or {}
     merge_base = str((compare.get("merge_base_commit") or {}).get("sha") or "").strip()
     return merge_base == ancestor
+
+
 
 
 def _required_checks_for_target(
@@ -335,11 +407,14 @@ def _required_checks_for_target(
         # skipping required checks.
         pass
 
+
     if target_branch in {"main", "cleanup/2d-3d-sync"}:
         # Legacy branch-ruleset compatibility context. The workflow behind this
         # context no longer performs main/cleanup mirroring or ancestry checks.
         contexts.add("Governance Mirror Hard Gate")
     return sorted(contexts)
+
+
 
 
 def _check_conclusions_for_head(
@@ -364,6 +439,8 @@ def _check_conclusions_for_head(
     return conclusions
 
 
+
+
 def _merge_precheck_readback(
     repo: str,
     token: str,
@@ -377,6 +454,7 @@ def _merge_precheck_readback(
         # immediate fresh read is enough; unresolved null remains fail-closed.
         pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
 
+
     observed_target = _read_branch_head(repo, token, record.target_branch)
     required_checks = _required_checks_for_target(
         repo,
@@ -388,6 +466,7 @@ def _merge_precheck_readback(
         token,
         record.head_sha,
     )
+
 
     result = evaluate_merge_precheck(
         record_head_sha=record.head_sha,
@@ -407,6 +486,8 @@ def _merge_precheck_readback(
     return pr, result
 
 
+
+
 def _trusted_merge_effect(
     repo: str,
     token: str,
@@ -419,9 +500,11 @@ def _trusted_merge_effect(
     if record.next_action is None or record.next_action.kind != "MERGE":
         raise ProductionExecutorError("MERGE requires current structured MERGE next_action")
 
+
     pr_number = record.next_action.args.get("pr_number")
     if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
         raise ProductionExecutorError("MERGE next_action.pr_number is invalid")
+
 
     pr, precheck = _merge_precheck_readback(
         repo,
@@ -429,6 +512,7 @@ def _trusted_merge_effect(
         record=record,
         pr_number=pr_number,
     )
+
 
     if precheck.classification == TARGET_DRIFT:
         revalidation_workflow = str(
@@ -457,6 +541,7 @@ def _trusted_merge_effect(
             "updated_at": _iso(_now()),
         }
 
+
     if precheck.classification == REQUIRED_CHECKS_PENDING:
         missing = ",".join(precheck.missing_required_checks)
         raise ControlTransactionConflict(
@@ -470,6 +555,7 @@ def _trusted_merge_effect(
         raise ProductionExecutorError(
             f"merge precheck PR identity mismatch: {precheck.reason}"
         )
+
 
     if precheck.classification == ALREADY_MERGED:
         observed_target = _read_branch_head(repo, token, record.target_branch)
@@ -486,10 +572,12 @@ def _trusted_merge_effect(
             "updated_at": _iso(_now()),
         }
 
+
     if precheck.classification != READY_TO_MERGE:
         raise ProductionExecutorError(
             f"unsupported merge precheck classification {precheck.classification}"
         )
+
 
     merge_result = _api(
         repo,
@@ -507,10 +595,12 @@ def _trusted_merge_effect(
             f"trusted PR merge was rejected: {merge_result.get('message')}"
         )
 
+
     fresh_pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
     if fresh_pr.get("merged") is not True:
         raise ProductionExecutorError("trusted PR merge readback is not merged")
     observed_target = _read_branch_head(repo, token, record.target_branch)
+
 
     return {
         "merge_precheck_status": READY_TO_MERGE,
@@ -526,6 +616,8 @@ def _trusted_merge_effect(
     }
 
 
+
+
 def _trusted_sync_target_effect(
     repo: str,
     token: str,
@@ -539,6 +631,7 @@ def _trusted_sync_target_effect(
             "SYNC_TARGET requires current structured SYNC_TARGET next_action"
         )
 
+
     args = record.next_action.args
     target_sha = str(args.get("target_sha") or "").strip()
     target_branch = str(args.get("target_branch") or "").strip()
@@ -551,12 +644,14 @@ def _trusted_sync_target_effect(
     if not qa_workflow:
         raise ProductionExecutorError("SYNC_TARGET qa_workflow is missing")
 
+
     live_target = _read_branch_head(repo, token, target_branch)
     if live_target != target_sha:
         raise ControlTransactionConflict(
             f"SYNC_TARGET target drift: expected {target_sha}, observed {live_target}"
         )
     live_work = _read_branch_head(repo, token, record.work_branch)
+
 
     if live_work != record.head_sha:
         # The target->work merge may already have succeeded in a previous
@@ -596,6 +691,7 @@ def _trusted_sync_target_effect(
                 ) from exc
             raise
 
+
         new_head = _read_branch_head(repo, token, record.work_branch)
     if new_head == record.head_sha:
         next_action = {
@@ -623,6 +719,7 @@ def _trusted_sync_target_effect(
         }
         semantic_state = "QA_INVALIDATED_BY_TARGET_SYNC"
 
+
     return {
         "head_sha": new_head,
         "target_sha": target_sha,
@@ -632,16 +729,33 @@ def _trusted_sync_target_effect(
     }
 
 
+
+
 def _finalize_target_readback(
     repo: str,
     token: str,
     *,
     record: ExecutionRecord,
 ) -> dict[str, object]:
-    """Prove that the accepted merge anchor still reaches the live target HEAD."""
+    """Read back the live target for normal merge-finalize or CONTROL_ONLY close."""
+    if is_control_only_finalize_record(record):
+        observed_target = _read_branch_head(repo, token, record.target_branch)
+        return {
+            "observed_target_sha": observed_target,
+            "control_only_target_readback": {
+                "schema": CONTROL_ONLY_TARGET_READBACK_SCHEMA,
+                "target_branch": record.target_branch,
+                "observed_target_sha": observed_target,
+                "fresh_readback": True,
+                "trusted_source": "control_transaction_production_executor",
+            },
+        }
+
+
     anchor = str(record.closure.merged_sha or "").strip()
     if not anchor:
         raise ProductionExecutorError("FINALIZE requires a merged anchor before target readback")
+
 
     encoded_branch = quote(record.target_branch, safe="")
     ref = _api(repo, "GET", f"/git/ref/heads/{encoded_branch}", token)
@@ -649,8 +763,10 @@ def _finalize_target_readback(
     if not observed_target:
         raise ProductionExecutorError("FINALIZE target ref readback did not return a SHA")
 
+
     if observed_target == anchor:
         return {"observed_target_sha": observed_target}
+
 
     compare = _api(repo, "GET", f"/compare/{anchor}...{observed_target}", token)
     merge_base = str((compare.get("merge_base_commit") or {}).get("sha") or "").strip()
@@ -658,6 +774,7 @@ def _finalize_target_readback(
         raise ProductionExecutorError(
             "FINALIZE target advanced outside accepted merge-anchor ancestry"
         )
+
 
     return {
         "observed_target_sha": observed_target,
@@ -673,6 +790,8 @@ def _finalize_target_readback(
     }
 
 
+
+
 def _ensure_issue_closed_for_finalize(
     repo: str,
     token: str,
@@ -681,11 +800,14 @@ def _ensure_issue_closed_for_finalize(
     record: ExecutionRecord,
 ) -> dict[str, object]:
     """Close/read back the GitHub Issue before a FINALIZE -> DONE transition."""
-    if record.state != "INTEGRATING":
-        raise ProductionExecutorError("FINALIZE requires INTEGRATING state before issue close")
-    if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
-        raise ProductionExecutorError("FINALIZE requires accepted QA for current head before issue close")
+    control_only = is_control_only_finalize_record(record)
+    if not control_only:
+        if record.state != "INTEGRATING":
+            raise ProductionExecutorError("FINALIZE requires INTEGRATING state before issue close")
+        if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+            raise ProductionExecutorError("FINALIZE requires accepted QA for current head before issue close")
     target_readback = _finalize_target_readback(repo, token, record=record)
+
 
     observed = _api(repo, "GET", f"/issues/{issue}", token)
     if (
@@ -700,15 +822,18 @@ def _ensure_issue_closed_for_finalize(
             {"state": "closed", "state_reason": "completed"},
         )
 
+
     fresh = _api(repo, "GET", f"/issues/{issue}", token)
     if str(fresh.get("state") or "").lower() != "closed":
         raise ProductionExecutorError("FINALIZE issue close readback is not closed")
     if str(fresh.get("state_reason") or "").lower() != "completed":
         raise ProductionExecutorError("FINALIZE issue close readback is not completed")
 
+
     trusted_released_at = str(fresh.get("closed_at") or _iso(_now())).strip()
     if not trusted_released_at:
         raise ProductionExecutorError("FINALIZE trusted released_at readback is blank")
+
 
     return {
         **target_readback,
@@ -718,6 +843,9 @@ def _ensure_issue_closed_for_finalize(
         "issue_closed_at": fresh.get("closed_at"),
         "released_at": trusted_released_at,
     }
+
+
+
 
 
 
@@ -731,6 +859,7 @@ def _trusted_stale_release_effect(
 ) -> dict[str, object]:
     """Delete one proven-safe stale work ref, then prove absence before READY reset.
 
+
     The GitHub connector/runtime is not granted an ad-hoc branch-delete bypass.
     RELEASE_PATHS remains the sole semantic owner: this trusted GitHub executor
     may delete only the exact stale work ref after proving that it is released,
@@ -740,6 +869,7 @@ def _trusted_stale_release_effect(
     scope = record.mutation_scope
     if scope is None or scope.reservation_state != "RELEASED":
         return dict(supplied)
+
 
     now = _now()
     if record.lease is None:
@@ -754,6 +884,7 @@ def _trusted_stale_release_effect(
     if record.qa.last_accepted_run is not None or record.qa.accepted_head_sha is not None:
         raise ProductionExecutorError("stale RELEASE_PATHS cleanup requires no QA lock")
 
+
     if (
         record.work_branch in {"main", "cleanup/2d-3d-sync", record.source_branch, record.target_branch}
         or record.work_branch.startswith("coord/")
@@ -761,6 +892,7 @@ def _trusted_stale_release_effect(
         raise ProductionExecutorError(
             f"stale RELEASE_PATHS cleanup refuses protected/control branch {record.work_branch!r}"
         )
+
 
     observed_records = records if records is not None else {record.issue: record}
     for other in observed_records.values():
@@ -772,6 +904,7 @@ def _trusted_stale_release_effect(
             raise ProductionExecutorError(
                 "stale RELEASE_PATHS cleanup refuses work branch referenced by another nonterminal Issue"
             )
+
 
     fresh_target_sha = _read_branch_head(repo, token, record.target_branch)
     encoded_work = quote(record.work_branch, safe="")
@@ -789,6 +922,7 @@ def _trusted_stale_release_effect(
         if exc.code != 404:
             raise
 
+
     deleted = False
     if branch_exists:
         if supplied.get("delete_stale_work_branch") is not True:
@@ -801,6 +935,7 @@ def _trusted_stale_release_effect(
                 f"expected {record.head_sha}, observed {observed_work_sha}"
             )
 
+
         branch_meta = _api(repo, "GET", f"/branches/{encoded_work}", token) or {}
         branch_meta_sha = str((branch_meta.get("commit") or {}).get("sha") or "").strip()
         if branch_meta_sha and branch_meta_sha != observed_work_sha:
@@ -812,13 +947,16 @@ def _trusted_stale_release_effect(
                 "stale RELEASE_PATHS cleanup refuses protected work branch"
             )
 
+
         if not _is_ancestor(repo, token, observed_work_sha, fresh_target_sha):
             raise ControlTransactionConflict(
                 "stale RELEASE_PATHS cleanup refuses branch with commits not contained in current target"
             )
 
+
         _api(repo, "DELETE", f"/git/refs/heads/{encoded_work}", token)
         deleted = True
+
 
         try:
             _api(repo, "GET", f"/git/ref/heads/{encoded_work}", token)
@@ -829,6 +967,7 @@ def _trusted_stale_release_effect(
             raise ProductionExecutorError(
                 "stale RELEASE_PATHS cleanup delete readback still resolves work branch"
             )
+
 
     effect = dict(supplied)
     effect.update(
@@ -842,6 +981,8 @@ def _trusted_stale_release_effect(
         }
     )
     return effect
+
+
 
 
 def _trusted_consume_qa_effect(
@@ -901,6 +1042,7 @@ def _trusted_consume_qa_effect(
     )
     return effect
 
+
 def _write_state(
     repo: str,
     token: str,
@@ -919,6 +1061,7 @@ def _write_state(
         sort_keys=True,
         indent=2,
     ) + "\n"
+
 
     record_blob = _api(repo, "POST", "/git/blobs", token, {"content": record_text, "encoding": "utf-8"})
     index_blob = _api(repo, "POST", "/git/blobs", token, {"content": index_text, "encoding": "utf-8"})
@@ -956,8 +1099,12 @@ def _write_state(
     return commit["sha"], record_blob["sha"]
 
 
+
+
 _RETRYABLE_TRUSTED_SIDE_EFFECT_KINDS = frozenset({"MERGE", "SYNC_TARGET", "FINALIZE"})
 _TERMINAL_TAIL_SOURCE_KINDS = frozenset({"MERGE", "RECONCILE", "ACQUIRE"})
+
+
 
 
 def _execute_one_attempt(
@@ -976,6 +1123,7 @@ def _execute_one_attempt(
         raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     record = records[issue]
 
+
     # ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1.  Classify same-lane
     # records at one exact observed time and in issue order so result never
     # depends on dict/tree iteration order. A RELEASED stale-reset residue is
@@ -991,6 +1139,7 @@ def _execute_one_attempt(
             f"issue={issue} requested_action={kind}"
         )
     requested_stale_cleanup = requested_stale_residue and kind == "RELEASE_PATHS"
+
 
     same_lane_owners = sorted(
         (
@@ -1019,6 +1168,7 @@ def _execute_one_attempt(
             )
         except InvocationExitError as exc:
             raise ControlTransactionConflict(str(exc)) from exc
+
 
     plan = prepare_transaction(
         record,
@@ -1085,7 +1235,9 @@ def _execute_one_attempt(
             )
         )
 
+
     post = execute_transaction(record, plan, effect=effect)
+
 
     admission_reserved = (
         kind == "ACQUIRE"
@@ -1096,6 +1248,7 @@ def _execute_one_attempt(
         raise ProductionExecutorError(
             f"{kind} produced no mutation_scope for reservation"
         )
+
 
     # UNRELATED_COORD_CAS_RETRY_V1: a non-force coord ref CAS may lose only
     # because another Issue advanced the shared coord branch.  Rebuild the
@@ -1117,6 +1270,7 @@ def _execute_one_attempt(
                 )
             except PathReservationError as exc:
                 raise ControlTransactionConflict(str(exc)) from exc
+
 
         candidate_records = dict(write_records)
         candidate_records[issue] = post
@@ -1159,6 +1313,7 @@ def _execute_one_attempt(
         assert last_coord_conflict is not None
         raise last_coord_conflict
 
+
     fresh_parent, _, fresh_records = _load_state(repo, token, coord_branch)
     fresh = fresh_records.get(issue)
     if fresh_parent != commit_sha or fresh is None:
@@ -1169,6 +1324,7 @@ def _execute_one_attempt(
         raise ProductionExecutorError(
             "post-commit ExecutionRecord fingerprint mismatch"
         )
+
 
     monitor_payload: dict[str, object]
     try:
@@ -1202,6 +1358,7 @@ def _execute_one_attempt(
             "runtime_heartbeat_expires_at": None,
         }
 
+
     return {
         "schema": RESULT_SCHEMA,
         "result": "APPLIED",
@@ -1218,6 +1375,8 @@ def _execute_one_attempt(
     }
 
 
+
+
 def execute_one(
     *,
     repo: str,
@@ -1231,6 +1390,7 @@ def execute_one(
     _allow_terminal_drain: bool = True,
 ) -> dict[str, object]:
     """Execute one transaction with bounded in-workflow side-effect recovery.
+
 
     Trusted GitHub side effects (MERGE / SYNC_TARGET / FINALIZE) are retried
     after a coord CAS race by fresh-reading canonical state and reconciling the
@@ -1265,6 +1425,7 @@ def execute_one(
     else:  # pragma: no cover - defensive; loop either breaks or raises.
         assert last_conflict is not None
         raise last_conflict
+
 
     if (
         _allow_terminal_drain
@@ -1302,68 +1463,23 @@ def execute_one(
             "lease_invocation_identity"
         )
 
+
     return result
 
 
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY"))
-    parser.add_argument("--coord-branch", default="coord/execution-v2")
-    parser.add_argument("--issue", type=int, required=True)
-    parser.add_argument("--kind", required=True)
-    parser.add_argument("--lane-id", required=True)
-    parser.add_argument("--invocation-identity", required=True)
-    parser.add_argument("--effect-json", default="{}")
-    parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
-
-    token = os.environ.get("GITHUB_TOKEN", "")
-    if not args.repo or not token:
-        raise SystemExit("GITHUB_REPOSITORY and GITHUB_TOKEN are required")
-    try:
-        effect = json.loads(args.effect_json)
-        if not isinstance(effect, dict):
-            raise ProductionExecutorError("effect_json must be an object")
-        result = execute_one(
-            repo=args.repo,
-            token=token,
-            coord_branch=args.coord_branch,
-            issue=args.issue,
-            kind=args.kind,
-            lane_id=args.lane_id,
-            invocation_identity=args.invocation_identity,
-            supplied_effect=effect,
-        )
-        code = 0
-    except (ControlTransactionConflict, ControlTransactionReplay) as exc:
-        reason = str(exc)
-        if reason.startswith("coord/execution-v2 ref advanced"):
-            conflict_class = "STALE_COORD_HEAD"
-        elif reason.startswith("generation drift"):
-            conflict_class = "STALE_GENERATION"
-        elif "live lease" in reason:
-            conflict_class = "LIVE_LEASE"
-        else:
-            conflict_class = "STALE_EXECUTION_RECORD"
-        result = {
-            "schema": RESULT_SCHEMA,
-            "result": "CONFLICT",
-            "reason": reason,
-            "conflict_class": conflict_class,
-            "retryable": True,
-            "retry_action": "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION",
-            "semantic_effect_applied": False,
-        }
-        code = 3
-    except (ControlTransactionError, ExecutionRecordError, ProductionExecutorError, HTTPError, ValueError, TypeError, json.JSONDecodeError) as exc:
-        result = {"schema": RESULT_SCHEMA, "result": "FAILED", "reason": str(exc)}
-        code = 2
-
-    rendered = json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
-    print(rendered, end="")
-    if args.output:
-        args.output.write_text(rendered, encoding="utf-8")
-    return code
+    # DIRECT_PRODUCTION_EXECUTOR_CLI_RETIRED_V1
+    # The trusted request ingress imports execute_one() directly after validating
+    # startup/preflight/runtime provenance.  A standalone CLI would bypass that
+    # envelope, so fail closed before parsing args or touching GitHub.
+    print(
+        "DIRECT_PRODUCTION_EXECUTOR_CLI_RETIRED: "
+        "use tools/control_transaction_request_ingress.py via the trusted push-request workflow",
+        file=sys.stderr,
+    )
+    return 2
 
 
 if __name__ == "__main__":
