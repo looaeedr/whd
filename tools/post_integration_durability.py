@@ -10,6 +10,8 @@ SUPERSEDED and must not participate in CURRENT completion decisions.
 """
 from __future__ import annotations
 
+import argparse
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -330,3 +332,52 @@ def classify_post_integration_durability(
         }
 
     return {"state": "DURABLE_CLEANUP_COMPLETE", "next_action": None, "issue": terminal["issue"]}
+
+def _load_json_file(path: Path) -> object:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RootSyncError(f"failed to read execution record JSON: {exc}") from exc
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Synchronize canonical WHD root to one accepted terminal merge"
+    )
+    parser.add_argument("--execution-record", type=Path, required=True)
+    parser.add_argument("--accepted-tree-sha", required=True)
+    parser.add_argument("--root", default=CANONICAL_ROOT)
+    parser.add_argument("--remote", default="origin")
+    parser.add_argument("--production-branch", default=PRODUCTION_BRANCH)
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args(argv)
+
+    try:
+        receipt = sync_canonical_root_to_accepted_head(
+            execution_record=_load_json_file(args.execution_record),
+            accepted_tree_sha=args.accepted_tree_sha,
+            root_path=args.root,
+            remote=args.remote,
+            production_branch=args.production_branch,
+        )
+        rendered = json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        if args.output:
+            args.output.write_text(rendered, encoding="utf-8")
+        print(rendered, end="")
+        return 0
+    except (RootSyncError, ValueError, OSError) as exc:
+        error = {
+            "schema": "WHD_CANONICAL_ROOT_SYNC_RESULT_V1",
+            "status": "FAILED",
+            "reason": str(exc),
+        }
+        rendered = json.dumps(error, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        if args.output:
+            args.output.write_text(rendered, encoding="utf-8")
+        print(rendered, end="")
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
