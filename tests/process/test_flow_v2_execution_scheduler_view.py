@@ -3,8 +3,12 @@ from dataclasses import replace
 import pytest
 
 from tools.execution_ready_index import build_ready_index
-from tools.execution_record import ActionSpec, LeaseState, execution_record_from_payload
-from tools.execution_scheduler_view import SchedulerViewError, build_scheduler_view
+from tools.execution_record import ActionSpec, ChainState, LeaseState, execution_record_from_payload
+from tools.execution_scheduler_view import (
+    SchedulerViewError,
+    build_scheduler_view,
+    build_takeover_handoff_effect,
+)
 
 
 LANE_A = "scheduler.6ab13fa557fc8191935c671214b865e2"
@@ -226,3 +230,204 @@ def test_scheduler_view_rejects_non_executable_same_lane_action():
     broken = replace(_record(999, state="ACTIVE", lane=LANE_A), next_action=ActionSpec(kind="UNKNOWN", args={}, display="bad"))
     with pytest.raises(SchedulerViewError, match="non-executable next_action"):
         build_scheduler_view([broken], lane_id=LANE_A, invocation_identity="scheduled:00:new", now=NOW)
+
+def _runtime_observation(
+    record,
+    *,
+    issue: int | None = None,
+    state: str = "ENDED",
+    observed_at: str = "2026-09-28T01:55:00Z",
+):
+    issue = record.issue if issue is None else issue
+    if state == "LIVE":
+        event = "PROGRESS"
+        exit_at = None
+        exit_state = None
+        heartbeat_expires_at = "2026-09-28T02:05:00Z"
+    elif state == "EXPIRED":
+        event = "PROGRESS"
+        exit_at = None
+        exit_state = None
+        heartbeat_expires_at = "2026-09-28T01:59:00Z"
+    elif state == "ENDED":
+        event = "EXIT"
+        exit_at = observed_at
+        exit_state = "ENDED"
+        heartbeat_expires_at = "2026-09-28T01:59:00Z"
+    else:
+        raise AssertionError(state)
+    return {
+        "schema": "WHD_RUNTIME_OBSERVATION_V2",
+        "version": 2,
+        "authority": "NON_AUTHORITY",
+        "source": "test-runtime",
+        "handler": "test-runtime",
+        "entrypoint": None,
+        "event": event,
+        "runtime_state": "ENDED" if state == "ENDED" else "WORKING",
+        "issue": issue,
+        "slot_id": record.slot_id,
+        "claim_worker": record.owner_id,
+        "owner_id": record.owner_id,
+        "invocation_identity": "runtime.test.owner",
+        "conversation_identity": None,
+        "branch": record.work_branch,
+        "head_sha": record.head_sha,
+        "action": None,
+        "record_fingerprint": None,
+        "last_wake_at": None,
+        "last_heartbeat_at": "2026-09-28T01:54:00Z",
+        "heartbeat_expires_at": heartbeat_expires_at,
+        "last_progress_at": "2026-09-28T01:54:00Z",
+        "exit_at": exit_at,
+        "exit_state": exit_state,
+        "liveness_state": state,
+        "observed_at": observed_at,
+    }
+
+
+def test_stranded_foreign_scheduler_work_is_taken_over_before_ready_candidates():
+    stranded = _record(
+        1080,
+        "ACTIVE",
+        lane="chatgpt.flowv2.work2",
+        owner_kind="SCHEDULER",
+        owner_id="chatgpt.flowv2.work2",
+    )
+    ready = _record(1200, "READY")
+    owner_moved_on = _runtime_observation(stranded, issue=1143, state="ENDED")
+
+    view = build_scheduler_view(
+        [ready, stranded],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={"chatgpt.flowv2.work2": owner_moved_on},
+    )
+
+    assert view.decision == "TAKEOVER_CANDIDATE"
+    assert view.selected_issue == 1080
+    assert view.takeover_issues == (1080,)
+    assert view.takeover_from_owner_id == "chatgpt.flowv2.work2"
+    assert view.takeover_reason == (
+        "STUCK_UNOWNED_FAMILY_CONFIRMED:OWNER_MOVED_TO_OTHER_ISSUE"
+    )
+    assert view.requires_transaction == "HANDOFF"
+    assert view.next_action_kind == "APPLY_COMMIT"
+    assert view.ready_issues == ()
+
+
+def test_matching_live_runtime_blocks_takeover_and_ready_work_can_proceed():
+    foreign = _record(1080, "ACTIVE", lane=LANE_B)
+    ready = _record(1200, "READY")
+    live = _runtime_observation(foreign, state="LIVE")
+
+    view = build_scheduler_view(
+        [foreign, ready],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={LANE_B: live},
+    )
+
+    assert view.decision == "READY_CANDIDATES"
+    assert view.selected_issue == 1200
+    assert view.takeover_issues == ()
+
+
+def test_takeover_fails_closed_when_owner_runtime_was_not_fresh_read():
+    foreign = _record(1080, "ACTIVE", lane=LANE_B)
+    ready = _record(1200, "READY")
+
+    view = build_scheduler_view(
+        [foreign, ready],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={},
+    )
+
+    assert view.decision == "READY_CANDIDATES"
+    assert view.selected_issue == 1200
+
+
+def test_live_foreign_lease_blocks_takeover_even_if_runtime_ended():
+    foreign = _record(
+        1080,
+        "ACTIVE",
+        lane=LANE_B,
+        lease={
+            "token": "live-foreign",
+            "invocation_identity": "scheduled:B15:live",
+            "expires_at": "2026-09-28T02:05:00Z",
+        },
+    )
+
+    view = build_scheduler_view(
+        [foreign],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={LANE_B: _runtime_observation(foreign, state="ENDED")},
+    )
+
+    assert view.decision == "NO_EXECUTABLE_WORK"
+
+
+def test_active_or_unknown_delegated_family_node_blocks_parent_takeover():
+    parent = _record(
+        1080,
+        "ACTIVE",
+        lane="chatgpt.flowv2.work2",
+        owner_id="chatgpt.flowv2.work2",
+    )
+    child = replace(
+        _record(
+            1081,
+            "ACTIVE",
+            lane="chatgpt.flowv2.work3",
+            owner_id="chatgpt.flowv2.work3",
+        ),
+        chain=ChainState(parent_issue=1080),
+    )
+    observations = {
+        "chatgpt.flowv2.work2": _runtime_observation(parent, issue=1143, state="ENDED"),
+        "chatgpt.flowv2.work3": _runtime_observation(child, state="LIVE"),
+    }
+
+    view = build_scheduler_view(
+        [parent, child],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations=observations,
+    )
+
+    assert view.decision == "NO_EXECUTABLE_WORK"
+
+
+def test_takeover_handoff_effect_changes_only_scheduler_owner_routing():
+    stranded = _record(
+        1080,
+        "ACTIVE",
+        lane="chatgpt.flowv2.work2",
+        owner_id="chatgpt.flowv2.work2",
+    )
+    view = build_scheduler_view(
+        [stranded],
+        lane_id=LANE_A,
+        invocation_identity="scheduled:A00:new",
+        now=NOW,
+        runtime_observations={
+            "chatgpt.flowv2.work2": _runtime_observation(
+                stranded, issue=1143, state="ENDED"
+            )
+        },
+    )
+
+    assert build_takeover_handoff_effect(view) == {
+        "owner_kind": "SCHEDULER",
+        "owner_id": LANE_A,
+        "lane_id": LANE_A,
+    }
+
