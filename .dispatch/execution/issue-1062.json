@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 45,
-  "head_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
+  "generation": 46,
+  "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "issue": 1062,
   "lane_id": null,
   "lease": null,
@@ -56,15 +56,15 @@
   "source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
   "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
+  "target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
   "transaction": {
-    "expected_fingerprint": "fed542c916395bc7279320a4991d48a785c6875f5754e23a5eb988b58c98af40",
-    "id": "gha:37142237703:1062:RELEASE_PATHS:44",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1062.stale-release-cleanup.20261003T175410Z",
-    "kind": "RELEASE_PATHS",
+    "expected_fingerprint": "54fccc6dca2ee861fa330037943ac10c524038415749f556ebfe02958b43463e",
+    "id": "gha:37174040577:1062:RECONCILE:45",
+    "invocation_identity": "gha:looaeedr/whd:run:37174040577:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T17:55:07Z",
+  "updated_at": "2026-10-04T03:25:56Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
