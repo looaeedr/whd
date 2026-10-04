@@ -1,47 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-terminal-acquire-20261004T1401Z",
+  "request_id": "issue1112-terminal-consume-qa-20261004T1410Z",
   "issue": 1112,
-  "kind": "ACQUIRE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-  "expected_coord_head": "cee02b1784cbe41bacae7e2fcac710a701b5be6c",
-  "expected_generation": 7,
+  "expected_coord_head": "9b6e49a133ff1ae250a4a0a408f1922281304c57",
+  "expected_generation": 8,
   "effect": {
-    "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
+    "run_id": 36955190871,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED_FOR_CLOSURE_RECONCILIATION",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
+        "pr_number": 1134,
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Consume existing exact-head Product Regression"
+      "display": "Reconcile already-merged PR #1134"
     }
   },
-  "purpose": "Closure-only continuation for already-completed Issue #1112 using existing merged PR #1134 evidence; no repository-content mutation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [".agents", ".git", ".github", ".unpushed", "AGENTS.md", "ae_engine", "gui_modules", "tests", "tools"],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1112,
-    "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
-    "required_skills": ["diagnosing-bugs", "tdd"],
-    "completed_skills": ["diagnosing-bugs", "tdd"],
-    "required_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"],
-    "completed_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"],
-    "observed_at": "2026-10-04T13:57:35Z"
-  }
+  "purpose": "Closure-only drain for already-completed Issue #1112 using exact-head successful Product Regression and merged PR #1134.",
+  "reuse_admission_session": true
 }
