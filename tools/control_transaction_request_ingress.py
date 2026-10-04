@@ -82,7 +82,7 @@ def _execution_mode_for_request(request: dict[str, object]) -> str:
 
 
 
-INTERACTIVE_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
+REPOSITORY_CONTENT_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
 STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_SCHEMA = "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1"
 TRUSTED_GITHUB_ACTIONS_PROVENANCE_SCHEMA = "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_PROVENANCE_REQUEST_V1"
 TRUSTED_GITHUB_ACTIONS_PROVENANCE_MODE = "MINT_EXACT_INVOCATION_IDENTITY"
@@ -322,25 +322,27 @@ def _resolve_scheduler_preflight_receipt_ref(
     return resolved
 
 
-def _prevalidate_interactive_git_write_receipt(
+def _prevalidate_repository_content_git_write_receipt(
     request: dict[str, object], *, execution_mode: str
 ) -> None:
     """Fail closed on the root-local-first receipt before any execution-state read."""
-    if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
+    if str(request.get("kind") or "") not in REPOSITORY_CONTENT_GIT_WRITE_KINDS:
         return
     effect = request.get("effect")
     if not isinstance(effect, dict):
         raise ProductionExecutorError("effect must be an object")
     receipt = effect.get("root_local_first_git_write_receipt")
     if receipt is None:
-        raise ProductionExecutorError("interactive Git write requires root-local-first Git write receipt")
+        raise ProductionExecutorError(
+            f"{execution_mode} repository-content Git write requires root-local-first Git write receipt"
+        )
     try:
         validate_git_unlock_receipt(receipt)
     except ValueError as exc:
         raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
 
 
-def _validate_interactive_git_write_receipt(
+def _validate_repository_content_git_write_receipt(
     request: dict[str, object],
     *,
     execution_mode: str,
@@ -348,14 +350,16 @@ def _validate_interactive_git_write_receipt(
     repo: str,
     token: str,
 ) -> None:
-    if execution_mode != "INTERACTIVE" or str(request.get("kind") or "") not in INTERACTIVE_GIT_WRITE_KINDS:
+    if str(request.get("kind") or "") not in REPOSITORY_CONTENT_GIT_WRITE_KINDS:
         return
     effect = request.get("effect")
     if not isinstance(effect, dict):
         raise ProductionExecutorError("effect must be an object")
     receipt = effect.get("root_local_first_git_write_receipt")
     if receipt is None:
-        raise ProductionExecutorError("interactive Git write requires root-local-first Git write receipt")
+        raise ProductionExecutorError(
+            f"{execution_mode} repository-content Git write requires root-local-first Git write receipt"
+        )
     try:
         validated_receipt = validate_git_unlock_receipt(receipt)
     except ValueError as exc:
@@ -643,7 +647,7 @@ def execute_request(
         except ValueError as exc:
             raise ProductionExecutorError(f"startup hard gate rejected request: {exc}") from exc
 
-    _prevalidate_interactive_git_write_receipt(
+    _prevalidate_repository_content_git_write_receipt(
         request, execution_mode=execution_mode
     )
 
@@ -687,7 +691,7 @@ def execute_request(
             ):
                 raise ControlTransactionConflict(str(exc)) from exc
 
-    _validate_interactive_git_write_receipt(
+    _validate_repository_content_git_write_receipt(
         request,
         execution_mode=execution_mode,
         record=record,

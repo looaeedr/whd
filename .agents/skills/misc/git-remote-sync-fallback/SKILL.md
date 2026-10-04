@@ -83,7 +83,7 @@ For WHD interactive/default repository mutations, transport fallback cannot chan
 - if branch creation or exact diff transport is impossible, fail closed rather than write target directly;
 - merge back only through Flow v2 trusted non-force `MERGE` / `SYNC_TARGET` after acceptance; chat/runtime Connector `update_ref` is never the WHD production integration path.
 
-`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` use Flow v2 remote authority and are not reclassified as interactive workspace work by this fallback Skill.
+`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` use Flow v2 remote authority for control-plane operations, but this Skill is **not** a parallel repository-content delivery entry. Any `START_BRANCH` / `APPLY_COMMIT` or Connector content write that transports repository content must already carry the root-local-first Git unlock receipt minted from the selected lane, frozen manifest, delivery fileset reservation, and exact tested diff. Missing receipt means fail closed; do not route generic `git push/fetch/pull` failure into branch-side edits.
 
 ## Connector target-write hard gate
 

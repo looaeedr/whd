@@ -694,7 +694,7 @@ def validate_contract(payload: object) -> dict[str, object]:
     receipt = _mapping(contract.get("git_write_receipt"), "git_write_receipt")
     if receipt.get("schema") != GIT_UNLOCK_RECEIPT_SCHEMA:
         raise ValueError("Git write receipt schema mismatch")
-    if set(receipt.get("required_for_interactive_actions") or ()) != {"START_BRANCH", "APPLY_COMMIT"}:
+    if set(receipt.get("required_for_repository_content_actions") or ()) != {"START_BRANCH", "APPLY_COMMIT"}:
         raise ValueError("Git write receipt action policy mismatch")
     return {str(k): v for k, v in contract.items()}
 
@@ -710,9 +710,9 @@ def validate_source_current(
     """Prove the Google Drive root is based on the live target.
 
     CURRENT mode is the real repo working tree under `/Google Drive/WHD`: its
-    `.git` HEAD/tree is compared directly to the live target.  The legacy source
-    manifest remains accepted only as a migration fallback so old callers fail
-    closed instead of silently inventing source identity.
+    `.git` HEAD/tree is compared directly to the live target.  Legacy source
+    manifests and scoped blob recovery are historical only and no longer mint
+    ROOT_SOURCE_CURRENT evidence.
     """
     live_sha = _sha(live_source_sha, "live_source_sha")
     live_tree = _sha(live_tree_sha, "live_tree_sha")
@@ -731,35 +731,12 @@ def validate_source_current(
             "source_mode": "ROOT_GIT_WORKTREE",
         }
 
-    if manifest is None:
-        raise ValueError("ROOT_SOURCE_CURRENT_FAILED: workspace_git evidence is required")
-    item = _mapping(manifest, "legacy source manifest")
-    manifest_sha = _sha(item.get("source_sha"), "manifest source_sha")
-    manifest_tree = _sha(item.get("tree_sha"), "manifest tree_sha")
-    if manifest_sha == live_sha and manifest_tree == live_tree:
-        return {
-            "status": "EXACT_SOURCE_CURRENT",
-            "source_sha": live_sha,
-            "tree_sha": live_tree,
-            "source_mode": "LEGACY_MANIFEST_FALLBACK",
-            "snapshot_status": str(item.get("durable_snapshot_status") or "UNKNOWN"),
-        }
-    proofs = list(touched_path_proofs)
-    if not proofs:
-        raise ValueError("ROOT_SOURCE_CURRENT_FAILED: legacy manifest stale and no touched-path proof")
-    for proof in proofs:
-        path = str(proof.get("path") or "").strip()
-        expected = str(proof.get("live_blob_sha") or "").strip().lower()
-        observed = str(proof.get("workspace_blob_sha") or "").strip().lower()
-        if not path or not re.fullmatch(r"[0-9a-f]{40}", expected) or expected != observed:
-            raise ValueError(f"ROOT_SOURCE_CURRENT_FAILED: invalid touched-path proof for {path!r}")
-    return {
-        "status": "SCOPED_CURRENT_RECOVERY",
-        "source_sha": live_sha,
-        "tree_sha": live_tree,
-        "source_mode": "LEGACY_SCOPED_RECOVERY",
-        "verified_paths": sorted(str(p["path"]) for p in proofs),
-    }
+    if manifest is not None or tuple(touched_path_proofs):
+        raise ValueError(
+            "ROOT_SOURCE_CURRENT_FAILED: legacy source manifest/scoped recovery is historical only; "
+            "workspace_git evidence is required"
+        )
+    raise ValueError("ROOT_SOURCE_CURRENT_FAILED: workspace_git evidence is required")
 
 
 def frozen_diff_digest(entries: Iterable[Mapping[str, object]]) -> str:

@@ -58,4 +58,4 @@ Checkpoint 只要在 guard 後改寫，舊 proof 立即失效。
 - successful guard invocation 才能 mint bound proof；
 - checkpoint 改寫後 proof stale。
 
-Canonical operational authority 仍是 `.agents/skills/engineering/executable-continuity-controller/SKILL.md`；本檔只保存事故與防錯經驗。
+Canonical operational authority 仍是 `.agents/skills/engineering/flow-v2-execution/SKILL.md` 與 `tools/execution_invocation_exit.py`；已退役的 `executable-continuity-controller` 只作 historical/mirror evidence。本檔只保存事故與防錯經驗。
