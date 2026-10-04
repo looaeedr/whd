@@ -110,3 +110,23 @@ def test_assembly_render_does_not_force_duplicate_live_publish():
     fn_source = ast.get_source_segment(source, fn) or ''
     assert 'resolve_geometry()' in fn_source
     assert 'publish_live_state(force=True)' not in fn_source
+
+def test_receiving_layer_preview_dialog_is_owned_by_existing_controls_owner():
+    owner_source = Path(inspect.getsourcefile(controls)).read_text(encoding='utf-8')
+    assert 'def open_receiving_layer_preview(' in owner_source
+    bridge_source = _function_source(BRIDGE, '_phase6_open_receiving_layer_preview')
+    assert 'open_receiving_layer_preview(' in bridge_source
+    assert 'Toplevel' not in bridge_source
+    assert 'Radiobutton' not in bridge_source
+    assert 'messagebox' not in bridge_source
+    assert len(bridge_source.splitlines()) <= 12
+
+
+def test_receiving_preview_owner_keeps_confirmation_authority_in_bridge():
+    owner_source = inspect.getsource(controls.open_receiving_layer_preview)
+    assert 'on_confirm(number - 1)' in owner_source
+    assert '_phase6_confirm_receiving_opening' not in owner_source
+    confirm_source = _function_source(BRIDGE, '_phase6_confirm_receiving_opening')
+    assert '_phase6_receiving_switch_opening_resolver' in confirm_source
+    assert 'submit("geometry", commit=True)' in confirm_source
+
