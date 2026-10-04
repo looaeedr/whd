@@ -1,9 +1,10 @@
 {
   "canonical_root": {
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "interactive_work_prefix": "/Google Drive/WHD/.unpushed",
-    "library_path": "/Google Drive/WHD",
-    "provider": "google_drive"
+    "provider": "workspace_mirror",
+    "library_path": "/workspace/whd",
+    "production_branch": "cleanup/2d-3d-sync",
+    "authority": false,
+    "canonical_drive_overlay": "/Google Drive/WHD"
   },
   "canonical_source": {
     "canonical_filename": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
@@ -65,7 +66,7 @@
       "READ_ROOT_LOCAL_FIRST_SKILL"
     ],
     "applies_when": "INTERACTIVE_WHD_REPOSITORY_CONTENT",
-    "canonical_root": "/Google Drive/WHD",
+    "canonical_root": "/workspace/whd",
     "chat_memory_is_not_evidence": true,
     "failure_action": "FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY",
     "forbidden_before_ready": [
@@ -315,12 +316,15 @@
   ],
   "root_path_resolution_hard_gate": {
     "schema": "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1",
-    "canonical_root": "/Google Drive/WHD",
-    "resolution_method": "CANONICAL_ROOT_PARENT_CHAIN",
+    "default_workspace_root": "/workspace/whd",
+    "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
+    "applies_when": "WORKSPACE_DEFAULT",
+    "shared_zero_fallback_root": "/Google Drive/WHD",
+    "shared_zero_fallback_resolution_method": "CANONICAL_ROOT_PARENT_CHAIN",
     "global_search_role": "CANDIDATE_ONLY",
     "same_name_outside_parent_chain": "REJECT",
-    "failure_action": "ROOT_PATH_UNRESOLVED_FAIL_CLOSED",
-    "remote_fallback_forbidden": true,
+    "failure_action": "WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED",
+    "remote_fallback_forbidden": false,
     "machine_owner": "tools/root_local_first_gate.py::build_root_path_resolution_evidence/validate_root_path_resolution_evidence"
   },
   "remote_connection_hard_gate": {
