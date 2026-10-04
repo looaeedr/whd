@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
-  "head_sha": "425b3d639d95c0502efb18a84a3906cd205a8254",
+  "generation": 9,
+  "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1128,
   "lane_id": null,
   "lease": null,
@@ -28,9 +28,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Refresh #1128 path reservation against exact root-tested target d1036c60",
-    "kind": "RESERVE_PATHS"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "Consume exact already-terminal Product Regression for carried-forward delivery",
+    "kind": "START_QA"
   },
   "owner_id": "NONE",
   "owner_kind": "NONE",
@@ -47,21 +49,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATH_RESERVATION_RELEASED",
+  "semantic_state": "POST_DELIVERY_ACCEPTED_PENDING_QA_CONSUME",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "d1036c60f67c1eb4308eb693fa89de4c7d98180f",
+  "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "08f2c1d34b01a65b568c6af3bf4f6d960f782eab72b9b47e7fd115a5410277d3",
-    "id": "gha:37127469593:1128:HANDOFF:7",
-    "invocation_identity": "chatgpt.flowv2.work3.issue1128.stale-release.20261003T2143+08",
-    "kind": "HANDOFF",
+    "expected_fingerprint": "be713f9634e680cd4c6a045dbd23a757eb66150b1a4cc959eb7db0108594709e",
+    "id": "gha:37184855240:1128:RECONCILE:8",
+    "invocation_identity": "gha:looaeedr/whd:run:37184855240:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-03T13:49:27Z",
+  "updated_at": "2026-10-04T07:08:20Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
