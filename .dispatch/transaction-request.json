@@ -1,23 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-reconcile-body-gen7-candidate-20261004T042947Z",
+  "request_id": "issue1062-consume-gen7-qa-20261004T043135Z",
   "issue": 1062,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
-  "expected_coord_head": "c13c386437ccb4f6a8b6f3f96239d6a0769a7e97",
-  "expected_generation": 52,
+  "expected_coord_head": "5fd0298b6f783db27b168f5bd4951c013f91710b",
+  "expected_generation": 53,
   "effect": {
-    "observed_work_branch": "test/issue1062-product-full-regression-recovery",
-    "observed_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
-    "observed_target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "semantic_state": "CANDIDATE_BOUND",
+    "run_id": 37176982169,
+    "run_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
+    "run_status": "completed",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
+        "pr_number": 1165
       },
-      "display": "Consume exact-head body gen7 product regression"
+      "display": "Merge PR #1165 after fresh latest-file recheck"
     }
   },
   "runtime_provenance": {
@@ -52,38 +54,43 @@
       "unpushed_root": "/Google Drive/WHD/.unpushed",
       "status": "GREEN"
     },
-    "purpose": "Reconcile #1062 Flow v2 to repaired body generation 7 candidate b187770c while preserving the exact active 25-path reservation.",
-    "issued_at": "2026-10-04T04:29:47Z",
-    "expires_at": "2026-10-04T04:34:47Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reconcile #1062 Flow v2 to repaired body generation 7 candidate b187770c while preserving the exact active 25-path reservation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
+    "purpose": "Consume the completed exact-head body generation 7 Product Regression for #1062 at candidate b187770c and advance to pre-merge integration without changing the frozen 25-path scope.",
+    "issued_at": "2026-10-04T04:31:35Z",
+    "expires_at": "2026-10-04T04:36:35Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Consume the completed exact-head body generation 7 Product Regression for #1062 at candidate b187770c and advance to pre-merge integration without changing the frozen 25-path scope.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1062,
     "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+    "branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
     "required_skills": [
+      "flow-v2-execution",
       "root-local-first",
       "性質導向測試",
       "phase6-corner-3d-model-integrity",
       "phase6-overlay-relief-basis",
-      "flow-v2-execution",
+      "diagnosing-bugs",
+      "tdd",
       "驗證板件與DXF",
       "monitoring-remote-qa"
     ],
     "completed_skills": [
+      "flow-v2-execution",
       "root-local-first",
       "性質導向測試",
       "phase6-corner-3d-model-integrity",
       "phase6-overlay-relief-basis",
-      "flow-v2-execution",
+      "diagnosing-bugs",
+      "tdd",
       "驗證板件與DXF",
       "monitoring-remote-qa"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
       ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -94,6 +101,7 @@
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
       ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -102,7 +110,7 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-04T04:29:36Z"
+    "observed_at": "2026-10-04T04:28:08Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -111,11 +119,11 @@
     "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
     "execution_mode": "INTERACTIVE",
     "issue": 1062,
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "startup_issued_at": "2026-10-04T04:29:47Z",
-    "preflight_observed_at": "2026-10-04T04:29:36Z",
-    "issued_at": "2026-10-04T04:29:47Z",
-    "expires_at": "2026-10-04T04:34:36Z"
+    "branch": "test/issue1062-product-full-regression-recovery",
+    "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
+    "startup_issued_at": "2026-10-04T04:31:35Z",
+    "preflight_observed_at": "2026-10-04T04:28:08Z",
+    "issued_at": "2026-10-04T04:31:35Z",
+    "expires_at": "2026-10-04T04:36:35Z"
   }
 }
