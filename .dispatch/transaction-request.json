@@ -1,22 +1,80 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-finalize-gen7-20261004T043747Z",
-  "issue": 1062,
-  "kind": "FINALIZE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1080-takeover-reconcile-20261004T1104Z",
+  "issue": 1080,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-  "expected_coord_head": "e106aad73bcfcef6fdc7e1125a39bcf7f3670e38",
-  "expected_generation": 55,
+  "invocation_identity": "chat.work0.issue1080.takeover.20261004T1104Z",
+  "expected_coord_head": "5f996b92fc12624e2cf7e4270ab52102a8e8db94",
+  "expected_generation": 3,
   "effect": {
-    "issue_closed": true,
-    "issue_state": "closed",
-    "issue_state_reason": "completed",
-    "released_at": "2026-10-04T04:37:47Z",
-    "observed_target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
-    "semantic_state": "TERMINAL_SUCCESS"
+    "observed_work_branch": "scheduler/issue1080-auto-dispatch",
+    "observed_head_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
+    "observed_target_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
+    "semantic_state": "TARGET_RECONCILED_FOR_TAKEOVER",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Repair the #1080 READY→ACQUIRE continuation contract from canonical root evidence, then start the exact-tested delivery branch"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1080,
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "8d931a7ad070f1d5fccde45da9508f1ad911cda5",
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364"
+    }
   },
-  "session_reuse": {
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
-    "mode": "LIVE_LEASE_CONTINUATION"
+  "purpose": "Take over stranded Issue #1080 after fresh no-active-writer proof; reconcile stale record identity to current live X before owner handoff. No repository-content mutation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      ".unpushed",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1080,
+    "invocation_identity": "chat.work0.issue1080.takeover.20261004T1104Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
+    "required_skills": [
+      "flow-v2-execution",
+      "handoff"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "handoff"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "observed_at": "2026-10-04T11:01:23Z"
   }
 }
