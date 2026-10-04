@@ -175,7 +175,7 @@ def _run_git(root: Path, *args: str, check: bool = True) -> subprocess.Completed
 
 def recover_canonical_root_to_current_production(
     *,
-    root_path: str = DEFAULT_LIBRARY_PATH,
+    root_path: str = ".",
     remote: str = "origin",
     production_branch: str = PRODUCTION_BRANCH,
 ) -> dict[str, object]:
@@ -257,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
         "recover-current-production",
         help="fast-forward a clean canonical root to current production",
     )
-    recover.add_argument("--root", default=DEFAULT_LIBRARY_PATH)
+    recover.add_argument("--root", default=".")
     recover.add_argument("--remote", default="origin")
     recover.add_argument("--production-branch", default=PRODUCTION_BRANCH)
     recover.add_argument("--output", type=Path)
