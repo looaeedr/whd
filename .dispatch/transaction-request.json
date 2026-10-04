@@ -1,59 +1,28 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-acquire-body-gen6-20261004T033641Z",
+  "request_id": "issue1062-start-body-gen6-branch-20261004T034642Z",
   "issue": 1062,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
-  "expected_coord_head": "0bd6a22bc79d87a30a7742dc9d445e39cd7ff420",
-  "expected_generation": 46,
+  "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
+  "expected_coord_head": "3be135ecde954a151af30753d87e7bd5511835e3",
+  "expected_generation": 47,
   "effect": {
-    "semantic_state": "PATHS_RESERVED",
+    "work_branch": "delivery/body-gen6-20261004",
+    "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+    "semantic_state": "IMPLEMENTING",
     "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Create body gen6 delivery branch"
-    },
-    "admission_reservation": {
-      "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-      "write_paths": [
-        "ae_engine/manufacturing_api.py",
-        "ae_engine/manufacturing_export.py",
-        "ae_engine/manufacturing_verification.py",
-        "ae_engine/receiving_manufacturing_readiness.py",
-        "fold_designer_bridge.py",
-        "gui_modules/application/fold_designer_adapter.py",
-        "gui_modules/application/manufacturing_adapter.py",
-        "gui_modules/application/receiving_set_bay_adapter.py",
-        "gui_modules/project/export_actions.py",
-        "phase6_workspace_controller.py",
-        "tests/test_box_body_single_source_t2.py",
-        "tests/test_certified_relief_runtime_contract.py",
-        "tests/test_issue1062_finalscene_oracle_migration.py",
-        "tests/test_issue1115_receiving_manufacturing_readiness.py",
-        "tests/test_issue1128_derived_sync_composition_owner.py",
-        "tests/test_issue1158_multi_door_indicator_workspace.py",
-        "tests/test_issue480_derived_part_projection_plan.py",
-        "tests/test_joint_diagnostics_contract.py",
-        "tests/test_overlay_formed_fw_registry_contract.py",
-        "tests/test_overlay_fw_width_invariant.py",
-        "tests/test_phase6_3d_retain_and_baseline.py",
-        "tests/test_phase6_assembly_3d_view.py",
-        "tests/test_phase6_corner_dimension_controls.py",
-        "tests/test_resolved_manufacturing_bridge.py"
-      ],
-      "delete_paths": []
+      "kind": "APPLY_COMMIT",
+      "args": {
+        "candidate_commit_sha": "5286e3518d60db70d88709bf8a7f4e37328b3829"
+      },
+      "display": "Apply exact frozen body gen6 commit"
     }
-  },
-  "runtime_provenance": {
-    "schema": "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_PROVENANCE_REQUEST_V1",
-    "mode": "MINT_EXACT_INVOCATION_IDENTITY"
   },
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
@@ -78,16 +47,16 @@
       "unpushed_root": "/Google Drive/WHD/.unpushed",
       "status": "GREEN"
     },
-    "purpose": "Deliver authoritative body/0 generation 6 to cleanup/2d-3d-sync using exact frozen 24-path bytes, with #1062 as Flow v2 delivery owner and atomic admission reservation.",
-    "issued_at": "2026-10-04T03:36:41Z",
-    "expires_at": "2026-10-04T03:41:41Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Deliver authoritative body/0 generation 6 to cleanup/2d-3d-sync using exact frozen 24-path bytes, with #1062 as Flow v2 delivery owner and atomic admission reservation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
+    "purpose": "Record the already-created exact body gen6 delivery branch and bind the exact frozen candidate commit for Issue #1062 continuation.",
+    "issued_at": "2026-10-04T03:46:42Z",
+    "expires_at": "2026-10-04T03:51:42Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Record the already-created exact body gen6 delivery branch and bind the exact frozen candidate commit for Issue #1062 continuation.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1062,
-    "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
     "required_skills": [
@@ -130,20 +99,20 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-04T03:36:41Z"
+    "observed_at": "2026-10-04T03:46:42Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
     "status": "READY_FOR_EXECUTION",
     "repository": "looaeedr/whd",
-    "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+    "invocation_identity": "gha:looaeedr/whd:run:37174590888:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "execution_mode": "INTERACTIVE",
     "issue": 1062,
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-    "startup_issued_at": "2026-10-04T03:36:41Z",
-    "preflight_observed_at": "2026-10-04T03:36:41Z",
-    "issued_at": "2026-10-04T03:36:41Z",
-    "expires_at": "2026-10-04T03:41:41Z"
+    "startup_issued_at": "2026-10-04T03:46:42Z",
+    "preflight_observed_at": "2026-10-04T03:46:42Z",
+    "issued_at": "2026-10-04T03:46:42Z",
+    "expires_at": "2026-10-04T03:51:42Z"
   }
 }
