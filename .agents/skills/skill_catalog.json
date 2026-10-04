@@ -44,16 +44,6 @@
       "reason": "misc external/tool-specific helper; not active WHD canonical unless explicitly overridden above"
     },
     {
-      "glob": ".agents/skills/engineering/remote-execution-guard/SKILL.md",
-      "classification": "reference",
-      "reason": "Flow v2 compatibility MIRROR; canonical execution authority is flow-v2-execution"
-    },
-    {
-      "glob": ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
-      "classification": "retired",
-      "reason": "legacy continuity/checkpoint controller is audit/migration only; Flow v2 owns CURRENT execution and resume semantics"
-    },
-    {
       "glob": ".agents/skills/engineering/**/SKILL.md",
       "classification": "canonical",
       "reason": "stable WHD engineering skill bucket"
@@ -70,6 +60,18 @@
       "replacement_identity": "深度質詢",
       "replacement_path": ".agents/skills/productivity/深度質詢/SKILL.md",
       "reason": "legacy wrapper invoked obsolete grilling identity"
+    },
+    {
+      "identity": "executable-continuity-controller",
+      "replacement_identity": "flow-v2-execution",
+      "replacement_path": ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "reason": "Legacy continuity/checkpoint runtime removed by #1160; Flow v2 owns CURRENT resume/exit semantics."
+    },
+    {
+      "identity": "remote-execution-guard",
+      "replacement_identity": "flow-v2-execution",
+      "replacement_path": ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "reason": "Operational Remote Guard Skill shim removed by #1160; legacy identity redirects to Flow v2."
     }
   ],
   "semantic_authority_policy": {
