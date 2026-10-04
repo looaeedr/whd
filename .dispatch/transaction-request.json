@@ -1,15 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-terminal-merge-20261004T1414Z",
+  "request_id": "issue1112-terminal-finalize-20261004T1415Z",
   "issue": 1112,
-  "kind": "MERGE",
+  "kind": "FINALIZE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-  "expected_coord_head": "ba6eeac2e5144e625e1f54cc601f6a3d41dbeede",
-  "expected_generation": 9,
-  "effect": {
-    "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-  },
-  "purpose": "Closure-only readback for already-merged PR #1134 on completed Issue #1112.",
+  "expected_coord_head": "b4cf7d394a46de1b9b5086830fe5584d1ea1004a",
+  "expected_generation": 10,
+  "effect": {},
   "reuse_admission_session": true
 }
