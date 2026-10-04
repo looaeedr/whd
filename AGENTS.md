@@ -25,81 +25,55 @@ whd_schema: WHD_DOC_META_V1
 
 `ENTRY_ROUTER_READY` 前只允許上述 bootstrap read。禁止 generic Drive/file search、Remote Desktop/local-machine search、GitHub content discovery、branch create、claim、Flow v2 discovery 或 mutation；聊天記憶、上一輪摘要、上一 invocation evidence 都不能代替 fresh read。
 
-若已先走錯路，該段 discovery 不得算 execution evidence，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY` 回 `/Google Drive/WHD` 重新進場；不得因「已經查到了」就沿錯路續做。
+若已先走錯路，該段 discovery 不得算 execution evidence，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY` 回本 executor 的 repo workspace 重新進場；不得因「已經查到了」就沿錯路續做。
 
 machine owner=`tools/root_local_first_gate.py::assert_entry_router_action_allowed`；contract=`.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`。
 
-## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V2：完整 Google Drive WHD repo root
+## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V2：executor-local repo workspace
 
 <!-- WORK_ROOT_BOOTSTRAP_HARD_GATE_V2 -->
 
-任何 WHD task/runtime/invocation 的 canonical root 固定是 `/Google Drive/WHD`，Drive folder id=`1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN`。
+任何 WHD repository-content task 的普通 execution root 是**該 executor 自己的 repo workspace**；不得硬編單一全域路徑。Codex 可是 `/workspace/whd`，ChatGPT/其他 runtime 使用各自 workspace。
 
-啟動固定硬閘門：
+共同 production baseline 固定 `cleanup/2d-3d-sync`。啟動只要求：
 
-`WHD_ROOT_RESOLVED → ROOT_IDENTITY_VERIFIED → FULL_REPO_ROOT_VERIFIED → SHARED_UNPUSHED_LAYOUT_VERIFIED → ROOT_SHARED_UNPUSHED_GATE_READ`
+`WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT → CONDITIONAL_SHARED_ZERO_DRIFT_CHECK`
 
-root 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engine/gui_modules/.unpushed`。`source/state/work/artifacts` 不再是 CURRENT content-root 架構；舊 snapshot/control-root 不得再作 current authority。
+workspace 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engine/gui_modules`。普通 startup 不要求 Google Drive mount、`.unpushed` layout、generation/manifest 或 `workspace_canonical_sync.py`。
 
 canonical contracts：
-
 - `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`
 - `.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`
-- `.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json`
+- `.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json`（fallback only）
 
-machine owners：`tools/work_root_gate.py`、`tools/shared_unpushed_integration.py`。
+machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 
-interactive/chat 直接讀 Google Drive root；scheduler/GitHub-only 可以從 repository contract 驗規則，但 repository-content authoring 仍只能回 canonical root，不得把 GitHub checkout 升格為施工 authority。
-
-## -0.75. ROOT_LOOKUP_BEFORE_REMOTE_HARD_GATE_V1：先從根目錄找檔，遠端預設關閉
+## -0.75. WORKSPACE_BASELINE_BEFORE_WRITE_HARD_GATE_V1
 
 <!-- ROOT_LOOKUP_BEFORE_REMOTE_HARD_GATE_V1 -->
 
-任何 repository-content task 的**第一個 file-discovery/baseline 動作**固定從 `/Google Drive/WHD` root 開始，沿 parent-folder chain 解析 exact repo path。
+普通 repository-content task 的 baseline 直接由 executor-local workspace 對齊 GitHub `cleanup/2d-3d-sync`。允許窄化 baseline actions：`READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ`。
 
 硬規則：
-
-1. 全域 Drive search、GitHub search、remote checkout、Remote Desktop、backup、`.scratch`、`.unpushed` 同名檔只可作候選；未證明 exact canonical parent chain 前不得作 baseline。
-2. 找檔、讀 baseline、判定目前版本、修改、測試、worker→0 merge 都在 canonical root 完成；找不到 root path 固定 fail closed，不得改連遠端找替代品。
-3. 除非使用者明確要求，interactive/default invocation **不得連 GitHub 或遠端本機**。例外只有：
-   - 「開工單」：只授權 Issue create/readback；
-   - `/推推 文檔|主體`：只授權 selected lane delivery window；
-   - 其他使用者明確點名的 GitHub/remote 操作；
-   - user-authored scheduler entry contract 明確指定 GitHub-only 的該 invocation。
-4. 「確認最新」「Preflight」「工具可用」「Git read-only」都不構成 remote authority。既有文字若宣告 pre-delivery 可 `READ/FETCH/COMPARE`，以本節為準：network remote 仍是 DENY。
-5. **REMOTE_AUTHORITY_NON_PROPAGATION_HARD_GATE_V1**：Skill 自動觸發、Flow v2 bridge、工作槽/派工/closure、tracker=GitHub、Issue/PR reference、Connector/MCP 已連接、remote QA skill、read-only/status/log query 都不會產生或傳遞 GitHub authority。任何 GitHub repo metadata/code search/contents/branch/commit/Issue/PR/Actions/artifact/API/Connector/network-git action 都必須先通過 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`；沒有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 固定 `REMOTE_CONNECTION_DENIED`。
-5. `/推推` 開啟 remote window 後，先鎖 exact delivery fileset(path+hash/delete marker)，fresh-read target；merge 前再驗 latest target/head/locked blobs；readback 成功後只清本次已交付 paths。
-
-machine-readable behavior owner 必須由 root-local-first / 推推 Skill 與對應 contract tests 共同鎖定；後續文件不得重新長回 Git-first lookup。
-
-## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：共享 0、無 branch 施工、分 lane 交付
+1. 修改與測試在 executor-local workspace 完成。
+2. production target 禁止 direct push；只接受 exact tested delivery branch → PR → required checks → merge。
+3. target 前進時 refresh baseline；碰到 touched path 就 retest，再 delivery。
+4. GitHub baseline read 不等於一般 Issue/PR/Actions 或任意 remote authority；非 baseline 動作仍走原 authority gate。
+5. `/Google Drive/WHD/.unpushed/{docs|body}/0` 只有 fresh evidence 證明 touched paths 有 GitHub/workspace 沒有的未推送 drift 才介入。
+## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：conditional shared-0 fallback
 
 <!-- ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1 -->
 
-任何 repository-content implementation 在 Phase6 Preflight 後固定使用：
+普通 route 固定 `WORKSPACE_DEFAULT`，不進 shared-0。route machine=`tools/root_local_first_gate.py::select_repository_content_route`：
 
-- `.agents/skills/engineering/root-local-first/SKILL.md`
-- `tools/shared_unpushed_integration.py`
-- `.agents/skills/engineering/推推/SKILL.md`（只有 delivery 時）
+- `shared_zero_drift_present=false → WORKSPACE_DEFAULT`
+- `shared_zero_drift_present=true → SHARED_ZERO_FALLBACK`
 
-唯一順序：
+只有 `SHARED_ZERO_FALLBACK` 才啟動 `.unpushed/docs/0` / `.unpushed/body/0`、generation/hash、三方合併、conflict checkpoint、post-merge tests、manifest freeze、`workspace_canonical_sync.py` 與 `/推推 文檔|主體`。
 
-`ROOT_IDENTITY_CURRENT → LANE_CLASSIFIED → ZERO_INITIALIZED_OR_FRESH_READ → WORKER_BASE_LATEST_ZERO → WORKER_MUTATION_COMPLETE → WORKER_TESTS_GREEN → MERGE_TO_FRESH_LATEST_ZERO → CONFLICT_GATE_OR_MERGED → POST_MERGE_ZERO_TESTS_GREEN → ZERO_MANIFEST_FROZEN → DELIVERY_RESERVATION → GIT_WRITE_UNLOCKED`
+普通 WORKSPACE_DEFAULT 直接：`fresh X baseline → workspace edit/test → exact diff → delivery branch → PR/checks → merge/readback`。
 
-硬規則：
-
-1. 正常修改與測試**不開 Git branch**。Git branch 只在 `/推推 文檔` 或 `/推推 主體` 的 delivery phase 建立。
-2. 文檔 lane=`.unpushed/docs/0`（完整路徑 `/Google Drive/WHD/.unpushed/docs/0`）；主體 lane=`.unpushed/body/0`（完整路徑 `/Google Drive/WHD/.unpushed/body/0`）。分類看歸屬，不看副檔名。治理/Skill/AGENTS/流程 authority/治理 tests → 文檔；產品程式/產品 tests/UI/renderer/geometry/manufacturing → 主體；**主體必要文件屬於主體**。
-3. 第一次碰某 path，從 CURRENT root 複製進 lane `0` 並建立 generation/hash lineage。後來者固定以最新 `0` 為 base，禁止回 root 舊版本施工。
-4. worker 完成後 fresh-read 最新 `0` 做三方合併。成功才可 generation+1。
-5. **任何 merge conflict 固定寫 `WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1`，state=`BLOCKED_USER_DECISION`，記錄 path/hunks/base/latest/worker identities，通知使用者決定。沒有 `EXPLICIT_USER_CONFLICT_DECISION`，禁止 auto ours/theirs、禁止改寫、禁止 generation+1、禁止 merge 回 0、禁止 `/推推`、禁止 push/PR。**
-6. worker GREEN 後，merge 回最新 `0` 還必須再跑 post-merge tests；只有最新 `0` GREEN 才可 freeze manifest。
-7. Flow v2 path reservation 降為 **delivery reservation**；它不再是 root/content write 前置 single-writer gate。
-8. `/推推 文檔` 只能送 docs manifest；`/推推 主體` 只能送 body manifest。`PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST`，跨 lane 夾帶 fail closed。
-9. GitHub Actions / remote QA 只做 post-push verification。任何內容修正回 root/shared-0，禁止 Git-side hotfix。
-
-使用者詢問進度不構成停止理由；只有上述 hard gate 的 fresh blocker 或 `BLOCKED_USER_DECISION` 才能暫停內容前進。
-
+shared-0 conflict 規則仍 fail-closed：有 conflict 必須 `BLOCKED_USER_DECISION`，不得 auto ours/theirs。
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
 ### 0.0.0 Skill 使用前 user-visible 公告硬閘門
@@ -969,7 +943,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 > 本節來自 2026-09-06 Receiving 工單事故。屬永久 fail-closed 規則；優先級與 0.0.1 派工硬閘門相同。後續 AI 每次讀 AGENTS.md 都必須看到並遵守。
 
 ### A. GitHub 專案已指定 branch 時，ZIP / sandbox / 聊天 checkpoint 一律不得冒充施工 Source of Truth
-- GitHub 專案即使已在文件中指定 branch，也**不自動授權 remote connection**。interactive/default 先以 `/Google Drive/WHD` canonical root parent-chain identity 作施工 baseline；只有本輪使用者已明確授權 GitHub/`/推推` 時，才 fresh-read remote branch HEAD 作 delivery/provenance anchor。remote branch HEAD 永遠不得取代 root 施工面。
+- GitHub 專案指定 `cleanup/2d-3d-sync` 時，該 branch 是普通 executor-local workspace 的 production baseline；READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ 可用於 baseline refresh。這不授權 direct production write，也不授權其他 Issue/PR/Actions 操作。
 - 上傳 ZIP 只能是 fixture / archive / 參考輸入；除非使用者明確指定「這個 ZIP 就是本輪施工基準」，否則禁止拿 ZIP 當 production baseline、A/B good version、checkpoint parent 或 regression oracle。
 - 若已在錯誤 tree 做過修改、PASS/FAIL、checkpoint，發現後必須整批宣告 evidence 作廢；禁止挑其中看起來有用的結果續工。
 - 每張工單 checkpoint / journal 必須寫明 repository、branch、parent HEAD SHA；branch HEAD 漂移時先重新 compare / rebase execution plan。
@@ -1052,17 +1026,15 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 完成後必須遠端反讀確認 marker/內容真的存在；不能只口頭宣稱「已補」。
 - 若不確定這次更正是否屬永久知識，**先問使用者是否要固化**；但對明確的產品規則、AI 行為規則、踩坑防線，不應再等使用者第二次提醒。
 
-### N. Git phase branch gate（只在 `GIT_WRITE_UNLOCKED` 後）
+### N. Workspace-first Git delivery gate
 
-- interactive/default content work 的前置 owner 是 `WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1`；root mutation / RED→GREEN / full gate / diff freeze 都發生在 canonical root，**不是先建 Git branch 再開工**。
-- `GIT_WRITE_UNLOCKED` 前只允許 canonical root 的 offline `.git` identity/diff；**GitHub network READ / FETCH / COMPARE 也禁止**，除非本輪已有使用者明確 remote authority。
-- `/推推` 或其他明確 remote authority 生效後，第一個 GitHub content step 才是：fresh-read authoritative target HEAD → 鎖定 exact delivery fileset → 建立新的 work branch → fresh-read parent/base SHA。
-- 禁止直接修改 `cleanup/2d-3d-sync`、`main` 或其他 production target；target 只接受完成驗收後的正常 non-force merge / PR。
-- Git work branch 只能接收 `EXACT_TESTED_DIFF_ONLY`。若 branch 上發現要補任何實質內容，回 root workspace 修改、重測、refreeze，再重新做 drift audit。
-- target 在 freeze 後前進時，先 compare touched/base drift；命中 drift 固定 `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`，不得把 stale tested diff 硬套進新 base。
-- branch existence 不能取代 final acceptance、config invariant、workflow cleanup、tested-head→closing-head drift audit。
-- remote scheduler/control-plane scope 依 Flow v2 自己的 authority；本節不得用來把 interactive root-local-first 改回 Git-first。
-
+- interactive/default content work 先在 executor-local workspace 對齊 `cleanup/2d-3d-sync`，再修改與測試。
+- baseline `READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ` 不需 `/推推` authority。
+- 禁止直接修改/push `cleanup/2d-3d-sync`、`main` 或其他 production target；exact tested diff 只能進 delivery branch。
+- delivery branch → PR → required checks → merge/readback 是普通主路。
+- target drift 命中 touched paths 時必須 refresh/reconcile workspace、重測，再更新 delivery candidate。
+- 只有 fresh shared-0 drift 證據存在時才切 `SHARED_ZERO_FALLBACK`，此時 `/推推`、lane freeze、Drive readback 規則才生效。
+- remote scheduler/control-plane scope 依 Flow v2 自己 authority，不得拿普通 workspace baseline read 擴張 control-plane mutation。
 ### 0.0.4 Authoritative View freshness 硬閘門
 
 > **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
