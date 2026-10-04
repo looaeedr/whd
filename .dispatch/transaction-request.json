@@ -1,82 +1,109 @@
 {
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
+  "request_id": "issue1112-renew-for-release-20261004T015837Z",
+  "issue": 1112,
+  "kind": "ACQUIRE",
+  "lane_id": "chatgpt.flowv2.work0",
+  "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
+  "expected_coord_head": "0c9c7c0d4ca31c77d1fd654f8df85e3cd16153d6",
+  "expected_generation": 3,
   "effect": {
+    "updated_at": "2026-10-04T01:58:37Z",
+    "observed_at": "2026-10-04T01:58:37Z",
+    "lease": {
+      "token": "lease:1112:release:20261004T015837Z",
+      "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
+      "expires_at": "2026-10-04T02:08:37Z"
+    },
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work0",
+    "lane_id": "chatgpt.flowv2.work0",
+    "slot_id": "worker.slot.0",
+    "semantic_state": "STALE_RECORD_RECONCILED_TO_LIVE_TARGET",
     "next_action": {
+      "kind": "RELEASE_PATHS",
       "args": {
         "reason": "issue #1112 already closed and PR #1134 already merged; release stale reservation"
       },
-      "display": "Release stale #1112 reservation after live-target reconcile",
-      "kind": "RELEASE_PATHS"
-    },
-    "observed_head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
-    "observed_target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
-    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
-    "semantic_state": "STALE_RECORD_RECONCILED_TO_LIVE_TARGET",
-    "stale_record_live_target_reconcile_proof": {
-      "issue": 1112,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c"
+      "display": "Release stale #1112 reservation after live-target reconcile"
     }
   },
-  "expected_coord_head": "497ffd890e5ae9ca8f8119d6d330e57e0b161d8e",
-  "expected_generation": 2,
-  "invocation_identity": "chatgpt.flowv2.work0.issue1112.reconcile.20261004T0316+08",
-  "issue": 1112,
-  "kind": "RECONCILE",
-  "lane_id": "chatgpt.flowv2.work0",
+  "startup_evidence": {
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
+    "execution_mode": "INTERACTIVE",
+    "work_root_gate": {
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+      "execution_mode": "INTERACTIVE",
+      "read_mode": "GOOGLE_DRIVE_CANONICAL",
+      "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+      "provider": "google_drive",
+      "library_path": "/Google Drive/WHD",
+      "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+      "root_entries": [
+        ".agents",
+        ".git",
+        ".github",
+        ".unpushed",
+        "AGENTS.md",
+        "ae_engine",
+        "gui_modules",
+        "tests",
+        "tools"
+      ],
+      "unpushed_root": "/Google Drive/WHD/.unpushed",
+      "status": "GREEN"
+    },
+    "purpose": "Closure-only continuation for #1112 after stale live-target reconcile: renew expired work0 lease, then release stale reservation so /推推 全部 body gen5 can proceed.",
+    "issued_at": "2026-10-04T01:58:37Z",
+    "expires_at": "2026-10-04T02:03:37Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Closure-only continuation for #1112 after stale live-target reconcile: renew expired work0 lease, then release stale reservation so /推推 全部 body gen5 can proceed.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
+  },
   "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1112,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
     "branch": "cleanup/2d-3d-sync",
-    "completed_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+    "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
+    "required_skills": [
+      "flow-v2-execution",
+      "phase6-release-packaging",
+      "推推"
     ],
     "completed_skills": [
       "flow-v2-execution",
+      "phase6-release-packaging",
       "推推"
     ],
-    "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1112.reconcile.20261004T0316+08",
-    "issue": 1112,
-    "observed_at": "2026-10-03T19:17:12Z",
     "required_references": [
-      ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "release_required_artifacts.json",
       ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
     ],
-    "required_skills": [
-      "flow-v2-execution",
-      "推推"
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "release_required_artifacts.json",
+      ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
     ],
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN"
+    "observed_at": "2026-10-04T01:58:37Z"
   },
-  "purpose": "Closure-only RECONCILE for stale #1112 ExecutionRecord after #1159 live-target bridge delivery.",
-  "request_id": "issue1112-reconcile-live-target-20261004T0316Z",
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "work_root_gate_evidence": {
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+  "startup_transition": {
+    "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
+    "status": "READY_FOR_EXECUTION",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
     "execution_mode": "INTERACTIVE",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "library_path": "/Google Drive/WHD",
-    "provider": "google_drive",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "status": "GREEN",
-    "unpushed_root": "/Google Drive/WHD/.unpushed"
+    "issue": 1112,
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
+    "startup_issued_at": "2026-10-04T01:58:37Z",
+    "preflight_observed_at": "2026-10-04T01:58:37Z",
+    "issued_at": "2026-10-04T01:58:37Z",
+    "expires_at": "2026-10-04T02:03:37Z"
   }
 }
