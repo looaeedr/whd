@@ -125,6 +125,7 @@ def test_trusted_ingress_fetches_bot_comment_before_rebind(monkeypatch):
         ),
     }
     monkeypatch.setattr(ingress, "_fetch_issue_comment", lambda *args, **kwargs: comment)
+    monkeypatch.setattr(ingress, "_read_branch_head", lambda *args, **kwargs: HEAD)
 
     intent = {
         "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
@@ -162,6 +163,7 @@ def test_trusted_ingress_fetches_bot_comment_before_rebind(monkeypatch):
 def test_trusted_ingress_rejects_non_actions_comment(monkeypatch):
     import tools.control_transaction_request_ingress as ingress
 
+    monkeypatch.setattr(ingress, "_read_branch_head", lambda *args, **kwargs: HEAD)
     monkeypatch.setattr(
         ingress,
         "_fetch_issue_comment",
@@ -228,3 +230,35 @@ def test_intent_loader_accepts_receipt_ref_instead_of_raw_preflight(tmp_path):
     loaded = ingress._load_request(path)
     assert "scheduler_preflight_receipt_ref" in loaded
     assert "preflight_evidence" not in loaded
+
+def test_trusted_ingress_rejects_live_branch_head_drift(monkeypatch):
+    import tools.control_transaction_request_ingress as ingress
+
+    monkeypatch.setattr(ingress, "_read_branch_head", lambda *args, **kwargs: "b" * 40)
+    intent = {
+        "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+        "request_id": "issue1080-takeover-handoff-next",
+        "issue": 1080,
+        "kind": "HANDOFF",
+        "lane_id": A_LANE,
+        "invocation_identity": "a40:issue1080:takeover:next",
+        "expected_coord_head": "c" * 40,
+        "expected_generation": 4,
+        "effect": {},
+        "purpose": "test",
+        "work_root_gate_evidence": {},
+        "scheduler_preflight_receipt_ref": {
+            "schema": "WHD_SCHEDULER_PHASE6_PREFLIGHT_RECEIPT_REF_V1",
+            "comment_id": 5980441788,
+            "request_id": REQUEST_ID,
+            "branch": "cleanup/2d-3d-sync",
+            "head_sha": HEAD,
+        },
+    }
+    with pytest.raises(Exception, match="live branch/head drift"):
+        ingress._resolve_scheduler_preflight_receipt_ref(
+            intent,
+            repo="looaeedr/whd",
+            token="test-token",
+        )
+
