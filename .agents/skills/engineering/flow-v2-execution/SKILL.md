@@ -22,9 +22,9 @@ whd_schema: WHD_DOC_META_V1
 Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocation（recurring scheduler、/排程A、/排程B、/工作0..3、互動執行、takeover、resume、recovery）在任何 substantive analysis、claim、Guard、repository mutation 或一般 workflow dispatch 前，固定依序：
 
 
-0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V2**：先驗 `/Google Drive/WHD` full repo root 與 folder id=`1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN`，讀 `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`，確認 `.unpushed/{body|docs}/0` layout。GitHub-only runtime 可讀 repository contract，但不得把 checkout 當內容施工面。
-0.5. **ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1**：repository-content implementation 不先建 branch；先走 `ROOT_IDENTITY_CURRENT → LANE_CLASSIFIED → ZERO_INITIALIZED_OR_FRESH_READ → WORKER_BASE_LATEST_ZERO → WORKER_MUTATION_COMPLETE → WORKER_TESTS_GREEN → MERGE_TO_FRESH_LATEST_ZERO → CONFLICT_GATE_OR_MERGED → POST_MERGE_ZERO_TESTS_GREEN → ZERO_MANIFEST_FROZEN`。只有 delivery 才取得 reservation 與 `GIT_WRITE_UNLOCKED`。
-0.5.1. **MERGE_CONFLICT_USER_DECISION_HARD_GATE_V1**：shared `0` 三方合併只要 conflict，立即寫 `WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1`、state=`BLOCKED_USER_DECISION`，記錄 conflict path/hunks/base/latest/worker identities 並通知使用者。沒有 `EXPLICIT_USER_CONFLICT_DECISION`，禁止 auto ours/theirs、禁止 generation advance、禁止 merge 回 0、禁止 delivery branch、禁止 push/PR。進度詢問只是 non-blocking checkpoint。
+0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V2**：repository-content implementation 先解析該 executor 自己的 repo workspace，fresh 對齊 GitHub `cleanup/2d-3d-sync` production baseline；普通 startup 不要求 Drive mount/shared-0。scheduler/GitHub-only 仍依 trusted runtime contract 使用自己的 workspace/remote surface。
+0.5. **ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1**：先由 `select_repository_content_route` 判定。預設 `WORKSPACE_DEFAULT`：`WORKSPACE_SOURCE_CURRENT → WORKSPACE_MUTATIONS_COMPLETE → WORKSPACE_TESTS_GREEN → exact diff → delivery branch/PR/checks`。只有 fresh touched-path shared-0 drift 才進 `SHARED_ZERO_FALLBACK` 舊 generation/freeze 流程。
+0.5.1. **MERGE_CONFLICT_USER_DECISION_HARD_GATE_V1**：只在 `SHARED_ZERO_FALLBACK` 生效；shared `0` 三方合併 conflict 固定 `BLOCKED_USER_DECISION`，禁止 auto ours/theirs。
 1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
 2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
 3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。此時仍未取得 execution mutation authority。
@@ -37,10 +37,10 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
 
-對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content gate=`tools/shared_unpushed_integration.py`; Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
+對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content router=`tools/root_local_first_gate.py::select_repository_content_route`; shared-unpushed machine只在 fallback active 時參與； Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
 
 
-外層只報 `FRESH_READ → LANE_0 → ROOT_MUTATE_TEST → MERGE_0 → POST_MERGE_TEST → /推推 → POST_PUSH_CI → MERGE_FINALIZE` 的 phase outcome。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
+外層普通 route只報 `FRESH_READ → WORKSPACE_MUTATE_TEST → EXACT_DIFF → DELIVERY_BRANCH_PR → POST_PUSH_CI → MERGE_FINALIZE`；fallback 才加 `LANE_0 / MERGE_0 / /推推`。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
 
 
 
@@ -73,7 +73,7 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 Flow v2 的 execution/claim/lease/transaction authority **不等於 GitHub network authority**，也不得由 bridge 自動傳遞。任何 GitHub repo metadata、code search、contents、branch/commit、Issue/PR、Actions/workflow/run/artifact、GitHub API/Connector 或 network git (`fetch/pull/ls-remote/push`) 動作前，都必須先以 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗證 exact action 是否存在於 `WHD_REMOTE_CONNECTION_AUTHORITY_V1.allowed_actions`。
 
 
-- interactive/default 沒有 explicit remote authority：固定 `REMOTE_CONNECTION_DENIED`；
+- interactive/default 對 production baseline 的 `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 可由 workspace-first gate直接允許；其他 GitHub/remote action沒有 explicit authority仍固定 `REMOTE_CONNECTION_DENIED`；
 - `/推推 文檔|主體`：只授權 selected lane 的 frozen delivery/readback window；
 - scheduler/GitHub-only：只在 user-authored entry contract 明確指定 GitHub-only 且 trusted runtime provenance 成立時，建立該 invocation scope 的 authority；
 - `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`、Phase6 Preflight、Flow v2 bridge、工作槽/派工/closure、read-only/status/log query、GitHub tool/connector 可用，都不是 remote authority 來源。

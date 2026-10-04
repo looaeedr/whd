@@ -35,8 +35,11 @@ def test_root_shared_unpushed_contract_is_current_canonical_projection() -> None
     contract = _json(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
     validate_contract(contract)
     assert contract["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
-    assert contract["canonical_root"]["library_path"] == "/Google Drive/WHD"
-    assert contract["canonical_root"]["interactive_work_prefix"] == "/Google Drive/WHD/.unpushed"
+    assert contract["canonical_root"]["provider"] == "executor_local_workspace"
+    assert contract["canonical_root"]["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
+    assert contract["canonical_root"]["production_branch"] == "cleanup/2d-3d-sync"
+    assert contract["canonical_root"]["canonical_drive_overlay"] == "/Google Drive/WHD"
+    assert contract["shared_unpushed_integration"]["mode"] == "CONDITIONAL_FALLBACK_ONLY"
     for mode in ("SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"):
         assert contract["execution_modes"][mode] == REMOTE_POLICY
     assert not (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").exists()

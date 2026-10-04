@@ -1,4 +1,4 @@
-"""Machine validation for the WHD V2 full-repo Google Drive root."""
+"""Machine validation for the WHD V2 executor-local repository workspace."""
 from __future__ import annotations
 
 import argparse
@@ -9,17 +9,19 @@ from typing import Mapping
 
 GATE_SCHEMA = "WHD_WORK_ROOT_HARD_GATE_V2"
 EVIDENCE_SCHEMA = "WHD_WORK_ROOT_GATE_EVIDENCE_V2"
-DEFAULT_PROVIDER = "google_drive"
-DEFAULT_LIBRARY_PATH = "/Google Drive/WHD"
+DEFAULT_PROVIDER = "executor_local_workspace"
+DEFAULT_WORKSPACE_POLICY = "EXECUTOR_LOCAL_REPO_WORKSPACE"
+CANONICAL_DRIVE_ROOT = "/Google Drive/WHD"
 DEFAULT_DRIVE_FOLDER_ID = "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
 REPO_CONTRACT_PATH = ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"
-DRIVE_CONTRACT_PATH = f"{DEFAULT_LIBRARY_PATH}/{REPO_CONTRACT_PATH}"
-UNPUSHED_ROOT = f"{DEFAULT_LIBRARY_PATH}/.unpushed"
+DRIVE_CONTRACT_PATH = f"{CANONICAL_DRIVE_ROOT}/{REPO_CONTRACT_PATH}"
+UNPUSHED_ROOT = f"{CANONICAL_DRIVE_ROOT}/.unpushed"
 REQUIRED_ROOT_ENTRIES = frozenset({
     ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
-    "ae_engine", "gui_modules", ".unpushed",
+    "ae_engine", "gui_modules",
 })
-READ_MODE_GOOGLE_DRIVE = "GOOGLE_DRIVE_CANONICAL"
+READ_MODE_WORKSPACE = "WORKSPACE_GIT_BASELINE"
+READ_MODE_GOOGLE_DRIVE = "GOOGLE_DRIVE_CANONICAL"  # compatibility only; not ordinary startup
 READ_MODE_GITHUB_REPO = "GITHUB_REPO_CONTRACT"
 REMOTE_MODES = frozenset({"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"})
 PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
@@ -40,10 +42,17 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
     root = _mapping(gate.get("default_work_root"), "default_work_root")
     if root.get("provider") != DEFAULT_PROVIDER:
         raise ValueError("work-root provider mismatch")
-    if root.get("library_path") != DEFAULT_LIBRARY_PATH:
-        raise ValueError("work-root library path mismatch")
-    if root.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID:
-        raise ValueError("work-root folder identity mismatch")
+    if root.get("path_policy") != DEFAULT_WORKSPACE_POLICY:
+        raise ValueError("work-root path policy mismatch")
+    if root.get("production_branch") != PRODUCTION_BRANCH:
+        raise ValueError("work-root production branch mismatch")
+    if root.get("authority") is not False:
+        raise ValueError("executor workspace must not become authority")
+    overlay = _mapping(gate.get("canonical_drive_overlay"), "canonical_drive_overlay")
+    if overlay.get("library_path") != CANONICAL_DRIVE_ROOT or overlay.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID:
+        raise ValueError("canonical Drive overlay identity mismatch")
+    if overlay.get("ordinary_startup_required") is not False:
+        raise ValueError("Drive overlay must not be required for ordinary startup")
     required = set(map(str, gate.get("required_root_entries") or ()))
     if required != set(REQUIRED_ROOT_ENTRIES):
         raise ValueError("full-repo root required entries mismatch")
@@ -61,8 +70,8 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
         raise ValueError("work-root recovery must not be a terminal gate")
     if recovery.get("closure_authority") is not False:
         raise ValueError("work-root recovery must not own Issue closure")
-    if recovery.get("purpose") != "OPTIONAL_ROOT_CATCHUP_MAINTENANCE":
-        raise ValueError("work-root recovery purpose must be optional maintenance")
+    if recovery.get("purpose") != "OPTIONAL_WORKSPACE_BASELINE_CATCHUP":
+        raise ValueError("work-root recovery purpose must be optional workspace maintenance")
     return {str(k): v for k, v in gate.items()}
 
 
@@ -96,18 +105,38 @@ def worker_candidate_path(*, lane: str, worker: str, issue: int) -> str:
     return f"{UNPUSHED_ROOT}/{lane}/workers/{safe}/issue-{int(issue)}"
 
 
-def build_work_root_gate_evidence(*, gate_payload, read_mode: str, execution_mode: str, root_entries) -> dict[str, object]:
+def build_work_root_gate_evidence(
+    *,
+    gate_payload,
+    read_mode: str,
+    execution_mode: str,
+    root_entries,
+    workspace_root: str | None = None,
+    production_head_sha: str | None = None,
+) -> dict[str, object]:
     validate_gate_payload(gate_payload)
     mode = str(execution_mode or "INTERACTIVE")
     if mode in REMOTE_MODES:
         if read_mode != READ_MODE_GITHUB_REPO:
             raise ValueError("remote mode must read the repository work-root contract")
         source = REPO_CONTRACT_PATH
+        resolved_workspace = str(workspace_root or "REMOTE_RUNTIME_WORKSPACE").strip()
     else:
-        if read_mode != READ_MODE_GOOGLE_DRIVE:
-            raise ValueError("interactive mode must read the Drive-root repository contract")
-        source = DRIVE_CONTRACT_PATH
+        if read_mode == READ_MODE_WORKSPACE:
+            source = REPO_CONTRACT_PATH
+            resolved_workspace = str(workspace_root or "").strip()
+            if not resolved_workspace:
+                raise ValueError("interactive executor workspace_root must be nonblank")
+        elif read_mode == READ_MODE_GOOGLE_DRIVE:
+            # Compatibility only for durable callers created before workspace-first cutover.
+            source = DRIVE_CONTRACT_PATH
+            resolved_workspace = str(workspace_root or CANONICAL_DRIVE_ROOT).strip()
+        else:
+            raise ValueError("interactive mode must use executor-local workspace Git baseline")
     verified = verify_root_entries(root_entries)
+    head = str(production_head_sha or "").strip().lower()
+    if head and (len(head) != 40 or any(ch not in "0123456789abcdef" for ch in head)):
+        raise ValueError("production_head_sha must be a Git SHA")
     return {
         "schema": EVIDENCE_SCHEMA,
         "gate_schema": GATE_SCHEMA,
@@ -115,10 +144,15 @@ def build_work_root_gate_evidence(*, gate_payload, read_mode: str, execution_mod
         "read_mode": read_mode,
         "source": source,
         "provider": DEFAULT_PROVIDER,
-        "library_path": DEFAULT_LIBRARY_PATH,
+        "workspace_policy": DEFAULT_WORKSPACE_POLICY,
+        "workspace_root": resolved_workspace,
+        "production_branch": PRODUCTION_BRANCH,
+        "production_head_sha": head or None,
+        "canonical_drive_root": CANONICAL_DRIVE_ROOT,
         "drive_folder_id": DEFAULT_DRIVE_FOLDER_ID,
         "root_entries": list(verified),
-        "unpushed_root": UNPUSHED_ROOT,
+        "shared_zero_fallback_root": UNPUSHED_ROOT,
+        "shared_zero_required": False,
         "status": "GREEN",
     }
 
@@ -131,15 +165,25 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
         raise ValueError("work-root gate evidence is not GREEN")
     if item.get("execution_mode") != str(execution_mode or "INTERACTIVE"):
         raise ValueError("work-root gate evidence execution_mode mismatch")
-    if item.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID:
-        raise ValueError("work-root gate evidence folder mismatch")
+    if item.get("provider") != DEFAULT_PROVIDER:
+        raise ValueError("work-root gate evidence provider mismatch")
+    if item.get("workspace_policy") != DEFAULT_WORKSPACE_POLICY:
+        raise ValueError("work-root gate evidence workspace policy mismatch")
+    if not str(item.get("workspace_root") or "").strip():
+        raise ValueError("work-root gate evidence workspace_root missing")
+    if item.get("production_branch") != PRODUCTION_BRANCH:
+        raise ValueError("work-root gate evidence production branch mismatch")
+    if item.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID or item.get("canonical_drive_root") != CANONICAL_DRIVE_ROOT:
+        raise ValueError("work-root gate evidence Drive overlay identity mismatch")
     verify_root_entries(item.get("root_entries") or ())
-    if item.get("unpushed_root") != UNPUSHED_ROOT:
-        raise ValueError("work-root gate evidence unpushed root mismatch")
+    if item.get("shared_zero_fallback_root") != UNPUSHED_ROOT:
+        raise ValueError("work-root gate shared-zero fallback root mismatch")
+    if item.get("shared_zero_required") is not False:
+        raise ValueError("ordinary work-root evidence must not require shared-zero")
     return {str(k): v for k, v in item.items()}
 
 class WorkRootRecoveryError(RuntimeError):
-    """Raised when canonical work-root catch-up cannot be proven safe."""
+    """Raised when workspace baseline catch-up cannot be proven safe."""
 
 
 def _run_git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -160,26 +204,24 @@ def _run_git(root: Path, *args: str, check: bool = True) -> subprocess.Completed
 
 def recover_canonical_root_to_current_production(
     *,
-    root_path: str = DEFAULT_LIBRARY_PATH,
+    root_path: str = ".",
     remote: str = "origin",
     production_branch: str = PRODUCTION_BRANCH,
 ) -> dict[str, object]:
-    """Fast-forward a clean canonical root to the current production ref.
+    """Fast-forward a clean persistent workspace mirror to the current production ref.
 
     This is startup/root-identity recovery only. It does not create or mutate
     ExecutionRecords, does not close Issues, and does not emit a
     post-integration durability receipt.
     """
-    root = Path(str(root_path))
-    if str(root) != DEFAULT_LIBRARY_PATH:
-        raise WorkRootRecoveryError("canonical root path mismatch")
+    root = Path(str(root_path)).resolve()
     if not root.is_dir():
-        raise WorkRootRecoveryError("canonical root directory is unavailable")
+        raise WorkRootRecoveryError("workspace root directory is unavailable")
 
     branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD").stdout.strip()
     if branch != str(production_branch):
         raise WorkRootRecoveryError(
-            f"canonical root branch mismatch: expected {production_branch}, observed {branch}"
+            f"workspace branch mismatch: expected {production_branch}, observed {branch}"
         )
 
     tracked_status = _run_git(
@@ -190,7 +232,7 @@ def recover_canonical_root_to_current_production(
 
     remote = str(remote or "").strip()
     if not remote:
-        raise WorkRootRecoveryError("canonical root remote must be nonblank")
+        raise WorkRootRecoveryError("workspace remote must be nonblank")
     production_branch = str(production_branch or "").strip()
     if not production_branch:
         raise WorkRootRecoveryError("canonical production branch must be nonblank")
@@ -206,7 +248,7 @@ def recover_canonical_root_to_current_production(
     )
     if ancestry.returncode != 0:
         raise WorkRootRecoveryError(
-            "canonical root history diverged from current production; automatic catch-up refused"
+            "workspace history diverged from current production; automatic catch-up refused"
         )
 
     if previous_head != remote_head:
@@ -222,7 +264,8 @@ def recover_canonical_root_to_current_production(
     return {
         "schema": ROOT_RECOVERY_RECEIPT_SCHEMA,
         "status": "VERIFIED",
-        "canonical_root": DEFAULT_LIBRARY_PATH,
+        "workspace_root": str(root),
+        "canonical_drive_root": CANONICAL_DRIVE_ROOT,
         "production_branch": production_branch,
         "remote": remote,
         "previous_head_sha": previous_head,
@@ -241,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
         "recover-current-production",
         help="fast-forward a clean canonical root to current production",
     )
-    recover.add_argument("--root", default=DEFAULT_LIBRARY_PATH)
+    recover.add_argument("--root", default=".")
     recover.add_argument("--remote", default="origin")
     recover.add_argument("--production-branch", default=PRODUCTION_BRANCH)
     recover.add_argument("--output", type=Path)

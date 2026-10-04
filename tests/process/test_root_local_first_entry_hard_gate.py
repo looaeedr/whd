@@ -71,12 +71,12 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert "tools/change_test_profile.py" in text
     assert "EXACT_TESTED_DIFF_ONLY" in text
     assert payload["required_order"][:4] == [
-        "ROOT_SOURCE_CURRENT", "UNPUSHED_LANE_CLASSIFIED",
-        "LATEST_0_BASE_BOUND", "ROOT_MUTATIONS_COMPLETE",
+        "WORKSPACE_SOURCE_CURRENT", "WORKSPACE_MUTATIONS_COMPLETE",
+        "WORKSPACE_TESTS_GREEN", "DELIVERY_BRANCH_READY",
     ]
     assert payload["shared_unpushed_integration"]["machine_owner"] == "tools/shared_unpushed_integration.py"
     assert payload["shared_unpushed_integration"]["conflict_state"] == "BLOCKED_USER_DECISION"
-    assert payload["path_reservation"]["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
+    assert payload["path_reservation"]["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
     assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
     assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
@@ -189,8 +189,7 @@ def test_git_content_write_is_forbidden_before_unlock():
         build_remote_connection_authority,
     )
     evidence = build_gate_evidence(execution_mode="INTERACTIVE")
-    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
-        assert_git_content_write_allowed(evidence, action="READ")
+    assert_git_content_write_allowed(evidence, action="READ")
 
     authority = build_remote_connection_authority(
         kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
@@ -380,13 +379,16 @@ def test_bare_tests_green_boolean_is_rejected():
             path_reservation_evidence=_reservation(), diff_digest="f" * 64,
         )
 
-def test_root_local_contract_points_to_new_git_worktree_root():
+def test_root_local_contract_points_to_executor_local_workspace_policy():
     payload = _contract()
-    assert payload["canonical_root"]["drive_folder_id"] == "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
-    assert payload["canonical_root"]["interactive_work_prefix"] == "/Google Drive/WHD/.unpushed"
-    assert payload["canonical_source"]["library_path"].endswith("/.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
-    assert payload["shared_unpushed_integration"]["body_lane"].endswith("/.unpushed/body/0")
-    assert payload["shared_unpushed_integration"]["docs_lane"].endswith("/.unpushed/docs/0")
+    root = payload["canonical_root"]
+    assert root["provider"] == "executor_local_workspace"
+    assert root["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
+    assert root["production_branch"] == "cleanup/2d-3d-sync"
+    assert root["authority"] is False
+    assert root["canonical_drive_overlay"] == "/Google Drive/WHD"
+    assert payload["default_repository_content_flow"]["startup_requires_shared_zero"] is False
+    assert payload["shared_unpushed_integration"]["mode"] == "CONDITIONAL_FALLBACK_ONLY"
 
 
 def test_interactive_orchestration_fast_path_is_machine_owned():
@@ -433,6 +435,7 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     payload = _contract()
     gate = payload["direct_root_mutation_test_gate"]
     assert gate["schema"] == "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1"
+    assert gate["applies_when"] == "SHARED_ZERO_FALLBACK_ACTIVE"
     assert gate["canonical_surface"] == "/Google Drive/WHD/.unpushed"
     assert gate["interactive_first_substantive_action"] == "ROOT_MUTATE"
     assert gate["required_contiguous_outer_sequence"] == [
@@ -449,14 +452,13 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK"
 
 
-def test_flow_v2_skill_requires_direct_root_modify_and_test_in_same_invocation():
+def test_flow_v2_skill_defaults_to_workspace_and_keeps_shared_zero_as_fallback():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
-    assert "DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1" in text
-    assert "同一 invocation" in text
-    assert "ROOT_MUTATE" in text
-    assert "POST_MERGE_ZERO_TESTS_GREEN" in text
-    assert "使用者詢問進度/狀態只算 non-blocking checkpoint" in text
-    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" in text
+    assert "WORKSPACE_DEFAULT" in text
+    assert "WORKSPACE_MUTATIONS_COMPLETE" in text
+    assert "WORKSPACE_TESTS_GREEN" in text
+    assert "SHARED_ZERO_FALLBACK" in text
+    assert "shared-unpushed machine只在 fallback active" in text
 
 
 def test_test_receipt_generation_is_historical_provenance_not_exact_lease_generation():
@@ -518,7 +520,8 @@ def test_remote_connection_authority_covers_all_github_network_surfaces_and_does
 
     payload = validate_contract(_contract())
     gate = payload["remote_connection_hard_gate"]
-    assert gate["default"] == "DENY"
+    assert gate["default"] == "ALLOW_WORKSPACE_BASELINE_READ_ONLY"
+    assert gate["pre_delivery_git_read_allowed_without_authority"] is True
     assert gate["covers_all_network_surfaces"] is True
     assert gate["authority_non_propagating"] is True
     assert gate["skill_invocation_is_not_authority"] is True
@@ -528,7 +531,9 @@ def test_remote_connection_authority_covers_all_github_network_surfaces_and_does
         "artifacts", "connector_api", "git_network_transport",
     } <= set(gate["covered_github_surfaces"])
 
-    for action in ("REPO_METADATA_READ", "CODE_SEARCH", "ISSUE_READ", "PR_READ", "WORKFLOW_READ", "REMOTE_QA"):
+    for action in ("READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"):
+        assert_remote_connection_allowed(None, target="GITHUB", action=action)
+    for action in ("CODE_SEARCH", "ISSUE_READ", "PR_READ", "WORKFLOW_READ", "REMOTE_QA"):
         with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
             assert_remote_connection_allowed(None, target="GITHUB", action=action)
 

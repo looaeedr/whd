@@ -8,14 +8,15 @@ ROOT = Path(__file__).resolve().parents[2]
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
-def test_current_execution_docs_use_shared_zero_then_delivery_reservation() -> None:
+def test_current_execution_docs_use_workspace_default_and_conditional_shared_zero() -> None:
     agents = _read("AGENTS.md")
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
-    assert "ZERO_INITIALIZED_OR_FRESH_READ" in agents
-    assert "DELIVERY_RESERVATION" in agents
-    assert "Flow v2 path reservation" in agents and "delivery reservation" in agents
+    assert "WORKSPACE_DEFAULT" in agents
+    assert "SHARED_ZERO_FALLBACK" in agents
+    assert "executor-local" in agents
     assert "ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1" in flow
-    assert "只有 delivery 才取得 reservation" in flow
+    assert "WORKSPACE_DEFAULT" in flow
+    assert "SHARED_ZERO_FALLBACK" in flow
     assert "ACQUIRE.effect.admission_reservation" not in agents
 
 
@@ -38,9 +39,9 @@ def test_current_skills_do_not_restore_legacy_claim_guard_authority() -> None:
 
 def test_path_reservation_contract_is_delivery_only() -> None:
     payload = json.loads(_read(".agents/contracts/WHD_PATH_RESERVATION_V1.json"))
-    assert payload["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
-    assert payload["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
-    assert payload["canonical_delivery_reservation"]["phase"] == "AFTER_LANE_MANIFEST_FROZEN"
+    assert payload["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
+    assert payload["root_authoring_policy"] == "NO_PREWRITE_RESERVATION__RESERVE_ONLY_FOR_GIT_DELIVERY"
+    assert payload["canonical_delivery_reservation"]["phase"] == "AFTER_TESTED_DIFF_FROZEN"
     assert "canonical_new_work_admission" not in payload
 
 
@@ -73,8 +74,8 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert retired not in flow
     assert "REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V2" in flow
     assert "REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1" in scheduler
-    assert "repository-content authoring" in agents and "GitHub checkout" in agents
-    assert "GitHub-side hotfix" in root and "shared-unpushed" in root
+    assert "executor-local workspace" in agents and "cleanup/2d-3d-sync" in agents
+    assert "GitHub-side hotfix" in root and "SHARED_ZERO_FALLBACK" in root
     assert contract["execution_modes"]["SCHEDULER_LANE"].endswith("ROOT_WORKSPACE_HANDOFF")
     assert contract["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
 
@@ -84,8 +85,8 @@ def test_root_local_first_uses_delivery_only_reservation() -> None:
     contract = json.loads(_read(".agents/contracts/WHD_PATH_RESERVATION_V1.json"))
     assert "DELIVERY_RESERVATION" in root
     assert "Pre-write reservation" in root or "pre-write reservation" in root or "施工前置 single-writer gate" in root
-    assert contract["phase"] == "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN"
-    assert contract["root_authoring_policy"] == "SHARED_0_LINEAGE_NO_PREWRITE_RESERVATION"
+    assert contract["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
+    assert contract["root_authoring_policy"] == "NO_PREWRITE_RESERVATION__RESERVE_ONLY_FOR_GIT_DELIVERY"
 
 
 def test_agents_completion_bridge_cannot_restore_legacy_continuity_finalization() -> None:
