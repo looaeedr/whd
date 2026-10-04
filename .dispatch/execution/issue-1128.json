@@ -12,10 +12,10 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1128,
-  "lane_id": null,
+  "lane_id": "chatgpt.flowv2.work3",
   "lease": null,
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
@@ -34,8 +34,8 @@
     "display": "Consume exact already-terminal Product Regression for carried-forward delivery",
     "kind": "START_QA"
   },
-  "owner_id": "NONE",
-  "owner_kind": "NONE",
+  "owner_id": "chatgpt.flowv2.work3",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -57,13 +57,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "7156c6f27d2d43c44657a580cb067a73d4807cbe",
   "transaction": {
-    "expected_fingerprint": "be713f9634e680cd4c6a045dbd23a757eb66150b1a4cc959eb7db0108594709e",
-    "id": "gha:37184855240:1128:RECONCILE:8",
-    "invocation_identity": "gha:looaeedr/whd:run:37184855240:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-    "kind": "RECONCILE",
+    "expected_fingerprint": "f010e128073ab7e799a45e64127daa8f6acc0d86b1a9e1093b11963c70dab3cc",
+    "id": "gha:37184948686:1128:HANDOFF:9",
+    "invocation_identity": "gha:looaeedr/whd:run:37184948686:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T07:08:20Z",
+  "updated_at": "2026-10-04T07:10:08Z",
   "version": 2,
   "work_branch": "refactor/issue1128-derived-sync-composition-owner-20261002"
 }
