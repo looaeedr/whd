@@ -68,6 +68,8 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("canonical root mismatch")
     if item.get("root_sync_receipt_schema") != ROOT_SYNC_RECEIPT_SCHEMA:
         raise ValueError("root sync receipt schema mismatch")
+    if item.get("root_sync_transport") != "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head":
+        raise ValueError("root sync transport owner mismatch")
     if item.get("lane_delivery_receipt_schema") != LANE_DELIVERY_RECEIPT_SCHEMA:
         raise ValueError("lane delivery receipt schema mismatch")
     forbidden = set(map(str, item.get("forbidden_current_authorities") or ()))
