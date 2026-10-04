@@ -229,11 +229,11 @@
     "evaluator": "tools/execution_path_reservation.py",
     "evidence_schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
     "expansion_policy": "MONOTONIC_CAS",
-    "phase": "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
+    "phase": "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN",
     "release_policy": "FINALIZE_OR_EXPLICIT_RELEASE_PATHS",
     "schema": "WHD_PATH_RESERVATION_V1",
     "state_owner": "WHD_EXECUTION_RECORD_V2.mutation_scope",
-    "workspace_isolation": "NOT_ROOT_WORKSPACE_AUTHORITY"
+    "workspace_isolation": "NOT_CONTENT_AUTHORITY"
   },
   "remote_content_implementation": {
     "applies_to": [
@@ -382,7 +382,7 @@
   },
   "delivery_fileset_lock": {
     "schema": "WHD_DELIVERY_FILESET_LOCK_V1",
-    "phase": "AFTER_LANE_MANIFEST_FROZEN_BEFORE_REMOTE_CONTENT_WRITE",
+    "phase": "AFTER_TESTED_DIFF_FROZEN_BEFORE_REMOTE_CONTENT_WRITE",
     "required_identity": [
       "lane",
       "generation",
