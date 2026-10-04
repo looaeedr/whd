@@ -101,7 +101,8 @@ def _box_body_part_spec_from_values(
     )
 
     back_panel_contract = {}
-    if cabinet_family_policy.canonical_family_name(model_name) == "受電箱":
+    family_name = cabinet_family_policy.canonical_family_name(model_name)
+    if family_name == "受電箱":
         from phase6_box_body_structure import BoxBodyStructureType
         from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
 
@@ -113,9 +114,11 @@ def _box_body_part_spec_from_values(
             head_corner_policy=head_corner_policy,
             tail_corner_policy=tail_corner_policy,
         )
+        back_panel_snapshot = dict(snapshot or val)
+        back_panel_snapshot["model"] = family_name
         back_panel_contract = cabinet_family_policy.resolve_back_panel_contract(
             model_name,
-            dict(snapshot or val),
+            back_panel_snapshot,
             structure_state=structure_state,
             panel_width=panel_width,
             full_panel_height=full_panel_height,

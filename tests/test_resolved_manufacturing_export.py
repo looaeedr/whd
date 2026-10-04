@@ -6,6 +6,15 @@ from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufactu
 from ae_engine.sheetmetal_drawing import DrawingScene
 
 
+def _recording_file_saver(seen):
+    def save(render, path, overwrite=False):
+        destination = Path(path)
+        destination.write_text("DXF-STUB", encoding="utf-8")
+        seen.append((render, destination.name))
+        return str(destination)
+    return save
+
+
 def test_resolved_dxf_export_uses_exact_canonical_render_data_without_rebuilding(monkeypatch, tmp_path):
     import ae_engine.manufacturing_api as api
     head_render = SimpleNamespace(scene=DrawingScene(), material=object(), fold_guides=())
@@ -15,7 +24,7 @@ def test_resolved_dxf_export_uses_exact_canonical_render_data_without_rebuilding
         ResolvedManufacturingPart("head", head_render),
     ))
     seen = []
-    monkeypatch.setattr(api, "save_part_render_data_dxf", lambda render, path, overwrite=False: seen.append((render, Path(path).name)) or str(path))
+    monkeypatch.setattr(api, "save_part_render_data_dxf", _recording_file_saver(seen))
     result = api.save_resolved_manufacturing_geometry_dxf(resolved, tmp_path, overwrite=True)
     assert [name for _render, name in seen] == ["box_body.dxf", "head.dxf"]
     assert seen[0][0] is body_render

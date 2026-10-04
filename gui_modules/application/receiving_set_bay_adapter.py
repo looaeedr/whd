@@ -11,6 +11,11 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Callable, Iterable, Mapping
 
+from ae_engine.receiving_manufacturing_readiness import (
+    ReceivingManufacturingFailure,
+    evaluate_receiving_manufacturing_readiness,
+    receiving_readiness_projection,
+)
 from ae_engine.receiving_layout import (
     append_receiving_set,
     normalize_receiving_layout,
@@ -215,3 +220,11 @@ class ReceivingSetBayAdapter:
             bay_index=self._selection.bay_index,
             validate_common=True,
         )
+    def project_manufacturing_readiness(
+        self,
+        failures: Iterable[ReceivingManufacturingFailure] = (),
+    ) -> tuple[dict[str, object], ...]:
+        """Project READY/BLOCKED diagnostics without becoming validity authority."""
+        report = evaluate_receiving_manufacturing_readiness(self._layout, failures)
+        return receiving_readiness_projection(report)
+

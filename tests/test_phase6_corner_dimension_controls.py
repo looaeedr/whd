@@ -118,7 +118,7 @@ def test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_
     assert app.assembly_part_visible_vars is app._phase6_assembly_panel_owner.visible_vars
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     # The bundle retains all authoritative geometry so hidden parts can still
     # participate in placement/mating references. Visibility is render-only.
@@ -152,7 +152,7 @@ def test_single_part_3d_request_carries_same_corner_dimension_text(monkeypatch):
         state=SimpleNamespace(alpha_bend=0.85),
     )
     monkeypatch.setattr(bridge, "_phase6_query_final_render_data", lambda self: render_data)
-    monkeypatch.setattr(bridge, "_phase6_active_mesh_profiles", lambda self, material: ((), ()))
+    monkeypatch.setattr(bridge, "_phase6_mesh_profiles_for_part", lambda self, part_key, material: ((), ()))
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
     request = bridge._phase6_final_scene_view_request(app)

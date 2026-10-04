@@ -62,7 +62,7 @@ def test_public_assembly_adapter_keeps_joint_diagnostics_out_of_operator_scene(m
         assembly_joint_diag_var=Var(diag.joint_id),
     )
 
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     assert bundle.joint_diagnostics == ()
     assert bundle.selected_joint_id is None

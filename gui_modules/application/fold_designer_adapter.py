@@ -31,6 +31,7 @@ from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
     derive_door_layout_cells,
+    door_layout_part_key,
     door_layout_export_filename,
     door_layout_feature_map_to_part_features,
 )
@@ -72,6 +73,11 @@ from phase6_assembly_panel import Phase6AssemblyPanel
 from phase6_manufacturing_adapter import operator_finished_dimensions_for_app
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+from phase6_derived_part_projection import (
+    DerivedPartRequestAssemblyInput,
+    build_derived_part_projection_request,
+    build_derived_part_sync_plan,
+)
 from gui_modules.runtime_error_log import write_runtime_exception
 from gui_modules.application.fold_designer_settings_coordinator import (
     Phase6FoldDesignerSettingsCoordinator,
@@ -1349,6 +1355,171 @@ class Phase6FoldDesignerComposition:
         self._workspace_shell_owner = owner
         app._phase6_workspace_shell_owner = owner
         return owner
+
+    def sync_authoritative_derived_parts(self, namespace):
+        """Compose cross-domain derived topology, then delegate the unique workspace mutation."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        workspace = getattr(app, "designer_workspace", None)
+        navigation = self.workspace_navigation()
+        if workspace is None or not navigation.supports_derived_sync:
+            return (), ()
+
+        # Pure collection/derivation only. Domain formulas stay in their existing owners.
+        door_rows = required("_phase6_door_part_projections")(snapshot)
+        source_part_features = dict(snapshot.get("part_features") or {})
+        known_feature_keys = set(workspace.part_features_snapshot())
+        source_parts = tuple(snapshot.get("existing_parts") or ())
+        available_parts = tuple(workspace.available_parts)
+
+        build_profiles = required("build_standard_part_profiles")
+        door_profiles = {}
+        for row in door_rows:
+            local = dict(snapshot)
+            local_dims = {
+                key: dict(value)
+                for key, value in dict(snapshot.get("part_dimensions") or {}).items()
+            }
+            local_dims[row.part_key] = {
+                "width": row.formed_width,
+                "height": row.formed_height,
+            }
+            local["part_dimensions"] = local_dims
+            door_profiles[row.part_key] = build_profiles(local, row.part_key)
+
+        base_plate_profiles = {}
+        if door_rows:
+            columns = tuple(
+                (float(row[0]), tuple(float(v) for v in row[1]))
+                for row in tuple(snapshot.get("door_layout_columns") or ())
+            )
+            number = required("_num")
+            shrink_left = number(snapshot.get("base_plate_shrink_left", 55), 55)
+            shrink_right = number(snapshot.get("base_plate_shrink_right", 55), 55)
+            shrink_top = number(snapshot.get("base_plate_shrink_top", 55), 55)
+            shrink_bottom = number(snapshot.get("base_plate_shrink_bottom", 55), 55)
+            for cell in derive_door_layout_cells(columns):
+                base_key = door_layout_part_key(cell).replace("door_", "base_plate_", 1)
+                local = dict(snapshot)
+                local_dims = {
+                    key: dict(value)
+                    for key, value in dict(snapshot.get("part_dimensions") or {}).items()
+                }
+                local_dims[base_key] = {
+                    "width": max(1.0, float(cell.start_width) - shrink_left - shrink_right),
+                    "height": max(1.0, float(cell.start_height) - shrink_top - shrink_bottom),
+                }
+                local["part_dimensions"] = local_dims
+                base_plate_profiles[base_key] = build_profiles(local, base_key)
+
+        try:
+            box_render_data = required("_phase6_box_body_structure_render_data")(app)
+        except Exception:
+            box_render_data = None
+        box_piece_profiles = (
+            required("_phase6_box_body_piece_part_profiles")(box_render_data, snapshot)
+            if box_render_data is not None
+            else {}
+        )
+        desired_piece_keys = set(box_piece_profiles)
+        is_piece_key = required("_phase6_is_box_body_physical_piece_key")
+        current_piece_keys = {key for key in available_parts if is_piece_key(key)}
+
+        divider_profiles = {}
+        columns = list(snapshot.get("door_layout_columns") or ())
+        if bool(snapshot.get("multi_door_enabled", False)) and columns:
+            from ae_engine.door_dividers import derive_box_body_dividers, divider_part_profiles
+
+            normalized_columns = tuple(
+                (float(row[0]), tuple(float(value) for value in row[1]))
+                for row in columns
+            )
+            dividers = derive_box_body_dividers(
+                normalized_columns,
+                depth=float(snapshot.get("d", 0.0)),
+                thickness=float(snapshot.get("t", 0.0)),
+                layout_scope=(str(snapshot.get("door_layout_scope") or "main").strip() or "main"),
+                handle_edges=dict(snapshot.get("door_handle_edges") or {}),
+                model_name=str(snapshot.get("model") or "").strip() or None,
+                frame_width=float(snapshot.get("fw", 0.0)),
+            )
+            divider_profiles = divider_part_profiles(dividers)
+
+        from ae_engine.inner_door_frames import (
+            InnerDoorFrameSet,
+            derive_all_inner_door_frames,
+            inner_door_frame_part_profiles,
+        )
+        from ae_engine.inner_door_panels import inner_door_panel_part_profiles
+
+        frame_sets = []
+        thickness = float(snapshot.get("t", 0.0))
+        if cabinet_family_policy.has_inner_door_frame_derivation(snapshot):
+            frame_sets.extend(cabinet_family_policy.derive_inner_door_frame_sets(snapshot))
+        else:
+            for item in list(snapshot.get("inner_doors") or ()):
+                if not isinstance(item, Mapping):
+                    continue
+                spans = item.get("frame_spans")
+                if not isinstance(spans, Mapping) or not spans:
+                    continue
+                stable_id = str(item.get("stable_id") or "").strip()
+                if not stable_id:
+                    continue
+                included = tuple(
+                    str(side).strip().lower()
+                    for side in (item.get("included_frame_sides") or ("top", "bottom", "left", "right"))
+                )
+                frame_sets.append(
+                    InnerDoorFrameSet(
+                        inner_door_id=stable_id,
+                        spans=dict(spans),
+                        thickness=thickness,
+                        included_sides=included,
+                    )
+                )
+        frames = derive_all_inner_door_frames(tuple(frame_sets))
+        panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
+        inner_profiles = inner_door_frame_part_profiles(frames)
+        inner_profiles.update(inner_door_panel_part_profiles(panels))
+
+        single_door_profiles = (
+            build_profiles(snapshot, "door")
+            if not door_rows and "door" in source_parts and "door" not in available_parts
+            else None
+        )
+        single_base_plate_profiles = (
+            build_profiles(snapshot, "base_plate")
+            if not door_rows and "base_plate" in source_parts and "base_plate" not in available_parts
+            else None
+        )
+        request = build_derived_part_projection_request(
+            DerivedPartRequestAssemblyInput(
+                door_part_keys=tuple(row.part_key for row in door_rows),
+                door_profiles=door_profiles,
+                base_plate_profiles=base_plate_profiles,
+                divider_profiles=divider_profiles,
+                inner_profiles=inner_profiles,
+                box_piece_profiles=box_piece_profiles,
+                current_piece_keys=tuple(current_piece_keys),
+                source_parts=source_parts,
+                available_parts=available_parts,
+                source_part_features=source_part_features,
+                known_feature_keys=tuple(known_feature_keys),
+                single_door_profiles=single_door_profiles,
+                single_base_plate_profiles=single_base_plate_profiles,
+                active_part=workspace.active_part,
+                selected_part=workspace.selected_part,
+            )
+        )
+        plan = build_derived_part_sync_plan(request)
+        navigation.apply_derived_sync_plan(plan)
+
+        return (
+            tuple(divider_profiles),
+            tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
+        )
 
     def workspace_navigation(self):
         """Return the single workspace/navigation application controller."""

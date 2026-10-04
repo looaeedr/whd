@@ -54,11 +54,11 @@ class Phase6WorkspaceController:
             existing = set(self._shared_state.existing_parts)
         else:
             existing = set(self._fallback_existing_parts)
+            # Legacy callers may still project an enabled Indicator Box before
+            # physical presence has been committed. A false UI hint must never
+            # erase presence already owned by this controller.
             if indicator_box_enabled:
                 existing.update({"indicator_box", "indicator_door"})
-            else:
-                existing.discard("indicator_box")
-                existing.discard("indicator_door")
         existing.add("box_body")
         return existing
 

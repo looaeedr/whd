@@ -59,7 +59,7 @@ def test_bridge_exposes_one_resolved_manufacturing_geometry_for_single_and_assem
 
     # Single-part and assembly adapters must be readers of the same resolved object.
     single = bridge._phase6_query_final_render_data(app)
-    bundle = bridge._phase6_query_assembly_render_data(app)
+    bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     assert single is resolved.part("head").render_data
     by_key = {part.part_key: part.render_data for part in bundle.assembly_parts}
     assert by_key["head"] is resolved.part("head").render_data
