@@ -207,7 +207,7 @@ def test_target_drift_forces_resync_and_retest_before_git_write():
         build_remote_connection_authority,
         validate_source_current,
     )
-    source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
+    source = validate_source_current(workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40}, live_source_sha="a" * 40, live_tree_sha="b" * 40)
     authority = build_remote_connection_authority(
         kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
     )
@@ -223,12 +223,21 @@ def test_target_drift_forces_resync_and_retest_before_git_write():
     assert evidence["next_action"] == "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE"
 
 
-def test_stale_manifest_requires_exact_touched_path_proofs():
+def test_legacy_manifest_and_scoped_recovery_cannot_mint_source_current():
     from tools.root_local_first_gate import validate_source_current
-    with pytest.raises(ValueError, match="manifest stale"):
-        validate_source_current(manifest=_manifest("1" * 40, "2" * 40), live_source_sha="a" * 40, live_tree_sha="b" * 40)
-    recovered = validate_source_current(manifest=_manifest("1" * 40, "2" * 40), live_source_sha="a" * 40, live_tree_sha="b" * 40, touched_path_proofs=[{"path": "AGENTS.md", "live_blob_sha": "3" * 40, "workspace_blob_sha": "3" * 40}])
-    assert recovered["status"] == "SCOPED_CURRENT_RECOVERY"
+    with pytest.raises(ValueError, match="legacy manifest/scoped recovery is retired"):
+        validate_source_current(
+            manifest=_manifest("a" * 40, "b" * 40),
+            live_source_sha="a" * 40, live_tree_sha="b" * 40,
+        )
+    with pytest.raises(ValueError, match="legacy manifest/scoped recovery is retired"):
+        validate_source_current(
+            manifest=_manifest("1" * 40, "2" * 40),
+            live_source_sha="a" * 40, live_tree_sha="b" * 40,
+            touched_path_proofs=[{
+                "path": "AGENTS.md", "live_blob_sha": "3" * 40, "workspace_blob_sha": "3" * 40
+            }],
+        )
 
 
 def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_tokens():
@@ -325,7 +334,7 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
         validate_git_unlock_receipt,
         validate_source_current,
     )
-    source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
+    source = validate_source_current(workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40}, live_source_sha="a" * 40, live_tree_sha="b" * 40)
     authority = build_remote_connection_authority(
         kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
     )
@@ -349,7 +358,7 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
 
 def test_bare_tests_green_boolean_is_rejected():
     from tools.root_local_first_gate import build_gate_evidence, validate_source_current
-    source = validate_source_current(manifest=_manifest(), live_source_sha="a" * 40, live_tree_sha="b" * 40)
+    source = validate_source_current(workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40}, live_source_sha="a" * 40, live_tree_sha="b" * 40)
     with pytest.raises(ValueError, match="WHD_TEST_EXECUTION_RECEIPT_V1"):
         build_gate_evidence(
             execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
