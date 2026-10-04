@@ -1,10 +1,10 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1062-consume-gen7-qa-20261004T043135Z",
+  "request_id": "issue1062-consume-gen7-qa-session-reuse-20261004T043342Z",
   "issue": 1062,
   "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+  "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
   "expected_coord_head": "5fd0298b6f783db27b168f5bd4951c013f91710b",
   "expected_generation": 53,
   "effect": {
@@ -22,14 +22,14 @@
       "display": "Merge PR #1165 after fresh latest-file recheck"
     }
   },
-  "runtime_provenance": {
-    "schema": "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_PROVENANCE_REQUEST_V1",
-    "mode": "MINT_EXACT_INVOCATION_IDENTITY"
+  "session_reuse": {
+    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
+    "mode": "LIVE_LEASE_CONTINUATION"
   },
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
-    "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "execution_mode": "INTERACTIVE",
     "work_root_gate": {
       "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
@@ -54,16 +54,16 @@
       "unpushed_root": "/Google Drive/WHD/.unpushed",
       "status": "GREEN"
     },
-    "purpose": "Consume the completed exact-head body generation 7 Product Regression for #1062 at candidate b187770c and advance to pre-merge integration without changing the frozen 25-path scope.",
-    "issued_at": "2026-10-04T04:31:35Z",
-    "expires_at": "2026-10-04T04:36:35Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Consume the completed exact-head body generation 7 Product Regression for #1062 at candidate b187770c and advance to pre-merge integration without changing the frozen 25-path scope.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
+    "purpose": "Consume the completed exact-head body generation 7 Product Regression for #1062 under the already-live lease session and advance to merge without changing the frozen 25-path scope.",
+    "issued_at": "2026-10-04T04:33:42Z",
+    "expires_at": "2026-10-04T04:38:42Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Consume the completed exact-head body generation 7 Product Regression for #1062 under the already-live lease session and advance to merge without changing the frozen 25-path scope.\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；canonical root=/Google Drive/WHD；repository-content authoring uses shared .unpushed lanes。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1062,
-    "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "branch": "test/issue1062-product-full-regression-recovery",
     "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
     "required_skills": [
@@ -110,20 +110,20 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-04T04:28:08Z"
+    "observed_at": "2026-10-04T04:33:34Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
     "status": "READY_FOR_EXECUTION",
     "repository": "looaeedr/whd",
-    "invocation_identity": "GITHUB_ACTIONS_RUNTIME",
+    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
     "execution_mode": "INTERACTIVE",
     "issue": 1062,
     "branch": "test/issue1062-product-full-regression-recovery",
     "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
-    "startup_issued_at": "2026-10-04T04:31:35Z",
-    "preflight_observed_at": "2026-10-04T04:28:08Z",
-    "issued_at": "2026-10-04T04:31:35Z",
-    "expires_at": "2026-10-04T04:36:35Z"
+    "startup_issued_at": "2026-10-04T04:33:42Z",
+    "preflight_observed_at": "2026-10-04T04:33:34Z",
+    "issued_at": "2026-10-04T04:33:42Z",
+    "expires_at": "2026-10-04T04:38:42Z"
   }
 }
