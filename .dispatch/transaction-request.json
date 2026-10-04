@@ -1,12 +1,59 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1178-closure-merge-20261004T1222Z",
-  "issue": 1178,
-  "kind": "MERGE",
+  "request_id": "issue1112-terminal-reconcile-20261004T1359Z",
+  "issue": 1112,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1178.closure.20261004T1219Z",
-  "expected_coord_head": "a3b9aa186ca02d2a27182088ab15f667fa952228",
-  "expected_generation": 3,
-  "effect": {},
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
+  "expected_coord_head": "df4aa10096b4a025e159e09ee19580117a120cd5",
+  "expected_generation": 6,
+  "effect": {
+    "observed_work_branch": "work/issue1112-receiving-set-bay-editor-20261002",
+    "observed_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
+    "observed_target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
+    "semantic_state": "READY_MERGED_EVIDENCE_RECONCILED",
+    "next_action": {
+      "kind": "ACQUIRE",
+      "args": {},
+      "display": "Acquire closure-only continuation"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1112,
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507"
+    },
+    "updated_at": "2026-10-04T13:59:00Z"
+  },
+  "purpose": "Closure-only stale canonical record reconciliation for already-completed Issue #1112; no repository-content mutation.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [".agents", ".git", ".github", ".unpushed", "AGENTS.md", "ae_engine", "gui_modules", "tests", "tools"],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1112,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
+    "required_skills": ["diagnosing-bugs", "tdd"],
+    "completed_skills": ["diagnosing-bugs", "tdd"],
+    "required_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"],
+    "completed_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"],
+    "observed_at": "2026-10-04T13:57:35Z"
+  }
 }
