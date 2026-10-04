@@ -66,6 +66,73 @@ def build_receiving_set_bay_controls(
     )
 
 
+def open_receiving_layer_preview(
+    parent,
+    *,
+    tk,
+    ttk,
+    layer_index: int,
+    connection_count: int,
+    brand: str,
+    on_confirm: Callable[[int], object],
+) -> bool:
+    """Open one layer/connection selection dialog without owning product state."""
+    index = int(layer_index)
+    count = max(1, int(connection_count))
+    label = str(brand)
+
+    win = tk.Toplevel(parent)
+    win.title(f"第{index + 1}層預覽")
+    win.transient(parent)
+    try:
+        win.grab_set()
+    except Exception:
+        pass
+
+    body = ttk.Frame(win, padding=12)
+    body.pack(fill=tk.BOTH, expand=True)
+    ttk.Label(
+        body, text=f"第{index + 1}層｜{count}連｜開關：{label}"
+    ).grid(row=0, column=0, columnspan=min(count, 5), sticky="w", pady=(0, 10))
+
+    selected = tk.IntVar(master=win, value=0)
+    for connection_index in range(count):
+        ttk.Radiobutton(
+            body,
+            text=f"第{connection_index + 1}連",
+            variable=selected,
+            value=connection_index + 1,
+        ).grid(
+            row=1 + connection_index // 5,
+            column=connection_index % 5,
+            padx=4,
+            pady=4,
+            sticky="ew",
+        )
+
+    actions = ttk.Frame(body)
+    actions.grid(
+        row=2 + (count - 1) // 5,
+        column=0,
+        columnspan=min(count, 5),
+        sticky="e",
+        pady=(10, 0),
+    )
+    ttk.Button(actions, text="取消", command=win.destroy).pack(side=tk.LEFT, padx=(0, 6))
+
+    def confirm():
+        number = int(selected.get())
+        if number <= 0:
+            from tkinter import messagebox
+            messagebox.showinfo("請選擇", "請先選擇一連。", parent=win)
+            return
+        if on_confirm(number - 1):
+            win.destroy()
+
+    ttk.Button(actions, text="確定", command=confirm).pack(side=tk.LEFT)
+    return True
+
+
 def refresh_receiving_layer_rows(
     controls: ReceivingSetBayControls,
     *,
