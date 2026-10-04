@@ -30,8 +30,6 @@ def test_current_flow_bridges_do_not_regrow_retired_execution_contracts() -> Non
         ".agents/skills/engineering/工作槽/SKILL.md",
         ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
         ".agents/skills/engineering/issue-closure-gate/SKILL.md",
-        ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
-        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
         ".agents/skills/engineering/強制接手/SKILL.md",
         ".agents/skills/engineering/執行開發任務/SKILL.md",
         ".agents/skills/engineering/寫排程/SKILL.md",
@@ -53,19 +51,12 @@ def test_current_flow_bridges_do_not_regrow_retired_execution_contracts() -> Non
             assert marker not in text, (rel, marker)
 
 
-def test_historical_process_tests_are_executable_anti_regrowth_wrappers() -> None:
-    payload = json.loads(CLASSIFICATION.read_text(encoding="utf-8"))
-    assert payload["status"] == "CURRENT"
-    assert payload["policy"] == "RETIRED_EXECUTION_CONTRACT_TESTS_REMAIN_EXECUTABLE_ONLY_AS_HISTORICAL_ANTI_REGROWTH"
-    assert payload["historical_anti_regrowth_tests"]
-    expected = (
-        "from tests.process._flow_v2_historical_cutover import assert_historical_cutover\n\n"
-        "def test_retired_execution_contract_cannot_regrow() -> None:\n"
-        "    assert_historical_cutover(__file__)\n"
+def test_retired_execution_surfaces_are_physically_absent_and_unrouted() -> None:
+    from tests.process._flow_v2_historical_cutover import (
+        assert_retired_execution_surfaces_absent,
     )
-    for rel in payload["historical_anti_regrowth_tests"]:
-        assert _read(rel) == expected, rel
 
+    assert_retired_execution_surfaces_absent()
 
 def test_git_connector_pitfall_cannot_authorize_production_update_ref() -> None:
     text = _read("個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md")
