@@ -9,6 +9,8 @@ import json
 import os
 from pathlib import Path
 import sys
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -20,6 +22,7 @@ from tools.control_transaction import (
 )
 from tools.execution_entry_contract import (
     assert_startup_transition_matches_record,
+    rebind_scheduler_phase6_preflight_receipt,
     validate_phase6_preflight_evidence,
     validate_startup_evidence,
     validate_startup_transition,
@@ -85,6 +88,9 @@ TRUSTED_GITHUB_ACTIONS_PROVENANCE_SCHEMA = "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_P
 TRUSTED_GITHUB_ACTIONS_PROVENANCE_MODE = "MINT_EXACT_INVOCATION_IDENTITY"
 TRUSTED_GITHUB_ACTIONS_INVOCATION_SENTINEL = "GITHUB_ACTIONS_RUNTIME"
 TRUSTED_GITHUB_ACTIONS_WORKFLOW_PATH = ".github/workflows/whd-control-transaction-v2-request.yml"
+SCHEDULER_PREFLIGHT_RECEIPT_REF_SCHEMA = "WHD_SCHEDULER_PHASE6_PREFLIGHT_RECEIPT_REF_V1"
+REMOTE_PHASE6_RESULT_MARKER = "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1"
+TRUSTED_PHASE6_COMMENT_AUTHOR = "github-actions[bot]"
 
 
 def _bind_trusted_github_actions_runtime_provenance(
@@ -185,6 +191,129 @@ def _bind_trusted_github_actions_runtime_provenance(
         assert isinstance(payload, dict)
         payload["invocation_identity"] = minted_invocation
     return rebound
+
+
+def _fetch_issue_comment(repo: str, token: str, comment_id: int) -> dict[str, object]:
+    url = f"https://api.github.com/repos/{repo}/issues/comments/{comment_id}"
+    request = Request(
+        url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "whd-flow-v2-ingress",
+        },
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise ProductionExecutorError(
+            f"scheduler Phase6 receipt comment readback failed: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ProductionExecutorError("scheduler Phase6 receipt comment must be an object")
+    return {str(k): v for k, v in payload.items()}
+
+
+def _receipt_from_trusted_comment(
+    comment: dict[str, object],
+    *,
+    issue: int,
+    comment_id: int,
+) -> dict[str, object]:
+    if int(comment.get("id") or 0) != int(comment_id):
+        raise ProductionExecutorError("scheduler Phase6 receipt comment id mismatch")
+    user = comment.get("user")
+    if not isinstance(user, dict) or str(user.get("login") or "") != TRUSTED_PHASE6_COMMENT_AUTHOR:
+        raise ProductionExecutorError("scheduler Phase6 receipt comment author is not trusted Actions")
+    issue_url = str(comment.get("issue_url") or "")
+    if not issue_url.endswith(f"/issues/{int(issue)}"):
+        raise ProductionExecutorError("scheduler Phase6 receipt comment Issue mismatch")
+    body = str(comment.get("body") or "").strip()
+    lines = body.splitlines()
+    if not lines or lines[0].strip() != REMOTE_PHASE6_RESULT_MARKER:
+        raise ProductionExecutorError("scheduler Phase6 receipt comment marker mismatch")
+    try:
+        start = lines.index("~~~json") + 1
+        end = lines.index("~~~", start)
+    except ValueError as exc:
+        raise ProductionExecutorError("scheduler Phase6 receipt comment JSON fence missing") from exc
+    try:
+        payload = json.loads("\n".join(lines[start:end]))
+    except json.JSONDecodeError as exc:
+        raise ProductionExecutorError("scheduler Phase6 receipt comment JSON invalid") from exc
+    if not isinstance(payload, dict):
+        raise ProductionExecutorError("scheduler Phase6 receipt payload must be an object")
+    return {str(k): v for k, v in payload.items()}
+
+
+def _resolve_scheduler_preflight_receipt_ref(
+    request: dict[str, object],
+    *,
+    repo: str,
+    token: str,
+) -> dict[str, object]:
+    ref = request.get("scheduler_preflight_receipt_ref")
+    if ref is None:
+        return request
+    if request.get("schema") != INTENT_SCHEMA:
+        raise ProductionExecutorError(
+            "scheduler Phase6 receipt reference is only valid on semantic transaction intent"
+        )
+    if "preflight_evidence" in request:
+        raise ProductionExecutorError(
+            "scheduler transaction intent must not carry both preflight_evidence and receipt reference"
+        )
+    if not isinstance(ref, dict) or ref.get("schema") != SCHEDULER_PREFLIGHT_RECEIPT_REF_SCHEMA:
+        raise ProductionExecutorError("scheduler Phase6 receipt reference schema mismatch")
+
+    lane_id = str(request.get("lane_id") or "").strip()
+    if execution_mode_for_lane(lane_id) != "SCHEDULER_LANE":
+        raise ProductionExecutorError("scheduler Phase6 receipt reference requires scheduler lane")
+
+    raw_comment_id = ref.get("comment_id")
+    if isinstance(raw_comment_id, bool):
+        raise ProductionExecutorError("scheduler Phase6 receipt comment_id must be positive")
+    try:
+        comment_id = int(raw_comment_id)
+    except (TypeError, ValueError) as exc:
+        raise ProductionExecutorError("scheduler Phase6 receipt comment_id must be positive") from exc
+    if comment_id <= 0:
+        raise ProductionExecutorError("scheduler Phase6 receipt comment_id must be positive")
+
+    request_id = str(ref.get("request_id") or "").strip()
+    branch = str(ref.get("branch") or "").strip()
+    head_sha = str(ref.get("head_sha") or "").strip().lower()
+    if not request_id or not branch or not head_sha:
+        raise ProductionExecutorError(
+            "scheduler Phase6 receipt reference requires request_id + branch + head_sha"
+        )
+
+    comment = _fetch_issue_comment(repo, token, comment_id)
+    receipt = _receipt_from_trusted_comment(
+        comment,
+        issue=int(request["issue"]),
+        comment_id=comment_id,
+    )
+    try:
+        rebound = rebind_scheduler_phase6_preflight_receipt(
+            receipt,
+            issue=int(request["issue"]),
+            lane_id=lane_id,
+            invocation_identity=str(request["invocation_identity"]),
+            branch=branch,
+            head_sha=head_sha,
+            request_id=request_id,
+        )
+    except (TypeError, ValueError) as exc:
+        raise ProductionExecutorError(
+            f"scheduler Phase6 receipt rejected: {exc}"
+        ) from exc
+
+    resolved = deepcopy(request)
+    resolved["preflight_evidence"] = rebound
+    return resolved
 
 
 def _prevalidate_interactive_git_write_receipt(
@@ -422,13 +551,21 @@ def _load_request(path: Path) -> dict[str, object]:
         raise ProductionExecutorError("semantic intent must not supply startup_evidence/startup_transition")
     reuse = payload.get("reuse_admission_session") is True
     if not reuse:
-        for key in ("purpose", "work_root_gate_evidence", "preflight_evidence"):
+        for key in ("purpose", "work_root_gate_evidence"):
             if key not in payload:
                 raise ProductionExecutorError(f"transaction intent missing {key}")
         if not isinstance(payload["work_root_gate_evidence"], dict):
             raise ProductionExecutorError("work_root_gate_evidence must be an object")
-        if not isinstance(payload["preflight_evidence"], dict):
+        has_preflight = "preflight_evidence" in payload
+        has_receipt_ref = "scheduler_preflight_receipt_ref" in payload
+        if has_preflight == has_receipt_ref:
+            raise ProductionExecutorError(
+                "transaction intent requires exactly one of preflight_evidence or scheduler_preflight_receipt_ref"
+            )
+        if has_preflight and not isinstance(payload["preflight_evidence"], dict):
             raise ProductionExecutorError("preflight_evidence must be an object")
+        if has_receipt_ref and not isinstance(payload["scheduler_preflight_receipt_ref"], dict):
+            raise ProductionExecutorError("scheduler_preflight_receipt_ref must be an object")
     return payload
 
 
@@ -450,6 +587,11 @@ def execute_request(
     trusted_runtime_env=None,
     request_branch: str | None = None,
 ) -> dict[str, object]:
+    request = _resolve_scheduler_preflight_receipt_ref(
+        request,
+        repo=repo,
+        token=token,
+    )
     request = _materialize_request(request, repo=repo)
     request = _bind_trusted_github_actions_runtime_provenance(
         request,
