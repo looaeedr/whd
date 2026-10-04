@@ -7,24 +7,20 @@
     "parent_issue": 1059
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
-    "released_at": null
+    "released_at": "2026-10-04T04:37:47Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 55,
+  "generation": 56,
   "head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
   "issue": 1062,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-04T04:37:57Z",
-    "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "token": "lease:1062:37176823281:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "ae_engine/manufacturing_api.py",
@@ -54,13 +50,9 @@
       "tests/test_resolved_manufacturing_export.py"
     ]
   },
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "b187770c4f1085383cd2cf46f49baec1e03954ab",
     "last_accepted_run": 37176982169
@@ -74,21 +66,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "3022188a1e5dbdc2eb2273503dc18b78af9a39a0",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f0b2fd551fdb1e8ef2c8764975b6d2543ed79cba",
   "transaction": {
-    "expected_fingerprint": "735aff245ebeececa58464c74cf2dbf5360f1ee0a794ba816ae1f265ccba29cd",
-    "id": "gha:37177516641:1062:MERGE:54",
+    "expected_fingerprint": "de5ffec428cc86804e8fc3480800ff0517cc52ce7197f5cecccc388d8af86c8e",
+    "id": "gha:37177516641:1062:FINALIZE:55",
     "invocation_identity": "gha:looaeedr/whd:run:37176823281:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work0:ref:coord/transaction-requests-work0",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T04:37:23Z",
+  "updated_at": "2026-10-04T04:37:47Z",
   "version": 2,
   "work_branch": "test/issue1062-product-full-regression-recovery"
 }
