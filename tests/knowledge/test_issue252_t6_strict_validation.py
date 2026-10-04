@@ -35,7 +35,7 @@ def _doc(role: str, contract: str, canonical: str | None, body: str, **extra: st
 
 def test_exact_governed_set_matches_effective_authority_and_strict_validation() -> None:
     governance = _load_governance()
-    from tools.knowledge_authority_overlay import governed_paths, merge_effective_authority
+    from tools.knowledge_authority_overlay import governed_paths, merge_effective_authority, retired_paths
 
     governed = set(governed_paths(ROOT))
     effective = tuple(merge_effective_authority(MATRIX, OVERLAY))
@@ -45,7 +45,11 @@ def test_exact_governed_set_matches_effective_authority_and_strict_validation() 
     # governed documents are valid only if current strict governance accepts them;
     # they must not be retroactively inserted into the frozen matrix/overlay.
     assert len(effective_paths) == 398
-    assert effective_paths <= governed
+    retired = set(retired_paths(ROOT))
+    assert effective_paths <= governed | retired
+    retired_frozen = effective_paths - governed
+    assert retired_frozen <= retired
+    assert ".agents/skills/engineering/executable-continuity-controller/SKILL.md" in retired_frozen
     post_t6_paths = governed - effective_paths
     assert "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md" in post_t6_paths
     assert hasattr(governance, "validate_strict")
