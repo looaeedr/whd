@@ -1,74 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1145-closure-consume-qa-20261004T1121Z",
+  "request_id": "issue1145-closure-merge-20261004T1122Z",
   "issue": 1145,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.flowv2.work0.issue1145.closure.20261004T1106Z",
-  "expected_coord_head": "1031a8bc9a363d38621734df069a9502829f5cce",
-  "expected_generation": 2,
-  "effect": {
-    "run_id": 37117273409,
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED_FOR_CLOSURE_RECONCILIATION",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1150,
-        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Reconcile already-merged PR #1150"
-    }
-  },
-  "purpose": "Consume the existing exact-head successful WHD Control Plane Regression for merged PR #1150 and continue #1145 directly to trusted ALREADY_MERGED reconciliation.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      ".unpushed",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1145,
-    "invocation_identity": "chatgpt.flowv2.work0.issue1145.closure.20261004T1106Z",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "5d9c14796d78725cce700b5fa6acff0dc57ad364",
-    "required_skills": [
-      "flow-v2-execution",
-      "phase6-release-packaging"
-    ],
-    "completed_skills": [
-      "flow-v2-execution",
-      "phase6-release-packaging"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "release_required_artifacts.json"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "release_required_artifacts.json"
-    ],
-    "observed_at": "2026-10-04T11:19:03Z"
-  }
+  "expected_coord_head": "df8cc3452c844d368234c9851fa9f88a501c12a1",
+  "expected_generation": 3,
+  "effect": {},
+  "reuse_admission_session": true
 }
