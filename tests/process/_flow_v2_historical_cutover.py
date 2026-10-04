@@ -6,31 +6,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "tests/process/WHD_PROCESS_TEST_CLASSIFICATION_V1.json"
 FLOW = ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
-BRIDGES = (
-    ROOT / ".agents/skills/engineering/派工/SKILL.md",
-    ROOT / ".agents/skills/engineering/排程模擬/SKILL.md",
-    ROOT / ".agents/skills/engineering/工作槽/SKILL.md",
-    ROOT / ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
-    ROOT / ".agents/skills/engineering/issue-closure-gate/SKILL.md",
-    ROOT / ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
-    ROOT / ".agents/skills/engineering/remote-execution-guard/SKILL.md",
-    ROOT / ".agents/skills/engineering/強制接手/SKILL.md",
-    ROOT / ".agents/skills/engineering/執行開發任務/SKILL.md",
-    ROOT / ".agents/skills/engineering/寫排程/SKILL.md",
-)
 
-def assert_historical_cutover(test_file: str) -> None:
+
+def retirement_contract() -> dict[str, object]:
     payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    rel = Path(test_file).resolve().relative_to(ROOT).as_posix()
     assert payload["status"] == "CURRENT"
     assert payload["current_execution_authority"] == ".agents/skills/engineering/flow-v2-execution/SKILL.md"
-    assert rel in payload["historical_anti_regrowth_tests"], rel
+    assert payload["policy"] == "RETIRED_EXECUTION_SURFACES_MUST_BE_ABSENT"
+    return payload
+
+
+def assert_retired_execution_surfaces_absent() -> None:
+    payload = retirement_contract()
+    for rel in payload["retired_paths"]:
+        assert not (ROOT / rel).exists(), f"retired path regrew: {rel}"
+
+    for rel in payload["current_surfaces"]:
+        path = ROOT / rel
+        assert path.exists(), f"CURRENT surface missing: {rel}"
+        text = path.read_text(encoding="utf-8")
+        for token in payload["retired_tokens"]:
+            assert token not in text, f"retired token {token!r} regrew in {rel}"
+
     flow = FLOW.read_text(encoding="utf-8")
     assert "WHD_EXECUTION_RECORD_V2" in flow
     assert "MERGE → FINALIZE → DONE" in flow
-    for path in BRIDGES:
-        text = path.read_text(encoding="utf-8")
-        assert "whd_doc_role: MIRROR" in text, path
-        assert "whd_canonical: .agents/skills/engineering/flow-v2-execution/SKILL.md" in text, path
-        assert "FLOW_V2_EXECUTION_BRIDGE_V1" in text, path
-        assert "不擁有 execution state machine" in text, path
