@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import os
@@ -80,6 +81,110 @@ def _execution_mode_for_request(request: dict[str, object]) -> str:
 
 INTERACTIVE_GIT_WRITE_KINDS = {"START_BRANCH", "APPLY_COMMIT"}
 STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_SCHEMA = "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1"
+TRUSTED_GITHUB_ACTIONS_PROVENANCE_SCHEMA = "WHD_TRUSTED_GITHUB_ACTIONS_RUNTIME_PROVENANCE_REQUEST_V1"
+TRUSTED_GITHUB_ACTIONS_PROVENANCE_MODE = "MINT_EXACT_INVOCATION_IDENTITY"
+TRUSTED_GITHUB_ACTIONS_INVOCATION_SENTINEL = "GITHUB_ACTIONS_RUNTIME"
+TRUSTED_GITHUB_ACTIONS_WORKFLOW_PATH = ".github/workflows/whd-control-transaction-v2-request.yml"
+
+
+def _bind_trusted_github_actions_runtime_provenance(
+    request: dict[str, object],
+    *,
+    repo: str,
+    request_branch: str | None,
+    runtime_env,
+) -> dict[str, object]:
+    """Replace an explicit fresh-admission sentinel only inside the trusted GHA workflow.
+
+    The caller cannot mint an execution identity.  It may only opt into this narrow
+    provenance mode by supplying the sentinel consistently in the fresh admission
+    envelope.  The trusted push workflow then binds all invocation-bearing fields
+    to immutable GitHub Actions context before ordinary startup validation runs.
+    """
+    provenance = request.get("runtime_provenance")
+    observed_invocation = str(request.get("invocation_identity") or "").strip()
+
+    if provenance is None:
+        if observed_invocation == TRUSTED_GITHUB_ACTIONS_INVOCATION_SENTINEL:
+            raise ProductionExecutorError(
+                "trusted GitHub Actions invocation sentinel requires explicit runtime_provenance mode"
+            )
+        return request
+
+    if observed_invocation != TRUSTED_GITHUB_ACTIONS_INVOCATION_SENTINEL:
+        raise ProductionExecutorError(
+            "trusted GitHub Actions runtime_provenance requires the exact invocation sentinel"
+        )
+    if request.get("schema") != REQUEST_SCHEMA:
+        raise ProductionExecutorError(
+            "trusted GitHub Actions runtime_provenance only supports materialized fresh requests"
+        )
+    if not isinstance(provenance, dict):
+        raise ProductionExecutorError("runtime_provenance must be an object")
+    if provenance.get("schema") != TRUSTED_GITHUB_ACTIONS_PROVENANCE_SCHEMA:
+        raise ProductionExecutorError("unexpected trusted GitHub Actions runtime_provenance schema")
+    if provenance.get("mode") != TRUSTED_GITHUB_ACTIONS_PROVENANCE_MODE:
+        raise ProductionExecutorError("unsupported trusted GitHub Actions runtime_provenance mode")
+    if "session_reuse" in request:
+        raise ProductionExecutorError(
+            "trusted GitHub Actions runtime_provenance requires fresh admission, not session reuse"
+        )
+
+    fresh_fields = ("startup_evidence", "preflight_evidence", "startup_transition")
+    for key in fresh_fields:
+        payload = request.get(key)
+        if not isinstance(payload, dict):
+            raise ProductionExecutorError(
+                f"trusted GitHub Actions runtime_provenance requires {key}"
+            )
+        nested_invocation = str(payload.get("invocation_identity") or "").strip()
+        if nested_invocation != TRUSTED_GITHUB_ACTIONS_INVOCATION_SENTINEL:
+            raise ProductionExecutorError(
+                f"trusted GitHub Actions runtime_provenance {key} invocation must use the exact sentinel"
+            )
+
+    if runtime_env is None or str(runtime_env.get("GITHUB_ACTIONS") or "").lower() != "true":
+        raise ProductionExecutorError(
+            "trusted GitHub Actions runtime_provenance requires GITHUB_ACTIONS=true"
+        )
+    observed_repo = str(runtime_env.get("GITHUB_REPOSITORY") or "").strip()
+    if observed_repo != repo:
+        raise ProductionExecutorError(
+            f"trusted GitHub Actions runtime repository mismatch: expected {repo}, observed {observed_repo}"
+        )
+
+    ref_name = str(runtime_env.get("GITHUB_REF_NAME") or "").strip()
+    if not request_branch or ref_name != request_branch:
+        raise ProductionExecutorError(
+            "trusted GitHub Actions runtime request branch mismatch"
+        )
+
+    workflow_ref = str(runtime_env.get("GITHUB_WORKFLOW_REF") or "").strip()
+    workflow_identity = workflow_ref.split("@", 1)[0]
+    expected_workflow_identity = f"{repo}/{TRUSTED_GITHUB_ACTIONS_WORKFLOW_PATH}"
+    if workflow_identity != expected_workflow_identity:
+        raise ProductionExecutorError(
+            "trusted GitHub Actions runtime workflow identity mismatch"
+        )
+
+    run_id = str(runtime_env.get("GITHUB_RUN_ID") or "").strip()
+    run_attempt = str(runtime_env.get("GITHUB_RUN_ATTEMPT") or "").strip()
+    if not run_id.isdigit() or int(run_id) <= 0:
+        raise ProductionExecutorError("trusted GitHub Actions runtime GITHUB_RUN_ID is invalid")
+    if not run_attempt.isdigit() or int(run_attempt) <= 0:
+        raise ProductionExecutorError("trusted GitHub Actions runtime GITHUB_RUN_ATTEMPT is invalid")
+
+    minted_invocation = (
+        f"gha:{repo}:run:{run_id}:attempt:{run_attempt}:"
+        f"workflow:{workflow_ref}:ref:{ref_name}"
+    )
+    rebound = deepcopy(request)
+    rebound["invocation_identity"] = minted_invocation
+    for key in fresh_fields:
+        payload = rebound[key]
+        assert isinstance(payload, dict)
+        payload["invocation_identity"] = minted_invocation
+    return rebound
 
 
 def _prevalidate_interactive_git_write_receipt(
@@ -98,74 +203,6 @@ def _prevalidate_interactive_git_write_receipt(
         validate_git_unlock_receipt(receipt)
     except ValueError as exc:
         raise ProductionExecutorError(f"root-local-first Git write receipt rejected: {exc}") from exc
-
-
-def _text_field(payload: dict[str, object], key: str) -> str:
-    value = str(payload.get(key) or "").strip()
-    if not value:
-        raise ControlTransactionConflict(f"STALE_PLAN_MUST_DIE stale-record reconcile proof missing {key}")
-    return value
-
-
-def _validate_stale_record_live_target_reconcile_bridge(
-    *,
-    request: dict[str, object],
-    record,
-    repo: str,
-    token: str,
-    stale_identity_error: ValueError,
-) -> bool:
-    """Allow only explicit RECONCILE closure recovery from stale record identity."""
-    if not str(stale_identity_error).startswith("STARTUP_TRANSITION_STALE_IDENTITY "):
-        return False
-    if str(request.get("kind") or "") != "RECONCILE":
-        return False
-
-    effect = request.get("effect")
-    if not isinstance(effect, dict):
-        raise ProductionExecutorError("effect must be an object")
-    proof = effect.get("stale_record_live_target_reconcile_proof")
-    if not isinstance(proof, dict):
-        return False
-    if proof.get("schema") != STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_SCHEMA:
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile proof schema mismatch")
-
-    transition = request.get("startup_transition")
-    if not isinstance(transition, dict):
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile requires startup transition")
-
-    if int(proof.get("issue") or 0) != int(record.issue):
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile issue mismatch")
-
-    live_target_branch = _text_field(proof, "live_target_branch")
-    live_target_sha = _text_field(proof, "live_target_sha").lower()
-    if live_target_branch != record.target_branch:
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile target branch mismatch")
-
-    if str(transition.get("branch") or "").strip() != live_target_branch:
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile transition branch mismatch")
-    if str(transition.get("head_sha") or "").strip().lower() != live_target_sha:
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile transition head mismatch")
-
-    stale_source_branch = _text_field(proof, "stale_source_branch")
-    stale_source_sha = _text_field(proof, "stale_source_sha").lower()
-    stale_target_branch = _text_field(proof, "stale_target_branch")
-    stale_target_sha = _text_field(proof, "stale_target_sha").lower()
-    if stale_source_branch != record.source_branch or stale_source_sha != str(record.source_sha).lower():
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile source identity mismatch")
-    if stale_target_branch != record.target_branch or stale_target_sha != str(record.target_sha).lower():
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile target identity mismatch")
-
-    observed_live_target = _read_branch_head(repo, token, live_target_branch).lower()
-    if observed_live_target != live_target_sha:
-        raise ControlTransactionConflict(
-            f"STALE_PLAN_MUST_DIE stale-record reconcile live target drift: expected {live_target_sha}, observed {observed_live_target}"
-        )
-    if not _is_ancestor(repo, token, stale_target_sha, live_target_sha):
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale target is not ancestor of live target")
-    if not _is_ancestor(repo, token, stale_source_sha, live_target_sha):
-        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale source is not ancestor of live target")
-    return True
 
 
 def _validate_interactive_git_write_receipt(
@@ -279,6 +316,75 @@ def _validate_live_session_reuse(record, *, request: dict[str, object]) -> None:
         raise ControlTransactionConflict("session reuse lease expired; fresh ACQUIRE required")
     if record.owner_kind != "SCHEDULER" or record.owner_id != lane_id or record.lane_id != lane_id:
         raise ControlTransactionConflict("session reuse owner/lane identity mismatch")
+
+def _text_field(payload: dict[str, object], key: str) -> str:
+    value = str(payload.get(key) or "").strip()
+    if not value:
+        raise ControlTransactionConflict(f"STALE_PLAN_MUST_DIE stale-record reconcile proof missing {key}")
+    return value
+
+
+def _validate_stale_record_live_target_reconcile_bridge(
+    *,
+    request: dict[str, object],
+    record,
+    repo: str,
+    token: str,
+    stale_identity_error: ValueError,
+) -> bool:
+    """Allow only explicit RECONCILE closure recovery from stale record identity."""
+    if not str(stale_identity_error).startswith("STARTUP_TRANSITION_STALE_IDENTITY "):
+        return False
+    if str(request.get("kind") or "") != "RECONCILE":
+        return False
+
+    effect = request.get("effect")
+    if not isinstance(effect, dict):
+        raise ProductionExecutorError("effect must be an object")
+    proof = effect.get("stale_record_live_target_reconcile_proof")
+    if not isinstance(proof, dict):
+        return False
+    if proof.get("schema") != STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_SCHEMA:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile proof schema mismatch")
+
+    transition = request.get("startup_transition")
+    if not isinstance(transition, dict):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile requires startup transition")
+
+    if int(proof.get("issue") or 0) != int(record.issue):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile issue mismatch")
+
+    live_target_branch = _text_field(proof, "live_target_branch")
+    live_target_sha = _text_field(proof, "live_target_sha").lower()
+    if live_target_branch != record.target_branch:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile target branch mismatch")
+
+    if str(transition.get("branch") or "").strip() != live_target_branch:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile transition branch mismatch")
+    if str(transition.get("head_sha") or "").strip().lower() != live_target_sha:
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile transition head mismatch")
+
+    stale_source_branch = _text_field(proof, "stale_source_branch")
+    stale_source_sha = _text_field(proof, "stale_source_sha").lower()
+    stale_target_branch = _text_field(proof, "stale_target_branch")
+    stale_target_sha = _text_field(proof, "stale_target_sha").lower()
+    if stale_source_branch != record.source_branch or stale_source_sha != str(record.source_sha).lower():
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile source identity mismatch")
+    if stale_target_branch != record.target_branch or stale_target_sha != str(record.target_sha).lower():
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale-record reconcile target identity mismatch")
+
+    observed_live_target = _read_branch_head(repo, token, live_target_branch).lower()
+    if observed_live_target != live_target_sha:
+        raise ControlTransactionConflict(
+            f"STALE_PLAN_MUST_DIE stale-record reconcile live target drift: expected {live_target_sha}, observed {observed_live_target}"
+        )
+    if not _is_ancestor(repo, token, stale_target_sha, live_target_sha):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale target is not ancestor of live target")
+    if not _is_ancestor(repo, token, stale_source_sha, live_target_sha):
+        raise ControlTransactionConflict("STALE_PLAN_MUST_DIE stale source is not ancestor of live target")
+    return True
+
+
 def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -335,8 +441,22 @@ def _materialize_request(request: dict[str, object], *, repo: str) -> dict[str, 
         raise ProductionExecutorError(f"transaction intent rejected: {exc}") from exc
 
 
-def execute_request(*, request: dict[str, object], repo: str, token: str, coord_branch: str) -> dict[str, object]:
+def execute_request(
+    *,
+    request: dict[str, object],
+    repo: str,
+    token: str,
+    coord_branch: str,
+    trusted_runtime_env=None,
+    request_branch: str | None = None,
+) -> dict[str, object]:
     request = _materialize_request(request, repo=repo)
+    request = _bind_trusted_github_actions_runtime_provenance(
+        request,
+        repo=repo,
+        request_branch=request_branch,
+        runtime_env=trusted_runtime_env,
+    )
     if str(request["kind"]) == "SEED":
         if int(request["issue"]) != 0:
             raise ProductionExecutorError("SEED request issue must be 0")
@@ -457,7 +577,14 @@ def main() -> int:
         if not request_branch:
             raise ProductionExecutorError("GITHUB_REF_NAME is required for push request branch binding")
         _validate_request_branch(request=request, request_branch=request_branch)
-        result = execute_request(request=request, repo=repo, token=token, coord_branch=args.coord_branch)
+        result = execute_request(
+            request=request,
+            repo=repo,
+            token=token,
+            coord_branch=args.coord_branch,
+            trusted_runtime_env=os.environ,
+            request_branch=request_branch,
+        )
         result["request_id"] = request["request_id"]
         code = 0
     except ControlTransactionConflict as exc:
