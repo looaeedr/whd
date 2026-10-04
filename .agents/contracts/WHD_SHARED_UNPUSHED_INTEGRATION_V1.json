@@ -66,8 +66,9 @@
       "主體"
     ],
     "branch_creation_timing": "DELIVERY_ONLY_AFTER_LANE_GREEN",
-    "scope_gate": "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST",
-    "cross_lane_leakage": "FORBIDDEN"
+    "scope_gate": "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK",
+    "cross_lane_leakage": "FORBIDDEN",
+    "pre_lock_manifest_equality": "VALIDATION_ONLY_NOT_DELIVERY_AUTHORITY"
   },
   "remote_authority_scope": {
     "interactive_repository_content": "DENY_BY_DEFAULT_UNTIL_EXPLICIT_AUTHORITY",
