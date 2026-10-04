@@ -7,28 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
-    "released_at": null
+    "released_at": "2026-10-04T12:16:26Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
   "issue": 1160,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-04T12:28:19Z",
-    "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
-    "token": "lease:1160:37201327033:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
     "last_accepted_run": 37190651040
@@ -42,21 +34,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "governance/issue1160-legacy-purge",
   "source_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
   "transaction": {
-    "expected_fingerprint": "029ef9bbfd08e704b258aed147e9e721841e51abdd61721aaa9de4feaa698ba3",
-    "id": "gha:37201465142:1160:MERGE:3",
+    "expected_fingerprint": "81ed6504a739b2a348b974bcc53b13cca942872bbad60a2ffb936467169034cd",
+    "id": "gha:37201465142:1160:FINALIZE:4",
     "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T12:15:52Z",
+  "updated_at": "2026-10-04T12:16:25Z",
   "version": 2,
   "work_branch": "governance/issue1160-legacy-purge"
 }
