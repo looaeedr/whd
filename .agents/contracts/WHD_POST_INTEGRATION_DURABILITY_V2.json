@@ -32,5 +32,11 @@
   },
   "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
   "supersedes": ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
-  "root_sync_transport": "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head"
+  "root_sync_transport": "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head",
+  "root_sync_ingress": {
+    "cli": "python tools/post_integration_durability.py --execution-record <record.json> --accepted-tree-sha <sha>",
+    "owner": "tools/post_integration_durability.py::main",
+    "success_schema": "WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1",
+    "failure_schema": "WHD_CANONICAL_ROOT_SYNC_RESULT_V1"
+  }
 }
