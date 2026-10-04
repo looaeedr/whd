@@ -1,12 +1,47 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1160-closure-merge-20261004T1215Z",
-  "issue": 1160,
-  "kind": "MERGE",
+  "request_id": "issue1178-closure-acquire-20261004T1219Z",
+  "issue": 1178,
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1160.closure.20261004T1211Z",
-  "expected_coord_head": "1813e72dbf3fceaffa1cea090c723c005dd54512",
-  "expected_generation": 3,
-  "effect": {},
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1178.closure.20261004T1219Z",
+  "expected_coord_head": "702f6f8b99e9ae39f647bc8a04366307bd739015",
+  "expected_generation": 1,
+  "effect": {
+    "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Consume accepted PR #1179 exact-head QA"
+    }
+  },
+  "purpose": "Closure-only reconciliation for already merged PR #1179.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "GOOGLE_DRIVE_CANONICAL",
+    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [".agents", ".git", ".github", ".unpushed", "AGENTS.md", "ae_engine", "gui_modules", "tests", "tools"],
+    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1178,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1178.closure.20261004T1219Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
+    "required_skills": [],
+    "completed_skills": [],
+    "required_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"],
+    "completed_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"],
+    "observed_at": "2026-10-04T12:18:07Z"
+  }
 }
