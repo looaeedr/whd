@@ -223,7 +223,7 @@ CURRENT machine owners：
 4. 禁止再要求每票建立 execution-authority checkpoint path、journal/state 或 `RUNNING / WAITING_REMOTE / RECOVERING` 第二套狀態。領域測試、長 log、批次 runner 若本身需要 journal/checkpoint，可保留為**領域 evidence**，但不得授權 execution transition、turn exit 或 closure。
 5. 沒有真正背景 Subagent Runtime 時，由同一執行者依 Flow v2 structured `next_action` 繼續施工；不得回報「已派給其他人等待」。
 6. remote QA 由同一 ExecutionRecord 的 `active_run + qa` 欄位與 `monitoring-remote-qa` bridge 投影；已有 exact-head terminal GREEN 且符合 fast path 時優先 `CONSUME_QA`，不得恢復 legacy `REMOTE_QA_ACTIVE_LOCK` / checkpoint waiting machine。
-7. 派工、工作槽、排程模擬、issue closure 等入口只可 bridge 到 `.agents/skills/engineering/flow-v2-execution/SKILL.md`；任何新增 CURRENT 規則若重新指定 `派工`、checkpoint/journal、Remote Guard 或 `tools/continuity_controller.py` 為 execution owner，固定視為 anti-regrowth regression。
+7. 派工、工作槽、排程模擬、issue closure 等入口只可 bridge 到 `.agents/skills/engineering/flow-v2-execution/SKILL.md`；任何新增 CURRENT 規則若重新指定 `派工`、checkpoint/journal、Remote Guard 或 retired continuity runtime 為 execution owner，固定視為 anti-regrowth regression。
 
 ### DURABLE_TERMINAL_EXIT_HARD_GATE_V1
 
@@ -293,7 +293,7 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 <!-- FLOW_V2_DURABLE_COMPLETION_BRIDGE_V1 -->
 當任務具有 remote QA、runtime cut / resume，或準備宣告完成／關單時，唯一 CURRENT durable execution truth 是 `WHD_EXECUTION_RECORD_V2`。續跑依 live lease + structured `next_action`；completion/turn exit 依 `tools/execution_invocation_exit.py`；closure 只由 atomic `FINALIZE` 寫成 durable `DONE`。
 
-`tools/continuity_controller.py`、legacy checkpoint finalization 與 `assert-finalizable checkpoint.json` 只保留 historical/migration evidence，**不得作 CURRENT finalization prerequisite、execution authority 或停止判定**。exact-head QA GREEN 必須先 `ACCEPT_QA / CONSUME_QA`，進入 terminal tail 後持續 `MERGE → FINALIZE → DONE`；只有 fresh machine evidence 的 genuine blocker 可以中斷。
+retired continuity runtime、legacy checkpoint finalization 與 `assert-finalizable checkpoint.json` 只保留 historical knowledge provenance，**不得作 CURRENT finalization prerequisite、execution authority 或停止判定**。exact-head QA GREEN 必須先 `ACCEPT_QA / CONSUME_QA`，進入 terminal tail 後持續 `MERGE → FINALIZE → DONE`；只有 fresh machine evidence 的 genuine blocker 可以中斷。
 
 ### 0.1 知識載入優先級
 
