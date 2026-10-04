@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
   "issue": 1112,
   "lane_id": "chatgpt.flowv2.work0",
@@ -35,16 +35,17 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "pr_number": 1134,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Consume existing exact-head Product Regression",
-    "kind": "START_QA"
+    "display": "Reconcile already-merged PR #1134",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "1d5af6a359582d8ab449a1d368c3771ac947ab84",
+    "last_accepted_run": 36955190871
   },
   "recovery_history": [
     {
@@ -55,21 +56,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED_FOR_CLOSURE_RECONCILIATION",
+  "semantic_state": "QA_ACCEPTED_FOR_CLOSURE_RECONCILIATION",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "45932f4f3b888ceb039dd8908b7d1da8511fa507",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "1a5f7f2f62c6eb358a21afd53c250be0dedfb669",
   "transaction": {
-    "expected_fingerprint": "f9d2c503c64671c6e912985e8c8183a89a14a5cd30f7b18515ef0c463de999fa",
-    "id": "gha:37207766328:1112:ACQUIRE:7",
+    "expected_fingerprint": "ecdfcb2d76afcd525bd8f04f8a2c35cb626626e126c30167dc8069d158134262",
+    "id": "gha:37208392569:1112:CONSUME_QA:8",
     "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-    "kind": "ACQUIRE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T14:02:47Z",
+  "updated_at": "2026-10-04T14:12:42Z",
   "version": 2,
   "work_branch": "work/issue1112-receiving-set-bay-editor-20261002"
 }
