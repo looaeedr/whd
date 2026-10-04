@@ -71,9 +71,16 @@
     "pre_lock_manifest_equality": "VALIDATION_ONLY_NOT_DELIVERY_AUTHORITY"
   },
   "remote_authority_scope": {
-    "interactive_repository_content": "DENY_BY_DEFAULT_UNTIL_EXPLICIT_AUTHORITY",
+    "interactive_repository_content": "WORKSPACE_BASELINE_READ_ALLOWED_OTHER_ACTIONS_REQUIRE_EXPLICIT_AUTHORITY",
     "control_plane_authority": "OWN_CURRENT_CONTRACTS_NOT_OVERRIDDEN_BY_PUSH_SKILL",
-    "control_plane_cannot_author_root_content": true
+    "control_plane_cannot_author_root_content": true,
+    "workspace_baseline_actions": [
+      "READ",
+      "FETCH",
+      "COMPARE",
+      "BRANCH_READ",
+      "REPO_METADATA_READ"
+    ]
   },
   "post_delivery_tail": {
     "execution_terminal_owner": "WHD_EXECUTION_RECORD_V2",
@@ -110,8 +117,8 @@
       "cleanup_after_terminal": true,
       "invariant": "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET",
       "triggers": [
-        "SOURCE_CONNECTOR_NOT_DIRECTLY_USABLE_AS_GIT_CONTENT_WRITE_INPUT",
-        "CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX"
+        "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
+        "SOURCE_CONNECTOR_NOT_DIRECTLY_USABLE_AS_GIT_CONTENT_WRITE_INPUT"
       ],
       "codex_cloud_mount_bridge": {
         "schema": "WHD_CHATGPT_CLOUD_MOUNT_TO_CODEX_WORKSPACE_BRIDGE_V1",
@@ -121,7 +128,7 @@
         "local_machine_unavailable": false,
         "authority_loss": false,
         "codex_must_not_require_direct_canonical_mount": true,
-        "stage_exact_paths_only": false,
+        "stage_exact_paths_only": true,
         "required_stage_identity": [
           "canonical_path",
           "workspace_path",
@@ -138,12 +145,11 @@
             "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1"
           ],
           "machine_owner": "tools/workspace_canonical_sync.py",
-          "persistence": "RETAIN_ACROSS_INVOCATIONS",
-          "mirror_scope": "FULL_REPOSITORY_CACHE_ALLOWED",
+          "persistence": "EXECUTOR_DEFINED",
+          "mirror_scope": "FALLBACK_RECONCILE_CACHE",
           "authority": false,
-          "canonical_latest_owner": "/Google Drive/WHD",
-          "workspace_root": "/workspace/whd",
-          "startup_reconcile_required": true,
+          "canonical_latest_owner": "DRIVE_SHARED_ZERO_ONLY_WHEN_FALLBACK_ACTIVE",
+          "startup_reconcile_required": false,
           "reconcile_key": "CANONICAL_GENERATION_OR_MANIFEST_DIGEST",
           "sync_mode": "INCREMENTAL_CHANGED_PATHS",
           "commands": [
@@ -173,10 +179,25 @@
           "dirty_path_conflict_state": "WORKSPACE_CANONICAL_RECONCILE_REQUIRED",
           "delivery_scope_still_locked": true,
           "terminal_cleanup": "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY",
-          "invariant": "PERSISTENT_CODEX_WORKSPACE_MIRROR_IS_CACHE_NOT_AUTHORITY",
-          "shared_workspace_invariant": "WORKSPACE_CANONICAL_SYNC_OWNER_IS_SHARED_NOT_CODEX_ONLY"
-        }
+          "invariant": "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP",
+          "shared_workspace_invariant": "SYNC_MACHINE_IS_SHARED_BUT_WORKSPACE_PATH_IS_EXECUTOR_LOCAL",
+          "activation": "SHARED_ZERO_FALLBACK_ONLY",
+          "ordinary_startup_required": false,
+          "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE"
+        },
+        "activation_requires_shared_zero_drift": true
       }
     }
+  },
+  "mode": "CONDITIONAL_FALLBACK_ONLY",
+  "default_route": false,
+  "activation": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
+  "ordinary_workspace_flow": {
+    "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",
+    "production_branch": "cleanup/2d-3d-sync",
+    "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "shared_zero_required": false,
+    "workspace_canonical_sync_required": false,
+    "delivery": "TESTED_DELIVERY_BRANCH_PR"
   }
 }
