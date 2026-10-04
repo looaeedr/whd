@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
   "issue": 1112,
   "lane_id": "chatgpt.flowv2.work0",
@@ -24,7 +24,7 @@
   "mutation_scope": {
     "base_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "ae_engine/receiving_layout.py",
@@ -55,7 +55,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "STALE_RECORD_RECONCILED_TO_LIVE_TARGET",
+  "semantic_state": "PATH_RESERVATION_RELEASED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "aa2f68cc17ef0736fbbb2f0285b11156d274e85c",
@@ -63,13 +63,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b7a8e712688fedd1ee467980d65daa06a8f9ac9f",
   "transaction": {
-    "expected_fingerprint": "c8b7dfd919d4fafa215d12983d287ae23d13d5a30e2532f6906d65ee16cb8d9c",
-    "id": "gha:37169651535:1112:ACQUIRE:3",
+    "expected_fingerprint": "4325af9df751e993a683c3ba686e1dba5473bb1bf08f20852944b5f6d163f361",
+    "id": "gha:37169774749:1112:RELEASE_PATHS:4",
     "invocation_identity": "chatgpt.flowv2.work0.issue1112.release.20261004T015837Z",
-    "kind": "ACQUIRE",
+    "kind": "RELEASE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-04T01:58:37Z",
+  "updated_at": "2026-10-04T02:01:16Z",
   "version": 2,
   "work_branch": "work/issue1112-receiving-set-bay-editor-20261002"
 }
