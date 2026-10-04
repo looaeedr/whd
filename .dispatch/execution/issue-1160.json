@@ -1,0 +1,52 @@
+{
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "version": 2,
+  "generation": 1,
+  "issue": 1160,
+  "execution_intent": "EXECUTE_TICKET",
+  "owner_kind": "UNCLAIMED",
+  "owner_id": "NONE",
+  "lane_id": null,
+  "slot_id": "worker.slot.0",
+  "source_branch": "governance/issue1160-legacy-purge",
+  "source_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
+  "work_branch": "governance/issue1160-legacy-purge",
+  "head_sha": "f565d21b81830eb2e26191f74764ca6227270f96",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "abedb98325be32f42cb3d6e76de10e3328bd403a",
+  "state": "READY",
+  "semantic_state": "READY",
+  "next_action": {
+    "kind": "ACQUIRE",
+    "args": {},
+    "display": "Acquire Issue #1160"
+  },
+  "lease": null,
+  "active_run": null,
+  "transaction": null,
+  "mutation_scope": null,
+  "qa": {
+    "last_accepted_run": null,
+    "accepted_head_sha": null
+  },
+  "blocker": null,
+  "closure": {
+    "merged_sha": null,
+    "issue_closed": false,
+    "released_at": null
+  },
+  "chain": {
+    "parent_issue": null,
+    "next_issue": null,
+    "next_action": null
+  },
+  "recovery_history": [
+    {
+      "kind": "INGRESS_AUTHORITY",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "github-issue:1160:user-explicit-closure-reconciliation:5979618279",
+      "authority_fingerprint": "2ada478e38bdcec4a2c9965f48e9f7b8aa6f6b593fbf106fc2cd34484c5af9a9"
+    }
+  ],
+  "updated_at": "2026-10-04T11:51:56Z"
+}
