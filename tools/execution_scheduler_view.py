@@ -164,18 +164,16 @@ def _runtime_writer_state(
     observed_owner = str(
         observation.get("owner_id") or observation.get("claim_worker") or ""
     ).strip()
-    if observed_owner != record.owner_id:
-        raise SchedulerViewError(
-            f"runtime observation owner mismatch for issue {record.issue}: "
-            f"expected {record.owner_id!r}, observed {observed_owner!r}"
-        )
 
     observed_issue = observation.get("issue")
     if observed_issue != record.issue:
-        # The latest validated owner observation is already about another Issue.
-        # Combined with no live lease/run/transaction on this record, the owner
-        # is not an active writer for this record.
+        # The latest validated observation for this runtime source is already
+        # about another Issue. Combined with no live lease/run/transaction on
+        # this record, the old record has no active writer from that runtime.
         return "INACTIVE", "OWNER_MOVED_TO_OTHER_ISSUE"
+
+    if observed_owner and observed_owner != record.owner_id:
+        return "UNKNOWN", "RUNTIME_OWNER_ROUTING_DRIFT"
 
     if observation.get("branch") != record.work_branch or observation.get("head_sha") != record.head_sha:
         return "UNKNOWN", "RUNTIME_IDENTITY_DRIFT"
@@ -231,7 +229,7 @@ def _takeover_candidates(
     candidates: list[_TakeoverCandidate] = []
     for record in records:
         if (
-            record.state in {"READY", "DONE"}
+            record.state in {"READY", "DONE", "BLOCKED"}
             or record.execution_intent != "SCHEDULER_LANE"
             or record.owner_id in {"NONE", "UNCLAIMED"}
             or record.lane_id == lane_id
