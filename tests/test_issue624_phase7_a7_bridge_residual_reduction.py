@@ -1202,3 +1202,16 @@ def test_issue1271_workspace_shell_view_effects_are_composition_owned():
     assert "self.final_scene_adapter(self.final_scene_ports(namespace))" in adapter_source
     assert 'required("_phase6_toggle_fullscreen")' not in adapter_source
 
+def test_issue1274_legacy_visual_controls_are_workspace_shell_owned():
+    funcs = _top_functions(BRIDGE)
+    assert "_phase6_hide_original_visual_controls" not in funcs
+
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert "_workspace_shell_hide_original_visual_controls(self.left)" in bridge_source
+
+    shell_source = (ROOT / "phase6_workspace_shell.py").read_text(encoding="utf-8")
+    assert "def hide_original_visual_controls(root_widget):" in shell_source
+    assert '"3D 視覺調整" in text' in shell_source
+    assert "child.pack_forget()" in shell_source
+    assert "child.grid_remove()" in shell_source
+
