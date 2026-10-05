@@ -220,7 +220,7 @@ def test_git_content_write_is_forbidden_before_workspace_delivery_unlock():
         source_evidence=source,
     )
     assert_git_content_write_allowed(evidence, action="READ")
-    with pytest.raises(ValueError, match="GIT_WRITE_LOCKED"):
+    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
         assert_git_content_write_allowed(evidence, action="COMMIT")
 
 def test_target_drift_revalidates_green_before_forcing_retest():
@@ -326,7 +326,12 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
     )
     root_gate = json.loads((ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8"))
     assert root_gate["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
-    assert "ROOT_SHARED_UNPUSHED_GATE_READ" in root_gate["required_sequence"]
+    assert root_gate["required_sequence"] == [
+        "WORKSPACE_ROOT_RESOLVED",
+        "WORKSPACE_GIT_IDENTITY_VERIFIED",
+        "PRODUCTION_BASELINE_CURRENT",
+        "REQUESTED_OPERATION",
+    ]
     registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
     route = next(r for r in registry["routes"] if r["id"] == "root-local-first")
     assert route["file_globs"] == ["**"]
