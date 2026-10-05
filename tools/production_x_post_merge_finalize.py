@@ -16,6 +16,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -39,39 +40,102 @@ class PostMergeFinalizeError(RuntimeError):
     pass
 
 
+def _positive_pr_number(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return None
+    return value
+
+
+def _fresh_exact_merged_pr(
+    repo: str,
+    token: str,
+    *,
+    pr_number: int,
+    head_sha: str,
+) -> dict[str, object] | None:
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    if not isinstance(pr, dict):
+        raise PostMergeFinalizeError(f"PR #{pr_number} readback must be an object")
+    if pr.get("merged") is not True:
+        return None
+    if str(pr.get("state") or "").strip().lower() != "closed":
+        return None
+    if str((pr.get("base") or {}).get("ref") or "").strip() != PRODUCTION_BRANCH:
+        return None
+    merged_sha = str(pr.get("merge_commit_sha") or "").strip().lower()
+    if merged_sha != head_sha:
+        return None
+    if _positive_pr_number(pr.get("number")) != pr_number:
+        raise PostMergeFinalizeError(f"PR #{pr_number} readback identity mismatch")
+    return pr
+
+
 def discover_exact_production_merge_prs(
     repo: str,
     token: str,
     head_sha: str,
 ) -> list[dict[str, object]]:
-    """Return merged PRs whose exact merge anchor is this production push HEAD."""
+    """Return exact merged PRs for this production-X push HEAD.
+
+    GitHub's commit-associated pull-request endpoint can legitimately return an
+    empty list for the merge commit created by a PR merge. Candidate discovery
+    therefore has narrow fallbacks, but no fallback is authority: every
+    candidate is fresh-read and must prove exact merged/base/merge-SHA identity.
+    """
     normalized = str(head_sha or "").strip().lower()
     if not SHA_RE.fullmatch(normalized):
         raise PostMergeFinalizeError("head_sha must be a 40-character lowercase SHA")
 
+    candidate_numbers: set[int] = set()
     rows = _api(repo, "GET", f"/commits/{normalized}/pulls", token) or []
     if not isinstance(rows, list):
         raise PostMergeFinalizeError("commit-associated PR readback must be a list")
-
-    matches: list[dict[str, object]] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
-        if row.get("merged") is not True:
-            continue
-        if str(row.get("state") or "").strip().lower() != "closed":
-            continue
-        if str((row.get("base") or {}).get("ref") or "").strip() != PRODUCTION_BRANCH:
-            continue
-        merged_sha = str(row.get("merge_commit_sha") or "").strip().lower()
-        if merged_sha != normalized:
-            continue
-        number = row.get("number")
-        if isinstance(number, bool) or not isinstance(number, int) or number <= 0:
-            continue
-        matches.append(row)
+        number = _positive_pr_number(row.get("number"))
+        if number is not None:
+            candidate_numbers.add(number)
 
-    matches.sort(key=lambda row: int(row["number"]))
+    if not candidate_numbers:
+        commit = _api(repo, "GET", f"/git/commits/{normalized}", token) or {}
+        if not isinstance(commit, dict):
+            raise PostMergeFinalizeError("merge commit readback must be an object")
+        message = str(commit.get("message") or "")
+        match = re.search(r"(?m)^Merge pull request #(\\d+)\\b", message)
+        if match is not None:
+            candidate_numbers.add(int(match.group(1)))
+
+    if not candidate_numbers:
+        encoded_base = quote(PRODUCTION_BRANCH, safe="")
+        rows = _api(
+            repo,
+            "GET",
+            f"/pulls?state=closed&base={encoded_base}&sort=updated&direction=desc&per_page=50",
+            token,
+        ) or []
+        if not isinstance(rows, list):
+            raise PostMergeFinalizeError("closed production PR fallback must be a list")
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            merged_sha = str(row.get("merge_commit_sha") or "").strip().lower()
+            if merged_sha != normalized:
+                continue
+            number = _positive_pr_number(row.get("number"))
+            if number is not None:
+                candidate_numbers.add(number)
+
+    matches: list[dict[str, object]] = []
+    for number in sorted(candidate_numbers):
+        pr = _fresh_exact_merged_pr(
+            repo,
+            token,
+            pr_number=number,
+            head_sha=normalized,
+        )
+        if pr is not None:
+            matches.append(pr)
     return matches
 
 
