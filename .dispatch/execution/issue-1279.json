@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "52871657cd36f47c6dddd000a3a18d3fba96c8c6",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
@@ -22,7 +22,7 @@
     "token": "lease:1279:37385498295:1"
   },
   "mutation_scope": {
-    "base_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
+    "base_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
     "delete_paths": [],
     "reservation_state": "ACTIVE",
     "target_branch": "cleanup/2d-3d-sync",
@@ -38,10 +38,10 @@
   },
   "next_action": {
     "args": {
-      "candidate_commit_sha": "52871657cd36f47c6dddd000a3a18d3fba96c8c6",
+      "candidate_commit_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
       "diff_digest": "ff47a094aa25c55db86d15e17aba23395c106dcfa91711d9f331b92d18c15485"
     },
-    "display": "Commit exact tested issue1279 diff",
+    "display": "Apply exact tested issue1279 candidate on current baseline",
     "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -59,7 +59,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
@@ -67,13 +67,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
   "transaction": {
-    "expected_fingerprint": "8c0e87b8fa7830f5b86262fb6a5ffcd23cacf697c69835876def987295ebdcb0",
-    "id": "gha:37386306846:1279:RECONCILE:6",
+    "expected_fingerprint": "26673f98a4f9a998064b4833ac997c7eb69d350b9b18a3a53b8994c83973146b",
+    "id": "gha:37386453138:1279:RESERVE_PATHS:7",
     "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-    "kind": "RECONCILE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-05T23:04:44Z",
+  "updated_at": "2026-10-05T23:06:05Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
