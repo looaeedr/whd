@@ -1,9 +1,8 @@
-"""WHD shared unpushed integration lane hard gates.
+"""Historical parser for the retired WHD shared-unpushed model.
 
-This module owns the machine rules for the shared `.unpushed/{body|docs}/0`
-model.  It deliberately fails closed on merge conflicts: a conflict must be
-checkpointed and surfaced to the user; automated conflict resolution is
-forbidden.
+The shared-zero execution route is SUPERSEDED_DATA_ONLY. CURRENT repository
+work must use WORKSPACE_DEFAULT. Public routing/build/finalization APIs below
+fail closed; only bounded historical evidence parsing remains available.
 """
 from __future__ import annotations
 
@@ -17,6 +16,7 @@ DELIVERY_FILESET_LOCK_SCHEMA = "WHD_DELIVERY_FILESET_LOCK_V1"
 DELIVERY_FINALIZATION_SCHEMA = "WHD_FINALIZE_DELIVERED_PATHS_V1"
 CONFLICT_STATE = "BLOCKED_USER_DECISION"
 LANES = {"body", "docs"}
+RETIRED_ERROR = "SHARED_ZERO_ROUTING_RETIRED_USE_WORKSPACE_DEFAULT"
 
 
 class UnpushedIntegrationError(ValueError):
@@ -411,5 +411,28 @@ def finalize_delivered_paths(
         "delivered_hashes": dict(sorted(expected_writes.items())),
         "cleared_at": str(cleared_at),
         "repository_files_deleted": False,
-        "future_modification_rule": "RE_REGISTER_AS_NEW_UNPUSHED_CHANGE_FROM_CURRENT_ROOT_OR_LATEST_0",
+        "future_modification_rule": "HISTORICAL_ONLY_NO_CURRENT_ROUTE",
     }
+
+# Historical read-only aliases. They do not authorize CURRENT routing.
+historical_validate_lane_evidence = validate_lane_evidence
+
+
+def _retired_current_api(*args, **kwargs):
+    raise UnpushedIntegrationError(RETIRED_ERROR)
+
+
+build_lane_evidence = _retired_current_api
+classify_lane = _retired_current_api
+assert_worker_base_is_latest = _retired_current_api
+next_generation = _retired_current_api
+build_conflict_checkpoint = _retired_current_api
+assert_conflict_checkpoint_blocks_action = _retired_current_api
+assert_push_scope = _retired_current_api
+build_delivery_fileset_lock = _retired_current_api
+validate_delivery_fileset_lock = _retired_current_api
+assert_push_scope_matches_lock = _retired_current_api
+assert_delivery_hashes_match_lock = _retired_current_api
+assert_premerge_latest_file_recheck = _retired_current_api
+finalize_delivered_paths = _retired_current_api
+
