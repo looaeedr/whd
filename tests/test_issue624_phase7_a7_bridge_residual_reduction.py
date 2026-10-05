@@ -834,3 +834,33 @@ def test_issue1244_relief_persistence_application_assembly_is_composition_owned(
     assert "self.current_relief_source_signature(" in adapter_source
     assert "self.serialize_assembly_relief_state(" in adapter_source
     assert 'required("_phase6_serialize_assembly_relief_state")' not in adapter_source
+
+
+def test_issue1246_live_sync_payload_assembly_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    assert "_phase6_corner_transaction_payload" in funcs
+    body = _source(BRIDGE, funcs["_phase6_corner_transaction_payload"])
+    assert "_phase6_composition(self)" in body
+    assert "migrate_legacy_snapshot_joints" not in body
+    assert "assembly_joint_schema_version" not in body
+    assert "door_layout_columns" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "corner_transaction_payload" in method_names
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "state = self.corner_transaction_payload(namespace)" in adapter_source
+    assert 'self._required(namespace, "_phase6_corner_transaction_payload")' not in adapter_source
+    assert "self.collect_workspace_state(namespace)" in adapter_source
+    assert "self.serialize_assembly_relief_state(namespace)" in adapter_source
