@@ -1,30 +1,29 @@
-"""Post-integration durability for ordinary WHD workspace delivery.
+"""CURRENT post-integration durability boundary for WHD.
 
-Flow v2 DONE + merge/Issue readback is terminal execution authority. Canonical
-root synchronization is optional maintenance and must never keep a terminal
-Issue open when the current execution surface cannot access /Google Drive/WHD/.git.
-
-Explicit historical lane maintenance validates its own delivery receipt;
-it has no authority over ordinary workspace completion.
-Legacy snapshot/manifests and per-Issue workspace archival are SUPERSEDED and
-must not participate in CURRENT completion decisions.
+Flow v2 DONE plus trusted merge/Issue readback is terminal authority.
+Google Drive is mirror/backup/DR only. Direct Drive-root synchronization and
+shared-zero lane cleanup are retired and cannot block or reopen a terminal Issue.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
-import subprocess
+from collections.abc import Mapping
 from pathlib import Path
-from collections.abc import Iterable, Mapping
 
 CONTRACT_SCHEMA = "WHD_POST_INTEGRATION_DURABILITY_V2"
 ROOT_SYNC_RECEIPT_SCHEMA = "WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1"
-LANE_DELIVERY_RECEIPT_SCHEMA = "WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1"
-CANONICAL_ROOT = "/Google Drive/WHD"
+HISTORICAL_LANE_RECEIPT_SCHEMA = "HISTORICAL_WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1"
+PRODUCTION_AUTHORITY = "GITHUB_PRODUCTION_X"
 PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
-LANES = frozenset({"body", "docs"})
-LANE_FINAL_STATES = frozenset({"EMPTY", "ROLLED_FORWARD"})
+DRIVE_MIRROR_ROOT = "/Google Drive/WHD/WHD_MIRROR/CURRENT"
+RETIRED_ROOT_SYNC_ERROR = "CANONICAL_DRIVE_ROOT_SYNC_RETIRED_USE_MIRROR_PIPELINE"
+RETIRED_LANE_ERROR = "SHARED_ZERO_LANE_CLEANUP_RETIRED"
+
+
+class RootSyncError(RuntimeError):
+    pass
 
 
 def _mapping(value: object, label: str) -> Mapping[str, object]:
@@ -67,34 +66,40 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("post-integration durability owner mismatch")
     if item.get("execution_state_owner") != "WHD_EXECUTION_RECORD_V2":
         raise ValueError("execution state owner must remain WHD_EXECUTION_RECORD_V2")
-    if item.get("canonical_root") != "EXECUTOR_LOCAL_REPO_WORKSPACE":
-        raise ValueError("canonical root mismatch")
-    if item.get("root_sync_receipt_schema") != ROOT_SYNC_RECEIPT_SCHEMA:
-        raise ValueError("root sync receipt schema mismatch")
-    if item.get("root_sync_transport") != "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head":
-        raise ValueError("root sync transport owner mismatch")
+    if item.get("canonical_root") != PRODUCTION_AUTHORITY:
+        raise ValueError("production authority mismatch")
+    if item.get("production_branch") != PRODUCTION_BRANCH:
+        raise ValueError("production branch mismatch")
+    if item.get("drive_role") != "MIRROR_BACKUP_ONLY":
+        raise ValueError("Drive must remain mirror/backup only")
+    if item.get("root_sync_transport") != "RETIRED_USE_MIRROR_PIPELINE":
+        raise ValueError("direct Drive-root sync must remain retired")
     ingress = _mapping(item.get("root_sync_ingress"), "root sync ingress")
-    if ingress.get("owner") != "tools/post_integration_durability.py::main":
-        raise ValueError("root sync ingress owner mismatch")
-    if ingress.get("success_schema") != ROOT_SYNC_RECEIPT_SCHEMA:
-        raise ValueError("root sync ingress success schema mismatch")
-    if ingress.get("failure_schema") != "WHD_CANONICAL_ROOT_SYNC_RESULT_V1":
-        raise ValueError("root sync ingress failure schema mismatch")
-    if ingress.get("terminal_gate") is not False:
-        raise ValueError("root sync ingress must not be a terminal gate")
+    if ingress.get("status") != "RETIRED" or ingress.get("owner") is not None:
+        raise ValueError("root sync ingress must remain retired")
+    if ingress.get("terminal_gate") is not False or ingress.get("closure_authority") is not False:
+        raise ValueError("retired root sync ingress cannot own terminal state")
     policy = _mapping(item.get("root_sync_policy"), "root sync policy")
-    if policy.get("terminal_gate") is not False:
-        raise ValueError("root sync policy must not block terminal completion")
-    if policy.get("closure_authority") is not False:
-        raise ValueError("root sync policy must not own Issue closure")
-    if policy.get("mode") != "OPTIONAL_MAINTENANCE":
-        raise ValueError("root sync policy mode must be OPTIONAL_MAINTENANCE")
-    if item.get("lane_delivery_receipt_schema") != LANE_DELIVERY_RECEIPT_SCHEMA:
-        raise ValueError("lane delivery receipt schema mismatch")
+    if policy.get("mode") != "OPTIONAL_MIRROR_MAINTENANCE":
+        raise ValueError("Drive durability must remain optional mirror maintenance")
+    if policy.get("terminal_gate") is not False or policy.get("closure_authority") is not False:
+        raise ValueError("Drive mirror maintenance cannot block terminal completion")
+    legacy = _mapping(item.get("legacy_lane_cleanup"), "legacy lane cleanup")
+    if legacy.get("status") != "RETIRED" or legacy.get("role") != "HISTORICAL_DATA_ONLY":
+        raise ValueError("shared-zero lane cleanup must remain retired")
+    if legacy.get("terminal_gate") is not False or legacy.get("closure_authority") is not False:
+        raise ValueError("historical lane cleanup cannot own terminal state")
+    if item.get("lane_delivery_receipt_schema") != HISTORICAL_LANE_RECEIPT_SCHEMA:
+        raise ValueError("historical lane receipt marker mismatch")
+    if list(item.get("lane_final_states") or ()) != []:
+        raise ValueError("CURRENT durability must not expose shared-zero lane final states")
+    if list(item.get("required_order") or ()) != [
+        "FLOW_V2_DONE", "MERGE_READBACK_VERIFIED", "DURABLE_CLEANUP_COMPLETE"
+    ]:
+        raise ValueError("CURRENT durability order mismatch")
     forbidden = set(map(str, item.get("forbidden_current_authorities") or ()))
-    expected = {"SOURCE_SNAPSHOT", "CURRENT_SOURCE_MANIFEST", "WORK_ACTIVE_ARCHIVE"}
-    if not expected <= forbidden:
-        raise ValueError("legacy durability authorities must be explicitly forbidden")
+    if not {"SOURCE_SNAPSHOT", "CURRENT_SOURCE_MANIFEST", "WORK_ACTIVE_ARCHIVE"} <= forbidden:
+        raise ValueError("legacy durability authorities must stay forbidden")
     return {str(k): v for k, v in item.items()}
 
 
@@ -120,119 +125,39 @@ def validate_terminal_execution(execution_record: object) -> dict[str, object]:
     }
 
 
-
-class RootSyncError(RuntimeError):
-    """Raised when canonical-root synchronization cannot be proven safe."""
-
-
-def _run_git(root: Path, *args: str) -> str:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), *args],
-            check=True,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except (OSError, subprocess.CalledProcessError) as exc:
-        detail = getattr(exc, "stderr", "") or str(exc)
-        raise RootSyncError(
-            f"canonical root git command failed: {' '.join(args)}: {str(detail).strip()}"
-        ) from exc
-    return str(completed.stdout or "").strip()
-
-
 def sync_canonical_root_to_accepted_head(
     *,
     execution_record: object,
     accepted_tree_sha: str,
-    root_path: str = CANONICAL_ROOT,
+    root_path: str = DRIVE_MIRROR_ROOT,
     remote: str = "origin",
     production_branch: str = PRODUCTION_BRANCH,
 ) -> dict[str, object]:
-    """Synchronize canonical root to one exact already-accepted terminal head.
+    validate_terminal_execution(execution_record)
+    _sha(accepted_tree_sha, "accepted_tree_sha")
+    raise RootSyncError(RETIRED_ROOT_SYNC_ERROR)
 
-    This is post-integration durability plumbing, not a Flow v2 state
-    transition. The ExecutionRecord must already be terminal DONE/RELEASED.
-    The transport refuses tracked worktree/index changes, proves the canonical
-    remote branch still equals the accepted merge, updates only the checked-out
-    production branch, and issues a receipt only after exact HEAD/tree readback.
-    Untracked shared-0 state is intentionally untouched.
-    """
-    terminal = validate_terminal_execution(execution_record)
-    accepted_sha = str(terminal["merged_sha"])
-    accepted_tree_sha = _sha(accepted_tree_sha, "accepted_tree_sha")
-    root = Path(str(root_path))
-    if str(root) != CANONICAL_ROOT:
-        raise RootSyncError("canonical root path mismatch")
-    if not root.is_dir():
-        raise RootSyncError("canonical root directory is unavailable")
-
-    branch = _run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
-    if branch != str(production_branch):
-        raise RootSyncError(
-            f"canonical root branch mismatch: expected {production_branch}, observed {branch}"
-        )
-
-    tracked_status = _run_git(root, "status", "--porcelain", "--untracked-files=no")
-    if tracked_status:
-        raise RootSyncError("canonical root has tracked worktree/index changes")
-
-    remote = str(remote or "").strip()
-    if not remote:
-        raise RootSyncError("canonical root remote must be nonblank")
-    production_branch = str(production_branch or "").strip()
-    if not production_branch:
-        raise RootSyncError("canonical production branch must be nonblank")
-
-    remote_ref = f"refs/remotes/{remote}/{production_branch}"
-    fetch_refspec = f"refs/heads/{production_branch}:{remote_ref}"
-    _run_git(root, "fetch", "--no-tags", remote, fetch_refspec)
-    remote_sha = _run_git(root, "rev-parse", remote_ref).lower()
-    if remote_sha != accepted_sha:
-        raise RootSyncError(
-            f"canonical remote head mismatch: expected {accepted_sha}, observed {remote_sha}"
-        )
-
-    _run_git(root, "reset", "--hard", accepted_sha)
-
-    root_head = _run_git(root, "rev-parse", "HEAD").lower()
-    root_tree = _run_git(root, "rev-parse", "HEAD^{tree}").lower()
-    if root_head != accepted_sha:
-        raise RootSyncError(
-            f"canonical root HEAD readback mismatch: expected {accepted_sha}, observed {root_head}"
-        )
-    if root_tree != accepted_tree_sha:
-        raise RootSyncError(
-            f"canonical root tree readback mismatch: expected {accepted_tree_sha}, observed {root_tree}"
-        )
-
-    return build_root_sync_receipt(
-        accepted_sha=accepted_sha,
-        accepted_tree_sha=accepted_tree_sha,
-        root_head_sha=root_head,
-        root_tree_sha=root_tree,
-        root_path=str(root),
-    )
 
 def build_root_sync_receipt(
     *, accepted_sha: str, accepted_tree_sha: str, root_head_sha: str,
-    root_tree_sha: str, root_path: str = CANONICAL_ROOT,
+    root_tree_sha: str, root_path: str = DRIVE_MIRROR_ROOT,
 ) -> dict[str, object]:
     accepted_sha = _sha(accepted_sha, "accepted_sha")
     accepted_tree_sha = _sha(accepted_tree_sha, "accepted_tree_sha")
     root_head_sha = _sha(root_head_sha, "root_head_sha")
     root_tree_sha = _sha(root_tree_sha, "root_tree_sha")
-    if str(root_path) != CANONICAL_ROOT:
-        raise ValueError("root sync receipt canonical root mismatch")
+    if str(root_path) != DRIVE_MIRROR_ROOT:
+        raise ValueError("mirror receipt path mismatch")
     if root_head_sha != accepted_sha:
-        raise ValueError("canonical root HEAD does not match accepted merge")
+        raise ValueError("mirror HEAD does not match accepted merge")
     if root_tree_sha != accepted_tree_sha:
-        raise ValueError("canonical root tree does not match accepted tree")
+        raise ValueError("mirror tree does not match accepted tree")
     return {
         "schema": ROOT_SYNC_RECEIPT_SCHEMA,
-        "status": "VERIFIED",
-        "canonical_root": CANONICAL_ROOT,
+        "status": "VERIFIED_NON_BLOCKING",
+        "authority": False,
+        "drive_role": "MIRROR_BACKUP_ONLY",
+        "drive_mirror_root": DRIVE_MIRROR_ROOT,
         "accepted_sha": accepted_sha,
         "accepted_tree_sha": accepted_tree_sha,
         "root_head_sha": root_head_sha,
@@ -241,66 +166,51 @@ def build_root_sync_receipt(
 
 
 def validate_root_sync_receipt(receipt: object, *, expected_merged_sha: str) -> dict[str, object]:
-    item = _mapping(receipt, "root sync receipt")
-    if item.get("schema") != ROOT_SYNC_RECEIPT_SCHEMA or item.get("status") != "VERIFIED":
-        raise ValueError("root sync receipt is not VERIFIED")
-    if item.get("canonical_root") != CANONICAL_ROOT:
-        raise ValueError("root sync receipt canonical root mismatch")
-    accepted = _sha(item.get("accepted_sha"), "root sync accepted_sha")
+    item = _mapping(receipt, "mirror receipt")
+    if item.get("schema") != ROOT_SYNC_RECEIPT_SCHEMA:
+        raise ValueError("mirror receipt schema mismatch")
+    if item.get("status") != "VERIFIED_NON_BLOCKING" or item.get("authority") is not False:
+        raise ValueError("mirror receipt must remain non-authoritative")
+    if item.get("drive_role") != "MIRROR_BACKUP_ONLY" or item.get("drive_mirror_root") != DRIVE_MIRROR_ROOT:
+        raise ValueError("mirror receipt Drive boundary mismatch")
+    accepted = _sha(item.get("accepted_sha"), "mirror accepted_sha")
     if accepted != _sha(expected_merged_sha, "expected merged_sha"):
-        raise ValueError("root sync receipt merged SHA mismatch")
-    if _sha(item.get("root_head_sha"), "root sync root_head_sha") != accepted:
-        raise ValueError("root sync receipt root HEAD mismatch")
-    accepted_tree = _sha(item.get("accepted_tree_sha"), "root sync accepted_tree_sha")
-    if _sha(item.get("root_tree_sha"), "root sync root_tree_sha") != accepted_tree:
-        raise ValueError("root sync receipt tree mismatch")
+        raise ValueError("mirror receipt merged SHA mismatch")
+    if _sha(item.get("root_head_sha"), "mirror root_head_sha") != accepted:
+        raise ValueError("mirror receipt root HEAD mismatch")
+    accepted_tree = _sha(item.get("accepted_tree_sha"), "mirror accepted_tree_sha")
+    if _sha(item.get("root_tree_sha"), "mirror root_tree_sha") != accepted_tree:
+        raise ValueError("mirror receipt tree mismatch")
     return {str(k): v for k, v in item.items()}
 
 
-def build_lane_delivery_receipt(
+def historical_build_lane_delivery_receipt(
     *, lane: str, issue: int, generation: int, merged_sha: str,
-    manifest_digest: str, delivered_paths: Iterable[str], lane_state_after: str,
+    manifest_digest: str, delivered_paths, lane_state_after: str,
 ) -> dict[str, object]:
-    lane = str(lane).strip().lower()
-    if lane not in LANES:
-        raise ValueError("invalid delivered lane")
-    state = str(lane_state_after).strip().upper()
-    if state not in LANE_FINAL_STATES:
-        raise ValueError("lane_state_after must be EMPTY or ROLLED_FORWARD")
     paths = tuple(sorted(set(map(str, delivered_paths))))
     if not paths:
-        raise ValueError("delivery receipt requires delivered paths")
+        raise ValueError("historical lane receipt requires delivered paths")
     return {
-        "schema": LANE_DELIVERY_RECEIPT_SCHEMA,
-        "status": "VERIFIED",
-        "lane": lane,
-        "issue": _positive_int(issue, "delivery issue"),
-        "generation": _positive_int(generation, "delivery generation"),
-        "merged_sha": _sha(merged_sha, "delivery merged_sha"),
-        "manifest_digest": _sha256(manifest_digest, "delivery manifest_digest"),
+        "schema": HISTORICAL_LANE_RECEIPT_SCHEMA,
+        "status": "HISTORICAL",
+        "authority": False,
+        "lane": str(lane),
+        "issue": _positive_int(issue, "historical delivery issue"),
+        "generation": _positive_int(generation, "historical delivery generation"),
+        "merged_sha": _sha(merged_sha, "historical delivery merged_sha"),
+        "manifest_digest": _sha256(manifest_digest, "historical delivery manifest_digest"),
         "delivered_paths": list(paths),
-        "lane_state_after": state,
+        "lane_state_after": str(lane_state_after),
     }
 
 
-def validate_lane_delivery_receipt(receipt: object, *, expected_issue: int, expected_merged_sha: str) -> dict[str, object]:
-    item = _mapping(receipt, "lane delivery receipt")
-    if item.get("schema") != LANE_DELIVERY_RECEIPT_SCHEMA or item.get("status") != "VERIFIED":
-        raise ValueError("lane delivery receipt is not VERIFIED")
-    if str(item.get("lane") or "") not in LANES:
-        raise ValueError("lane delivery receipt lane invalid")
-    if _positive_int(item.get("issue"), "delivery issue") != _positive_int(expected_issue, "expected issue"):
-        raise ValueError("lane delivery receipt issue mismatch")
-    if _sha(item.get("merged_sha"), "delivery merged_sha") != _sha(expected_merged_sha, "expected merged_sha"):
-        raise ValueError("lane delivery receipt merged SHA mismatch")
-    _positive_int(item.get("generation"), "delivery generation")
-    _sha256(item.get("manifest_digest"), "delivery manifest_digest")
-    paths = item.get("delivered_paths")
-    if not isinstance(paths, list) or not paths:
-        raise ValueError("lane delivery receipt delivered_paths missing")
-    if str(item.get("lane_state_after") or "") not in LANE_FINAL_STATES:
-        raise ValueError("delivered lane still exposes pending generation")
-    return {str(k): v for k, v in item.items()}
+def build_lane_delivery_receipt(*args, **kwargs):
+    raise ValueError(RETIRED_LANE_ERROR)
+
+
+def validate_lane_delivery_receipt(*args, **kwargs):
+    raise ValueError(RETIRED_LANE_ERROR)
 
 
 def classify_post_integration_durability(
@@ -313,66 +223,31 @@ def classify_post_integration_durability(
     except ValueError as exc:
         return {"state": "NOT_TERMINAL", "next_action": "WAIT_EXECUTION_DONE", "reason": str(exc)}
 
-    # #1178: root synchronization is maintenance, not terminal authority.
-    # Absence or invalidity of a root receipt must never reopen/block an Issue
-    # after Flow v2 has reached DONE with trusted merge + Issue readback.
-    root_sync_status = "NOT_REQUESTED"
-    root_sync_reason = None
+    mirror_status = "NOT_REQUESTED"
+    mirror_reason = None
     if root_sync_receipt is not None:
         try:
-            validate_root_sync_receipt(
-                root_sync_receipt, expected_merged_sha=terminal["merged_sha"]
-            )
-            root_sync_status = "VERIFIED"
+            validate_root_sync_receipt(root_sync_receipt, expected_merged_sha=terminal["merged_sha"])
+            mirror_status = "VERIFIED_NON_BLOCKING"
         except ValueError as exc:
-            root_sync_status = "INVALID_NON_BLOCKING"
-            root_sync_reason = str(exc)
-
-    # Ordinary workspace delivery has no shared-zero namespace to finalize.
-    # Historical data cleanup is explicit and cannot acquire terminal authority.
-    if not legacy_lane_cleanup_requested:
-        result = {"state": "DURABLE_CLEANUP_COMPLETE", "next_action": None,
-                  "issue": terminal["issue"], "root_sync_status": root_sync_status}
-        if root_sync_reason is not None:
-            result["root_sync_reason"] = root_sync_reason
-        return result
-    if lane_delivery_receipt is None:
-        result = {
-            "state": "LANE_CLEANUP_PENDING",
-            "next_action": "FINALIZE_DELIVERED_LANE_ZERO",
-            "issue": terminal["issue"],
-            "root_sync_status": root_sync_status,
-        }
-        if root_sync_reason is not None:
-            result["root_sync_reason"] = root_sync_reason
-        return result
-    try:
-        validate_lane_delivery_receipt(
-            lane_delivery_receipt,
-            expected_issue=terminal["issue"],
-            expected_merged_sha=terminal["merged_sha"],
-        )
-    except ValueError as exc:
-        result = {
-            "state": "LANE_CLEANUP_PENDING",
-            "next_action": "FINALIZE_DELIVERED_LANE_ZERO",
-            "issue": terminal["issue"],
-            "reason": str(exc),
-            "root_sync_status": root_sync_status,
-        }
-        if root_sync_reason is not None:
-            result["root_sync_reason"] = root_sync_reason
-        return result
+            mirror_status = "INVALID_NON_BLOCKING"
+            mirror_reason = str(exc)
 
     result = {
         "state": "DURABLE_CLEANUP_COMPLETE",
         "next_action": None,
         "issue": terminal["issue"],
-        "root_sync_status": root_sync_status,
+        "root_sync_status": mirror_status,
+        "shared_zero_lane_receipt": (
+            "HISTORICAL_IGNORED"
+            if lane_delivery_receipt is not None or legacy_lane_cleanup_requested
+            else "NOT_REQUIRED"
+        ),
     }
-    if root_sync_reason is not None:
-        result["root_sync_reason"] = root_sync_reason
+    if mirror_reason is not None:
+        result["root_sync_reason"] = mirror_reason
     return result
+
 
 def _load_json_file(path: Path) -> object:
     try:
@@ -383,40 +258,40 @@ def _load_json_file(path: Path) -> object:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Synchronize canonical WHD root to one accepted terminal merge"
+        description="Retired Drive-root sync compatibility entrypoint; use the mirror pipeline instead"
     )
     parser.add_argument("--execution-record", type=Path, required=True)
     parser.add_argument("--accepted-tree-sha", required=True)
-    parser.add_argument("--root", default=CANONICAL_ROOT)
+    parser.add_argument("--root", default=DRIVE_MIRROR_ROOT)
     parser.add_argument("--remote", default="origin")
     parser.add_argument("--production-branch", default=PRODUCTION_BRANCH)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
-
     try:
-        receipt = sync_canonical_root_to_accepted_head(
+        sync_canonical_root_to_accepted_head(
             execution_record=_load_json_file(args.execution_record),
             accepted_tree_sha=args.accepted_tree_sha,
             root_path=args.root,
             remote=args.remote,
             production_branch=args.production_branch,
         )
-        rendered = json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
-        if args.output:
-            args.output.write_text(rendered, encoding="utf-8")
-        print(rendered, end="")
-        return 0
     except (RootSyncError, ValueError, OSError) as exc:
-        error = {
-            "schema": "WHD_CANONICAL_ROOT_SYNC_RESULT_V1",
-            "status": "FAILED",
-            "reason": str(exc),
-        }
-        rendered = json.dumps(error, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        rendered = json.dumps(
+            {
+                "schema": "WHD_CANONICAL_ROOT_SYNC_RESULT_V1",
+                "status": "RETIRED",
+                "authority": False,
+                "reason": str(exc),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+        ) + "\n"
         if args.output:
             args.output.write_text(rendered, encoding="utf-8")
         print(rendered, end="")
         return 2
+    raise AssertionError("retired root-sync entrypoint unexpectedly returned")
 
 
 if __name__ == "__main__":
