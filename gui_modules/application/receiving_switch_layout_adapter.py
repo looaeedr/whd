@@ -51,6 +51,13 @@ class ReceivingSwitchLayoutAdapter:
     def add_layer(self) -> None:
         self._layout = resize_switch_layers(self._layout, len(self._layout["layers"]) + 1)
 
+    def remove_layer(self) -> bool:
+        current = len(self._layout["layers"])
+        if current <= 1:
+            return False
+        self._layout = resize_switch_layers(self._layout, current - 1)
+        return True
+
     def resize_connections(self, layer_index: int, delta: int) -> bool:
         current = self.connection_count(layer_index)
         wanted = max(1, current + int(delta))
