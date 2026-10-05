@@ -17,8 +17,10 @@ def test_current_root_gate_is_v2_full_repo_shared_unpushed() -> None:
     assert work_root["default_work_root"]["provider"] == "executor_local_workspace"
     assert work_root["default_work_root"]["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert work_root["default_work_root"]["production_branch"] == "cleanup/2d-3d-sync"
-    assert work_root["canonical_drive_overlay"]["drive_folder_id"] == "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN"
-    assert work_root["canonical_drive_overlay"]["ordinary_startup_required"] is False
+    assert "canonical_drive_overlay" not in work_root
+    assert work_root["drive_mirror"]["role"] == "MIRROR_BACKUP_ONLY"
+    assert work_root["drive_mirror"]["routing_forbidden"] is True
+    assert work_root["drive_mirror"]["authority"] is False
     assert set(work_root["required_root_entries"]) >= {".git", ".agents", "tools", "tests"}
     assert ".unpushed" not in set(work_root["required_root_entries"])
     assert work_root["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
