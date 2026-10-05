@@ -102,7 +102,7 @@ def discover_exact_production_merge_prs(
         if not isinstance(commit, dict):
             raise PostMergeFinalizeError("merge commit readback must be an object")
         message = str(commit.get("message") or "")
-        match = re.search(r"(?m)^Merge pull request #(\\d+)\\b", message)
+        match = re.search(r"(?m)^Merge pull request #(\d+)\b", message)
         if match is not None:
             candidate_numbers.add(int(match.group(1)))
 
