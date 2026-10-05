@@ -1122,6 +1122,81 @@ class Phase6FoldDesignerComposition:
             widget.pack_forget()
         return enabled
 
+    def status_projection(self, namespace):
+        """Project cabinet/part/view state into the existing low-noise status text."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        family = required("_phase6_current_cabinet_family")(app) or "-"
+        mode = str(
+            getattr(app, "_phase6_3d_display_mode", "single") or "single"
+        )
+        if mode == "corner_data":
+            part_key = (
+                getattr(
+                    app,
+                    "_phase6_corner_data_selected_part_key",
+                    None,
+                )
+                or getattr(app, "active_part_key", None)
+            )
+        else:
+            part_key = getattr(app, "active_part_key", None)
+        part_text = (
+            required("_phase6_part_label")(part_key)
+            if part_key
+            else "-"
+        )
+        return Phase6ProjectController.project_status_projection(
+            family=family,
+            mode=mode,
+            part_text=part_text,
+        )
+
+    def refresh_status_bar(self, namespace):
+        """Refresh the status sink without mutating selection/domain state."""
+        app = self.app
+        text = self.status_projection(namespace)
+        var = getattr(app, "status_projection_var", None)
+        if var is not None and hasattr(var, "set"):
+            var.set(text)
+        return text
+
+    def reset_initial_values(self, namespace):
+        """Route immutable factory defaults through the Settings coordinator."""
+        app = self.app
+        self.flush_pending_settings(namespace)
+        coordinator = self.settings_coordinator(
+            self.settings_application_ports(namespace)
+        )
+        return coordinator.reset_factory_settings(
+            getattr(app, "_factory_defaults", {}) or {}
+        )
+
+    def save_settings_context_as_defaults(self, namespace, context):
+        """Persist one Settings context through the existing project command helper."""
+        app = self.app
+        self.flush_pending_settings(namespace)
+        callback = getattr(app, "_save_defaults_callback", None)
+        if callback is None:
+            if hasattr(app, "settings_status_var"):
+                app.settings_status_var.set("未連接預設值儲存器")
+            return False
+
+        payload = self.settings_transactions().settings_defaults_payload(
+            context
+        )
+        try:
+            Phase6ProjectController.route_settings_defaults(
+                callback, payload
+            )
+        except Exception as exc:
+            if hasattr(app, "settings_status_var"):
+                app.settings_status_var.set(f"儲存失敗：{exc}")
+            return False
+        if hasattr(app, "settings_status_var"):
+            app.settings_status_var.set("已儲存到 config.ini")
+        return True
+
     def commit_output_draw_stock(self, namespace):
         """Route STOCK through the existing project command owner."""
         app = self.app
@@ -2699,9 +2774,9 @@ class Phase6FoldDesignerComposition:
                 namespace, key, value
             ),
             flush_settings=lambda: self.flush_pending_settings(namespace),
-            save_defaults=lambda context: required(
-                "_phase6_save_settings_context_as_defaults"
-            )(app, context),
+            save_defaults=lambda context: self.save_settings_context_as_defaults(
+                namespace, context
+            ),
             query_baseline_rows=(
                 (lambda context, model, values: query(context, model, values))
                 if query is not None
@@ -3328,7 +3403,7 @@ class Phase6FoldDesignerComposition:
             and getattr(app, "corner_data_canvas", None) is not None
         ):
             self.refresh_corner_data_unfold_view(namespace)
-        required("_phase6_refresh_status_bar")(app)
+        self.refresh_status_bar(namespace)
         return resolved
 
     def corner_data_info_request_for_key(
