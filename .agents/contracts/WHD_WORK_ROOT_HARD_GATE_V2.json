@@ -39,7 +39,7 @@
   },
   "github_role": "GitHub cleanup/2d-3d-sync is the ordinary production baseline shared by executor-local workspaces. Delivery remains branch + PR + checks; direct production push is forbidden.",
   "root_identity_recovery": {
-    "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
+    "owner": "tools/work_root_gate.py::recover_workspace_to_current_production",
     "cli": "python tools/work_root_gate.py recover-current-production --root <executor-workspace>",
     "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
     "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
