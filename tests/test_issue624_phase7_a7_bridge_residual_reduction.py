@@ -691,3 +691,42 @@ def test_issue1231_receiving_set_bay_application_orchestration_is_composition_ow
     adapter_source = ADAPTER.read_text(encoding="utf-8")
     assert 'snapshot["receiving_layout"] = adapter.layout' in adapter_source
     assert 'persisted_ids=required("receiving_layout_stable_ids")' in adapter_source
+
+
+def test_issue1234_settings_debounce_and_flush_are_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    for name in (
+        "_phase6_flush_pending_settings",
+        "_phase6_stage_setting_update",
+    ):
+        assert name in funcs
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "after_cancel" not in body
+        assert "root.after(" not in body
+        assert "drain_pending" not in body
+        assert "stage_setting_update(" not in body or "_phase6_composition" in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "flush_pending_settings",
+        "stage_setting_update",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert 'service.drain_pending()' in adapter_source
+    assert 'service.stage_setting_update(' in adapter_source
+    assert 'lambda: self.flush_pending_settings(namespace)' in adapter_source
+    assert '_phase6_stage_setting_update' not in adapter_source
+    assert '_phase6_flush_pending_settings' not in adapter_source
