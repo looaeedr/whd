@@ -85,7 +85,7 @@ def open_receiving_layer_preview(
     layer_index: int,
     connection_count: int,
     brand: str,
-    connection_meshes,
+    render_request,
     lock_circles=(),
 ) -> bool:
     """Render one layer as an actual 3D multi-connection preview.
@@ -98,14 +98,14 @@ def open_receiving_layer_preview(
     index = int(layer_index)
     count = max(1, int(connection_count))
     label = str(brand)
-    meshes = tuple(tuple(mesh or ()) for mesh in tuple(connection_meshes or ()))
-    if len(meshes) != count or any(not mesh for mesh in meshes):
-        raise ValueError("Receiving preview requires one non-empty 3D mesh per connection")
+    if render_request is None:
+        raise ValueError("Receiving preview requires a FinalScene render request")
 
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.figure import Figure
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from phase6_final_scene_projection import _phase6_fitted_limits_from_vertices
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from whd_theme import apply_mpl_dark_theme
+    from types import SimpleNamespace
 
     win = tk.Toplevel(parent)
     win.title(f"第{index + 1}層 3D 預覽")
@@ -124,19 +124,18 @@ def open_receiving_layer_preview(
 
     figure = Figure(figsize=(9.6, 6.0), dpi=100)
     ax = figure.add_subplot(111, projection="3d")
-    all_triangles = []
-    for mesh in meshes:
-        rows = tuple(mesh)
-        all_triangles.extend(rows)
-        ax.add_collection3d(
-            Poly3DCollection(
-                rows,
-                alpha=0.86,
-                facecolor="#3b82f6",
-                edgecolor="none",
-                linewidths=0.0,
-            )
-        )
+    apply_mpl_dark_theme(figure, (ax,))
+    preview_renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
+    all_triangles = tuple(preview_renderer.render(render_request) or ())
+    if not all_triangles:
+        raise ValueError("Receiving preview FinalScene mesh is empty")
+    # The Tk header already provides layer/connection context. Remove renderer
+    # text overlays so the preview stays a clean geometry view.
+    for artist in list(getattr(ax, "texts", ())):
+        try:
+            artist.remove()
+        except Exception:
+            pass
 
     import math
     lock_rows = tuple(lock_circles or ())
@@ -158,18 +157,9 @@ def open_receiving_layer_preview(
             [point[1] for point in points],
             [point[2] for point in points],
             linewidth=2.0,
+            color=Phase6FinalSceneRenderer._COLORS["box_body"][1],
         )
 
-    vertices = [point for tri in all_triangles for point in tri]
-    xlim, ylim, zlim = _phase6_fitted_limits_from_vertices(vertices, padding=0.04)
-    ax.set_xlim3d(*xlim)
-    ax.set_ylim3d(*ylim)
-    ax.set_zlim3d(*zlim)
-    spans = [max(1e-9, lim[1] - lim[0]) for lim in (xlim, ylim, zlim)]
-    try:
-        ax.set_box_aspect(spans, zoom=1.03)
-    except TypeError:
-        ax.set_box_aspect(spans)
     ax.view_init(elev=22.0, azim=-56.0)
     ax.set_axis_off()
 
@@ -184,7 +174,8 @@ def open_receiving_layer_preview(
     # Exact GUI acceptance/readback metadata. These are presentation facts only.
     win._phase6_receiving_preview_canvas = canvas
     win._phase6_receiving_preview_connection_count = count
-    win._phase6_receiving_preview_mesh_count = len(meshes)
+    win._phase6_receiving_preview_mesh_count = count
+    win._phase6_receiving_preview_uses_final_scene_renderer = True
     win._phase6_receiving_preview_lock_circle_count = len(lock_rows)
     win._phase6_receiving_preview_feature_segment_count = 0
     return True
