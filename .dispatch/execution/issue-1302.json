@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "a8a711516ca0d4b7b2d18d0e228a9409236faf1e",
-    "released_at": null
+    "released_at": "2026-10-05T15:22:18Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "40d475b2c2fc133e1216d385c066cef23a1c4c0a",
   "issue": 1302,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-05T15:37:11Z",
-    "invocation_identity": "github:production-x-post-merge:37332154332:pr1303:issue1302",
-    "token": "recovery:1302:37332154332"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1303,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "ci/issue1302-green-reuse-required-status-20261005",
   "source_sha": "40d475b2c2fc133e1216d385c066cef23a1c4c0a",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a8a711516ca0d4b7b2d18d0e228a9409236faf1e",
-  "transaction": null,
-  "updated_at": "2026-10-05T15:22:11Z",
+  "transaction": {
+    "expected_fingerprint": "066d30637b3f57b55852c5e3a431e96c1bd5b8197160d1e15d9581e6339670cb",
+    "id": "gha:37332154332:1302:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37332154332:pr1303:issue1302",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T15:22:50Z",
   "version": 2,
   "work_branch": "ci/issue1302-green-reuse-required-status-20261005"
 }
