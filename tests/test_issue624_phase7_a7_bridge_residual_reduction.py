@@ -1160,3 +1160,45 @@ def test_issue1269_endcap_fw_and_symmetry_controls_are_composition_owned():
     assert "self.on_endcap_fw_value_selected(" in adapter_source
     assert 'required("_phase6_on_endcap_fw_value_selected")' not in adapter_source
 
+def test_issue1271_workspace_shell_view_effects_are_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_toggle_fullscreen",
+        "_phase6_build_settings_center",
+        "_phase6_install_renderer_view",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "workspace_shell_toggle_fullscreen" not in body
+        assert "pack_forget" not in body
+        assert "install_renderer()" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "toggle_fullscreen",
+        "build_settings_center",
+        "install_renderer_view",
+    }.issubset(method_names)
+
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert "_workspace_shell_toggle_fullscreen" not in bridge_source
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "workspace_shell_toggle_fullscreen(" in adapter_source
+    assert "panel.build_settings_center(app.right)" in adapter_source
+    assert "self.final_scene_adapter(self.final_scene_ports(namespace))" in adapter_source
+    assert 'required("_phase6_toggle_fullscreen")' not in adapter_source
+

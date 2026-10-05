@@ -99,7 +99,6 @@ from gui_modules.application.command_router import (
 )
 from phase6_workspace_shell import (
     mount_shared_content as _workspace_shell_mount_shared_content,
-    toggle_fullscreen as _workspace_shell_toggle_fullscreen,
 )
 from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
@@ -1945,15 +1944,7 @@ def _phase6_hide_original_visual_controls(root_widget):
 
 
 def _phase6_toggle_fullscreen(self):
-    enabled, geometry = _workspace_shell_toggle_fullscreen(
-        self.root,
-        getattr(self, "fullscreen_button", None),
-        enabled=bool(getattr(self, "_phase6_fullscreen", False)),
-        restore_geometry=getattr(self, "_phase6_restore_geometry", None),
-    )
-    self._phase6_fullscreen = bool(enabled)
-    self._phase6_restore_geometry = geometry
-    return self._phase6_fullscreen
+    return _phase6_composition(self).toggle_fullscreen()
 
 def _phase6_workspace_shell_owner(self):
     return _phase6_composition(self).workspace_shell_owner(globals())
@@ -2018,12 +2009,7 @@ def _phase6_on_3d_scroll(self, event):
 
 
 def _phase6_install_renderer_view(self):
-    result = _phase6_final_scene_adapter(self).install_renderer()
-    try:
-        self.renderer.canvas.get_tk_widget().configure(takefocus=False)
-    except Exception:
-        pass
-    return result
+    return _phase6_composition(self).install_renderer_view(globals())
 
 
 
@@ -2102,13 +2088,7 @@ def _phase6_update_assembly_diagnostic_status(self):
 
 
 def _phase6_build_settings_center(self):
-    renderer_widget = self.renderer.canvas.get_tk_widget()
-    renderer_widget.pack_forget()
-    panel = _phase6_ensure_settings_panel(self)
-    panel.build_settings_center(self.right)
-    _phase6_build_assembly_diagnostics(self)
-    renderer_widget.pack(fill=original.tk.BOTH, expand=True)
-    _phase6_sync_settings_panel_compat(self)
+    return _phase6_composition(self).build_settings_center(globals())
 
 
 def _phase6_refresh_persistent_structure_controls(self):
