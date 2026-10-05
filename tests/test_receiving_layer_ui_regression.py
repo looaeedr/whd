@@ -122,13 +122,22 @@ def test_receiving_layer_preview_dialog_is_owned_by_existing_controls_owner():
     assert len(bridge_source.splitlines()) <= 12
 
 
-def test_receiving_preview_owner_keeps_confirmation_authority_in_bridge():
+def test_receiving_preview_owner_renders_real_3d_mesh_and_canonical_lock_holes():
     owner_source = inspect.getsource(controls.open_receiving_layer_preview)
-    assert 'on_confirm(number - 1)' in owner_source
-    assert '_phase6_confirm_receiving_opening' not in owner_source
-    confirm_source = _function_source(BRIDGE, '_phase6_confirm_receiving_opening')
-    assert '_phase6_receiving_switch_opening_resolver' in confirm_source
-    assert 'submit("geometry", commit=True)' in confirm_source
+    assert 'FigureCanvasTkAgg' in owner_source
+    assert 'Poly3DCollection' in owner_source
+    assert '_phase6_mesh_feature_segments' in owner_source
+    assert 'lock_circles' in owner_source
+    assert 'Radiobutton' not in owner_source
+    assert 'on_confirm' not in owner_source
+
+    adapter_source = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'def receiving_layer_preview_payload(' in adapter_source
+    assert 'last_cutting_mesh' in adapter_source
+    assert 'resolve_receiving_joint_lock_pattern(' in adapter_source
+    assert 'resize_receiving_preview_bays(' in adapter_source
 
 def test_programmatic_box_body_notebook_changes_keep_guard_until_tk_idle():
     source = _function_source(NAV, 'refresh_box_body_piece_selector')
