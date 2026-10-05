@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "1ef4e7e814e6888844b7c335a5ff2dff4fd36ec4",
-    "released_at": null
+    "released_at": "2026-10-05T04:56:31Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "issue": 1202,
-  "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-05T05:10:58Z",
-    "invocation_identity": "codex:post-delivery-1202-1203:d4cf37f0-b7d2-485f-84d3-7363c24ef1be",
-    "token": "recovery:1202:local"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1205,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work0",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.0",
   "source_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
   "source_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f606fa5b228baa8e1994438fdbcdccee86ee4840",
-  "transaction": null,
-  "updated_at": "2026-10-05T04:55:58Z",
+  "transaction": {
+    "expected_fingerprint": "abb575b6456f5a156cad9ea87ba8099e47901764071b3515b5560008668f0590",
+    "id": "gha:local:1202:FINALIZE:1",
+    "invocation_identity": "codex:post-delivery-1202-1203:d4cf37f0-b7d2-485f-84d3-7363c24ef1be",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T04:56:27Z",
   "version": 2,
   "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
 }
