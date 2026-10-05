@@ -942,40 +942,10 @@ def _phase6_recalculate_part_dimensions(self):
 
 
 def _phase6_apply_settings_profile_projection(self, plan, *, render=True):
-    snapshot = materialize_settings_profile_value(plan.snapshot)
-    self._phase6_input_snapshot.update(snapshot)
+    return _phase6_composition(self).apply_settings_profile_projection(
+        globals(), plan, render=bool(render)
+    )
 
-    box_profile = materialize_settings_profile_value(plan.box_body_profile)
-    self.state.profiles_vault["箱身"] = box_profile
-
-    if plan.derived_sync_required:
-        _phase6_sync_authoritative_derived_parts(self)
-    _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
-
-    navigation = _phase6_workspace_navigation(self)
-    planned_profiles = materialize_settings_profile_value(plan.part_profiles)
-    for key, profiles in planned_profiles.items():
-        navigation.stash_profiles(key, profiles)
-
-    active = str(plan.active_part or self.designer_workspace.active_part or "box_body")
-    if active == "box_body":
-        self.state.phase6_fold_ui_profiles = {
-            "X": self.state.profiles_vault["箱身"]
-        }
-    elif active in self.designer_workspace.available_parts:
-        active_profiles = materialize_settings_profile_value(plan.active_profiles)
-        profiles = active_profiles or (
-            self.designer_workspace.profiles_for(active, {}) or {}
-        )
-        self.state.profiles["X"] = clone_profile(profiles.get("X", []))
-        self.state.profiles["Y"] = clone_profile(profiles.get("Y", []))
-
-    if render:
-        try:
-            self.bend_ui.render()
-        except Exception:
-            pass
-    return plan
 
 def _phase6_refresh_profiles_from_settings(
     self,
@@ -984,24 +954,13 @@ def _phase6_refresh_profiles_from_settings(
     reset_all_profiles=False,
     render=True,
 ):
-    """Build a pure Settings-to-Profile plan, then apply it through existing owners."""
-    workspace = self.designer_workspace
-    request = SettingsProfileProjectionRequest(
-        settings_values=getattr(self, "_settings_values", {}),
-        input_snapshot=getattr(self, "_phase6_input_snapshot", {}),
-        available_parts=tuple(workspace.available_parts),
-        existing_profiles=workspace.part_profiles_snapshot(),
-        box_body_profile=self.state.profiles_vault.get("箱身", []),
-        active_part=workspace.active_part or "box_body",
+    return _phase6_composition(self).refresh_profiles_from_settings(
+        globals(),
         reset_box_profile=bool(reset_box_profile),
         reset_all_profiles=bool(reset_all_profiles),
-    )
-    plan = build_settings_profile_projection(request)
-    return _phase6_apply_settings_profile_projection(
-        self,
-        plan,
         render=bool(render),
     )
+
 
 def _phase6_apply_setting_updates(self, updates, *, notify=True):
     return _phase6_settings_coordinator(self).apply_updates(
