@@ -7,7 +7,7 @@ Tk widgets only and never owns manufacturing geometry.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable, Iterable
 
 
@@ -17,6 +17,7 @@ from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
 @dataclass(frozen=True)
 class ReceivingSetBayControls:
     frame: object
+    header: object
     switch_brand_var: object
     switch_brand_selector: object
     layer_host: object
@@ -69,6 +70,7 @@ def build_receiving_set_bay_controls(
 
     return ReceivingSetBayControls(
         frame=frame,
+        header=header,
         switch_brand_var=switch_brand_var,
         switch_brand_selector=switch_brand_selector,
         layer_host=layer_host,
@@ -88,12 +90,11 @@ def open_receiving_layer_preview(
     render_request,
     lock_circles=(),
 ) -> bool:
-    """Render one layer as an actual 3D multi-connection preview.
+    """Render one layer as an interactive 3D multi-connection preview.
 
-    The incoming meshes are already-resolved current cabinet geometry, so CUTTING
-    openings remain part of the preview. ``lock_circles`` are canonical Receiving
-    Joint lock holes projected on each mating plane; this view never owns their
-    coordinates or mutates the main renderer.
+    Geometry always comes from the authoritative FinalScene request.  This view
+    owns only presentation: native mouse rotation, zoom controls, and temporary
+    part visibility filters.  It never rebuilds manufacturing holes or offsets.
     """
     index = int(layer_index)
     count = max(1, int(connection_count))
@@ -106,11 +107,12 @@ def open_receiving_layer_preview(
     from phase6_final_scene_renderer import Phase6FinalSceneRenderer
     from whd_theme import apply_mpl_dark_theme
     from types import SimpleNamespace
+    import math
 
     win = tk.Toplevel(parent)
     win.title(f"第{index + 1}層 3D 預覽")
     win.transient(parent)
-    win.geometry("1000x700")
+    win.geometry("1080x760")
     try:
         win.grab_set()
     except Exception:
@@ -122,54 +124,167 @@ def open_receiving_layer_preview(
         body, text=f"第{index + 1}層｜{count}連｜開關：{label}"
     ).pack(anchor=tk.W, pady=(0, 6))
 
-    figure = Figure(figsize=(9.6, 6.0), dpi=100)
+    figure = Figure(figsize=(10.0, 6.2), dpi=100)
     ax = figure.add_subplot(111, projection="3d")
     apply_mpl_dark_theme(figure, (ax,))
-    preview_renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
-    all_triangles = tuple(preview_renderer.render(render_request) or ())
-    if not all_triangles:
-        raise ValueError("Receiving preview FinalScene mesh is empty")
-    # The Tk header already provides layer/connection context. Remove renderer
-    # text overlays so the preview stays a clean geometry view.
-    for artist in list(getattr(ax, "texts", ())):
-        try:
-            artist.remove()
-        except Exception:
-            pass
-
-    import math
-    lock_rows = tuple(lock_circles or ())
-    for row in lock_rows:
-        x = float(row["x"])
-        y = float(row["y"])
-        z = float(row["z"])
-        radius = float(row["diameter"]) / 2.0
-        points = tuple(
-            (
-                x,
-                y + radius * math.cos(2.0 * math.pi * step / 48.0),
-                z + radius * math.sin(2.0 * math.pi * step / 48.0),
-            )
-            for step in range(49)
-        )
-        ax.plot(
-            [point[0] for point in points],
-            [point[1] for point in points],
-            [point[2] for point in points],
-            linewidth=2.0,
-            color=Phase6FinalSceneRenderer._COLORS["box_body"][1],
-        )
-
-    ax.view_init(elev=22.0, azim=-56.0)
-    ax.set_axis_off()
-
     canvas = FigureCanvasTkAgg(figure, master=body)
+    preview_renderer = Phase6FinalSceneRenderer(
+        SimpleNamespace(ax3d=ax, canvas=canvas)
+    )
+
+    render_data = render_request.render_data
+    source_parts = tuple(getattr(render_data, "assembly_parts", ()) or ())
+    all_part_keys = tuple(
+        dict.fromkeys(str(getattr(part, "part_key", "") or "") for part in source_parts)
+    )
+    all_part_keys = tuple(key for key in all_part_keys if key)
+
+    def _visibility_group(part_key):
+        key = str(part_key)
+        if key.startswith("door"):
+            return "door"
+        if key.startswith("base_plate"):
+            return "base_plate"
+        if key.startswith("indicator_box"):
+            return "indicator_box"
+        if key.startswith("indicator_door"):
+            return "indicator_door"
+        return key
+
+    group_members = {}
+    for part_key in all_part_keys:
+        group_members.setdefault(_visibility_group(part_key), []).append(part_key)
+
+    group_labels = {
+        "box_body": "箱身",
+        "head": "封頭",
+        "tail": "封尾",
+        "door": "門",
+        "base_plate": "底板",
+        "indicator_box": "指示燈盒",
+        "indicator_door": "指示燈小門",
+    }
+    selected_part_keys = set(all_part_keys)
+
+    visibility = ttk.LabelFrame(body, text="顯示零件", padding=4)
+    visibility.pack(fill=tk.X, pady=(0, 5))
+    visibility_vars = {}
+
+    lock_rows = tuple(lock_circles or ())
+
+    def _draw_lock_rows():
+        for row in lock_rows:
+            x = float(row["x"])
+            y = float(row["y"])
+            z = float(row["z"])
+            radius = float(row["diameter"]) / 2.0
+            points = tuple(
+                (
+                    x,
+                    y + radius * math.cos(2.0 * math.pi * step / 48.0),
+                    z + radius * math.sin(2.0 * math.pi * step / 48.0),
+                )
+                for step in range(49)
+            )
+            ax.plot(
+                [point[0] for point in points],
+                [point[1] for point in points],
+                [point[2] for point in points],
+                linewidth=2.0,
+                color=Phase6FinalSceneRenderer._COLORS["box_body"][1],
+            )
+
+    def _render_preview(*, reset_view=False):
+        try:
+            elev, azim = float(ax.elev), float(ax.azim)
+        except Exception:
+            elev, azim = 22.0, -56.0
+        if reset_view:
+            elev, azim = 22.0, -56.0
+            preview_renderer.zoom_scale = 1.0
+
+        ax.clear()
+        apply_mpl_dark_theme(figure, (ax,))
+        if selected_part_keys:
+            visible = (
+                None
+                if selected_part_keys == set(all_part_keys)
+                else tuple(key for key in all_part_keys if key in selected_part_keys)
+            )
+            data = replace(render_data, visible_part_keys=visible)
+            request = replace(render_request, render_data=data)
+            triangles = tuple(preview_renderer.render(request) or ())
+            if not triangles:
+                raise ValueError("Receiving preview FinalScene mesh is empty")
+            if abs(float(preview_renderer.zoom_scale or 1.0) - 1.0) > 1e-12:
+                preview_renderer.scale_current_3d_limits(preview_renderer.zoom_scale)
+        else:
+            ax.text2D(
+                0.5, 0.5, "所有零件已隱藏",
+                transform=ax.transAxes, ha="center", va="center",
+            )
+
+        # Header/controls already communicate context.  Keep only physical geometry.
+        for artist in list(getattr(ax, "texts", ())):
+            text_value = str(getattr(artist, "get_text", lambda: "")() or "")
+            if text_value != "所有零件已隱藏":
+                try:
+                    artist.remove()
+                except Exception:
+                    pass
+
+        _draw_lock_rows()
+        ax.view_init(elev=elev, azim=azim)
+        ax.set_axis_off()
+        canvas.draw_idle()
+
+    def _toggle_group(group):
+        enabled = bool(visibility_vars[group].get())
+        for part_key in group_members[group]:
+            if enabled:
+                selected_part_keys.add(part_key)
+            else:
+                selected_part_keys.discard(part_key)
+        _render_preview()
+
+    for group in group_members:
+        var = tk.BooleanVar(master=visibility, value=True)
+        visibility_vars[group] = var
+        ttk.Checkbutton(
+            visibility,
+            text=group_labels.get(group, group),
+            variable=var,
+            command=lambda group=group: _toggle_group(group),
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-    canvas.draw_idle()
+    canvas.mpl_connect("scroll_event", preview_renderer.on_scroll)
 
     actions = ttk.Frame(body)
     actions.pack(fill=tk.X, pady=(6, 0))
+
+    def _zoom(direction):
+        old = float(preview_renderer.zoom_scale or 1.0)
+        new = preview_renderer.adjust_zoom_scale(direction)
+        if abs(new - old) > 1e-12:
+            preview_renderer.scale_current_3d_limits(new / old)
+            canvas.draw_idle()
+
+    ttk.Button(actions, text="放大", command=lambda: _zoom("up"), width=7).pack(
+        side=tk.LEFT, padx=(0, 3)
+    )
+    ttk.Button(actions, text="縮小", command=lambda: _zoom("down"), width=7).pack(
+        side=tk.LEFT, padx=(0, 3)
+    )
+    ttk.Button(
+        actions, text="重設視角", command=lambda: _render_preview(reset_view=True), width=9
+    ).pack(side=tk.LEFT)
+    ttk.Label(actions, text="滑鼠拖曳：旋轉｜滾輪：縮放").pack(
+        side=tk.LEFT, padx=(10, 0)
+    )
     ttk.Button(actions, text="關閉", command=win.destroy).pack(side=tk.RIGHT)
+
+    _render_preview(reset_view=True)
 
     # Exact GUI acceptance/readback metadata. These are presentation facts only.
     win._phase6_receiving_preview_canvas = canvas
@@ -178,6 +293,8 @@ def open_receiving_layer_preview(
     win._phase6_receiving_preview_uses_final_scene_renderer = True
     win._phase6_receiving_preview_lock_circle_count = len(lock_rows)
     win._phase6_receiving_preview_feature_segment_count = 0
+    win._phase6_receiving_preview_visibility_groups = tuple(group_members)
+    win._phase6_receiving_preview_interactive_zoom = True
     return True
 
 def refresh_receiving_layer_rows(
