@@ -98,6 +98,7 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from phase6_workspace_shell import (
+    hide_original_global_dimension_controls as _workspace_shell_hide_original_global_dimension_controls,
     hide_original_visual_controls as _workspace_shell_hide_original_visual_controls,
     mount_shared_content as _workspace_shell_mount_shared_content,
 )
@@ -131,7 +132,7 @@ from phase6_settings_panel import (
     setting_number_text as _setting_number_text,
     build_choice_menubutton,
 )
-from ui_text_scale import TextScaleController
+from ui_text_scale import prepare_text_scale_controller as _ui_prepare_text_scale_controller
 from ae_engine.assembly_joint import (
     AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
     migrate_legacy_snapshot_joints, edge_relation_for_part,
@@ -912,22 +913,6 @@ def _copy_features(snapshot, key):
 
 
 
-
-def _hide_original_global_dimension_controls(root_widget):
-    """Hide the prototype W/H/D structure block; Phase6 settings center owns it."""
-    for child in root_widget.winfo_children():
-        try:
-            text = str(child.cget("text"))
-        except Exception:
-            text = ""
-        if "結構模式與空間約束" in text:
-            manager = child.winfo_manager()
-            if manager == "pack":
-                child.pack_forget()
-            elif manager == "grid":
-                child.grid_remove()
-            return True
-    return False
 
 
 def _phase6_recalculate_part_dimensions(self):
@@ -2036,17 +2021,6 @@ def _phase6_format_unfolded_blank_text(render_data, *, part_key=""):
 _PHASE6_DEFAULT_VIEW = (50.0, -90.0)
 
 
-def _phase6_prepare_text_scale_controller(root, value, *, controller=None):
-    """Reuse the main GUI text scale without rescanning its whole widget tree."""
-    controller = controller or TextScaleController.for_widget(root)
-    # When Phase6 is a Toplevel, for_widget() returns the already-applied main
-    # controller whose root is the main window. Calling apply() here would walk
-    # every main-GUI widget again just to open 3D. A standalone Phase6 root still
-    # owns its controller and therefore applies the requested size once.
-    if getattr(controller, "root", None) is root:
-        controller.apply(value)
-    return controller
-
 
 
 
@@ -2248,7 +2222,7 @@ def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._corner_transaction_unknown_state = deepcopy(self._phase6_corner_state)
     self._corner_transaction_unknown_pairs = deepcopy(self._phase6_corner_pair_same)
     self._corner_editable = _phase6_is_unknown_baseline(self, self._phase6_baseline_initial_model)
-    self._ui_text_controller = _phase6_prepare_text_scale_controller(
+    self._ui_text_controller = _ui_prepare_text_scale_controller(
         root, self._settings_values.get("ui_text_size", "small")
     )
 
@@ -2272,7 +2246,7 @@ def _phase6_finish_legacy_host_compatibility(self, snapshot):
     self.state.ui_text_scale = self._ui_text_controller.factor
     self.preview_3d_enabled = True
     _hide_original_structure_mode_controls(self.left)
-    _hide_original_global_dimension_controls(self.left)
+    _workspace_shell_hide_original_global_dimension_controls(self.left)
     _workspace_shell_hide_original_visual_controls(self.left)
     self._phase6_parameters_unlocked = False
     self._phase6_3d_display_mode = "assembly"
