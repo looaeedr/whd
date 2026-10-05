@@ -730,3 +730,41 @@ def test_issue1234_settings_debounce_and_flush_are_composition_owned():
     assert 'lambda: self.flush_pending_settings(namespace)' in adapter_source
     assert '_phase6_stage_setting_update' not in adapter_source
     assert '_phase6_flush_pending_settings' not in adapter_source
+
+
+def test_issue1239_settings_profile_projection_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    for name in (
+        "_phase6_apply_settings_profile_projection",
+        "_phase6_refresh_profiles_from_settings",
+    ):
+        assert name in funcs
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "SettingsProfileProjectionRequest" not in body
+        assert "build_settings_profile_projection" not in body
+        assert "materialize_settings_profile_value" not in body
+        assert "navigation.stash_profiles" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "apply_settings_profile_projection",
+        "refresh_profiles_from_settings",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert 'required("_phase6_refresh_profiles_from_settings")' not in adapter_source
+    assert "return self.refresh_profiles_from_settings(" in adapter_source
+    assert "self.sync_authoritative_derived_parts(namespace)" in adapter_source
+    assert "self.refresh_assembly_parts_panel_if_topology_changed(namespace)" in adapter_source
