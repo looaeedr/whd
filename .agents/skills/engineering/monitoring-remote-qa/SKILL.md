@@ -13,7 +13,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
 
-此入口只 bridge 到 canonical `tools/execution_entry_contract.py` 與 `flow-v2-execution::PROJECT_STARTUP_HARD_GATE_V1`，不建立第二套 startup authority。每個**新 invocation** 在任何 substantive analysis、ExecutionRecord/lease mutation、repository mutation 或 workflow dispatch 前，必須重新 user-visible 產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1` 並完成 project Phase6 Preflight；同一 live invocation 的 continuation 依 Flow v2 session-reuse 規則，不把 startup gate重跑成每顆 transaction 的步驟。
+此入口只 bridge 到 canonical `tools/execution_entry_contract.py` 與 `flow-v2-execution::PROJECT_STARTUP_HARD_GATE_V1`，不建立第二套 startup authority。每個**新 invocation** 在任何 substantive analysis、ExecutionRecord/lease mutation、repository mutation 或 workflow dispatch 前，必須重新產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1` 並依 runtime surface 留 startup communication evidence：interactive chat=`USER_VISIBLE_CHAT`；Codex/CLI/headless/scheduler=`STDOUT / TASK_EVENT / LOG` machine-visible `WHD_EXECUTION_STARTUP_COMMUNICATION_V1`。缺 chat UI/AI Library surface 不得成為 blocker；之後完成 project Phase6 Preflight。同一 live invocation 的 continuation 依 Flow v2 session-reuse 規則，不把 startup gate重跑成每顆 transaction 的步驟。
 
 本 Skill 是入口／角色 bridge，不擁有 execution state machine。所有 execution authority、resume、mutation、lease、handoff、recovery、scheduler 與 closure 語意一律服從 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 
@@ -21,7 +21,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_GATE_V1
 
-任何 GitHub Actions workflow/run/job/artifact status read 都是 GitHub network action。進入本 Skill 不代表已授權；先以 `tools/root_local_first_gate.py::assert_remote_connection_allowed（authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`）(...)` 驗 target=`GITHUB`、action=`WORKFLOW_READ` 或 `REMOTE_QA`。`/推推` delivery authority或 user-authored GitHub-only scheduler authority可明確包含這些 actions；沒有 authority 固定 `REMOTE_CONNECTION_DENIED`，不得 polling。
+Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`，authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`；同 scope 沿用/自動 mint 只是不重問使用者，**不是 bypass machine gate**。
+
+任何 GitHub Actions workflow/run/job/artifact status read 都是 GitHub network action，但同一已授權 repository-content task 的 `WORKSPACE_DELIVERY` 固定包含 `WORKFLOW_READ / REMOTE_QA`；因此 Codex/workspace executor 在 push/PR 後必須直接沿同 scope做 QA read/consume，不得再要求使用者第二次授權。`/推推` delivery authority與 user-authored GitHub-only scheduler authority也可包含這些 actions。只有沒有任何適用 authority、scope 擴張或跨 repository時才 `REMOTE_CONNECTION_DENIED`。
 
 
 ### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
