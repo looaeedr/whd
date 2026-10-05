@@ -1,0 +1,52 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
+  "issue": 1197,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1197",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "52bfd02e51bf6b0d5637cdf70473433bbc866fc29b804ce16ec18e36437310a7",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "https://github.com/looaeedr/whd/issues/1197#issuecomment-5986920518 + current user explicit post-delivery finalization request",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.0",
+  "source_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
+  "source_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "0e83ad859db77c5e869f96059bff9946b4af3ede",
+  "transaction": null,
+  "updated_at": "2026-10-05T03:43:08Z",
+  "version": 2,
+  "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
+}
