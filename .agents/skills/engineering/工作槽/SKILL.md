@@ -13,14 +13,14 @@ whd_schema: WHD_DOC_META_V1
 
 ### EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1
 
-此入口只 bridge 到 canonical `tools/execution_entry_contract.py` 與 `flow-v2-execution::PROJECT_STARTUP_HARD_GATE_V1`，不建立第二套 startup authority。每個新 invocation 在任何 substantive analysis、claim、Guard、repository mutation 或 workflow dispatch 前，必須重新 user-visible 產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`，並完成 project Phase6 Preflight；不得以「已讀 Flow v2」或前一 runtime declaration 代替。
+此入口只 bridge 到 canonical `tools/execution_entry_contract.py` 與 `flow-v2-execution::PROJECT_STARTUP_HARD_GATE_V1`，不建立第二套 startup authority。每個新 invocation 在任何 substantive analysis、claim、Guard、repository mutation 或 workflow dispatch 前，必須重新產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1` 並依 runtime surface 留 startup communication evidence：interactive chat=`USER_VISIBLE_CHAT`；Codex/CLI/headless/scheduler=`STDOUT / TASK_EVENT / LOG` machine-visible `WHD_EXECUTION_STARTUP_COMMUNICATION_V1`。缺少 chat UI 或 AI Library surface 本身不得成為 blocker；之後完成 project Phase6 Preflight。不得以「已讀 Flow v2」或前一 runtime declaration 代替。
 
 
 本 Skill 是入口／角色 bridge，不擁有 execution state machine。所有 execution authority、resume、mutation、lease、handoff、recovery、scheduler 與 closure 語意一律服從 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 
 ### REMOTE_AUTHORITY_NON_PROPAGATION_BRIDGE_V1
 
-`/工作0..3`、slot query、takeover 或「fresh-read coord/execution-v2」**不會**自動取得 GitHub network authority。interactive/default 若 durable state 只能透過 GitHub 取得，必須先通過 `root-local-first::REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1` / `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`（authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`）；沒有 authority 就不得 network read。slot/Flow v2 bridge 不能把 execution authority 冒充 remote authority。
+`/工作0..3`、slot query、takeover 或「fresh-read coord/execution-v2」不會憑空取得 GitHub network authority；但使用者已明確點名 exact Issue/工作槽操作時，可由該 instruction 一次 mint `USER_EXPLICIT_REMOTE` 的 exact Issue/control-plane actions並在同 invocation/scope 沿用，**不得因 bridge 需要再向使用者重問**。`coord/execution-v2` 的 baseline branch/read metadata依 workspace baseline read policy處理。scope 擴張、不同 Issue/repository或未被要求的 remote mutation仍需新 authority。
 
 ## WORK_SLOT_FIXED_IDENTITY_V2
 
