@@ -2823,18 +2823,32 @@ class Phase6FoldDesignerComposition:
         if span_x <= 1e-9:
             raise RuntimeError("完整組合體 3D 幾何沒有有效寬度")
 
-        meshes = []
+        repeated_parts = []
+        source_parts = tuple(getattr(assembly_data, "assembly_parts", ()) or ())
         for connection_index in range(count):
             shift_x = span_x * connection_index
-            meshes.append(
-                tuple(
-                    tuple(
-                        (float(point[0]) + shift_x, float(point[1]), float(point[2]))
-                        for point in tri
-                    )
-                    for tri in base_mesh
+            for part in source_parts:
+                raw_offset = tuple(getattr(part, "offset", ()) or (0.0, 0.0, 0.0))
+                ox, oy, oz = tuple(float(v) for v in raw_offset)
+                repeated_parts.append(
+                    replace(part, offset=(ox + shift_x, oy, oz))
                 )
-            )
+        preview_data = replace(
+            assembly_data,
+            assembly_parts=tuple(repeated_parts),
+            visible_part_keys=None,
+            visible_box_body_piece_keys=None,
+            show_interference=False,
+        )
+        preview_request = FinalSceneViewRequest(
+            render_data=preview_data,
+            x_profile=(),
+            y_profile=(),
+            part_key="assembly",
+            alpha_bend=float(getattr(getattr(app, "state", None), "alpha_bend", 0.85)),
+            finished_dimensions=operator_finished_dimensions_for_app(app, None),
+            thickness=thickness,
+        )
 
         layout = resize_receiving_preview_bays(
             snapshot["receiving_layout"],
@@ -2866,7 +2880,7 @@ class Phase6FoldDesignerComposition:
 
         return {
             "connection_count": count,
-            "connection_meshes": tuple(meshes),
+            "render_request": preview_request,
             "lock_circles": tuple(lock_circles),
             "assembly_part_keys": assembly_part_keys,
         }
@@ -2896,7 +2910,7 @@ class Phase6FoldDesignerComposition:
             layer_index=index,
             connection_count=preview["connection_count"],
             brand=brand,
-            connection_meshes=preview["connection_meshes"],
+            render_request=preview["render_request"],
             lock_circles=preview["lock_circles"],
         )
 
