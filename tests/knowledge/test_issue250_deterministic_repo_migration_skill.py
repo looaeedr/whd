@@ -78,9 +78,12 @@ def test_issue250_whd_repository_mutation_requires_flow_v2_and_root_local_first(
     text = _text(SKILL)
     assert 'WHD_REPOSITORY_MUTATION_GATE_V1' in text
     assert 'WHD_EXECUTION_RECORD_V2' in text
-    assert 'ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED' in text
+    assert 'WORKSPACE_DEFAULT' in text
+    assert 'SHARED_ZERO_FALLBACK' in text
+    assert 'executor-local repo workspace' in text
     assert 'WHD_TEST_EXECUTION_RECEIPT_V1' in text
-    assert 'HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION' in text
+    assert 'ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND' not in text
+    assert 'HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION' not in text
 
 
 def test_issue250_preflight_routes_load_execution_owners_before_migration_skill():
