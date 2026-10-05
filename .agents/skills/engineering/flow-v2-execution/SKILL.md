@@ -139,18 +139,18 @@ Repository-content 能否施工看 **executor repo workspace capability**，不�
 
 
 - `INTERACTIVE` / chat：只要 `WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT`，就必須在該 executor workspace 繼續 edit/test；不得因 Drive mount 不可見而 handoff。
-- scheduler / `GITHUB_ONLY` / `REMOTE_ACTION`：若 trusted runtime 本身具 repo workspace + edit/test capability，可依同一 `WORKSPACE_DEFAULT` 路由施工；若只有 control-plane/post-push capability，才 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`。
-- 若且唯若 fresh router 已選 `SHARED_ZERO_FALLBACK`，而目前 runtime 無法存取該 shared-0 lineage，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`；這不是普通 startup prerequisite。
+- scheduler / `GITHUB_ONLY` / `REMOTE_ACTION` 仍是 control-plane / post-push 模式；execution mode 本身不授予 content authoring。遇 repository-content next action，固定 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`，由接手 runtime 再執行 CURRENT content router；handoff 原因是 execution-surface capability/authority，不是 Drive mount 缺失。
+- 接手 content runtime 只有在 fresh router 已選 `SHARED_ZERO_FALLBACK` 且無法存取該 shared-0 lineage時，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`；這不是普通 startup prerequisite。
 - 任何 route 都禁止未測試的 GitHub-side content hotfix。Git write 只能承接已測 exact diff；GitHub Actions 只作 post-push verification，verification RED 必須回原 content route 修正/重測。
 
 
 ### DELIVERY_PATH_RESERVATION_HARD_GATE_V2
 
 
-Flow v2 `mutation_scope` / `RESERVE_PATHS` 是 **SHARED_ZERO_FALLBACK delivery 專用協調**，不得回長成 WORKSPACE_DEFAULT 的施工前置。
+Flow v2 `mutation_scope` / `RESERVE_PATHS` 是 **delivery-only coordination**，不得回長成任何 route 的施工前置。
 
 
-- `WORKSPACE_DEFAULT`：workspace tests GREEN + exact diff 後直接進 tested delivery branch / PR/checks；不要求 shared-0 manifest、freeze 或 `/推推` reservation。
+- `WORKSPACE_DEFAULT`：workspace tests GREEN + exact diff 後才可做 delivery reservation，然後開 tested delivery branch / PR/checks；不要求 shared-0 manifest、freeze 或 `/推推`。
 - `SHARED_ZERO_FALLBACK`：selected lane 已 frozen GREEN 後才作 delivery reservation；reservation 只綁 exact manifest paths。
 
 
@@ -166,7 +166,7 @@ fallback 固定：
 7. conflict 解除後 fresh target + revalidate manifest，再送 delivery。
 
 
-`RESERVE_PATHS / RELEASE_PATHS` 是 fallback delivery coordination，不算 engineering progress。
+`RESERVE_PATHS / RELEASE_PATHS` 是 delivery coordination，不算 engineering progress；WORKSPACE_DEFAULT 不得在 tests GREEN + exact diff 以前 reservation。
 
 
 ### INVOCATION_ADMISSION_SESSION_V3
