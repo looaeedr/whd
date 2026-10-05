@@ -1,12 +1,64 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1112-terminal-finalize-20261004T1415Z",
-  "issue": 1112,
-  "kind": "FINALIZE",
+  "request_id": "issue1202-postdelivery-recovery-20261005T0509Z",
+  "issue": 1202,
+  "kind": "RECOVER_POST_DELIVERY",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.flowv2.work0.issue1112.closure.20261004T1359Z",
-  "expected_coord_head": "b4cf7d394a46de1b9b5086830fe5584d1ea1004a",
-  "expected_generation": 10,
-  "effect": {},
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.flowv2.work0.issue1202.recovery.20261005T0509Z",
+  "expected_coord_head": "510bc3930b85f99f805b2d8e7aff5b62d0a58afe",
+  "expected_generation": 1,
+  "effect": {
+    "pr_number": 1205
+  },
+  "purpose": "Post-delivery closure recovery for already-merged PR #1205; close #1202 and drain exact same-delivery open siblings without repository-content mutation or QA reconstruction.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "read_mode": "WORKSPACE_GIT_BASELINE",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "executor_local_workspace",
+    "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "workspace_root": "GITHUB_ACTIONS_CONTROL_PLANE_RUNTIME",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "cac45737c3921af4319c6e98fc3347c8f2f7f7c8",
+    "canonical_drive_root": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_fallback_root": "/Google Drive/WHD/.unpushed",
+    "shared_zero_required": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1202,
+    "invocation_identity": "chatgpt.flowv2.work0.issue1202.recovery.20261005T0509Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "cac45737c3921af4319c6e98fc3347c8f2f7f7c8",
+    "required_skills": [
+      "flow-v2-execution"
+    ],
+    "completed_skills": [
+      "flow-v2-execution"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "observed_at": "2026-10-05T05:09:52Z"
+  }
 }
