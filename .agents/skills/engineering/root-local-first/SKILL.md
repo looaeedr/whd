@@ -125,6 +125,15 @@ CURRENT 文件/Skill/contract 不得再宣告：
 舊文字如需保留，只能明確標 `HISTORICAL/SUPERSEDED`，不得參與 routing。
 
 
+## Compatibility / delivery invariants
+
+- Git write mode remains `EXACT_TESTED_DIFF_ONLY`.
+- `INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1` remains CURRENT; control-plane internals **不得由聊天層逐顆手動編排**.
+- Repository-content fixes must never be a GitHub-side hotfix; mutate/test in the executor-local workspace first.
+- Delivery still requires `DELIVERY_RESERVATION` after the exact tested diff is frozen.
+- production target 的 ref advancement 一律交回 Flow v2 trusted `MERGE` / `SYNC_TARGET`；chat/runtime connector 不得直接前推 production target。
+- `ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1` is retained as a compatibility label only: Drive/root sync is non-blocking maintenance and no longer nominates Drive as a construction root.
+
 ## Machine owners
 
 - entry/router + workspace delivery gate: `tools/root_local_first_gate.py`
