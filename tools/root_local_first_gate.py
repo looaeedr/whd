@@ -246,16 +246,7 @@ def validate_root_path_resolution_evidence(evidence: object) -> dict[str, object
     )
 
 def select_repository_content_route(*, shared_zero_drift_present: bool, workspace_root: str = WORKSPACE_ROOT_POLICY) -> dict[str, object]:
-    """Choose the ordinary workspace path unless fresh shared-zero drift requires reconcile."""
-    if shared_zero_drift_present:
-        return {
-            "schema": CONTENT_ROUTE_SCHEMA,
-            "route": "SHARED_ZERO_FALLBACK",
-            "workspace_root": str(workspace_root),
-            "production_branch": PRODUCTION_BRANCH,
-            "workspace_canonical_sync_required": True,
-            "shared_zero_required": True,
-        }
+    """Always route repository-content work through the executor-local workspace."""
     return {
         "schema": CONTENT_ROUTE_SCHEMA,
         "route": "WORKSPACE_DEFAULT",
@@ -263,6 +254,7 @@ def select_repository_content_route(*, shared_zero_drift_present: bool, workspac
         "production_branch": PRODUCTION_BRANCH,
         "workspace_canonical_sync_required": False,
         "shared_zero_required": False,
+        "retired_shared_zero_drift_observed": bool(shared_zero_drift_present),
     }
 
 
@@ -662,8 +654,12 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("workspace root identity mismatch")
     if root.get("production_branch") != PRODUCTION_BRANCH or root.get("authority") is not False:
         raise ValueError("workspace root production identity mismatch")
-    if root.get("canonical_drive_overlay") != CANONICAL_DRIVE_ROOT:
-        raise ValueError("canonical Drive overlay mismatch")
+    if root.get("drive_role") != "MIRROR_BACKUP_ONLY":
+        raise ValueError("Drive must remain mirror/backup only")
+    if root.get("drive_mirror_root") != "/Google Drive/WHD/WHD_MIRROR/CURRENT":
+        raise ValueError("Drive mirror root mismatch")
+    if "canonical_drive_overlay" in root:
+        raise ValueError("Drive canonical overlay must remain retired")
     canonical_source = _mapping(contract.get("canonical_source"), "canonical_source")
     if canonical_source.get("provider") != "executor_local_repo_workspace":
         raise ValueError("entry bootstrap canonical source must be executor-local repo workspace")
@@ -671,14 +667,16 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("entry bootstrap contract path must be repo-relative")
     if canonical_source.get("resolution_method") != "WORKSPACE_REPO_RELATIVE_PATH":
         raise ValueError("entry bootstrap source resolution method mismatch")
-    if canonical_source.get("drive_role") != "OPTIONAL_MIRROR_NOT_STARTUP_AUTHORITY":
-        raise ValueError("Drive entry-contract copy must remain optional mirror only")
+    if canonical_source.get("drive_role") != "MIRROR_BACKUP_ONLY":
+        raise ValueError("Drive entry-contract copy must remain mirror/backup only")
+    if canonical_source.get("drive_mirror_path") != "/Google Drive/WHD/WHD_MIRROR/CURRENT":
+        raise ValueError("Drive mirror path mismatch")
     if canonical_source.get("drive_required") is not False:
         raise ValueError("ordinary workspace entry must not require Drive")
     if canonical_source.get("missing_drive_action") != "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE":
         raise ValueError("missing Drive must continue workspace-default when workspace-capable")
-    if canonical_source.get("missing_shared_zero_action") != "CONTINUE_WORKSPACE_DEFAULT":
-        raise ValueError("missing shared-zero must not block ordinary workspace entry")
+    if canonical_source.get("missing_shared_zero_action") != "IGNORE_RETIRED_SHARED_ZERO_AND_CONTINUE_WORKSPACE_DEFAULT":
+        raise ValueError("retired shared-zero must never affect ordinary workspace entry")
     if tuple(contract.get("required_order") or ()) != REQUIRED_ORDER:
         raise ValueError("root-local-first required order mismatch")
     if contract.get("test_profile_schema") != TEST_PROFILE_SCHEMA:
@@ -696,8 +694,12 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("workspace path policy mismatch")
     if root_path_gate.get("resolution_method") != "WORKSPACE_REPO_RELATIVE_PATH":
         raise ValueError("workspace path resolution method mismatch")
-    if root_path_gate.get("shared_zero_fallback_root") != CANONICAL_DRIVE_ROOT:
-        raise ValueError("shared-zero fallback root mismatch")
+    if root_path_gate.get("shared_zero_fallback_root") is not None:
+        raise ValueError("shared-zero fallback root must remain retired")
+    if root_path_gate.get("shared_zero_fallback_resolution_method") != "RETIRED":
+        raise ValueError("shared-zero fallback resolution must remain retired")
+    if root_path_gate.get("drive_mirror_role") != "MIRROR_BACKUP_ONLY":
+        raise ValueError("Drive mirror role mismatch")
     remote_gate = _mapping(contract.get("remote_connection_hard_gate"), "remote_connection_hard_gate")
     if remote_gate.get("schema") != REMOTE_CONNECTION_AUTHORITY_SCHEMA:
         raise ValueError("remote connection hard gate schema mismatch")
@@ -751,8 +753,14 @@ def validate_contract(payload: object) -> dict[str, object]:
         "startup_requires_drive", "startup_requires_shared_zero", "startup_requires_workspace_canonical_sync"
     )):
         raise ValueError("ordinary workspace startup must not require Drive/shared-zero sync")
-    if default_flow.get("shared_zero_fallback_trigger") != "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS":
-        raise ValueError("shared-zero fallback trigger mismatch")
+    if default_flow.get("shared_zero_fallback_trigger") != "RETIRED":
+        raise ValueError("shared-zero fallback must remain retired")
+    if default_flow.get("shared_zero_fallback_machine") is not None:
+        raise ValueError("CURRENT flow must not invoke a shared-zero fallback machine")
+    if default_flow.get("drive_routing_forbidden") is not True:
+        raise ValueError("Drive routing must remain forbidden")
+    if default_flow.get("missing_workspace_action") != "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME":
+        raise ValueError("missing workspace must hand off to a workspace-capable runtime")
     if default_flow.get("delivery") != "TESTED_DELIVERY_BRANCH_PR" or default_flow.get("direct_production_push_forbidden") is not True:
         raise ValueError("workspace delivery policy mismatch")
     entry_router = _mapping(contract.get("entry_router_hard_gate"), "entry_router_hard_gate")
@@ -791,10 +799,12 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("merge conflict must block on explicit user decision")
     if shared.get("conflict_checkpoint_schema") != CONFLICT_CHECKPOINT_SCHEMA:
         raise ValueError("merge conflict checkpoint schema mismatch")
-    if shared.get("mode") != "CONDITIONAL_FALLBACK_ONLY" or shared.get("default_route") is not False:
-        raise ValueError("shared-zero must remain conditional fallback only")
-    if shared.get("activation") != "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS":
-        raise ValueError("shared-zero activation mismatch")
+    if shared.get("mode") != "SUPERSEDED_DATA_ONLY" or shared.get("default_route") is not False:
+        raise ValueError("shared-zero must remain superseded data only")
+    if shared.get("activation") != "NEVER_CURRENT":
+        raise ValueError("shared-zero activation must remain retired")
+    if shared.get("routing_forbidden") is not True or shared.get("authority") is not False:
+        raise ValueError("shared-zero must never regain routing authority")
     reservation = _mapping(contract.get("path_reservation"), "path_reservation")
     if reservation.get("schema") != "WHD_PATH_RESERVATION_V1":
         raise ValueError("path reservation schema mismatch")
@@ -836,10 +846,12 @@ def validate_contract(payload: object) -> dict[str, object]:
     direct_gate = _mapping(contract.get("direct_root_mutation_test_gate"), "direct_root_mutation_test_gate")
     if direct_gate.get("schema") != "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1":
         raise ValueError("direct root mutation/test gate schema mismatch")
-    if direct_gate.get("applies_when") != "SHARED_ZERO_FALLBACK_ACTIVE":
-        raise ValueError("direct root mutation/test gate must be shared-zero fallback only")
-    if direct_gate.get("canonical_surface") != DEFAULT_WORK_PREFIX:
-        raise ValueError("direct root mutation/test canonical surface mismatch")
+    if direct_gate.get("status") != "SUPERSEDED":
+        raise ValueError("direct root mutation/test gate must remain superseded")
+    if direct_gate.get("applies_when") != "NEVER_CURRENT":
+        raise ValueError("direct root mutation/test gate must never participate in CURRENT routing")
+    if direct_gate.get("canonical_surface") is not None:
+        raise ValueError("retired direct-root gate must not nominate a Drive surface")
     if direct_gate.get("interactive_first_substantive_action") != "ROOT_MUTATE":
         raise ValueError("direct root mutation/test first action must be ROOT_MUTATE")
     if tuple(direct_gate.get("required_contiguous_outer_sequence") or ()) != (
@@ -873,12 +885,12 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("status/progress query must not be a stop reason")
     if direct_gate.get("test_red_action") != "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST":
         raise ValueError("TEST_RED must remain in the same root workspace")
-    if direct_gate.get("remote_without_root_capability_action") != "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME":
-        raise ValueError("shared-zero fallback no-capability action mismatch")
+    if direct_gate.get("remote_without_root_capability_action") != "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME":
+        raise ValueError("missing workspace capability must hand off to a workspace-capable runtime")
     if direct_gate.get("ordinary_missing_drive_mount_action") != "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE":
         raise ValueError("ordinary missing-Drive-mount action mismatch")
-    if direct_gate.get("fallback_activation") != "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY":
-        raise ValueError("shared-zero fallback activation mismatch")
+    if direct_gate.get("fallback_activation") != "RETIRED":
+        raise ValueError("shared-zero fallback activation must remain retired")
     forbidden = set(direct_gate.get("forbidden_pre_root_green_outcomes") or ())
     required_forbidden = {"PLANNING_ONLY", "CLAIM_ONLY", "OWNER_ONLY", "HANDOFF_ONLY", "BRANCH_CREATED_ONLY", "GOVERNANCE_GREEN_ONLY", "GITHUB_PATCH", "REMOTE_QA_AS_FIRST_TEST_SURFACE"}
     if not required_forbidden.issubset(forbidden):
@@ -1047,7 +1059,7 @@ def build_gate_evidence(
     reservation = None
     remote_authority = None
 
-    if repository_content_implementation and not shared_zero_drift_present:
+    if repository_content_implementation:
         route = select_repository_content_route(
             shared_zero_drift_present=False,
             workspace_root=str((entry_router or {}).get("workspace_root") or WORKSPACE_ROOT_POLICY),
@@ -1129,10 +1141,6 @@ def build_gate_evidence(
         if 'drift_resolution' in locals():
             result["target_drift_resolution"] = dict(drift_resolution)
         return result
-
-    if repository_content_implementation and shared_zero_drift_present:
-        # Fall through to the historical shared-zero machinery only when fresh drift exists.
-        completed.append("SHARED_ZERO_FALLBACK_ACTIVE")
 
     if not source_evidence:
         next_action = "ROOT_SOURCE_CURRENT"
