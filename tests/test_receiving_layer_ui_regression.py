@@ -36,6 +36,7 @@ def test_receiving_operator_terms_are_chinese_layers_connections_and_switch_bran
     assert 'Bay 1' not in source
     assert '開關' in source
     assert '＋層' in source
+    assert '－層' in source
     assert '預覽' in source
 
 
@@ -51,12 +52,22 @@ def test_switch_layout_is_separate_from_multi_cabinet_receiving_layout():
 
 def test_switch_layout_adapter_edits_each_layer_without_manufacturing_callback():
     adapter = ReceivingSwitchLayoutAdapter(new_receiving_switch_layout())
+    assert adapter.remove_layer() is False
     adapter.resize_connections(0, 2)
     adapter.add_layer()
     adapter.resize_connections(1, 1)
     assert adapter.connection_counts() == (3, 2)
+    assert adapter.remove_layer() is True
+    assert adapter.connection_counts() == (3,)
+    assert adapter.remove_layer() is False
     assert adapter.set_brand('三菱') is True
     assert adapter.brand == '三菱'
+
+def test_remove_layer_bridge_is_configuration_only_and_never_flushes_3d():
+    source = _function_source(BRIDGE, '_phase6_remove_receiving_layer')
+    assert 'remove_receiving_layer' in source
+    assert '.do_update(' not in source
+    assert 'submit_update_intent' not in source
 
 
 def test_each_layer_row_has_own_connection_resize_and_preview_callbacks():
@@ -87,10 +98,11 @@ def test_preview_confirmation_fails_closed_without_authoritative_brand_opening_r
     assert '.do_update(' not in source
 
 
-def test_box_body_physical_child_notebook_is_visible_for_parent_or_child_context():
+def test_box_body_physical_child_notebook_is_only_visible_in_single_input_mode():
     source = _function_source(NAV, 'refresh_box_body_piece_selector')
     assert 'show_for_box_body' in source
     assert 'notebook.pack(' in source
+    assert 'mode == "single"' in source
     assert 'active == "box_body" or active in wanted' in source
 
 
@@ -122,11 +134,12 @@ def test_receiving_layer_preview_dialog_is_owned_by_existing_controls_owner():
     assert len(bridge_source.splitlines()) <= 12
 
 
-def test_receiving_preview_owner_renders_real_3d_mesh_and_canonical_lock_holes():
+def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_holes():
     owner_source = inspect.getsource(controls.open_receiving_layer_preview)
     assert 'FigureCanvasTkAgg' in owner_source
     assert 'Poly3DCollection' in owner_source
-    assert '_phase6_mesh_feature_segments' in owner_source
+    assert '_phase6_mesh_feature_segments' not in owner_source
+    assert 'edgecolor="none"' in owner_source
     assert 'lock_circles' in owner_source
     assert 'Radiobutton' not in owner_source
     assert 'on_confirm' not in owner_source
@@ -135,7 +148,13 @@ def test_receiving_preview_owner_renders_real_3d_mesh_and_canonical_lock_holes()
         encoding="utf-8"
     )
     assert 'def receiving_layer_preview_payload(' in adapter_source
-    assert 'last_cutting_mesh' in adapter_source
+    assert 'query_assembly_render_data()' in adapter_source
+    assert 'visible_part_keys=None' in adapter_source
+    assert 'visible_box_body_piece_keys=None' in adapter_source
+    assert 'last_cutting_mesh' not in _function_source(
+        ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+        'receiving_layer_preview_payload',
+    )
     assert 'resolve_receiving_joint_lock_pattern(' in adapter_source
     assert 'resize_receiving_preview_bays(' in adapter_source
 
