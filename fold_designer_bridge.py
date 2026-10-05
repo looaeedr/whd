@@ -99,7 +99,6 @@ from gui_modules.application.command_router import (
 )
 from phase6_workspace_shell import (
     mount_shared_content as _workspace_shell_mount_shared_content,
-    toggle_fullscreen as _workspace_shell_toggle_fullscreen,
 )
 from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
