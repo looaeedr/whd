@@ -26,7 +26,7 @@ whd_schema: WHD_DOC_META_V1
 - **machine owner**：`tools/root_local_first_gate.py` + `tests/process/test_root_local_first_entry_hard_gate.py`。
 ## 2026-10-03 — 入口 contract 已存在，但 agent 先做 generic discovery
 
-- **事故模式**：使用者要求直接修改 WHD 流程時，agent 沒有先讀 canonical root entry contract / root-local-first Skill，而先做 Remote Desktop、generic Drive search、工具 discovery；即使後來回到正確 root，前段仍屬錯序。
+- **事故模式**：使用者要求直接修改 WHD 流程時，agent 沒有先從 executor-local repo workspace 讀 CURRENT entry contract / root-local-first Skill，而先做 Remote Desktop、generic Drive search 或無關工具 discovery；這會把 backup/歷史資料誤當 execution authority。
 - **根因**：舊規則只規範「進入 root-local-first 之後怎麼做」，沒有 machine-enforce「找到入口本身必須是第一個 routing sequence」。
 - **永久規則**：每個 WHD repository-content invocation 固定先 `READ canonical entry contract → READ root-local-first Skill → ENTRY_ROUTER_READY`；READY 前 generic discovery、Remote Desktop/local search、GitHub content discovery、claim/Flow v2 discovery 全部 fail closed。
 - **錯序處置**：任何 READY 前取得的 generic discovery 只能標記為 non-execution evidence；固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`，不得沿錯路續做。
@@ -35,7 +35,7 @@ whd_schema: WHD_DOC_META_V1
 ## 2026-10-03 — root authority 有了，但同名搜尋與 stale root 仍可繞過 latest 0
 
 <!-- ROOT_PARENT_CHAIN_AND_LATEST_ZERO_PITFALL_V1 -->
-- **事故模式**：repository-content 任務已指定 `/Google Drive/WHD` 為 canonical root，agent 仍先用 GitHub／全域 Drive 搜尋同名 `SKILL.md`；回到 root 後又直接拿 root 當 baseline，而 `.unpushed/docs/0` 的 frozen generation 已比 root 新，形成「找到對資料夾卻仍用 stale file」的第二條繞路。
+- **歷史事故模式（已退休）**：舊流程曾指定 `/Google Drive/WHD` 與 `.unpushed` 作施工 authority。CURRENT 規則禁止重播此流程；任何舊 Drive Skill、frozen generation、shared-zero evidence 都只能作歷史資料，repository-content baseline 固定 fresh Git production X + executor-local repo workspace。
 - **根因**：舊入口 gate 只保證先進 root-local-first，沒有把「exact parent-chain path resolution」「remote deny-by-default」「若 path 已在 0，latest 0 優先於 root」做成同一組 machine invariants。
 - **歷史修補（SUPERSEDED）**：曾要求固定 Drive parent-chain + latest-0 作施工 baseline；CURRENT normal route 已固定為 executor-local `WORKSPACE_DEFAULT`；任何 shared-zero drift 都不得再切換 route。
 - **remote boundary**：除「只為開工單」或使用者明確授權的 exact remote action 外，GitHub 與遠端本機預設 `DENY`；未授權時連 GitHub `READ/FETCH/COMPARE` 都不能用來找 baseline。`/推推 文檔|主體` 只打開該次 selected lane delivery window，完成／失敗退出即關閉。
