@@ -350,7 +350,7 @@ def assert_premerge_latest_file_recheck(
     touched = sorted(path for path in item["locked_paths"] if base[path] != fresh[path])
     if touched:
         raise UnpushedIntegrationError(
-            "TARGET_TOUCHED_LOCKED_PATH_REQUIRES_ROOT_0_RECONCILE_RETEST_REFREEZE "
+            "TARGET_TOUCHED_LOCKED_PATH_REQUIRES_WORKSPACE_RECONCILE_RETEST_REFREEZE "
             f"paths={touched}"
         )
 
