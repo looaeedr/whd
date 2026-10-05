@@ -1,12 +1,9 @@
 {
   "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
   "status": "HISTORICAL",
-  "canonical_root": "/Google Drive/WHD",
-  "integration_root": "/Google Drive/WHD/.unpushed",
-  "lanes": {
-    "body": "/Google Drive/WHD/.unpushed/body/0",
-    "docs": "/Google Drive/WHD/.unpushed/docs/0"
-  },
+  "canonical_root": null,
+  "integration_root": null,
+  "lanes": {},
   "classification": {
     "principle": "CLASSIFY_BY_OWNERSHIP_NOT_EXTENSION",
     "docs_includes": [
@@ -32,9 +29,9 @@
     "product_required_doc_rule": "IF_OMITTING_THE_DOCUMENT_MAKES_THE_PRODUCT_DELIVERY_INCOMPLETE_OR_UNVERIFIABLE_THEN_BODY"
   },
   "path_lineage": {
-    "authority": "LANE_0_IS_SINGLE_UNPUSHED_INTEGRATION_AUTHORITY",
-    "later_worker_base": "LATEST_0",
-    "merge_mode": "THREE_WAY_WITH_BASE_GENERATION_AND_HASH",
+    "authority": "HISTORICAL_ONLY_NO_CURRENT_AUTHORITY",
+    "later_worker_base": "RETIRED",
+    "merge_mode": "RETIRED",
     "overwrite_latest_0": false,
     "generation_monotonic": true
   },
@@ -60,13 +57,10 @@
     "resume_requires": "EXPLICIT_USER_CONFLICT_DECISION"
   },
   "push": {
-    "entry_skill": "/推推",
-    "allowed_targets": [
-      "文檔",
-      "主體"
-    ],
-    "branch_creation_timing": "DELIVERY_ONLY_AFTER_LANE_GREEN",
-    "scope_gate": "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK",
+    "entry_skill": null,
+    "allowed_targets": [],
+    "branch_creation_timing": "RETIRED",
+    "scope_gate": "RETIRED",
     "cross_lane_leakage": "FORBIDDEN",
     "pre_lock_manifest_equality": "VALIDATION_ONLY_NOT_DELIVERY_AUTHORITY"
   },
@@ -86,16 +80,9 @@
     "execution_terminal_owner": "WHD_EXECUTION_RECORD_V2",
     "issue_sync_authority": "POST_DELIVERY_ISSUE_SYNC",
     "required_order": [
-      "MERGE_READBACK_VERIFIED",
-      "DELIVERY_RECEIPT_BOUND",
-      "SYNC_LINKED_GITHUB_ISSUES",
-      "ISSUE_SYNC_READBACK_VERIFIED",
-      "FLOW_V2_DONE",
-      "LANE_DELIVERY_RECEIPT_BOUND",
-      "FINALIZE_DELIVERED_LANE_ZERO",
-      "DURABLE_CLEANUP_COMPLETE"
+      "HISTORICAL_ONLY"
     ],
-    "lane_cleanup_requires_flow_v2_done": true
+    "lane_cleanup_requires_flow_v2_done": false
   },
   "root_sync_policy": {
     "mode": "OPTIONAL_MAINTENANCE",
@@ -107,7 +94,7 @@
     "primary": "DIRECT_EXACT_LOCKED_FILESET_APPLY",
     "workspace_staged_fallback": {
       "schema": "WHD_WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1",
-      "status": "CURRENT",
+      "status": "HISTORICAL",
       "workspace_authority": false,
       "requires_frozen_manifest": true,
       "requires_exact_hash_readback": true,
@@ -117,8 +104,7 @@
       "cleanup_after_terminal": true,
       "invariant": "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET",
       "triggers": [
-        "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
-        "SOURCE_CONNECTOR_NOT_DIRECTLY_USABLE_AS_GIT_CONTENT_WRITE_INPUT"
+        "RETIRED"
       ],
       "codex_cloud_mount_bridge": {
         "schema": "WHD_CHATGPT_CLOUD_MOUNT_TO_CODEX_WORKSPACE_BRIDGE_V1",
@@ -138,32 +124,22 @@
         ],
         "mismatch_state": "CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH",
         "mismatch_action": "RESTAGE_FROM_CANONICAL_AUTHORITY",
-        "invariant": "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY",
+        "invariant": "RETIRED_DATA_TRANSPORT_ONLY",
         "workspace_mirror_policy": {
           "schema": "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
           "compatibility_aliases": [
             "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1"
           ],
-          "machine_owner": "tools/workspace_canonical_sync.py",
+          "machine_owner": null,
           "persistence": "EXECUTOR_DEFINED",
-          "mirror_scope": "FALLBACK_RECONCILE_CACHE",
+          "mirror_scope": "HISTORICAL_DATA_ONLY",
           "authority": false,
-          "canonical_latest_owner": "DRIVE_SHARED_ZERO_ONLY_WHEN_FALLBACK_ACTIVE",
+          "canonical_latest_owner": "NONE_RETIRED",
           "startup_reconcile_required": false,
           "reconcile_key": "CANONICAL_GENERATION_OR_MANIFEST_DIGEST",
           "sync_mode": "INCREMENTAL_CHANGED_PATHS",
-          "commands": [
-            "sync-in",
-            "status",
-            "prepare-outbound",
-            "verify-outbound"
-          ],
-          "required_schemas": [
-            "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
-            "WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1",
-            "WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1",
-            "WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1"
-          ],
+          "commands": [],
+          "required_schemas": [],
           "required_mirror_receipt": [
             "canonical_root_identity",
             "canonical_generation_or_manifest_digest",
@@ -179,13 +155,13 @@
           "dirty_path_conflict_state": "WORKSPACE_CANONICAL_RECONCILE_REQUIRED",
           "delivery_scope_still_locked": true,
           "terminal_cleanup": "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY",
-          "invariant": "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP",
+          "invariant": "RETIRED_NOT_CURRENT_ROUTING",
           "shared_workspace_invariant": "SYNC_MACHINE_IS_SHARED_BUT_WORKSPACE_PATH_IS_EXECUTOR_LOCAL",
           "activation": "RETIRED_DATA_ONLY",
           "ordinary_startup_required": false,
           "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE"
         },
-        "activation_requires_shared_zero_drift": true
+        "activation_requires_shared_zero_drift": false
       }
     }
   },
@@ -203,5 +179,14 @@
     "route": "WORKSPACE_DEFAULT"
   },
   "routing_forbidden": true,
-  "authority": false
+  "authority": false,
+  "version": 2,
+  "current_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
+  "current_routing_forbidden": true,
+  "historical_paths": {
+    "former_canonical_root": "/Google Drive/WHD",
+    "former_integration_root": "/Google Drive/WHD/.unpushed",
+    "former_body_lane": "/Google Drive/WHD/.unpushed/body/0",
+    "former_docs_lane": "/Google Drive/WHD/.unpushed/docs/0"
+  }
 }
