@@ -56,7 +56,8 @@ def test_deterministic_repo_migration_cannot_bypass_flow_or_root_local_first() -
     assert "WHD_EXECUTION_RECORD_V2" in skill
     assert "WHD_TEST_EXECUTION_RECEIPT_V1" in skill
     assert "WORKSPACE_DEFAULT" in skill
-    assert "SHARED_ZERO_FALLBACK" in skill
+    assert "shared-zero" in skill.lower()
+    assert "不得切換 `WORKSPACE_DEFAULT`" in skill
     assert "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION" not in skill
     by_id = {route["id"]: route for route in registry["routes"]}
     expected = ["flow-v2-execution", "root-local-first", "deterministic-repo-migration"]
