@@ -185,8 +185,10 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
         "exact_commands": list(FULL_GATE_COMMANDS[full_gate_kind]),
         "command_owner": "tools/control_plane_regression.py" if full_gate_kind == "GOVERNANCE_FULL_SUITE" else "pytest",
         "profile_id": "+".join([change_type, *domains, full_gate_kind]),
-        "workspace_root": "/Google Drive/WHD",
-        "workspace_unpushed_root": "/Google Drive/WHD/.unpushed",
+        "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+        "production_branch": "cleanup/2d-3d-sync",
+        "drive_role": "MIRROR_BACKUP_ONLY",
+        "shared_zero_required": False,
     }
 
 
