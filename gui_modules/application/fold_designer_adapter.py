@@ -2750,6 +2750,85 @@ class Phase6FoldDesignerComposition:
             submit("geometry", commit=True)
         return True
 
+    def receiving_layer_preview_payload(self, namespace, layer_index):
+        """Build a display-only 3D preview from current resolved cabinet mesh.
+
+        Connection count only replicates the already-resolved current cabinet
+        geometry.  CUTTING openings therefore stay exact.  Adjacent mating-hole
+        circles are resolved by the canonical Receiving Joint lock owner.
+        """
+        app = self.app
+        switch = self.receiving_switch_adapter(namespace)
+        index = int(layer_index)
+        count = switch.connection_count(index)
+        scene_renderer = getattr(app, "final_scene_view", None)
+        base_mesh = tuple(getattr(scene_renderer, "last_cutting_mesh", ()) or ())
+        if not base_mesh:
+            raise RuntimeError("目前沒有可用的 3D 幾何可供預覽")
+
+        vertices = [point for tri in base_mesh for point in tri]
+        if not vertices:
+            raise RuntimeError("目前 3D 幾何為空")
+        xs, ys, zs = tuple(zip(*vertices))
+        min_x, max_x = min(map(float, xs)), max(map(float, xs))
+        min_y = min(map(float, ys))
+        max_z = max(map(float, zs))
+        span_x = float(max_x - min_x)
+        if span_x <= 1e-9:
+            raise RuntimeError("目前 3D 幾何沒有有效寬度")
+
+        meshes = []
+        for connection_index in range(count):
+            shift_x = span_x * connection_index
+            meshes.append(
+                tuple(
+                    tuple(
+                        (float(point[0]) + shift_x, float(point[1]), float(point[2]))
+                        for point in tri
+                    )
+                    for tri in base_mesh
+                )
+            )
+
+        snapshot = ensure_receiving_preview_layout(
+            getattr(app, "_phase6_input_snapshot", {}) or {}
+        )
+        layout = resize_receiving_preview_bays(
+            snapshot["receiving_layout"],
+            set_index=0,
+            bay_count=count,
+        )
+        settings = dict(getattr(app, "_settings_values", {}) or {})
+        thickness = float(settings.get("t", snapshot.get("t", 2.0)))
+        frame_width = float(settings.get("fw", snapshot.get("fw", 29.0)))
+        lock_circles = []
+        for joint_index in range(max(count - 1, 0)):
+            resolved = resolve_receiving_joint_lock_pattern(
+                layout,
+                set_index=0,
+                joint_index=joint_index,
+                thickness=thickness,
+                frame_width=frame_width,
+            )
+            mating_x = min_x + span_x * (joint_index + 1)
+            for circle in tuple(resolved.canonical_pattern or ()):
+                lock_circles.append(
+                    {
+                        "joint_index": joint_index,
+                        "x": float(mating_x),
+                        "y": float(min_y + float(circle.v)),
+                        "z": float(max_z - float(circle.u)),
+                        "diameter": float(circle.diameter),
+                        "layer": str(circle.layer),
+                    }
+                )
+
+        return {
+            "connection_count": count,
+            "connection_meshes": tuple(meshes),
+            "lock_circles": tuple(lock_circles),
+        }
+
     def open_receiving_layer_preview(self, namespace, layer_index):
         app = self.app
         required = lambda name: self._required(namespace, name)
@@ -2758,19 +2837,25 @@ class Phase6FoldDesignerComposition:
         switch = self.receiving_switch_adapter(namespace)
         index, brand = int(layer_index), switch.brand
         original = required("original")
+        try:
+            preview = self.receiving_layer_preview_payload(namespace, index)
+        except Exception as exc:
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "3D 預覽失敗",
+                str(exc),
+                parent=getattr(app, "root", None),
+            )
+            return False
         return required("open_receiving_layer_preview")(
             app.root,
             tk=original.tk,
             ttk=original.ttk,
             layer_index=index,
-            connection_count=switch.connection_count(index),
+            connection_count=preview["connection_count"],
             brand=brand,
-            on_confirm=lambda connection_index: self.confirm_receiving_opening(
-                namespace,
-                index,
-                connection_index,
-                brand,
-            ),
+            connection_meshes=preview["connection_meshes"],
+            lock_circles=preview["lock_circles"],
         )
 
     def settings_panel(self, namespace):
