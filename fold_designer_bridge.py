@@ -1513,103 +1513,38 @@ _BOX_STRUCTURE_LABEL_TO_TYPE = {label: key for key, label in _BOX_STRUCTURE_LABE
 
 
 def _phase6_receiving_layout_applicable(self):
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    return cabinet_family_policy.canonical_family_name(snapshot) == "受電箱"
+    return _phase6_composition(self).receiving_layout_applicable()
 
 
 def _phase6_confirm_receiving_destructive(self, stable_ids):
-    from tkinter import messagebox
-
-    labels = "\n".join(str(value) for value in stable_ids)
-    return bool(
-        messagebox.askyesno(
-            "確認刪除受電箱 Set/Bay",
-            "此操作會刪除已保存或本次工作階段已修改的尾端資料：\n"
-            f"{labels}\n\n確定繼續嗎？",
-            parent=getattr(self, "root", None),
-        )
+    return _phase6_composition(self).confirm_receiving_destructive(
+        stable_ids
     )
 
 
 def _phase6_receiving_adapter(self, *, reset=False):
-    if not _phase6_receiving_layout_applicable(self):
-        return None
-    snapshot = ensure_receiving_layout(getattr(self, "_phase6_input_snapshot", {}) or {})
-    layout = snapshot.get("receiving_layout")
-    if not isinstance(layout, Mapping):
-        return None
-    adapter = None if reset else getattr(self, "_phase6_receiving_set_bay_adapter", None)
-    if adapter is None:
-        adapter = ReceivingSetBayAdapter(
-            layout,
-            persisted_ids=receiving_layout_stable_ids(layout),
-            confirm_destructive=lambda ids: _phase6_confirm_receiving_destructive(self, ids),
-        )
-        self._phase6_receiving_set_bay_adapter = adapter
-    return adapter
+    return _phase6_composition(self).receiving_adapter(
+        globals(), reset=bool(reset)
+    )
 
 
-def _phase6_sync_receiving_current_bay(self, *, validate_common=True, refresh_controls=True):
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
-        return False
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot["receiving_layout"] = adapter.layout
-    projected = project_receiving_bay_legacy_aliases(
-        snapshot,
-        set_index=adapter.selection.set_index,
-        bay_index=adapter.selection.bay_index,
+def _phase6_sync_receiving_current_bay(
+    self,
+    *,
+    validate_common=True,
+    refresh_controls=True,
+):
+    return _phase6_composition(self).sync_receiving_current_bay(
+        globals(),
         validate_common=bool(validate_common),
+        refresh_controls=bool(refresh_controls),
     )
-    _phase6_replace_mapping(self, "_phase6_input_snapshot", projected)
-    _phase6_replace_mapping(
-        self,
-        "_phase6_box_whd",
-        {"w": projected["w"], "h": projected["h"], "d": projected["d"]},
-    )
-    self.state.w = original.get_int(projected["w"])
-    self.state.h = original.get_int(projected["h"])
-    self.state.d = original.get_int(projected["d"])
-    self._phase6_last_w = self.state.w
-    self._phase6_last_d = self.state.d
-    self._phase6_receiving_set_bay_guard = True
-    try:
-        for var, value in (
-            (getattr(self, "v_w", None), projected["w"]),
-            (getattr(self, "v_h", None), projected["h"]),
-            (getattr(self, "v_d", None), projected["d"]),
-        ):
-            if var is not None:
-                var.set(_setting_number_text(value))
-    finally:
-        self._phase6_receiving_set_bay_guard = False
-    if refresh_controls:
-        _phase6_refresh_receiving_set_bay_control(self)
-    _phase6_refresh_back_panel_mode_control(self)
-    return True
 
 
 def _phase6_commit_receiving_current_bay_controls(self):
-    if getattr(self, "_phase6_receiving_set_bay_guard", False):
-        return False
-    adapter = _phase6_receiving_adapter(self)
-    if adapter is None:
-        return False
-    adapter.update_current_bay(
-        width=original.get_int(self.v_w.get()),
-        height=original.get_int(self.v_h.get()),
-        depth=original.get_int(self.v_d.get()),
-    )
-    self._phase6_input_snapshot["receiving_layout"] = adapter.layout
-    _phase6_sync_receiving_current_bay(
-        self,
-        validate_common=not bool(getattr(self, "_phase6_initializing", False)),
-        refresh_controls=False,
-    )
-    workspace = getattr(self, "designer_workspace", None)
-    if workspace is not None:
-        workspace.mark_dirty()
-    return True
+    return _phase6_composition(
+        self
+    ).commit_receiving_current_bay_controls(globals())
 
 
 def _phase6_receiving_switch_adapter(self, *, reset=False):
