@@ -32,8 +32,8 @@
   "status": "CURRENT",
   "transaction_owner": "tools/control_transaction.py",
   "trusted_executor": "tools/control_transaction_production_executor.py",
-  "version": 4,
-  "workspace_authority": "NONE__EXECUTOR_LOCAL_WORKSPACE_IS_CONTENT_SURFACE",
-  "workspace_policy": "EXECUTOR_LOCAL_WORKSPACE_ONLY__DRIVE_SHARED_ZERO_RETIRED",
+  "version": 3,
+  "workspace_authority": "NONE__EXECUTOR_WORKSPACE_OR_SHARED_ZERO_REMAINS_CONTENT_SURFACE",
+  "workspace_policy": "EXECUTOR_LOCAL_WORKSPACE_DEFAULT__SHARED_ZERO_CONDITIONAL_FALLBACK",
   "writer_policy": "SINGLE_AUTHORITATIVE_WRITER_PER_PATH_AT_DELIVERY_ONLY"
 }

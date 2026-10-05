@@ -1,6 +1,6 @@
 {
   "schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-  "version": 5,
+  "version": 4,
   "status": "CURRENT",
   "owner": "tools/work_root_gate.py",
   "default_work_root": {
@@ -26,10 +26,24 @@
     "LEGACY_STATE_LAYOUT",
     "LEGACY_ARTIFACTS_LAYOUT"
   ],
+  "unpushed": {
+    "root": "/Google Drive/WHD/.unpushed",
+    "body_zero": "/Google Drive/WHD/.unpushed/body/0",
+    "docs_zero": "/Google Drive/WHD/.unpushed/docs/0",
+    "body_workers": "/Google Drive/WHD/.unpushed/body/workers",
+    "docs_workers": "/Google Drive/WHD/.unpushed/docs/workers",
+    "mode": "SUPERSEDED_DATA_ONLY",
+    "ordinary_startup_required": false,
+    "activation": "NEVER_CURRENT",
+    "authority": false,
+    "routing_forbidden": true
+  },
   "required_sequence": [
     "WORKSPACE_ROOT_RESOLVED",
     "WORKSPACE_GIT_IDENTITY_VERIFIED",
     "PRODUCTION_BASELINE_CURRENT",
+    "CONDITIONAL_SHARED_ZERO_DRIFT_CHECK",
+    "ROOT_SHARED_UNPUSHED_GATE_READ",
     "REQUESTED_OPERATION"
   ],
   "next_gate": {
@@ -39,7 +53,7 @@
   },
   "github_role": "GitHub cleanup/2d-3d-sync is the ordinary production baseline shared by executor-local workspaces. Delivery remains branch + PR + checks; direct production push is forbidden.",
   "root_identity_recovery": {
-    "owner": "tools/work_root_gate.py::recover_workspace_to_current_production",
+    "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
     "cli": "python tools/work_root_gate.py recover-current-production --root <executor-workspace>",
     "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
     "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
@@ -55,5 +69,17 @@
     "ordinary_startup_required": false,
     "routing_forbidden": true,
     "authority": false
+  },
+  "conditional_shared_zero_drift_check_role": "NOOP_HISTORICAL_COMPATIBILITY",
+  "canonical_drive_overlay": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "activation": "NEVER_CURRENT",
+    "ordinary_startup_required": false,
+    "machine_owner": null,
+    "role": "MIRROR_BACKUP_ONLY",
+    "authority": false,
+    "routing_forbidden": true
   }
 }
