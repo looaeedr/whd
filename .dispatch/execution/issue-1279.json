@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
+    "id": 37386553810,
+    "purpose": "Canonical Product Regression",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,10 +43,15 @@
   },
   "next_action": {
     "args": {
+      "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
+      "post_accept_pr_number": 1316,
+      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "post_accept_target_branch": "cleanup/2d-3d-sync",
+      "run_id": 37386553810,
       "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Verify exact tested delivery PR",
-    "kind": "START_QA"
+    "display": "Consume exact-head PR1316 product regression and merge when all required checks are GREEN",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -58,21 +68,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
   "transaction": {
-    "expected_fingerprint": "45204ab434b19b0b9730becd8eb2479d2485e0ff4bd26bda92d927e9d2929cf6",
-    "id": "gha:37386598340:1279:APPLY_COMMIT:8",
+    "expected_fingerprint": "ef5a28598c968e3da6c3feb533a509db91fdbc0de2c0fdaad4cad0629a38d5aa",
+    "id": "gha:37386754088:1279:START_QA:9",
     "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-05T23:07:32Z",
+  "updated_at": "2026-10-05T23:09:06Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
