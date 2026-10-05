@@ -61,11 +61,11 @@ def test_retired_execution_surfaces_are_physically_absent_and_unrouted() -> None
 def test_git_connector_pitfall_cannot_authorize_production_update_ref() -> None:
     text = _read("個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md")
     assert "WORKSPACE_DEFAULT" in text
-    assert "SHARED_ZERO_FALLBACK" in text
+    assert "shared-0 已退休" in text
     assert "Contents API 永遠不得直接寫 authoritative production target" in text
     assert "production integration 禁用 chat/runtime Contents API" in text
     assert "Flow v2 trusted `MERGE / SYNC_TARGET`" in text
-    assert "Drive mount 缺失本身不是 `WORKSPACE_DEFAULT` blocker" in text
+    assert "Drive mount 缺失不得影響 `WORKSPACE_DEFAULT`" in text
     assert "UPDATE_REF(force=false) → POST_MERGE" not in text
 
 
