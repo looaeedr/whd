@@ -301,7 +301,7 @@
   },
   "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
   "status": "CURRENT",
-  "target_drift_action": "REFRESH_WORKSPACE_BASELINE_RETEST_BEFORE_DELIVERY",
+  "target_drift_action": "REVALIDATE_GREEN_REUSE_IF_UNCHANGED_ELSE_RETEST",
   "test_execution_receipt": {
     "bare_tests_green_boolean_sufficient": false,
     "generation_role": "HISTORICAL_FREEZE_PROVENANCE_ONLY",
@@ -317,7 +317,7 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 8,
+  "version": 9,
   "git_after_remote_authority_before_unlock": [
     "READ",
     "FETCH",
@@ -447,5 +447,25 @@
       "chatgpt": "RUNTIME_LOCAL_WORKSPACE",
       "other": "RUNTIME_LOCAL_WORKSPACE"
     }
+  },
+  "green_reuse_fast_path": {
+    "schema": "WHD_GREEN_REUSE_REVALIDATION_V1",
+    "status": "CURRENT",
+    "purpose": "AVOID_REDUNDANT_RETEST_ON_NON_IMPACTING_TARGET_DRIFT",
+    "machine_owner": "tools/root_local_first_gate.py::classify_target_drift_action",
+    "required_when": "TARGET_DRIFT_AND_PRIOR_GREEN_EXISTS",
+    "reuse_when_all": [
+      "CANDIDATE_DIFF_DIGEST_UNCHANGED",
+      "CANDIDATE_HEAD_UNCHANGED",
+      "EXACT_TEST_COMMANDS_UNCHANGED",
+      "TEST_PROFILE_UNCHANGED",
+      "TEST_CONTRACT_UNCHANGED",
+      "TARGET_DRIFT_PATHS_DISJOINT_FROM_CANDIDATE",
+      "TARGET_DRIFT_HAS_NO_DEPENDENCY_IMPACT"
+    ],
+    "revalidate_only_first": true,
+    "retest_when_any_impact": true,
+    "extra_test_run_on_reuse": false,
+    "missing_reuse_evidence_action": "REVALIDATE_BEFORE_RETEST"
   }
 }

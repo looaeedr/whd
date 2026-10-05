@@ -64,7 +64,24 @@ Git write 仍受限：
 - 禁止 direct push `cleanup/2d-3d-sync`；
 - 修改與測試先在 executor workspace；
 - 測試 GREEN + exact diff 後，只能建立 delivery branch、push、PR、跑 required checks；
-- target drift 時 refresh workspace baseline、retest，再 delivery。
+- target drift 時**先做 GREEN reuse revalidation，不得直接重跑測試**；只有 candidate/head、test profile/contract、exact test commands、touched path 或 dependency impact 任一改變，才 refresh workspace baseline + retest。
+
+### 1.1.1 GREEN_REUSE_FAST_PATH_V1
+
+已有 GREEN 的 candidate 遇到 production target drift 時，固定先做 cheap revalidation：
+
+`FRESH_TARGET_COMPARE → CANDIDATE_IDENTITY_CHECK → IMPACT_CHECK → REUSE_GREEN | RETEST_REQUIRED`
+
+`REUSE_GREEN` 必須同時成立：
+- candidate diff digest 與 candidate head 未變；
+- prior result 確實為 GREEN；
+- exact test commands、test profile、test contract 未變；
+- fresh target changed paths 與 candidate touched paths 不重疊；
+- fresh impact analysis 證明沒有 dependency impact。
+
+符合時直接沿用舊 GREEN，**禁止為了 refresh timestamp / target SHA 再跑一次測試或 CI**。缺 evidence 時先補 compare/identity/impact revalidation；只有 revalidation 證明有影響或 identity 改變才進 `RETEST_REQUIRED`。
+
+machine owner=`tools/root_local_first_gate.py::classify_target_drift_action`；schema=`WHD_GREEN_REUSE_REVALIDATION_V1`。
 
 ### 1.2 Conditional Drive/shared-0 fallback
 
@@ -183,7 +200,7 @@ freeze 必須 exact 綁 lane、generation、source SHA、target branch、write/d
 
 `DELIVERY_FILESET_LOCKED → PUSH_SCOPE_MUST_EQUAL_LOCK → FRESH_TARGET_HEAD → DELIVERY_RESERVATION → CREATE_DELIVERY_BRANCH → EXACT_LOCKED_FILESET_APPLY → POST_PUSH_CI → PRE_MERGE_LATEST_FILE_RECHECK → MERGE_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
 
-fileset lock 必須 exact 綁 path + hash/delete marker；merge 前再次驗 target/head/changed filenames/locked blob hashes。任何 drift 都回 canonical root/shared-0 reconcile + retest + refreeze，不得 Git-side hotfix。
+fileset lock 必須 exact 綁 path + hash/delete marker；merge 前再次驗 target/head/changed filenames/locked blob hashes。target drift 先走 `GREEN_REUSE_FAST_PATH_V1`；若 candidate 與 test contract 未變且 drift 無 overlap/dependency impact，沿用既有 GREEN，只更新 fresh target/reconciliation evidence；有實質 impact 才回 workspace/shared-0 retest + refreeze。不得 Git-side hotfix。
 
 Flow v2 path reservation 保留在這個 delivery phase，**不再作為 root 施工前置 single-writer gate**。
 
