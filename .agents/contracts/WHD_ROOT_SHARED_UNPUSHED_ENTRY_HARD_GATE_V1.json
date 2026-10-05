@@ -23,7 +23,7 @@
   "direct_root_mutation_test_gate": {
     "applies_when": "NEVER_CURRENT",
     "canonical_surface": null,
-    "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK",
+    "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_WORKSPACE_TASK",
     "forbidden_pre_root_green_outcomes": [
       "PLANNING_ONLY",
       "CLAIM_ONLY",
@@ -44,15 +44,15 @@
       "PROGRESS_QUERY"
     ],
     "git_unlock_dependency": "WORKSPACE_TESTS_GREEN_AND_EXACT_DIFF_FROZEN",
-    "interactive_first_substantive_action": "ROOT_MUTATE",
+    "interactive_first_substantive_action": "WORKSPACE_MUTATE",
     "remote_without_root_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME",
     "required_contiguous_outer_sequence": [
       "WORKSPACE_MUTATE",
       "WORKSPACE_TESTS_GREEN",
       "EXACT_DIFF_FROZEN"
     ],
-    "root_capability_available_policy": "NO_HANDOFF_ONLY_STOP",
-    "same_invocation_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER",
+    "root_capability_available_policy": "WORKSPACE_CAPABLE_NO_HANDOFF_ONLY_STOP",
+    "same_invocation_until": "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER",
     "schema": "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1",
     "scope_switch_allowed_only_on": [
       "USER_EXPLICIT_TASK_CHANGE",
@@ -63,8 +63,8 @@
       "USER_INPUT_REQUIRED"
     ],
     "status_or_progress_query_is_stop_reason": false,
-    "task_scope_sticky_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
-    "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST",
+    "task_scope_sticky_until": "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
+    "test_red_action": "FIX_IN_SAME_WORKSPACE_AND_RETEST",
     "ordinary_missing_drive_mount_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
     "fallback_activation": "RETIRED",
     "status": "SUPERSEDED"
