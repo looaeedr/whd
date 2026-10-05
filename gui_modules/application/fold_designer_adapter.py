@@ -81,6 +81,7 @@ from phase6_final_scene_contracts import (
     AssemblyScenePart,
     AssemblySceneRenderData,
     FinalSceneDependencies,
+    FinalSceneViewRequest,
 )
 from phase6_final_scene_renderer import Phase6FinalSceneRenderer
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
@@ -2702,6 +2703,14 @@ class Phase6FoldDesignerComposition:
         self.refresh_receiving_set_bay_control(namespace)
         return True
 
+    def remove_receiving_layer(self, namespace):
+        switch = self.receiving_switch_adapter(namespace)
+        if not switch.remove_layer():
+            return False
+        self.mark_receiving_switch_layout_dirty(namespace, switch)
+        self.refresh_receiving_set_bay_control(namespace)
+        return True
+
     def resize_receiving_bays(
         self,
         namespace,
@@ -2751,31 +2760,68 @@ class Phase6FoldDesignerComposition:
         return True
 
     def receiving_layer_preview_payload(self, namespace, layer_index):
-        """Build a display-only 3D preview from current resolved cabinet mesh.
+        """Build a complete display-only assembly preview for one switch layer.
 
-        Connection count only replicates the already-resolved current cabinet
-        geometry.  CUTTING openings therefore stay exact.  Adjacent mating-hole
-        circles are resolved by the canonical Receiving Joint lock owner.
+        The preview always resolves the full current assembly, independent of the
+        main viewport's current single/assembly mode or visibility toggles. Every
+        connection reuses that exact CUTTING mesh, so physical openings remain
+        geometry rather than a second preview-only hole table.
         """
         app = self.app
         switch = self.receiving_switch_adapter(namespace)
         index = int(layer_index)
         count = switch.connection_count(index)
-        scene_renderer = getattr(app, "final_scene_view", None)
-        base_mesh = tuple(getattr(scene_renderer, "last_cutting_mesh", ()) or ())
+
+        snapshot = ensure_receiving_preview_layout(
+            getattr(app, "_phase6_input_snapshot", {}) or {}
+        )
+        settings = dict(getattr(app, "_settings_values", {}) or {})
+        thickness = float(settings.get("t", snapshot.get("t", 2.0)))
+
+        view = self.final_scene_adapter(self.final_scene_ports(namespace))
+        assembly_data = view.query_assembly_render_data()
+        assembly_data = replace(
+            assembly_data,
+            visible_part_keys=None,
+            visible_box_body_piece_keys=None,
+        )
+        assembly_part_keys = tuple(
+            str(getattr(part, "part_key", "") or "")
+            for part in tuple(getattr(assembly_data, "assembly_parts", ()) or ())
+        )
+        if not assembly_part_keys:
+            raise RuntimeError("目前沒有可用的完整組合體 3D 幾何")
+
+        from matplotlib.figure import Figure
+        from types import SimpleNamespace
+
+        figure = Figure(figsize=(1.0, 1.0), dpi=40)
+        axis = figure.add_subplot(111, projection="3d")
+        temp_renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=axis))
+        request = FinalSceneViewRequest(
+            render_data=assembly_data,
+            x_profile=(),
+            y_profile=(),
+            part_key="assembly",
+            alpha_bend=0.86,
+            finished_dimensions=operator_finished_dimensions_for_app(app, None),
+            thickness=thickness,
+        )
+        try:
+            base_mesh = tuple(temp_renderer.render(request) or ())
+        finally:
+            figure.clear()
         if not base_mesh:
-            raise RuntimeError("目前沒有可用的 3D 幾何可供預覽")
+            raise RuntimeError("完整組合體 3D 幾何為空")
 
         vertices = [point for tri in base_mesh for point in tri]
-        if not vertices:
-            raise RuntimeError("目前 3D 幾何為空")
         xs, ys, zs = tuple(zip(*vertices))
         min_x, max_x = min(map(float, xs)), max(map(float, xs))
         min_y = min(map(float, ys))
         max_z = max(map(float, zs))
         span_x = float(max_x - min_x)
         if span_x <= 1e-9:
-            raise RuntimeError("目前 3D 幾何沒有有效寬度")
+            raise RuntimeError("完整組合體 3D 幾何沒有有效寬度")
 
         meshes = []
         for connection_index in range(count):
@@ -2790,16 +2836,11 @@ class Phase6FoldDesignerComposition:
                 )
             )
 
-        snapshot = ensure_receiving_preview_layout(
-            getattr(app, "_phase6_input_snapshot", {}) or {}
-        )
         layout = resize_receiving_preview_bays(
             snapshot["receiving_layout"],
             set_index=0,
             bay_count=count,
         )
-        settings = dict(getattr(app, "_settings_values", {}) or {})
-        thickness = float(settings.get("t", snapshot.get("t", 2.0)))
         frame_width = float(settings.get("fw", snapshot.get("fw", 29.0)))
         lock_circles = []
         for joint_index in range(max(count - 1, 0)):
@@ -2827,6 +2868,7 @@ class Phase6FoldDesignerComposition:
             "connection_count": count,
             "connection_meshes": tuple(meshes),
             "lock_circles": tuple(lock_circles),
+            "assembly_part_keys": assembly_part_keys,
         }
 
     def open_receiving_layer_preview(self, namespace, layer_index):
@@ -4889,6 +4931,12 @@ class Phase6FoldDesignerComposition:
         required = lambda name: self._required(namespace, name)
         payload = dict(committed or {}) if isinstance(committed, Mapping) else {}
         if payload.get("reason") == "baseline":
+            cache = getattr(app, "_phase6_manufacturing_cache_service", None)
+            clear_cache = getattr(cache, "clear", None)
+            if callable(clear_cache):
+                clear_cache()
+            app._phase6_last_resolved_manufacturing_geometry = None
+            app._phase6_last_resolved_manufacturing_signature = None
             submit = getattr(app, "submit_update_intent", None)
             if callable(submit):
                 return submit("baseline", commit=True)
@@ -4969,12 +5017,17 @@ class Phase6FoldDesignerComposition:
 
         def refresh_topology(*args, **kwargs):
             if kwargs.get("reason") == "baseline":
+                result = None
                 refresh_parts = getattr(app, "_refresh_part_buttons", None)
                 if (
                     callable(refresh_parts)
                     and getattr(app, "part_choice_menu", None) is not None
                 ):
-                    return refresh_parts()
+                    result = refresh_parts()
+                self.refresh_receiving_set_bay_control(namespace)
+                self.refresh_back_panel_mode_control(namespace)
+                self.refresh_assembly_parts_panel_if_topology_changed(namespace)
+                return result
             return required(
                 "_phase6_refresh_assembly_parts_panel_if_topology_changed"
             )(app)
