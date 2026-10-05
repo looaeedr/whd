@@ -7,7 +7,6 @@ from tools.work_root_gate import (
     DEFAULT_WORKSPACE_POLICY,
     DRIVE_MIRROR_ROOT,
     EVIDENCE_SCHEMA,
-    READ_MODE_GOOGLE_DRIVE,
     READ_MODE_WORKSPACE,
     build_work_root_gate_evidence,
     unpushed_zero_path,
@@ -63,7 +62,7 @@ def test_drive_read_mode_and_shared_zero_helpers_are_retired():
     with pytest.raises(ValueError, match="interactive mode must use executor-local workspace"):
         build_work_root_gate_evidence(
             gate_payload=gate(),
-            read_mode=READ_MODE_GOOGLE_DRIVE,
+            read_mode="GOOGLE_DRIVE_CANONICAL",
             execution_mode="INTERACTIVE",
             root_entries=ROOT_ENTRIES,
             workspace_root="/workspace/whd",
