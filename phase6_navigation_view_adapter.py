@@ -80,6 +80,24 @@ def build_part_navigation_widgets(
     host._phase6_box_body_piece_tab_keys = ()
     host._phase6_box_body_piece_tab_map = {}
     host._phase6_box_body_piece_tab_guard = False
+    host._phase6_box_body_piece_operator_intent = False
+
+    def mark_box_body_piece_operator_intent(_event=None):
+        host._phase6_box_body_piece_operator_intent = True
+
+    # NotebookTabChanged is also emitted by programmatic add/select operations.
+    # Only a preceding physical operator gesture may turn that projection event
+    # into navigation authority.
+    for sequence in (
+        "<ButtonPress-1>",
+        "<KeyPress-Left>",
+        "<KeyPress-Right>",
+        "<Control-KeyPress-Tab>",
+        "<Control-Shift-KeyPress-Tab>",
+    ):
+        host.box_body_piece_selector.bind(
+            sequence, mark_box_body_piece_operator_intent, add="+"
+        )
     host.box_body_piece_selector.bind(
         "<<NotebookTabChanged>>", on_box_body_piece_tab_changed
     )
@@ -326,8 +344,19 @@ def on_box_body_piece_tab_changed(
     activate_part: Callable[[str], object],
     resolve_operator_part: Callable[[str], object],
 ):
-    """Translate a visible compatibility-tab event without owning navigation state."""
+    """Translate an operator-originated visible child-tab event.
+
+    ttk.Notebook also emits <<NotebookTabChanged>> for programmatic rebuilds and
+    select() calls. Those events are projection-only and must never acquire
+    navigation authority or switch the 3D display mode.
+    """
+    operator_intent = bool(
+        getattr(host, "_phase6_box_body_piece_operator_intent", False)
+    )
+    host._phase6_box_body_piece_operator_intent = False
     if bool(getattr(host, "_phase6_box_body_piece_tab_guard", False)):
+        return None
+    if not operator_intent:
         return None
     notebook = getattr(host, "box_body_piece_selector", None)
     if notebook is None or not notebook.winfo_manager():
