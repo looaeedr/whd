@@ -42,6 +42,7 @@
     "WORKSPACE_ROOT_RESOLVED",
     "WORKSPACE_GIT_IDENTITY_VERIFIED",
     "PRODUCTION_BASELINE_CURRENT",
+    "CONDITIONAL_SHARED_ZERO_DRIFT_CHECK",
     "ROOT_SHARED_UNPUSHED_GATE_READ",
     "REQUESTED_OPERATION"
   ],
@@ -68,5 +69,17 @@
     "ordinary_startup_required": false,
     "routing_forbidden": true,
     "authority": false
+  },
+  "conditional_shared_zero_drift_check_role": "NOOP_HISTORICAL_COMPATIBILITY",
+  "canonical_drive_overlay": {
+    "provider": "google_drive",
+    "library_path": "/Google Drive/WHD",
+    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "activation": "NEVER_CURRENT",
+    "ordinary_startup_required": false,
+    "machine_owner": null,
+    "role": "MIRROR_BACKUP_ONLY",
+    "authority": false,
+    "routing_forbidden": true
   }
 }
