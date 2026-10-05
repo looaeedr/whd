@@ -92,7 +92,7 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert remote["drive_mount_absence_is_blocker"] is False
     assert remote["interactive_workspace_action"] == "CONTINUE_WORKSPACE_DEFAULT"
     assert remote["remote_mode_repository_content_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
-    assert remote["shared_zero_missing_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
+    assert "shared_zero_missing_capability_action" not in remote
     assert remote["github_side_hotfix_forbidden"] is True
 
     fallback_gate = contract["direct_root_mutation_test_gate"]
