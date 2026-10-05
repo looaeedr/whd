@@ -2978,62 +2978,20 @@ def _phase6_operator_finished_dimensions(self, part_key=None, *, triangles=None)
         triangles=triangles,
     )
 def _phase6_on_assembly_diagnostic_changed(self):
-    if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
-        submit = getattr(self, "submit_update_intent", None)
-        if callable(submit):
-            submit("display", commit=True)
-    return True
+    return _phase6_composition(self).on_assembly_diagnostic_changed()
 
 
 def _phase6_create_relief_promotion_candidates(self):
-    """Build non-mutating manifests for verified PROVISIONAL_3D solutions."""
-    from ae_engine.certified_relief_registry import build_relief_promotion_candidate
+    return _phase6_composition(self).create_relief_promotion_candidates(
+        globals()
+    )
 
-    controller = _phase6_registry_diagnostics(self)
-    candidates = controller.build_promotion_candidates(
-        solutions=dict(getattr(self, "_phase6_last_relief_solutions", {}) or {}),
-        snapshot=dict(getattr(self, "_phase6_input_snapshot", {}) or {}),
-        assembly_intent=getattr(
-            self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY
-        ),
-        cabinet_family=_phase6_current_cabinet_family(self),
-        builder=build_relief_promotion_candidate,
-    )
-    _phase6_sync_registry_diagnostics_compatibility_mirrors(
-        self, controller
-    )
-    status_var = getattr(self, "assembly_collision_status_var", None)
-    if status_var is not None and callable(getattr(status_var, "set", None)):
-        if candidates:
-            status_var.set(
-                "認證候選："
-                + " / ".join(
-                    "封頭" if key == "head" else "封尾"
-                    for key in candidates
-                )
-                + "（僅建立候選，不修改正式資料庫）"
-            )
-        else:
-            status_var.set("認證候選：目前沒有已驗證的立體暫定結果")
-    return candidates
 
 def _phase6_update_assembly_diagnostic_status(self):
-    status_var = getattr(self, "assembly_collision_status_var", None)
-    size_var = getattr(self, "assembly_relief_size_var", None)
-    if status_var is None:
-        return
-
-    enabled_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
-    fallback_enabled = bool(enabled_var.get()) if enabled_var is not None else True
-    size_text, status_text = _phase6_registry_diagnostics(self).diagnostic_status(
-        fallback_enabled=fallback_enabled,
-        solutions=dict(getattr(self, "_phase6_last_relief_solutions", {}) or {}),
-        errors=dict(getattr(self, "_phase6_last_relief_errors", {}) or {}),
-        measurement_text=_phase6_relief_measurement_text,
+    return _phase6_composition(self).update_assembly_diagnostic_status(
+        globals()
     )
-    if size_var is not None:
-        size_var.set(size_text)
-    status_var.set(status_text)
+
 
 def _phase6_build_settings_center(self):
     renderer_widget = self.renderer.canvas.get_tk_widget()
@@ -3072,46 +3030,28 @@ def _hide_original_structure_mode_controls(root_widget):
     )
 
 def _phase6_on_assembly_part_visibility_changed(self):
-    if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
-        submit = getattr(self, "submit_update_intent", None)
-        if callable(submit):
-            submit("display", commit=True)
+    return _phase6_composition(self).on_assembly_part_visibility_changed()
 
 
 def _phase6_install_assembly_panel_aliases(self, owner):
-    """Delegate legacy alias exposure to the AssemblyPanel owner."""
-    return owner.install_legacy_aliases(self)
+    return _phase6_composition(self).install_assembly_panel_aliases(owner)
 
 
 _phase6_assembly_presentation_groups = legacy_assembly_presentation_groups
 
+
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.represented_part_keys() if owner is not None else ()
+    return _phase6_composition(self).current_assembly_panel_part_keys()
+
 
 def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is None:
-        return False
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    return owner.refresh_if_topology_changed(
-        self,
-        getattr(_designer_workspace(self), "available_parts", ()) or (),
-        selector_keys=_phase6_operator_part_selector_keys,
-        label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
-    )
+    return _phase6_composition(
+        self
+    ).refresh_assembly_parts_panel_if_topology_changed(globals())
 
 
 def _phase6_refresh_assembly_parts_panel(self):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is None:
-        return None
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    return owner.render_available_parts(
-        self,
-        getattr(_designer_workspace(self), "available_parts", ()) or (),
-        label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
-    )
+    return _phase6_composition(self).refresh_assembly_parts_panel(globals())
 
 
 # Patch methods onto the FIX10 class instead of touching the user's original file.
