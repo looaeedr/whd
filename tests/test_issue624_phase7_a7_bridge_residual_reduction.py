@@ -425,3 +425,63 @@ def test_issue1221_registry_presentation_behavior_stays_localized_and_fail_close
     assert registry_source_raw(
         "資料庫 立體", part_labels=part_labels
     ) == "Registry 3D"
+
+
+def test_issue1223_corner_data_application_orchestration_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_corner_data_part_keys",
+        "_phase6_corner_data_navigation_rows",
+        "_phase6_select_corner_data_part",
+        "_phase6_corner_data_info_request_for_key",
+        "_phase6_corner_data_info_text_for_key",
+        "_phase6_corner_data_unfold_projection_for_key",
+        "_phase6_corner_data_unfold_projections",
+        "_phase6_corner_data_unfold_projection",
+        "_phase6_refresh_corner_data_unfold_view",
+        "_phase6_corner_data_back_panel_mode_is_applicable",
+        "_phase6_refresh_corner_data_back_panel_mode_control",
+        "_phase6_refresh_corner_data_parts_panel",
+        "_phase6_on_corner_data_mousewheel",
+        "_phase6_prepare_corner_data_canvas",
+    }
+    assert delegates.issubset(funcs)
+
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "Phase6CornerDataViewAdapter" not in body
+        assert "designer_workspace" not in body
+        assert "corner_data_canvas" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "corner_data_part_keys",
+        "corner_data_navigation_rows",
+        "select_corner_data_part",
+        "corner_data_info_request_for_key",
+        "corner_data_info_text_for_key",
+        "corner_data_unfold_projection_for_key",
+        "corner_data_unfold_projections",
+        "corner_data_unfold_projection",
+        "refresh_corner_data_unfold_view",
+        "corner_data_back_panel_mode_is_applicable",
+        "refresh_corner_data_back_panel_mode_control",
+        "refresh_corner_data_parts_panel",
+        "on_corner_data_mousewheel",
+        "prepare_corner_data_canvas",
+    }.issubset(method_names)
+
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert '"_phase6_refresh_corner_data_unfold_view": _phase6_refresh_corner_data_unfold_view' in bridge_source

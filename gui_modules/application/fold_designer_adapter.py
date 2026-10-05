@@ -2140,6 +2140,269 @@ class Phase6FoldDesignerComposition:
             app._phase6_corner_data_view_adapter = self._corner_data_view
         return self._corner_data_view
 
+    def corner_data_part_keys(self):
+        """Project authoritative workspace identities into Corner Data."""
+        app = self.app
+        return self.corner_data_view().part_keys(app.designer_workspace)
+
+    def corner_data_navigation_rows(self, namespace):
+        required = lambda name: self._required(namespace, name)
+        return self.corner_data_view().navigation_rows(
+            self.corner_data_part_keys(),
+            hierarchy_projector=required("_dm7_project_hierarchy"),
+        )
+
+    def select_corner_data_part(
+        self,
+        namespace,
+        key,
+        *,
+        refresh_view=True,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        view = self.corner_data_view()
+        previous = view.selected_part_key
+        resolved = view.resolve_selection(
+            self.corner_data_part_keys(),
+            key,
+            resolver=lambda requested: required(
+                "_phase6_resolve_operator_part_key"
+            )(app, requested),
+        )
+        required(
+            "_phase6_sync_corner_data_view_compatibility_mirrors"
+        )(app, view)
+        self.refresh_corner_data_back_panel_mode_control(namespace)
+        if previous != resolved:
+            canvas = getattr(app, "corner_data_canvas", None)
+            if canvas is not None:
+                try:
+                    canvas._phase6_unfold_zoom = 1.0
+                except Exception:
+                    pass
+        if (
+            refresh_view
+            and str(getattr(app, "_phase6_3d_display_mode", "") or "")
+            == "corner_data"
+            and getattr(app, "corner_data_canvas", None) is not None
+        ):
+            self.refresh_corner_data_unfold_view(namespace)
+        required("_phase6_refresh_status_bar")(app)
+        return resolved
+
+    def corner_data_info_request_for_key(
+        self,
+        namespace,
+        part_key,
+        render_data,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+        settings = getattr(app, "_settings_values", {}) or {}
+        return self.corner_data_view().info_request(
+            part_key=part_key,
+            render_data=render_data,
+            request_factory=required("FinalSceneViewRequest"),
+            profile_provider=lambda key, material: required(
+                "_phase6_mesh_profiles_for_part"
+            )(app, key, material),
+            dimensions_provider=lambda key: required(
+                "_phase6_operator_finished_dimensions"
+            )(app, key),
+            corner_text_provider=required(
+                "_phase6_render_data_corner_dimension_text"
+            ),
+            blank_text_provider=required(
+                "_phase6_format_unfolded_blank_text"
+            ),
+            alpha_bend=float(
+                getattr(getattr(app, "state", None), "alpha_bend", 0.85)
+            ),
+            thickness=required("_num")(
+                settings.get("t", snapshot.get("t", 2.0)),
+                2.0,
+            ),
+        )
+
+    def corner_data_info_text_for_key(
+        self,
+        namespace,
+        part_key,
+        render_data,
+    ):
+        required = lambda name: self._required(namespace, name)
+        request = self.corner_data_info_request_for_key(
+            namespace, part_key, render_data
+        )
+        return required("format_operator_info_text")(
+            request,
+            dimensions=request.finished_dimensions,
+            number_text=required("_setting_number_text"),
+        )
+
+    def corner_data_unfold_projection_for_key(
+        self,
+        namespace,
+        part_key,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+
+        def render_provider(selected):
+            if required("_phase6_is_box_body_physical_piece_key")(selected):
+                return required("_phase6_box_body_piece_render_data")(
+                    app, selected
+                )
+            return required("_phase6_render_data_for_blank")(app, selected)
+
+        return self.corner_data_view().unfold_projection(
+            part_key,
+            available_parts=self.corner_data_part_keys(),
+            render_provider=render_provider,
+            projection_factory=required(
+                "Phase6CornerDataUnfoldProjection"
+            ),
+        )
+
+    def corner_data_unfold_projections(
+        self,
+        namespace,
+        part_keys,
+    ):
+        return self.corner_data_view().unfold_projections(
+            part_keys,
+            projection_provider=lambda key: self.corner_data_unfold_projection_for_key(
+                namespace, key
+            ),
+        )
+
+    def corner_data_unfold_projection(self, namespace):
+        return self.corner_data_view().selected_projection(
+            projection_provider=lambda key: self.corner_data_unfold_projection_for_key(
+                namespace, key
+            )
+        )
+
+    def refresh_corner_data_unfold_view(self, namespace):
+        app = self.app
+        canvas = getattr(app, "corner_data_canvas", None)
+        projection = self.corner_data_unfold_projection(namespace)
+        payload = self.corner_data_view().view_payload(
+            projection,
+            info_provider=lambda part_key, render_data: self.corner_data_info_text_for_key(
+                namespace, part_key, render_data
+            ),
+        )
+        if payload is None:
+            if canvas is not None and hasattr(canvas, "delete"):
+                canvas.delete("all")
+            return None
+
+        info_text = payload["info_text"]
+        info_var = getattr(app, "corner_data_info_var", None)
+        if info_var is not None and hasattr(info_var, "set"):
+            info_var.set(info_text)
+        app.corner_data_info_text = info_text
+        callback = getattr(app, "_corner_data_view_render_callback", None)
+        projection = payload["projection"]
+        if callback is not None and canvas is not None:
+            callback(canvas, projection.part_key, projection.render_data)
+        return projection
+
+    def corner_data_back_panel_mode_is_applicable(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        state = required("_phase6_box_structure_state")(app)
+        return self.corner_data_view().back_panel_mode_is_applicable(
+            getattr(self.corner_data_view(), "selected_part_key", None),
+            family_name=cabinet_family_policy.canonical_family_name(
+                getattr(app, "_phase6_input_snapshot", {}) or {}
+            ),
+            active_type=state.get("active_type"),
+            three_piece_type=BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
+        )
+
+    def refresh_corner_data_back_panel_mode_control(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        state = required("_phase6_box_structure_state")(app)
+        current = required("back_panel_mode")(state)
+        labels = required("_BACK_PANEL_MODE_LABELS")
+        modes = required("BackPanelMode")
+        return self.corner_data_view().refresh_back_panel_mode_control(
+            app,
+            applicable=self.corner_data_back_panel_mode_is_applicable(
+                namespace
+            ),
+            current_label=labels[current],
+            values=tuple(labels[item] for item in modes),
+            on_selected=lambda var: required(
+                "_phase6_select_back_panel_mode"
+            )(app, var),
+        )
+
+    def refresh_corner_data_parts_panel(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        keys = self.corner_data_part_keys()
+        return self.corner_data_view().refresh_parts_panel(
+            app,
+            keys=keys,
+            selected=getattr(
+                app, "_phase6_corner_data_selected_part_key", None
+            ),
+            navigation_rows=self.corner_data_navigation_rows(namespace),
+            label_for=required("_phase6_part_label"),
+            on_select=lambda key: self.select_corner_data_part(
+                namespace, key
+            ),
+            on_refresh_back_panel_mode=lambda: self.refresh_corner_data_back_panel_mode_control(
+                namespace
+            ),
+        )
+
+    def on_corner_data_mousewheel(self, namespace, event):
+        app = self.app
+        canvas = getattr(app, "corner_data_canvas", None)
+        if canvas is None:
+            return None
+        updated = self.corner_data_view().zoom_from_event(
+            getattr(canvas, "_phase6_unfold_zoom", 1.0),
+            delta=getattr(event, "delta", 0),
+            button=getattr(event, "num", 0),
+        )
+        if updated is None:
+            return None
+        canvas._phase6_unfold_zoom = updated
+        if (
+            str(getattr(app, "_phase6_3d_display_mode", "") or "")
+            == "corner_data"
+        ):
+            self.refresh_corner_data_unfold_view(namespace)
+        return "break"
+
+    def prepare_corner_data_canvas(self, namespace):
+        app = self.app
+        view = self.corner_data_view()
+        return view.prepare_canvas(
+            app,
+            canvas_bg=WHD_THEME["corner_data_canvas"],
+            on_configure=lambda _event: (
+                self.refresh_corner_data_unfold_view(namespace)
+                if str(
+                    getattr(app, "_phase6_3d_display_mode", "") or ""
+                )
+                == "corner_data"
+                else None
+            ),
+            on_mousewheel=lambda event: self.on_corner_data_mousewheel(
+                namespace, event
+            ),
+            visibility_plan=view.canvas_visibility_plan(True),
+        )
+
     def workspace_shell_owner(self, namespace):
         """Compose WorkspaceShell state/actions without moving presentation ownership."""
         app = self.app
