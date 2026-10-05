@@ -3,7 +3,7 @@ name: 推推
 description: WHD interactive Git delivery alias。只承接 executor-local workspace 已完成測試且 exact diff 已凍結的 delivery；不擁有 authoring、Drive、shared-zero 或 production authority。
 whd_doc_role: CURRENT
 whd_contract: workspace-tested-delivery-alias
-whd_canonical: .agents/skills/engineering/root-local-first/SKILL.md
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
