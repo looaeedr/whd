@@ -9,8 +9,14 @@
   "canonical_source": {
     "canonical_filename": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
     "canonical_payload_sha256": "SELF_HASH_RECOMPUTE_REQUIRED_AFTER_WRITE",
-    "library_path": "/Google Drive/WHD/.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-    "provider": "google_drive",
+    "provider": "executor_local_repo_workspace",
+    "repo_relative_path": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+    "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
+    "drive_mirror_path": "/Google Drive/WHD/.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+    "drive_role": "OPTIONAL_MIRROR_NOT_STARTUP_AUTHORITY",
+    "drive_required": false,
+    "missing_drive_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
+    "missing_shared_zero_action": "CONTINUE_WORKSPACE_DEFAULT",
     "versioned_aliases_must_not_be_current": true
   },
   "direct_root_mutation_test_gate": {
@@ -89,7 +95,13 @@
       ".agents/skills/engineering/root-local-first/SKILL.md"
     ],
     "schema": "WHD_ENTRY_ROUTER_FIRST_HARD_GATE_V1",
-    "canonical_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE"
+    "canonical_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "bootstrap_source": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "bootstrap_paths_are_repo_relative": true,
+    "drive_lookup_before_ready": "FORBIDDEN",
+    "missing_drive_is_blocker": false,
+    "missing_shared_zero_is_blocker": false,
+    "workspace_root_user_renomination_required": false
   },
   "execution_mode_provenance": {
     "interactive_must_not_self_assert_remote_mode": true,
@@ -317,7 +329,7 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 9,
+  "version": 10,
   "git_after_remote_authority_before_unlock": [
     "READ",
     "FETCH",

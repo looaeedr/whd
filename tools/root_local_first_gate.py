@@ -664,6 +664,21 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("workspace root production identity mismatch")
     if root.get("canonical_drive_overlay") != CANONICAL_DRIVE_ROOT:
         raise ValueError("canonical Drive overlay mismatch")
+    canonical_source = _mapping(contract.get("canonical_source"), "canonical_source")
+    if canonical_source.get("provider") != "executor_local_repo_workspace":
+        raise ValueError("entry bootstrap canonical source must be executor-local repo workspace")
+    if canonical_source.get("repo_relative_path") != ENTRY_ROUTER_FRESH_READS[0]:
+        raise ValueError("entry bootstrap contract path must be repo-relative")
+    if canonical_source.get("resolution_method") != "WORKSPACE_REPO_RELATIVE_PATH":
+        raise ValueError("entry bootstrap source resolution method mismatch")
+    if canonical_source.get("drive_role") != "OPTIONAL_MIRROR_NOT_STARTUP_AUTHORITY":
+        raise ValueError("Drive entry-contract copy must remain optional mirror only")
+    if canonical_source.get("drive_required") is not False:
+        raise ValueError("ordinary workspace entry must not require Drive")
+    if canonical_source.get("missing_drive_action") != "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE":
+        raise ValueError("missing Drive must continue workspace-default when workspace-capable")
+    if canonical_source.get("missing_shared_zero_action") != "CONTINUE_WORKSPACE_DEFAULT":
+        raise ValueError("missing shared-zero must not block ordinary workspace entry")
     if tuple(contract.get("required_order") or ()) != REQUIRED_ORDER:
         raise ValueError("root-local-first required order mismatch")
     if contract.get("test_profile_schema") != TEST_PROFILE_SCHEMA:
@@ -753,6 +768,18 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("entry router ready state mismatch")
     if entry_router.get("failure_action") != "FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY":
         raise ValueError("entry router failure action mismatch")
+    if entry_router.get("bootstrap_source") != "EXECUTOR_LOCAL_REPO_WORKSPACE":
+        raise ValueError("entry router bootstrap source must be executor-local repo workspace")
+    if entry_router.get("bootstrap_paths_are_repo_relative") is not True:
+        raise ValueError("entry router bootstrap paths must be repo-relative")
+    if entry_router.get("drive_lookup_before_ready") != "FORBIDDEN":
+        raise ValueError("entry router must not search Drive before READY")
+    if entry_router.get("missing_drive_is_blocker") is not False:
+        raise ValueError("missing Drive must not block workspace-default entry")
+    if entry_router.get("missing_shared_zero_is_blocker") is not False:
+        raise ValueError("missing shared-zero must not block workspace-default entry")
+    if entry_router.get("workspace_root_user_renomination_required") is not False:
+        raise ValueError("resolved executor workspace must not require user re-nomination")
     shared = _mapping(contract.get("shared_unpushed_integration"), "shared_unpushed_integration")
     if shared.get("schema") != "WHD_SHARED_UNPUSHED_INTEGRATION_V1":
         raise ValueError("shared unpushed integration schema mismatch")
