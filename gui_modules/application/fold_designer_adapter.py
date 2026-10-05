@@ -1268,12 +1268,12 @@ class Phase6FoldDesignerComposition:
                 center.pack_forget()
             if diagnostics is not None and not diagnostics.winfo_manager():
                 required("_phase6_pack_right_panel_above_canvas")(app, diagnostics)
-            required("_phase6_update_assembly_diagnostic_status")(app)
+            self.update_assembly_diagnostic_status(namespace)
         elif unlocked:
             if diagnostics is not None and diagnostics.winfo_manager():
                 diagnostics.pack_forget()
-            required("_phase6_invalidate_settings_page")(app, active)
-            required("_phase6_render_settings_context")(app, active)
+            self.invalidate_settings_page(active)
+            self.render_settings_context(namespace, active)
             if center is not None and not center.winfo_manager():
                 required("_phase6_pack_right_panel_above_canvas")(app, center)
         else:
@@ -1690,6 +1690,323 @@ class Phase6FoldDesignerComposition:
             "corner": corner_projection(context),
         }
 
+    def sync_settings_panel_extension(
+        self,
+        namespace,
+        state,
+        context,
+    ):
+        """Mirror extension widgets without moving Settings state ownership."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        state = dict(state or {})
+        for name in (
+            "corner_pair_vars",
+            "corner_pair_checkbuttons",
+            "corner_type_vars",
+            "corner_mode_vars",
+            "corner_direction_vars",
+            "corner_amount_vars",
+            "corner_secondary_retain_vars",
+            "corner_secondary_depth_vars",
+            "corner_detail_frames",
+        ):
+            setattr(app, name, dict(state.get(name, {}) or {}))
+        original = required("original")
+        app.fixed_corner_summary_var = (
+            state.get("fixed_corner_summary_var")
+            or original.tk.StringVar(value="")
+        )
+        app.corner_param_lock_button = state.get(
+            "corner_param_lock_button"
+        )
+        app.bottom_wrap_enabled_var = state.get(
+            "bottom_wrap_enabled_var"
+        )
+        app.bottom_wrap_reserve_u_var = state.get(
+            "bottom_wrap_reserve_u_var"
+        )
+        app.bottom_wrap_reserve_v_var = state.get(
+            "bottom_wrap_reserve_v_var"
+        )
+        app.bottom_wrap_widget = state.get("bottom_wrap_widget")
+        app.box_body_piece_input_host = state.get(
+            "box_body_piece_input_host"
+        )
+        app.box_body_piece_input_sections = dict(
+            state.get("box_body_piece_input_sections", {}) or {}
+        )
+        app.box_body_piece_input_vars = dict(
+            state.get("box_body_piece_input_vars", {}) or {}
+        )
+        app.box_body_piece_input_entries = dict(
+            state.get("box_body_piece_input_entries", {}) or {}
+        )
+        if (
+            context in required("ENDCAP_FW_PARTS")
+            and state.get("endcap_fw_follow_var") is not None
+        ):
+            snapshot = dict(
+                getattr(app, "_phase6_input_snapshot", {}) or {}
+            )
+            snapshot.update(
+                dict(getattr(app, "_settings_values", {}) or {})
+            )
+            fw_state = app._phase6_endcap_fw_state.setdefault(
+                context,
+                {
+                    "follow_box": True,
+                    "value": required("_num")(
+                        snapshot.get("fw", 25), 25
+                    ),
+                },
+            )
+            follow = bool(fw_state.get("follow_box", True))
+            effective = required("resolve_endcap_fw")(
+                snapshot,
+                context,
+                state=app._phase6_endcap_fw_state,
+            )
+            state["endcap_fw_follow_var"].set(follow)
+            state["endcap_fw_value_var"].set(
+                required("_setting_number_text")(effective)
+            )
+            try:
+                state["endcap_fw_widget"].configure(state="normal")
+            except Exception:
+                pass
+
+    def sync_settings_panel_compat(self):
+        app = self.app
+        panel = app.settings_panel
+        app.settings_center = panel.settings_center
+        app.settings_fields = panel.settings_fields
+        app.settings_title_var = panel.settings_title_var
+        app.unfolded_size_var = panel.unfolded_size_var
+        app.settings_status_var = panel.settings_status_var
+        app.save_settings_button = panel.save_settings_button
+        app.setting_vars = panel.setting_vars
+        app._settings_page_cache = panel.page_cache
+        app._settings_current_page = panel.current_page
+        app.settings_context = panel.settings_context
+        app.advanced_settings_visible = panel.advanced_settings_visible
+        app.advanced_settings_frame = panel.advanced_settings_frame
+        app.advanced_toggle_button = panel.advanced_toggle_button
+        app.baseline_data_frame = panel.baseline_data_frame
+        app.baseline_data_toggle_button = panel.baseline_data_toggle_button
+        app.baseline_setting_cells = panel.baseline_setting_cells
+        app.left_global_controls = panel.left_global_controls
+        app.left_global_vars = panel.left_global_vars
+        app.left_global_cells = panel.left_global_cells
+        app.baseline_model_var = panel.baseline_model_var
+        app.baseline_model_combo = panel.baseline_model_combo
+        app.ui_text_size_var = panel.ui_text_size_var
+        app.ui_text_size_combo = panel.ui_text_size_combo
+        app.save_global_settings_button = panel.save_global_settings_button
+        return panel
+
+    def settings_panel_toggle_baseline(self):
+        self.app.settings_panel.toggle_baseline_data()
+        self.sync_settings_panel_compat()
+
+    def invalidate_settings_page(self, context):
+        self.app.settings_panel.invalidate_context(str(context))
+        self.sync_settings_panel_compat()
+
+    def render_settings_context(self, namespace, context):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        app._phase6_settings_rendering = True
+        try:
+            page = app.settings_panel.render_context(
+                str(context or required("GLOBAL_CONTEXT"))
+            )
+            self.sync_settings_panel_compat()
+            return page
+        finally:
+            app._phase6_settings_rendering = False
+
+    def save_current_settings_as_defaults(self):
+        return self.app.settings_panel.save_current_settings_as_defaults()
+
+    def on_baseline_model_changed(self, namespace, *_args):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if getattr(app, "_phase6_baseline_guard", False):
+            return None
+        app._phase6_corner_param_unlocked = {}
+        new_model = str(app.baseline_model_var.get() or "").strip()
+        old_model = str(
+            getattr(app, "_phase6_baseline_last_model", "") or ""
+        ).strip()
+        old_editable = required("_phase6_is_unknown_baseline")(
+            app, old_model
+        )
+        if old_editable:
+            app._corner_transaction_unknown_state = deepcopy(
+                app._phase6_corner_state
+            )
+            app._corner_transaction_unknown_pairs = deepcopy(
+                app._phase6_corner_pair_same
+            )
+
+        editable = required("_phase6_is_unknown_baseline")(
+            app, new_model
+        )
+        needs_fixed_corner_preset = bool(
+            (not editable and new_model and new_model != old_model)
+            or (editable and old_model and not old_editable)
+        )
+        fixed_corner_state = (
+            required("_phase6_known_model_corner_state")(app)
+            if needs_fixed_corner_preset
+            else {}
+        )
+        previous_non_receiving_structure = getattr(
+            app,
+            "_phase6_non_receiving_structure_state",
+            None,
+        )
+        coordinator = self.settings_coordinator(
+            self.settings_application_ports(namespace)
+        )
+        return coordinator.apply_baseline_transition(
+            new_model=new_model,
+            old_model=old_model,
+            new_editable=editable,
+            old_editable=old_editable,
+            fixed_corner_state=fixed_corner_state,
+            available_parts=tuple(
+                getattr(app.designer_workspace, "available_parts", ())
+                or ()
+            ),
+            previous_non_receiving_structure=previous_non_receiving_structure,
+        )
+
+    def apply_external_settings(self, namespace, updates):
+        app = self.app
+        app._phase6_external_apply_guard = True
+        try:
+            coordinator = self.settings_coordinator(
+                self.settings_application_ports(namespace)
+            )
+            return coordinator.apply_updates(
+                updates,
+                notify=False,
+                external_apply_guard=True,
+            )
+        finally:
+            app._phase6_external_apply_guard = False
+
+    def apply_external_model(self, namespace, model):
+        app = self.app
+        plan = self.settings_transactions().plan_external_model_change(
+            model
+        )
+        if not plan.changed:
+            return False
+
+        app._phase6_external_apply_guard = True
+        try:
+            model_var = getattr(app, "baseline_model_var", None)
+            if model_var is None:
+                return False
+            if str(model_var.get() or "").strip() != plan.target_model:
+                model_var.set(plan.target_model)
+            if (
+                str(
+                    (
+                        getattr(app, "_phase6_input_snapshot", {}) or {}
+                    ).get("model")
+                    or ""
+                ).strip()
+                != plan.target_model
+            ):
+                self.on_baseline_model_changed(namespace)
+        finally:
+            app._phase6_external_apply_guard = False
+        return (
+            str(
+                (
+                    getattr(app, "_phase6_input_snapshot", {}) or {}
+                ).get("model")
+                or ""
+            ).strip()
+            == plan.target_model
+        )
+
+    def apply_external_sync(self, namespace, envelope):
+        app = self.app
+        plan = self.settings_service().plan_external_sync(envelope)
+        if not plan.accepted or not plan.settings:
+            return {}
+        result = self.apply_external_settings(namespace, plan.settings)
+        if (
+            str(getattr(app, "_phase6_3d_display_mode", "") or "")
+            == "corner_data"
+            and getattr(app, "corner_data_canvas", None) is not None
+        ):
+            self.refresh_corner_data_unfold_view(namespace)
+        return result
+
+    def update_left_workspace_width(self, namespace, key=None):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        canvas = getattr(app, "left_scroll_canvas", None)
+        if canvas is None:
+            return None
+        value = (
+            key
+            if key is not None
+            else app._settings_values.get("ui_text_size", "small")
+        )
+        target = required("_phase6_left_workspace_width")(value)
+        canvas.configure(width=target)
+        try:
+            canvas.update_idletasks()
+        except Exception:
+            pass
+        return target
+
+    def apply_ui_text_size(self, namespace, key):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if getattr(app, "_phase6_settings_guard", False):
+            return None
+        key = required("normalize_ui_text_size")(key)
+        app._settings_values["ui_text_size"] = key
+        app._phase6_input_snapshot["ui_text_size"] = key
+        app._ui_text_controller.apply(key)
+        app.state.ui_text_scale = app._ui_text_controller.factor
+        self.update_left_workspace_width(namespace, key)
+        callback = getattr(app, "_ui_text_size_change_callback", None)
+        if (
+            callback is not None
+            and not getattr(app, "_phase6_external_apply_guard", False)
+        ):
+            callback(key)
+        try:
+            app.bend_ui.render()
+        except Exception:
+            pass
+        try:
+            app.renderer.render()
+        except Exception:
+            pass
+        return key
+
+    def on_ui_text_size_changed(self, namespace, *_args):
+        app = self.app
+        panel = getattr(app, "settings_panel", None)
+        var = (
+            getattr(panel, "ui_text_size_var", None)
+            if panel is not None
+            else getattr(app, "ui_text_size_var", None)
+        )
+        if var is None:
+            return None
+        return self.apply_ui_text_size(namespace, var.get())
+
     def settings_panel(self, namespace):
         """Construct the Settings presentation owner through the composition root."""
         app = self.app
@@ -1753,15 +2070,15 @@ class Phase6FoldDesignerComposition:
             corner_target_changed=lambda part_key, target_key: required(
                 "_phase6_corner_target_var_changed"
             )(app, part_key, target_key),
-            sync_context_extension=lambda state, context: required(
-                "_phase6_sync_settings_panel_extension"
-            )(app, state, context),
-            baseline_model_changed=lambda: required(
-                "_phase6_on_baseline_model_changed"
-            )(app),
-            ui_text_size_changed=lambda key: required(
-                "_phase6_apply_ui_text_size"
-            )(app, key),
+            sync_context_extension=lambda state, context: self.sync_settings_panel_extension(
+                namespace, state, context
+            ),
+            baseline_model_changed=lambda: self.on_baseline_model_changed(
+                namespace
+            ),
+            ui_text_size_changed=lambda key: self.apply_ui_text_size(
+                namespace, key
+            ),
         )
         self._settings_panel = panel
         app.settings_panel = panel
@@ -2609,9 +2926,7 @@ class Phase6FoldDesignerComposition:
                 baseline_models=tuple(app._baseline_models),
                 initial_model=app._phase6_baseline_initial_model,
             ),
-            sync_settings_panel_compat=lambda: required(
-                "_phase6_sync_settings_panel_compat"
-            )(app),
+            sync_settings_panel_compat=lambda: self.sync_settings_panel_compat(),
             get_left_global_controls=lambda: app.left_global_controls,
             get_left_global_cells=lambda: app.left_global_cells,
             get_ui_text_size_var=lambda: app.ui_text_size_var,
@@ -3060,8 +3375,8 @@ class Phase6FoldDesignerComposition:
                 hasattr(app, "settings_center")
                 and getattr(app, "active_part_key", None) is not None
             ):
-                required("_phase6_render_settings_context")(
-                    app,
+                self.render_settings_context(
+                    namespace,
                     getattr(app, "settings_context", app.active_part_key),
                 )
             corner_data_panel = getattr(app, "corner_data_panel", None)

@@ -1277,48 +1277,10 @@ def _phase6_known_model_corner_state(self):
 
 
 def _phase6_on_baseline_model_changed(self, *_args):
-    if getattr(self, "_phase6_baseline_guard", False):
-        return
-    self._phase6_corner_param_unlocked = {}
-    new_model = str(self.baseline_model_var.get() or "").strip()
-    old_model = str(
-        getattr(self, "_phase6_baseline_last_model", "") or ""
-    ).strip()
-    old_editable = _phase6_is_unknown_baseline(self, old_model)
-    if old_editable:
-        self._corner_transaction_unknown_state = deepcopy(
-            self._phase6_corner_state
-        )
-        self._corner_transaction_unknown_pairs = deepcopy(
-            self._phase6_corner_pair_same
-        )
+    return _phase6_composition(self).on_baseline_model_changed(
+        globals(), *_args
+    )
 
-    editable = _phase6_is_unknown_baseline(self, new_model)
-    needs_fixed_corner_preset = bool(
-        (not editable and new_model and new_model != old_model)
-        or (editable and old_model and not old_editable)
-    )
-    fixed_corner_state = (
-        _phase6_known_model_corner_state(self)
-        if needs_fixed_corner_preset
-        else {}
-    )
-    previous_non_receiving_structure = getattr(
-        self,
-        "_phase6_non_receiving_structure_state",
-        None,
-    )
-    return _phase6_settings_coordinator(self).apply_baseline_transition(
-        new_model=new_model,
-        old_model=old_model,
-        new_editable=editable,
-        old_editable=old_editable,
-        fixed_corner_state=fixed_corner_state,
-        available_parts=tuple(
-            getattr(self.designer_workspace, "available_parts", ()) or ()
-        ),
-        previous_non_receiving_structure=previous_non_receiving_structure,
-    )
 
 def _phase6_collect_workspace_state(self):
     active = self.designer_workspace.active_part
@@ -2369,161 +2331,48 @@ def _phase6_apply_external_corner_state(self, corner_state, corner_pair_same):
 
 
 
-_SETTINGS_EXTENSION_MAP_ATTRS = (
-    "corner_pair_vars",
-    "corner_pair_checkbuttons",
-    "corner_type_vars",
-    "corner_mode_vars",
-    "corner_direction_vars",
-    "corner_amount_vars",
-    "corner_secondary_retain_vars",
-    "corner_secondary_depth_vars",
-    "corner_detail_frames",
-)
-
-
-def _phase6_sync_settings_panel_extension(self, state, context):
-    state = dict(state or {})
-    for name in _SETTINGS_EXTENSION_MAP_ATTRS:
-        setattr(self, name, dict(state.get(name, {}) or {}))
-    self.fixed_corner_summary_var = state.get("fixed_corner_summary_var") or original.tk.StringVar(value="")
-    self.corner_param_lock_button = state.get("corner_param_lock_button")
-    self.bottom_wrap_enabled_var = state.get("bottom_wrap_enabled_var")
-    self.bottom_wrap_reserve_u_var = state.get("bottom_wrap_reserve_u_var")
-    self.bottom_wrap_reserve_v_var = state.get("bottom_wrap_reserve_v_var")
-    self.bottom_wrap_widget = state.get("bottom_wrap_widget")
-    self.box_body_piece_input_host = state.get("box_body_piece_input_host")
-    self.box_body_piece_input_sections = dict(state.get("box_body_piece_input_sections", {}) or {})
-    self.box_body_piece_input_vars = dict(state.get("box_body_piece_input_vars", {}) or {})
-    self.box_body_piece_input_entries = dict(state.get("box_body_piece_input_entries", {}) or {})
-    if context in ENDCAP_FW_PARTS and state.get("endcap_fw_follow_var") is not None:
-        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-        snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-        fw_state = self._phase6_endcap_fw_state.setdefault(
-            context, {"follow_box": True, "value": _num(snapshot.get("fw", 25), 25)}
-        )
-        follow = bool(fw_state.get("follow_box", True))
-        effective = resolve_endcap_fw(snapshot, context, state=self._phase6_endcap_fw_state)
-        state["endcap_fw_follow_var"].set(follow)
-        state["endcap_fw_value_var"].set(_setting_number_text(effective))
-        try:
-            state["endcap_fw_widget"].configure(state="normal")
-        except Exception:
-            pass
-
-
-
 def _phase6_ensure_settings_panel(self):
     return _phase6_composition(self).settings_panel(globals())
 
 def _phase6_sync_settings_panel_compat(self):
-    panel = self.settings_panel
-    self.settings_center = panel.settings_center
-    self.settings_fields = panel.settings_fields
-    self.settings_title_var = panel.settings_title_var
-    self.unfolded_size_var = panel.unfolded_size_var
-    self.settings_status_var = panel.settings_status_var
-    self.save_settings_button = panel.save_settings_button
-    self.setting_vars = panel.setting_vars
-    self._settings_page_cache = panel.page_cache
-    self._settings_current_page = panel.current_page
-    self.settings_context = panel.settings_context
-    self.advanced_settings_visible = panel.advanced_settings_visible
-    self.advanced_settings_frame = panel.advanced_settings_frame
-    self.advanced_toggle_button = panel.advanced_toggle_button
-    self.baseline_data_frame = panel.baseline_data_frame
-    self.baseline_data_toggle_button = panel.baseline_data_toggle_button
-    self.baseline_setting_cells = panel.baseline_setting_cells
-    self.left_global_controls = panel.left_global_controls
-    self.left_global_vars = panel.left_global_vars
-    self.left_global_cells = panel.left_global_cells
-    self.baseline_model_var = panel.baseline_model_var
-    self.baseline_model_combo = panel.baseline_model_combo
-    self.ui_text_size_var = panel.ui_text_size_var
-    self.ui_text_size_combo = panel.ui_text_size_combo
-    self.save_global_settings_button = panel.save_global_settings_button
+    return _phase6_composition(self).sync_settings_panel_compat()
 
 
 def _phase6_settings_panel_toggle_baseline(self):
-    self.settings_panel.toggle_baseline_data()
-    _phase6_sync_settings_panel_compat(self)
+    return _phase6_composition(self).settings_panel_toggle_baseline()
 
 
 def _phase6_invalidate_settings_page(self, context):
-    self.settings_panel.invalidate_context(str(context))
-    _phase6_sync_settings_panel_compat(self)
-
-
-
-
-
-
-
-
-
-
-
-
+    return _phase6_composition(self).invalidate_settings_page(context)
 
 
 def _phase6_render_settings_context(self, context):
-    self._phase6_settings_rendering = True
-    try:
-        page = self.settings_panel.render_context(str(context or GLOBAL_CONTEXT))
-        _phase6_sync_settings_panel_compat(self)
-        return page
-    finally:
-        self._phase6_settings_rendering = False
+    return _phase6_composition(self).render_settings_context(
+        globals(), context
+    )
 
 
 def _phase6_save_current_settings_as_defaults(self):
-    return self.settings_panel.save_current_settings_as_defaults()
-
+    return _phase6_composition(self).save_current_settings_as_defaults()
 
 
 def _phase6_apply_external_settings(self, updates):
-    self._phase6_external_apply_guard = True
-    try:
-        return _phase6_apply_setting_updates(self, updates, notify=False)
-    finally:
-        self._phase6_external_apply_guard = False
+    return _phase6_composition(self).apply_external_settings(
+        globals(), updates
+    )
 
 
 def _phase6_apply_external_model(self, model):
-    """Apply Main-GUI family selection through the existing Designer authority."""
-    plan = _phase6_settings_transactions(self).plan_external_model_change(model)
-    if not plan.changed:
-        return False
+    return _phase6_composition(self).apply_external_model(
+        globals(), model
+    )
 
-    self._phase6_external_apply_guard = True
-    try:
-        model_var = getattr(self, "baseline_model_var", None)
-        if model_var is None:
-            return False
-        if str(model_var.get() or "").strip() != plan.target_model:
-            model_var.set(plan.target_model)
-        # Some UI bindings invoke the handler from the selector event rather
-        # than the StringVar write. Call the existing authority only when the
-        # snapshot has not already reconciled itself.
-        if str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() != plan.target_model:
-            _phase6_on_baseline_model_changed(self)
-    finally:
-        self._phase6_external_apply_guard = False
-    return str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() == plan.target_model
 
 def _phase6_apply_external_sync(self, envelope):
-    """Ingest one Main-GUI revision through the T3 orchestration service."""
-    service = _phase6_settings_service(self)
-    plan = service.plan_external_sync(envelope)
-    if not plan.accepted or not plan.settings:
-        return {}
-    result = _phase6_apply_external_settings(self, plan.settings)
-    if (
-        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
-        and getattr(self, "corner_data_canvas", None) is not None
-    ):
-        _phase6_refresh_corner_data_unfold_view(self)
-    return result
+    return _phase6_composition(self).apply_external_sync(
+        globals(), envelope
+    )
+
 
 def _phase6_left_workspace_width(value) -> int:
     """Return the visual-review width floor for each supported UI text scale."""
@@ -2532,49 +2381,19 @@ def _phase6_left_workspace_width(value) -> int:
 
 
 def _phase6_update_left_workspace_width(self, key=None):
-    canvas = getattr(self, "left_scroll_canvas", None)
-    if canvas is None:
-        return None
-    value = key if key is not None else self._settings_values.get("ui_text_size", "small")
-    target = _phase6_left_workspace_width(value)
-    canvas.configure(width=target)
-    try:
-        canvas.update_idletasks()
-    except Exception:
-        pass
-    return target
+    return _phase6_composition(self).update_left_workspace_width(
+        globals(), key
+    )
 
 
 def _phase6_apply_ui_text_size(self, key):
-    if getattr(self, "_phase6_settings_guard", False):
-        return
-    key = normalize_ui_text_size(key)
-    self._settings_values["ui_text_size"] = key
-    self._phase6_input_snapshot["ui_text_size"] = key
-    self._ui_text_controller.apply(key)
-    self.state.ui_text_scale = self._ui_text_controller.factor
-    _phase6_update_left_workspace_width(self, key)
-    callback = getattr(self, "_ui_text_size_change_callback", None)
-    if callback is not None and not getattr(self, "_phase6_external_apply_guard", False):
-        callback(key)
-    try:
-        self.bend_ui.render()
-    except Exception:
-        pass
-    try:
-        self.renderer.render()
-    except Exception:
-        pass
+    return _phase6_composition(self).apply_ui_text_size(globals(), key)
 
 
 def _phase6_on_ui_text_size_changed(self, *_args):
-    panel = getattr(self, "settings_panel", None)
-    var = getattr(panel, "ui_text_size_var", None) if panel is not None else getattr(self, "ui_text_size_var", None)
-    if var is None:
-        return
-    return _phase6_apply_ui_text_size(self, normalize_ui_text_size(var.get()))
-
-
+    return _phase6_composition(self).on_ui_text_size_changed(
+        globals(), *_args
+    )
 
 
 def _phase6_is_derived_physical_part_key(value):
