@@ -21,6 +21,7 @@ OUTBOUND_RELAY_SCHEMA = "WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1"
 OUTBOUND_RECEIPT_SCHEMA = "WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1"
 DEFAULT_RECEIPT = ".workspace-canonical-sync-receipt.json"
 RECONCILE_REQUIRED = "WORKSPACE_CANONICAL_RECONCILE_REQUIRED"
+RETIRED_ERROR = "WORKSPACE_CANONICAL_SYNC_RETIRED_USE_EXECUTOR_LOCAL_WORKSPACE"
 
 
 class WorkspaceCanonicalSyncError(ValueError):
@@ -133,7 +134,7 @@ def validate_sync_manifest(manifest: Mapping[str, object]) -> dict[str, object]:
     digest = str(manifest.get("canonical_generation_or_manifest_digest") or "").strip()
     if not digest:
         digest = _manifest_digest(entries)
-    canonical = str(manifest.get("canonical_root_identity") or "/Google Drive/WHD").strip()
+    canonical = str(manifest.get("canonical_root_identity") or "HISTORICAL_SHARED_ZERO_DATA").strip()
     if not canonical:
         raise WorkspaceCanonicalSyncError("canonical_root_identity must be nonblank")
     return {
@@ -259,7 +260,7 @@ def _lane_prefix(lane: str) -> str:
     lane = lane.strip().lower()
     if lane not in {"docs", "body"}:
         raise WorkspaceCanonicalSyncError("lane must be docs or body")
-    return f"/Google Drive/WHD/.unpushed/{lane}/0"
+    return f"HISTORICAL_SHARED_ZERO_DATA/{lane}"
 
 
 def prepare_outbound(
@@ -307,7 +308,7 @@ def prepare_outbound(
         "schema": OUTBOUND_RELAY_SCHEMA,
         "authority": False,
         "lane": lane.strip().lower(),
-        "canonical_shared_zero": _lane_prefix(lane),
+        "historical_shared_zero_identity": _lane_prefix(lane),
         "base_canonical_generation_or_manifest_digest": receipt["canonical_generation_or_manifest_digest"],
         "workspace_root": str(workspace),
         "operations": operations,
@@ -335,7 +336,24 @@ def verify_outbound(relay: Mapping[str, object], readback: Mapping[str, object])
         obs = observed[path]
         if exp.get("operation") != obs.get("operation") or exp.get("after_sha256") != obs.get("after_sha256"):
             raise WorkspaceCanonicalSyncError(f"outbound readback hash mismatch for {path}")
-    return {**dict(readback), "status": "GREEN", "state": "CANONICAL_SHARED_0_UPDATED"}
+    return {**dict(readback), "status": "HISTORICAL_VERIFIED", "state": "HISTORICAL_READBACK_VERIFIED", "authority": False}
+
+
+# Explicit historical aliases for audit/migration only.
+historical_sync_in = sync_in
+historical_status = status
+historical_prepare_outbound = prepare_outbound
+historical_verify_outbound = verify_outbound
+
+
+def _retired_current_api(*args, **kwargs):
+    raise WorkspaceCanonicalSyncError(RETIRED_ERROR)
+
+
+sync_in = _retired_current_api
+status = _retired_current_api
+prepare_outbound = _retired_current_api
+verify_outbound = _retired_current_api
 
 
 def _load_json(path: str | Path) -> dict[str, object]:

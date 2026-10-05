@@ -21,7 +21,7 @@ from tools.shared_unpushed_integration import (
     assert_premerge_latest_file_recheck,
     assert_push_scope_matches_lock,
     build_delivery_fileset_lock,
-    finalize_delivered_paths,
+    historical_finalize_delivered_paths,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -259,7 +259,7 @@ def test_premerge_recheck_rejects_target_change_on_locked_path():
         delivery_hashes=delivery,
         changed_paths=delivery,
     )
-    with pytest.raises(ValueError, match="TARGET_TOUCHED_LOCKED_PATH_REQUIRES_ROOT_0_RECONCILE_RETEST_REFREEZE"):
+    with pytest.raises(ValueError, match="TARGET_TOUCHED_LOCKED_PATH_REQUIRES_WORKSPACE_RECONCILE_RETEST_REFREEZE"):
         assert_premerge_latest_file_recheck(
             lock=lock,
             fresh_target_hashes={
@@ -273,7 +273,7 @@ def test_premerge_recheck_rejects_target_change_on_locked_path():
 
 def test_finalize_clears_only_exact_readback_delivered_paths():
     lock = _delivery_lock()
-    receipt = finalize_delivered_paths(
+    receipt = historical_finalize_delivered_paths(
         lock=lock,
         merge_readback_verified=True,
         accepted_commit="accepted-head",
@@ -291,7 +291,7 @@ def test_finalize_clears_only_exact_readback_delivered_paths():
     assert receipt["cleared_paths"] == ["AGENTS.md"]
     assert receipt["preserved_paths"] == [".agents/skills/engineering/推推/SKILL.md"]
     assert receipt["repository_files_deleted"] is False
-    assert "RE_REGISTER_AS_NEW_UNPUSHED_CHANGE" in receipt["future_modification_rule"]
+    assert receipt["future_modification_rule"] == "HISTORICAL_ONLY_NO_CURRENT_ROUTE"
 
 
 def test_pitfall_records_workspace_only_entry_correction():
