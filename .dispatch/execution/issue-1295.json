@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "abe0411b734c07bd8482084c6a99e12ee88122ce",
-    "released_at": null
+    "released_at": "2026-10-05T14:15:05Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "4c444110896cc04be27a2728d74210be0272f345",
   "issue": 1295,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-05T14:29:29Z",
-    "invocation_identity": "github:production-x-post-merge:37323021324:pr1296:issue1295",
-    "token": "recovery:1295:37323021324"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1296,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "governance/issue1295-production-mirror-20261005",
   "source_sha": "4c444110896cc04be27a2728d74210be0272f345",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "abe0411b734c07bd8482084c6a99e12ee88122ce",
-  "transaction": null,
-  "updated_at": "2026-10-05T14:14:29Z",
+  "transaction": {
+    "expected_fingerprint": "9617eaff0927099b5d250fdcac37a7bcf46ceb3f2ede8a36429634ed26e4d24f",
+    "id": "gha:37323021324:1295:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37323021324:pr1296:issue1295",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T14:15:04Z",
   "version": 2,
   "work_branch": "governance/issue1295-production-mirror-20261005"
 }
