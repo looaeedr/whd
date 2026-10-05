@@ -294,7 +294,6 @@ class Phase6FoldDesignerSettingsCoordinator:
         previous_non_receiving_structure=None,
     ):
         """Apply one family/model transition while preserving semantic ownership."""
-        plan = None
         try:
             plan = self._transactions.commit_family_model_transition(
                 new_model,
@@ -305,8 +304,23 @@ class Phase6FoldDesignerSettingsCoordinator:
                 available_parts=tuple(available_parts or ()),
                 previous_non_receiving_structure=previous_non_receiving_structure,
             )
-        except Exception:
-            plan = None
+        except Exception as exc:
+            # The visible selector already contains the requested value when
+            # this callback runs. Roll it back and stop all later effects.
+            self._ports.project_ui_values(
+                {},
+                baseline_transition=None,
+                baseline_stage="rollback",
+                new_model=str(old_model or ""),
+                old_model=str(new_model or ""),
+                new_editable=bool(old_editable),
+                old_editable=bool(new_editable),
+            )
+            self._ports.project_status(
+                message=f"基準型號切換失敗：{exc}",
+                settings=True,
+            )
+            return None
 
         committed = {}
         if plan is not None:
