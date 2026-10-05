@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "a8a711516ca0d4b7b2d18d0e228a9409236faf1e",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "40d475b2c2fc133e1216d385c066cef23a1c4c0a",
+  "issue": 1302,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-05T15:37:11Z",
+    "invocation_identity": "github:production-x-post-merge:37332154332:pr1303:issue1302",
+    "token": "recovery:1302:37332154332"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1303,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1302,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "open",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "a8a711516ca0d4b7b2d18d0e228a9409236faf1e",
+      "observed_at": "2026-10-05T15:22:11Z",
+      "observed_target_sha": "a8a711516ca0d4b7b2d18d0e228a9409236faf1e",
+      "pr_head_ref": "ci/issue1302-green-reuse-required-status-20261005",
+      "pr_head_sha": "40d475b2c2fc133e1216d385c066cef23a1c4c0a",
+      "pr_number": 1303,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "ci/issue1302-green-reuse-required-status-20261005",
+  "source_sha": "40d475b2c2fc133e1216d385c066cef23a1c4c0a",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "a8a711516ca0d4b7b2d18d0e228a9409236faf1e",
+  "transaction": null,
+  "updated_at": "2026-10-05T15:22:11Z",
+  "version": 2,
+  "work_branch": "ci/issue1302-green-reuse-required-status-20261005"
+}
