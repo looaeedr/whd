@@ -32,6 +32,30 @@ UPDATE_ONLY只完成被點名更新與readback；EXECUTE_TICKET/CHAIN/SCHEDULER_
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
 
+### DRIVE_WORK_ROOT_WORDING_HARD_GATE_V1
+
+任何 dispatch / handoff / 接手文字都不得再使用或生成以下語意：
+
+- 「讀取專案指定的 Google Drive 工作根目錄」
+- 「以 /Google Drive/WHD 作為施工 root / canonical work root」
+- 「Drive mount 不可見所以 repository-content 工作 blocked」
+- 「先讀 Drive 才能解析施工根或開始修改／測試」
+
+CURRENT 固定語意：
+
+- repository-content 施工根 = executor 自己的 repo workspace；
+- fresh baseline = GitHub production X `cleanup/2d-3d-sync`；
+- 先 fresh-read owning Issue / native ExecutionRecord / live refs，再依 Flow v2 續跑；
+- Google Drive 僅在任務明確涉及 backup / mirror / disaster recovery data 時使用；
+- Drive 不可見不得形成 startup/root blocker；
+- 若沒有 native ExecutionRecord，判定為 execution-state / ingress 問題，不得改判成 Drive root 問題；
+- 真正沒有可寫、可測 executor repo workspace 時，才 handoff 到 workspace-capable runtime。
+
+推薦 handoff wording：
+
+> 追加使用 flow-v2-execution 技能。讀取目標 Issue 的 fresh 接手／ExecutionRecord 狀態；repository-content 施工根依 CURRENT Flow v2 固定使用 executor 自己的 repo workspace，fresh 對齊 GitHub cleanup/2d-3d-sync。Google Drive 僅在本任務明確涉及備份／災難復原資料時使用；不得讀取 Drive 來解析施工 root、不得把 /Google Drive/WHD 當 startup gate，也不得因 Drive 未掛載而停止。
+
+
 
 ## TASK_START_AUTHORITY_DECLARATION_V1_BRIDGE
 
