@@ -233,9 +233,14 @@ def _publish_transaction_progress(
     runtime_owner: str,
     action: str,
 ) -> tuple[str, dict[str, object]]:
+    has_delivery_continuation = (
+        record.state == "DONE"
+        and record.chain.next_issue is not None
+        and record.chain.next_action is not None
+    )
     projector = (
         project_terminal_record_exit
-        if record.state == "DONE"
+        if record.state == "DONE" and not has_delivery_continuation
         else project_transaction_progress
     )
     provisional = projector(
@@ -456,6 +461,68 @@ def _pr_body_closes_issue(body: object, issue: int) -> bool:
             text,
         )
     )
+
+
+
+def _pr_body_closing_issues(body: object) -> tuple[int, ...]:
+    text = str(body or "")
+    values: list[int] = []
+    for match in re.finditer(
+        r"(?im)\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#\s*(\d+)\b",
+        text,
+    ):
+        value = int(match.group(1))
+        if value > 0 and value not in values:
+            values.append(value)
+    return tuple(values)
+
+
+
+def _delivery_pr_number_for_finalize(record: ExecutionRecord) -> int | None:
+    action = record.next_action
+    if action is None or action.kind != "FINALIZE":
+        return None
+    pr_number = action.args.get("pr_number")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        return None
+    return pr_number
+
+
+
+def _discover_open_delivery_sibling(
+    repo: str,
+    token: str,
+    *,
+    issue: int,
+    record: ExecutionRecord,
+    records: dict[int, ExecutionRecord],
+) -> tuple[int, int] | None:
+    pr_number = _delivery_pr_number_for_finalize(record)
+    if pr_number is None or not record.closure.merged_sha:
+        return None
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    if pr.get("merged") is not True:
+        raise ProductionExecutorError("FINALIZE sibling discovery requires merged PR")
+    if str((pr.get("base") or {}).get("ref") or "").strip() != record.target_branch:
+        raise ProductionExecutorError("FINALIZE sibling discovery PR base mismatch")
+    merged_sha = str(pr.get("merge_commit_sha") or "").strip().lower()
+    if merged_sha != str(record.closure.merged_sha).lower():
+        raise ProductionExecutorError("FINALIZE sibling discovery merge anchor mismatch")
+    closing = _pr_body_closing_issues(pr.get("body"))
+    if issue not in closing:
+        raise ProductionExecutorError("FINALIZE sibling discovery PR does not close current Issue")
+    pivot = closing.index(issue)
+    for candidate in closing[pivot + 1 :] + closing[:pivot]:
+        if candidate in records:
+            continue
+        observed = _api(repo, "GET", f"/issues/{candidate}", token) or {}
+        if observed.get("pull_request") is not None:
+            continue
+        if int(observed.get("number") or 0) != candidate:
+            raise ProductionExecutorError("FINALIZE sibling Issue identity mismatch")
+        if str(observed.get("state") or "").strip().lower() == "open":
+            return candidate, pr_number
+    return None
 
 
 
@@ -842,7 +909,7 @@ def _trusted_merge_effect(
             "semantic_state": "MERGED",
             "next_action": {
                 "kind": "FINALIZE",
-                "args": {},
+                "args": {"pr_number": pr_number},
                 "display": "Finalize exact merged Issue",
             },
             "updated_at": _iso(_now()),
@@ -892,7 +959,7 @@ def _trusted_merge_effect(
         "semantic_state": "MERGED",
         "next_action": {
             "kind": "FINALIZE",
-            "args": {},
+            "args": {"pr_number": pr_number},
             "display": "Finalize exact merged Issue",
         },
         "updated_at": _iso(_now()),
@@ -1081,6 +1148,7 @@ def _ensure_issue_closed_for_finalize(
     *,
     issue: int,
     record: ExecutionRecord,
+    records: dict[int, ExecutionRecord],
 ) -> dict[str, object]:
     """Close/read back the GitHub Issue before a FINALIZE -> DONE transition."""
     control_only = is_control_only_finalize_record(record)
@@ -1122,7 +1190,7 @@ def _ensure_issue_closed_for_finalize(
         raise ProductionExecutorError("FINALIZE trusted released_at readback is blank")
 
 
-    return {
+    effect: dict[str, object] = {
         **target_readback,
         "issue_closed": True,
         "issue_state": "closed",
@@ -1130,6 +1198,20 @@ def _ensure_issue_closed_for_finalize(
         "issue_closed_at": fresh.get("closed_at"),
         "released_at": trusted_released_at,
     }
+    sibling = _discover_open_delivery_sibling(
+        repo, token, issue=issue, record=record, records=records
+    )
+    if sibling is not None:
+        next_issue, pr_number = sibling
+        effect.update({
+            "next_issue": next_issue,
+            "chain_next_action": {
+                "kind": "RECOVER_POST_DELIVERY",
+                "args": {"pr_number": pr_number},
+                "display": f"Recover and finalize sibling Issue #{next_issue} from PR #{pr_number}",
+            },
+        })
+    return effect
 
 
 
@@ -1501,6 +1583,9 @@ def recover_post_delivery_missing_record(
         "post_record_fingerprint": execution_record_fingerprint(fresh),
         "post_state": fresh.state,
         "post_next_action": fresh.next_action.kind if fresh.next_action else None,
+        "post_chain_next_issue": fresh.chain.next_issue,
+        "post_chain_next_action": fresh.chain.next_action.kind if fresh.chain.next_action else None,
+        "post_chain_next_action_args": dict(fresh.chain.next_action.args) if fresh.chain.next_action else None,
         "lease_invocation_identity": fresh.lease.invocation_identity if fresh.lease else None,
         **monitor_payload,
     }
@@ -1649,6 +1734,7 @@ def _execute_one_attempt(
                 token,
                 issue=issue,
                 record=record,
+                records=records,
             )
         )
 
