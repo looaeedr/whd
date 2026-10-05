@@ -209,3 +209,52 @@ def test_issue498_port_specs_classify_role_owner_direction_and_bootstrap():
         for name, spec in SETTINGS_APPLICATION_PORT_SPECS.items()
         if name != "save_current_part"
     )
+
+def test_baseline_transition_failure_rolls_selector_back_and_stops_effect_pipeline():
+    from gui_modules.application.fold_designer_settings_coordinator import (
+        Phase6FoldDesignerSettingsCoordinator,
+    )
+
+    events = []
+
+    class BrokenTransactions:
+        def commit_family_model_transition(self, *args, **kwargs):
+            raise RuntimeError("synthetic baseline failure")
+
+    ports = dataclasses.replace(
+        _ports(),
+        project_ui_values=lambda values, **kwargs: events.append(
+            ("project", dict(values or {}), dict(kwargs))
+        ),
+        project_status=lambda *args, **kwargs: events.append(
+            ("status", args, dict(kwargs))
+        ),
+        apply_profile_plan=lambda *args, **kwargs: events.append(("profile",)),
+        sync_derived_parts=lambda *args, **kwargs: events.append(("derived",)),
+        refresh_topology=lambda *args, **kwargs: events.append(("topology",)),
+        refresh_persistent_controls=lambda *args, **kwargs: events.append(("controls",)),
+        submit_update_intent=lambda *args, **kwargs: events.append(("submit",)),
+    )
+    coordinator = Phase6FoldDesignerSettingsCoordinator(
+        transactions=BrokenTransactions(),
+        ports=ports,
+    )
+
+    result = coordinator.apply_baseline_transition(
+        new_model="受電箱",
+        old_model="金庫型",
+        new_editable=False,
+        old_editable=False,
+        fixed_corner_state={},
+        available_parts=(),
+        previous_non_receiving_structure=None,
+    )
+
+    assert result is None
+    assert events[0][0] == "project"
+    rollback = events[0][2]
+    assert rollback["baseline_stage"] == "rollback"
+    assert rollback["new_model"] == "金庫型"
+    assert events[1][0] == "status"
+    assert "synthetic baseline failure" in events[1][2]["message"]
+    assert [row[0] for row in events] == ["project", "status"]
