@@ -524,3 +524,14 @@ def test_all_gui_dxf_export_paths_serialize_authoritative_render_data_not_genera
         src = inspect.getsource(getattr(owner, method))
         assert "manufacturing_api.generate_part" not in src, method
         assert "_export_authoritative_part" in src, method
+
+def test_box_body_back_piece_suppresses_display_only_overlay_lines():
+    from pathlib import Path
+
+    source = Path("phase6_final_scene_renderer.py").read_text(encoding="utf-8")
+    assert 'if piece_role == "back":' in source
+    assert 'if piece_role != "back":' in source
+    assert 'str(getattr(_piece, "role", "") or "").strip() != "back"' in source
+    # CUTTING geometry is still rendered as a Poly3DCollection; only line overlays are suppressed.
+    assert 'facecolor=face' in source
+    assert 'edgecolor="none"' in source
