@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DISPATCH = ROOT / ".agents/skills/engineering/派工/SKILL.md"
+# Issue 1304: Drive is never a repository construction-root authority.
 
 
 def test_dispatch_prohibits_drive_work_root_wording():
