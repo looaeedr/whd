@@ -525,13 +525,16 @@ def test_all_gui_dxf_export_paths_serialize_authoritative_render_data_not_genera
         assert "manufacturing_api.generate_part" not in src, method
         assert "_export_authoritative_part" in src, method
 
-def test_box_body_back_piece_suppresses_display_only_overlay_lines():
+def test_box_body_back_piece_keeps_physical_hole_rims_without_display_overlays():
     from pathlib import Path
 
     source = Path("phase6_final_scene_renderer.py").read_text(encoding="utf-8")
     assert 'if piece_role == "back":' in source
-    assert 'if piece_role != "back":' in source
-    assert 'str(getattr(_piece, "role", "") or "").strip() != "back"' in source
-    # CUTTING geometry is still rendered as a Poly3DCollection; only line overlays are suppressed.
+    assert 'self._add_mesh_feature_lines(piece_placed, edge)' in source
+    assert 'str(getattr(_piece, "role", "") or "").strip() == "back"' in source
+    assert 'self._add_mesh_feature_lines(piece_tris, edge)' in source
+    # Rear-panel BEND/joint overlays stay suppressed; physical CUTTING rims are
+    # recovered from the authoritative solid mesh rather than redrawn by coordinates.
+    assert 'if piece_role == "back":\n                continue' in source
     assert 'facecolor=face' in source
     assert 'edgecolor="none"' in source
