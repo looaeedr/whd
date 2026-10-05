@@ -477,3 +477,76 @@ def test_parameter_lock_is_direct_canvas_overlay_not_layout_row():
         )
     finally:
         _close(tk, root, designer)
+
+def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_holes():
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        _select_box_body_through_tree(designer, root)
+        _pump(root, 6)
+
+        source_mesh = tuple(designer.final_scene_view.last_cutting_mesh or ())
+        assert source_mesh, "Receiving current 3D mesh must exist before preview"
+
+        rows = tuple(
+            getattr(
+                designer.receiving_layer_controls.layer_host,
+                "_phase6_receiving_layer_rows",
+                (),
+            )
+            or ()
+        )
+        assert rows
+        rows[0]["plus_button"].invoke()
+        rows[0]["plus_button"].invoke()
+        _pump(root, 4)
+
+        import fold_designer_bridge as bridge
+        preview_payload = bridge._phase6_composition(designer).receiving_layer_preview_payload(
+            bridge.__dict__,
+            0,
+        )
+        assert preview_payload["connection_count"] == 3
+        assert len(preview_payload["connection_meshes"]) == 3
+        assert tuple(preview_payload["connection_meshes"][0]) == source_mesh, (
+            "Preview must replicate the current resolved CUTTING mesh, not draw a simplified box"
+        )
+        assert len(preview_payload["lock_circles"]) > 0, (
+            "3連 preview must include canonical mating/lock hole circles between adjacent cabinets"
+        )
+
+        rows = tuple(
+            getattr(
+                designer.receiving_layer_controls.layer_host,
+                "_phase6_receiving_layer_rows",
+                (),
+            )
+            or ()
+        )
+        rows[0]["preview_button"].invoke()
+        _pump(root, 6)
+
+        preview_windows = [
+            child
+            for child in designer.root.winfo_children()
+            if hasattr(child, "_phase6_receiving_preview_canvas")
+        ]
+        assert len(preview_windows) == 1
+        win = preview_windows[0]
+        assert win._phase6_receiving_preview_connection_count == 3
+        assert win._phase6_receiving_preview_mesh_count == 3
+        assert win._phase6_receiving_preview_lock_circle_count > 0
+        assert win._phase6_receiving_preview_feature_segment_count > 0
+
+        canvas_widget = win._phase6_receiving_preview_canvas.get_tk_widget()
+        assert bool(canvas_widget.winfo_ismapped())
+        assert canvas_widget.winfo_width() > 100
+        assert canvas_widget.winfo_height() > 100
+        assert "Radiobutton" not in {
+            str(child.winfo_class())
+            for child in win.winfo_children()
+        }
+        win.destroy()
+    finally:
+        _close(tk, root, designer)
