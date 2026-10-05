@@ -136,3 +136,17 @@ def test_programmatic_box_body_notebook_changes_keep_guard_until_tk_idle():
     assert 'ttk.Notebook posts <<NotebookTabChanged>> asynchronously' in source
     assert 'show_for_box_body' in source
 
+
+def test_box_body_notebook_activation_requires_explicit_operator_intent():
+    module_source = NAV.read_text(encoding='utf-8')
+    builder = _function_source(NAV, 'build_part_navigation_widgets')
+    handler = _function_source(NAV, 'on_box_body_piece_tab_changed')
+
+    assert '_phase6_box_body_piece_operator_intent = False' in builder
+    assert '<ButtonPress-1>' in builder
+    assert '<KeyPress-Left>' in builder and '<KeyPress-Right>' in builder
+    assert 'operator_intent = bool(' in handler
+    assert 'if not operator_intent:' in handler
+    assert 'activate_part(key)' in handler
+    assert 'programmatic rebuilds' in module_source
+
