@@ -26,43 +26,115 @@ def _load_module(monkeypatch):
 
 def test_discovers_only_exact_production_merge_prs(monkeypatch):
     module = _load_module(monkeypatch)
+    head = "a" * 40
 
     def fake_api(_repo, method, path, _token, payload=None):
         assert method == "GET"
         assert payload is None
-        assert path == "/commits/" + "a" * 40 + "/pulls"
-        return [
-            {
+        if path == f"/commits/{head}/pulls":
+            return [{"number": 1282}, {"number": 7}, {"number": 8}]
+        if path == "/pulls/1282":
+            return {
                 "number": 1282,
                 "state": "closed",
                 "merged": True,
-                "merge_commit_sha": "a" * 40,
+                "merge_commit_sha": head,
                 "base": {"ref": "cleanup/2d-3d-sync"},
                 "body": "Closes #1282",
-            },
-            {
+            }
+        if path == "/pulls/7":
+            return {
                 "number": 7,
                 "state": "closed",
                 "merged": True,
-                "merge_commit_sha": "a" * 40,
+                "merge_commit_sha": head,
                 "base": {"ref": "main"},
                 "body": "Closes #7",
-            },
-            {
+            }
+        if path == "/pulls/8":
+            return {
                 "number": 8,
                 "state": "open",
                 "merged": False,
                 "merge_commit_sha": None,
                 "base": {"ref": "cleanup/2d-3d-sync"},
                 "body": "Closes #8",
-            },
-        ]
+            }
+        raise AssertionError(path)
 
     monkeypatch.setattr(module, "_api", fake_api)
     rows = module.discover_exact_production_merge_prs(
-        "looaeedr/whd", "token", "a" * 40
+        "looaeedr/whd", "token", head
     )
     assert [row["number"] for row in rows] == [1282]
+
+
+def test_merge_commit_message_recovers_pr_when_commit_association_is_empty(monkeypatch):
+    module = _load_module(monkeypatch)
+    head = "b" * 40
+
+    def fake_api(_repo, method, path, _token, payload=None):
+        assert method == "GET"
+        assert payload is None
+        if path == f"/commits/{head}/pulls":
+            return []
+        if path == f"/git/commits/{head}":
+            return {
+                "message": (
+                    "Merge pull request #1287 from looaeedr/fix\n\n"
+                    "#1282 Repair production-X post-merge finalizer entrypoint"
+                )
+            }
+        if path == "/pulls/1287":
+            return {
+                "number": 1287,
+                "state": "closed",
+                "merged": True,
+                "merge_commit_sha": head,
+                "base": {"ref": "cleanup/2d-3d-sync"},
+                "body": "Closes #1282",
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(module, "_api", fake_api)
+    rows = module.discover_exact_production_merge_prs(
+        "looaeedr/whd", "token", head
+    )
+    assert [row["number"] for row in rows] == [1287]
+
+
+def test_closed_production_pr_fallback_recovers_nonstandard_merge_message(monkeypatch):
+    module = _load_module(monkeypatch)
+    head = "c" * 40
+
+    def fake_api(_repo, method, path, _token, payload=None):
+        assert method == "GET"
+        assert payload is None
+        if path == f"/commits/{head}/pulls":
+            return []
+        if path == f"/git/commits/{head}":
+            return {"message": "nonstandard merge message"}
+        if path.startswith("/pulls?state=closed&base=cleanup%2F2d-3d-sync"):
+            return [
+                {"number": 1288, "merge_commit_sha": head},
+                {"number": 1000, "merge_commit_sha": "d" * 40},
+            ]
+        if path == "/pulls/1288":
+            return {
+                "number": 1288,
+                "state": "closed",
+                "merged": True,
+                "merge_commit_sha": head,
+                "base": {"ref": "cleanup/2d-3d-sync"},
+                "body": "Closes #1282",
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(module, "_api", fake_api)
+    rows = module.discover_exact_production_merge_prs(
+        "looaeedr/whd", "token", head
+    )
+    assert [row["number"] for row in rows] == [1288]
 
 
 def test_missing_record_routes_through_recovery_then_existing_finalize(monkeypatch):
