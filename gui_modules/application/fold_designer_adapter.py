@@ -3276,6 +3276,245 @@ class Phase6FoldDesignerComposition:
         required("_phase6_notify_corner_change")(app)
         return True
 
+    def on_endcap_edge_relation_selected(
+        self, namespace, part_key, edge
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        part_key = str(part_key)
+        edge = str(edge).upper()
+        var = dict(getattr(app, "endcap_joint_vars", {}) or {}).get(edge)
+        if var is None:
+            return None
+        relation = required("_ENDCAP_LABEL_TO_RELATION").get(
+            str(var.get()).strip()
+        )
+        if relation is None:
+            return None
+        self.settings_transactions().commit_endcap_edge_relation(
+            part_key, edge, relation
+        )
+        try:
+            app.do_update()
+        except Exception:
+            pass
+        return relation
+
+    def ensure_drawing_edge_hosts(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        existing = getattr(app, "drawing_edge_hosts", None)
+        if existing is not None:
+            try:
+                if all(
+                    host.winfo_exists()
+                    for host in (
+                        existing.top,
+                        existing.bottom,
+                        existing.left,
+                        existing.right,
+                    )
+                ):
+                    return existing
+            except Exception:
+                pass
+
+        original = required("original")
+        canvas = app.renderer.canvas.get_tk_widget()
+        hosts = required("Phase6DrawingEdgeHosts")(
+            top=original.ttk.Frame(canvas, padding=(4, 2)),
+            bottom=original.ttk.Frame(canvas, padding=(4, 2)),
+            left=original.ttk.Frame(canvas, padding=(4, 2)),
+            right=original.ttk.Frame(canvas, padding=(4, 2)),
+            center=canvas,
+        )
+        app.drawing_edge_hosts = hosts
+        return hosts
+
+    def clear_drawing_edge_controls(self):
+        app = self.app
+        hosts = getattr(app, "drawing_edge_hosts", None)
+        if hosts is None:
+            return None
+        for host in (hosts.top, hosts.bottom, hosts.left, hosts.right):
+            try:
+                for child in host.winfo_children():
+                    child.destroy()
+                host.place_forget()
+            except Exception:
+                pass
+        return None
+
+    def render_endcap_edge_controls(
+        self, namespace, *, part_key
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        rows = required("_phase6_endcap_joint_policy_rows")(app, part_key)
+        self.clear_drawing_edge_controls()
+        app.endcap_joint_vars = {}
+        app.endcap_joint_widgets = {}
+        app.endcap_joint_allowed = {}
+        if not rows:
+            return None
+
+        hosts = self.ensure_drawing_edge_hosts(namespace)
+        edge_hosts = {
+            "TOP": hosts.top,
+            "BOTTOM": hosts.bottom,
+            "LEFT": hosts.left,
+            "RIGHT": hosts.right,
+        }
+        original = required("original")
+        labels = required("_ENDCAP_EDGE_LABELS")
+        build_choice_menubutton = required("build_choice_menubutton")
+        place_host = required("_phase6_place_drawing_edge_host")
+        for row in rows:
+            edge = row["edge"]
+            host = edge_hosts[edge]
+            original.ttk.Label(
+                host, text=f"{labels[edge]}："
+            ).pack(side=original.tk.LEFT)
+            var = original.tk.StringVar(
+                master=host, value=row["value"]
+            )
+            widget = build_choice_menubutton(
+                host,
+                variable=var,
+                values=row["allowed"],
+                state=("normal" if row["editable"] else "disabled"),
+                width=5,
+                command=lambda p=part_key, e=edge: self.on_endcap_edge_relation_selected(
+                    namespace, p, e
+                ),
+            )
+            widget.pack(side=original.tk.LEFT)
+            app.endcap_joint_vars[edge] = var
+            app.endcap_joint_widgets[edge] = widget
+            app.endcap_joint_allowed[edge] = tuple(row["allowed"])
+            place_host(host, edge)
+        return hosts
+
+    def commit_base_plate_edge_shrink(
+        self, namespace, edge, raw_value
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        edge = str(edge).upper()
+        key = required("_BASE_PLATE_EDGE_SETTING_KEYS").get(edge)
+        if key is None:
+            return False
+        original = required("original")
+        try:
+            value = float(raw_value)
+        except (TypeError, ValueError, original.tk.TclError):
+            return False
+        if value < 0:
+            return False
+        self.stage_setting_update(namespace, key, value)
+        self.flush_pending_settings(namespace)
+        var = dict(
+            getattr(app, "base_plate_edge_shrink_vars", {}) or {}
+        ).get(edge)
+        if var is not None:
+            text = required("_setting_number_text")(
+                app._settings_values.get(key, value)
+            )
+            if var.get() != text:
+                var.set(text)
+        return True
+
+    def render_base_plate_edge_controls(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        self.clear_drawing_edge_controls()
+        app.endcap_joint_vars = {}
+        app.endcap_joint_widgets = {}
+        app.endcap_joint_allowed = {}
+        app.base_plate_edge_shrink_vars = {}
+        app.base_plate_edge_shrink_widgets = {}
+
+        hosts = self.ensure_drawing_edge_hosts(namespace)
+        edge_hosts = {
+            "TOP": hosts.top,
+            "BOTTOM": hosts.bottom,
+            "LEFT": hosts.left,
+            "RIGHT": hosts.right,
+        }
+        values = dict(getattr(app, "_settings_values", {}) or {})
+        values.update(
+            dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        )
+        original = required("original")
+        labels = required("_ENDCAP_EDGE_LABELS")
+        place_host = required("_phase6_place_drawing_edge_host")
+        number_text = required("_setting_number_text")
+        for edge, key in required(
+            "_BASE_PLATE_EDGE_SETTING_KEYS"
+        ).items():
+            host = edge_hosts[edge]
+            original.ttk.Label(
+                host, text=f"{labels[edge]}縮："
+            ).pack(side=original.tk.LEFT)
+            var = original.tk.StringVar(
+                master=host,
+                value=number_text(values.get(key, 55.0)),
+            )
+            entry = original.ttk.Entry(
+                host,
+                textvariable=var,
+                width=7,
+                justify=original.tk.CENTER,
+            )
+            entry.pack(side=original.tk.LEFT)
+            entry.bind(
+                "<Return>",
+                lambda _e, ed=edge, v=var: self.commit_base_plate_edge_shrink(
+                    namespace, ed, v.get()
+                ),
+            )
+            entry.bind(
+                "<FocusOut>",
+                lambda _e, ed=edge, v=var: self.commit_base_plate_edge_shrink(
+                    namespace, ed, v.get()
+                ),
+            )
+            app.base_plate_edge_shrink_vars[edge] = var
+            app.base_plate_edge_shrink_widgets[edge] = entry
+            place_host(host, edge)
+        return hosts
+
+    def render_active_drawing_edge_controls(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        mode = str(
+            getattr(app, "_phase6_3d_display_mode", "single") or "single"
+        )
+        part_key = str(getattr(app, "active_part_key", None) or "")
+        if mode != "single":
+            self.clear_drawing_edge_controls()
+            app.endcap_joint_vars = {}
+            app.endcap_joint_widgets = {}
+            app.endcap_joint_allowed = {}
+            app.base_plate_edge_shrink_vars = {}
+            app.base_plate_edge_shrink_widgets = {}
+            return None
+        if part_key in required("ENDCAP_FW_PARTS"):
+            app.base_plate_edge_shrink_vars = {}
+            app.base_plate_edge_shrink_widgets = {}
+            return self.render_endcap_edge_controls(
+                namespace, part_key=part_key
+            )
+        if part_key == "base_plate":
+            return self.render_base_plate_edge_controls(namespace)
+        self.clear_drawing_edge_controls()
+        app.endcap_joint_vars = {}
+        app.endcap_joint_widgets = {}
+        app.endcap_joint_allowed = {}
+        app.base_plate_edge_shrink_vars = {}
+        app.base_plate_edge_shrink_widgets = {}
+        return None
+
     def on_assembly_type_selected(self, namespace, *_args):
         """Commit Assembly intent through the existing Settings transaction owner."""
         app = self.app
@@ -3308,7 +3547,7 @@ class Phase6FoldDesignerComposition:
         for context in ("head", "tail"):
             self.invalidate_settings_page(context)
         required("_phase6_rebuild_linked_endcaps")(app)
-        required("_phase6_render_active_drawing_edge_controls")(app)
+        self.render_active_drawing_edge_controls(namespace)
         try:
             app.do_update()
         except Exception:
