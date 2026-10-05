@@ -26,13 +26,11 @@ def test_v2_current_work_root_is_executor_local_policy_not_fixed_path():
     assert root["production_branch"] == "cleanup/2d-3d-sync"
     assert root["authority"] is False
     assert "library_path" not in root
-    assert current["canonical_drive_overlay"]["ordinary_startup_required"] is False
-    assert current["canonical_drive_overlay"]["role"] == "MIRROR_BACKUP_ONLY"
-    assert current["canonical_drive_overlay"]["activation"] == "NEVER_CURRENT"
-    assert current["canonical_drive_overlay"]["routing_forbidden"] is True
-    assert current["unpushed"]["ordinary_startup_required"] is False
-    assert current["unpushed"]["mode"] == "SUPERSEDED_DATA_ONLY"
-    assert current["unpushed"]["activation"] == "NEVER_CURRENT"
+    assert "canonical_drive_overlay" not in current
+    assert "unpushed" not in current
+    assert current["drive_mirror"]["role"] == "MIRROR_BACKUP_ONLY"
+    assert current["drive_mirror"]["authority"] is False
+    assert current["drive_mirror"]["routing_forbidden"] is True
     assert not SUPERSEDED.exists()
 
 
@@ -141,19 +139,15 @@ def test_startup_evidence_accepts_executor_local_workspace_gate():
     assert "executor-local repo workspace" in validated["declaration"]
 
 
-def test_shared_zero_paths_are_historical_compatibility_only():
-    from tools.work_root_gate import UNPUSHED_ROOT, unpushed_zero_path, worker_candidate_path
+def test_shared_zero_work_root_helpers_are_hard_retired():
+    from tools.work_root_gate import unpushed_zero_path, worker_candidate_path
 
     contract = _payload()
-    assert contract["unpushed"]["mode"] == "SUPERSEDED_DATA_ONLY"
-    assert contract["unpushed"]["routing_forbidden"] is True
-    assert UNPUSHED_ROOT == "/Google Drive/WHD/.unpushed"
-    assert unpushed_zero_path("body") == "/Google Drive/WHD/.unpushed/body/0"
-    assert unpushed_zero_path("docs") == "/Google Drive/WHD/.unpushed/docs/0"
-    assert worker_candidate_path(lane="docs", worker="work0", issue=1200).endswith(
-        "/.unpushed/docs/workers/work0/issue-1200"
-    )
-
+    assert "unpushed" not in contract
+    with pytest.raises(ValueError, match="SHARED_ZERO_ROUTING_RETIRED"):
+        unpushed_zero_path("body")
+    with pytest.raises(ValueError, match="SHARED_ZERO_ROUTING_RETIRED"):
+        worker_candidate_path(lane="docs", worker="work0", issue=1200)
 
 def test_authority_map_still_points_to_single_current_machine_owners():
     text = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(
