@@ -84,14 +84,14 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert "ROOT_WORKSPACE_HANDOFF" not in contract_text
 
     for mode in ("GITHUB_ONLY", "REMOTE_ACTION", "SCHEDULER_LANE"):
-        assert contract["execution_modes"][mode] == "WORKSPACE_CAPABILITY_ROUTED_CONTENT"
+        assert contract["execution_modes"][mode] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
 
     remote = contract["remote_content_implementation"]
     assert remote["route_owner"] == "tools/root_local_first_gate.py::select_repository_content_route"
     assert remote["ordinary_route"] == "WORKSPACE_DEFAULT"
     assert remote["drive_mount_absence_is_blocker"] is False
-    assert remote["workspace_capable_action"] == "CONTINUE_WORKSPACE_DEFAULT"
-    assert remote["no_workspace_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
+    assert remote["interactive_workspace_action"] == "CONTINUE_WORKSPACE_DEFAULT"
+    assert remote["remote_mode_repository_content_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
     assert remote["shared_zero_missing_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
     assert remote["github_side_hotfix_forbidden"] is True
 
