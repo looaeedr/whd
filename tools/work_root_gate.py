@@ -15,6 +15,7 @@ DRIVE_MIRROR_ROOT = "/Google Drive/WHD/WHD_MIRROR/CURRENT"
 REPO_CONTRACT_PATH = ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"
 RETIRED_SHARED_ZERO_ERROR = "SHARED_ZERO_ROUTING_RETIRED"
 RETIRED_DRIVE_ROOT_ERROR = "DRIVE_WORK_ROOT_RETIRED_USE_EXECUTOR_LOCAL_WORKSPACE"
+RETIRED_DRIVE_ROOT_PREFIX = "/Google Drive/WHD"
 REQUIRED_ROOT_ENTRIES = frozenset({
     ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
     "ae_engine", "gui_modules",
@@ -110,9 +111,11 @@ def build_work_root_gate_evidence(
             resolved_workspace = str(workspace_root or "").strip()
             if not resolved_workspace:
                 raise ValueError("interactive executor workspace_root must be nonblank")
+        elif read_mode == READ_MODE_GOOGLE_DRIVE:
+            raise ValueError(RETIRED_DRIVE_ROOT_ERROR)
         else:
             raise ValueError("interactive mode must use executor-local workspace Git baseline")
-    if resolved_workspace.replace("\\", "/").rstrip("/") == CANONICAL_DRIVE_ROOT or resolved_workspace.replace("\\", "/").startswith(CANONICAL_DRIVE_ROOT + "/"):
+    if resolved_workspace.replace("\\", "/").rstrip("/") == RETIRED_DRIVE_ROOT_PREFIX or resolved_workspace.replace("\\", "/").startswith(RETIRED_DRIVE_ROOT_PREFIX + "/"):
         raise ValueError("CURRENT admission requires an executor-local workspace, not a Drive mirror")
     verified = verify_root_entries(root_entries)
     head = str(production_head_sha or "").strip().lower()
