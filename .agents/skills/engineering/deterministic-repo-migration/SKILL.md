@@ -33,21 +33,20 @@ Out of scope:
 
 <!-- WHD_REPOSITORY_MUTATION_GATE_V1 -->
 
-Current repository-content mutation order is fixed to:
+Current repository-content routing is workspace-first:
 
-`ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED`
+`EXECUTOR_LOCAL_WORKSPACE → FRESH cleanup/2d-3d-sync BASELINE → DETERMINISTIC MUTATION → TARGETED/FULL TESTS → EXACT TESTED DIFF → DELIVERY BRANCH → PR/CI → MERGE/READBACK`
 
-Pre-write path reservation is retired. Flow v2 path reservation is delivery-only after `LANE_MANIFEST_FROZEN`.
+本 Skill 只擁有 deterministic mapping / idempotence / drift-audit 語意，**不擁有 WHD execution transport 或 repository write authority**。只要任務會改 WHD repository content，固定同時服從：
 
-本 Skill 只擁有 deterministic mapping / idempotence / drift-audit 語意，**不擁有 WHD execution transport 或 repository write authority**。只要任務會改 WHD repository content，mutation 前固定同時服從：
+1. `.agents/skills/engineering/flow-v2-execution/SKILL.md` 的 `WHD_EXECUTION_RECORD_V2` / single-writer / structured `next_action`。
+2. `.agents/skills/engineering/root-local-first/SKILL.md` 的 CURRENT router：普通 Codex/interactive content work 固定 `WORKSPACE_DEFAULT`，在 executor-local repo workspace（Codex 常見 `/workspace/whd`）施工與測試。
+3. `WHD_TEST_EXECUTION_RECEIPT_V1` + exact tested diff；bare validator PASS / second-pass zero diff 不能自行解鎖 delivery。
+4. scheduler/GITHUB_ONLY/REMOTE_ACTION 若需要產生新的 repository-content diff，固定 handoff 到 **workspace-capable runtime**；不得在 GitHub control-plane runtime 未測直接 author/hotfix，也不得要求固定 Google Drive root。
+5. 使用者已明確要求 exact repository-content task 時，同 invocation/task scope 可使用 `WORKSPACE_DELIVERY` 完成 branch/push/PR/CI/QA/merge/finalization；不得到 delivery tail 再重問相同授權。
+6. 只有 fresh touched-path evidence 證明 shared `.unpushed/{docs|body}/0` 有較新的 drift 時，router 才切 `SHARED_ZERO_FALLBACK`；此時才要求 latest-0 merge/post-merge test/freeze/`/推推` fallback semantics。
 
-1. `.agents/skills/engineering/flow-v2-execution/SKILL.md` 的 `WHD_EXECUTION_RECORD_V2` / single-writer / structured `next_action`；
-2. `.agents/skills/engineering/root-local-first/SKILL.md` 的 shared-0 gate：`ROOT_IDENTITY_CURRENT → LANE_CLASSIFIED → latest 0 → worker mutate/test → fresh latest 0 merge → post-merge test → freeze → delivery reservation → GIT_WRITE_UNLOCKED`；
-3. `WHD_TEST_EXECUTION_RECEIPT_V1` + exact tested diff；bare validator PASS / second-pass zero diff 都不能自行解鎖 Git write；
-4. remote/scheduler/GITHUB_ONLY 遇到 repository-content implementation 必須 `HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION`，不得在 GitHub branch 直接 author/hotfix；
-5. delivery phase 只可由 `/推推 文檔|主體` 將 selected lane frozen manifest 搬到 dedicated delivery branch；production target advancement 仍只走 Flow v2 trusted `MERGE / SYNC_TARGET`。
-
-若 root shared-0 / post-merge GREEN / conflict-decision / Flow v2 delivery evidence 缺任一項，deterministic migration 必須 fail closed；不得以「migration 是機械式／可重複」為理由旁路 execution gate。
+若 workspace baseline、deterministic mapping evidence、tests、exact tested diff 或 Flow v2 delivery evidence缺失，migration 必須 fail closed；**Drive mount、chat UI、AI Library、shared-0 不存在本身都不是 `WORKSPACE_DEFAULT` blocker**。
 
 ## Mandatory execution contract
 
