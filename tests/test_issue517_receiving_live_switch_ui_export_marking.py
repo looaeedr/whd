@@ -502,8 +502,9 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         rows[0]["plus_button"].invoke()
         _pump(root, 4)
 
-        preview_payload = designer._phase6_composition.receiving_layer_preview_payload(
-            __import__("fold_designer_bridge").__dict__,
+        import fold_designer_bridge as bridge
+        preview_payload = bridge._phase6_composition(designer).receiving_layer_preview_payload(
+            bridge.__dict__,
             0,
         )
         assert preview_payload["connection_count"] == 3
