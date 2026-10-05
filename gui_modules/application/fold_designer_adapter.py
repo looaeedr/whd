@@ -2379,7 +2379,7 @@ class Phase6FoldDesignerComposition:
             app._phase6_receiving_set_bay_guard = False
         if refresh_controls:
             self.refresh_receiving_set_bay_control(namespace)
-        required("_phase6_refresh_back_panel_mode_control")(app)
+        self.refresh_back_panel_mode_control(namespace)
         return True
 
     def commit_receiving_current_bay_controls(self, namespace):
@@ -2408,6 +2408,103 @@ class Phase6FoldDesignerComposition:
         if workspace is not None:
             workspace.mark_dirty()
         return True
+
+    def back_panel_mode_control_is_applicable(self, namespace):
+        """Return whether the normal-input rear-panel choice applies."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        workspace = getattr(app, "designer_workspace", None)
+        active_part = str(getattr(workspace, "active_part", "") or "")
+        if active_part != "box_body:back":
+            return False
+        snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+        if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+            return False
+        state = required("_phase6_box_structure_state")(app)
+        return (
+            str(state.get("active_type") or "")
+            == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+        )
+
+    def refresh_back_panel_mode_control(self, namespace):
+        """Project canonical rear-panel mode into the normal input region."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        frame = getattr(app, "back_panel_mode_control", None)
+        var = getattr(app, "back_panel_mode_var", None)
+        selector = getattr(app, "back_panel_mode_selector", None)
+        if frame is None or var is None or selector is None:
+            return False
+
+        if not self.back_panel_mode_control_is_applicable(namespace):
+            if frame.winfo_manager():
+                frame.pack_forget()
+            return False
+
+        adapter = self.receiving_adapter(namespace)
+        if adapter is not None:
+            current = required("BackPanelMode")(
+                str(adapter.current_bay()["back_panel_mode"])
+            )
+        else:
+            current = required("back_panel_mode")(
+                required("_phase6_box_structure_state")(app)
+            )
+        labels = required("_BACK_PANEL_MODE_LABELS")
+        label = labels[current]
+        if str(var.get() or "") != label:
+            var.set(label)
+
+        if not frame.winfo_manager():
+            before = getattr(getattr(app, "bend_ui", None), "nb", None)
+            original = required("original")
+            options = {"fill": original.tk.X, "pady": (0, 4)}
+            if before is not None and before.winfo_manager():
+                options["before"] = before
+            frame.pack(**options)
+        return True
+
+    def select_back_panel_mode(self, namespace, var):
+        """Commit the Receiving rear-panel mode through canonical owners."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        mode = required("_BACK_PANEL_MODE_LABEL_TO_MODE").get(
+            str(var.get()).strip()
+        )
+        if mode is None:
+            return None
+        snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+        if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+            return None
+        state = required("_phase6_box_structure_state")(app)
+        try:
+            adapter = self.receiving_adapter(namespace)
+            if adapter is not None:
+                adapter.update_current_bay(back_panel_mode=mode.value)
+                app._phase6_input_snapshot["receiving_layout"] = adapter.layout
+            committed = required("set_side_back_back_panel_mode")(
+                state, mode
+            )
+            required("_phase6_commit_box_structure_state")(
+                app, committed, rebuild=True
+            )
+            if adapter is not None:
+                self.sync_receiving_current_bay(
+                    namespace, refresh_controls=False
+                )
+        except Exception as exc:
+            required("_phase6_box_structure_error")(app, exc)
+            required("_phase6_after_box_structure_commit")(
+                app, state, rebuild=True
+            )
+        finally:
+            self.refresh_back_panel_mode_control(namespace)
+            if (
+                str(getattr(app, "_phase6_3d_display_mode", "") or "")
+                == "corner_data"
+            ):
+                self.refresh_corner_data_back_panel_mode_control(namespace)
+        return mode
 
     def receiving_switch_adapter(
         self,
@@ -2626,9 +2723,9 @@ class Phase6FoldDesignerComposition:
             box_structure_numeric_changed=lambda type_id, field, value_var: required(
                 "_phase6_apply_box_structure_numeric"
             )(app, type_id, field, value_var),
-            box_back_panel_mode_changed=lambda value_var: required(
-                "_phase6_select_back_panel_mode"
-            )(app, value_var),
+            box_back_panel_mode_changed=lambda value_var: self.select_back_panel_mode(
+                namespace, value_var
+            ),
             box_structure_toggle_advanced=lambda type_id: required(
                 "_phase6_toggle_structure_advanced"
             )(app, type_id),
@@ -3381,9 +3478,9 @@ class Phase6FoldDesignerComposition:
             ),
             current_label=labels[current],
             values=tuple(labels[item] for item in modes),
-            on_selected=lambda var: required(
-                "_phase6_select_back_panel_mode"
-            )(app, var),
+            on_selected=lambda var: self.select_back_panel_mode(
+                namespace, var
+            ),
         )
 
     def refresh_corner_data_parts_panel(self, namespace):
