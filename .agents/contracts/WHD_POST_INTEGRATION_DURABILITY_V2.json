@@ -4,13 +4,11 @@
   "status": "CURRENT",
   "owner": "tools/post_integration_durability.py",
   "execution_state_owner": "WHD_EXECUTION_RECORD_V2",
-  "canonical_root": "/Google Drive/WHD",
-  "shared_unpushed_root": "/Google Drive/WHD/.unpushed",
+  "canonical_root": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+  "shared_unpushed_root": null,
   "required_order": [
     "FLOW_V2_DONE",
     "MERGE_READBACK_VERIFIED",
-    "LANE_DELIVERY_RECEIPT_BOUND",
-    "LANE_0_ROLLED_FORWARD_OR_EMPTY",
     "DURABLE_CLEANUP_COMPLETE"
   ],
   "root_sync_receipt_schema": "WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1",
@@ -25,8 +23,7 @@
     "WORK_ACTIVE_ARCHIVE"
   ],
   "fail_closed": {
-    "execution_not_done": "WAIT_EXECUTION_DONE",
-    "lane_not_finalized": "FINALIZE_DELIVERED_LANE_ZERO"
+    "execution_not_done": "WAIT_EXECUTION_DONE"
   },
   "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
   "supersedes": ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
@@ -44,5 +41,10 @@
     "mode": "OPTIONAL_MAINTENANCE",
     "missing_receipt": "DO_NOT_BLOCK_FLOW_V2_FINALIZE_OR_ISSUE_CLOSURE",
     "invalid_receipt": "REPORT_MAINTENANCE_DRIFT_WITHOUT_REOPENING_TERMINAL_ISSUE"
+  },
+  "legacy_lane_cleanup": {
+    "role": "HISTORICAL_DATA_ONLY",
+    "explicit_request_required": true,
+    "terminal_gate": false
   }
 }

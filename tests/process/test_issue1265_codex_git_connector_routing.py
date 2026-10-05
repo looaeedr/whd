@@ -11,7 +11,7 @@ def _text() -> str:
 def test_current_git_connector_guidance_is_workspace_first():
     text = _text()
     assert "WORKSPACE_DEFAULT" in text
-    assert "SHARED_ZERO_FALLBACK" in text
+    assert "SHARED_ZERO_FALLBACK" not in text
     assert "本 executor 的 repo workspace" in text
     assert "不得因本 reference 回退或等待 `/Google Drive/WHD/work/active`" in text
 

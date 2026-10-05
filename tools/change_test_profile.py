@@ -24,7 +24,7 @@ BASE_STAGES = {
 
 FULL_GATE_COMMANDS = {
     "GOVERNANCE_FULL_SUITE": ("python tools/control_plane_regression.py",),
-    "PRODUCT_FULL_REGRESSION": ("python -m pytest -q",),
+    "PRODUCT_FULL_REGRESSION": ("python tools/product_ci_regression.py",),
     "NONE": (),
 }
 
@@ -183,10 +183,10 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
         "full_gate_kind": full_gate_kind,
         "full_gate_required": full_gate_required,
         "exact_commands": list(FULL_GATE_COMMANDS[full_gate_kind]),
-        "command_owner": "tools/control_plane_regression.py" if full_gate_kind == "GOVERNANCE_FULL_SUITE" else "pytest",
+        "command_owner": "tools/control_plane_regression.py" if full_gate_kind == "GOVERNANCE_FULL_SUITE" else "tools/product_ci_regression.py" if full_gate_kind == "PRODUCT_FULL_REGRESSION" else None,
         "profile_id": "+".join([change_type, *domains, full_gate_kind]),
-        "workspace_root": "/Google Drive/WHD",
-        "workspace_unpushed_root": "/Google Drive/WHD/.unpushed",
+        "workspace_root": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+        "workspace_unpushed_root": None,
     }
 
 

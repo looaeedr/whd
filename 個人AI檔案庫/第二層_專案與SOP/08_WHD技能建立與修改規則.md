@@ -32,7 +32,7 @@ whd_doc_id: WHD-SOP-SKILL-AUTHORING
 - 普通 Skill authoring 使用 executor-local repo workspace + fresh `cleanup/2d-3d-sync` baseline；Codex 常見 `/workspace/whd`。
 - baseline `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 不需第二份 remote authorization。
 - 使用者已明確要求 exact repository-content task 時，同 invocation + 同 scope 的 tested delivery 可一次 mint `WORKSPACE_DELIVERY`；push/PR/CI/merge 不得重問相同授權。
-- 只有 fresh touched-path shared-0 drift 才切 `SHARED_ZERO_FALLBACK`；此時才套 docs `.unpushed/docs/0` / freeze / `/推推 文檔`。
+- Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 repository-content 修改先在 executor-local repo workspace + fresh cleanup/2d-3d-sync baseline 完成 author/test，再以 exact tested diff delivery。
 - AI Library 只在 runtime 有 ChatGPT surface 時作 enrichment；Codex/headless 缺 connector 固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`。
 - 依 `AGENTS.md` 跑 Preflight；changed files 已知後重新帶 `--changed-file` 驗一次。
 - 既有 Skill 修改保留可追溯 baseline snapshot。

@@ -437,7 +437,10 @@
     ],
     "same_path_future_change": "REREGISTER_AS_NEW_ZERO_MODIFICATION",
     "repository_file_delete_forbidden": true,
-    "receipt_required": true
+    "receipt_required": true,
+    "status": "HISTORICAL",
+    "activation": "NEVER_CURRENT",
+    "terminal_gate": false
   },
   "default_repository_content_flow": {
     "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",

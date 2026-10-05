@@ -8,7 +8,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## Deterministic 不等於可以旁路 root-local-first
 
-`zero diff`、strict validator、authority SHA 與 deterministic mapping 只證明 migration 本身可重複，不授權 repository write。WHD repository-content mutation 仍必須服從 Flow v2 + CURRENT root-local-first：normal route=`WORKSPACE_DEFAULT`，在 **executor-local repo workspace** + fresh `cleanup/2d-3d-sync` baseline 完成 mutation/tests/exact diff；只有 fresh touched-path drift 證明 shared overlay 較新時才切 `SHARED_ZERO_FALLBACK`。並保留 `WHD_TEST_EXECUTION_RECEIPT_V1`。remote lane 需要 content diff 時 handoff 到 workspace-capable runtime，不得要求固定 Drive root。
+Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 repository-content 修改先在 executor-local repo workspace + fresh cleanup/2d-3d-sync baseline 完成 author/test，再以 exact tested diff delivery。
 
 ## Validator 不是 authority
 

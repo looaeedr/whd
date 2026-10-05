@@ -13,7 +13,7 @@ from tools.execution_entry_contract import (
     validate_startup_evidence,
     validate_startup_transition,
 )
-from tools.work_root_gate import READ_MODE_GOOGLE_DRIVE, build_work_root_gate_evidence
+from tools.work_root_gate import READ_MODE_WORKSPACE, build_work_root_gate_evidence
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -45,9 +45,9 @@ def _fresh_request(*, invocation_identity=SENTINEL):
     )
     gate = build_work_root_gate_evidence(
         gate_payload=gate_payload,
-        read_mode=READ_MODE_GOOGLE_DRIVE,
+        read_mode=READ_MODE_WORKSPACE,
         execution_mode="INTERACTIVE",
-        root_entries=_root_entries(),
+        root_entries=_root_entries(), workspace_root="/workspace/whd",
     )
     startup = build_startup_evidence(
         purpose="Issue #1162 trusted GitHub Actions runtime provenance",

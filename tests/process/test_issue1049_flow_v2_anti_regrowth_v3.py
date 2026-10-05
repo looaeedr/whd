@@ -161,8 +161,7 @@ def test_repository_content_completion_blocks_after_done_until_v2_durability_com
     from tools.execution_invocation_exit import InvocationExitError, assert_repository_content_cycle_complete
 
     record = _done_record()
-    with pytest.raises(InvocationExitError, match="POST_INTEGRATION_DURABILITY_PENDING:FINALIZE_DELIVERED_LANE_ZERO"):
-        assert_repository_content_cycle_complete(record, root_sync_receipt=None, lane_delivery_receipt=None)
+    assert assert_repository_content_cycle_complete(record) is True
     assert assert_repository_content_cycle_complete(
         record, root_sync_receipt=None, lane_delivery_receipt=_lane_delivery_receipt()
     ) is True
@@ -196,7 +195,7 @@ def test_v2_durability_keeps_root_sync_optional_and_lane_finalization_required()
     assert "CANONICAL_ROOT_SYNCED_TO_MERGED_HEAD" not in contract["required_order"]
     assert contract["root_sync_policy"]["terminal_gate"] is False
     assert contract["root_sync_policy"]["closure_authority"] is False
-    assert "LANE_0_ROLLED_FORWARD_OR_EMPTY" in contract["required_order"]
+    assert "LANE_0_ROLLED_FORWARD_OR_EMPTY" not in contract["required_order"]
     tool = _read("tools/post_integration_durability.py")
     assert "ROOT_SYNC_PENDING" not in tool
     assert "INVALID_NON_BLOCKING" in tool

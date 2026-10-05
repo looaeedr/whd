@@ -373,10 +373,10 @@ def _lane_delivery_receipt_for_done():
     )
 
 
-def test_repository_content_done_cannot_return_before_lane_cleanup_evidence():
+def test_workspace_done_returns_without_retired_lane_cleanup_evidence():
     result = classify_invocation_exit(_repository_content_done_record(), invocation_identity=INV, now=NOW)
-    assert result.decision == "CONTINUE_POST_INTEGRATION_DURABILITY"
-    assert result.may_return is False
+    assert result.decision == "TASK_TERMINAL"
+    assert result.may_return is True
 
 
 def test_repository_content_done_returns_after_lane_finalization_without_root_sync():

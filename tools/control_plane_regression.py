@@ -97,7 +97,18 @@ FLOW_V2_PYTEST_PATHS = tuple(
         for path in (ROOT / "tests/process").glob("test_flow_v2_*.py")
     )
 )
-PYTEST_PATHS = tuple(dict.fromkeys((*FLOW_V2_PYTEST_PATHS, *STATIC_PYTEST_PATHS)))
+PRODUCT_PROCESS_TESTS = frozenset({
+    "test_issue423_phase5_t2_assembly_panel.py", "test_issue424_phase5_t3_box_piece_panel.py",
+    "test_issue425_phase5_t4_final_scene_visibility.py", "test_issue426_phase5_t5_bridge_compression.py",
+})
+CURRENT_PROCESS_PATHS = tuple(sorted(
+    path.relative_to(ROOT).as_posix()
+    for path in (ROOT / "tests/process").glob("test_*.py")
+    if path.name not in PRODUCT_PROCESS_TESTS
+))
+PYTEST_PATHS = tuple(dict.fromkeys((*CURRENT_PROCESS_PATHS, *STATIC_PYTEST_PATHS,
+    "tests/test_root_entry_router_hard_gate.py", "tests/governance",
+    "tests/test_writing_skill_contract.py")))
 
 
 def run() -> int:

@@ -17,35 +17,9 @@ ROOT_ENTRIES = [".git", ".agents", ".github", "AGENTS.md", "tools", "tests", "ae
 
 
 def gate():
-    return {
-        "schema": GATE_SCHEMA,
-        "status": "CURRENT",
-        "default_work_root": {
-            "provider": "executor_local_workspace",
-            "path_policy": DEFAULT_WORKSPACE_POLICY,
-            "production_branch": "cleanup/2d-3d-sync",
-            "authority": False,
-        },
-        "required_root_entries": ROOT_ENTRIES,
-        "unpushed": {
-            "root": UNPUSHED_ROOT,
-            "mode": "CONDITIONAL_FALLBACK_ONLY",
-            "ordinary_startup_required": False,
-        },
-        "canonical_drive_overlay": {
-            "library_path": CANONICAL_DRIVE_ROOT,
-            "drive_folder_id": DEFAULT_DRIVE_FOLDER_ID,
-            "ordinary_startup_required": False,
-        },
-        "root_identity_recovery": {
-            "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
-            "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
-            "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
-            "terminal_gate": False,
-            "closure_authority": False,
-            "purpose": "OPTIONAL_WORKSPACE_BASELINE_CATCHUP",
-        },
-    }
+    import json
+    from pathlib import Path
+    return json.loads((Path(__file__).resolve().parents[2] / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text())
 
 
 def test_executor_local_workspace_identity_is_not_fixed_to_codex_path():
@@ -95,7 +69,7 @@ def test_legacy_control_root_layout_is_fail_closed():
         verify_root_entries(ROOT_ENTRIES + ["source"])
 
 
-def test_shared_zero_paths_remain_available_as_conditional_fallback():
+def test_historical_shared_zero_paths_have_no_current_routing_authority():
     assert unpushed_zero_path("body") == "/Google Drive/WHD/.unpushed/body/0"
     assert unpushed_zero_path("docs") == "/Google Drive/WHD/.unpushed/docs/0"
     assert worker_candidate_path(lane="docs", worker="work0", issue=1200).startswith(

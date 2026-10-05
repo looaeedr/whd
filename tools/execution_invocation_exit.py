@@ -128,13 +128,13 @@ def assert_durable_terminal_exit(record: ExecutionRecord) -> bool:
 def assert_repository_content_cycle_complete(
     record: ExecutionRecord,
     *,
-    root_sync_receipt: object | None,
-    lane_delivery_receipt: object,
+    root_sync_receipt: object | None = None,
+    lane_delivery_receipt: object | None = None,
 ) -> bool:
-    """Fail closed until DONE is followed by required lane finalization.
+    """Require trusted DONE/closure evidence for ordinary workspace delivery.
 
     Root sync/recovery is optional maintenance and is non-blocking for terminal
-    return. The current full-repo/shared-unpushed workflow has no Current Source
+    return. The current workspace workflow has no Current Source
     snapshot/manifest or per-Issue workspace archival completion authority.
     """
     assert_durable_terminal_exit(record)
@@ -315,13 +315,6 @@ def classify_invocation_exit(
     if record.state == "DONE":
         assert_durable_terminal_exit(record)
         if record.mutation_scope is not None:
-            if lane_delivery_receipt is None:
-                return _decision(
-                    record,
-                    "CONTINUE_POST_INTEGRATION_DURABILITY",
-                    may_return=False,
-                    requires_yield=False,
-                )
             assert_repository_content_cycle_complete(
                 record,
                 root_sync_receipt=root_sync_receipt,

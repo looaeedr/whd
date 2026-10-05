@@ -51,10 +51,10 @@ machine communication owner=`tools/execution_entry_contract.py::build_startup_co
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
 
-對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content router=`tools/root_local_first_gate.py::select_repository_content_route`; shared-unpushed machine只在 fallback active 時參與； Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
+對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content router=`tools/root_local_first_gate.py::select_repository_content_route`; shared-unpushed machine僅可解析歷史資料，不參與 CURRENT 路由； Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
 
 
-外層普通 route只報 `FRESH_READ → WORKSPACE_MUTATE_TEST → EXACT_DIFF → DELIVERY_BRANCH_PR → POST_PUSH_CI → MERGE_FINALIZE`；fallback 才加 `LANE_0 / MERGE_0 / /推推`。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
+外層普通 route只報 `FRESH_READ → WORKSPACE_MUTATE_TEST → EXACT_DIFF → DELIVERY_BRANCH_PR → POST_PUSH_CI → MERGE_FINALIZE`；不得追加已退役的 shared-zero 步驟。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
 
 
 
@@ -188,17 +188,7 @@ Flow v2 `mutation_scope` / `RESERVE_PATHS` 是 **delivery-only coordination**，
 - Drive/shared-zero 不再有 CURRENT delivery reservation route；歷史 lane evidence 只能作讀取/稽核資料。
 
 
-fallback 固定：
-
-
-1. selected lane manifest frozen；
-2. fresh-read selected production target，預設 `cleanup/2d-3d-sync`；
-3. 取得 delivery reservation，只綁本次 manifest exact paths；
-4. `PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST`；
-5. 才允許 fallback delivery `START_BRANCH / APPLY_COMMIT`；
-6. reservation conflict 只阻擋 delivery，不得抹掉既有 shared-0 worker成果；
-7. conflict 解除後 fresh target + revalidate manifest，再送 delivery。
-
+歷史 lane evidence 不得啟動另一條 CURRENT delivery path。
 
 `RESERVE_PATHS / RELEASE_PATHS` 是 delivery coordination，不算 engineering progress；WORKSPACE_DEFAULT 不得在 tests GREEN + exact diff 以前 reservation。
 
@@ -300,7 +290,7 @@ QA / CI GREEN 只是驗證 checkpoint，**不是 physical return authority，也
 4. `YIELD` trusted transaction 必須先通過 invocation-exit classifier；因此 GREEN→MERGE 或 MERGE→FINALIZE 中間的 YIELD request 必須 fail closed。
 5. trusted MERGE executor 已負責把 `MERGE → FINALIZE` 在同一 workflow 內 drain；FINALIZE 必須 close Issue + fresh readback + RELEASE reservation/lease/owner 後才可成為 `DONE`。
 6. 唯一可中斷 terminal tail 的是 fresh machine evidence 形成的 genuine blocker；不得把 host boundary、聊天回合結束、CI GREEN 或 PR merged 當 blocker。
-7. `DONE` 是 execution terminal，不是 repository-content physical-cycle terminal。只要本票有 root workspace/diff，`FINALIZE → DONE` 後立刻交給 `assert_repository_content_cycle_complete`；`CONSUME_SOURCE_EXPORT → ARCHIVE_WORKSPACE_TO_DONE → DURABLE_CLEANUP_COMPLETE` 尚未完成時，不得對使用者宣稱整個施工 cycle 已完成。
+7. `DONE` 加上 trusted merge/Issue readback 就是 workspace terminal；`assert_repository_content_cycle_complete(record)` 驗同一 durable tuple。不得再要求 source export、workspace archive 或 shared-zero lane receipt。
 
 
 <!-- TERMINAL_GREEN_DRAIN_HARD_GATE_V1 -->

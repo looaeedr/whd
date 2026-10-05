@@ -502,7 +502,7 @@ def test_flow_skill_marks_admission_as_session_level_and_atomic():
     text = (
         ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md"
     ).read_text(encoding="utf-8")
-    assert "INVOCATION_ADMISSION_SESSION_V2" in text
+    assert "INVOCATION_ADMISSION_SESSION_V3" in text
     assert "invocation/session-level gate" in text
-    assert "delivery 前才要求 exact manifest reservation" in text
+    assert "tests GREEN + exact diff 後才可做 delivery reservation" in text
     assert "SCHEDULER_CONTROL_ONLY_AUTO_FINALIZE_V1" in text
