@@ -685,6 +685,25 @@ START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA �
 - genuine BLOCKED、active remote wait 或外部平台硬中斷仍依既有 fail-closed/recovery contract；聊天室 progress/status 不是停止理由。
 
 
+### MERGED_DELIVERY_SIBLING_DRAIN_V1 — 同一 PR 的 closing siblings 不得留 OPEN 尾巴
+
+當 FINALIZE 的 exact delivery PR body 同時包含多個 exact closing keyword（例如 `Closes #1197 / #1202 / #1203`），current Issue `DONE / RELEASED` **不是 invocation exit authority**，只要同一 PR 仍有 OPEN sibling 且該 sibling 沒有 native ExecutionRecord。
+
+固定規則：
+1. normal MERGE 與 `RECOVER_POST_DELIVERY` 都必須把 exact delivery `pr_number` 保留到 structured FINALIZE continuation。
+2. trusted FINALIZE close/readback current Issue 後，必須 fresh-read exact merged PR，驗 base branch + `merge_commit_sha == closure.merged_sha`，再依 PR body closing order尋找下一張 OPEN sibling。
+3. sibling 已有 native ExecutionRecord 時不得覆寫或建立第二套 authority；只有 **OPEN + missing record** 才可建立 chain `RECOVER_POST_DELIVERY`。
+4. current DONE record 以 `chain.next_issue + chain.next_action=RECOVER_POST_DELIVERY` durable handoff；monitor 此時固定保持 `PROGRESS / LIVE`，不得先投影 `EXIT`。
+5. 同一 trusted invocation 必須立即 create-only recovery sibling，沿既有 post-delivery recovery proof驗 merged PR / required checks / ancestry，然後 FINALIZE；若下一張仍有 sibling，遞迴 drain。
+6. 只有 exact delivery PR 的全部 OPEN missing-record siblings 都已 terminal，最後一張 DONE 才可投影 `EXIT / ENDED`。
+7. 不得因 sibling drain 重做 implementation / QA，也不得把普通 open Issue 擴張成 authority；scope 僅限 **同一 exact merged PR 的 closing-keyword siblings**。
+8. fresh PR identity、merge anchor、required checks、Issue identity 或 ancestry 任何一項不能證明時固定 fail-closed；不得猜測 handoff。
+
+Machine owner=`tools/control_transaction_production_executor.py`；durable handoff owner=`ExecutionRecord.chain`；missing-record sibling recovery沿用 `MISSING_EXECUTION_RECORD_POST_DELIVERY_RECOVERY_V1`。
+
+<!-- MERGED_DELIVERY_SIBLING_DRAIN_V1 -->
+
+
 ### TERMINAL_TAIL_OWNING_ISSUE_STICKINESS_HARD_GATE_V1
 
 
