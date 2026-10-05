@@ -50,7 +50,12 @@ def test_root_shared_unpushed_contract_is_current_canonical_projection() -> None
 def test_work_root_v2_points_to_shared_unpushed_entry_gate() -> None:
     contract = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json")
     assert contract["status"] == "CURRENT"
-    assert contract["required_sequence"][-2] == "ROOT_SHARED_UNPUSHED_GATE_READ"
+    assert contract["required_sequence"] == [
+        "WORKSPACE_ROOT_RESOLVED",
+        "WORKSPACE_GIT_IDENTITY_VERIFIED",
+        "PRODUCTION_BASELINE_CURRENT",
+        "REQUESTED_OPERATION",
+    ]
     assert contract["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
     assert contract["next_gate"]["repository_contract"] == ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
     assert not (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").exists()
@@ -163,10 +168,10 @@ def test_repository_content_completion_blocks_after_done_until_v2_durability_com
     record = _done_record()
     assert assert_repository_content_cycle_complete(record) is True
     assert assert_repository_content_cycle_complete(
-        record, root_sync_receipt=None, lane_delivery_receipt=_lane_delivery_receipt()
+        record, root_sync_receipt=None, lane_delivery_receipt=None
     ) is True
     assert assert_repository_content_cycle_complete(
-        record, root_sync_receipt=_root_sync_receipt(), lane_delivery_receipt=_lane_delivery_receipt()
+        record, root_sync_receipt=_root_sync_receipt(), lane_delivery_receipt=None
     ) is True
 
 
@@ -199,6 +204,7 @@ def test_v2_durability_keeps_root_sync_optional_and_lane_finalization_required()
     tool = _read("tools/post_integration_durability.py")
     assert "ROOT_SYNC_PENDING" not in tool
     assert "INVALID_NON_BLOCKING" in tool
-    assert "FINALIZE_DELIVERED_LANE_ZERO" in tool
+    assert "FINALIZE_DELIVERED_LANE_ZERO" not in tool
+    assert "HISTORICAL_IGNORED" in tool
     assert "/work/active" not in tool
     assert "/source/snapshots" not in tool
