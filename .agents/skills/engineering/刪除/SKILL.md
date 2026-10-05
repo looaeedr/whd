@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 ## 0. Authority 與遠端邊界
 
 1. 使用者本輪明確指示最高。
-2. WHD repository-content 工作先遵守 `root-local-first` / shared-0；未有 `/推推` 或其他明確遠端授權時，不得為了刪檔去連 GitHub 或遠端本機。
+2. WHD repository-content 工作先遵守 CURRENT `root-local-first` router：普通 tracked-path 刪除走 `WORKSPACE_DEFAULT` executor-local workspace；只有 fresh touched-path drift 證明需要 shared overlay 時才切 `SHARED_ZERO_FALLBACK`。同一 exact user-authorized task 可沿 `WORKSPACE_DELIVERY` 完成 delivery/readback，不得強迫先有 `/推推` 或 Drive mount。
 3. Google Drive / Library / connector 只是 transport；transport 顯示「不支援 delete」時，不得把 move/archive 冒充 delete。
 4. 任何 destructive action 前先 fresh-read exact target identity：canonical path、file/folder kind、provider id、parent、必要時 hash/size/modified time。
 
@@ -67,14 +67,14 @@ TARGET_PATH_RESOLVED
 
 若刪的是正式 repository path，而不是 staging/archive：
 
-1. 先在 canonical `/Google Drive/WHD` root 確認 path；
-2. 依 `root-local-first` 分 docs/body lane；
-3. shared `0` 以 delete marker 表達本次未推送刪除；
-4. root/test/shared-0 完成後 freeze exact delete path；
-5. 只有使用者下 `/推推 文檔|主體` 才開 GitHub delivery；
-6. merge/readback 後才 finalize 該 delete marker。
+1. 在 executor-local repo workspace 以 fresh `cleanup/2d-3d-sync` baseline 確認 exact tracked path / identity。
+2. 在 workspace 建立 exact delete diff，執行適用 tests / validators，並 fresh-read target/touched-path drift。
+3. 普通 route=`WORKSPACE_DEFAULT`：tested exact delete diff → delivery branch → push/PR/CI → merge/readback → FINALIZE。
+4. 使用者已明確要求 exact repository-content delete task 時，可沿同 scope `WORKSPACE_DELIVERY` 完成 remote QA 與 owning-Issue finalization，不得到 push/PR/close 再重問相同授權。
+5. 只有 fresh evidence 證明 touched path 有較新的 shared `.unpushed/{docs|body}/0` drift 時才切 `SHARED_ZERO_FALLBACK`；此時才建立 delete marker、merge latest 0、post-merge test/freeze並由 `/推推` fallback delivery。
+6. production target仍禁止直接 patch；target advancement只走正常 PR/merge/readback。
 
-禁止直接在 GitHub target branch 刪正式檔案來繞過 root/shared-0。
+**Missing Drive mount / missing shared-0 不是普通 tracked-path刪除的 blocker。** 不得因歷史 shared-0 流程把 Codex 拉回固定 `/Google Drive/WHD`。
 
 ## 5. ACTIVE_ZERO_PHYSICAL_CLEANUP_HARD_GATE_V1
 
