@@ -21,7 +21,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_NON_PROPAGATION_BRIDGE_V1
 
-派工/READY/ACQUIRE/owning Issue 語意不會產生 GitHub network authority。interactive/default 要讀寫 GitHub Issue、`coord/execution-v2` 或其他 remote surface 前，必須另有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 並通過 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`；缺 authority 時不得因 dispatch/Flow v2 需要而自動連線。
+派工/READY/ACQUIRE/owning Issue 語意本身不會憑空產生 GitHub network authority；但**使用者已明確要求執行 exact GitHub Issue/ticket** 時，該 user instruction 就是 `USER_EXPLICIT_REMOTE` 的來源，可由 machine 一次 mint 本 task 所需的 exact `ISSUE_READ / ISSUE_COMMENT / READBACK` 等 actions，並在同 invocation/task scope 內沿用；不得再向使用者重問同一授權。`coord/execution-v2` 的 baseline branch/read metadata仍服從 workspace baseline read policy。只有 scope 擴張、不同 repository/Issue 或額外 remote action 才需新的 explicit authority。
 
 ## Dispatch
 open Issue、dependency-unblocked、空工作槽都不等於 execution authority。新工作必須由 `tools/execution_dispatch_ingress.py` 以明確 authority建立 READY record，再由 ACQUIRE transaction取得 owner/lease。互動式新工作未指定 slot 時仍以 `/工作0` / `worker.slot.0` 為既有預設；建立 READY 前若 fresh-read 發現 slot0 已 BOUND，才使用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往 `1→2→3` overflow；全滿即 fail closed，不得搶槽。
