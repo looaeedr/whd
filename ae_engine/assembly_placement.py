@@ -128,6 +128,24 @@ def _outer_door_plane(snapshot: Mapping[str, object]) -> float:
     return float(contract["outer_door_plane"])
 
 
+def _base_plate_center_plane(snapshot: Mapping[str, object]) -> float:
+    """Return the Base Plate folded-envelope center on the rear inner datum.
+
+    Base Plate is a vertical mounting tray. Its flat mounting face mates to the
+    inner rear BoxBody skin and its edge bends project toward the cabinet front.
+    Assembly geometry recenters the folded local Z envelope before placement, so
+    the world offset is the rear-inner plane plus half the bend depth.
+    """
+    data = dict(snapshot or {})
+    depth = float(data.get("d", 0.0))
+    thickness = float(data.get("t", 0.0))
+    bend = float(data.get("base_plate_bend", 20.0))
+    if depth <= 0.0 or thickness <= 0.0 or bend < 0.0:
+        raise ValueError("Base Plate placement requires valid D/T/bend")
+    rear_inner_plane = -depth / 2.0 + thickness
+    return rear_inner_plane + bend / 2.0
+
+
 def resolve_outer_door_placement(snapshot: Mapping[str, object], stable_id: str) -> AssemblyPlacement:
     """Resolve a formal Door cell from topology plus the family front datum."""
     columns, cell = _door_cell_from_part_key(snapshot, stable_id)
@@ -152,13 +170,13 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
 
     A topology-derived Base Plate is centered on its owning Door cell. The
     legacy single base_plate is the same contract with one whole-cabinet owning
-    cell, so its semantic center is the cabinet origin. Both keep the existing
-    vertical local orientation and Z plane; neither may reintroduce the
-    historical whole-box -H/2 renderer shift.
+    cell. Both keep vertical local orientation, while the folded mounting tray
+    mates to the inner rear BoxBody plane instead of floating at cabinet Z=0.
+    Neither may reintroduce the historical whole-box -H/2 renderer shift.
     """
     stable_id = str(stable_id or "").strip()
     if stable_id == "base_plate":
-        position = (0.0, 0.0, 0.0)
+        position = (0.0, 0.0, _base_plate_center_plane(snapshot))
         return AssemblyPlacement(
             stable_id=stable_id,
             parent_assembly_node="box_body",
@@ -173,7 +191,7 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
 
     columns, cell = _base_plate_cell_from_part_key(snapshot, stable_id)
     x, y = _door_cell_center(snapshot, cell, columns)
-    position = (float(x), float(y), 0.0)
+    position = (float(x), float(y), _base_plate_center_plane(snapshot))
     return AssemblyPlacement(
         stable_id=stable_id,
         parent_assembly_node="box_body",
