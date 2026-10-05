@@ -74,64 +74,124 @@ def open_receiving_layer_preview(
     layer_index: int,
     connection_count: int,
     brand: str,
-    on_confirm: Callable[[int], object],
+    connection_meshes,
+    lock_circles=(),
 ) -> bool:
-    """Open one layer/connection selection dialog without owning product state."""
+    """Render one layer as an actual 3D multi-connection preview.
+
+    The incoming meshes are already-resolved current cabinet geometry, so CUTTING
+    openings remain part of the preview. ``lock_circles`` are canonical Receiving
+    Joint lock holes projected on each mating plane; this view never owns their
+    coordinates or mutates the main renderer.
+    """
     index = int(layer_index)
     count = max(1, int(connection_count))
     label = str(brand)
+    meshes = tuple(tuple(mesh or ()) for mesh in tuple(connection_meshes or ()))
+    if len(meshes) != count or any(not mesh for mesh in meshes):
+        raise ValueError("Receiving preview requires one non-empty 3D mesh per connection")
+
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.figure import Figure
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
+    from phase6_final_scene_projection import (
+        _phase6_fitted_limits_from_vertices,
+        _phase6_mesh_feature_segments,
+    )
 
     win = tk.Toplevel(parent)
-    win.title(f"第{index + 1}層預覽")
+    win.title(f"第{index + 1}層 3D 預覽")
     win.transient(parent)
+    win.geometry("1000x700")
     try:
         win.grab_set()
     except Exception:
         pass
 
-    body = ttk.Frame(win, padding=12)
+    body = ttk.Frame(win, padding=10)
     body.pack(fill=tk.BOTH, expand=True)
     ttk.Label(
         body, text=f"第{index + 1}層｜{count}連｜開關：{label}"
-    ).grid(row=0, column=0, columnspan=min(count, 5), sticky="w", pady=(0, 10))
+    ).pack(anchor=tk.W, pady=(0, 6))
 
-    selected = tk.IntVar(master=win, value=0)
-    for connection_index in range(count):
-        ttk.Radiobutton(
-            body,
-            text=f"第{connection_index + 1}連",
-            variable=selected,
-            value=connection_index + 1,
-        ).grid(
-            row=1 + connection_index // 5,
-            column=connection_index % 5,
-            padx=4,
-            pady=4,
-            sticky="ew",
+    figure = Figure(figsize=(9.6, 6.0), dpi=100)
+    ax = figure.add_subplot(111, projection="3d")
+    all_triangles = []
+    feature_segments = 0
+    for mesh in meshes:
+        rows = tuple(mesh)
+        all_triangles.extend(rows)
+        ax.add_collection3d(
+            Poly3DCollection(
+                rows,
+                alpha=0.72,
+                facecolor="#3b82f6",
+                edgecolor="none",
+                linewidths=0.0,
+            )
+        )
+        segments = _phase6_mesh_feature_segments(rows)
+        feature_segments += len(segments)
+        if segments:
+            ax.add_collection3d(
+                Line3DCollection(
+                    segments,
+                    colors="#dbeafe",
+                    linewidths=0.9,
+                    alpha=0.95,
+                )
+            )
+
+    import math
+    lock_rows = tuple(lock_circles or ())
+    for row in lock_rows:
+        x = float(row["x"])
+        y = float(row["y"])
+        z = float(row["z"])
+        radius = float(row["diameter"]) / 2.0
+        points = tuple(
+            (
+                x,
+                y + radius * math.cos(2.0 * math.pi * step / 48.0),
+                z + radius * math.sin(2.0 * math.pi * step / 48.0),
+            )
+            for step in range(49)
+        )
+        ax.plot(
+            [point[0] for point in points],
+            [point[1] for point in points],
+            [point[2] for point in points],
+            linewidth=2.0,
         )
 
+    vertices = [point for tri in all_triangles for point in tri]
+    xlim, ylim, zlim = _phase6_fitted_limits_from_vertices(vertices, padding=0.04)
+    ax.set_xlim3d(*xlim)
+    ax.set_ylim3d(*ylim)
+    ax.set_zlim3d(*zlim)
+    spans = [max(1e-9, lim[1] - lim[0]) for lim in (xlim, ylim, zlim)]
+    try:
+        ax.set_box_aspect(spans, zoom=1.03)
+    except TypeError:
+        ax.set_box_aspect(spans)
+    ax.view_init(elev=22.0, azim=-56.0)
+    ax.set_axis_off()
+
+    canvas = FigureCanvasTkAgg(figure, master=body)
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+    canvas.draw_idle()
+
     actions = ttk.Frame(body)
-    actions.grid(
-        row=2 + (count - 1) // 5,
-        column=0,
-        columnspan=min(count, 5),
-        sticky="e",
-        pady=(10, 0),
-    )
-    ttk.Button(actions, text="取消", command=win.destroy).pack(side=tk.LEFT, padx=(0, 6))
+    actions.pack(fill=tk.X, pady=(6, 0))
+    ttk.Button(actions, text="關閉", command=win.destroy).pack(side=tk.RIGHT)
 
-    def confirm():
-        number = int(selected.get())
-        if number <= 0:
-            from tkinter import messagebox
-            messagebox.showinfo("請選擇", "請先選擇一連。", parent=win)
-            return
-        if on_confirm(number - 1):
-            win.destroy()
-
-    ttk.Button(actions, text="確定", command=confirm).pack(side=tk.LEFT)
+    # Exact GUI acceptance/readback metadata. These are presentation facts only.
+    win._phase6_receiving_preview_canvas = canvas
+    win._phase6_receiving_preview_connection_count = count
+    win._phase6_receiving_preview_mesh_count = len(meshes)
+    win._phase6_receiving_preview_lock_circle_count = len(lock_rows)
+    win._phase6_receiving_preview_feature_segment_count = feature_segments
     return True
-
 
 def refresh_receiving_layer_rows(
     controls: ReceivingSetBayControls,
