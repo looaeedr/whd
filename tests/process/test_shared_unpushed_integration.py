@@ -42,15 +42,19 @@ def test_historical_lane_evidence_parser_is_explicit_and_read_only():
     assert parsed == evidence
 
 
-def test_historical_parser_does_not_expose_current_routing_builder():
+def test_historical_lane_parser_is_separate_from_current_exact_delivery_lock():
     assert callable(legacy.historical_validate_lane_evidence)
     assert legacy.RETIRED_ERROR == "SHARED_ZERO_ROUTING_RETIRED_USE_WORKSPACE_DEFAULT"
-    with pytest.raises(legacy.UnpushedIntegrationError, match="SHARED_ZERO_ROUTING_RETIRED"):
-        legacy.build_delivery_fileset_lock(
-            lane="docs",
-            generation=1,
-            manifest_digest="a" * 64,
-            source_zero_identity="old",
-            invocation_identity="old",
-            write_hashes={"AGENTS.md": "b" * 64},
-        )
+
+    lock = legacy.build_delivery_fileset_lock(
+        lane="docs",
+        generation=1,
+        manifest_digest="a" * 64,
+        source_zero_identity="historical-provenance-only",
+        invocation_identity="workspace-delivery",
+        write_hashes={"AGENTS.md": "b" * 64},
+        target_base_hashes={"AGENTS.md": "c" * 64},
+    )
+    assert lock["scope_rule"] == "EXACT_LOCK_EQUALITY"
+    assert lock["locked_paths"] == ["AGENTS.md"]
+
