@@ -27,7 +27,7 @@ READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
 - claim / Flow v2 discovery；
 - 任何用聊天記憶、舊摘要或上一 invocation evidence 代替 fresh entry read 的行為。
 
-若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，回到 `/Google Drive/WHD` canonical entry 從兩個 fresh read 重新開始；不得因已經查到資料就沿錯路續做。
+若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，回到**本 executor 的 repo workspace canonical entry** 從兩個 fresh read 重新開始；Codex 通常是 `/workspace/whd`，不得因這個 recovery 去尋找或等待 `/Google Drive/WHD`。
 
 machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / validate_entry_router_evidence / assert_entry_router_action_allowed`。
 
@@ -56,7 +56,11 @@ machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / val
 為了把 executor workspace 對齊 production baseline，普通 content work 可直接做窄化 GitHub baseline：
 `READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ`。
 
-這些 read-only baseline actions 不需要額外 `/推推` authority。Git write 仍受限：
+這些 read-only baseline actions 不需要額外 `/推推` authority，也不得因缺少 chat/AI Library/Drive capability回 `REMOTE_CONNECTION_DENIED`。
+
+對 Codex / executor-local workspace，若使用者已明確要求本次 exact repository-content task，該 user authorization 可在 tested exact diff 準備完成時 mint 一次 `WHD_REMOTE_CONNECTION_AUTHORITY_V1(kind=WORKSPACE_DELIVERY)`，供**同 invocation + 同 repository + 同 task scope** 的 delivery branch / push / PR / CI / merge / readback 使用；不得到 push/PR 階段再要求使用者重複同一授權。scope 擴張、換 repository 或要求額外 remote action 才需新 authorization。
+
+Git write 仍受限：
 - 禁止 direct push `cleanup/2d-3d-sync`；
 - 修改與測試先在 executor workspace；
 - 測試 GREEN + exact diff 後，只能建立 delivery branch、push、PR、跑 required checks；
