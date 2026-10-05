@@ -16,9 +16,50 @@ PREFLIGHT_EVIDENCE_SCHEMA = "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1"
 REMOTE_PHASE6_RESULT_SCHEMA = "WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1"
 SCHEDULER_PREFLIGHT_REBIND_SCHEMA = "WHD_SCHEDULER_PHASE6_PREFLIGHT_REBIND_V1"
 TRANSITION_SCHEMA = "WHD_EXECUTION_STARTUP_TRANSITION_V1"
+STARTUP_COMMUNICATION_SCHEMA = "WHD_EXECUTION_STARTUP_COMMUNICATION_V1"
+INTERACTIVE_CHAT_SURFACES = frozenset({"CHATGPT", "CHAT", "INTERACTIVE_CHAT"})
+HEADLESS_EXECUTION_SURFACES = frozenset({"CODEX", "CODEX_CLI", "HEADLESS", "CI", "SCHEDULER"})
+HEADLESS_COMMUNICATION_CHANNELS = frozenset({"STDOUT", "TASK_EVENT", "LOG"})
 EVIDENCE_MAX_AGE_SECONDS = 300
 SCHEDULER_PREFLIGHT_RECEIPT_MAX_AGE_SECONDS = 2400
 _FUTURE_SKEW_SECONDS = 30
+
+
+def build_startup_communication_evidence(
+    *,
+    runtime_surface: str,
+    channel: str,
+    declaration: str,
+    skills: Iterable[str] = (),
+) -> dict[str, object]:
+    """Record startup communication without requiring a chat UI on headless runtimes."""
+    surface = re.sub(r"[^A-Z0-9]+", "_", str(runtime_surface or "").strip().upper()).strip("_")
+    normalized_channel = re.sub(r"[^A-Z0-9]+", "_", str(channel or "").strip().upper()).strip("_")
+    declaration_text = str(declaration or "").strip()
+    if not surface:
+        raise ValueError("runtime_surface must be nonblank")
+    if not normalized_channel:
+        raise ValueError("startup communication channel must be nonblank")
+    if not declaration_text.startswith(SCHEMA):
+        raise ValueError("startup communication requires canonical declaration")
+    if surface in INTERACTIVE_CHAT_SURFACES:
+        if normalized_channel != "USER_VISIBLE_CHAT":
+            raise ValueError("interactive chat startup communication must be user-visible")
+    elif surface in HEADLESS_EXECUTION_SURFACES:
+        if normalized_channel not in HEADLESS_COMMUNICATION_CHANNELS:
+            raise ValueError("headless startup communication must use STDOUT/TASK_EVENT/LOG")
+    else:
+        raise ValueError(f"unsupported runtime_surface: {surface}")
+    skill_names = tuple(dict.fromkeys(str(item).strip() for item in skills if str(item).strip()))
+    return {
+        "schema": STARTUP_COMMUNICATION_SCHEMA,
+        "runtime_surface": surface,
+        "channel": normalized_channel,
+        "user_visible": normalized_channel == "USER_VISIBLE_CHAT",
+        "machine_visible": True,
+        "declaration_recorded": True,
+        "skills": list(skill_names),
+    }
 
 
 def build_startup_declaration(*, purpose: str, repository: str = DEFAULT_REPOSITORY) -> str:
