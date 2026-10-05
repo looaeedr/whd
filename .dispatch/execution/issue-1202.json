@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "1ef4e7e814e6888844b7c335a5ff2dff4fd36ec4",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
+  "issue": 1202,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-05T05:10:58Z",
+    "invocation_identity": "codex:post-delivery-1202-1203:d4cf37f0-b7d2-485f-84d3-7363c24ef1be",
+    "token": "recovery:1202:local"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1205,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1202,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "open",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "1ef4e7e814e6888844b7c335a5ff2dff4fd36ec4",
+      "observed_at": "2026-10-05T04:55:58Z",
+      "observed_target_sha": "f606fa5b228baa8e1994438fdbcdccee86ee4840",
+      "pr_head_ref": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
+      "pr_head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
+      "pr_number": 1205,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": "worker.slot.0",
+  "source_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
+  "source_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "f606fa5b228baa8e1994438fdbcdccee86ee4840",
+  "transaction": null,
+  "updated_at": "2026-10-05T04:55:58Z",
+  "version": 2,
+  "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
+}
