@@ -707,7 +707,12 @@ class Phase6FinalSceneRenderer:
                                 )
                                 ax.add_collection3d(poly)
                                 piece_role = str(getattr(piece, "role", "") or "").strip()
-                                if piece_role != "back":
+                                if piece_role == "back":
+                                    # Rear panel is a flat operator reference face.  Draw only
+                                    # real physical skin edges (including CUTTING hole rims);
+                                    # do not restore BEND/joint/wireframe overlays.
+                                    self._add_mesh_feature_lines(piece_placed, edge)
+                                else:
                                     self._add_mesh_boundary_lines(piece_placed, edge)
                                     self._draw_joint_marking_world_rows(piece.render_data)
                                 triangles.extend(piece_placed)
@@ -877,7 +882,9 @@ class Phase6FinalSceneRenderer:
                     edgecolor="none", linewidths=0.0,
                 )
                 self.renderer.ax3d.add_collection3d(poly)
-                if str(getattr(_piece, "role", "") or "").strip() != "back":
+                if str(getattr(_piece, "role", "") or "").strip() == "back":
+                    self._add_mesh_feature_lines(piece_tris, edge)
+                else:
                     self._add_mesh_boundary_lines(piece_tris, edge)
             self._draw_box_body_structure_bends(
                 render_data, thickness=request.thickness

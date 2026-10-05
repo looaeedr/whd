@@ -363,8 +363,14 @@ class Phase6SettingsPanel:
         canvas = self.settings_scroll_canvas
         if canvas is None:
             return "break"
-        delta = int(getattr(event, "delta", 0) or 0)
-        number = int(getattr(event, "num", 0) or 0)
+        try:
+            delta = int(getattr(event, "delta", 0) or 0)
+        except (TypeError, ValueError):
+            delta = 0
+        try:
+            number = int(getattr(event, "num", 0) or 0)
+        except (TypeError, ValueError):
+            number = 0
         if number == 4:
             steps = -1
         elif number == 5:
