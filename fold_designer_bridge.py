@@ -98,6 +98,7 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from phase6_workspace_shell import (
+    hide_original_visual_controls as _workspace_shell_hide_original_visual_controls,
     mount_shared_content as _workspace_shell_mount_shared_content,
 )
 from gui_modules.application.fold_designer_adapter import (
@@ -1927,21 +1928,6 @@ def _phase6_keyboard_fullscreen(self, _event=None):
 
 
 
-def _phase6_hide_original_visual_controls(root_widget):
-    for child in root_widget.winfo_children():
-        try:
-            text = str(child.cget("text"))
-        except Exception:
-            text = ""
-        if "3D 視覺調整" in text:
-            manager = child.winfo_manager()
-            if manager == "pack":
-                child.pack_forget()
-            elif manager == "grid":
-                child.grid_remove()
-            return True
-    return False
-
 
 def _phase6_toggle_fullscreen(self):
     return _phase6_composition(self).toggle_fullscreen()
@@ -2287,7 +2273,7 @@ def _phase6_finish_legacy_host_compatibility(self, snapshot):
     self.preview_3d_enabled = True
     _hide_original_structure_mode_controls(self.left)
     _hide_original_global_dimension_controls(self.left)
-    _phase6_hide_original_visual_controls(self.left)
+    _workspace_shell_hide_original_visual_controls(self.left)
     self._phase6_parameters_unlocked = False
     self._phase6_3d_display_mode = "assembly"
     self._phase6_fullscreen = False
