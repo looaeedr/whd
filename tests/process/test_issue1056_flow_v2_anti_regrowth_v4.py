@@ -67,7 +67,7 @@ def test_work_root_next_gate_explicitly_covers_remote_repository_content() -> No
     assert payload["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
     root = _json(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
     for mode in ("SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"):
-        assert root["execution_modes"][mode].endswith("ROOT_WORKSPACE_HANDOFF")
+        assert root["execution_modes"][mode] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
     assert root["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
 
 

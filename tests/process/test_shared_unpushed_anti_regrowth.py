@@ -197,3 +197,28 @@ def test_workspace_canonical_sync_is_conditional_and_workspace_path_is_executor_
     assert mirror["invariant"] == "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP"
     assert mirror["shared_workspace_invariant"] == "SYNC_MACHINE_IS_SHARED_BUT_WORKSPACE_PATH_IS_EXECUTOR_LOCAL"
 
+
+
+def test_flow_v2_workspace_default_cannot_regrow_drive_root_only_handoff():
+    flow = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    root_skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "WORKSPACE_EXECUTION_POLICY_V3 — EXECUTOR LOCAL WORKSPACE FIRST" in flow
+    assert "REMOTE_CONTENT_IMPLEMENTATION_ROUTING_HARD_GATE_V3" in flow
+    assert "CONTENT_MUTATION_TEST_HARD_GATE_V2" in flow
+    assert "Google Drive mount 不可見本身不是 blocker" in flow
+    assert "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX" in flow
+    assert "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME" in flow
+
+    assert "互動式 / chat runtime 的 repository-content 工作面固定是 `/Google Drive/WHD` full repo root" not in flow
+    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in flow
+    assert "root content authoring 的 authority 是 shared-0 lineage" not in flow
+    assert "普通施工工單仍走原本 shared-0 → delivery → QA/merge/finalize 流程" not in flow
+    assert "fresh-read target `main`" not in flow
+
+    assert "普通 workspace startup **不要求** Google Drive generation/manifest" in root_skill
+    assert "shared_zero_drift_present=false → WORKSPACE_DEFAULT" in root_skill

@@ -38,7 +38,7 @@
     ],
     "git_unlock_dependency": "ROOT_TESTS_GREEN_AND_ROOT_DIFF_FROZEN",
     "interactive_first_substantive_action": "ROOT_MUTATE",
-    "remote_without_root_capability_action": "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK",
+    "remote_without_root_capability_action": "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME",
     "required_contiguous_outer_sequence": [
       "ROOT_MUTATE",
       "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
@@ -58,7 +58,9 @@
     ],
     "status_or_progress_query_is_stop_reason": false,
     "task_scope_sticky_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
-    "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
+    "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST",
+    "ordinary_missing_drive_mount_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
+    "fallback_activation": "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY"
   },
   "entry_router_hard_gate": {
     "allowed_before_ready": [
@@ -100,10 +102,10 @@
     "schema": "WHD_EXECUTION_MODE_PROVENANCE_V1"
   },
   "execution_modes": {
-    "GITHUB_ONLY": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF",
+    "GITHUB_ONLY": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF",
     "INTERACTIVE": "WORKSPACE_FIRST_CONTENT",
-    "REMOTE_ACTION": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF",
-    "SCHEDULER_LANE": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
+    "REMOTE_ACTION": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF",
+    "SCHEDULER_LANE": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
   },
   "git_before_unlock": [
     "READ",
@@ -258,7 +260,16 @@
       "READBACK"
     ],
     "remote_allowed_before_root_unlock": [],
-    "remote_connection_authority_required": true
+    "remote_connection_authority_required": true,
+    "route_owner": "tools/root_local_first_gate.py::select_repository_content_route",
+    "ordinary_route": "WORKSPACE_DEFAULT",
+    "drive_mount_absence_is_blocker": false,
+    "workspace_capable_action": "CONTINUE_WORKSPACE_DEFAULT",
+    "no_workspace_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
+    "shared_zero_fallback_activation": "FRESH_TOUCHED_PATH_DRIFT_ONLY",
+    "shared_zero_missing_capability_action": "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME",
+    "interactive_workspace_action": "CONTINUE_WORKSPACE_DEFAULT",
+    "remote_mode_repository_content_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
   },
   "required_order": [
     "WORKSPACE_SOURCE_CURRENT",

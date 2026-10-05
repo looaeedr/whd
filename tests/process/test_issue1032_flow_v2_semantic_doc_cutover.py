@@ -68,16 +68,37 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
     scheduler = _read(".agents/skills/engineering/排程模擬/SKILL.md")
     agents = _read("AGENTS.md")
-    contract = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
+    contract_text = _read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
+    contract = json.loads(contract_text)
 
     retired = "SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 不直接套用此 workspace content gate"
     assert retired not in flow
-    assert "REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V2" in flow
-    assert "REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1" in scheduler
+    assert "REMOTE_CONTENT_IMPLEMENTATION_ROUTING_HARD_GATE_V3" in flow
+    assert "REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2" in scheduler
     assert "executor-local workspace" in agents and "cleanup/2d-3d-sync" in agents
     assert "GitHub-side hotfix" in root and "SHARED_ZERO_FALLBACK" in root
-    assert contract["execution_modes"]["SCHEDULER_LANE"].endswith("ROOT_WORKSPACE_HANDOFF")
-    assert contract["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
+
+    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in flow
+    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in scheduler
+    assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in contract_text
+    assert "ROOT_WORKSPACE_HANDOFF" not in contract_text
+
+    for mode in ("GITHUB_ONLY", "REMOTE_ACTION", "SCHEDULER_LANE"):
+        assert contract["execution_modes"][mode] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+
+    remote = contract["remote_content_implementation"]
+    assert remote["route_owner"] == "tools/root_local_first_gate.py::select_repository_content_route"
+    assert remote["ordinary_route"] == "WORKSPACE_DEFAULT"
+    assert remote["drive_mount_absence_is_blocker"] is False
+    assert remote["interactive_workspace_action"] == "CONTINUE_WORKSPACE_DEFAULT"
+    assert remote["remote_mode_repository_content_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
+    assert remote["shared_zero_missing_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert remote["github_side_hotfix_forbidden"] is True
+
+    fallback_gate = contract["direct_root_mutation_test_gate"]
+    assert fallback_gate["applies_when"] == "SHARED_ZERO_FALLBACK_ACTIVE"
+    assert fallback_gate["remote_without_root_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert fallback_gate["ordinary_missing_drive_mount_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
 
 
 def test_root_local_first_uses_delivery_only_reservation() -> None:

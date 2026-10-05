@@ -33,7 +33,7 @@ REQUIRED_ORDER = (
 )
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
 REMOTE_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-REMOTE_CONTENT_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_ROOT_WORKSPACE_HANDOFF"
+REMOTE_CONTENT_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
 WORKSPACE_ROOT = WORKSPACE_ROOT_POLICY
 PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
 WORKSPACE_BASELINE_ACTIONS = {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
@@ -669,7 +669,7 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("interactive execution mode must be workspace-first")
     for mode in REMOTE_MODES:
         if modes.get(mode) != REMOTE_CONTENT_POLICY:
-            raise ValueError(f"remote execution mode must require root-workspace handoff for content: {mode}")
+            raise ValueError(f"remote execution mode must require workspace-capable runtime handoff for content: {mode}")
     remote_content = _mapping(contract.get("remote_content_implementation"), "remote_content_implementation")
     if remote_content.get("policy") != "WORKSPACE_MIRROR_IMPLEMENTATION":
         raise ValueError("remote repository-content implementation must use workspace mirror")
@@ -731,8 +731,12 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("status/progress query must not be a stop reason")
     if direct_gate.get("test_red_action") != "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST":
         raise ValueError("TEST_RED must remain in the same root workspace")
-    if direct_gate.get("remote_without_root_capability_action") != "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK":
-        raise ValueError("remote no-root-capability action mismatch")
+    if direct_gate.get("remote_without_root_capability_action") != "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME":
+        raise ValueError("shared-zero fallback no-capability action mismatch")
+    if direct_gate.get("ordinary_missing_drive_mount_action") != "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE":
+        raise ValueError("ordinary missing-Drive-mount action mismatch")
+    if direct_gate.get("fallback_activation") != "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY":
+        raise ValueError("shared-zero fallback activation mismatch")
     forbidden = set(direct_gate.get("forbidden_pre_root_green_outcomes") or ())
     required_forbidden = {"PLANNING_ONLY", "CLAIM_ONLY", "OWNER_ONLY", "HANDOFF_ONLY", "BRANCH_CREATED_ONLY", "GOVERNANCE_GREEN_ONLY", "GITHUB_PATCH", "REMOTE_QA_AS_FIRST_TEST_SURFACE"}
     if not required_forbidden.issubset(forbidden):
@@ -884,7 +888,7 @@ def build_gate_evidence(
             execution_mode=mode, provenance=execution_mode_provenance
         )
         if repository_content_implementation:
-            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF", "applicable": False, "git_write_unlocked": False, "next_action": "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION"}
+            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF", "applicable": False, "git_write_unlocked": False, "next_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"}
         return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
     if mode not in INTERACTIVE_MODES:
         raise ValueError(f"unsupported execution mode: {mode}")
