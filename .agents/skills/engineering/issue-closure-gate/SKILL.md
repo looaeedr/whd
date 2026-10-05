@@ -22,6 +22,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_GATE_V1
 
+Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`，authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`；同 scope 沿用/自動 mint 只是不重問使用者，**不是 bypass machine gate**。
+
 FINALIZE 的 execution authority 不等於任意 GitHub authority；但對**同一已明確授權的 repository-content task**，`WORKSPACE_DELIVERY` 現在固定包含 owning-Issue `ISSUE_READ / ISSUE_COMMENT / ISSUE_CLOSE / READBACK`，所以 merge 後 FINALIZE 必須直接沿同 scope terminal tail，不得再向使用者索取第二次授權。`/推推` delivery window同樣包含 owning-Issue finalization；scheduler 則使用 user-authored GitHub-only entry contract。不同 Issue/repository、額外 remote mutation或 scope 擴張仍 fail closed。
 
 QA PASS或merge不等於完成。FINALIZE驗 target/merge/accepted QA，close Issue後fresh-read，再把同一 record寫成 DONE、清 lease/owner、next_action=null並保存 closure evidence。successor只由record.chain structured fields決定。
