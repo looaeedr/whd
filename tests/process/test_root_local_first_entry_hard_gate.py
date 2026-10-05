@@ -458,13 +458,13 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     assert gate["fallback_activation"] == "RETIRED"
 
 
-def test_flow_v2_skill_defaults_to_workspace_and_keeps_shared_zero_as_fallback():
+def test_flow_v2_skill_defaults_to_workspace_and_retires_shared_zero_routing():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
     assert "WORKSPACE_DEFAULT" in text
     assert "WORKSPACE_MUTATIONS_COMPLETE" in text
     assert "WORKSPACE_TESTS_GREEN" in text
-    assert "SHARED_ZERO_FALLBACK" in text
-    assert "shared-unpushed machine只在 fallback active" in text
+    assert "Drive readback 全部退出 CURRENT routing" in text
+    assert "Google Drive 只可作資料／mirror／backup" in text
 
 
 def test_test_receipt_generation_is_historical_provenance_not_exact_lease_generation():
