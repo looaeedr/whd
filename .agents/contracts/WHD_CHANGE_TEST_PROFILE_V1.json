@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 1,
+  "version": 2,
   "status": "CURRENT",
   "owner": "tools/change_test_profile.py",
   "purpose": "Deterministically select required QA stages from change intent and affected domains. Targeted tests never replace the final full gate for non-doc changes.",
@@ -96,9 +96,11 @@
     "root_policy": "ROOT_MUST_RUN_EXACT_PROFILE_COMMANDS_BEFORE_DIFF_FREEZE",
     "product_scope": "CANONICAL_PRODUCT_REGRESSION_SLICE_NOT_ALL_PYTEST_COLLECTION"
   },
-  "lane_policy": {
+  "delivery_scope_policy": {
     "classification_owner": "tools/change_test_profile.py",
-    "shared_zero_role": "HISTORICAL_DATA_ONLY",
+    "docs": "governance/skills/AGENTS/process authority/governance tests/human docs",
+    "body": "product code/tests/UI/renderer/geometry/manufacturing/product-required docs",
+    "shared_zero_routing": "RETIRED",
     "post_merge_zero_test_required": false
   }
 }
