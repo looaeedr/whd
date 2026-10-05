@@ -463,6 +463,23 @@ def mount_shared_content(host, single, assembly, corner_data, mode):
     return selected
 
 
+def hide_original_global_dimension_controls(root_widget):
+    """Hide the inherited prototype W/H/D structure block if present."""
+    for child in root_widget.winfo_children():
+        try:
+            text = str(child.cget("text"))
+        except Exception:
+            text = ""
+        if "結構模式與空間約束" in text:
+            manager = child.winfo_manager()
+            if manager == "pack":
+                child.pack_forget()
+            elif manager == "grid":
+                child.grid_remove()
+            return True
+    return False
+
+
 def hide_original_visual_controls(root_widget):
     """Hide the inherited legacy 3D visual-adjustment group if it is present."""
     for child in root_widget.winfo_children():

@@ -1215,3 +1215,22 @@ def test_issue1274_legacy_visual_controls_are_workspace_shell_owned():
     assert "child.pack_forget()" in shell_source
     assert "child.grid_remove()" in shell_source
 
+def test_issue1276_bootstrap_presentation_helpers_are_owner_local():
+    funcs = _top_functions(BRIDGE)
+    assert "_hide_original_global_dimension_controls" not in funcs
+    assert "_phase6_prepare_text_scale_controller" not in funcs
+
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert "_workspace_shell_hide_original_global_dimension_controls(self.left)" in bridge_source
+    assert "_ui_prepare_text_scale_controller(" in bridge_source
+    assert "TextScaleController.for_widget(root)" not in bridge_source
+
+    shell_source = (ROOT / "phase6_workspace_shell.py").read_text(encoding="utf-8")
+    assert "def hide_original_global_dimension_controls(root_widget):" in shell_source
+    assert '"結構模式與空間約束" in text' in shell_source
+
+    text_scale_source = (ROOT / "ui_text_scale.py").read_text(encoding="utf-8")
+    assert "def prepare_text_scale_controller(root, value, *, controller=None):" in text_scale_source
+    assert "controller = controller or TextScaleController.for_widget(root)" in text_scale_source
+    assert 'if getattr(controller, "root", None) is root:' in text_scale_source
+

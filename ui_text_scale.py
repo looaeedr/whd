@@ -207,3 +207,10 @@ class TextScaleController:
                 canvas.itemconfigure(item_id, font=self._scale_descriptor(base))
             except Exception:
                 continue
+
+def prepare_text_scale_controller(root, value, *, controller=None):
+    """Reuse a shared controller without rescanning an already-scaled main tree."""
+    controller = controller or TextScaleController.for_widget(root)
+    if getattr(controller, "root", None) is root:
+        controller.apply(value)
+    return controller
