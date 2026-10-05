@@ -12,12 +12,12 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "issue": 1197,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
-    "expires_at": "2026-10-05T04:40:09Z",
+    "expires_at": "2026-10-05T05:03:52Z",
     "invocation_identity": "codex:issue1197:4837efae-7561-4164-95d8-7287857df818",
     "token": "lease:1197:local:1"
   },
@@ -50,13 +50,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "74f3bbd54f4fb8f0da1258258ed8e834646967a3",
   "transaction": {
-    "expected_fingerprint": "267b4fe71c7af567cc4829a7ad1d585934096de792760234045d747cf14a38cc",
-    "id": "gha:local:1197:MERGE:4",
+    "expected_fingerprint": "e46e8121f28403e51b1278154b183bf123fa23e8f7af30dbb93dade8d1f3ccfd",
+    "id": "gha:local:1197:ACQUIRE:5",
     "invocation_identity": "codex:issue1197:4837efae-7561-4164-95d8-7287857df818",
-    "kind": "MERGE",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-05T04:29:12Z",
+  "updated_at": "2026-10-05T04:48:52Z",
   "version": 2,
   "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
 }
