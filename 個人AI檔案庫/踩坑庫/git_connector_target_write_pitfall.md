@@ -13,24 +13,26 @@ whd_schema: WHD_DOC_META_V1
 
 ## 硬規則
 
-1. **所有 repository-content 修改先走 canonical root-local-first。** 在 `/Google Drive/WHD/work/active/...` 完成 mutation、tests、diff freeze；只有 `GIT_WRITE_UNLOCKED` 後才從 fresh target 建 dedicated work branch。Contents API 的 `branch` 參數只能是該 work branch，不得是 production target。
-2. **production integration 禁用 chat/runtime Contents API 與 `update_ref`。** 已驗證 candidate 要進 `cleanup/2d-3d-sync` 時，必須回到 Flow v2 trusted `MERGE / SYNC_TARGET` transport；`update_ref(force=false)` 只可用於 non-authoritative dedicated work branch，不能前推 production target。
-3. **寫入前做 target-name denylist。** 若 action 是 `create_file` / `update_file` / `delete_file`，且 branch 是 `cleanup/2d-3d-sync`、`main` 或其他 authoritative target，必須 fail closed。
-4. **不要把『內容相同』當成歷史正確。** integration 前後都要讀回 commit SHA、parent/ancestry 與 tree SHA；若 candidate tree 已驗證，repair tree 應以相同 tree SHA 作為強證據。
-5. **事故後禁止 force rollback。** 先停止 production 寫入；從當前 production HEAD 開 fresh repair branch，移除誤加內容、恢復已驗證 tree，重新驗證後只用 non-force fast-forward 往前修復。
-6. **事故必須保留可追溯證據。** 記錄誤寫 commit、repair commit、驗證 RUN、production readback 與 branch cleanup；不可用改史把事故隱藏掉。
+1. **所有 repository-content 修改先走 CURRENT root-local-first router。** 普通路徑固定為 `WORKSPACE_DEFAULT`：在本 executor 的 repo workspace 取得 fresh `cleanup/2d-3d-sync` baseline，完成 mutation、tests、exact diff freeze，再建立 dedicated delivery branch。Codex 常見 workspace 為 `/workspace/whd`；**不得因本 reference 回退或等待 `/Google Drive/WHD/work/active`**。
+2. **shared-0 只保留條件式 fallback。** 只有 fresh touched-path evidence 證明存在較新的 shared overlay 時，router 才可選 `SHARED_ZERO_FALLBACK`；此時才走 shared-0 reconcile/test/freeze。Drive mount 缺失本身不是 `WORKSPACE_DEFAULT` blocker。
+3. **Contents API 永遠不得直接寫 authoritative production target。** `create_file` / `update_file` / `delete_file` 的 `branch` 只能是 dedicated non-authoritative work/delivery branch，不得是 `cleanup/2d-3d-sync`、`main` 或其他 authoritative target。
+4. **production integration 禁用 chat/runtime Contents API 與直接 `update_ref` 前推。** 已驗證 candidate 要進 `cleanup/2d-3d-sync` 時，必須回到 Flow v2 trusted `MERGE / SYNC_TARGET` transport；`update_ref(force=false)` 只可用於 non-authoritative dedicated work branch。
+5. **寫入前做 target-name denylist + exact-tested-diff check。** target branch、changed-file set、tested HEAD、expected parent/ancestry 任一項不符即 fail closed；不得以「內容看起來一樣」取代 durable identity。
+6. **事故後禁止 force rollback。** 先停止 production 寫入；從當前 production HEAD 開 fresh repair branch，恢復已驗證 tree，重新驗證後只用合法 non-force integration 往前修復。
+7. **事故必須保留可追溯證據。** 記錄誤寫 commit、repair commit、驗證 RUN、production readback 與 branch cleanup；不可用改史把事故隱藏掉。
 
 ## 寫入前檢查表
 
 - 我現在要做的是「內容修改」還是「branch/ref 操作」？
-- 若是內容修改：canonical root mutation/tests/freeze 是否完成，且 `GIT_WRITE_UNLOCKED` receipt 是否已成立？
-- 若是 integration：是否已回到 Flow v2 trusted `MERGE / SYNC_TARGET`，而不是 chat/runtime Contents API / `update_ref`？
-- tool recipient / action 名稱是否與意圖一致？建立 branch 必須是 `create_branch`；移動 branch 必須是 `update_ref`；檔案修改才是 `create_file` / `update_file` / `delete_file`。
+- 若是內容修改：router 是否 fresh 判定 `WORKSPACE_DEFAULT` 或 `SHARED_ZERO_FALLBACK`？普通 Codex/workspace 任務不得自行改判成 Drive-first。
+- exact tested diff 是否已完成？changed-file set、tested HEAD、fresh target readback 是否一致？
+- 若是 integration：是否已回到 Flow v2 trusted `MERGE / SYNC_TARGET`，而不是 chat/runtime Contents API / production `update_ref`？
+- tool recipient / action 名稱是否與意圖一致？建立 branch 必須是 `create_branch`；移動 non-authoritative branch 才可 `update_ref`；檔案修改才是 `create_file` / `update_file` / `delete_file`。
 - production HEAD 是否在寫入前最後一次重新讀取並鎖定？
 
 ## 事故復原模板
 
-`STOP_PRODUCTION_WRITES → READ_CURRENT_TARGET → RETURN_TO_ROOT_WORKSPACE → RESTORE_VERIFIED_TREE → RUN_ACCEPTANCE → ROOT_DIFF_FROZEN → GIT_WRITE_UNLOCKED → DEDICATED_REPAIR_BRANCH → FLOW_V2_MERGE_OR_SYNC_TARGET → POST_MERGE_READBACK → CLEAN_TEMP_REFS`
+`STOP_PRODUCTION_WRITES → READ_CURRENT_TARGET → SELECT_CURRENT_REPOSITORY_CONTENT_ROUTE → RESTORE_VERIFIED_TREE_IN_WORKSPACE_OR_SELECTED_FALLBACK → RUN_ACCEPTANCE → EXACT_DIFF_FROZEN → DEDICATED_REPAIR_BRANCH → FLOW_V2_MERGE_OR_SYNC_TARGET → POST_MERGE_READBACK → CLEAN_TEMP_REFS`
 
 這條規則的目的不是讓事故看起來沒發生，而是確保事故之後仍保持 non-force、可追溯、可驗證，並阻止同類工具選擇錯誤再次直接落到 production。
 

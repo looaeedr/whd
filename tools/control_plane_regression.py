@@ -78,6 +78,7 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_issue1194_workspace_first_content_flow.py",
     "tests/process/test_issue1196_scheduler_host_lifecycle_gap.py",
     "tests/process/test_issue1063_actions_workflow_cleanup.py",
+    "tests/process/test_issue1265_codex_git_connector_routing.py",
     "tests/test_execution_work_slot_autoincrement.py",
     "tests/test_dm5_deep_module_writeback_contract.py",
     "tests/test_issue443_t1_dead_glue.py",
