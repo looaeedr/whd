@@ -948,3 +948,47 @@ def test_issue1248_receiving_back_panel_mode_ui_is_composition_owned():
     bridge_source = BRIDGE.read_text(encoding="utf-8")
     for label in ("全板", "半截", "背開孔"):
         assert label in bridge_source
+
+
+def test_issue1253_project_status_and_settings_defaults_routing_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_status_projection",
+        "_phase6_refresh_status_bar",
+        "_phase6_reset_initial_values",
+        "_phase6_save_settings_context_as_defaults",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "Phase6ProjectController" not in body
+        assert "settings_defaults_payload" not in body
+        assert "reset_factory_settings" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "status_projection",
+        "refresh_status_bar",
+        "reset_initial_values",
+        "save_settings_context_as_defaults",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "self.refresh_status_bar(namespace)" in adapter_source
+    assert "self.save_settings_context_as_defaults(" in adapter_source
+    assert 'required("_phase6_refresh_status_bar")' not in adapter_source
+    assert 'required("_phase6_save_settings_context_as_defaults")' not in adapter_source
+    assert "Phase6ProjectController.project_status_projection(" in adapter_source
+    assert "Phase6ProjectController.route_settings_defaults(" in adapter_source
