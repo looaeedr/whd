@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": "74f3bbd54f4fb8f0da1258258ed8e834646967a3",
+    "merged_sha": "1ef4e7e814e6888844b7c335a5ff2dff4fd36ec4",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "issue": 1197,
   "lane_id": "chatgpt.flowv2.work0",
@@ -42,21 +42,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "MERGE_ANCHOR_CORRECTED",
   "slot_id": "worker.slot.0",
   "source_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
   "source_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "74f3bbd54f4fb8f0da1258258ed8e834646967a3",
+  "target_sha": "f606fa5b228baa8e1994438fdbcdccee86ee4840",
   "transaction": {
-    "expected_fingerprint": "e46e8121f28403e51b1278154b183bf123fa23e8f7af30dbb93dade8d1f3ccfd",
-    "id": "gha:local:1197:ACQUIRE:5",
+    "expected_fingerprint": "61544253a22a49f9aaf70625828453330810a2cfec0fb15014ddbc51940a5bb3",
+    "id": "gha:local:1197:RECONCILE:6",
     "invocation_identity": "codex:issue1197:4837efae-7561-4164-95d8-7287857df818",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-05T04:48:52Z",
+  "updated_at": "2026-10-05T04:49:26Z",
   "version": 2,
   "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
 }
