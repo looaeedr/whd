@@ -24,15 +24,8 @@ def test_shared_zero_contract_is_superseded_data_only():
 def test_work_root_contract_keeps_drive_compatibility_non_authoritative():
     contract = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json")
     assert contract["default_work_root"]["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
-    assert contract["unpushed"]["mode"] == "SUPERSEDED_DATA_ONLY"
-    assert contract["unpushed"]["activation"] == "NEVER_CURRENT"
-    assert contract["unpushed"]["routing_forbidden"] is True
-    assert contract["unpushed"]["authority"] is False
-    overlay = contract["canonical_drive_overlay"]
-    assert overlay["activation"] == "NEVER_CURRENT"
-    assert overlay["role"] == "MIRROR_BACKUP_ONLY"
-    assert overlay["authority"] is False
-    assert overlay["routing_forbidden"] is True
+    assert "unpushed" not in contract
+    assert "canonical_drive_overlay" not in contract
     mirror = contract["drive_mirror"]
     assert mirror["library_path"] == "/Google Drive/WHD/WHD_MIRROR/CURRENT"
     assert mirror["role"] == "MIRROR_BACKUP_ONLY"
@@ -74,12 +67,11 @@ def test_unpushed_workspace_is_never_git_delivery_content():
 
 def test_workspace_canonical_sync_machine_is_retired_from_current_routing():
     contract = _json(".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json")
-    mirror = contract["delivery_transport"]["workspace_staged_fallback"][
-        "codex_cloud_mount_bridge"
-    ]["workspace_mirror_policy"]
-    assert mirror["activation"] == "RETIRED_DATA_ONLY"
-    assert mirror["ordinary_startup_required"] is False
-    assert mirror["authority"] is False
+    assert contract["status"] == "HISTORICAL"
+    assert contract["mode"] == "SUPERSEDED_DATA_ONLY"
+    assert contract["activation"] == "NEVER_CURRENT"
+    assert contract["current_routing_forbidden"] is True
+    assert contract["authority"] is False
     root = _read(".agents/skills/engineering/root-local-first/SKILL.md")
     assert "legacy shared-zero helpers may remain only for historical data/recovery parsing" in root
 
