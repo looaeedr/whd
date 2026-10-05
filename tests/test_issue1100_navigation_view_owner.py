@@ -181,3 +181,27 @@ def test_bridge_loc_ratchets_below_5970_after_layout_helper_extraction():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 5970, f"Bridge regrew past #1100 layout-helper ratchet: {loc}"
 
+def test_part_navigation_widget_construction_is_owned_by_navigation_view_adapter():
+    adapter_source = OWNER.read_text(encoding="utf-8")
+    assert "def build_part_navigation_widgets(" in adapter_source
+    adapter_tree = ast.parse(adapter_source)
+    builder = next(
+        node for node in adapter_tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "build_part_navigation_widgets"
+    )
+    builder_text = ast.unparse(builder)
+    assert "ttk.Treeview" in builder_text
+    assert "ttk.Scrollbar" in builder_text
+    assert "ttk.Notebook" in builder_text
+    assert "takefocus=True" in builder_text
+
+    installer = ast.unparse(_function("_phase6_install_part_editor_compatibility"))
+    assert "_navigation_view_build_part_navigation_widgets" in installer
+    for forbidden in ("ttk.Treeview", "ttk.Scrollbar", "ttk.Notebook", "structure_tree.bind"):
+        assert forbidden not in installer
+
+
+def test_bridge_loc_ratchets_below_5800_after_part_navigation_widget_construction_extraction():
+    loc = BRIDGE.read_text(encoding="utf-8").count("\n")
+    assert loc <= 5800, f"Bridge regrew past #1197 navigation-widget ratchet: {loc}"
+

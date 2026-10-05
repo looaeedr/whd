@@ -77,6 +77,7 @@ from phase6_navigation_view_adapter import (
     clear_navigation_residue as _navigation_view_clear_navigation_residue,
     refresh_content_switch as _navigation_view_refresh_content_switch,
     build_content_switch as _navigation_view_build_content_switch,
+    build_part_navigation_widgets as _navigation_view_build_part_navigation_widgets,
     on_structure_tree_click as _navigation_view_on_structure_tree_click,
     refresh_part_selector as _navigation_view_refresh_part_selector,
     refresh_part_button_states as _navigation_view_refresh_part_button_states,
@@ -112,6 +113,7 @@ from gui_modules.application.receiving_set_bay_adapter import (
 from gui_modules.application.receiving_set_bay_controls import (
     RECEIVING_SWITCH_BRANDS,
     build_receiving_set_bay_controls,
+    open_receiving_layer_preview,
     refresh_receiving_layer_rows,
 )
 from gui_modules.application.receiving_switch_layout_adapter import (
@@ -2091,52 +2093,17 @@ def _phase6_confirm_receiving_opening(self, layer_index, connection_index, brand
 
 
 def _phase6_open_receiving_layer_preview(self, layer_index):
-    controls = getattr(self, "receiving_layer_controls", None)
-    if controls is None:
+    if getattr(self, "receiving_layer_controls", None) is None:
         return False
     adapter = _phase6_receiving_switch_adapter(self)
-    index = int(layer_index)
-    count = adapter.connection_count(index)
-    brand = adapter.brand
-
-    win = original.tk.Toplevel(self.root)
-    win.title(f"第{index + 1}層預覽")
-    win.transient(self.root)
-    try:
-        win.grab_set()
-    except Exception:
-        pass
-    body = original.ttk.Frame(win, padding=12)
-    body.pack(fill=original.tk.BOTH, expand=True)
-    original.ttk.Label(
-        body, text=f"第{index + 1}層｜{count}連｜開關：{brand}"
-    ).grid(row=0, column=0, columnspan=min(max(count, 1), 5), sticky="w", pady=(0, 10))
-
-    selected = original.tk.IntVar(master=win, value=0)
-    for connection_index in range(count):
-        original.ttk.Radiobutton(
-            body,
-            text=f"第{connection_index + 1}連",
-            variable=selected,
-            value=connection_index + 1,
-        ).grid(row=1 + connection_index // 5, column=connection_index % 5, padx=4, pady=4, sticky="ew")
-
-    actions = original.ttk.Frame(body)
-    actions.grid(row=2 + (count - 1) // 5, column=0, columnspan=min(max(count, 1), 5), sticky="e", pady=(10, 0))
-    original.ttk.Button(actions, text="取消", command=win.destroy).pack(side=original.tk.LEFT, padx=(0, 6))
-
-    def confirm():
-        number = int(selected.get())
-        if number <= 0:
-            from tkinter import messagebox
-            messagebox.showinfo("請選擇", "請先選擇一連。", parent=win)
-            return
-        if _phase6_confirm_receiving_opening(self, index, number - 1, brand):
-            win.destroy()
-
-    original.ttk.Button(actions, text="確定", command=confirm).pack(side=original.tk.LEFT)
-    return True
-
+    index, brand = int(layer_index), adapter.brand
+    return open_receiving_layer_preview(
+        self.root, tk=original.tk, ttk=original.ttk, layer_index=index,
+        connection_count=adapter.connection_count(index), brand=brand,
+        on_confirm=lambda connection_index: _phase6_confirm_receiving_opening(
+            self, index, connection_index, brand
+        ),
+    )
 
 _BACK_PANEL_MODE_LABELS = {
     BackPanelMode.FULL: "全板",
@@ -4377,71 +4344,17 @@ def _phase6_bootstrap_workspace_profiles(self, snapshot):
 
 
 def _phase6_install_part_editor_compatibility(self):
-    # 板件選擇／新增／刪除固定同一列，永不因切換板件消失。
-    self.part_selector = original.ttk.Frame(self.left)
-    self.part_selector.pack(fill=original.tk.X, pady=(0, 4))
-    self.part_var = original.tk.StringVar(master=self.part_selector, value="箱身")
-    self.part_buttons = {}
-    # The compact sheet-metal menu and the Structure Tree are two presentation
-    # projections of the same authoritative part_var / workspace callbacks.
-    # Keep the existing menu visible; do not create a second state owner.
-    self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var, style="Selector.TMenubutton", takefocus=True)
-    self.part_choice_menu = configure_tk_menu(original.tk.Menu(self.part_choice_button, tearoff=False))
-    self.part_choice_button.configure(menu=self.part_choice_menu)
-    self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))
-
-    # #382: keep the legacy Structure Tree object only as a compatibility/state
-    # projection.  It no longer owns operator layout pixels.  Normal part input
-    # and assembly content share the same left content region.
-    self.structure_tree_spacer = original.ttk.Frame(self.left, height=1)
-    self.structure_tree_spacer.pack_propagate(False)
-    self.structure_tree_host = original.ttk.Frame(self.left)
-    self.structure_tree = original.ttk.Treeview(
-        self.structure_tree_host, columns=("visibility",),
-        show="tree headings", selectmode="browse", height=9, takefocus=True,
+    _navigation_view_build_part_navigation_widgets(
+        self,
+        tk=original.tk,
+        ttk=original.ttk,
+        configure_menu=configure_tk_menu,
+        hidden_foreground=WHD_THEME["muted_text"],
+        on_structure_tree_select=lambda event: _phase6_on_structure_tree_select(self, event),
+        on_structure_tree_click=lambda event: _phase6_on_structure_tree_click(self, event),
+        on_box_body_piece_tab_changed=lambda event: _phase6_on_box_body_piece_tab_changed(self, event),
+        remove_selected_part=self.remove_selected_part,
     )
-    self.structure_tree.heading("#0", text="板件 / 功能", anchor=original.tk.W)
-    self.structure_tree.heading("visibility", text="狀態", anchor=original.tk.CENTER)
-    self.structure_tree.column("#0", width=190, minwidth=120, stretch=True)
-    self.structure_tree.column(
-        "visibility", width=58, minwidth=52, stretch=False, anchor=original.tk.CENTER
-    )
-    self.structure_tree_scrollbar = original.ttk.Scrollbar(
-        self.structure_tree_host, orient=original.tk.VERTICAL, command=self.structure_tree.yview
-    )
-    self.structure_tree.configure(yscrollcommand=self.structure_tree_scrollbar.set)
-    self.structure_tree_scrollbar.pack(side=original.tk.RIGHT, fill=original.tk.Y)
-    self.structure_tree.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
-    self.structure_tree.tag_configure("hidden", foreground=WHD_THEME["muted_text"])
-    self._phase6_structure_tree_guard = False
-    self.structure_tree.bind(
-        "<<TreeviewSelect>>", lambda event: _phase6_on_structure_tree_select(self, event)
-    )
-    self.structure_tree.bind(
-        "<Button-1>", lambda event: _phase6_on_structure_tree_click(self, event), add="+"
-    )
-
-    # BoxBody keeps one nested physical-child selector. It is visible only while
-    # the aggregate BoxBody or one of its physical children is active.
-    self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1, takefocus=True)
-    self._phase6_box_body_piece_tab_keys = ()
-    self._phase6_box_body_piece_tab_map = {}
-    self._phase6_box_body_piece_tab_guard = False
-    self.box_body_piece_selector.bind(
-        "<<NotebookTabChanged>>",
-        lambda event: _phase6_on_box_body_piece_tab_changed(self, event),
-    )
-
-    self.part_action_row = original.ttk.Frame(self.part_selector)
-    self.part_action_row.pack(fill=original.tk.X, pady=(0, 4))
-    self.add_part_button = original.ttk.Menubutton(self.part_action_row, text="新增 ▼", style="Secondary.TMenubutton", takefocus=True)
-    self.add_part_menu = configure_tk_menu(original.tk.Menu(self.add_part_button, tearoff=False))
-    self.add_part_button.configure(menu=self.add_part_menu)
-    self.add_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(0, 2))
-    self.remove_part_button = original.ttk.Button(
-        self.part_action_row, text="刪除", command=self.remove_selected_part, state="disabled", style="Secondary.TButton", takefocus=True
-    )
-    self.remove_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(2, 0))
 
     _phase6_build_content_switch(self)
 
