@@ -576,7 +576,10 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
             0,
         )
         assert preview_payload["connection_count"] == 3
-        assert len(preview_payload["connection_meshes"]) == 3
+        request = preview_payload["render_request"]
+        assert request.part_key == "assembly"
+        rendered_parts = tuple(request.render_data.assembly_parts or ())
+        assert len(rendered_parts) == 3 * len(preview_payload["assembly_part_keys"])
         assert {"box_body", "head", "tail"} <= set(preview_payload["assembly_part_keys"])
         assert len(preview_payload["assembly_part_keys"]) >= 5, (
             "Preview must resolve the complete assembly, not only the current input part"
@@ -605,6 +608,7 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         win = preview_windows[0]
         assert win._phase6_receiving_preview_connection_count == 3
         assert win._phase6_receiving_preview_mesh_count == 3
+        assert win._phase6_receiving_preview_uses_final_scene_renderer is True
         assert win._phase6_receiving_preview_lock_circle_count > 0
         assert win._phase6_receiving_preview_feature_segment_count == 0
 
