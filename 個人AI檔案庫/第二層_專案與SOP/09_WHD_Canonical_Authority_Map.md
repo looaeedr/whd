@@ -37,7 +37,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
 <!-- WHD_AUTHORITY contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py -->
 <!-- WHD_AUTHORITY contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json -->
-<!-- WHD_AUTHORITY contract=shared-unpushed-integration role=CURRENT path=tools/shared_unpushed_integration.py -->
+<!-- WHD_AUTHORITY contract=shared-unpushed-integration role=HISTORICAL path=tools/shared_unpushed_integration.py canonical=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=push-delivery-skill role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
 <!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=HISTORICAL path=tools/root_local_first_gate.py canonical=tools/shared_unpushed_integration.py -->
 <!-- WHD_AUTHORITY contract=root-shared-unpushed-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
@@ -86,12 +86,14 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 ## Work-root bootstrap authority
 
-- canonical workspace root identity/data lives in Google Drive at `/Google Drive/WHD`.
-- canonical work-root contract: `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json` inside the full `/Google Drive/WHD` repo root.
-- scheduler/GitHub-only runtimes may read the same repository V2 contract for root identity, but repository content authoring remains under `/Google Drive/WHD/.unpushed/{body|docs}/0`.
+- Git production X `cleanup/2d-3d-sync` is the sole CURRENT repository/process authority.
+- repository-content construction and testing happen in each executor's own repo workspace under `EXECUTOR_LOCAL_REPO_WORKSPACE`.
+- normal flow: `production X → executor-local workspace → edit/test → exact tested delivery branch → PR/checks → production X`.
 - machine validator: `tools/work_root_gate.py`.
-- interactive/chat runtime must read the Google Drive canonical gate and verify the real workspace `.git` HEAD/tree against the live target; legacy Current Source Manifest evidence is historical only. GitHub-only / `SCHEDULER_LANE` uses the mirror and may not reinterpret GitHub checkout, `/mnt/data`, `/`, or Library `/WHD` as the default workspace root.
-- Flow v2 mutation startup evidence must include `WHD_WORK_ROOT_GATE_EVIDENCE_V2`; missing/mismatched full-root identity fails closed before ExecutionRecord state read.
+- Google Drive is data / mirror / backup only. `/Google Drive/WHD/WHD_MIRROR/CURRENT` may hold recovery material but is not a startup gate, construction root, Skill source, shared-zero fallback, or blocker authority.
+- `.unpushed/{body|docs}/0` and shared-zero routing are HISTORICAL/SUPERSEDED and must not participate in CURRENT routing.
+- Drive unavailable never blocks repository-content work; only absence of an executable repo workspace requires `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME`.
+- Flow v2 mutation startup evidence must resolve the executor-local workspace and current production baseline; Drive visibility is not part of that readiness decision.
 
 ## Permanent routing boundaries
 

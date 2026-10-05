@@ -8,15 +8,15 @@ ROOT = Path(__file__).resolve().parents[2]
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
-def test_current_execution_docs_use_workspace_default_and_conditional_shared_zero() -> None:
+def test_current_execution_docs_use_workspace_default_and_retire_shared_zero_routing() -> None:
     agents = _read("AGENTS.md")
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
     assert "WORKSPACE_DEFAULT" in agents
-    assert "SHARED_ZERO_FALLBACK" in agents
+    assert "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in agents
     assert "executor-local" in agents
     assert "ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1" in flow
     assert "WORKSPACE_DEFAULT" in flow
-    assert "SHARED_ZERO_FALLBACK" in flow
+    assert "Drive readback 全部退出 CURRENT routing" in flow
     assert "ACQUIRE.effect.admission_reservation" not in agents
 
 
@@ -76,7 +76,7 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert "REMOTE_CONTENT_IMPLEMENTATION_ROUTING_HARD_GATE_V3" in flow
     assert "REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2" in scheduler
     assert "executor-local workspace" in agents and "cleanup/2d-3d-sync" in agents
-    assert "GitHub-side hotfix" in root and "SHARED_ZERO_FALLBACK" in root
+    assert "GitHub-side hotfix" in root and "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in root
 
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in flow
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in scheduler
@@ -92,12 +92,12 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert remote["drive_mount_absence_is_blocker"] is False
     assert remote["interactive_workspace_action"] == "CONTINUE_WORKSPACE_DEFAULT"
     assert remote["remote_mode_repository_content_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
-    assert remote["shared_zero_missing_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert remote["shared_zero_missing_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
     assert remote["github_side_hotfix_forbidden"] is True
 
     fallback_gate = contract["direct_root_mutation_test_gate"]
-    assert fallback_gate["applies_when"] == "SHARED_ZERO_FALLBACK_ACTIVE"
-    assert fallback_gate["remote_without_root_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert fallback_gate["applies_when"] == "NEVER_CURRENT"
+    assert fallback_gate["remote_without_root_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
     assert fallback_gate["ordinary_missing_drive_mount_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
 
 

@@ -27,12 +27,11 @@ whd_schema: WHD_DOC_META_V1
 
 新 scheduler invocation 尚不知道 exact owning Issue 時，先依 canonical Flow v2 執行 narrow `READ_ONLY_BOOTSTRAP_ONLY` 綁定 Issue/branch/HEAD；沒有 ChatGPT AI Library surface 時記 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE` 並繼續，禁止回 `PROJECT_STARTUP_HARD_GATE_FAILED`。bootstrap 不是 execution authority，完成 trusted Phase6 admission 後必須 fresh-read canonical scheduler state再進 WAKE。
 
-### SHARED_0_SCHEDULER_HARD_GATE_V1
+### RETIRED_SHARED_0_SCHEDULER_HISTORY_V1
 
-- 排程 A/B 不擁有另一份 0；所有 scheduler/interactive/work-slot 共用 `.unpushed/docs/0` 與 `.unpushed/body/0`。
-- 同 path 已有 lineage 時，scheduler 必須以 latest `0` generation+hash 為 base；不得以自己的舊 checkout/branch/base 覆寫。
-- merge conflict 固定 checkpoint=`WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1`、state=`BLOCKED_USER_DECISION`，通知使用者；沒有 `EXPLICIT_USER_CONFLICT_DECISION` 不得自行選 ours/theirs 或繼續 `/推推`。
-- Flow v2 path reservation 只在 delivery phase取得，不得把 reservation conflict 升格成 root施工前置條件。
+- `.unpushed/docs/0`、`.unpushed/body/0`、shared-zero generation/freeze 與 Drive readback 已退出 CURRENT scheduler/content routing。
+- 排程 A/B 與工作槽不得因 Drive/shared-zero 不可見、舊 drift、舊 lineage 或舊 pointer 改變 next_action。
+- repository-content 只可 handoff 到 workspace-capable runtime，再固定走 `WORKSPACE_DEFAULT`。
 
 scheduler invocation 在 project startup 階段還不知道 exact owning Issue，先依 canonical Flow v2 做 `READ_ONLY_BOOTSTRAP_ONLY`：只讀 `coord/execution-v2`、derived ready-index、`coord/monitor-v2:.dispatch/monitor/runtime/*.json` 的 NON_AUTHORITY runtime observations、`tools/execution_scheduler_view.py` scheduler projection 與 Issue/branch/HEAD identity；scheduler view 順序固定為 same-lane current → `TAKEOVER_CANDIDATE` → READY → explicit ingress。只有前三者都空時，才額外用 `tools/scheduler_ready_ingress.py` 掃 repository-owner-authored open Issue 第一個 nonblank marker `WHD_SCHEDULER_DISPATCH_REQUEST_V1`（可帶 `lane=ANY|A|B`），用來綁 trusted Phase6 Preflight request。A/B scheduler 綁定 exact Issue 後，先 fresh-read owning Issue 的 trusted Phase6 results：若存在同 lane、同 Issue/branch/HEAD、40 分鐘內的 push GREEN receipt，固定用 `WHD_SCHEDULER_PHASE6_PREFLIGHT_RECEIPT_REF_V1` 交給 trusted transaction ingress rebind；只有沒有 eligible receipt、receipt expired 或 exact branch/HEAD 已漂移時，才 existing-file CAS 到 `coord/preflight-requests-a|b:.dispatch/preflight-request.json` 發新 Preflight。**禁止 scheduler 自己建立 Issue request comment，也禁止有可 consume GREEN 時重複 mint Preflight**。普通 open Issue 不得推論成 work authority。此 bootstrap projection 不得授權 claim、ACQUIRE、transaction、Guard 或 repository mutation。host entrypoint observation 依 canonical fixed NON_AUTHORITY exception 可寫。
 
@@ -60,9 +59,8 @@ Preflight GREEN（包含 trusted bot receipt 被同 lane下一 invocation合法 
 排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但 **scheduler execution mode 不授予 repository-content authoring**，也不得把 handoff 綁死到 `/Google Drive/WHD`。
 
 - 若 exact next_action 只需要 read/discovery、lease/coordination、trusted preflight、既有候選的 QA/merge/finalization，排程可直接執行。
-- 若 next_action 需要新增、修改或刪除 repository content，固定 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`；接手 runtime 必須 fresh 解析自己的 executor-local repo workspace，再由 CURRENT `select_repository_content_route` 選 `WORKSPACE_DEFAULT` 或 `SHARED_ZERO_FALLBACK`。
-- **Drive mount 不可見不是 scheduler content-handoff 的判定條件。** 普通 content runtime 預設走 WORKSPACE_DEFAULT；只有 fresh touched-path shared-0 drift 才能選 SHARED_ZERO_FALLBACK。
-- 若接手 runtime 已 fresh 選中 `SHARED_ZERO_FALLBACK` 但無該 lineage capability，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`。
+- 若 next_action 需要新增、修改或刪除 repository content，固定 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`；接手 runtime fresh 解析自己的 executor-local repo workspace，CURRENT route 固定 `WORKSPACE_DEFAULT`。
+- **Drive mount、mirror、舊 shared-zero drift 都不是 scheduler content-handoff 的判定條件，也不得形成 blocker。**
 - 任何 route 都不得在未測 GitHub branch 直接 author / patch / hotfix；GitHub 只承接已測 exact diff 與 post-push CI/QA/merge。
 - handoff 不等於停止：scheduler 必須保存 exact structured next_action；candidate/delivery 出現後立即接回 post-push integration tail。
 

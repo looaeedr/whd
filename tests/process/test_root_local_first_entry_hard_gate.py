@@ -388,9 +388,11 @@ def test_root_local_contract_points_to_executor_local_workspace_policy():
     assert root["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert root["production_branch"] == "cleanup/2d-3d-sync"
     assert root["authority"] is False
-    assert root["canonical_drive_overlay"] == "/Google Drive/WHD"
+    assert root["drive_role"] == "MIRROR_BACKUP_ONLY"
+    assert root["drive_mirror_root"] == "/Google Drive/WHD/WHD_MIRROR/CURRENT"
+    assert "canonical_drive_overlay" not in root
     assert payload["default_repository_content_flow"]["startup_requires_shared_zero"] is False
-    assert payload["shared_unpushed_integration"]["mode"] == "CONDITIONAL_FALLBACK_ONLY"
+    assert payload["shared_unpushed_integration"]["mode"] == "SUPERSEDED_DATA_ONLY"
 
 
 def test_interactive_orchestration_fast_path_is_machine_owned():
@@ -437,8 +439,8 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     payload = _contract()
     gate = payload["direct_root_mutation_test_gate"]
     assert gate["schema"] == "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1"
-    assert gate["applies_when"] == "SHARED_ZERO_FALLBACK_ACTIVE"
-    assert gate["canonical_surface"] == "/Google Drive/WHD/.unpushed"
+    assert gate["applies_when"] == "NEVER_CURRENT"
+    assert gate["canonical_surface"] is None
     assert gate["interactive_first_substantive_action"] == "ROOT_MUTATE"
     assert gate["required_contiguous_outer_sequence"] == [
         "ROOT_MUTATE", "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
@@ -451,18 +453,18 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     assert "GOVERNANCE_GREEN_ONLY" in gate["forbidden_pre_root_green_outcomes"]
     assert "REMOTE_QA_AS_FIRST_TEST_SURFACE" in gate["forbidden_pre_root_green_outcomes"]
     assert gate["test_red_action"] == "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
-    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
     assert gate["ordinary_missing_drive_mount_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
-    assert gate["fallback_activation"] == "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY"
+    assert gate["fallback_activation"] == "RETIRED"
 
 
-def test_flow_v2_skill_defaults_to_workspace_and_keeps_shared_zero_as_fallback():
+def test_flow_v2_skill_defaults_to_workspace_and_retires_shared_zero_routing():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
     assert "WORKSPACE_DEFAULT" in text
     assert "WORKSPACE_MUTATIONS_COMPLETE" in text
     assert "WORKSPACE_TESTS_GREEN" in text
-    assert "SHARED_ZERO_FALLBACK" in text
-    assert "shared-unpushed machine只在 fallback active" in text
+    assert "Drive readback 全部退出 CURRENT routing" in text
+    assert "Google Drive 只可作資料／mirror／backup" in text
 
 
 def test_test_receipt_generation_is_historical_provenance_not_exact_lease_generation():

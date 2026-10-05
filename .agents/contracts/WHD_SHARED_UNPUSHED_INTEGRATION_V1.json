@@ -181,7 +181,7 @@
           "terminal_cleanup": "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY",
           "invariant": "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP",
           "shared_workspace_invariant": "SYNC_MACHINE_IS_SHARED_BUT_WORKSPACE_PATH_IS_EXECUTOR_LOCAL",
-          "activation": "SHARED_ZERO_FALLBACK_ONLY",
+          "activation": "RETIRED_DATA_ONLY",
           "ordinary_startup_required": false,
           "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE"
         },
@@ -189,15 +189,19 @@
       }
     }
   },
-  "mode": "CONDITIONAL_FALLBACK_ONLY",
+  "mode": "SUPERSEDED_DATA_ONLY",
   "default_route": false,
-  "activation": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
+  "activation": "NEVER_CURRENT",
   "ordinary_workspace_flow": {
     "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",
     "production_branch": "cleanup/2d-3d-sync",
     "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "shared_zero_required": false,
     "workspace_canonical_sync_required": false,
-    "delivery": "TESTED_DELIVERY_BRANCH_PR"
-  }
+    "delivery": "TESTED_DELIVERY_BRANCH_PR",
+    "drive_required": false,
+    "route": "WORKSPACE_DEFAULT"
+  },
+  "routing_forbidden": true,
+  "authority": false
 }

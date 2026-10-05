@@ -1,13 +1,13 @@
 ---
 name: root-local-first
-description: WHD repository-content implementation 的 CURRENT workspace-first 入口。每個 executor 使用自己的 repo workspace，以 `cleanup/2d-3d-sync` 作共同 production baseline；修改/測試在該 workspace 完成後走 delivery branch + PR/checks。Google Drive shared-0 只在 fresh unpushed drift 存在時作 fallback/reconcile。
+description: WHD repository-content implementation 的 CURRENT workspace-first 入口。Git production X 是唯一流程 authority；每個 executor 在自己的 repo workspace 修改/測試後走 delivery branch + PR/checks。Google Drive 僅為資料／mirror／backup，永不參與 startup、routing 或施工 authority。
 whd_doc_role: CURRENT
 whd_contract: root-shared-unpushed-v1
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# root-local-first / shared-unpushed V1
+# root-local-first / workspace-first V2
 
 ## 0. ENTRY_ROUTER_FIRST_HARD_GATE_V1
 
@@ -19,7 +19,7 @@ READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
 → ENTRY_ROUTER_READY
 ```
 
-`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。**兩個 bootstrap path 都是相對於已解析的 executor-local repo workspace 讀取，不得先去 Google Drive 尋找同名契約。** 若 executor workspace 已是合法 repo workspace（例如 Codex `/workspace/whd`），Drive mount 不可見、Drive mirror 缺檔、或 workspace 內沒有 `.unpushed` 都不是要求使用者重新指定施工 root 的理由；普通 `WORKSPACE_DEFAULT` 直接繼續。只有 fresh touched-path evidence 證明 shared-zero drift 時才切 `SHARED_ZERO_FALLBACK`。
+`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。**兩個 bootstrap path 都只從已解析的 executor-local repo workspace 讀取。Google Drive mirror、舊 Drive Skill、`.unpushed`、shared-zero 或任何 Drive 可見性都不得參與 startup routing。Drive mount 不可見永遠不是 repository-content blocker。**
 
 以下動作全部 fail closed：
 
@@ -85,126 +85,28 @@ Git write 仍受限：
 
 machine owner=`tools/root_local_first_gate.py::classify_target_drift_action`；schema=`WHD_GREEN_REUSE_REVALIDATION_V1`。
 
-### 1.2 Conditional Drive/shared-0 fallback
+### 1.2 Drive mirror/data boundary
 
-`/Google Drive/WHD/.unpushed/{docs|body}/0` 保留，但只在 **fresh evidence 證明 touched paths 存在 GitHub/workspace 沒有的 unpushed overlay/drift** 時啟動。
+Google Drive 已退出 repository-content execution routing。Drive 只允許保存資料、artifact、backup 與 production mirror；不得作為 CURRENT Skill/contract、施工 root、workspace、shared-zero fallback 或 blocker authority。
 
-route machine owner=`tools/root_local_first_gate.py::select_repository_content_route`：
+固定 machine rule：
 
 - `shared_zero_drift_present=false → WORKSPACE_DEFAULT`
-- `shared_zero_drift_present=true → SHARED_ZERO_FALLBACK`
-
-只有 `SHARED_ZERO_FALLBACK` 才啟動既有 `tools/workspace_canonical_sync.py`、generation/hash、三方合併、conflict checkpoint、manifest freeze、`CANONICAL_SHARED_0_UPDATED` 與 `/推推 文檔|主體`。
-
-workspace dirty work 不得被 fallback sync silent overwrite；同 path drift 固定 `WORKSPACE_CANONICAL_RECONCILE_REQUIRED`。
+- `shared_zero_drift_present=true → WORKSPACE_DEFAULT`（舊 shared-zero evidence 只可記錄為 retired/historical drift，不得改變 route）
+- Drive mount / mirror / pointer 不可見 → `CONTINUE_WORKSPACE_DEFAULT`
+- executor-local repo workspace 不存在或不可執行測試 → `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME`
 
 ### 1.3 Authority boundary
 
-executor-local workspace 是 execution surface/cache，不是新的 canonical content authority。普通共同 baseline authority 是 GitHub `cleanup/2d-3d-sync`；Drive shared-0 在 fallback active 時只對該未推送 lineage 擁有較新 overlay authority。Skill 自動觸發只會選 route，不會授權非-baseline GitHub/remote action；未授權動作仍 `REMOTE_CONNECTION_DENIED`。
+executor-local workspace 是 execution surface；共同 CURRENT process/content baseline authority 是 GitHub `cleanup/2d-3d-sync`。Drive mirror 永遠沒有 routing、startup、workspace 或 overlay authority。Skill 自動觸發只會選 workspace route，不會授權非-baseline GitHub/remote action；未授權動作仍 `REMOTE_CONNECTION_DENIED`。
 
-## 2. 兩條未推送 lineage
+## 2. Retired shared-zero history
 
-固定：
+舊 `.unpushed/docs/0`、`.unpushed/body/0`、shared-zero generation/freeze、Drive canonical root、`/推推` 專屬 shared-zero delivery 與 `DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1` 全部屬 **HISTORICAL / SUPERSEDED**。它們可存在於 Git 歷史或備份資料，但不得被 CURRENT router、Skill、contract、scheduler、工作槽或 executor 啟動。
 
-- 文檔 lane：`.unpushed/docs/0`
-- 主體 lane：`.unpushed/body/0`
+CURRENT 唯一路徑：
 
-分類看**歸屬**而不是副檔名：
-
-- 治理、Skill、`AGENTS.md`、流程 authority、Registry、SOP、治理 contract、治理 tests、純說明文件 → docs。
-- 產品程式、產品 tests、UI、renderer、geometry、manufacturing → body。
-- **主體必要的文件屬於 body**：若不同步交付會讓產品不完整、不可驗收或契約不一致，就不能丟到 docs。
-
-machine owner=`tools/shared_unpushed_integration.py::classify_lane`。
-
-## 3. SHARED_ZERO_FALLBACK 專用硬閘門
-
-唯一順序：
-
-```text
-ROOT_IDENTITY_CURRENT
-→ LANE_CLASSIFIED
-→ ZERO_INITIALIZED_OR_FRESH_READ
-→ WORKER_BASE_LATEST_ZERO
-→ WORKER_MUTATION_COMPLETE
-→ WORKER_TESTS_GREEN
-→ MERGE_TO_FRESH_LATEST_ZERO
-→ CONFLICT_GATE_OR_MERGED
-→ POST_MERGE_ZERO_TESTS_GREEN
-→ ZERO_MANIFEST_FROZEN
-→ DELIVERY_RESERVATION
-→ GIT_WRITE_UNLOCKED
-```
-
-本節 **只在 `SHARED_ZERO_FALLBACK` active 時適用**；普通 `WORKSPACE_DEFAULT` 不進本節。任一步沒有 machine evidence，下一步 fail closed。
-
-### 3.1 ROOT_IDENTITY_CURRENT
-
-在未進入明確 remote-authorized delivery 前，只以 canonical root 的實際 repo tree、`.git` 本地 identity 與 exact parent-chain path 驗證 root identity；**不得為了做這一步先連 GitHub fresh-read `main`**。root tracked content 不能以舊 ZIP、聊天記憶、全域搜尋同名檔或 remote mirror 冒充 current。
-
-真正的 live target HEAD fresh-read 只在 `/推推` 已取得使用者遠端授權後執行。
-
-窄化 recovery 例外：durable delivery/readback evidence 已明確證明 canonical root 落後 accepted production lineage 時，有 root-capable runtime 才可選擇執行 `python tools/work_root_gate.py recover-current-production`。machine owner=`tools/work_root_gate.py::recover_canonical_root_to_current_production`；它只允許 tracked-clean、同一 production branch、local HEAD 為 fresh remote HEAD ancestor 的 fast-forward catch-up，保留 untracked `.unpushed`，不建立/修改 ExecutionRecord、不關 Issue、不簽 closure authority。**此 recovery 是 optional maintenance，不是 terminal/startup closure hard gate；沒有 root-capable surface 時不得因此要求額外權限或阻塞已完成 Issue。**
-
-### 3.2 LANE_CLASSIFIED
-
-planned paths 全部先分類到 docs/body。未分類 path fail closed；同一 path 不得同時存在兩 lane manifest。
-
-### 3.3 ZERO_INITIALIZED_OR_FRESH_READ
-
-第一次有人要改某 path：從 CURRENT root copy 該 path 進對應 lane `0`，記錄 hash/generation/issue/worker，建立 lineage lock。若 `0` 已有該 path，不得再從 root 舊版本當 base。
-
-### 3.4 WORKER_BASE_LATEST_ZERO
-
-後來者固定讀最新 `0` 的 generation+hash 作 base。base generation 落後時先 rebase/merge 到 latest `0`，禁止直接施工後覆寫。
-
-worker candidate 可以存在 `.unpushed/{lane}/workers/<worker>/issue-<N>`；它只是 candidate，不是 authority，也不是 Git branch。
-
-### 3.5 WORKER_MUTATION_COMPLETE / WORKER_TESTS_GREEN
-
-修改與測試都發生在 canonical root namespace，不建立 Git work branch。測試 profile 由 `tools/change_test_profile.py` 決定。TEST_RED 留在 root 修正並重測；禁止 GitHub-side hotfix。
-
-### 3.6 MERGE_TO_FRESH_LATEST_ZERO
-
-worker 完成後必須重新 fresh-read latest `0`，以「worker 起始 base + worker delta + fresh latest 0」做三方合併。merge 成功才可 generation+1。
-
-## 4. MERGE_CONFLICT_USER_DECISION_HARD_GATE_V1
-
-任何 conflict 都固定：
-
-`CONFLICT → WRITE WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1 → BLOCKED_USER_DECISION → NOTIFY USER`
-
-checkpoint 必須記錄 lane/path/base_generation/latest_generation/base_hash/latest_hash/worker_hash/conflict hunks/worker/issue。
-
-取得 `EXPLICIT_USER_CONFLICT_DECISION` 前，禁止：
-
-- auto resolve / ours / theirs / AI 自行選邊；
-- 改寫 conflict hunk；
-- generation+1；
-- merge 回 0；
-- 建 delivery branch；
-- `/推推`；
-- push / PR。
-
-## 5. POST_MERGE_ZERO_TESTS_GREEN
-
-worker 自己 GREEN 不代表 `0` GREEN。合併進最新 `0` 後必須再跑 affected/profile tests。只有最新 `0` 的 post-merge evidence GREEN 才能 freeze。
-
-## 6. ZERO_MANIFEST_FROZEN
-
-freeze 必須 exact 綁 lane、generation、source SHA、target branch、write/delete paths、每檔 hash、manifest digest、test commands/results。`0` 任何內容再變，舊 freeze 立即失效。
-
-## 7. Git delivery 只由 /推推 開啟
-
-正常施工階段允許為 production baseline 做 `READ / FETCH / COMPARE / BRANCH_READ / REPO_METADATA_READ`；內容修改與測試仍在 executor-local workspace。Git write 只在 exact tested diff 準備完成後進 delivery branch，production target 禁止直推。
-
-普通 WORKSPACE_DEFAULT 不需要 `/推推`；tests GREEN + exact diff 後即可開 tested delivery branch / PR window。只有 SHARED_ZERO_FALLBACK 才要求使用者下達 `/推推 文檔` 或 `/推推 主體` 並走 selected lane frozen delivery：
-
-`DELIVERY_FILESET_LOCKED → PUSH_SCOPE_MUST_EQUAL_LOCK → FRESH_TARGET_HEAD → DELIVERY_RESERVATION → CREATE_DELIVERY_BRANCH → EXACT_LOCKED_FILESET_APPLY → POST_PUSH_CI → PRE_MERGE_LATEST_FILE_RECHECK → MERGE_READBACK_VERIFIED → FINALIZE_DELIVERED_PATHS`
-
-fileset lock 必須 exact 綁 path + hash/delete marker；merge 前再次驗 target/head/changed filenames/locked blob hashes。target drift 先走 `GREEN_REUSE_FAST_PATH_V1`；若 candidate 與 test contract 未變且 drift 無 overlap/dependency impact，沿用既有 GREEN，只更新 fresh target/reconciliation evidence；有實質 impact 才回 workspace/shared-0 retest + refreeze。不得 Git-side hotfix。
-
-Flow v2 path reservation 保留在這個 delivery phase，**不再作為 root 施工前置 single-writer gate**。
+`production X → executor-local workspace → edit/test → exact tested delivery branch → PR/checks → production X`
 
 ## 8. Anti-regrowth
 
@@ -214,26 +116,29 @@ CURRENT 文件/Skill/contract 不得再宣告：
 - `source/manifests` 或 ZIP snapshot 是 current root authority；
 - root write 前必須 single-writer `PATHS_RESERVED`；
 - 建 branch 後才開始修改/測試；
-- 把 GitHub `cleanup/2d-3d-sync` 當普通 workspace production baseline；
-- 可以用 GitHub/Remote Desktop/全域同名搜尋取代 canonical root parent-chain lookup；
+- 把 Drive mirror、Drive Skill、`.unpushed` 或 shared-zero 當 production baseline / CURRENT authority；
+- 要求先解析 `/Google Drive/WHD` parent-chain 才能開始施工；
 - conflict 可自動 ours/theirs。
-- 把 Drive `.agents/contracts` 可見性當普通 workspace startup 前置；
-- 因 executor workspace 缺 `.unpushed` 而要求使用者重新指定或升格施工 root。
+- 讓任何 Drive mirror/pointer 自稱 `whd_doc_role: CURRENT`；
+- 因 Drive mount、Drive mirror、`.unpushed` 或 shared-zero 不可見而回 blocker、要求重新指定施工 root。
 
 舊文字如需保留，只能明確標 `HISTORICAL/SUPERSEDED`，不得參與 routing。
 
 
+## Compatibility / delivery invariants
+
+- Git write mode remains `EXACT_TESTED_DIFF_ONLY`.
+- `INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1` remains CURRENT; control-plane internals **不得由聊天層逐顆手動編排**.
+- Repository-content fixes must never be a GitHub-side hotfix; mutate/test in the executor-local workspace first.
+- Delivery still requires `DELIVERY_RESERVATION` after the exact tested diff is frozen.
+- production target 的 ref advancement 一律交回 Flow v2 trusted `MERGE` / `SYNC_TARGET`；chat/runtime connector 不得直接前推 production target。
+- `ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1` is retained as a compatibility label only: Drive/root sync is non-blocking maintenance and no longer nominates Drive as a construction root.
+
 ## Machine owners
 
+- entry/router + workspace delivery gate: `tools/root_local_first_gate.py`
 - test profile: `WHD_CHANGE_TEST_PROFILE_V1` / `tools/change_test_profile.py`
-
-- `INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1`: outer layer reports phase outcomes; low-level control transactions 不得由聊天層逐顆手動編排。
-
-- `DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1`: 只在 `SHARED_ZERO_FALLBACK_ACTIVE` 生效；普通 WORKSPACE_DEFAULT 不進 shared-0。
-
-- delivery Git write mode 固定 `EXACT_TESTED_DIFF_ONLY`；任何 delivery branch 上新增內容變更都必須退回 shared-0 重測。
-- delivery 成功後只清除 readback 已證明交付的 locked paths；其他未推送/後續變更保留。之後同檔再改必須重新登記為新的 shared-0 未推送修改。
-
+- legacy shared-zero helpers may remain only for historical data/recovery parsing and MUST NOT participate in CURRENT routing.
 
 ## 9. POST_INTEGRATION_DURABILITY_V2
 
@@ -243,18 +148,11 @@ repository-content cleanup 固定：
 
 `MERGE_READBACK_VERIFIED → LANE_DELIVERY_RECEIPT_BOUND → FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`
 
-### ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1
+### DRIVE_MIRROR_NON_AUTHORITY_V1
 
-- canonical `/Google Drive/WHD` root sync/recovery 保留為 maintenance / next-start catch-up，不是 terminal gate、不是 closure authority。
-- 有 root-capable runtime 時，可執行 `tools/post_integration_durability.py::sync_canonical_root_to_accepted_head` 或 `tools/work_root_gate.py::recover_canonical_root_to_current_production` 並留下 VERIFIED receipt。
-- execution surface 無法存取 `/Google Drive/WHD/.git` 時，固定記錄 maintenance drift；**不得要求額外「root-capable 權限」、不得保持 Issue OPEN、不得撤銷既有 DONE/FINALIZE**。
-- 缺少 `WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1` / `WHD_WORK_ROOT_RECOVERY_RECEIPT_V1` 不得成為 `FINALIZE`、Issue close、scheduler cycle return 的 blocker。
-- 若有人提供 root receipt，machine 仍驗 exact accepted head/tree；receipt 無效只代表 maintenance drift，不得重新打開 terminal Issue。
-- selected `.unpushed/{body|docs}/0` 的已交付 generation 仍必須變成 `EMPTY` 或 `ROLLED_FORWARD`，並留下 `WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1`。
-- `source/snapshots`、`Current Source Manifest`、`/work/active` archive 全部是 SUPERSEDED，不得再作完成 authority。
-- machine owner=`tools/post_integration_durability.py`；contract=`.agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json`。
-- production target 的 ref advancement 一律交回 Flow v2 trusted `MERGE` / `SYNC_TARGET`；chat/runtime connector `update_ref` 不得直接推進 main/production target。
-
+- `/Google Drive/WHD/WHD_MIRROR/CURRENT` 是 backup/mirror storage，不是 repo workspace、CURRENT Skill source 或 closure authority。
+- mirror 缺失、延遲、損壞或 mount 不可見，不得阻塞 workspace execution、FINALIZE、Issue close、scheduler return 或 #1279 類產品施工。
+- GitHub 暫時不可用時可用 mirror 作 recovery material，但不得把 Drive 自動升格成 production authority；恢復後必須 reconcile 到 production X。
 
 ### TEST_RECEIPT_AND_CONNECTOR_REJECTION_HARD_GATE_V2
 
@@ -262,4 +160,4 @@ repository-content cleanup 固定：
 
 單次 connector/runtime mutation rejection 先標 `RETRYABLE_UNCLASSIFIED`，不得直接宣告 permanent blocker。fresh-read authenticated permission、target/base existence、branch protection/ruleset 與 connector action contract 後再分類。delivery branch 只使用 `create_branch(base_sha)`；`update_ref` 只允許 non-authoritative delivery/recovery branch 且 `force=false`，不得直接前推 main/production target。只有所有合法 transport 都有 fresh durable evidence 證明 unavailable/forbidden，才可標 permanent capability blocker。
 
-Pre-write reservation 已退役；root shared-0 authoring 不取得 path reservation。只有 `LANE_MANIFEST_FROZEN` 後的 delivery phase 才允許 reservation。
+Pre-write reservation 已退役；workspace authoring 不取得 path reservation。只有 exact tested diff 的 delivery phase 才允許 reservation。

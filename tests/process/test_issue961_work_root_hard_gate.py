@@ -27,7 +27,12 @@ def test_v2_current_work_root_is_executor_local_policy_not_fixed_path():
     assert root["authority"] is False
     assert "library_path" not in root
     assert current["canonical_drive_overlay"]["ordinary_startup_required"] is False
+    assert current["canonical_drive_overlay"]["role"] == "MIRROR_BACKUP_ONLY"
+    assert current["canonical_drive_overlay"]["activation"] == "NEVER_CURRENT"
+    assert current["canonical_drive_overlay"]["routing_forbidden"] is True
     assert current["unpushed"]["ordinary_startup_required"] is False
+    assert current["unpushed"]["mode"] == "SUPERSEDED_DATA_ONLY"
+    assert current["unpushed"]["activation"] == "NEVER_CURRENT"
     assert not SUPERSEDED.exists()
 
 
@@ -83,7 +88,7 @@ def test_work_root_contract_rejects_regrowth_to_fixed_drive_or_codex_root():
             validate_gate_payload(broken)
 
 
-def test_agents_places_workspace_gate_then_conditional_shared_zero_before_preflight():
+def test_agents_places_workspace_gate_then_retired_shared_zero_compatibility_before_preflight():
     text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     entry = text.index("ENTRY_ROUTER_FIRST_HARD_GATE_V1")
     work = text.index("WORK_ROOT_BOOTSTRAP_HARD_GATE_V2")
@@ -93,17 +98,17 @@ def test_agents_places_workspace_gate_then_conditional_shared_zero_before_prefli
     assert "executor 自己的 repo workspace" in text
     assert "cleanup/2d-3d-sync" in text
     assert "shared_zero_drift_present=false → WORKSPACE_DEFAULT" in text
-    assert "shared_zero_drift_present=true → SHARED_ZERO_FALLBACK" in text
+    assert "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in text
 
 
-def test_flow_v2_startup_defaults_to_workspace_and_shared_zero_is_fallback():
+def test_flow_v2_startup_defaults_to_workspace_and_drive_cannot_change_route():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
     section = text.split("## PROJECT_STARTUP_HARD_GATE_V1", 1)[1].split(
         "<!-- FLOW_V2_EXECUTION_CANONICAL_V1 -->", 1
     )[0]
     assert "executor 自己的 repo workspace" in section
     assert "WORKSPACE_DEFAULT" in section
-    assert "SHARED_ZERO_FALLBACK" in section
+    assert "Drive/shared-zero 不得改變 route" in section
     assert "普通 startup 不要求 Drive mount/shared-0" in section
 
 
@@ -136,9 +141,12 @@ def test_startup_evidence_accepts_executor_local_workspace_gate():
     assert "executor-local repo workspace" in validated["declaration"]
 
 
-def test_shared_zero_paths_remain_fallback_capability_not_default_root():
+def test_shared_zero_paths_are_historical_compatibility_only():
     from tools.work_root_gate import UNPUSHED_ROOT, unpushed_zero_path, worker_candidate_path
 
+    contract = _payload()
+    assert contract["unpushed"]["mode"] == "SUPERSEDED_DATA_ONLY"
+    assert contract["unpushed"]["routing_forbidden"] is True
     assert UNPUSHED_ROOT == "/Google Drive/WHD/.unpushed"
     assert unpushed_zero_path("body") == "/Google Drive/WHD/.unpushed/body/0"
     assert unpushed_zero_path("docs") == "/Google Drive/WHD/.unpushed/docs/0"
@@ -153,7 +161,7 @@ def test_authority_map_still_points_to_single_current_machine_owners():
     )
     assert "contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py" in text
     assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json" in text
-    assert "contract=shared-unpushed-integration role=CURRENT path=tools/shared_unpushed_integration.py" in text
+    assert "contract=shared-unpushed-integration role=HISTORICAL path=tools/shared_unpushed_integration.py" in text
 
 
 def test_every_flow_v2_execution_bridge_routes_through_canonical_flow_startup():

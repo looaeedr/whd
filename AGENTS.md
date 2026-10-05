@@ -37,14 +37,14 @@ machine owner=`tools/root_local_first_gate.py::assert_entry_router_action_allowe
 
 共同 production baseline 固定 `cleanup/2d-3d-sync`。啟動只要求：
 
-`WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT → CONDITIONAL_SHARED_ZERO_DRIFT_CHECK`
+`WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT`
 
 workspace 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engine/gui_modules`。普通 startup 不要求 Google Drive mount、`.unpushed` layout、generation/manifest 或 `workspace_canonical_sync.py`。
 
 canonical contracts：
 - `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`
 - `.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`
-- `.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json`（fallback only）
+- `.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json`（HISTORICAL/SUPERSEDED data contract only）
 
 machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 
@@ -59,21 +59,21 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 2. production target 禁止 direct push；只接受 exact tested delivery branch → PR → required checks → merge。
 3. target 前進時 refresh baseline；碰到 touched path 就 retest，再 delivery。
 4. GitHub baseline read 不等於一般 Issue/PR/Actions 或任意 remote authority；Skill 自動觸發也不會擴張 authority，非 baseline 動作仍走原 authority gate，未授權固定 `REMOTE_CONNECTION_DENIED`。
-5. `/Google Drive/WHD/.unpushed/{docs|body}/0` 只有 fresh evidence 證明 touched paths 有 GitHub/workspace 沒有的未推送 drift 才介入。
-## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：conditional shared-0 fallback
+5. Google Drive / `.unpushed/{docs|body}/0` / shared-zero 全部退出 CURRENT repository-content routing；不得因其存在、缺失或 drift 改變施工 route。
+## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：workspace-only current route
 
 <!-- ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1 -->
 
-普通 route 固定 `WORKSPACE_DEFAULT`，不進 shared-0。route machine=`tools/root_local_first_gate.py::select_repository_content_route`：
+CURRENT route 固定 `WORKSPACE_DEFAULT`；route machine=`tools/root_local_first_gate.py::select_repository_content_route`：
 
 - `shared_zero_drift_present=false → WORKSPACE_DEFAULT`
-- `shared_zero_drift_present=true → SHARED_ZERO_FALLBACK`
+- `shared_zero_drift_present=true → WORKSPACE_DEFAULT`；舊 drift 只作 HISTORICAL evidence，不得切換 route。
 
-只有 `SHARED_ZERO_FALLBACK` 才啟動 `.unpushed/docs/0` / `.unpushed/body/0`、generation/hash、三方合併、conflict checkpoint、post-merge tests、manifest freeze、`workspace_canonical_sync.py` 與 `/推推 文檔|主體`。
+Drive mount、Drive mirror、舊 pointer、`.unpushed` 缺失都不是 blocker；`.unpushed/docs/0` / `.unpushed/body/0`、generation/freeze、Drive readback 與 `workspace_canonical_sync.py` 都不得參與 CURRENT routing。
 
-普通 WORKSPACE_DEFAULT 直接：`fresh X baseline → workspace edit/test → exact diff → delivery branch → PR/checks → merge/readback`。
+普通 CURRENT 流程固定：`fresh X baseline → workspace edit/test → exact diff → delivery branch → PR/checks → merge/readback`。
 
-shared-0 conflict 規則仍 fail-closed：有 conflict 必須 `BLOCKED_USER_DECISION`，不得 auto ours/theirs。
+真正沒有可寫、可測 executor-local repo workspace 時，才 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`。
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
 ### 0.0.0 Skill 使用前 user-visible 公告硬閘門
@@ -1048,7 +1048,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 禁止直接修改/push `cleanup/2d-3d-sync`、`main` 或其他 production target；exact tested diff 只能進 delivery branch。
 - delivery branch → PR → required checks → merge/readback 是普通主路。
 - target drift 命中 touched paths 時必須 refresh/reconcile workspace、重測，再更新 delivery candidate。
-- 只有 fresh shared-0 drift 證據存在時才切 `SHARED_ZERO_FALLBACK`，此時 `/推推`、lane freeze、Drive readback 規則才生效。
+- Drive/shared-zero 不再有 CURRENT delivery route；`/推推` 只可作已測 exact diff 的顯式 delivery alias，不得把施工流程導回 Drive。
 - remote scheduler/control-plane scope 依 Flow v2 自己 authority，不得拿普通 workspace baseline read 擴張 control-plane mutation。
 ### 0.0.4 Authoritative View freshness 硬閘門
 
