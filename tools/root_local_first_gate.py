@@ -22,6 +22,10 @@ DEFAULT_WORK_PREFIX = "/Google Drive/WHD/.unpushed"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
 TEST_EXECUTION_RECEIPT_SCHEMA = "WHD_TEST_EXECUTION_RECEIPT_V1"
+GREEN_REUSE_SCHEMA = "WHD_GREEN_REUSE_REVALIDATION_V1"
+GREEN_REUSE_REUSED = "REUSE_GREEN"
+GREEN_REUSE_REVALIDATE = "REVALIDATE_GREEN_REUSE_OR_RETEST"
+GREEN_REUSE_RETEST = "RETEST_REQUIRED"
 WORKER_CENSUS_SCHEMA = "WHD_SHARED_ZERO_WORKER_CENSUS_V1"
 REQUIRED_ORDER = (
     "WORKSPACE_SOURCE_CURRENT",
@@ -463,6 +467,108 @@ def validate_test_execution_receipt(
         raise ValueError("test receipt manifest_digest must be SHA256")
     return {str(k): v for k, v in item.items()}
 
+
+def validate_green_reuse_evidence(
+    evidence: object, *, expected_diff_digest: str
+) -> dict[str, object]:
+    """Validate cheap reuse evidence for an already-GREEN unchanged candidate.
+
+    This validator never runs tests.  It only proves that the tested candidate
+    identity is unchanged and that fresh target drift is outside the candidate
+    and its declared dependency/test-contract surface.
+    """
+
+    item = _mapping(evidence, "green reuse evidence")
+    if item.get("schema") != GREEN_REUSE_SCHEMA:
+        raise ValueError("GREEN_REUSE_REVALIDATION: invalid schema")
+    if str(item.get("status") or "").strip().upper() != GREEN_REUSE_REUSED:
+        raise ValueError("GREEN_REUSE_REVALIDATION: status must be REUSE_GREEN")
+    if item.get("fresh") is not True:
+        raise ValueError("GREEN_REUSE_REVALIDATION: evidence must be fresh")
+
+    digest = str(item.get("candidate_diff_digest") or "").strip().lower()
+    expected = str(expected_diff_digest or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", digest) or digest != expected:
+        raise ValueError("GREEN_REUSE_REVALIDATION: candidate diff changed")
+
+    prior_head = _sha(item.get("prior_green_head_sha"), "prior green head sha")
+    current_head = _sha(item.get("current_head_sha"), "current head sha")
+    if prior_head != current_head:
+        raise ValueError("GREEN_REUSE_REVALIDATION: candidate head changed")
+    if str(item.get("prior_green_status") or "").strip().upper() != "GREEN":
+        raise ValueError("GREEN_REUSE_REVALIDATION: prior result is not GREEN")
+
+    prior_target = _sha(item.get("prior_target_sha"), "prior target sha")
+    fresh_target = _sha(item.get("fresh_target_sha"), "fresh target sha")
+    if prior_target == fresh_target:
+        raise ValueError("GREEN_REUSE_REVALIDATION: no target drift to revalidate")
+
+    candidate_paths = item.get("candidate_paths")
+    target_changed_paths = item.get("target_changed_paths")
+    if not isinstance(candidate_paths, list) or not candidate_paths:
+        raise ValueError("GREEN_REUSE_REVALIDATION: candidate_paths required")
+    if not isinstance(target_changed_paths, list) or not target_changed_paths:
+        raise ValueError("GREEN_REUSE_REVALIDATION: target_changed_paths required")
+    candidate_set = {str(path).strip() for path in candidate_paths if str(path).strip()}
+    target_set = {str(path).strip() for path in target_changed_paths if str(path).strip()}
+    if not candidate_set or not target_set:
+        raise ValueError("GREEN_REUSE_REVALIDATION: nonblank path sets required")
+    if candidate_set & target_set:
+        raise ValueError("GREEN_REUSE_REVALIDATION: target drift overlaps candidate paths")
+
+    if item.get("dependency_impact") is not False:
+        raise ValueError("GREEN_REUSE_REVALIDATION: dependency impact requires retest")
+    if item.get("test_profile_changed") is not False:
+        raise ValueError("GREEN_REUSE_REVALIDATION: test profile changed")
+    if item.get("test_contract_changed") is not False:
+        raise ValueError("GREEN_REUSE_REVALIDATION: test contract changed")
+    if item.get("exact_commands_unchanged") is not True:
+        raise ValueError("GREEN_REUSE_REVALIDATION: exact test commands changed")
+    if item.get("extra_test_run_performed") is not False:
+        raise ValueError("GREEN_REUSE_REVALIDATION: reuse path must not run extra tests")
+
+    return {str(k): v for k, v in item.items()}
+
+
+def classify_target_drift_action(
+    *,
+    target_drift: bool,
+    expected_diff_digest: str,
+    green_reuse_evidence: object | None = None,
+) -> dict[str, object]:
+    """Choose the cheap reuse path before falling back to a real retest."""
+
+    if not target_drift:
+        return {
+            "classification": "NO_TARGET_DRIFT",
+            "retest_required": False,
+            "extra_test_run": False,
+        }
+    if green_reuse_evidence is None:
+        return {
+            "classification": GREEN_REUSE_REVALIDATE,
+            "retest_required": False,
+            "extra_test_run": False,
+        }
+    try:
+        validated = validate_green_reuse_evidence(
+            green_reuse_evidence, expected_diff_digest=expected_diff_digest
+        )
+    except ValueError as exc:
+        return {
+            "classification": GREEN_REUSE_RETEST,
+            "retest_required": True,
+            "extra_test_run": True,
+            "reason": str(exc),
+        }
+    return {
+        "classification": GREEN_REUSE_REUSED,
+        "retest_required": False,
+        "extra_test_run": False,
+        "evidence": validated,
+    }
+
+
 def validate_execution_mode_provenance(*, execution_mode: str, provenance: object) -> dict[str, object]:
     """Prove that a remote/control-plane exception comes from a trusted runtime identity.
 
@@ -610,8 +716,17 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("post-delivery cleanup must not delete repository files")
     if contract.get("git_write_mode") != "EXACT_TESTED_DIFF_ONLY":
         raise ValueError("Git write mode must be EXACT_TESTED_DIFF_ONLY")
-    if contract.get("target_drift_action") != "REFRESH_WORKSPACE_BASELINE_RETEST_BEFORE_DELIVERY":
+    if contract.get("target_drift_action") != "REVALIDATE_GREEN_REUSE_IF_UNCHANGED_ELSE_RETEST":
         raise ValueError("target drift action mismatch")
+    green_reuse = _mapping(contract.get("green_reuse_fast_path"), "green_reuse_fast_path")
+    if green_reuse.get("schema") != GREEN_REUSE_SCHEMA or green_reuse.get("status") != "CURRENT":
+        raise ValueError("GREEN reuse fast-path schema mismatch")
+    if green_reuse.get("machine_owner") != "tools/root_local_first_gate.py::classify_target_drift_action":
+        raise ValueError("GREEN reuse fast-path machine owner mismatch")
+    if green_reuse.get("extra_test_run_on_reuse") is not False:
+        raise ValueError("GREEN reuse fast path must not run extra tests")
+    if green_reuse.get("retest_when_any_impact") is not True:
+        raise ValueError("GREEN reuse fast path must fail closed to retest on impact")
     default_flow = _mapping(contract.get("default_repository_content_flow"), "default_repository_content_flow")
     if default_flow.get("schema") != "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1" or default_flow.get("status") != "CURRENT":
         raise ValueError("workspace-first default flow schema mismatch")
@@ -877,6 +992,7 @@ def build_gate_evidence(
     remote_connection_authority: Mapping[str, object] | None = None,
     path_reservation_evidence: Mapping[str, object] | None = None,
     target_drift: bool = False,
+    green_reuse_evidence: Mapping[str, object] | None = None,
     shared_zero_drift_present: bool = False,
     workspace_mutations_complete: bool = False,
     workspace_tests_green: bool = False,
@@ -946,9 +1062,18 @@ def build_gate_evidence(
                             if str(reservation.get("target_branch") or "") != PRODUCTION_BRANCH:
                                 raise ValueError("workspace delivery reservation target branch mismatch")
                             completed.append("DELIVERY_PATHS_RESERVED")
-                            if target_drift:
+                            drift_resolution = classify_target_drift_action(
+                                target_drift=target_drift,
+                                expected_diff_digest=str(diff_digest),
+                                green_reuse_evidence=green_reuse_evidence,
+                            )
+                            if drift_resolution["classification"] == GREEN_REUSE_REVALIDATE:
+                                next_action = "REVALIDATE_GREEN_REUSE_OR_RETEST_BEFORE_DELIVERY"
+                            elif drift_resolution["classification"] == GREEN_REUSE_RETEST:
                                 next_action = "REFRESH_WORKSPACE_BASELINE_RETEST_BEFORE_DELIVERY"
                             else:
+                                if drift_resolution["classification"] == GREEN_REUSE_REUSED:
+                                    completed.append("GREEN_REUSE_REVALIDATED")
                                 completed.append("GIT_WRITE_UNLOCKED")
                                 next_action = "EXACT_TESTED_DIFF_ONLY"
         result = {
@@ -974,6 +1099,8 @@ def build_gate_evidence(
             result["remote_connection_authority"] = dict(remote_authority)
         if reservation:
             result["path_reservation"] = dict(reservation)
+        if 'drift_resolution' in locals():
+            result["target_drift_resolution"] = dict(drift_resolution)
         return result
 
     if repository_content_implementation and shared_zero_drift_present:
@@ -1088,8 +1215,17 @@ def build_gate_evidence(
                                         if tuple(reservation.get("write_paths") or ()) != tuple(lane.get("write_paths") or ()) or tuple(reservation.get("delete_paths") or ()) != tuple(lane.get("delete_paths") or ()):
                                             raise ValueError("delivery reservation scope must equal lane manifest scope")
                                         completed.append("DELIVERY_PATHS_RESERVED")
-                                        if target_drift:
-                                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane)}
+                                        drift_resolution = classify_target_drift_action(
+                                            target_drift=target_drift,
+                                            expected_diff_digest=str(diff_digest),
+                                            green_reuse_evidence=green_reuse_evidence,
+                                        )
+                                        if drift_resolution["classification"] == GREEN_REUSE_REVALIDATE:
+                                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "REVALIDATE_GREEN_REUSE_OR_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane), "target_drift_resolution": drift_resolution}
+                                        if drift_resolution["classification"] == GREEN_REUSE_RETEST:
+                                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane), "target_drift_resolution": drift_resolution}
+                                        if drift_resolution["classification"] == GREEN_REUSE_REUSED:
+                                            completed.append("GREEN_REUSE_REVALIDATED")
                                         completed.append("GIT_WRITE_UNLOCKED")
                                         next_action = "EXACT_TESTED_DIFF_ONLY"
     result = {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": "GIT_WRITE_UNLOCKED" in completed, "next_action": next_action}
