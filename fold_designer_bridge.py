@@ -2351,7 +2351,7 @@ def _phase6_install_part_editor_compatibility(self):
     # Receiving 後面板形式 is a normal product choice, not an advanced
     # parameter.  Keep one normal-input projection bound to the existing
     # canonical structure-state callback; no second state owner is created.
-    self.back_panel_mode_control = original.ttk.Frame(self.input_content_host)
+    self.back_panel_mode_control = original.ttk.Frame(receiving_controls.header)
     original.ttk.Label(
         self.back_panel_mode_control,
         text="後面板形式",
