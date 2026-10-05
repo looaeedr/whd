@@ -116,8 +116,9 @@ def test_legacy_source_snapshot_workflow_stays_retired_under_durability_v2() -> 
     tool = (ROOT / "tools/post_integration_durability.py").read_text(encoding="utf-8")
     assert "ROOT_SYNC_PENDING" not in tool
     assert "INVALID_NON_BLOCKING" in tool
-    assert "LANE_CLEANUP_PENDING" in tool
-    assert "FINALIZE_DELIVERED_LANE_ZERO" in tool
+    assert "LANE_CLEANUP_PENDING" not in tool
+    assert "FINALIZE_DELIVERED_LANE_ZERO" not in tool
+    assert "HISTORICAL_IGNORED" in tool
 
 
 def test_direct_control_transaction_workflow_and_cli_stay_retired() -> None:
