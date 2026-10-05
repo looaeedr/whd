@@ -1,33 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "1ac2f7d3-09c5-4323-b85f-02337e940c35",
+  "request_id": "817cc315-e7eb-443a-b193-462b1c7d4f89",
   "issue": 1279,
-  "kind": "RECONCILE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-  "expected_coord_head": "a33e476221d3c0abff461275aa985193b7b9d90b",
-  "expected_generation": 6,
+  "expected_coord_head": "a4558df3135ef18ec77b87dc8dc9e45b6cef70b5",
+  "expected_generation": 7,
   "effect": {
-    "observed_work_branch": "refactor/issue-1279-unfolded-blank-composition",
-    "observed_head_sha": "52871657cd36f47c6dddd000a3a18d3fba96c8c6",
-    "observed_target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
+    "write_paths": [
+      "fold_designer_bridge.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "tests/test_issue110_shared_info_projection.py",
+      "tests/test_issue369_t5_corner_data_view_owner.py",
+      "tests/test_issue479_final_scene_composition_owner.py",
+      "tests/test_phase6_3d_view_regressions.py",
+      "tests/test_phase6_gui_3d_integrity_20260830.py"
+    ],
+    "delete_paths": [],
     "next_action": {
+      "kind": "APPLY_COMMIT",
       "args": {
-        "candidate_commit_sha": "52871657cd36f47c6dddd000a3a18d3fba96c8c6",
+        "candidate_commit_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
         "diff_digest": "ff47a094aa25c55db86d15e17aba23395c106dcfa91711d9f331b92d18c15485"
       },
-      "display": "Commit exact tested issue1279 diff",
-      "kind": "APPLY_COMMIT"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1279,
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d"
+      "display": "Apply exact tested issue1279 candidate on current baseline"
     }
   },
   "startup_evidence": {
@@ -152,8 +151,8 @@
       "status": "GREEN"
     },
     "purpose": "接手 #1279；在本地 workspace 完成並驗證展開料文字 composition 重構，交付 exact tested diff。",
-    "issued_at": "2026-10-05T23:03:51Z",
-    "expires_at": "2026-10-05T23:08:51Z",
+    "issued_at": "2026-10-05T23:05:19Z",
+    "expires_at": "2026-10-05T23:10:19Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：接手 #1279；在本地 workspace 完成並驗證展開料文字 composition 重構，交付 exact tested diff。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
@@ -199,7 +198,7 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-05T23:03:51Z"
+    "observed_at": "2026-10-05T23:05:19Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -210,9 +209,9 @@
     "issue": 1279,
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
-    "startup_issued_at": "2026-10-05T23:03:51Z",
-    "preflight_observed_at": "2026-10-05T23:03:51Z",
-    "issued_at": "2026-10-05T23:03:51Z",
-    "expires_at": "2026-10-05T23:08:51Z"
+    "startup_issued_at": "2026-10-05T23:05:19Z",
+    "preflight_observed_at": "2026-10-05T23:05:19Z",
+    "issued_at": "2026-10-05T23:05:19Z",
+    "expires_at": "2026-10-05T23:10:19Z"
   }
 }
