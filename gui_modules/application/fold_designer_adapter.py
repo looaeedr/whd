@@ -2492,13 +2492,9 @@ class Phase6FoldDesignerComposition:
         return True
 
     def back_panel_mode_control_is_applicable(self, namespace):
-        """Return whether the normal-input rear-panel choice applies."""
+        """Return whether the Receiving header rear-panel choice applies."""
         app = self.app
         required = lambda name: self._required(namespace, name)
-        workspace = getattr(app, "designer_workspace", None)
-        active_part = str(getattr(workspace, "active_part", "") or "")
-        if active_part != "box_body:back":
-            return False
         snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
         if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
             return False
@@ -2509,7 +2505,7 @@ class Phase6FoldDesignerComposition:
         )
 
     def refresh_back_panel_mode_control(self, namespace):
-        """Project canonical rear-panel mode into the normal input region."""
+        """Project canonical rear-panel mode beside the Receiving switch selector."""
         app = self.app
         required = lambda name: self._required(namespace, name)
         frame = getattr(app, "back_panel_mode_control", None)
@@ -2538,12 +2534,8 @@ class Phase6FoldDesignerComposition:
             var.set(label)
 
         if not frame.winfo_manager():
-            before = getattr(getattr(app, "bend_ui", None), "nb", None)
             original = required("original")
-            options = {"fill": original.tk.X, "pady": (0, 4)}
-            if before is not None and before.winfo_manager():
-                options["before"] = before
-            frame.pack(**options)
+            frame.pack(side=original.tk.LEFT, padx=(12, 0))
         return True
 
     def select_back_panel_mode(self, namespace, var):
