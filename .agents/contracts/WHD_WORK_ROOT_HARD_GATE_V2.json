@@ -1,6 +1,6 @@
 {
   "schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-  "version": 3,
+  "version": 4,
   "status": "CURRENT",
   "owner": "tools/work_root_gate.py",
   "default_work_root": {
@@ -32,14 +32,16 @@
     "docs_zero": "/Google Drive/WHD/.unpushed/docs/0",
     "body_workers": "/Google Drive/WHD/.unpushed/body/workers",
     "docs_workers": "/Google Drive/WHD/.unpushed/docs/workers",
-    "mode": "CONDITIONAL_FALLBACK_ONLY",
-    "ordinary_startup_required": false
+    "mode": "SUPERSEDED_DATA_ONLY",
+    "ordinary_startup_required": false,
+    "activation": "NEVER_CURRENT",
+    "authority": false,
+    "routing_forbidden": true
   },
   "required_sequence": [
     "WORKSPACE_ROOT_RESOLVED",
     "WORKSPACE_GIT_IDENTITY_VERIFIED",
     "PRODUCTION_BASELINE_CURRENT",
-    "CONDITIONAL_SHARED_ZERO_DRIFT_CHECK",
     "ROOT_SHARED_UNPUSHED_GATE_READ",
     "REQUESTED_OPERATION"
   ],
@@ -59,12 +61,12 @@
     "closure_authority": false,
     "purpose": "OPTIONAL_WORKSPACE_BASELINE_CATCHUP"
   },
-  "canonical_drive_overlay": {
+  "drive_mirror": {
     "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
-    "activation": "ONLY_WHEN_FRESH_SHARED_ZERO_DRIFT_EXISTS",
+    "library_path": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "role": "MIRROR_BACKUP_ONLY",
     "ordinary_startup_required": false,
-    "machine_owner": "tools/workspace_canonical_sync.py"
+    "routing_forbidden": true,
+    "authority": false
   }
 }
