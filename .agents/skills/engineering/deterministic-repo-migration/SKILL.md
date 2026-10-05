@@ -33,21 +33,26 @@ Out of scope:
 
 <!-- WHD_REPOSITORY_MUTATION_GATE_V1 -->
 
-Current repository-content mutation order is fixed to:
+Current repository-content mutation order is workspace-first:
 
-`ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED`
+`WORKSPACE_DEFAULT → FRESH_X_BASELINE → DETERMINISTIC_MUTATION → TARGETED/FULL_TESTS_GREEN → EXACT_TESTED_DIFF → DELIVERY_BRANCH → PR/CI → MERGE/READBACK`
 
-Pre-write path reservation is retired. Flow v2 path reservation is delivery-only after `LANE_MANIFEST_FROZEN`.
+Only when fresh touched-path evidence proves a newer shared `.unpushed/{docs|body}/0` overlay may routing switch to:
+
+`SHARED_ZERO_FALLBACK → merge-to-latest-0 → post-merge GREEN → freeze → delivery reservation → Git delivery`
+
+Pre-write path reservation remains retired. Flow v2 path reservation is delivery-only after an exact tested/frozen delivery candidate exists.
 
 本 Skill 只擁有 deterministic mapping / idempotence / drift-audit 語意，**不擁有 WHD execution transport 或 repository write authority**。只要任務會改 WHD repository content，mutation 前固定同時服從：
 
 1. `.agents/skills/engineering/flow-v2-execution/SKILL.md` 的 `WHD_EXECUTION_RECORD_V2` / single-writer / structured `next_action`；
-2. `.agents/skills/engineering/root-local-first/SKILL.md` 的 shared-0 gate：`ROOT_IDENTITY_CURRENT → LANE_CLASSIFIED → latest 0 → worker mutate/test → fresh latest 0 merge → post-merge test → freeze → delivery reservation → GIT_WRITE_UNLOCKED`；
+2. `.agents/skills/engineering/root-local-first/SKILL.md` 的 CURRENT router：普通路徑固定 `WORKSPACE_DEFAULT`，使用 executor-local repo workspace + fresh `cleanup/2d-3d-sync` baseline；
 3. `WHD_TEST_EXECUTION_RECEIPT_V1` + exact tested diff；bare validator PASS / second-pass zero diff 都不能自行解鎖 Git write；
-4. remote/scheduler/GITHUB_ONLY 遇到 repository-content implementation 必須 `HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION`，不得在 GitHub branch 直接 author/hotfix；
-5. delivery phase 只可由 `/推推 文檔|主體` 將 selected lane frozen manifest 搬到 dedicated delivery branch；production target advancement 仍只走 Flow v2 trusted `MERGE / SYNC_TARGET`。
+4. scheduler/GITHUB_ONLY/REMOTE_ACTION 若需要產生 repository-content diff，必須 handoff 到**workspace-capable executor**；不得把 GitHub control-plane branch 當未測試 authoring/hotfix 面；
+5. 只有 router fresh 證明 touched-path shared-0 drift 時才進 `SHARED_ZERO_FALLBACK`；此時才使用 latest 0 merge/freeze/`/推推` fallback semantics；
+6. production target advancement 仍只走 Flow v2 trusted `MERGE / SYNC_TARGET` 或同 scope `WORKSPACE_DELIVERY` 的正常 PR/merge readback。
 
-若 root shared-0 / post-merge GREEN / conflict-decision / Flow v2 delivery evidence 缺任一項，deterministic migration 必須 fail closed；不得以「migration 是機械式／可重複」為理由旁路 execution gate。
+若 ordinary workspace baseline / exact tested diff / required test evidence / Flow v2 delivery evidence缺任一項，deterministic migration 必須 fail closed；**不得因 Drive mount、shared-0 或舊 handoff 名稱不存在而停止 ordinary Codex/workspace execution**。fallback 只有 fresh drift evidence 選中時才是必要條件。
 
 ## Mandatory execution contract
 
