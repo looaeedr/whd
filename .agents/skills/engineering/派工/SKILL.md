@@ -21,6 +21,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_NON_PROPAGATION_BRIDGE_V1
 
+Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`，authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`；同 scope 沿用/自動 mint 只是不重問使用者，**不是 bypass machine gate**。
+
 派工/READY/ACQUIRE/owning Issue 語意本身不會憑空產生 GitHub network authority；但**使用者已明確要求執行 exact GitHub Issue/ticket** 時，該 user instruction 就是 `USER_EXPLICIT_REMOTE` 的來源，可由 machine 一次 mint 本 task 所需的 exact `ISSUE_READ / ISSUE_COMMENT / READBACK` 等 actions，並在同 invocation/task scope 內沿用；不得再向使用者重問同一授權。`coord/execution-v2` 的 baseline branch/read metadata仍服從 workspace baseline read policy。只有 scope 擴張、不同 repository/Issue 或額外 remote action 才需新的 explicit authority。
 
 ## Dispatch
