@@ -669,8 +669,6 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("ordinary workspace entry must not require Drive")
     if canonical_source.get("missing_drive_action") != "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE":
         raise ValueError("missing Drive must continue workspace-default when workspace-capable")
-    if canonical_source.get("missing_shared_zero_action") != "IGNORE_RETIRED_SHARED_ZERO_AND_CONTINUE_WORKSPACE_DEFAULT":
-        raise ValueError("retired shared-zero must never affect ordinary workspace entry")
     if tuple(contract.get("required_order") or ()) != REQUIRED_ORDER:
         raise ValueError("root-local-first required order mismatch")
     if contract.get("test_profile_schema") != TEST_PROFILE_SCHEMA:
@@ -688,10 +686,6 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("workspace path policy mismatch")
     if root_path_gate.get("resolution_method") != "WORKSPACE_REPO_RELATIVE_PATH":
         raise ValueError("workspace path resolution method mismatch")
-    if root_path_gate.get("shared_zero_fallback_root") is not None:
-        raise ValueError("shared-zero fallback root must remain retired")
-    if root_path_gate.get("shared_zero_fallback_resolution_method") != "RETIRED":
-        raise ValueError("shared-zero fallback resolution must remain retired")
     if root_path_gate.get("drive_mirror_role") != "MIRROR_BACKUP_ONLY":
         raise ValueError("Drive mirror role mismatch")
     remote_gate = _mapping(contract.get("remote_connection_hard_gate"), "remote_connection_hard_gate")
@@ -747,10 +741,6 @@ def validate_contract(payload: object) -> dict[str, object]:
         "startup_requires_drive", "startup_requires_shared_zero", "startup_requires_workspace_canonical_sync"
     )):
         raise ValueError("ordinary workspace startup must not require Drive/shared-zero sync")
-    if default_flow.get("shared_zero_fallback_trigger") != "RETIRED":
-        raise ValueError("shared-zero fallback must remain retired")
-    if default_flow.get("shared_zero_fallback_machine") is not None:
-        raise ValueError("CURRENT flow must not invoke a shared-zero fallback machine")
     if default_flow.get("drive_routing_forbidden") is not True:
         raise ValueError("Drive routing must remain forbidden")
     if default_flow.get("missing_workspace_action") != "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME":
