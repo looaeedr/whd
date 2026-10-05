@@ -149,7 +149,7 @@ def test_scheduler_required_reference_uses_flow_v2_current_rules_not_legacy_guar
     assert "canonical root shared-0 authoring/tests" not in text
     assert "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION" not in text
     assert "READY → atomic ACQUIRE+reservation" not in text
-    assert "排程 remote control-plane 與 root content surface 邊界 — CURRENT" in text
+    assert "排程 remote control-plane 與 content workspace 邊界 — CURRENT" in text
     assert "需要 Guard 時走 trusted Remote Guard" not in text
 
 
