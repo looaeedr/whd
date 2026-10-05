@@ -366,7 +366,8 @@ def test_worker_candidate_paths_are_issue_scoped_but_not_content_authority():
     assert a != b
     assert a.endswith("/body/workers/work0/issue-1001")
     assert b.endswith("/body/workers/work1/issue-1002")
-    assert unpushed_zero_path("body") == "/Google Drive/WHD/.unpushed/body/0"
+    with pytest.raises(ValueError, match="SHARED_ZERO_ROUTING_RETIRED"):
+        unpushed_zero_path("body")
     assert "/work/active" not in a + b
 
 
