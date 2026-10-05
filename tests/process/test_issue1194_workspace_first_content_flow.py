@@ -174,7 +174,7 @@ def test_current_contracts_do_not_make_codex_path_or_drive_sync_global_startup()
     assert mirror["workspace_root_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert "workspace_root" not in mirror
     assert mirror["ordinary_startup_required"] is False
-    assert mirror["activation"] == "SHARED_ZERO_FALLBACK_ONLY"
+    assert mirror["activation"] == "RETIRED_DATA_ONLY"
 
 
 def test_push_skill_explicitly_says_normal_workspace_flow_does_not_use_push_skill():
