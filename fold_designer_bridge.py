@@ -1221,6 +1221,15 @@ def _phase6_on_endcap_fw_value_selected(self, part_key, value_var):
         globals(), part_key, value_var
     )
 
+_BOX_STRUCTURE_LABELS = {
+    BoxBodyStructureType.INTEGRAL: "一體成型",
+    BoxBodyStructureType.TWO_PIECE_W_SPLIT: "二件式（W 二分）",
+    BoxBodyStructureType.THREE_PIECE_W_SPLIT: "三件式（W 三分）",
+    BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT: "三件式（側背分離）",
+}
+_BOX_STRUCTURE_LABEL_TO_TYPE = {label: key for key, label in _BOX_STRUCTURE_LABELS.items()}
+
+
 def _phase6_receiving_layout_applicable(self):
     return _phase6_composition(self).receiving_layout_applicable()
 
