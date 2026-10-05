@@ -530,3 +530,62 @@ def test_issue1225_assembly_application_sequencing_is_composition_owned():
         "refresh_assembly_parts_panel_if_topology_changed",
         "refresh_assembly_parts_panel",
     }.issubset(method_names)
+
+
+def test_issue1227_settings_panel_and_external_ingress_are_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert "_SETTINGS_EXTENSION_MAP_ATTRS" not in bridge_source
+    assert "_phase6_sync_settings_panel_extension" not in funcs
+
+    delegates = {
+        "_phase6_on_baseline_model_changed",
+        "_phase6_sync_settings_panel_compat",
+        "_phase6_settings_panel_toggle_baseline",
+        "_phase6_invalidate_settings_page",
+        "_phase6_render_settings_context",
+        "_phase6_save_current_settings_as_defaults",
+        "_phase6_apply_external_settings",
+        "_phase6_apply_external_model",
+        "_phase6_apply_external_sync",
+        "_phase6_update_left_workspace_width",
+        "_phase6_apply_ui_text_size",
+        "_phase6_on_ui_text_size_changed",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "sync_settings_panel_extension",
+        "sync_settings_panel_compat",
+        "settings_panel_toggle_baseline",
+        "invalidate_settings_page",
+        "render_settings_context",
+        "save_current_settings_as_defaults",
+        "on_baseline_model_changed",
+        "apply_external_settings",
+        "apply_external_model",
+        "apply_external_sync",
+        "update_left_workspace_width",
+        "apply_ui_text_size",
+        "on_ui_text_size_changed",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "_phase6_sync_settings_panel_extension" not in adapter_source
+    assert "_phase6_on_baseline_model_changed" not in adapter_source
+    assert "_phase6_apply_ui_text_size" not in adapter_source
