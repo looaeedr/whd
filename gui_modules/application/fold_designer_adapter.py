@@ -1283,6 +1283,404 @@ class Phase6FoldDesignerComposition:
                 f"Fold Designer composition port is unavailable: {name}"
             ) from exc
 
+    def settings_context_extension_projection(self, namespace, context):
+        """Project Settings context extensions at the existing composition boundary."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        endcap_fw_parts = required("ENDCAP_FW_PARTS")
+        global_context = required("GLOBAL_CONTEXT")
+        cross_corner_mode = required("CrossCornerMode")
+
+        def endcap_fw_projection(part_key):
+            part_key = str(part_key)
+            snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+            snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
+            state = app._phase6_endcap_fw_state.setdefault(
+                part_key,
+                {
+                    "follow_box": True,
+                    "value": required("_num")(snapshot.get("fw", 25), 25),
+                },
+            )
+            return {
+                "follow": bool(state.get("follow_box", True)),
+                "effective": required("resolve_endcap_fw")(
+                    snapshot,
+                    part_key,
+                    state=app._phase6_endcap_fw_state,
+                ),
+            }
+
+        def box_structure_projection():
+            state = required("_phase6_box_structure_state")(app)
+            active = BoxBodyStructureType(state["active_type"])
+            cfg = state["configs"][active.value]
+            total_w = required("_phase6_box_structure_w")(app)
+            piece_values = {}
+            mode = "integral"
+            if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
+                mode = "two_w"
+                left, right = required("resolve_two_piece_widths")(
+                    state, total_w
+                )
+                piece_values = {
+                    "box_body:left": (
+                        "width", "W 包外", left, "mm", "left"
+                    ),
+                    "box_body:right": (
+                        "width", "W 包外", right, "mm", "right"
+                    ),
+                }
+            elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
+                mode = "three_w"
+                left, middle, right = required("resolve_three_piece_widths")(
+                    state, total_w
+                )
+                piece_values = {
+                    "box_body:left": (
+                        "width", "W 包外", left, "mm", "left"
+                    ),
+                    "box_body:middle": (
+                        "width", "W 包外", middle, "mm", "middle"
+                    ),
+                    "box_body:right": (
+                        "width", "W 包外", right, "mm", "right"
+                    ),
+                }
+            elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+                mode = "side_back"
+                snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+                outside_family = (
+                    cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+                        snapshot
+                    )
+                )
+                rear_bend = (
+                    required("side_rear_bend_outside_length")(
+                        state, float(snapshot.get("t", 2.0))
+                    )
+                    if outside_family
+                    else float(cfg.get("side_rear_bend", 15))
+                )
+                width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
+                piece_values = {
+                    "box_body:left_side": (
+                        "rear_bend",
+                        "後折",
+                        rear_bend,
+                        "mm",
+                        "side_rear_bend",
+                    ),
+                    "box_body:back": (
+                        "width_comp_t",
+                        "寬補償",
+                        width_comp_t,
+                        "T",
+                        "back_width_comp_t",
+                    ),
+                    "box_body:right_side": (
+                        "rear_bend",
+                        "後折",
+                        rear_bend,
+                        "mm",
+                        "side_rear_bend",
+                    ),
+                }
+
+            projections = ()
+            projection_error = None
+            if active is not BoxBodyStructureType.INTEGRAL:
+                try:
+                    render_data = required(
+                        "_phase6_box_body_structure_render_data"
+                    )(app)
+                    projections = required(
+                        "_phase6_box_body_piece_dimension_projections"
+                    )(render_data)
+                    active_piece_key = str(
+                        getattr(app.designer_workspace, "active_part", "")
+                        or ""
+                    )
+                    if required(
+                        "_phase6_is_box_body_physical_piece_key"
+                    )(active_piece_key):
+                        projections = tuple(
+                            row
+                            for row in projections
+                            if row.part_key == active_piece_key
+                        )
+                except Exception as exc:
+                    projection_error = str(exc)
+
+            pieces = []
+            for projection in projections:
+                part_key = str(projection.part_key)
+                spec = piece_values.get(part_key)
+                input_spec = None
+                if spec is not None:
+                    field_key, label, value, suffix, state_field = spec
+                    input_spec = {
+                        "field_key": field_key,
+                        "label": label,
+                        "value": value,
+                        "suffix": suffix,
+                        "state_field": state_field,
+                    }
+                detail = None
+                if active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+                    if part_key in {
+                        "box_body:left_side",
+                        "box_body:right_side",
+                    }:
+                        detail = (
+                            "成型深度 D："
+                            f"{required('_setting_number_text')(required('_phase6_box_structure_d')(app))} mm"
+                        )
+                    elif part_key == "box_body:back":
+                        detail = (
+                            "成型寬："
+                            f"{required('_setting_number_text')(projection.formed_width)} mm"
+                        )
+                pieces.append(
+                    {
+                        "part_key": part_key,
+                        "label": projection.label,
+                        "formed_width": projection.formed_width,
+                        "formed_height": projection.formed_height,
+                        "blank_width": projection.blank_width,
+                        "blank_height": projection.blank_height,
+                        "input": input_spec,
+                        "back_panel_selector": None,
+                        "detail": detail,
+                    }
+                )
+
+            advanced_fields = ()
+            if mode in {"two_w", "three_w"}:
+                advanced_fields = (
+                    {
+                        "label": "封頭尾額外避讓",
+                        "field": "endcap_extra_relief",
+                        "value": cfg.get("endcap_extra_relief", 5),
+                        "suffix": "mm",
+                    },
+                    {
+                        "label": "封頭尾單邊留肉",
+                        "field": "endcap_single_side_meat_t",
+                        "value": cfg.get("endcap_single_side_meat_t", 0.5),
+                        "suffix": "T",
+                    },
+                    {
+                        "label": "底板避讓總長",
+                        "field": "baseplate_relief_length",
+                        "value": cfg.get("baseplate_relief_length", 20),
+                        "suffix": "mm",
+                    },
+                    {
+                        "label": "底板單邊留肉",
+                        "field": "baseplate_single_side_meat_t",
+                        "value": cfg.get("baseplate_single_side_meat_t", 0.5),
+                        "suffix": "T",
+                    },
+                )
+            advanced_flags = dict(
+                getattr(app, "_phase6_box_structure_advanced_open", {}) or {}
+            )
+            return {
+                "active_type": active,
+                "mode": mode,
+                "pieces": tuple(pieces),
+                "projection_error": projection_error,
+                "seam_bend": cfg.get("seam_bend", 12),
+                "advanced_open": bool(
+                    advanced_flags.get(active.value, False)
+                ),
+                "advanced_fields": advanced_fields,
+            }
+
+        def bottom_wrap_projection(part_key):
+            snapshot = dict(
+                getattr(app, "_phase6_input_snapshot", {}) or {}
+            )
+            if (
+                str(part_key) not in endcap_fw_parts
+                or not cabinet_family_policy.supports_bottom_wrap_controls(
+                    snapshot
+                )
+            ):
+                return None
+            item = required("resolve_endcap_bottom_wrap")(
+                snapshot,
+                str(part_key),
+                state=getattr(
+                    app,
+                    "_phase6_endcap_bottom_wrap_state",
+                    required("normalize_endcap_bottom_wrap_state")(snapshot),
+                ),
+            )
+            if not bool(item.get("enabled", False)):
+                return None
+            return {
+                "reserve_u": item["reserve_u"],
+                "reserve_v": item["reserve_v"],
+            }
+
+        def corner_projection(part_key):
+            part_key = str(part_key)
+            if part_key == global_context or part_key == "box_body":
+                return {"mode": "none"}
+
+            fixed_summaries = required("_FIXED_CORNER_SUMMARIES")
+            if part_key in {"indicator_box", "indicator_door"}:
+                summary = fixed_summaries.get(part_key, "")
+                if summary:
+                    return {"mode": "fixed", "summary": summary}
+
+            type_editable = required("_phase6_corner_type_editable")(
+                app, part_key
+            )
+            params_unlocked = required(
+                "_phase6_corner_parameters_unlocked"
+            )(app, part_key)
+            params_editable = required(
+                "_phase6_corner_parameters_editable"
+            )(app, part_key)
+            if not type_editable and not params_unlocked:
+                summary = fixed_summaries.get(part_key, "")
+                if summary:
+                    return {"mode": "fixed", "summary": summary}
+
+            state, pairs = required("_phase6_ensure_corner_part")(
+                app, part_key
+            )
+            pair_keys = required("_CORNER_PAIR_KEYS")
+            type_labels = required("_CORNER_TYPE_LABEL_BY_ID")
+            direction_labels = required("_CORNER_DIRECTION_LABEL")
+            mode_labels = required("_CORNER_MODE_LABEL")
+            pair_rows = []
+            for pair_key in ("top", "bottom"):
+                targets = (
+                    (pair_key,)
+                    if pairs[pair_key]
+                    else pair_keys[pair_key]
+                )
+                target_rows = []
+                for target_key in targets:
+                    physical = (
+                        pair_keys[target_key][0]
+                        if target_key in pair_keys
+                        else target_key
+                    )
+                    selection = required("_phase6_selection_from_raw")(
+                        state[physical]
+                    )
+                    if (
+                        selection.type_id is CornerTypeId.CROSS
+                        and selection.cross_mode is cross_corner_mode.RETAIN
+                    ):
+                        direction_options = ("寬", "高")
+                    elif (
+                        selection.type_id is CornerTypeId.CROSS
+                        and selection.cross_mode
+                        is not cross_corner_mode.STANDARD
+                    ):
+                        direction_options = ("寬＋高", "寬", "高")
+                    else:
+                        direction_options = ()
+                    direction_label = (
+                        direction_labels[selection.direction]
+                        if selection.type_id is CornerTypeId.CROSS
+                        and selection.cross_mode
+                        is not cross_corner_mode.STANDARD
+                        else ""
+                    )
+                    target_rows.append(
+                        {
+                            "target_key": target_key,
+                            "side_label": (
+                                ""
+                                if len(targets) <= 1
+                                else (
+                                    "左"
+                                    if target_key.endswith("left")
+                                    else "右"
+                                )
+                            ),
+                            "type_label": type_labels[
+                                selection.type_id.value
+                            ],
+                            "type_options": tuple(type_labels.values()),
+                            "type_kind": selection.type_id.name,
+                            "top_assembly_owned": (
+                                part_key in {"head", "tail"}
+                                and pair_key == "top"
+                            ),
+                            "parameter_summary": required(
+                                "_phase6_corner_parameter_summary"
+                            )(selection),
+                            "amount_t": (
+                                selection.amount_t
+                                if selection.amount_t is not None
+                                else 1.0
+                            ),
+                            "mode_label": (
+                                mode_labels[selection.cross_mode]
+                                if selection.type_id is CornerTypeId.CROSS
+                                and selection.cross_mode is not None
+                                else ""
+                            ),
+                            "mode_kind": (
+                                selection.cross_mode.name
+                                if selection.type_id is CornerTypeId.CROSS
+                                and selection.cross_mode is not None
+                                else ""
+                            ),
+                            "direction_label": direction_label,
+                            "direction_options": direction_options,
+                            "secondary_retain_t": (
+                                selection.secondary_retain_t
+                            ),
+                            "secondary_depth_t": (
+                                selection.secondary_depth_t
+                            ),
+                        }
+                    )
+                pair_rows.append(
+                    {
+                        "pair_key": pair_key,
+                        "label": "上方" if pair_key == "top" else "下方",
+                        "same": bool(pairs[pair_key]),
+                        "targets": tuple(target_rows),
+                    }
+                )
+            return {
+                "mode": "editable",
+                "type_editable": bool(type_editable),
+                "params_unlocked": bool(params_unlocked),
+                "params_editable": bool(params_editable),
+                "pairs": tuple(pair_rows),
+            }
+
+        context = str(context)
+        return {
+            "box_structure": (
+                box_structure_projection()
+                if context == "box_body"
+                else None
+            ),
+            "endcap_fw": (
+                endcap_fw_projection(context)
+                if context in endcap_fw_parts
+                else None
+            ),
+            "bottom_wrap": (
+                bottom_wrap_projection(context)
+                if context in endcap_fw_parts
+                else None
+            ),
+            "corner": corner_projection(context),
+        }
+
     def settings_panel(self, namespace):
         """Construct the Settings presentation owner through the composition root."""
         app = self.app
@@ -1316,9 +1714,9 @@ class Phase6FoldDesignerComposition:
                 "_phase6_should_show_baseline_data"
             )(app, context, specs),
             part_labels=required("PART_LABELS"),
-            context_extension_projection=lambda context: required(
-                "_phase6_settings_context_extension_projection"
-            )(app, context),
+            context_extension_projection=lambda context: self.settings_context_extension_projection(
+                namespace, context
+            ),
             endcap_fw_value_selected=lambda part_key, value_var: required(
                 "_phase6_on_endcap_fw_value_selected"
             )(app, part_key, value_var),
