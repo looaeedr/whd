@@ -1278,6 +1278,10 @@ def _phase6_add_receiving_layer(self):
     return _phase6_composition(self).add_receiving_layer(globals())
 
 
+def _phase6_remove_receiving_layer(self):
+    return _phase6_composition(self).remove_receiving_layer(globals())
+
+
 def _phase6_resize_receiving_bays(self, layer_index, delta):
     return _phase6_composition(self).resize_receiving_bays(
         globals(), layer_index, delta
@@ -2337,6 +2341,7 @@ def _phase6_install_part_editor_compatibility(self):
             self, brand
         ),
         on_add_layer=lambda: _phase6_add_receiving_layer(self),
+        on_remove_layer=lambda: _phase6_remove_receiving_layer(self),
     )
     self.receiving_layer_controls = receiving_controls
     self.receiving_set_bay_control = receiving_controls.frame

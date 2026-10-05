@@ -143,7 +143,12 @@ def build_derived_part_projection_request(
         and "door" not in available
         and data.single_door_profiles is not None
     ):
-        add_parts.append(profile_projection("door", data.single_door_profiles))
+        door_projection = profile_projection("door", data.single_door_profiles)
+        add_parts.append(door_projection)
+        # A hidden standard part may still own a stashed profile from the
+        # family it was removed under. Reactivation must replace that stale
+        # stash with the target family's freshly derived profile.
+        stash_profiles.append(door_projection)
 
     if door_keys and "base_plate" in available:
         remove_part_keys.append("base_plate")
@@ -153,9 +158,11 @@ def build_derived_part_projection_request(
         and "base_plate" not in available
         and data.single_base_plate_profiles is not None
     ):
-        add_parts.append(
-            profile_projection("base_plate", data.single_base_plate_profiles)
+        base_projection = profile_projection(
+            "base_plate", data.single_base_plate_profiles
         )
+        add_parts.append(base_projection)
+        stash_profiles.append(base_projection)
 
     desired_piece_keys = set(str(key) for key in data.box_piece_profiles)
     for key in sorted(current_piece_keys - desired_piece_keys):

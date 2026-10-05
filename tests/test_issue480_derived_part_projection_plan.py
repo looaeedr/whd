@@ -169,3 +169,33 @@ def test_r2_composition_owns_derived_sync_orchestration_and_bridge_only_delegate
     assert body.index("build_derived_part_projection_request(") < body.index(
         "build_derived_part_sync_plan(request)"
     ) < body.index("navigation.apply_derived_sync_plan(plan)")
+
+def test_reactivated_standard_door_and_base_plate_replace_stale_family_profile_stash():
+    module = _projection_module()
+    target_door = {"X": [{"len": 365.0}], "Y": [{"len": 561.0}]}
+    target_base = {"X": [{"len": 320.0}], "Y": [{"len": 520.0}]}
+    request = module.build_derived_part_projection_request(
+        module.DerivedPartRequestAssemblyInput(
+            door_part_keys=(),
+            door_profiles={},
+            base_plate_profiles={},
+            divider_profiles={},
+            inner_profiles={},
+            box_piece_profiles={},
+            current_piece_keys=(),
+            source_parts=("box_body", "head", "tail", "door", "base_plate"),
+            available_parts=("box_body", "head", "tail"),
+            source_part_features={},
+            known_feature_keys=(),
+            single_door_profiles=target_door,
+            single_base_plate_profiles=target_base,
+            active_part=None,
+            selected_part=None,
+        )
+    )
+    plan = module.build_derived_part_sync_plan(request)
+
+    assert tuple(item.part_key for item in plan.add_parts) == ("door", "base_plate")
+    assert tuple(item.part_key for item in plan.stash_profiles) == ("door", "base_plate")
+    assert module.materialize_profiles(plan.stash_profiles[0]) == target_door
+    assert module.materialize_profiles(plan.stash_profiles[1]) == target_base

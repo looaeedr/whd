@@ -258,3 +258,52 @@ def test_baseline_transition_failure_rolls_selector_back_and_stops_effect_pipeli
     assert events[1][0] == "status"
     assert "synthetic baseline failure" in events[1][2]["message"]
     assert [row[0] for row in events] == ["project", "status"]
+
+def test_known_baseline_transition_resets_all_family_profiles_not_only_box_body():
+    from gui_modules.application.fold_designer_settings_coordinator import (
+        Phase6FoldDesignerSettingsCoordinator,
+    )
+
+    events = []
+
+    class Transactions:
+        def commit_family_model_transition(self, *args, **kwargs):
+            return SimpleNamespace(
+                family_values={"w": 400.0, "h": 600.0, "d": 250.0},
+                defaults={},
+                assembly_type="INSERT_OVERLAY",
+                structure_state=None,
+                remember_non_receiving_structure=None,
+            )
+
+        def commit_settings(self, values):
+            return dict(values)
+
+    ports = dataclasses.replace(
+        _ports(),
+        apply_profile_plan=lambda committed, **kwargs: events.append(
+            ("profile", dict(committed), dict(kwargs))
+        ),
+    )
+    coordinator = Phase6FoldDesignerSettingsCoordinator(
+        transactions=Transactions(),
+        ports=ports,
+    )
+
+    coordinator.apply_baseline_transition(
+        new_model="金庫型",
+        old_model="受電箱",
+        new_editable=False,
+        old_editable=False,
+        fixed_corner_state={},
+        available_parts=("box_body", "head", "tail", "door", "base_plate"),
+        previous_non_receiving_structure=None,
+    )
+
+    assert events == [
+        (
+            "profile",
+            {"w": 400.0, "h": 600.0, "d": 250.0},
+            {"reset_box_profile": True, "reset_all_profiles": True},
+        )
+    ]

@@ -341,6 +341,10 @@ class Phase6FoldDesignerSettingsCoordinator:
                 self._ports.apply_profile_plan(
                     committed,
                     reset_box_profile=True,
+                    # A known family owns its complete preset profile set.
+                    # Do not merge Receiving-only segment lengths into Vault
+                    # (or vice versa) during a baseline-family transition.
+                    reset_all_profiles=not bool(new_editable),
                 )
 
         self._ports.project_ui_values(
