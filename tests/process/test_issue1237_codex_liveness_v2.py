@@ -64,7 +64,7 @@ def test_development_task_startup_has_headless_surface():
 def test_diagnosing_bugs_uses_workspace_first_not_drive_first():
     text = _read(".agents/skills/engineering/diagnosing-bugs/SKILL.md")
     assert "WORKSPACE_DEFAULT" in text
-    assert "SHARED_ZERO_FALLBACK" in text
+    assert "Shared `.unpushed/{docs|body}/0` and `SHARED_ZERO_FALLBACK` are retired" in text
     assert "Missing Drive mount is not a blocker" in text
     assert "Fresh-read canonical Drive root + Current Source Manifest" not in text
     assert "content mutation follows CURRENT shared-0" not in text
