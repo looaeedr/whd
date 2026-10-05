@@ -1590,56 +1590,15 @@ def _phase6_endcap_joint_policy_rows(self, part_key):
 
 
 def _phase6_on_endcap_edge_relation_selected(self, part_key, edge):
-    part_key = str(part_key)
-    edge = str(edge).upper()
-    var = dict(getattr(self, "endcap_joint_vars", {}) or {}).get(edge)
-    if var is None:
-        return None
-    relation = _ENDCAP_LABEL_TO_RELATION.get(str(var.get()).strip())
-    if relation is None:
-        return None
-    _phase6_settings_transactions(self).commit_endcap_edge_relation(
-        part_key, edge, relation
+    return _phase6_composition(self).on_endcap_edge_relation_selected(
+        globals(), part_key, edge
     )
-    try:
-        self.do_update()
-    except Exception:
-        pass
-    return relation
-
 
 def _phase6_ensure_drawing_edge_hosts(self):
-    existing = getattr(self, "drawing_edge_hosts", None)
-    if existing is not None:
-        try:
-            if all(host.winfo_exists() for host in (existing.top, existing.bottom, existing.left, existing.right)):
-                return existing
-        except Exception:
-            pass
-
-    canvas = self.renderer.canvas.get_tk_widget()
-    hosts = Phase6DrawingEdgeHosts(
-        top=original.ttk.Frame(canvas, padding=(4, 2)),
-        bottom=original.ttk.Frame(canvas, padding=(4, 2)),
-        left=original.ttk.Frame(canvas, padding=(4, 2)),
-        right=original.ttk.Frame(canvas, padding=(4, 2)),
-        center=canvas,
-    )
-    self.drawing_edge_hosts = hosts
-    return hosts
-
+    return _phase6_composition(self).ensure_drawing_edge_hosts(globals())
 
 def _phase6_clear_drawing_edge_controls(self):
-    hosts = getattr(self, "drawing_edge_hosts", None)
-    if hosts is None:
-        return
-    for host in (hosts.top, hosts.bottom, hosts.left, hosts.right):
-        try:
-            for child in host.winfo_children():
-                child.destroy()
-            host.place_forget()
-        except Exception:
-            pass
+    return _phase6_composition(self).clear_drawing_edge_controls()
 
 def _phase6_place_drawing_edge_host(host, edge):
     plan = Phase6CornerDataViewAdapter.edge_host_placement(edge)
@@ -1647,120 +1606,20 @@ def _phase6_place_drawing_edge_host(host, edge):
         host.place(**plan)
 
 def _phase6_render_endcap_edge_controls(self, *, part_key):
-    rows = _phase6_endcap_joint_policy_rows(self, part_key)
-    _phase6_clear_drawing_edge_controls(self)
-    self.endcap_joint_vars = {}
-    self.endcap_joint_widgets = {}
-    self.endcap_joint_allowed = {}
-    if not rows:
-        return None
-
-    hosts = _phase6_ensure_drawing_edge_hosts(self)
-    edge_hosts = {
-        "TOP": hosts.top,
-        "BOTTOM": hosts.bottom,
-        "LEFT": hosts.left,
-        "RIGHT": hosts.right,
-    }
-    for row in rows:
-        edge = row["edge"]
-        host = edge_hosts[edge]
-        original.ttk.Label(host, text=f"{_ENDCAP_EDGE_LABELS[edge]}：").pack(side=original.tk.LEFT)
-        var = original.tk.StringVar(master=host, value=row["value"])
-        widget = build_choice_menubutton(
-            host, variable=var, values=row["allowed"],
-            state=("normal" if row["editable"] else "disabled"), width=5,
-            command=lambda p=part_key, e=edge: _phase6_on_endcap_edge_relation_selected(self, p, e),
-        )
-        widget.pack(side=original.tk.LEFT)
-        self.endcap_joint_vars[edge] = var
-        self.endcap_joint_widgets[edge] = widget
-        self.endcap_joint_allowed[edge] = tuple(row["allowed"])
-        _phase6_place_drawing_edge_host(host, edge)
-    return hosts
+    return _phase6_composition(self).render_endcap_edge_controls(
+        globals(), part_key=part_key
+    )
 
 def _phase6_commit_base_plate_edge_shrink(self, edge, raw_value):
-    edge = str(edge).upper()
-    key = _BASE_PLATE_EDGE_SETTING_KEYS.get(edge)
-    if key is None:
-        return False
-    try:
-        value = float(raw_value)
-    except (TypeError, ValueError, original.tk.TclError):
-        return False
-    if value < 0:
-        return False
-    _phase6_stage_setting_update(self, key, value)
-    _phase6_flush_pending_settings(self)
-    var = dict(getattr(self, "base_plate_edge_shrink_vars", {}) or {}).get(edge)
-    if var is not None:
-        text = _setting_number_text(self._settings_values.get(key, value))
-        if var.get() != text:
-            var.set(text)
-    return True
-
+    return _phase6_composition(self).commit_base_plate_edge_shrink(
+        globals(), edge, raw_value
+    )
 
 def _phase6_render_base_plate_edge_controls(self):
-    _phase6_clear_drawing_edge_controls(self)
-    self.endcap_joint_vars = {}
-    self.endcap_joint_widgets = {}
-    self.endcap_joint_allowed = {}
-    self.base_plate_edge_shrink_vars = {}
-    self.base_plate_edge_shrink_widgets = {}
-
-    hosts = _phase6_ensure_drawing_edge_hosts(self)
-    edge_hosts = {
-        "TOP": hosts.top,
-        "BOTTOM": hosts.bottom,
-        "LEFT": hosts.left,
-        "RIGHT": hosts.right,
-    }
-    values = dict(getattr(self, "_settings_values", {}) or {})
-    values.update(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    for edge, key in _BASE_PLATE_EDGE_SETTING_KEYS.items():
-        host = edge_hosts[edge]
-        original.ttk.Label(host, text=f"{_ENDCAP_EDGE_LABELS[edge]}縮：").pack(side=original.tk.LEFT)
-        var = original.tk.StringVar(master=host, value=_setting_number_text(values.get(key, 55.0)))
-        entry = original.ttk.Entry(host, textvariable=var, width=7, justify=original.tk.CENTER)
-        entry.pack(side=original.tk.LEFT)
-        entry.bind(
-            "<Return>",
-            lambda _e, ed=edge, v=var: _phase6_commit_base_plate_edge_shrink(self, ed, v.get()),
-        )
-        entry.bind(
-            "<FocusOut>",
-            lambda _e, ed=edge, v=var: _phase6_commit_base_plate_edge_shrink(self, ed, v.get()),
-        )
-        self.base_plate_edge_shrink_vars[edge] = var
-        self.base_plate_edge_shrink_widgets[edge] = entry
-        _phase6_place_drawing_edge_host(host, edge)
-    return hosts
-
+    return _phase6_composition(self).render_base_plate_edge_controls(globals())
 
 def _phase6_render_active_drawing_edge_controls(self):
-    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    part_key = str(getattr(self, "active_part_key", None) or "")
-    if mode != "single":
-        _phase6_clear_drawing_edge_controls(self)
-        self.endcap_joint_vars = {}
-        self.endcap_joint_widgets = {}
-        self.endcap_joint_allowed = {}
-        self.base_plate_edge_shrink_vars = {}
-        self.base_plate_edge_shrink_widgets = {}
-        return None
-    if part_key in ENDCAP_FW_PARTS:
-        self.base_plate_edge_shrink_vars = {}
-        self.base_plate_edge_shrink_widgets = {}
-        return _phase6_render_endcap_edge_controls(self, part_key=part_key)
-    if part_key == "base_plate":
-        return _phase6_render_base_plate_edge_controls(self)
-    _phase6_clear_drawing_edge_controls(self)
-    self.endcap_joint_vars = {}
-    self.endcap_joint_widgets = {}
-    self.endcap_joint_allowed = {}
-    self.base_plate_edge_shrink_vars = {}
-    self.base_plate_edge_shrink_widgets = {}
-    return None
+    return _phase6_composition(self).render_active_drawing_edge_controls(globals())
 
 def _phase6_on_box_symmetry_changed(self):
     """Keep BoxBody symmetry authoritative and fail closed for asymmetric families."""
