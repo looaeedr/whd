@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def _root_entries():
     return [
         ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
-        "ae_engine", "gui_modules", ".unpushed",
+        "ae_engine", "gui_modules",
     ]
 
 
@@ -15,7 +15,7 @@ def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, exe
     from tools.execution_entry_contract import build_startup_evidence as canonical_build_startup_evidence
     from tools.work_root_gate import (
         READ_MODE_GITHUB_REPO,
-        READ_MODE_GOOGLE_DRIVE,
+        READ_MODE_WORKSPACE,
         build_work_root_gate_evidence,
     )
 
@@ -25,13 +25,14 @@ def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, exe
     read_mode = (
         READ_MODE_GITHUB_REPO
         if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-        else READ_MODE_GOOGLE_DRIVE
+        else READ_MODE_WORKSPACE
     )
     gate_evidence = build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=read_mode,
         execution_mode=execution_mode,
         root_entries=_root_entries(),
+        workspace_root=None if read_mode == READ_MODE_GITHUB_REPO else "/workspace/whd",
     )
     return canonical_build_startup_evidence(
         purpose=purpose,
@@ -97,7 +98,7 @@ def _root_gate_evidence(execution_mode="INTERACTIVE"):
     import json
     from tools.work_root_gate import (
         READ_MODE_GITHUB_REPO,
-        READ_MODE_GOOGLE_DRIVE,
+        READ_MODE_WORKSPACE,
         build_work_root_gate_evidence,
     )
     payload = json.loads(
@@ -106,13 +107,14 @@ def _root_gate_evidence(execution_mode="INTERACTIVE"):
     read_mode = (
         READ_MODE_GITHUB_REPO
         if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-        else READ_MODE_GOOGLE_DRIVE
+        else READ_MODE_WORKSPACE
     )
     return build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=read_mode,
         execution_mode=execution_mode,
         root_entries=_root_entries(),
+        workspace_root=None if read_mode == READ_MODE_GITHUB_REPO else "/workspace/whd",
     )
 
 
@@ -730,48 +732,46 @@ def test_scheduler_host_recovery_bootstrap_remains_non_authoritative():
 
 def _root_unlock_receipt():
     from tools.root_local_first_gate import (
+        build_entry_router_evidence,
         build_gate_evidence,
         build_git_unlock_receipt,
         build_remote_connection_authority,
         validate_source_current,
     )
+    entry = build_entry_router_evidence(
+        fresh_reads=[
+            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+        ],
+        workspace_root="/workspace/whd",
+    )
     source = validate_source_current(
         workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
         live_source_sha="a" * 40, live_tree_sha="b" * 40,
     )
-    lane = {
-        "schema": "WHD_UNPUSHED_LANE_EVIDENCE_V1",
-        "lane": "docs", "issue": 940, "source_sha": "a" * 40,
-        "target_branch": "cleanup/2d-3d-sync", "generation": 4,
-        "write_paths": ["AGENTS.md"], "delete_paths": [],
-        "manifest_digest": "", "state": "ACTIVE",
-    }
     reservation = {
         "schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
         "issue": 940, "generation": 4, "target_branch": "cleanup/2d-3d-sync",
         "base_sha": "a" * 40, "write_paths": ["AGENTS.md"], "delete_paths": [],
         "reservation_state": "ACTIVE",
-        "phase": "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
+        "phase": "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN",
         "record_fingerprint": "f" * 64,
     }
     authority = build_remote_connection_authority(
-        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+        kind="WORKSPACE_DELIVERY", target="GITHUB", user_explicit=True
     )
     gate = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=lane,
-        root_mutations_complete=True, merge_to_zero_complete=True,
-        test_classified=True, tests_green=True, remote_connection_authority=authority,
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+        workspace_delivery_authority=authority,
         path_reservation_evidence=reservation,
-        test_receipt={
-            "schema": "WHD_TEST_EXECUTION_RECEIPT_V1", "status": "GREEN",
-            "source_sha": "a" * 40, "issue": 940, "generation": 4,
-            "exact_commands": ["python tools/control_plane_regression.py"],
-            "manifest_digest": "e" * 64,
-        },
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+        diff_digest="c" * 64,
     )
     return build_git_unlock_receipt(gate)
-
 
 def test_interactive_start_branch_requires_root_unlock_receipt_before_state_read(monkeypatch):
     import pytest
