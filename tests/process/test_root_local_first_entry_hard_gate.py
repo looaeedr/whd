@@ -19,7 +19,7 @@ def _reservation(sha="a" * 40): return {
     "write_paths": ["AGENTS.md"],
     "delete_paths": [],
     "reservation_state": "ACTIVE",
-    "phase": "DELIVERY_ONLY_AFTER_LANE_MANIFEST_FROZEN",
+    "phase": "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN",
     "record_fingerprint": "f" * 64,
 }
 
@@ -453,7 +453,7 @@ def test_interactive_orchestration_fast_path_is_machine_owned():
     assert "MANUAL_LEASE_RENEW_BEFORE_EXPIRY" in gate["outer_forbidden"]
     assert "START_QA_THEN_ACCEPT_QA_WHEN_CONSUME_QA_IS_ELIGIBLE" in gate["outer_forbidden"]
     assert gate["stale_plan_policy"] == "STALE_PLAN_MUST_DIE"
-    assert gate["single_writer_policy"] == "SHARED_0_LINEAGE_ROOT__SINGLE_WRITER_ONLY_AT_DELIVERY"
+    assert gate["single_writer_policy"] == "DELIVERY_SCOPE_SINGLE_WRITER_ONLY"
 
 
 def test_root_local_skill_exposes_fast_path_hard_gate():
