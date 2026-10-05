@@ -358,17 +358,13 @@ def test_trusted_executor_proves_absent_work_branch_before_stale_release_reset(m
     assert effect["updated_at"] == "2026-09-29T10:40:00Z"
 
 
-def test_worker_candidate_paths_are_issue_scoped_but_not_content_authority():
+def test_worker_candidate_and_zero_paths_are_retired_from_current_routing():
     from tools.work_root_gate import worker_candidate_path, unpushed_zero_path
 
-    a = worker_candidate_path(lane="body", worker="work0", issue=1001)
-    b = worker_candidate_path(lane="body", worker="work1", issue=1002)
-    assert a != b
-    assert a.endswith("/body/workers/work0/issue-1001")
-    assert b.endswith("/body/workers/work1/issue-1002")
+    with pytest.raises(ValueError, match="SHARED_ZERO_ROUTING_RETIRED"):
+        worker_candidate_path(lane="body", worker="work0", issue=1001)
     with pytest.raises(ValueError, match="SHARED_ZERO_ROUTING_RETIRED"):
         unpushed_zero_path("body")
-    assert "/work/active" not in a + b
 
 
 def test_trusted_executor_rejects_second_issue_before_coord_write(monkeypatch):
