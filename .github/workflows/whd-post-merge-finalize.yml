@@ -1,0 +1,46 @@
+name: WHD｜Flow v2｜Production X Post-Merge Finalize
+run-name: WHD｜Production X Finalize｜${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - cleanup/2d-3d-sync
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: whd-production-x-post-merge-finalize
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    name: Drain merged closing Issues through Flow v2 FINALIZE
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact production X push
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Recover missing records and run canonical FINALIZE
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/production_x_post_merge_finalize.py \
+            --head-sha "${GITHUB_SHA}" \
+            --output /tmp/production-x-post-merge-finalize.json
+
+      - name: Save finalization result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-x-post-merge-finalize-${{ github.run_id }}
+          path: /tmp/production-x-post-merge-finalize.json
+          if-no-files-found: warn
+          retention-days: 7
