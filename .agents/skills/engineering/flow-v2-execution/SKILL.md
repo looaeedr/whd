@@ -45,6 +45,27 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 
 
 
+### MISSING_EXECUTION_RECORD_POST_DELIVERY_RECOVERY_V1 — 已交付不得因缺 record 停住
+
+若 fresh durable evidence 已證明 repository-content delivery PR **已 merged 到 `cleanup/2d-3d-sync`**，但 owning Issue 在 `coord/execution-v2` 沒有 native `ExecutionRecord`，這是 **recovery condition，不是施工 blocker，也不是重做 implementation 的理由**。
+
+canonical recovery 只允許 trusted ingress `RECOVER_POST_DELIVERY`：
+
+1. fresh-read exact PR，PR 必須 merged/closed，base 必須是 `cleanup/2d-3d-sync`，且 PR body 必須用 exact closing keyword（例如 `Closes #123`）綁定 owning Issue。
+2. fresh-read PR head required checks；全部 required contexts 必須 GREEN。
+3. fresh-read current production target；merged SHA 必須等於 current target 或仍是 current target ancestor。
+4. Issue identity 必須 fresh-read 成功。
+5. 只有上述 proof 都成立，trusted production executor 才可 create-only 建立 generation 1 的 `POST_DELIVERY_RECOVERY` record，直接進 `INTEGRATING / FINALIZE`。
+6. recovery record **不得倒填** 過去不存在的 WAKE、lease、transaction、QA acceptance。唯一新 lease 是當前 recovery invocation；`qa.last_accepted_run` / `qa.accepted_head_sha` 必須維持空白，並以 `WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1` 記錄 fresh merge/check/ancestry evidence。
+7. 同一 trusted invocation 建立 recovery record 後必須立即 drain `FINALIZE → Issue close/readback → DONE/RELEASED`；不得把「record 已補好」或「準備 finalize」當停止點。
+8. 若 same-Issue record 已在 recovery 前/途中出現，固定 fail-closed 回到 fresh canonical record；不得覆寫或建立第二筆 authority。
+9. PR 未 merge、closing identity 不成立、required check 非 GREEN、merge anchor 不在 target ancestry、或 GitHub fresh readback 不完整，才是合法 fail-closed。
+
+因此 `native ExecutionRecord missing for issue N` 在「已 merge delivery」情境下不得再直接成為終止訊息；必須先評估本 recovery route。
+
+<!-- MISSING_EXECUTION_RECORD_POST_DELIVERY_RECOVERY_V1 -->
+
+
 ### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
 
