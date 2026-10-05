@@ -485,3 +485,48 @@ def test_issue1223_corner_data_application_orchestration_is_composition_owned():
 
     bridge_source = BRIDGE.read_text(encoding="utf-8")
     assert '"_phase6_refresh_corner_data_unfold_view": _phase6_refresh_corner_data_unfold_view' in bridge_source
+
+
+def test_issue1225_assembly_application_sequencing_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_on_assembly_diagnostic_changed",
+        "_phase6_create_relief_promotion_candidates",
+        "_phase6_update_assembly_diagnostic_status",
+        "_phase6_on_assembly_part_visibility_changed",
+        "_phase6_install_assembly_panel_aliases",
+        "_phase6_current_assembly_panel_part_keys",
+        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+        "_phase6_refresh_assembly_parts_panel",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "build_relief_promotion_candidate" not in body
+        assert "diagnostic_status" not in body
+        assert "render_available_parts" not in body
+        assert "refresh_if_topology_changed" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "on_assembly_diagnostic_changed",
+        "create_relief_promotion_candidates",
+        "update_assembly_diagnostic_status",
+        "on_assembly_part_visibility_changed",
+        "install_assembly_panel_aliases",
+        "current_assembly_panel_part_keys",
+        "refresh_assembly_parts_panel_if_topology_changed",
+        "refresh_assembly_parts_panel",
+    }.issubset(method_names)

@@ -2059,6 +2059,155 @@ class Phase6FoldDesignerComposition:
                 )
             return None
 
+    def on_assembly_diagnostic_changed(self):
+        app = self.app
+        if (
+            str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
+            == "assembly"
+        ):
+            submit = getattr(app, "submit_update_intent", None)
+            if callable(submit):
+                submit("display", commit=True)
+        return True
+
+    def create_relief_promotion_candidates(self, namespace):
+        """Build non-mutating promotion manifests through the existing controller."""
+        from ae_engine.certified_relief_registry import (
+            build_relief_promotion_candidate,
+        )
+
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        controller = self.registry_diagnostics()
+        candidates = controller.build_promotion_candidates(
+            solutions=dict(
+                getattr(app, "_phase6_last_relief_solutions", {}) or {}
+            ),
+            snapshot=dict(
+                getattr(app, "_phase6_input_snapshot", {}) or {}
+            ),
+            assembly_intent=getattr(
+                app,
+                "_phase6_assembly_type",
+                CornerTypeId.INSERT_OVERLAY,
+            ),
+            cabinet_family=required(
+                "_phase6_current_cabinet_family"
+            )(app),
+            builder=build_relief_promotion_candidate,
+        )
+        required(
+            "_phase6_sync_registry_diagnostics_compatibility_mirrors"
+        )(app, controller)
+        status_var = getattr(app, "assembly_collision_status_var", None)
+        if status_var is not None and callable(
+            getattr(status_var, "set", None)
+        ):
+            if candidates:
+                status_var.set(
+                    "認證候選："
+                    + " / ".join(
+                        "封頭" if key == "head" else "封尾"
+                        for key in candidates
+                    )
+                    + "（僅建立候選，不修改正式資料庫）"
+                )
+            else:
+                status_var.set(
+                    "認證候選：目前沒有已驗證的立體暫定結果"
+                )
+        return candidates
+
+    def update_assembly_diagnostic_status(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        status_var = getattr(app, "assembly_collision_status_var", None)
+        size_var = getattr(app, "assembly_relief_size_var", None)
+        if status_var is None:
+            return None
+
+        enabled_var = getattr(
+            app, "assembly_ignore_fixed_corner_var", None
+        )
+        fallback_enabled = (
+            bool(enabled_var.get())
+            if enabled_var is not None
+            else True
+        )
+        size_text, status_text = self.registry_diagnostics().diagnostic_status(
+            fallback_enabled=fallback_enabled,
+            solutions=dict(
+                getattr(app, "_phase6_last_relief_solutions", {}) or {}
+            ),
+            errors=dict(
+                getattr(app, "_phase6_last_relief_errors", {}) or {}
+            ),
+            measurement_text=required(
+                "_phase6_relief_measurement_text"
+            ),
+        )
+        if size_var is not None:
+            size_var.set(size_text)
+        status_var.set(status_text)
+        return status_text
+
+    def on_assembly_part_visibility_changed(self):
+        app = self.app
+        if (
+            str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
+            == "assembly"
+        ):
+            submit = getattr(app, "submit_update_intent", None)
+            if callable(submit):
+                submit("display", commit=True)
+
+    def install_assembly_panel_aliases(self, owner):
+        return owner.install_legacy_aliases(self.app)
+
+    def current_assembly_panel_part_keys(self):
+        owner = getattr(self.app, "_phase6_assembly_panel_owner", None)
+        return owner.represented_part_keys() if owner is not None else ()
+
+    def refresh_assembly_parts_panel_if_topology_changed(
+        self,
+        namespace,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        owner = getattr(app, "_phase6_assembly_panel_owner", None)
+        if owner is None:
+            return False
+        snapshot = dict(
+            getattr(app, "_phase6_input_snapshot", {}) or {}
+        )
+        return owner.refresh_if_topology_changed(
+            app,
+            getattr(app.designer_workspace, "available_parts", ()) or (),
+            selector_keys=required(
+                "_phase6_operator_part_selector_keys"
+            ),
+            label_for=lambda key: required("_phase6_part_label")(
+                key, snapshot=snapshot
+            ),
+        )
+
+    def refresh_assembly_parts_panel(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        owner = getattr(app, "_phase6_assembly_panel_owner", None)
+        if owner is None:
+            return None
+        snapshot = dict(
+            getattr(app, "_phase6_input_snapshot", {}) or {}
+        )
+        return owner.render_available_parts(
+            app,
+            getattr(app.designer_workspace, "available_parts", ()) or (),
+            label_for=lambda key: required("_phase6_part_label")(
+                key, snapshot=snapshot
+            ),
+        )
+
     def registry_panel(self, namespace):
         """Construct Registry diagnostics presentation through composition."""
         app = self.app
