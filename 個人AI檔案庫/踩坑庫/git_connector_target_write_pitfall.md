@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 ## 硬規則
 
 1. **所有 repository-content 修改先走 CURRENT root-local-first router。** 普通路徑固定為 `WORKSPACE_DEFAULT`：在本 executor 的 repo workspace 取得 fresh `cleanup/2d-3d-sync` baseline，完成 mutation、tests、exact diff freeze，再建立 dedicated delivery branch。Codex 常見 workspace 為 `/workspace/whd`；**不得因本 reference 回退或等待 `/Google Drive/WHD/work/active`**。
-2. **shared-0 只保留條件式 fallback。** 只有 fresh touched-path evidence 證明存在較新的 shared overlay 時，router 才可選 `HISTORICAL_SHARED_ZERO_RETIRED`；此時才走 shared-0 reconcile/test/freeze。Drive mount 缺失不得影響 `WORKSPACE_DEFAULT`。
+2. **shared-0 已退休。** 任何 historical shared overlay / drift 只可作 audit evidence，router 不得選 shared-zero route，也不得啟動 reconcile/test/freeze。Drive mount 缺失不得影響 `WORKSPACE_DEFAULT`。
 3. **Contents API 永遠不得直接寫 authoritative production target。** `create_file` / `update_file` / `delete_file` 的 `branch` 只能是 dedicated non-authoritative work/delivery branch，不得是 `cleanup/2d-3d-sync`、`main` 或其他 authoritative target。
 4. **production integration 禁用 chat/runtime Contents API 與直接 `update_ref` 前推。** 已驗證 candidate 要進 `cleanup/2d-3d-sync` 時，必須回到 Flow v2 trusted `MERGE / SYNC_TARGET` transport；`update_ref(force=false)` 只可用於 non-authoritative dedicated work branch。
 5. **寫入前做 target-name denylist + exact-tested-diff check。** target branch、changed-file set、tested HEAD、expected parent/ancestry 任一項不符即 fail closed；不得以「內容看起來一樣」取代 durable identity。
@@ -24,7 +24,7 @@ whd_schema: WHD_DOC_META_V1
 ## 寫入前檢查表
 
 - 我現在要做的是「內容修改」還是「branch/ref 操作」？
-- 若是內容修改：router 是否 fresh 判定 `WORKSPACE_DEFAULT` 或 `HISTORICAL_SHARED_ZERO_RETIRED`？普通 Codex/workspace 任務不得自行改判成 Drive-first。
+- 若是內容修改：router 必須固定判定 `WORKSPACE_DEFAULT`；historical shared-zero evidence 不得改變 route，普通 Codex/workspace 任務不得自行改判成 Drive-first。
 - exact tested diff 是否已完成？changed-file set、tested HEAD、fresh target readback 是否一致？
 - 若是 integration：是否已回到 Flow v2 trusted `MERGE / SYNC_TARGET`，而不是 chat/runtime Contents API / production `update_ref`？
 - tool recipient / action 名稱是否與意圖一致？建立 branch 必須是 `create_branch`；移動 non-authoritative branch 才可 `update_ref`；檔案修改才是 `create_file` / `update_file` / `delete_file`。
