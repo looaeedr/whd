@@ -82,6 +82,37 @@ def _mesh_bounds(triangles):
         for axis in axes
     )
 
+def _assembly_part_signatures(designer):
+    import fold_designer_bridge as bridge
+
+    data = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
+    rows = {}
+    for part in tuple(data.assembly_parts or ()):
+        render_data = part.render_data
+        material = getattr(render_data, "material", None)
+        material_bounds = None
+        if material is not None and not getattr(material, "is_empty", True):
+            material_bounds = tuple(round(float(v), 3) for v in material.bounds)
+        piece_bounds = []
+        for piece in tuple(getattr(render_data, "pieces", ()) or ()):
+            piece_material = getattr(getattr(piece, "render_data", None), "material", None)
+            if piece_material is not None and not getattr(piece_material, "is_empty", True):
+                piece_bounds.append(
+                    (
+                        str(getattr(piece, "role", "") or ""),
+                        tuple(round(float(v), 3) for v in piece_material.bounds),
+                    )
+                )
+        rows[str(part.part_key)] = {
+            "placement": str(part.placement),
+            "offset": tuple(round(float(v), 3) for v in tuple(part.offset or ())),
+            "x": tuple(round(float(seg.get("len", 0.0)), 3) for seg in tuple(part.x_profile or ())),
+            "y": tuple(round(float(seg.get("len", 0.0)), 3) for seg in tuple(part.y_profile or ())),
+            "material": material_bounds,
+            "pieces": tuple(piece_bounds),
+        }
+    return rows
+
 
 def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geometry_both_ways():
     tk, root, _app, designer = _open_vault_designer()
@@ -90,6 +121,7 @@ def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geomet
         scene_renderer = designer.final_scene_view
         assert scene_renderer is not None
         before = _mesh_bounds(scene_renderer.last_cutting_mesh)
+        before_parts = _assembly_part_signatures(designer)
         assert not bool(designer.box_body_piece_selector.winfo_ismapped())
 
         designer.baseline_model_var.set("受電箱")
@@ -125,9 +157,11 @@ def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geomet
         assert str(designer.part_var.get()) == "組合體"
         assert scene_renderer.cutting_mesh_error is None
         restored = _mesh_bounds(scene_renderer.last_cutting_mesh)
+        restored_parts = _assembly_part_signatures(designer)
         assert restored == before, (
             "受電箱→金庫型 did not restore the original Vault assembly mesh; "
-            f"before={before!r} receiving={receiving!r} restored={restored!r}"
+            f"before={before!r} receiving={receiving!r} restored={restored!r}; "
+            f"before_parts={before_parts!r}; restored_parts={restored_parts!r}"
         )
         assert not any(
             str(key).startswith("box_body:")
