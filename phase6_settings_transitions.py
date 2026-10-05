@@ -732,12 +732,21 @@ def family_model_transition(
                 if key in settings_values
             }
 
-        defaults = dict(
+        fresh_defaults = dict(
             cabinet_family_policy.apply_fresh_family_defaults(
                 preset_base, target_model
             )
         )
+        # UI presentation preferences are global operator state, not cabinet-family
+        # geometry defaults.  A baseline/family switch must never reset text size.
+        defaults = {
+            key: value
+            for key, value in fresh_defaults.items()
+            if key != "ui_text_size"
+        }
         snapshot.update(defaults)
+        if "ui_text_size" in settings_values:
+            snapshot["ui_text_size"] = settings_values["ui_text_size"]
 
         runtime_field_map = {
             "multi_door_enabled": "multi_door_enabled",
