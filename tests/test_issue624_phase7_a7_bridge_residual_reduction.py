@@ -1068,3 +1068,51 @@ def test_issue1259_corner_edit_events_are_composition_owned():
         assert f'required("{token}")' not in adapter_source
     assert "self.settings_transactions().commit_corner_pair(" in adapter_source
     assert "transactions.commit_corner_parameters(" in adapter_source
+
+def test_issue1267_drawing_edge_ui_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_on_endcap_edge_relation_selected",
+        "_phase6_ensure_drawing_edge_hosts",
+        "_phase6_clear_drawing_edge_controls",
+        "_phase6_render_endcap_edge_controls",
+        "_phase6_commit_base_plate_edge_shrink",
+        "_phase6_render_base_plate_edge_controls",
+        "_phase6_render_active_drawing_edge_controls",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "original.ttk" not in body
+        assert "commit_endcap_edge_relation" not in body
+        assert "_phase6_stage_setting_update" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "on_endcap_edge_relation_selected",
+        "ensure_drawing_edge_hosts",
+        "clear_drawing_edge_controls",
+        "render_endcap_edge_controls",
+        "commit_base_plate_edge_shrink",
+        "render_base_plate_edge_controls",
+        "render_active_drawing_edge_controls",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "self.settings_transactions().commit_endcap_edge_relation(" in adapter_source
+    assert "self.stage_setting_update(namespace, key, value)" in adapter_source
+    assert "self.render_active_drawing_edge_controls(namespace)" in adapter_source
+    assert 'required("_phase6_render_active_drawing_edge_controls")' not in adapter_source
+
