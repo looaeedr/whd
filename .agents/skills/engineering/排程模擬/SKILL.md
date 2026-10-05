@@ -56,15 +56,14 @@ Preflight GREEN（包含 trusted bot receipt 被同 lane下一 invocation合法 
 
 ## REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2
 
-排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但 repository-content route 必須服從 `root-local-first`，不得把 scheduler mode 自動等同 Drive-root handoff。
+排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但 **scheduler execution mode 不授予 repository-content authoring**，也不得把 handoff 綁死到 `/Google Drive/WHD`。
 
 - 若 exact next_action 只需要 read/discovery、lease/coordination、trusted preflight、既有候選的 QA/merge/finalization，排程可直接執行。
-- 若 next_action 需要新增、修改或刪除 repository content，先執行 CURRENT `select_repository_content_route`。
-- route=`WORKSPACE_DEFAULT`：若 trusted scheduler runtime 本身具可寫、可測 repo workspace，直接在該 executor-local workspace edit/test → exact tested diff → delivery branch/PR；**Drive mount 不可見不是 blocker**。
-- route=`WORKSPACE_DEFAULT` 但目前 scheduler host 只有 control-plane/post-push capability：`HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`，保留 structured next_action，handoff 不是停止點。
-- route=`SHARED_ZERO_FALLBACK`：只因 fresh touched-path shared-0 drift 成立；此時才分類 docs/body、讀 latest `0`、merge/post-merge test/freeze。若 runtime 無 shared-0 capability，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`。
+- 若 next_action 需要新增、修改或刪除 repository content，固定 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`；接手 runtime 必須 fresh 解析自己的 executor-local repo workspace，再由 CURRENT `select_repository_content_route` 選 `WORKSPACE_DEFAULT` 或 `SHARED_ZERO_FALLBACK`。
+- **Drive mount 不可見不是 scheduler content-handoff 的判定條件。** 普通 content runtime 預設走 WORKSPACE_DEFAULT；只有 fresh touched-path shared-0 drift 才能選 SHARED_ZERO_FALLBACK。
+- 若接手 runtime 已 fresh 選中 `SHARED_ZERO_FALLBACK` 但無該 lineage capability，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`。
 - 任何 route 都不得在未測 GitHub branch 直接 author / patch / hotfix；GitHub 只承接已測 exact diff 與 post-push CI/QA/merge。
-- candidate/delivery 完成後 scheduler 立即接回 post-push integration tail，不得把 HANDOFF、Drive mount 或 shared-0 availability 當 cycle 終止理由。
+- handoff 不等於停止：scheduler 必須保存 exact structured next_action；candidate/delivery 出現後立即接回 post-push integration tail。
 
 <!-- REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2 -->
 
