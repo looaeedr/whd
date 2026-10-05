@@ -3568,6 +3568,87 @@ class Phase6FoldDesignerComposition:
             )
         return self._settings_transactions
 
+    def apply_settings_profile_projection(
+        self,
+        namespace,
+        plan,
+        *,
+        render=True,
+    ):
+        """Apply one pure Settings profile plan through existing app owners."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        materialize = required("materialize_settings_profile_value")
+        clone = required("clone_profile")
+
+        snapshot = materialize(plan.snapshot)
+        app._phase6_input_snapshot.update(snapshot)
+
+        box_profile = materialize(plan.box_body_profile)
+        app.state.profiles_vault["箱身"] = box_profile
+
+        if plan.derived_sync_required:
+            self.sync_authoritative_derived_parts(namespace)
+        self.refresh_assembly_parts_panel_if_topology_changed(namespace)
+
+        navigation = self.workspace_navigation()
+        planned_profiles = materialize(plan.part_profiles)
+        for key, profiles in planned_profiles.items():
+            navigation.stash_profiles(key, profiles)
+
+        active = str(
+            plan.active_part
+            or app.designer_workspace.active_part
+            or "box_body"
+        )
+        if active == "box_body":
+            app.state.phase6_fold_ui_profiles = {
+                "X": app.state.profiles_vault["箱身"]
+            }
+        elif active in app.designer_workspace.available_parts:
+            active_profiles = materialize(plan.active_profiles)
+            profiles = active_profiles or (
+                app.designer_workspace.profiles_for(active, {}) or {}
+            )
+            app.state.profiles["X"] = clone(profiles.get("X", []))
+            app.state.profiles["Y"] = clone(profiles.get("Y", []))
+
+        if render:
+            try:
+                app.bend_ui.render()
+            except Exception:
+                pass
+        return plan
+
+    def refresh_profiles_from_settings(
+        self,
+        namespace,
+        *,
+        reset_box_profile=False,
+        reset_all_profiles=False,
+        render=True,
+    ):
+        """Build the pure Settings projection, then apply it at composition."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        workspace = app.designer_workspace
+        request = required("SettingsProfileProjectionRequest")(
+            settings_values=getattr(app, "_settings_values", {}),
+            input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
+            available_parts=tuple(workspace.available_parts),
+            existing_profiles=workspace.part_profiles_snapshot(),
+            box_body_profile=app.state.profiles_vault.get("箱身", []),
+            active_part=workspace.active_part or "box_body",
+            reset_box_profile=bool(reset_box_profile),
+            reset_all_profiles=bool(reset_all_profiles),
+        )
+        plan = required("build_settings_profile_projection")(request)
+        return self.apply_settings_profile_projection(
+            namespace,
+            plan,
+            render=bool(render),
+        )
+
     def settings_application_apply_profile_plan(
         self,
         namespace,
@@ -3593,8 +3674,8 @@ class Phase6FoldDesignerComposition:
             app.state.phase6_thickness = float(committed["t"])
         app._phase6_settings_guard = True
         try:
-            return required("_phase6_refresh_profiles_from_settings")(
-                app,
+            return self.refresh_profiles_from_settings(
+                namespace,
                 reset_box_profile=bool(reset_box_profile),
                 reset_all_profiles=bool(reset_all_profiles),
                 render=bool(render),
