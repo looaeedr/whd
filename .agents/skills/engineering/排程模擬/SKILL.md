@@ -54,17 +54,19 @@ Preflight GREEN（包含 trusted bot receipt 被同 lane下一 invocation合法 
 
 正常 return 前必須通過 canonical `SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1`：WAKE/讀取/回報/HEARTBEAT/單獨 ACQUIRE 都不算 substantive progress。只有 DONE、LANE_BUSY、合法 BLOCKED、active remote QA wait，或本 invocation 已完成 substantive transaction 後的合法 YIELD 可離開；`SCHEDULER_EXECUTION_NO_PROGRESS` 必須繼續施工，不得停止。
 
-## REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1
+## REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2
 
-排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但**不能因此取得 GitHub-first 內容施工權**。
+排程A/B 可以擁有 Flow v2 control-plane lease/next_action，但 repository-content route 必須服從 `root-local-first`，不得把 scheduler mode 自動等同 Drive-root handoff。
 
 - 若 exact next_action 只需要 read/discovery、lease/coordination、trusted preflight、既有候選的 QA/merge/finalization，排程可直接執行。
-- 若 next_action 需要新增、修改或刪除 repository content，固定先走 `HANDOFF` 到 canonical `/Google Drive/WHD` shared-unpushed workflow：先分類 docs/body、fresh-read對應 latest `0`，worker 以 latest `0` 為 base，在 root namespace 完成修改/測試，再 merge 回 fresh latest `0`。不得在 GitHub branch 直接 author / patch / hotfix。
-- root workspace 必須先完成 change-test classification、targeted/affected/integration/final full gate、`WHD_TEST_EXECUTION_RECEIPT_V1=GREEN` 與 `ROOT_DIFF_FROZEN`；之後才把 exact tested diff push 成候選。
-- 只有 selected lane 最新 `0` post-merge GREEN 並 frozen 後，才可由 `/推推 文檔|主體` 取得 delivery reservation、建立 delivery branch。GitHub 在此之後只負責 PR/CI/remote QA/merge verification；verification 揭露內容錯誤時回 shared-0 修正，不在 branch 上補。
-- 這個 handoff 不等於停止：scheduler 必須把 structured next_action 留成可恢復狀態；root-tested candidate 出現後，lane 立即接回 post-push integration tail。
+- 若 next_action 需要新增、修改或刪除 repository content，先執行 CURRENT `select_repository_content_route`。
+- route=`WORKSPACE_DEFAULT`：若 trusted scheduler runtime 本身具可寫、可測 repo workspace，直接在該 executor-local workspace edit/test → exact tested diff → delivery branch/PR；**Drive mount 不可見不是 blocker**。
+- route=`WORKSPACE_DEFAULT` 但目前 scheduler host 只有 control-plane/post-push capability：`HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`，保留 structured next_action，handoff 不是停止點。
+- route=`SHARED_ZERO_FALLBACK`：只因 fresh touched-path shared-0 drift 成立；此時才分類 docs/body、讀 latest `0`、merge/post-merge test/freeze。若 runtime 無 shared-0 capability，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`。
+- 任何 route 都不得在未測 GitHub branch 直接 author / patch / hotfix；GitHub 只承接已測 exact diff 與 post-push CI/QA/merge。
+- candidate/delivery 完成後 scheduler 立即接回 post-push integration tail，不得把 HANDOFF、Drive mount 或 shared-0 availability 當 cycle 終止理由。
 
-<!-- REPOSITORY_CONTENT_HANDOFF_HARD_GATE_V1 -->
+<!-- REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2 -->
 
 ## Lifecycle
 
