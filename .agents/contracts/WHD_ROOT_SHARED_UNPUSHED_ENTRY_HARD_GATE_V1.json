@@ -280,10 +280,11 @@
     "drive_mount_absence_is_blocker": false,
     "workspace_capable_action": "CONTINUE_WORKSPACE_DEFAULT",
     "no_workspace_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
-    "shared_zero_fallback_activation": "FRESH_TOUCHED_PATH_DRIFT_ONLY",
-    "shared_zero_missing_capability_action": "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME",
+    "shared_zero_fallback_activation": "RETIRED",
+    "shared_zero_missing_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME",
     "interactive_workspace_action": "CONTINUE_WORKSPACE_DEFAULT",
-    "remote_mode_repository_content_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
+    "remote_mode_repository_content_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
+    "drive_routing_forbidden": true
   },
   "required_order": [
     "WORKSPACE_SOURCE_CURRENT",
