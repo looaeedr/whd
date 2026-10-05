@@ -1,8 +1,9 @@
 """Historical parser for the retired WHD shared-unpushed model.
 
-The shared-zero execution route is SUPERSEDED_DATA_ONLY. Explicit historical
-aliases may parse old receipts for audit/migration, but CURRENT public APIs fail
-closed and cannot authorize repository-content work.
+The shared-zero routing/lane state machine is SUPERSEDED_DATA_ONLY. Explicit
+historical aliases may parse old receipts for audit/migration. The neutral exact
+delivery fileset lock/hash/pre-merge helpers remain CURRENT because they bind an
+already-tested workspace diff and do not select a Drive/shared-zero route.
 """
 from __future__ import annotations
 
@@ -443,10 +444,5 @@ next_generation = _retired_current_api
 build_conflict_checkpoint = _retired_current_api
 assert_conflict_checkpoint_blocks_action = _retired_current_api
 assert_push_scope = _retired_current_api
-build_delivery_fileset_lock = _retired_current_api
-validate_delivery_fileset_lock = _retired_current_api
-assert_push_scope_matches_lock = _retired_current_api
-assert_delivery_hashes_match_lock = _retired_current_api
-assert_premerge_latest_file_recheck = _retired_current_api
 finalize_delivered_paths = _retired_current_api
 
