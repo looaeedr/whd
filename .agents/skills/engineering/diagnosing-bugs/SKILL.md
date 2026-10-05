@@ -174,13 +174,13 @@ For WHD bug-fix work, repository-content routing follows CURRENT `root-local-fir
 3. Classify tests through `WHD_CHANGE_TEST_PROFILE_V1`; finish targeted + required full gate in the same workspace.
 4. Capture the exact tested diff and fresh-read target/touched paths.
 5. Normal route=`WORKSPACE_DEFAULT`: create a tested delivery branch, push, PR, required checks, merge/readback. The user's explicit exact repository-content task may mint one same-scope `WORKSPACE_DELIVERY` authority through QA/finalization.
-6. Only when fresh touched-path evidence proves a newer shared `.unpushed/{docs|body}/0` overlay does the router select `SHARED_ZERO_FALLBACK`; then and only then use lane 0 merge/freeze/`/推推`.
+6. Shared `.unpushed/{docs|body}/0` and `SHARED_ZERO_FALLBACK` are retired from CURRENT routing. Historical shared-zero evidence may be inspected for audit only and must never change `WORKSPACE_DEFAULT`.
 7. Remote QA is post-push verification; failure returns to the same authoring route for correction/retest.
 
 Hard rules:
 - Never patch `cleanup/2d-3d-sync` / `main` directly.
 - Missing Drive mount is not a blocker for `WORKSPACE_DEFAULT`.
 - Do not invent shared-0 drift merely because the old workflow mentioned Drive.
-- If fallback is active, never auto-select ours/theirs for a shared-0 conflict.
+- Historical shared-zero conflicts remain audit evidence only; they do not activate a CURRENT fallback route.
 - Target drift across touched paths requires fresh baseline + retest before delivery.
 - Small/docs-only bug corrections use the same workspace-first router.
