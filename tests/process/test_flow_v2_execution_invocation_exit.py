@@ -385,7 +385,7 @@ def test_repository_content_done_returns_after_lane_finalization_without_root_sy
         invocation_identity=INV,
         now=NOW,
         root_sync_receipt=None,
-        lane_delivery_receipt=_lane_delivery_receipt_for_done(),
+        lane_delivery_receipt=None,
     )
     assert result.decision == "TASK_TERMINAL"
     assert result.may_return is True
