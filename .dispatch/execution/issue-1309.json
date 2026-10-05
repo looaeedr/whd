@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
-    "released_at": null
+    "released_at": "2026-10-05T16:28:25Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "10d05b0eddffd3bfcd4bdebaa4420545bd1cfa61",
   "issue": 1309,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-05T16:42:36Z",
-    "invocation_identity": "github:production-x-post-merge:37340878546:pr1310:issue1309",
-    "token": "recovery:1309:37340878546"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1310,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "governance/1309-workspace-only-retirement",
   "source_sha": "10d05b0eddffd3bfcd4bdebaa4420545bd1cfa61",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
-  "transaction": null,
-  "updated_at": "2026-10-05T16:27:36Z",
+  "transaction": {
+    "expected_fingerprint": "027e066d5870b1c141432437c10958e9c6a5ca4f2ae421e7701a0df08119e238",
+    "id": "gha:37340878546:1309:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37340878546:pr1310:issue1309",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T16:28:24Z",
   "version": 2,
   "work_branch": "governance/1309-workspace-only-retirement"
 }
