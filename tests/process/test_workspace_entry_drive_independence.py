@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+# Issue 1297: Drive/shared-zero cannot regain CURRENT routing authority.
 CONTRACT = ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
 SKILL = ROOT / ".agents/skills/engineering/root-local-first/SKILL.md"
 
