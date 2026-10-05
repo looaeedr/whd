@@ -211,7 +211,14 @@ def refresh_box_body_piece_selector(
             host._phase6_box_body_piece_tab_map = tab_map
             host._phase6_box_body_piece_tab_keys = wanted
         finally:
-            host._phase6_box_body_piece_tab_guard = False
+            # ttk.Notebook posts <<NotebookTabChanged>> asynchronously. Keep the
+            # guard alive until Tk drains programmatic add/select events.
+            try:
+                notebook.after_idle(
+                    lambda: setattr(host, "_phase6_box_body_piece_tab_guard", False)
+                )
+            except Exception:
+                host._phase6_box_body_piece_tab_guard = False
 
     active = str(getattr(workspace, "active_part", "") or "")
     remembered = str(getattr(host, "_phase6_box_body_active_piece_key", "") or "")
@@ -237,7 +244,14 @@ def refresh_box_body_piece_selector(
             try:
                 notebook.select(target_tab)
             finally:
-                host._phase6_box_body_piece_tab_guard = False
+                # ttk.Notebook posts <<NotebookTabChanged>> asynchronously. Keep
+                # the guard alive until Tk drains the programmatic select event.
+                try:
+                    notebook.after_idle(
+                        lambda: setattr(host, "_phase6_box_body_piece_tab_guard", False)
+                    )
+                except Exception:
+                    host._phase6_box_body_piece_tab_guard = False
 
     # The aggregate remains the top-level operator identity, while physical
     # children stay directly reachable beneath it. Other parts hide this nested
