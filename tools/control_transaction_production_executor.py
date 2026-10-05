@@ -38,6 +38,8 @@ from tools.control_transaction import (
     is_control_only_finalize_record,
     prepare_transaction,
     CONTROL_ONLY_TARGET_READBACK_SCHEMA,
+    MERGE_ANCHOR_PROOF_SCHEMA,
+    MERGE_ANCHOR_CORRECTION_PROOF_SCHEMA,
     POST_DELIVERY_RECOVERY_MODE,
     POST_DELIVERY_RECOVERY_PROOF_SCHEMA,
     is_post_delivery_recovery_finalize_record,
@@ -652,6 +654,109 @@ def _merge_precheck_readback(
 
 
 
+def _trusted_merge_anchor_fields(
+    repo: str,
+    token: str,
+    *,
+    pr: dict[str, object],
+    pr_number: int,
+    target_branch: str,
+    observed_target: str,
+) -> dict[str, object]:
+    merged_sha = str(pr.get("merge_commit_sha") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", merged_sha):
+        raise ProductionExecutorError(
+            f"PR #{pr_number} merged readback is missing a valid merge_commit_sha"
+        )
+    if observed_target != merged_sha and not _is_ancestor(
+        repo, token, merged_sha, observed_target
+    ):
+        raise ProductionExecutorError(
+            f"PR #{pr_number} merge commit is not ancestor of current target"
+        )
+    return {
+        "merged_sha": merged_sha,
+        "target_sha": observed_target,
+        "merge_anchor_proof": {
+            "schema": MERGE_ANCHOR_PROOF_SCHEMA,
+            "pr_number": pr_number,
+            "target_branch": target_branch,
+            "merged_sha": merged_sha,
+            "observed_target_sha": observed_target,
+            "merged_anchor_is_ancestor": True,
+            "fresh_readback": True,
+            "trusted_source": "control_transaction_production_executor",
+        },
+    }
+
+
+
+def _trusted_merge_anchor_correction_effect(
+    repo: str,
+    token: str,
+    *,
+    record: ExecutionRecord,
+    supplied: dict[str, object],
+) -> dict[str, object]:
+    pr_number = supplied.get("repair_already_merged_anchor_pr_number")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        raise ProductionExecutorError(
+            "merge-anchor repair requires positive repair_already_merged_anchor_pr_number"
+        )
+    if (
+        record.state != "INTEGRATING"
+        or record.next_action is None
+        or record.next_action.kind != "FINALIZE"
+        or not record.closure.merged_sha
+    ):
+        raise ProductionExecutorError(
+            "merge-anchor repair requires INTEGRATING/FINALIZE record with existing anchor"
+        )
+
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    if pr.get("merged") is not True:
+        raise ProductionExecutorError("merge-anchor repair requires merged PR")
+    head = pr.get("head") or {}
+    base = pr.get("base") or {}
+    if str(head.get("sha") or "").strip() != record.head_sha:
+        raise ProductionExecutorError("merge-anchor repair PR head does not match record head")
+    if str(base.get("ref") or "").strip() != record.target_branch:
+        raise ProductionExecutorError("merge-anchor repair PR base does not match record target")
+
+    observed_target = _read_branch_head(repo, token, record.target_branch)
+    fields = _trusted_merge_anchor_fields(
+        repo,
+        token,
+        pr=pr,
+        pr_number=pr_number,
+        target_branch=record.target_branch,
+        observed_target=observed_target,
+    )
+    corrected = str(fields["merged_sha"])
+    return {
+        "observed_work_branch": record.work_branch,
+        "observed_head_sha": record.head_sha,
+        "observed_target_sha": observed_target,
+        "state": record.state,
+        "semantic_state": "MERGE_ANCHOR_CORRECTED",
+        "next_action": _action_payload(record.next_action),
+        "corrected_merged_sha": corrected,
+        "merge_anchor_correction_proof": {
+            "schema": MERGE_ANCHOR_CORRECTION_PROOF_SCHEMA,
+            "pr_number": pr_number,
+            "target_branch": record.target_branch,
+            "previous_merged_sha": record.closure.merged_sha,
+            "corrected_merged_sha": corrected,
+            "observed_target_sha": observed_target,
+            "corrected_anchor_is_ancestor": True,
+            "fresh_readback": True,
+            "trusted_source": "control_transaction_production_executor",
+        },
+        "updated_at": _iso(_now()),
+    }
+
+
+
 def _trusted_merge_effect(
     repo: str,
     token: str,
@@ -723,10 +828,17 @@ def _trusted_merge_effect(
 
     if precheck.classification == ALREADY_MERGED:
         observed_target = _read_branch_head(repo, token, record.target_branch)
+        anchor_fields = _trusted_merge_anchor_fields(
+            repo,
+            token,
+            pr=pr,
+            pr_number=pr_number,
+            target_branch=record.target_branch,
+            observed_target=observed_target,
+        )
         return {
             "merge_precheck_status": ALREADY_MERGED,
-            "merged_sha": observed_target,
-            "target_sha": observed_target,
+            **anchor_fields,
             "semantic_state": "MERGED",
             "next_action": {
                 "kind": "FINALIZE",
@@ -764,12 +876,19 @@ def _trusted_merge_effect(
     if fresh_pr.get("merged") is not True:
         raise ProductionExecutorError("trusted PR merge readback is not merged")
     observed_target = _read_branch_head(repo, token, record.target_branch)
+    anchor_fields = _trusted_merge_anchor_fields(
+        repo,
+        token,
+        pr=fresh_pr,
+        pr_number=pr_number,
+        target_branch=record.target_branch,
+        observed_target=observed_target,
+    )
 
 
     return {
         "merge_precheck_status": READY_TO_MERGE,
-        "merged_sha": observed_target,
-        "target_sha": observed_target,
+        **anchor_fields,
         "semantic_state": "MERGED",
         "next_action": {
             "kind": "FINALIZE",
@@ -1500,6 +1619,17 @@ def _execute_one_attempt(
             record=record,
             records=records,
             supplied=effect,
+        )
+    elif (
+        kind == "RECONCILE"
+        and supplied_effect.get("repair_already_merged_anchor_pr_number") is not None
+    ):
+        _require_current_invocation_lease(record, invocation_identity)
+        effect = _trusted_merge_anchor_correction_effect(
+            repo,
+            token,
+            record=record,
+            supplied=supplied_effect,
         )
     elif kind == "FINALIZE":
         # FINALIZE owns an external GitHub Issue close/readback side effect, so
