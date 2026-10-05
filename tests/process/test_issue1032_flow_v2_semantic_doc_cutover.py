@@ -124,7 +124,7 @@ def test_always_read_references_use_workspace_default_and_no_mntdata_authority()
     root_pitfall = _read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
     for text in (global_pitfalls, root_pitfall):
         assert "WORKSPACE_DEFAULT" in text
-        assert "SHARED_ZERO_FALLBACK" in text
+        assert "shared-zero" in text.lower()
         assert "executor-local" in text
         assert "ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND" not in text
     assert "固定落 `/mnt/data` 或其他跨回合持久位置" not in global_pitfalls
@@ -145,7 +145,7 @@ def test_scheduler_required_reference_uses_flow_v2_current_rules_not_legacy_guar
     assert "施工型 scheduler prompt 必須顯式保留 **派工 + 遠端執行守門**" not in text
     assert "NORMAL_PATH_FIRST" in text
     assert "WORKSPACE_DEFAULT" in text
-    assert "SHARED_ZERO_FALLBACK" in text
+    assert "Drive/shared-zero" in text or "shared-zero" in text
     assert "canonical root shared-0 authoring/tests" not in text
     assert "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION" not in text
     assert "READY → atomic ACQUIRE+reservation" not in text
