@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "74f3bbd54f4fb8f0da1258258ed8e834646967a3",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "issue": 1197,
   "lane_id": "chatgpt.flowv2.work0",
@@ -23,13 +23,9 @@
   },
   "mutation_scope": null,
   "next_action": {
-    "args": {
-      "pr_number": 1205,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
-    },
-    "display": "Reconcile already merged PR1205 and finalize #1197",
-    "kind": "MERGE"
+    "args": {},
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -46,21 +42,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.0",
   "source_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
   "source_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "0e83ad859db77c5e869f96059bff9946b4af3ede",
+  "target_sha": "74f3bbd54f4fb8f0da1258258ed8e834646967a3",
   "transaction": {
-    "expected_fingerprint": "8f38aef1a20c13c7515c3c31c76cdf86dc8858917f3f79e6fd4fc349e6227127",
-    "id": "gha:local:1197:ACQUIRE:3",
+    "expected_fingerprint": "267b4fe71c7af567cc4829a7ad1d585934096de792760234045d747cf14a38cc",
+    "id": "gha:local:1197:MERGE:4",
     "invocation_identity": "codex:issue1197:4837efae-7561-4164-95d8-7287857df818",
-    "kind": "ACQUIRE",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-05T04:25:09Z",
+  "updated_at": "2026-10-05T04:29:12Z",
   "version": 2,
   "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
 }
