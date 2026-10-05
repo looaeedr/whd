@@ -4973,8 +4973,15 @@ class Phase6FoldDesignerComposition:
 
         number_text = required("_setting_number_text")
         part_label = required("_phase6_part_label")
-        blank_text = required("_phase6_format_unfolded_blank_text")
         corner_text = required("_phase6_render_data_corner_dimension_text")
+
+        def blank_text(render_data, *, part_key=""):
+            return Phase6CornerDataViewAdapter.unfolded_blank_text(
+                render_data,
+                part_key=part_key,
+                measurer=manufacturing_api.measure_unfolded_blanks,
+                number_text=number_text,
+            )
 
         def formed_size_text(render_data, **kwargs):
             dimensions = tuple(kwargs.get("finished_dimensions") or ())
