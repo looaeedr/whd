@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -168,6 +169,23 @@ def test_already_closed_issue_is_noop(monkeypatch):
         run_identity="github:post-merge:1",
     )
     assert result == [{"issue": 1282, "status": "ALREADY_CLOSED"}]
+
+
+def test_direct_cli_help_bootstraps_repository_import_path():
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "tools/production_x_post_merge_finalize.py"),
+            "--help",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "--head-sha" in completed.stdout
+    assert "--output" in completed.stdout
 
 
 def test_workflow_is_production_x_push_only_and_calls_canonical_trigger():
