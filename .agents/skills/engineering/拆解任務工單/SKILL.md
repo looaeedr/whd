@@ -18,10 +18,11 @@ whd_schema: WHD_DOC_META_V1
 
 1. 使用者本輪明確指示與已核准規格。
 2. current spec / issue / conversation 中已完成的需求決策。
-3. CURRENT AI Library / project contract。
-4. current code/test behavior，只用來找 implementation seam，不得覆蓋已核准產品需求。
+3. repo CURRENT project contract / canonical references。
+4. 若 runtime 實際具有 ChatGPT AI Library surface，再讀相關 CURRENT AI Library；Codex/CLI/headless 缺該 surface 時固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，不得停工。
+5. current code/test behavior，只用來找 implementation seam，不得覆蓋已核准產品需求。
 
-若 current explicit requirement 與歷史 AI Library 衝突，以 current requirement 為準，並把 durable conflict 標成 AI Library Writeback。
+若 current explicit requirement 與可取得的歷史 AI Library 衝突，以 current requirement 為準，並把 durable conflict 標成 AI Library Writeback；沒有 AI Library surface 時不虛構讀取或 writeback。
 
 ## 2. Route selection
 
@@ -87,9 +88,9 @@ UNAPPROVED
 讀：
 
 - approved spec / issue / current conversation；
-- 相關 CURRENT AI Library；
-- current code/test public seams；
-- 既有 owner boundary / authority map（若會影響切票）。
+- repo CURRENT canonical references / authority map；
+- runtime 有 ChatGPT AI Library surface 時才讀相關 CURRENT AI Library；沒有則記 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`；
+- current code/test public seams。
 
 建立 Requirement Authority mapping：
 
@@ -182,11 +183,11 @@ GitHub-backed project：
 
 ## 8. AI Library traceability
 
-WHD breakdown 必須讀相關 CURRENT AI Library。若本次 approved requirement 改變了可重用流程/產品 invariant：
+AI Library traceability 依 runtime surface：
 
-- 至少一張 closing/acceptance ticket 標 `AI Library Writeback: REQUIRED`；
-- 指定 exact target path/category；
-- writeback 不得建立第二套 domain authority，只記 current accepted rule 與 owner reference。
+- ChatGPT surface 可取得 AI Library 時，讀相關 CURRENT AI Library；若 approved requirement 改變可重用流程/產品 invariant，至少一張 closing/acceptance ticket 標 `AI Library Writeback: REQUIRED` 並指定 exact target。
+- Codex/CLI/headless 沒有 AI Library surface 時，`AI Library References` / `Writeback` 可填 `N/A_NO_AI_LIBRARY_SURFACE`，並以 repo CURRENT contract / owning Issue 作 durable authority；不得因此 BLOCKED，也不得假裝已讀/已寫 AI Library。
+- writeback 永遠不得建立第二套 domain authority。
 
 ## 9. Deep-module / combined acceptance
 
