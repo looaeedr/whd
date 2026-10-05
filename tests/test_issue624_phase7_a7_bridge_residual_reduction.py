@@ -186,3 +186,42 @@ def test_p7_r_a_parameter_panel_compat_port_toggles_workspace_visibility(monkeyp
     assert button.text == "參數鎖定"
     assert center.winfo_manager() == ""
     assert diagnostics.winfo_manager() == ""
+
+
+def test_issue1213_settings_application_effects_live_only_in_composition_owner():
+    moved = {
+        "_phase6_settings_application_apply_profile_plan",
+        "_phase6_settings_application_project_ui_values",
+        "_phase6_settings_application_submit_update_intent",
+        "_phase6_settings_application_publish_live_state",
+    }
+    assert moved.isdisjoint(_top_functions(BRIDGE))
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "settings_application_apply_profile_plan",
+        "settings_application_project_ui_values",
+        "settings_application_submit_update_intent",
+        "settings_application_publish_live_state",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "_phase6_settings_application_apply_profile_plan" not in adapter_source
+    assert "_phase6_settings_application_project_ui_values" not in adapter_source
+    assert "_phase6_settings_application_submit_update_intent" not in adapter_source
+    assert "_phase6_settings_application_publish_live_state" not in adapter_source
+    assert "self.settings_application_apply_profile_plan(" in adapter_source
+    assert "self.settings_application_project_ui_values(" in adapter_source
+    assert "self.settings_application_submit_update_intent(" in adapter_source
+    assert "self.settings_application_publish_live_state(" in adapter_source
