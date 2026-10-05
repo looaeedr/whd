@@ -762,6 +762,21 @@ def family_model_transition(
             if source_key in preset_runtime:
                 snapshot[target_key] = deepcopy(preset_runtime[source_key])
 
+        # Receiving owns Door-cell topology and its derived physical parts.
+        # A switch to another known family must not carry that topology forward
+        # merely because the target preset does not mention Receiving-only keys.
+        # Custom remains carry-forward by design.
+        if (
+            not new_editable
+            and cabinet_family_policy.canonical_family_name(target_model) != "受電箱"
+        ):
+            snapshot["multi_door_enabled"] = False
+            snapshot["door_layout_columns"] = []
+            snapshot["door_layout_scope"] = "main"
+            snapshot["door_handle_edges"] = {}
+            snapshot["inner_doors"] = []
+            snapshot["door_nameplate_center_datum_top"] = None
+
         family_values = {
             key: value
             for key, value in defaults.items()
