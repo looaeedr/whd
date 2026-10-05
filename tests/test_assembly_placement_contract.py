@@ -11,6 +11,7 @@ def _snapshot():
         "h": 600,
         "d": 200,
         "t": 2,
+        "base_plate_bend": 15,
         "door_layout_scope": "main",
         "door_layout_columns": [
             [250, [300, 300]],
@@ -59,3 +60,12 @@ def test_unknown_part_does_not_receive_silent_origin_fallback():
         assert "authoritative divider topology" in str(exc)
     else:
         raise AssertionError("unknown divider topology must fail closed")
+
+def test_receiving_base_plate_keeps_cell_xy_but_mates_to_rear_inner_plane():
+    placement = resolve_assembly_placement(_snapshot(), "base_plate_c2_r2")
+
+    assert placement.placement_kind == "receiving_base_plate"
+    assert placement.relationship == "BASE_PLATE"
+    assert placement.world_offset[:2] == (125.0, -150.0)
+    assert placement.world_offset[2] == -90.5
+    assert placement.semantic_position == placement.world_offset
