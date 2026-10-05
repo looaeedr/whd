@@ -185,7 +185,7 @@ def test_workspace_canonical_sync_is_conditional_and_workspace_path_is_executor_
     assert "普通 workspace startup **不要求**" in root_skill
     assert mirror["schema"] == "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1"
     assert mirror["machine_owner"] == "tools/workspace_canonical_sync.py"
-    assert mirror["activation"] == "SHARED_ZERO_FALLBACK_ONLY"
+    assert mirror["activation"] == "RETIRED_DATA_ONLY"
     assert mirror["ordinary_startup_required"] is False
     assert mirror["workspace_root_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert "workspace_root" not in mirror
