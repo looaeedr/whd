@@ -1,12 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "7c5abcae-5b69-4a7d-b048-9e95fdc93280",
+  "request_id": "d2ba79ea-c5f9-4eab-a6c0-d9eeb7007678",
   "issue": 1279,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-  "expected_coord_head": "ceec2f56f08979836c4284adff08db7caa0ce767",
-  "expected_generation": 5,
+  "expected_coord_head": "a33e476221d3c0abff461275aa985193b7b9d90b",
+  "expected_generation": 6,
   "effect": {
     "work_branch": "refactor/issue-1279-unfolded-blank-composition",
     "root_local_first_git_write_receipt": {
@@ -15,7 +15,7 @@
       "source_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
       "diff_digest": "ff47a094aa25c55db86d15e17aba23395c106dcfa91711d9f331b92d18c15485",
       "issue": 1279,
-      "generation": 5,
+      "generation": 6,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         "fold_designer_bridge.py",
@@ -27,30 +27,29 @@
         "tests/test_phase6_gui_3d_integrity_20260830.py"
       ],
       "delete_paths": [],
-      "record_fingerprint": "9a428ee69f2e0ccc8b02588e41dfd83a0340bed908be62ed529c96abb38f8d04",
+      "record_fingerprint": "8c0e87b8fa7830f5b86262fb6a5ffcd23cacf697c69835876def987295ebdcb0",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1279,
-      "generation": 5,
-      "record_fingerprint": "9a428ee69f2e0ccc8b02588e41dfd83a0340bed908be62ed529c96abb38f8d04",
+      "generation": 6,
+      "record_fingerprint": "8c0e87b8fa7830f5b86262fb6a5ffcd23cacf697c69835876def987295ebdcb0",
       "lease_token": "lease:1279:37385498295:1",
       "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "refactor/issue-1279-unfolded-blank-composition",
-      "expected_work_head": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
+      "expected_work_head": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
       "expected_target_head": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35"
     },
-    "head_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
+    "head_sha": "52871657cd36f47c6dddd000a3a18d3fba96c8c6",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "ff47a094aa25c55db86d15e17aba23395c106dcfa91711d9f331b92d18c15485",
-        "candidate_commit_sha": "52871657cd36f47c6dddd000a3a18d3fba96c8c6"
+        "workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Commit exact tested issue1279 diff"
+      "display": "Verify exact tested delivery PR"
     }
   },
   "session_reuse": {
