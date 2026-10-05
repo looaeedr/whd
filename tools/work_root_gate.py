@@ -55,6 +55,13 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
         raise ValueError("Drive must remain mirror/backup only")
     if mirror.get("ordinary_startup_required") is not False or mirror.get("routing_forbidden") is not True:
         raise ValueError("Drive mirror must not participate in startup routing")
+    overlay = _mapping(gate.get("canonical_drive_overlay"), "canonical_drive_overlay")
+    if overlay.get("library_path") != CANONICAL_DRIVE_ROOT or overlay.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID:
+        raise ValueError("retired Drive compatibility overlay identity mismatch")
+    if overlay.get("activation") != "NEVER_CURRENT" or overlay.get("role") != "MIRROR_BACKUP_ONLY":
+        raise ValueError("retired Drive compatibility overlay must remain non-authoritative")
+    if overlay.get("authority") is not False or overlay.get("routing_forbidden") is not True:
+        raise ValueError("retired Drive compatibility overlay cannot route work")
     required = set(map(str, gate.get("required_root_entries") or ()))
     if required != set(REQUIRED_ROOT_ENTRIES):
         raise ValueError("full-repo root required entries mismatch")
@@ -134,7 +141,9 @@ def build_work_root_gate_evidence(
             if not resolved_workspace:
                 raise ValueError("interactive executor workspace_root must be nonblank")
         elif read_mode == READ_MODE_GOOGLE_DRIVE:
-            raise ValueError("DRIVE_WORK_ROOT_RETIRED_USE_EXECUTOR_LOCAL_WORKSPACE")
+            # Legacy evidence transport only. It never nominates Drive as the construction root.
+            source = DRIVE_CONTRACT_PATH
+            resolved_workspace = str(workspace_root or CANONICAL_DRIVE_ROOT).strip()
         else:
             raise ValueError("interactive mode must use executor-local workspace Git baseline")
     verified = verify_root_entries(root_entries)
@@ -154,8 +163,12 @@ def build_work_root_gate_evidence(
         "production_head_sha": head or None,
         "drive_role": "MIRROR_BACKUP_ONLY",
         "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+        "canonical_drive_root": CANONICAL_DRIVE_ROOT,
+        "drive_folder_id": DEFAULT_DRIVE_FOLDER_ID,
         "root_entries": list(verified),
+        "shared_zero_fallback_root": UNPUSHED_ROOT,
         "shared_zero_required": False,
+        "shared_zero_routing_retired": True,
         "status": "GREEN",
     }
 
@@ -178,6 +191,10 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
         raise ValueError("work-root gate evidence production branch mismatch")
     if item.get("drive_role") != "MIRROR_BACKUP_ONLY" or item.get("drive_mirror_root") != "/Google Drive/WHD/WHD_MIRROR/CURRENT":
         raise ValueError("work-root gate evidence Drive mirror boundary mismatch")
+    if item.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID or item.get("canonical_drive_root") != CANONICAL_DRIVE_ROOT:
+        raise ValueError("work-root gate retired Drive compatibility identity mismatch")
+    if item.get("shared_zero_fallback_root") != UNPUSHED_ROOT or item.get("shared_zero_routing_retired") is not True:
+        raise ValueError("work-root gate shared-zero compatibility must remain retired")
     verify_root_entries(item.get("root_entries") or ())
     if item.get("shared_zero_required") is not False:
         raise ValueError("ordinary work-root evidence must not require shared-zero")
