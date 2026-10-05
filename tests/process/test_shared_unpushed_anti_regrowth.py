@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 
 ROOT = Path(__file__).resolve().parents[2]
+# Issue 1308: CURRENT routing must not regain Drive/shared-zero authority.
 
 
 def _read(path: str) -> str:
