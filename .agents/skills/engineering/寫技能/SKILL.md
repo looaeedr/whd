@@ -13,48 +13,37 @@ whd_schema: WHD_DOC_META_V1
 
 ## 1. 執行優先級
 
-### Global Skill invocation announcement invariant
+### Global Skill startup communication invariant
 
 <!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
 
-WHD 的 user-visible Skill 使用公告由 `AGENTS.md` 擁有全域硬閘門。所有 canonical Skill 與所有新建／修改 Skill 都必須繼承此 contract，不得在個別 Skill 關閉、弱化或改成事後補述。
+WHD startup communication 由 `AGENTS.md` 擁有。所有 canonical Skill 必須繼承 surface-aware contract：
 
-單一 Skill 的標準 user-visible 起始格式：
+- interactive chat：第一個 user-visible 行／句公告 canonical Skill identity；
+- Codex / CLI / headless：第一個 machine-visible `STDOUT / TASK_EVENT / LOG` 記錄 canonical Skill identity + startup declaration；
+- 沒有 chat UI 本身不得 BLOCKED，也不得要求 headless executor 等待 ChatGPT surface；
+- announcement 只證明 startup communication，不取代 Skill read、Preflight 或 execution evidence。
 
-```text
-使用「<技能名>」技能…
-```
-
-建立或修改 Skill 時必須確認：
-
-- 真正使用 Skill 的回合，第一個 user-visible 行／句先公告 canonical Skill identity；
-- 若一開始已知多個 Skill，同一第一行全部列出；
-- 沒有使用 Skill 時不虛報；
-- announcement 只證明「已告知將使用」，**不證明** Skill 已讀、Preflight 已完成或 workflow 已執行；
-- 個別 Skill 不得另訂與 `AGENTS.md` 競爭的公告格式或省略規則。
-
-開始前先建立 authority 順序：
+開始前 authority 順序：
 
 1. 使用者本輪明確指示與已核准規格。
-2. 專案根目錄 `AGENTS.md`、專案 Preflight、專案 Skill/Registry/AI Library/Source of Truth。
+2. 專案根目錄 `AGENTS.md`、Phase6 Preflight、專案 Skill/Registry/Source of Truth。
 3. 目前要建立或修改的 Skill baseline。
 4. 通用 Skill 撰寫慣例。
 
-**專案規則優先**。通用「寫技能」不能取代專案自己的 root-local-first shared-0、`/推推` delivery gate、Preflight、TDD、QA、AI 庫回寫或 release gate。
+### WORKSPACE_BASELINE_AND_DELIVERY_HARD_GATE_V2
 
-### ROOT_BASELINE_LOOKUP_AND_REMOTE_DENY_HARD_GATE_V1
+修改既有 Skill 的普通 baseline 固定取**本 executor 的 repo workspace + fresh `cleanup/2d-3d-sync`**；Codex 常見 `/workspace/whd`。不得要求固定 `/Google Drive/WHD`、shared-0 或 chat UI 才能開始。
 
-修改既有 Skill 前，baseline 必須從 canonical `/Google Drive/WHD` root 沿 parent-folder chain 解析到 exact repo path；**禁止先用 GitHub code search、Remote Desktop、remote checkout 或全域同名搜尋結果當 baseline**。全域 search 只能找候選，最後仍需 parent-chain readback 證明檔案位於 canonical root。
-
-未有使用者明確遠端指示時，寫 Skill 流程不得為了「找最新版／跑 Preflight／看 remote baseline」連 GitHub 或遠端本機。`/推推 文檔` 才開 GitHub delivery window；「開工單」只授權 issue transport，不授權 repository-content transport。
-
-若專案規定修改前必須執行 Preflight，先執行；若已知 changed files，再依專案規則帶 changed files 重跑。不能先改完再補做資格檢查。
-
-外部 Skill、模板或規格（例如 `make-skill-template`）只能作為**輸入參考**。若它的命名、frontmatter、工具或目錄慣例和目前專案衝突，仍以上述 authority 為準；不得為了照抄外部模板破壞 WHD 中文 canonical identity 或專案治理。
-
+- baseline `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 是 workspace-first 窄化 read，不需第二份 remote authorization；
+- 修改與測試在 executor-local workspace 完成；
+- tested exact diff 後才進 delivery branch / push / PR / CI / merge；
+- 使用者已明確要求 exact repository-content task 時，可 mint 一次 `WORKSPACE_DELIVERY` authority 供同 invocation + 同 scope delivery 使用，不得到 push/PR 再重問同一授權；
+- 只有 fresh touched-path evidence 證明 shared-0 drift 才切 `SHARED_ZERO_FALLBACK`；此時才啟用 `.unpushed/docs/0`、freeze、`/推推 文檔` 等 fallback 規則；
+- 真實 network/credential failure 才是 capability blocker；Drive mount、AI Library、chat UI 缺失都不是普通 Skill authoring blocker。
 ### SKILL_PREWRITE_PREFLIGHT_HARD_GATE
 
-修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成；Skill 屬於 `文檔` lane。repository content authority 先服從 shared `.unpushed/docs/0` lineage；Flow v2 lease只負責 owning Issue/liveness，delivery reservation 到 `/推推 文檔` 前才取得。
+修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成。普通 route 使用 executor-local workspace；只有 fresh router 選中 `SHARED_ZERO_FALLBACK` 時，Skill 才屬 docs shared-0 lineage並套用 `/推推 文檔` fallback。Flow v2 lease只負責 owning Issue/liveness；delivery reservation 只在 tested exact diff/frozen fallback candidate 準備完成後取得。
 
 - `write/commit` 沒有 changed-file identity → fail closed。
 - target 是 `.agents/skills/**/SKILL.md` 但沒有 Preflight evidence、evidence 缺 `寫技能`、required Skill 或 required reference → fail closed。
