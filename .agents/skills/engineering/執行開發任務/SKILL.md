@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 
 <!-- EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1 -->
 
-canonical machine owner 固定是 `tools/execution_entry_contract.py`，本 Skill 不建立第二套 authority。每一個新 invocation 都必須先完成 `AGENTS.md::SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`，再 user-visible 公告：
+canonical machine owner 固定是 `tools/execution_entry_contract.py`，本 Skill 不建立第二套 authority。每一個新 invocation 都必須先完成 `AGENTS.md::SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`，再依 runtime surface 記錄同一份 startup declaration：interactive chat=user-visible；Codex/CLI/headless/scheduler=`STDOUT / TASK_EVENT / LOG` machine-visible。缺 chat UI/AI Library surface 不得成為 blocker。declaration 至少包含：
 - `authorization_source`
 - `execution_intent`
 - `purpose`
