@@ -1148,7 +1148,7 @@ def _ensure_issue_closed_for_finalize(
     *,
     issue: int,
     record: ExecutionRecord,
-    records: dict[int, ExecutionRecord],
+    records: dict[int, ExecutionRecord] | None = None,
 ) -> dict[str, object]:
     """Close/read back the GitHub Issue before a FINALIZE -> DONE transition."""
     control_only = is_control_only_finalize_record(record)
@@ -1199,7 +1199,11 @@ def _ensure_issue_closed_for_finalize(
         "released_at": trusted_released_at,
     }
     sibling = _discover_open_delivery_sibling(
-        repo, token, issue=issue, record=record, records=records
+        repo,
+        token,
+        issue=issue,
+        record=record,
+        records=records if records is not None else {issue: record},
     )
     if sibling is not None:
         next_issue, pr_number = sibling
