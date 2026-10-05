@@ -1,5 +1,7 @@
 from tools.product_ci_green_reuse import decide_green_reuse, dependency_impact, surface
 
+# Issue 1302: first candidate must run full regression; only target-sync commits may reuse GREEN.
+
 
 def test_governance_candidate_can_reuse_green_across_unrelated_product_target_drift():
     candidate = {
