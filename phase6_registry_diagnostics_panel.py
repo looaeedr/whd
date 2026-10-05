@@ -6,11 +6,299 @@ and AssemblyJoint mutation remain external owners and enter only through callbac
 """
 from __future__ import annotations
 
+import logging
+import re
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Mapping, Sequence
 
 from whd_theme import WHD_THEME, configure_tk_menu
+
+
+REGISTRY_OPERATOR_LABELS = {
+    "ANY": "不限",
+    "NONE": "無",
+    "INSERT": "嵌入",
+    "OVERLAY": "貼外",
+    "INSERT_OVERLAY": "嵌入貼外",
+    "WRAP": "外側包覆",
+    "HEAD_OR_TAIL": "封頭／封尾",
+    "DIVIDER": "中隔",
+    "ENDS": "封頭／封尾",
+    "receiving_divider_four_segment": "受電箱中隔四段式",
+    "cross_slot_min_y": "十字槽最小縱向",
+    "HEAD": "封頭",
+    "TAIL": "封尾",
+    "BOX_BODY": "箱身",
+    "BOX_SIDE": "箱身側邊",
+    "REAR_PANEL": "後面板",
+    "TOP": "上方",
+    "BOTTOM": "下方",
+    "MATING_ZONE": "接合區",
+    "OUTER_SURFACE": "外表面",
+    "WRAP_ZONE": "包覆區",
+    "rear_edge": "後側邊",
+    "rear_mating": "後側接合區",
+    "top_edge": "上側邊",
+    "bottom_edge": "下側邊",
+    "left_edge": "左側邊",
+    "right_edge": "右側邊",
+    "top_mating_zone": "上側接合區",
+    "bottom_mating_zone": "下側接合區",
+    "left_mating_zone": "左側接合區",
+    "right_mating_zone": "右側接合區",
+    "ZERO": "零間隙",
+    "USER_ADDED": "使用者新增",
+    "LEGACY_MIGRATED": "舊資料轉入",
+    "CERTIFIED": "已認證",
+    "CERTIFIED_FROM_3D": "立體驗證認證",
+    "PROVISIONAL_3D": "立體暫定",
+    "ENGINE_CONFLICT": "引擎衝突",
+    "REGISTRY_AMBIGUOUS": "規則不明確",
+    "ENDCAP_TOP_INSERT_STRUCTURAL_CONTACT_V1": "封頭尾上方嵌入（結構接合）",
+    "ENDCAP_TOP_INSERT_STANDARD_V1": "封頭尾上方嵌入（標準）",
+    "ENDCAP_TOP_OVERLAY_STANDARD_V1": "封頭尾上方貼外（標準）",
+    "ENDCAP_TOP_INSERT_OVERLAY_LINKED_FW_V1": "封頭尾上方嵌入貼外（連動框寬）",
+    "ENDCAP_TOP_INSERT_OVERLAY_STANDARD_V1": "封頭尾上方嵌入貼外（標準）",
+    "RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",
+    "RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字截角（標準）",
+    "ytop1_present": "有上折",
+    "ytop1_absent": "無獨立上折",
+    "ybottom1_present": "有下折",
+    "x_folded": "橫向有折",
+    "x_flat": "橫向平板",
+}
+
+_REGISTRY_FORMULA_DISPLAY_TOKENS = {
+    "effective_mating_width": "有效接合寬",
+    "mating_width": "成型接合寬",
+    "side_fold": "側折",
+    "rear_bend": "後折",
+    "reserve_u": "橫向預留",
+    "reserve_v": "縱向預留",
+    "ybottom1": "下折",
+    "ytop1": "上折",
+    "clearance": "間隙",
+    "fold_u": "橫向折邊",
+    "fold_v": "縱向折邊",
+    "FW": "框寬",
+    "T": "板厚",
+}
+
+_REGISTRY_SOURCE_DISPLAY_TOKENS = {
+    "CornerType": "截角類型",
+    "linked-FW": "連動框寬",
+    "STANDARD": "標準",
+    "manufacturing": "製造",
+    "contract": "契約",
+    "projection": "投影",
+    "Registry": "資料庫",
+    "formed": "成形",
+    "shadow": "陰影",
+    "evidence": "證據",
+    "CROSS": "十字",
+    "C04": "型號04",
+    "X/Y": "橫向／縱向",
+    "1T": "1板厚",
+    ".dxf": "圖檔",
+    "band": "帶區",
+    "base": "基底",
+    "face": "面",
+    "HIT": "命中",
+    "mm": "毫米",
+    "3D": "立體",
+    "2D": "平面",
+}
+
+_REGISTRY_PRESENTATION_FALLBACK = "未定義項目（代碼已記錄）"
+_REGISTRY_PRESENTATION_EMPTY = "未定義項目"
+_REGISTRY_PRESENTATION_LOG = logging.getLogger("whd.corner_presentation")
+
+
+def _registry_fail_closed_visible_text(
+    candidate,
+    *,
+    raw_value,
+    presentation_field,
+    source_adapter,
+):
+    """Return Chinese/numeric text or the existing fail-closed fallback."""
+    visible = str(candidate or "").strip()
+    raw = str(raw_value or "")
+    if not visible:
+        return _REGISTRY_PRESENTATION_EMPTY
+    if re.search(r"[A-Za-z]", visible):
+        _REGISTRY_PRESENTATION_LOG.warning(
+            "corner_presentation_fallback presentation_field=%s raw_value=%s source_adapter=%s",
+            str(presentation_field or "unknown"),
+            raw,
+            str(source_adapter or "unknown"),
+        )
+        return _REGISTRY_PRESENTATION_FALLBACK
+    return visible
+
+
+def registry_present_token(
+    value,
+    *,
+    part_label: Callable[..., str],
+    presentation_field="value",
+    source_adapter="registry_token",
+    snapshot=None,
+):
+    """Strict Registry token projection; never expose unmapped raw English."""
+    raw = str(value or "")
+    if not raw.strip():
+        return _REGISTRY_PRESENTATION_EMPTY
+    label = part_label(raw, snapshot=snapshot)
+    candidate = (
+        label
+        if label != raw
+        else REGISTRY_OPERATOR_LABELS.get(raw, raw)
+    )
+    return _registry_fail_closed_visible_text(
+        candidate,
+        raw_value=raw,
+        presentation_field=presentation_field,
+        source_adapter=source_adapter,
+    )
+
+
+def registry_formula_display(value, *, presentation_field="formula"):
+    raw = str(value or "")
+    candidate = raw
+    for token, label in sorted(
+        _REGISTRY_FORMULA_DISPLAY_TOKENS.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        candidate = re.sub(
+            rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])",
+            label,
+            candidate,
+        )
+    return _registry_fail_closed_visible_text(
+        candidate,
+        raw_value=raw,
+        presentation_field=presentation_field,
+        source_adapter="registry_formula",
+    )
+
+
+def registry_formula_raw(value):
+    text = str(value or "")
+    for raw, label in sorted(
+        _REGISTRY_FORMULA_DISPLAY_TOKENS.items(),
+        key=lambda item: len(item[1]),
+        reverse=True,
+    ):
+        text = text.replace(label, raw)
+    return text
+
+
+def registry_preconditions_display(value, *, present_token):
+    tokens = [
+        token.strip()
+        for token in str(value or "").split(",")
+        if token.strip()
+    ]
+    return "、".join(
+        present_token(
+            token,
+            presentation_field="precondition",
+            source_adapter="registry_preconditions",
+        )
+        for token in tokens
+    )
+
+
+def registry_preconditions_raw(value):
+    reverse = {
+        label: raw for raw, label in REGISTRY_OPERATOR_LABELS.items()
+    }
+    tokens = [
+        token.strip()
+        for token in re.split(r"[,，、]", str(value or ""))
+        if token.strip()
+    ]
+    return ",".join(reverse.get(token, token) for token in tokens)
+
+
+def _registry_operator_text(value, *, part_labels):
+    text = str(value or "")
+    for raw, label in sorted(
+        REGISTRY_OPERATOR_LABELS.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        text = text.replace(raw, label)
+    for raw, label in dict(part_labels or {}).items():
+        text = text.replace(raw, label)
+    return text
+
+
+def registry_source_display(
+    value,
+    *,
+    part_labels,
+    presentation_field="source",
+):
+    raw = str(value or "")
+    candidate = raw
+    for token, label in sorted(
+        _REGISTRY_SOURCE_DISPLAY_TOKENS.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        candidate = candidate.replace(token, label)
+    candidate = _registry_operator_text(
+        candidate, part_labels=part_labels
+    )
+    for token, label in sorted(
+        _REGISTRY_FORMULA_DISPLAY_TOKENS.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        candidate = re.sub(
+            rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])",
+            label,
+            candidate,
+        )
+    return _registry_fail_closed_visible_text(
+        candidate,
+        raw_value=raw,
+        presentation_field=presentation_field,
+        source_adapter="registry_source",
+    )
+
+
+def registry_source_raw(value, *, part_labels):
+    text = str(value or "")
+    for raw, label in sorted(
+        _REGISTRY_SOURCE_DISPLAY_TOKENS.items(),
+        key=lambda item: len(item[1]),
+        reverse=True,
+    ):
+        text = text.replace(label, raw)
+    for label, raw in sorted(
+        (
+            (label, raw)
+            for raw, label in REGISTRY_OPERATOR_LABELS.items()
+        ),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        text = text.replace(label, raw)
+    for label, raw in sorted(
+        (
+            (label, raw)
+            for raw, label in dict(part_labels or {}).items()
+        ),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        text = text.replace(label, raw)
+    return registry_formula_raw(text)
 
 
 def build_registry_choice(

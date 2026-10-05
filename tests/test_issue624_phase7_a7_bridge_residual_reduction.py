@@ -347,3 +347,81 @@ def test_issue1219_registry_application_sequencing_is_composition_owned():
     assert "self.registry_run_formula_matrix(" in adapter_source
     assert "self.registry_promote_form()" in adapter_source
     assert "_phase6_registry_validate_candidate_3d" in adapter_source
+
+
+def test_issue1221_registry_presentation_translation_is_panel_owned():
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    funcs = _top_functions(BRIDGE)
+    moved = {
+        "_phase6_operator_label",
+        "_phase6_operator_text",
+        "_phase6_fail_closed_visible_text",
+        "_phase6_registry_present_token",
+        "_phase6_formula_display",
+        "_phase6_formula_raw",
+        "_phase6_registry_formula_display",
+        "_phase6_preconditions_display",
+        "_phase6_preconditions_raw",
+        "_phase6_source_display",
+        "_phase6_source_raw",
+        "_phase6_registry_source_display",
+    }
+    assert moved.isdisjoint(funcs)
+    assert "_PHASE6_OPERATOR_LABELS" not in bridge_source
+    assert "_phase6_part_label" in funcs
+
+    panel_source = (ROOT / "phase6_registry_diagnostics_panel.py").read_text(
+        encoding="utf-8"
+    )
+    for token in (
+        "REGISTRY_OPERATOR_LABELS",
+        "def registry_present_token",
+        "def registry_formula_display",
+        "def registry_formula_raw",
+        "def registry_preconditions_display",
+        "def registry_preconditions_raw",
+        "def registry_source_display",
+        "def registry_source_raw",
+    ):
+        assert token in panel_source
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "_phase6_registry_present_token" not in adapter_source
+    assert "_phase6_registry_formula_display" not in adapter_source
+    assert "_phase6_registry_source_display" not in adapter_source
+    assert "present_token=present_token" in adapter_source
+    assert "formula_display=registry_formula_display" in adapter_source
+    assert "source_display=source_display" in adapter_source
+
+
+def test_issue1221_registry_presentation_behavior_stays_localized_and_fail_closed():
+    from phase6_registry_diagnostics_panel import (
+        registry_formula_display,
+        registry_formula_raw,
+        registry_preconditions_display,
+        registry_preconditions_raw,
+        registry_present_token,
+        registry_source_display,
+        registry_source_raw,
+    )
+
+    part_labels = {"box_body": "箱身"}
+    part_label = lambda value, snapshot=None: part_labels.get(str(value), str(value))
+    present = lambda value, **kwargs: registry_present_token(
+        value, part_label=part_label, **kwargs
+    )
+
+    assert present("BOX_SIDE") == "箱身側邊"
+    assert present("UNKNOWN_ASCII") == "未定義項目（代碼已記錄）"
+    assert registry_formula_display("FW + T") == "框寬 + 板厚"
+    assert registry_formula_raw("框寬 + 板厚") == "FW + T"
+    assert registry_preconditions_display(
+        "BOX_SIDE,TOP", present_token=present
+    ) == "箱身側邊、上方"
+    assert registry_preconditions_raw("箱身側邊、上方") == "BOX_SIDE,TOP"
+    assert registry_source_display(
+        "Registry 3D", part_labels=part_labels
+    ) == "資料庫 立體"
+    assert registry_source_raw(
+        "資料庫 立體", part_labels=part_labels
+    ) == "Registry 3D"

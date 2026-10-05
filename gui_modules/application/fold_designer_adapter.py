@@ -53,7 +53,16 @@ from phase6_settings_transaction_controller import Phase6SettingsTransactionCont
 from phase6_project_controller import Phase6ProjectController
 from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
-from phase6_registry_diagnostics_panel import Phase6RegistryDiagnosticsPanel
+from phase6_registry_diagnostics_panel import (
+    Phase6RegistryDiagnosticsPanel,
+    registry_present_token,
+    registry_formula_display,
+    registry_formula_raw,
+    registry_preconditions_display,
+    registry_preconditions_raw,
+    registry_source_display,
+    registry_source_raw,
+)
 from phase6_settings_panel import Phase6SettingsPanel
 from phase6_workspace_shell import (
     WorkspaceShellActions,
@@ -2061,21 +2070,30 @@ class Phase6FoldDesignerComposition:
             return self._registry_panel
 
         required = lambda name: self._required(namespace, name)
+        part_label = required("_phase6_part_label")
+        part_labels = required("PART_LABELS")
+        present_token = lambda value, **kwargs: registry_present_token(
+            value, part_label=part_label, **kwargs
+        )
+        preconditions_display = lambda value: registry_preconditions_display(
+            value, present_token=present_token
+        )
+        source_display = lambda value, **kwargs: registry_source_display(
+            value, part_labels=part_labels, **kwargs
+        )
+        source_raw = lambda value: registry_source_raw(
+            value, part_labels=part_labels
+        )
+
         panel = Phase6RegistryDiagnosticsPanel(
             owner=app,
-            present_token=lambda value, **kwargs: required(
-                "_phase6_registry_present_token"
-            )(value, **kwargs),
-            formula_display=lambda value, presentation_field="formula": required(
-                "_phase6_registry_formula_display"
-            )(value, presentation_field=presentation_field),
-            formula_raw=required("_phase6_formula_raw"),
-            preconditions_display=required("_phase6_preconditions_display"),
-            preconditions_raw=required("_phase6_preconditions_raw"),
-            source_display=lambda value, presentation_field="source": required(
-                "_phase6_registry_source_display"
-            )(value, presentation_field=presentation_field),
-            source_raw=required("_phase6_source_raw"),
+            present_token=present_token,
+            formula_display=registry_formula_display,
+            formula_raw=registry_formula_raw,
+            preconditions_display=preconditions_display,
+            preconditions_raw=registry_preconditions_raw,
+            source_display=source_display,
+            source_raw=source_raw,
             validate_formula=lambda: self.registry_validate_formula_form(),
             preview_payload=lambda: self.registry_preview_payload(),
             preview_assembly_3d=lambda: self.registry_preview_assembly_3d(
