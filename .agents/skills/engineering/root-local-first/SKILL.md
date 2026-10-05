@@ -19,7 +19,9 @@ READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
 → ENTRY_ROUTER_READY
 ```
 
-`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。以下動作全部 fail closed：
+`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。**兩個 bootstrap path 都是相對於已解析的 executor-local repo workspace 讀取，不得先去 Google Drive 尋找同名契約。** 若 executor workspace 已是合法 repo workspace（例如 Codex `/workspace/whd`），Drive mount 不可見、Drive mirror 缺檔、或 workspace 內沒有 `.unpushed` 都不是要求使用者重新指定施工 root 的理由；普通 `WORKSPACE_DEFAULT` 直接繼續。只有 fresh touched-path evidence 證明 shared-zero drift 時才切 `SHARED_ZERO_FALLBACK`。
+
+以下動作全部 fail closed：
 
 - generic Google Drive / file search；
 - Remote Desktop / local-machine search；
@@ -215,6 +217,8 @@ CURRENT 文件/Skill/contract 不得再宣告：
 - 把 GitHub `cleanup/2d-3d-sync` 當普通 workspace production baseline；
 - 可以用 GitHub/Remote Desktop/全域同名搜尋取代 canonical root parent-chain lookup；
 - conflict 可自動 ours/theirs。
+- 把 Drive `.agents/contracts` 可見性當普通 workspace startup 前置；
+- 因 executor workspace 缺 `.unpushed` 而要求使用者重新指定或升格施工 root。
 
 舊文字如需保留，只能明確標 `HISTORICAL/SUPERSEDED`，不得參與 routing。
 
