@@ -119,14 +119,16 @@ def test_agents_completion_bridge_cannot_restore_legacy_continuity_finalization(
     assert "MERGE → FINALIZE → DONE" in agents
 
 
-def test_always_read_references_use_reserved_path_root_order_and_no_mntdata_authority() -> None:
+def test_always_read_references_use_workspace_default_and_no_mntdata_authority() -> None:
     global_pitfalls = _read("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md")
     root_pitfall = _read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
-    expected = "ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED"
-    assert expected in global_pitfalls
-    assert expected in root_pitfall
+    for text in (global_pitfalls, root_pitfall):
+        assert "WORKSPACE_DEFAULT" in text
+        assert "SHARED_ZERO_FALLBACK" in text
+        assert "executor-local" in text
+        assert "ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND" not in text
     assert "固定落 `/mnt/data` 或其他跨回合持久位置" not in global_pitfalls
-    assert "/mnt/data` 只可作 transient execution/transport materialization" in global_pitfalls
+    assert "/mnt/data` 只可作 transient" in global_pitfalls
 
 
 def test_skill_governance_does_not_name_legacy_execution_tools_as_current_semantic_owners() -> None:
@@ -142,8 +144,10 @@ def test_scheduler_required_reference_uses_flow_v2_current_rules_not_legacy_guar
     assert "### CURRENT 永久規則" in text
     assert "施工型 scheduler prompt 必須顯式保留 **派工 + 遠端執行守門**" not in text
     assert "NORMAL_PATH_FIRST" in text
-    assert "canonical root shared-0 authoring/tests" in text
-    assert "lane manifest freeze → delivery reservation" in text
+    assert "WORKSPACE_DEFAULT" in text
+    assert "SHARED_ZERO_FALLBACK" in text
+    assert "canonical root shared-0 authoring/tests" not in text
+    assert "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION" not in text
     assert "READY → atomic ACQUIRE+reservation" not in text
     assert "排程 remote control-plane 與 root content surface 邊界 — CURRENT" in text
     assert "需要 Guard 時走 trusted Remote Guard" not in text
