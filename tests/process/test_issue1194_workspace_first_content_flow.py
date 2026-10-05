@@ -172,13 +172,10 @@ def test_current_contracts_do_not_make_codex_path_or_drive_sync_global_startup()
     assert flow["startup_requires_workspace_canonical_sync"] is False
     assert shared["mode"] == "SUPERSEDED_DATA_ONLY"
     assert shared["default_route"] is False
-    mirror = shared["delivery_transport"]["workspace_staged_fallback"]["codex_cloud_mount_bridge"][
-        "workspace_mirror_policy"
-    ]
-    assert mirror["workspace_root_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
-    assert "workspace_root" not in mirror
-    assert mirror["ordinary_startup_required"] is False
-    assert mirror["activation"] == "RETIRED_DATA_ONLY"
+    assert "delivery_transport" not in shared
+    assert shared["status"] == "HISTORICAL"
+    assert shared["current_routing_forbidden"] is True
+    assert shared["authority"] is False
 
 
 def test_push_skill_is_delivery_alias_and_cannot_restore_drive_routing():

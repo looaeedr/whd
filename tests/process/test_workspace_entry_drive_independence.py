@@ -32,7 +32,7 @@ def test_workspace_entry_bootstrap_does_not_require_drive_or_unpushed():
     assert source["drive_role"] == "MIRROR_BACKUP_ONLY"
     assert source["drive_required"] is False
     assert source["missing_drive_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
-    assert source["missing_shared_zero_action"] == "IGNORE_RETIRED_SHARED_ZERO_AND_CONTINUE_WORKSPACE_DEFAULT"
+    assert "missing_shared_zero_action" not in source
 
     assert router["bootstrap_source"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert router["bootstrap_paths_are_repo_relative"] is True
@@ -112,8 +112,8 @@ def test_current_contract_retires_drive_and_shared_zero_routing():
     assert shared["activation"] == "NEVER_CURRENT"
     assert shared["routing_forbidden"] is True
     assert shared["authority"] is False
-    assert flow["shared_zero_fallback_trigger"] == "RETIRED"
-    assert flow["shared_zero_fallback_machine"] is None
+    assert "shared_zero_fallback_trigger" not in flow
+    assert "shared_zero_fallback_machine" not in flow
     assert flow["drive_routing_forbidden"] is True
     assert flow["missing_workspace_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
     assert direct["status"] == "SUPERSEDED"
