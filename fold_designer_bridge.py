@@ -1246,36 +1246,7 @@ def _phase6_serialize_assembly_relief_state(self):
 
 
 def _phase6_corner_transaction_payload(self):
-    source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    graph_state = migrate_legacy_snapshot_joints(source)
-    workspace = _phase6_collect_workspace_state(self)
-    return {
-        "model": str(self.baseline_model_var.get() or "").strip(),
-        "settings": dict(getattr(self, "_settings_values", {})),
-        "multi_door_enabled": bool(source.get("multi_door_enabled", False)),
-        "door_layout_columns": deepcopy(source.get("door_layout_columns") or []),
-        "door_layout_scope": str(source.get("door_layout_scope") or "main"),
-        "door_handle_edges": deepcopy(source.get("door_handle_edges") or {}),
-        "assembly_type": assembly_intent_value(getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)),
-        "assembly_joint_schema_version": graph_state["assembly_joint_schema_version"],
-        "assembly_joints": deepcopy(graph_state["assembly_joints"]),
-        "endcap_fw": deepcopy(
-            getattr(self, "_phase6_endcap_fw_state", None)
-            or normalize_endcap_fw_state(getattr(self, "_phase6_input_snapshot", {}) or {})
-        ),
-        "corner_state": deepcopy(getattr(self, "_phase6_corner_state", {})),
-        "corner_pair_same": deepcopy(getattr(self, "_phase6_corner_pair_same", {})),
-        "active_part": getattr(self, "active_part_key", None),
-        "assembly_relief": _phase6_serialize_assembly_relief_state(self),
-        "workspace": workspace,
-        "existing_parts": list(workspace.get("existing_parts", [])),
-        "part_profiles": deepcopy(workspace.get("part_profiles", {})),
-        "box_body_structure": deepcopy(workspace.get("box_body_structure", {})),
-        "box_body_profile": clone_profile(workspace.get("box_body_profile", [])),
-        "part_features": deepcopy(workspace.get("part_features", {})),
-        "part_face_features": deepcopy(workspace.get("part_face_features", {})),
-        "assembly_placements": deepcopy(workspace.get("assembly_placements", {})),
-    }
+    return _phase6_composition(self).corner_transaction_payload(globals())
 
 
 def _phase6_publish_live_state(self, *, force=False):
