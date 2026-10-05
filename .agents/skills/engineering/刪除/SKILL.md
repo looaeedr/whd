@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 ## 0. Authority 與遠端邊界
 
 1. 使用者本輪明確指示最高。
-2. WHD repository-content 工作先遵守 `root-local-first` / shared-0；未有 `/推推` 或其他明確遠端授權時，不得為了刪檔去連 GitHub 或遠端本機。
+2. WHD repository-content 工作先遵守 CURRENT `root-local-first` router：普通正式 repo path 刪除走 executor-local `WORKSPACE_DEFAULT`；只有 fresh touched-path evidence 選中 `SHARED_ZERO_FALLBACK` 時才使用 shared-0。使用者已明確要求 exact repository-content delete 時，同 scope remote delivery沿用既有 `WORKSPACE_DELIVERY` authority，不得因 `/推推`、Drive mount 或 chat UI 缺失而卡住。
 3. Google Drive / Library / connector 只是 transport；transport 顯示「不支援 delete」時，不得把 move/archive 冒充 delete。
 4. 任何 destructive action 前先 fresh-read exact target identity：canonical path、file/folder kind、provider id、parent、必要時 hash/size/modified time。
 
@@ -67,14 +67,14 @@ TARGET_PATH_RESOLVED
 
 若刪的是正式 repository path，而不是 staging/archive：
 
-1. 先在 canonical `/Google Drive/WHD` root 確認 path；
-2. 依 `root-local-first` 分 docs/body lane；
-3. shared `0` 以 delete marker 表達本次未推送刪除；
-4. root/test/shared-0 完成後 freeze exact delete path；
-5. 只有使用者下 `/推推 文檔|主體` 才開 GitHub delivery；
-6. merge/readback 後才 finalize 該 delete marker。
+1. 先在 executor-local repo workspace + fresh `cleanup/2d-3d-sync` baseline 確認 exact path/identity；
+2. 在 workspace 產生 exact delete diff，完成適用 tests / validator / readback；
+3. 普通路徑固定 `WORKSPACE_DEFAULT`：tested exact delete diff → delivery branch → PR/CI → merge/readback；
+4. 使用者已明確要求 exact repository-content delete 時，可沿同 scope `WORKSPACE_DELIVERY` 完成 push/PR/QA/finalization，不得在 delivery 階段重問同一授權；
+5. 只有 fresh touched-path evidence 證明 shared `.unpushed/{docs|body}/0` 有較新 drift 時才切 `SHARED_ZERO_FALLBACK`；此時才使用 delete marker、latest-0 merge/freeze與 `/推推` fallback；
+6. merge/readback 後才宣告 repository tracked path 的刪除完成。
 
-禁止直接在 GitHub target branch 刪正式檔案來繞過 root/shared-0。
+禁止直接在 production target branch 寫刪除；也禁止反過來把 Drive/shared-0 當所有正式刪除的固定前置。
 
 ## 5. ACTIVE_ZERO_PHYSICAL_CLEANUP_HARD_GATE_V1
 
