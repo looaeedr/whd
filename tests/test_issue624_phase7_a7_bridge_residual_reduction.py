@@ -225,3 +225,47 @@ def test_issue1213_settings_application_effects_live_only_in_composition_owner()
     assert "self.settings_application_project_ui_values(" in adapter_source
     assert "self.settings_application_submit_update_intent(" in adapter_source
     assert "self.settings_application_publish_live_state(" in adapter_source
+
+
+def test_issue1215_project_effects_are_composition_owned_with_bridge_compat_ports():
+    funcs = _top_functions(BRIDGE)
+    for name in (
+        "_phase6_build_project_snapshot",
+        "_phase6_load_project_file",
+        "_phase6_save_project_file",
+    ):
+        assert name in funcs
+
+    build_body = _source(BRIDGE, funcs["_phase6_build_project_snapshot"])
+    load_body = _source(BRIDGE, funcs["_phase6_load_project_file"])
+    save_body = _source(BRIDGE, funcs["_phase6_save_project_file"])
+    assert "build_project_snapshot(globals())" in build_body
+    assert "load_project_file(globals())" in load_body
+    assert "save_project_file(" in save_body
+    assert "collect_final_geometry_diagnostics" not in build_body
+    assert "filedialog" not in load_body
+    assert "filedialog" not in save_body
+    assert "write_designer_project" not in save_body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "build_project_snapshot",
+        "load_project_file",
+        "save_project_file",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "Phase6ProjectController.build_designer_payload" in adapter_source
+    assert "Phase6ProjectController.validate_project_load" in adapter_source
+    assert "Phase6ProjectController.write_designer_project" in adapter_source
