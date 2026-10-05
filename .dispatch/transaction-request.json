@@ -1,13 +1,31 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "ec8d37db-e995-4ad8-9ab8-a6db1b2840b4",
+  "request_id": "c4496bf5-c693-4bb6-9cd3-3e6c1a0fb1f9",
   "issue": 1279,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-  "expected_coord_head": "baa9e207040f37ddaab890c56259e454e0432d65",
-  "expected_generation": 3,
-  "effect": {},
+  "expected_coord_head": "a27b823ec5f811280712dc835c814dbf340bbb73",
+  "expected_generation": 4,
+  "effect": {
+    "base_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
+    "delete_paths": [],
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "fold_designer_bridge.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "tests/test_issue110_shared_info_projection.py",
+      "tests/test_issue369_t5_corner_data_view_owner.py",
+      "tests/test_issue479_final_scene_composition_owner.py",
+      "tests/test_phase6_3d_view_regressions.py",
+      "tests/test_phase6_gui_3d_integrity_20260830.py"
+    ],
+    "next_action": {
+      "args": {},
+      "display": "Deliver exact tested issue 1279 diff",
+      "kind": "START_BRANCH"
+    }
+  },
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
@@ -134,8 +152,8 @@
       "status": "GREEN"
     },
     "purpose": "接手 #1279；在本地 workspace 完成並驗證展開料文字 composition 重構，交付 exact tested diff。",
-    "issued_at": "2026-10-05T22:55:34Z",
-    "expires_at": "2026-10-05T23:00:34Z",
+    "issued_at": "2026-10-05T22:57:20Z",
+    "expires_at": "2026-10-05T23:02:20Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：接手 #1279；在本地 workspace 完成並驗證展開料文字 composition 重構，交付 exact tested diff。\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
@@ -181,7 +199,7 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-05T22:55:34Z"
+    "observed_at": "2026-10-05T22:57:20Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -192,9 +210,9 @@
     "issue": 1279,
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "3a92711b4424e3af46a96a4cbdf8b3729cdaec35",
-    "startup_issued_at": "2026-10-05T22:55:34Z",
-    "preflight_observed_at": "2026-10-05T22:55:34Z",
-    "issued_at": "2026-10-05T22:55:34Z",
-    "expires_at": "2026-10-05T23:00:34Z"
+    "startup_issued_at": "2026-10-05T22:57:20Z",
+    "preflight_observed_at": "2026-10-05T22:57:20Z",
+    "issued_at": "2026-10-05T22:57:20Z",
+    "expires_at": "2026-10-05T23:02:20Z"
   }
 }
