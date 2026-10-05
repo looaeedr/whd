@@ -4,7 +4,8 @@
     "path_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "production_branch": "cleanup/2d-3d-sync",
     "authority": false,
-    "canonical_drive_overlay": "/Google Drive/WHD"
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT"
   },
   "canonical_source": {
     "canonical_filename": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
@@ -12,16 +13,16 @@
     "provider": "executor_local_repo_workspace",
     "repo_relative_path": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
     "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
-    "drive_mirror_path": "/Google Drive/WHD/.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-    "drive_role": "OPTIONAL_MIRROR_NOT_STARTUP_AUTHORITY",
+    "drive_mirror_path": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "drive_role": "MIRROR_BACKUP_ONLY",
     "drive_required": false,
     "missing_drive_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
-    "missing_shared_zero_action": "CONTINUE_WORKSPACE_DEFAULT",
+    "missing_shared_zero_action": "IGNORE_RETIRED_SHARED_ZERO_AND_CONTINUE_WORKSPACE_DEFAULT",
     "versioned_aliases_must_not_be_current": true
   },
   "direct_root_mutation_test_gate": {
-    "applies_when": "SHARED_ZERO_FALLBACK_ACTIVE",
-    "canonical_surface": "/Google Drive/WHD/.unpushed",
+    "applies_when": "NEVER_CURRENT",
+    "canonical_surface": null,
     "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK",
     "forbidden_pre_root_green_outcomes": [
       "PLANNING_ONLY",
@@ -44,7 +45,7 @@
     ],
     "git_unlock_dependency": "ROOT_TESTS_GREEN_AND_ROOT_DIFF_FROZEN",
     "interactive_first_substantive_action": "ROOT_MUTATE",
-    "remote_without_root_capability_action": "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME",
+    "remote_without_root_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME",
     "required_contiguous_outer_sequence": [
       "ROOT_MUTATE",
       "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
@@ -66,7 +67,8 @@
     "task_scope_sticky_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
     "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST",
     "ordinary_missing_drive_mount_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
-    "fallback_activation": "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY"
+    "fallback_activation": "RETIRED",
+    "status": "SUPERSEDED"
   },
   "entry_router_hard_gate": {
     "allowed_before_ready": [
@@ -307,9 +309,11 @@
     "machine_owner": "tools/shared_unpushed_integration.py",
     "merge_mode": "THREE_WAY",
     "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
-    "mode": "CONDITIONAL_FALLBACK_ONLY",
+    "mode": "SUPERSEDED_DATA_ONLY",
     "default_route": false,
-    "activation": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS"
+    "activation": "NEVER_CURRENT",
+    "routing_forbidden": true,
+    "authority": false
   },
   "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
   "status": "CURRENT",
@@ -329,7 +333,7 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 10,
+  "version": 11,
   "git_after_remote_authority_before_unlock": [
     "READ",
     "FETCH",
@@ -342,13 +346,14 @@
     "default_workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
     "applies_when": "WORKSPACE_DEFAULT",
-    "shared_zero_fallback_root": "/Google Drive/WHD",
-    "shared_zero_fallback_resolution_method": "CANONICAL_ROOT_PARENT_CHAIN",
+    "shared_zero_fallback_root": null,
+    "shared_zero_fallback_resolution_method": "RETIRED",
     "global_search_role": "CANDIDATE_ONLY",
     "same_name_outside_parent_chain": "REJECT",
     "failure_action": "WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED",
     "remote_fallback_forbidden": false,
-    "machine_owner": "tools/root_local_first_gate.py::build_root_path_resolution_evidence/validate_root_path_resolution_evidence"
+    "machine_owner": "tools/root_local_first_gate.py::build_root_path_resolution_evidence/validate_root_path_resolution_evidence",
+    "drive_mirror_role": "MIRROR_BACKUP_ONLY"
   },
   "remote_connection_hard_gate": {
     "schema": "WHD_REMOTE_CONNECTION_AUTHORITY_V1",
@@ -451,14 +456,16 @@
     "implementation": "EDIT_AND_TEST_IN_WORKSPACE",
     "delivery": "TESTED_DELIVERY_BRANCH_PR",
     "direct_production_push_forbidden": true,
-    "shared_zero_fallback_trigger": "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
-    "shared_zero_fallback_machine": "tools/workspace_canonical_sync.py",
+    "shared_zero_fallback_trigger": "RETIRED",
+    "shared_zero_fallback_machine": null,
     "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "executor_examples": {
       "codex": "/workspace/whd",
       "chatgpt": "RUNTIME_LOCAL_WORKSPACE",
       "other": "RUNTIME_LOCAL_WORKSPACE"
-    }
+    },
+    "drive_routing_forbidden": true,
+    "missing_workspace_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
   },
   "green_reuse_fast_path": {
     "schema": "WHD_GREEN_REUSE_REVALIDATION_V1",
