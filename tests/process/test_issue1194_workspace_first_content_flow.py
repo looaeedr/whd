@@ -177,8 +177,8 @@ def test_current_contracts_do_not_make_codex_path_or_drive_sync_global_startup()
     assert mirror["activation"] == "RETIRED_DATA_ONLY"
 
 
-def test_push_skill_explicitly_says_normal_workspace_flow_does_not_use_push_skill():
+def test_push_skill_is_delivery_alias_and_cannot_restore_drive_routing():
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    assert "普通 workspace-first 施工不經 `/推推`" in push
-    assert "CONDITIONAL_SHARED_ZERO_RECONCILE_V1" in push
-    assert "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP" in push
+    assert "顯式 delivery alias" in push
+    assert "Google Drive 只存 data / mirror / backup" in push
+    assert "不得參與 CURRENT routing" in push
