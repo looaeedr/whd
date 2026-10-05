@@ -1013,35 +1013,13 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
     )
 
 def _phase6_flush_pending_settings(self):
-    service = _phase6_settings_service(self)
-    plan = service.drain_pending()
-    if plan.cancel_job is not None:
-        try:
-            self.root.after_cancel(plan.cancel_job)
-        except Exception:
-            pass
-    if not plan.pending:
-        return {}
-    return _phase6_apply_setting_updates(self, plan.pending, notify=True)
+    return _phase6_composition(self).flush_pending_settings(globals())
+
 
 def _phase6_stage_setting_update(self, key, value):
-    service = _phase6_settings_service(self)
-    plan = service.stage_setting_update(
-        key,
-        value,
-        destroying=bool(getattr(self, "_phase6_destroying", False)),
+    return _phase6_composition(self).stage_setting_update(
+        globals(), key, value
     )
-    if not plan.changed:
-        return
-    if plan.cancel_job is not None:
-        try:
-            self.root.after_cancel(plan.cancel_job)
-        except Exception:
-            pass
-    job = self.root.after(plan.schedule_after_ms, self.flush_pending_settings)
-    service.install_debounce_job(job)
-
-
 
 
 _CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
