@@ -1,44 +1,51 @@
 {
-  "schema": "WHD_EXECUTION_RECORD_V2",
-  "version": 2,
-  "generation": 1,
-  "issue": 1279,
-  "execution_intent": "EXECUTE_TICKET",
-  "owner_kind": "UNCLAIMED",
-  "owner_id": "NONE",
-  "lane_id": null,
-  "slot_id": "worker.slot.0",
-  "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "work_branch": "refactor/issue-1279-unfolded-blank-composition",
-  "head_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "state": "READY",
-  "semantic_state": "READY",
-  "next_action": {
-    "kind": "ACQUIRE",
-    "args": {},
-    "display": "Acquire Issue #1279"
-  },
-  "lease": null,
   "active_run": null,
-  "transaction": null,
-  "mutation_scope": null,
-  "qa": {
-    "last_accepted_run": null,
-    "accepted_head_sha": null
-  },
   "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
   "closure": {
-    "merged_sha": null,
     "issue_closed": false,
+    "merged_sha": null,
     "released_at": null
   },
-  "chain": {
-    "parent_issue": null,
-    "next_issue": null,
-    "next_action": null
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 2,
+  "head_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
+  "issue": 1279,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-05T15:51:31Z",
+    "invocation_identity": "codex.issue1279.20261005T1535Z",
+    "token": "lease:1279:37334077371:1"
+  },
+  "mutation_scope": {
+    "base_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "fold_designer_bridge.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "tests/test_issue110_shared_info_projection.py",
+      "tests/test_issue369_t5_corner_data_view_owner.py",
+      "tests/test_issue479_final_scene_composition_owner.py",
+      "tests/test_phase6_3d_view_regressions.py",
+      "tests/test_phase6_gui_3d_integrity_20260830.py"
+    ]
+  },
+  "next_action": {
+    "args": {},
+    "display": "Deliver exact tested issue 1279 diff",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
   },
   "recovery_history": [
     {
@@ -48,6 +55,22 @@
       "kind": "INGRESS_AUTHORITY"
     }
   ],
-  "updated_at": "2026-10-05T15:34:10.482795+00:00"
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "CLAIMED",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
+  "state": "ACTIVE",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
+  "transaction": {
+    "expected_fingerprint": "8b04a85b0203e0fb938e2a4588e11f2e968281e4ac2cff5a541020ee9b949526",
+    "id": "gha:37334077371:1279:ACQUIRE:1",
+    "invocation_identity": "codex.issue1279.20261005T1535Z",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T15:36:31Z",
+  "version": 2,
+  "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
-
