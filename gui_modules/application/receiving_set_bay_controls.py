@@ -21,6 +21,7 @@ class ReceivingSetBayControls:
     switch_brand_selector: object
     layer_host: object
     add_layer_button: object
+    remove_layer_button: object
 
 
 def build_receiving_set_bay_controls(
@@ -30,6 +31,7 @@ def build_receiving_set_bay_controls(
     ttk,
     on_switch_brand_selected: Callable[[str], object],
     on_add_layer: Callable[[], object],
+    on_remove_layer: Callable[[], object],
 ) -> ReceivingSetBayControls:
     """Construct Receiving layer/connection shell without owning product state."""
     frame = ttk.Frame(parent)
@@ -54,8 +56,16 @@ def build_receiving_set_bay_controls(
     layer_host = ttk.Frame(frame)
     layer_host.pack(fill=tk.X)
 
-    add_layer_button = ttk.Button(frame, text="＋層", command=on_add_layer)
-    add_layer_button.pack(anchor=tk.W, pady=(2, 0))
+    layer_actions = ttk.Frame(frame)
+    layer_actions.pack(anchor=tk.W, pady=(2, 0))
+    remove_layer_button = ttk.Button(
+        layer_actions, text="－層", command=on_remove_layer, width=5
+    )
+    remove_layer_button.pack(side=tk.LEFT, padx=(0, 2))
+    add_layer_button = ttk.Button(
+        layer_actions, text="＋層", command=on_add_layer, width=5
+    )
+    add_layer_button.pack(side=tk.LEFT)
 
     return ReceivingSetBayControls(
         frame=frame,
@@ -63,6 +73,7 @@ def build_receiving_set_bay_controls(
         switch_brand_selector=switch_brand_selector,
         layer_host=layer_host,
         add_layer_button=add_layer_button,
+        remove_layer_button=remove_layer_button,
     )
 
 
@@ -93,11 +104,8 @@ def open_receiving_layer_preview(
 
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.figure import Figure
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
-    from phase6_final_scene_projection import (
-        _phase6_fitted_limits_from_vertices,
-        _phase6_mesh_feature_segments,
-    )
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from phase6_final_scene_projection import _phase6_fitted_limits_from_vertices
 
     win = tk.Toplevel(parent)
     win.title(f"第{index + 1}層 3D 預覽")
@@ -117,30 +125,18 @@ def open_receiving_layer_preview(
     figure = Figure(figsize=(9.6, 6.0), dpi=100)
     ax = figure.add_subplot(111, projection="3d")
     all_triangles = []
-    feature_segments = 0
     for mesh in meshes:
         rows = tuple(mesh)
         all_triangles.extend(rows)
         ax.add_collection3d(
             Poly3DCollection(
                 rows,
-                alpha=0.72,
+                alpha=0.86,
                 facecolor="#3b82f6",
                 edgecolor="none",
                 linewidths=0.0,
             )
         )
-        segments = _phase6_mesh_feature_segments(rows)
-        feature_segments += len(segments)
-        if segments:
-            ax.add_collection3d(
-                Line3DCollection(
-                    segments,
-                    colors="#dbeafe",
-                    linewidths=0.9,
-                    alpha=0.95,
-                )
-            )
 
     import math
     lock_rows = tuple(lock_circles or ())
@@ -190,7 +186,7 @@ def open_receiving_layer_preview(
     win._phase6_receiving_preview_connection_count = count
     win._phase6_receiving_preview_mesh_count = len(meshes)
     win._phase6_receiving_preview_lock_circle_count = len(lock_rows)
-    win._phase6_receiving_preview_feature_segment_count = feature_segments
+    win._phase6_receiving_preview_feature_segment_count = 0
     return True
 
 def refresh_receiving_layer_rows(
@@ -257,4 +253,7 @@ def refresh_receiving_layer_rows(
             command=lambda layer_index=layer_index: on_preview(layer_index)
         )
 
+    controls.remove_layer_button.configure(
+        state=("normal" if len(counts) > 1 else "disabled")
+    )
     host._phase6_receiving_layer_rows = tuple(rows)
