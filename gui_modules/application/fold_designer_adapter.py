@@ -1604,6 +1604,226 @@ class Phase6FoldDesignerComposition:
             )
         return self._settings_transactions
 
+    def settings_application_apply_profile_plan(
+        self,
+        namespace,
+        committed,
+        *,
+        reset_box_profile=False,
+        reset_all_profiles=False,
+        render=True,
+        editor_commit=False,
+        editor_changed_keys=(),
+    ):
+        """Apply Settings profile effects at the existing application composition boundary."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        committed = dict(committed or {})
+        if bool(editor_commit):
+            required("_phase6_recalculate_part_dimensions")(app)
+            changed_keys = set(editor_changed_keys or ())
+            if {"w", "h", "d", "t", "fw"}.intersection(changed_keys):
+                required("_phase6_refresh_linked_part_profiles")(app, changed_keys)
+            return committed
+        if "t" in committed:
+            app.state.phase6_thickness = float(committed["t"])
+        app._phase6_settings_guard = True
+        try:
+            return required("_phase6_refresh_profiles_from_settings")(
+                app,
+                reset_box_profile=bool(reset_box_profile),
+                reset_all_profiles=bool(reset_all_profiles),
+                render=bool(render),
+            )
+        finally:
+            app._phase6_settings_guard = False
+
+    def settings_application_project_ui_values(
+        self,
+        namespace,
+        values,
+        *,
+        rejected_key=None,
+        error=None,
+        baseline_transition=None,
+        baseline_stage=None,
+        new_model="",
+        old_model="",
+        new_editable=False,
+        old_editable=False,
+        factory_reset=False,
+        editor_commit=False,
+        editor_snapshot=None,
+    ):
+        """Project committed Settings state onto Fold Designer application widgets."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        values = dict(values or {})
+        plan = baseline_transition
+        number_text = required("_setting_number_text")
+        original = required("original")
+
+        if bool(editor_commit) and editor_snapshot is not None:
+            app._phase6_input_snapshot.update(dict(editor_snapshot or {}))
+
+        if rejected_key == "w":
+            if error is not None:
+                required("_phase6_box_structure_error")(app, ValueError(str(error)))
+            app._phase6_settings_guard = True
+            try:
+                previous_w = values.get("w")
+                if previous_w is not None and hasattr(app, "v_w"):
+                    app.v_w.set(number_text(previous_w))
+                var = getattr(app, "left_global_vars", {}).get("w")
+                if previous_w is not None and var is not None:
+                    var.set(number_text(previous_w))
+            finally:
+                app._phase6_settings_guard = False
+            return
+
+        if baseline_stage == "commit" and plan is not None:
+            remembered = getattr(plan, "remember_non_receiving_structure", None)
+            if remembered is not None:
+                app._phase6_non_receiving_structure_state = deepcopy(remembered)
+
+            if "fw" in values:
+                state = getattr(app, "_phase6_endcap_fw_state", None)
+                if isinstance(state, required("MutableMapping")):
+                    required("commit_box_fw")(state, float(values["fw"]))
+                    app._phase6_input_snapshot["endcap_fw"] = deepcopy(state)
+
+            defaults = dict(getattr(plan, "defaults", {}) or {})
+            if defaults:
+                for key, attr in (("w", "w"), ("h", "h"), ("d", "d")):
+                    if key in defaults:
+                        setattr(app.state, attr, original.get_int(defaults[key]))
+                app.v_w.set(str(app.state.w))
+                app.v_h.set(str(app.state.h))
+                app.v_d.set(str(app.state.d))
+                app._phase6_last_w = app.state.w
+                app._phase6_last_d = app.state.d
+
+            assembly_var = getattr(app, "assembly_type_var", None)
+            if assembly_var is not None:
+                assembly_var.set(ASSEMBLY_TYPE_LABELS[plan.assembly_type])
+
+        if "ui_text_size" in values:
+            key = values["ui_text_size"]
+            if hasattr(app, "_ui_text_controller"):
+                app._ui_text_controller.apply(key)
+            app.state.ui_text_scale = (
+                getattr(app, "_ui_text_controller", None).factor
+                if hasattr(app, "_ui_text_controller")
+                else 1.0
+            )
+            required("_phase6_update_left_workspace_width")(app, key)
+
+        app._phase6_settings_guard = True
+        try:
+            if "w" in values:
+                app.v_w.set(number_text(values["w"]))
+            if "h" in values:
+                app.v_h.set(number_text(values["h"]))
+            if "d" in values:
+                app.v_d.set(number_text(values["d"]))
+            for key, var in getattr(app, "left_global_vars", {}).items():
+                if key not in values:
+                    continue
+                if key == "ui_text_size":
+                    var.set(required("ui_text_size_label")(values[key]))
+                elif isinstance(var, original.tk.BooleanVar):
+                    var.set(bool(values[key]))
+                else:
+                    var.set(number_text(values[key]))
+            for key, var in getattr(app, "setting_vars", {}).items():
+                if key not in values:
+                    continue
+                if key == "ui_text_size":
+                    var.set(required("ui_text_size_label")(values[key]))
+                elif isinstance(var, original.tk.BooleanVar):
+                    var.set(bool(values[key]))
+                else:
+                    var.set(number_text(values[key]))
+        finally:
+            app._phase6_settings_guard = False
+
+        if baseline_stage == "state":
+            if bool(new_editable) and str(old_model or "") and not bool(old_editable):
+                app._corner_transaction_unknown_state = deepcopy(
+                    app._phase6_corner_state
+                )
+                app._corner_transaction_unknown_pairs = deepcopy(
+                    app._phase6_corner_pair_same
+                )
+            app._corner_editable = bool(new_editable)
+            app._phase6_baseline_last_model = str(new_model or "")
+            required("_phase6_apply_box_symmetry_policy")(app)
+            bend_ui = getattr(app, "bend_ui", None)
+            refresh_symmetry = getattr(bend_ui, "_phase6_refresh_symmetry_bar", None)
+            if callable(refresh_symmetry):
+                refresh_symmetry()
+
+        if baseline_stage == "finalize":
+            required("_phase6_invalidate_corner_pages")(app)
+            if (
+                hasattr(app, "settings_center")
+                and getattr(app, "active_part_key", None) is not None
+            ):
+                required("_phase6_render_settings_context")(
+                    app,
+                    getattr(app, "settings_context", app.active_part_key),
+                )
+            corner_data_panel = getattr(app, "corner_data_panel", None)
+            if (
+                str(getattr(app, "_phase6_3d_display_mode", "") or "")
+                == "corner_data"
+                and corner_data_panel is not None
+                and corner_data_panel.winfo_manager()
+            ):
+                required("_phase6_refresh_corner_data_parts_panel")(app)
+                if getattr(app, "corner_data_canvas", None) is not None:
+                    required("_phase6_refresh_corner_data_unfold_view")(app)
+
+    def settings_application_submit_update_intent(self, namespace, committed):
+        """Submit the Settings application update through existing runtime ownership."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        payload = dict(committed or {}) if isinstance(committed, Mapping) else {}
+        if payload.get("reason") == "baseline":
+            submit = getattr(app, "submit_update_intent", None)
+            if callable(submit):
+                return submit("baseline", commit=True)
+            return required("_phase6_publish_live_state")(
+                app, force=bool(payload.get("force", True))
+            )
+
+        legacy_job = getattr(app, "_job", None)
+        if legacy_job is not None:
+            try:
+                app.root.after_cancel(legacy_job)
+            except Exception:
+                pass
+            app._job = None
+        try:
+            return app.do_update()
+        except Exception:
+            return None
+
+    def settings_application_publish_live_state(self, committed, *, partial=False):
+        """Publish Settings changes without moving state ownership out of existing owners."""
+        app = self.app
+        if (
+            not getattr(app, "_phase6_transactional_mode", False)
+            and app._settings_change_callback is not None
+        ):
+            payload = (
+                dict(committed or {})
+                if bool(partial)
+                else dict(app._settings_values)
+            )
+            if payload:
+                app._settings_change_callback(payload)
+
     def settings_application_ports(self, namespace):
         """Compose shallow Settings application ports at the application root."""
         app = self.app
@@ -1678,27 +1898,27 @@ class Phase6FoldDesignerComposition:
             read_settings_snapshot=read_settings_snapshot,
             read_profile_snapshot=read_profile_snapshot,
             save_current_part=save_current_part,
-            apply_profile_plan=lambda committed, **kwargs: required(
-                "_phase6_settings_application_apply_profile_plan"
-            )(app, committed, **kwargs),
+            apply_profile_plan=lambda committed, **kwargs: self.settings_application_apply_profile_plan(
+                namespace, committed, **kwargs
+            ),
             sync_derived_parts=lambda *args, **kwargs: required(
                 "_phase6_sync_authoritative_derived_parts"
             )(app),
-            project_ui_values=lambda values, **kwargs: required(
-                "_phase6_settings_application_project_ui_values"
-            )(app, values, **kwargs),
+            project_ui_values=lambda values, **kwargs: self.settings_application_project_ui_values(
+                namespace, values, **kwargs
+            ),
             render_bending=render_bending,
             refresh_settings_panel=refresh_settings_panel,
             refresh_topology=refresh_topology,
             refresh_persistent_controls=lambda: required(
                 "_phase6_refresh_persistent_structure_controls"
             )(app),
-            submit_update_intent=lambda committed: required(
-                "_phase6_settings_application_submit_update_intent"
-            )(app, committed),
-            publish_live_state=lambda committed, **kwargs: required(
-                "_phase6_settings_application_publish_live_state"
-            )(app, committed, **kwargs),
+            submit_update_intent=lambda committed: self.settings_application_submit_update_intent(
+                namespace, committed
+            ),
+            publish_live_state=lambda committed, **kwargs: self.settings_application_publish_live_state(
+                committed, **kwargs
+            ),
             project_status=project_status,
         )
 
