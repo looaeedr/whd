@@ -155,6 +155,8 @@ def test_interactive_order_uses_workspace_then_delivery_reservation():
         workspace_mutations_complete=True,
         workspace_tests_green=True,
         diff_digest="c" * 64,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
     )
     assert frozen["next_action"] == "WORKSPACE_DELIVERY_AUTHORIZED"
 
@@ -166,6 +168,8 @@ def test_interactive_order_uses_workspace_then_delivery_reservation():
         workspace_mutations_complete=True,
         workspace_tests_green=True,
         diff_digest="c" * 64,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
         workspace_delivery_authority=authority,
     )
     assert authorized["next_action"] == "DELIVERY_PATHS_RESERVED"
@@ -178,6 +182,8 @@ def test_interactive_order_uses_workspace_then_delivery_reservation():
         workspace_mutations_complete=True,
         workspace_tests_green=True,
         diff_digest="c" * 64,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
         workspace_delivery_authority=authority,
         path_reservation_evidence=_reservation(),
     )
@@ -198,6 +204,7 @@ def test_git_content_write_is_forbidden_before_workspace_delivery_unlock():
         assert_git_content_write_allowed,
         build_entry_router_evidence,
         build_gate_evidence,
+        build_remote_connection_authority,
         validate_source_current,
     )
 
@@ -220,6 +227,9 @@ def test_git_content_write_is_forbidden_before_workspace_delivery_unlock():
         source_evidence=source,
     )
     assert_git_content_write_allowed(evidence, action="READ")
+    evidence["remote_connection_authority"] = build_remote_connection_authority(
+        kind="WORKSPACE_DELIVERY", target="GITHUB", user_explicit=True
+    )
     with pytest.raises(ValueError, match="GIT_WRITE_LOCKED"):
         assert_git_content_write_allowed(evidence, action="COMMIT")
 
@@ -254,6 +264,8 @@ def test_target_drift_revalidates_green_before_forcing_retest():
         workspace_mutations_complete=True,
         workspace_tests_green=True,
         diff_digest="d" * 64,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
         workspace_delivery_authority=authority,
         path_reservation_evidence=_reservation(),
         target_drift=True,
@@ -530,7 +542,7 @@ def test_validate_contract_machine_enforces_workspace_semantics_on_retired_gate(
     payload = _contract()
     assert validate_contract(payload)["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] == "WORKSPACE_MUTATE"
     bad = json.loads(json.dumps(payload))
-    bad["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] = "WORKSPACE_MUTATE"
+    bad["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] = "ROOT_MUTATE"
     with pytest.raises(ValueError, match="workspace first substantive action"):
         validate_contract(bad)
 
