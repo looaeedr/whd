@@ -80,7 +80,7 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
     assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
-    assert payload["execution_modes"]["SCHEDULER_LANE"].endswith("ROOT_WORKSPACE_HANDOFF")
+    assert payload["execution_modes"]["SCHEDULER_LANE"] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
     assert payload["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
     fast_path = payload["orchestration_fast_path"]
     assert fast_path["outer_action_gate"] == "tools/root_local_first_gate.py::assert_outer_primary_action"
@@ -274,7 +274,7 @@ def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_to
         repository_content_implementation=True,
     )
     assert handoff["scope"] == "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF"
-    assert handoff["next_action"] == "HANDOFF_TO_ROOT_WORKSPACE_IMPLEMENTATION"
+    assert handoff["next_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
     assert handoff["git_write_unlocked"] is False
 
 
@@ -449,7 +449,9 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     assert "GOVERNANCE_GREEN_ONLY" in gate["forbidden_pre_root_green_outcomes"]
     assert "REMOTE_QA_AS_FIRST_TEST_SURFACE" in gate["forbidden_pre_root_green_outcomes"]
     assert gate["test_red_action"] == "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
-    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK"
+    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert gate["ordinary_missing_drive_mount_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
+    assert gate["fallback_activation"] == "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY"
 
 
 def test_flow_v2_skill_defaults_to_workspace_and_keeps_shared_zero_as_fallback():
