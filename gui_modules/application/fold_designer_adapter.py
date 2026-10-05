@@ -13,6 +13,11 @@ import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
+from ae_engine.receiving_layout import (
+    ensure_receiving_layout as ensure_receiving_preview_layout,
+    resize_receiving_bays as resize_receiving_preview_bays,
+)
+from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
 from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
 from ae_engine.corner_type_ui import (
     is_unknown_model,
