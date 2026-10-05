@@ -80,7 +80,11 @@ shared-0 conflict 規則仍 fail-closed：有 conflict 必須 `BLOCKED_USER_DECI
 
 <!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
 
-當本回合**實際要使用任一 WHD canonical Skill** 時，在任何實質 user-visible 內容之前，必須先公告本回合要使用的 Skill。這是使用者可見的硬閘門，不得只留在內部 reasoning、checkpoint 或 tool log。
+當本回合**實際要使用任一 WHD canonical Skill** 時，startup communication 必須先於 substantive work，但 communication surface 依 runtime 能力決定：
+
+- ChatGPT / interactive chat：仍必須在任何實質 user-visible 內容之前，先公告本回合要使用的 Skill。
+- Codex / CLI / headless executor：若沒有 chat user-visible surface，固定在第一個 substantive mutation 前把相同 canonical Skill identity + startup declaration 寫入 `STDOUT / TASK_EVENT / LOG`；**缺少 chat UI 本身不得成為 blocker**。
+- machine owner=`tools/execution_entry_contract.py::build_startup_communication_evidence`，schema=`WHD_EXECUTION_STARTUP_COMMUNICATION_V1`。
 
 單一 Skill 的固定格式：
 
@@ -96,14 +100,14 @@ shared-0 conflict 規則仍 fail-closed：有 conflict 必須 `BLOCKED_USER_DECI
 
 硬規則：
 
-1. 上述公告必須是本回合**第一個 user-visible 行／句**；不得先輸出計畫、狀態、問題、分析、工具操作說明、結果或其他前言，再補 Skill 名稱。
+1. interactive chat 的公告必須是本回合**第一個 user-visible 行／句**；Codex/CLI/headless 則必須是第一個 machine-visible startup event，且都不得在 substantive work 後補述。
 2. Skill 名稱使用 active canonical identity，中文 Skill 直接使用 canonical 中文 `name`；不得用 retired alias 或自創簡稱冒充。
 3. 只有實際要使用 Skill 時才公告；沒有使用 Skill 的回合不得為了形式虛報。
 4. 若本回合開始時已知會使用多個 Skill，必須在第一行全部列出。若因後續 evidence / scope expansion 才新增一個事前無法知道的 Skill，必須在**第一次實際使用該新增 Skill 之前**另行輸出 `追加使用「<技能名>」技能…`。
 5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、checkpoint、tests 或該 Skill 自己要求的其他證據。
 6. 不得先完成實質工作，再用「使用某 Skill」補述並宣稱符合本 gate；公告順序錯誤即屬本回合流程違規。
 
-> **這是所有 AI / Agent / Subagent 接手本專案後的第一個執行規則。優先級高於本文後續章節。**
+> **這是所有 AI / Agent / Subagent 接手本專案後的第一個 startup communication 規則；chat 與 headless 只差輸出 surface，不得因沒有 chat UI 停工。優先級高於本文後續章節。**
 
 在進行任何實質的**程式分析、Bug 診斷、派工、規格判斷、程式/測試/SOP 修改、重構、回歸或出包**之前，必須先執行 Phase6 Knowledge Preflight。禁止先靠經驗、記憶或通用技能開始工作，再事後補讀。
 
@@ -112,6 +116,17 @@ shared-0 conflict 規則仍 fail-closed：有 conflict 必須 `BLOCKED_USER_DECI
 ```powershell
 python tools/phase6_skill_preflight.py --task "<本次任務完整描述>"
 ```
+
+
+### CODEX_HEADLESS_STARTUP_COMMUNICATION_V1
+
+Codex / CLI / headless executor 是正式 execution surface，不是「缺少 ChatGPT UI 的降級模式」。
+
+- AI Library connector 只屬 ChatGPT-surface enrichment；Codex/headless 沒有該 connector 時固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，直接依 repo CURRENT authority + Phase6 required references 繼續。
+- startup declaration / Skill identity 必須先記錄，但 headless 只要求 machine-visible `STDOUT / TASK_EVENT / LOG`；不得等待不存在的 chat message surface。
+- executor-local workspace（Codex 常見為 `/workspace/whd`）是普通 content execution surface；baseline `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 已由 workspace policy授權，不得再以 `REMOTE_CONNECTION_DENIED` 阻塞。
+- 使用者已明確要求同一 repository-content task 時，可為該 exact task/scope mint 一次 `WORKSPACE_DELIVERY` GitHub authority；測試後進 push/PR/CI/merge 不得再次要求使用者重複授權。scope 擴張、不同 repository 或額外 remote action 仍必須重新授權。
+- host 真實網路/credential failure 可作 capability evidence，但 governance 不得把「需要 chat UI / AI Library / Drive mount / 第二次同 scope確認」冒充 capability blocker。
 
 ### GITHUB_ONLY_REMOTE_PHASE6_PREFLIGHT_V1
 
@@ -122,7 +137,7 @@ GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力
 
 #### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
-GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在 AI Library gate、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。
+GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在適用於該 runtime 的 startup communication、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。**AI Library 只在 runtime 實際具有 ChatGPT AI Library surface 時作 pre-action enrichment；Codex/headless/scheduler 缺 AI Library transport 固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，不得阻塞 bootstrap 或 Preflight。**
 
 - 只准讀 `coord/execution-v2`、derived `ready-index`、`coord/monitor-v2:.dispatch/monitor/runtime/*.json` 的 NON_AUTHORITY latest-owner runtime observations、`tools/execution_scheduler_view.py` 的純 read-only projection，以及取得 exact owning Issue / branch / HEAD 必需的 GitHub metadata。scheduler bootstrap decision 順序固定 same-lane current → `TAKEOVER_CANDIDATE` → READY → explicit ingress；monitor evidence 不得單獨授權 takeover。若 current/ready 都空，允許額外用 `tools/scheduler_ready_ingress.py` 只掃 repository-owner-authored open Issue 第一個 nonblank `WHD_SCHEDULER_DISPATCH_REQUEST_V1` marker 與 `lane=ANY|A|B`；普通 open Issue 仍不是 execution authority。
 - bootstrap 唯一輸出用途是綁定 owning Issue 後取得 trusted Phase6 admission。A/B scheduler 先找同 lane/Issue/branch/HEAD、40 分鐘內的 `github-actions[bot]` push GREEN receipt；有則以 `WHD_SCHEDULER_PHASE6_PREFLIGHT_RECEIPT_REF_V1` 交 trusted transaction ingress API readback/rebind，無 eligible receipt才用 lane-bound push request transport。不得自行 create Issue request comment、不得在可 consume GREEN 存在時重複 mint、不得另造永久 bootstrap Issue。
