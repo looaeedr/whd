@@ -1,30 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "8a6412ca-33d2-4d8b-8005-47c4ce271997",
+  "request_id": "a9bbe8a4-9328-45ba-ab57-97b8500613cb",
   "issue": 1279,
-  "kind": "START_QA",
+  "kind": "YIELD",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1279.7cf79e0b-38fe-41ae-a251-16aff686fd77",
-  "expected_coord_head": "d85a8aaa92a684fca8ace8d1b7b4298d729270b7",
-  "expected_generation": 9,
-  "effect": {
-    "run_id": 37386553810,
-    "run_head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
-    "run_status": "in_progress",
-    "purpose": "Canonical Product Regression",
-    "next_action": {
-      "kind": "POLL_QA",
-      "args": {
-        "run_id": 37386553810,
-        "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
-        "workflow": ".github/workflows/whd-product-regression.yml",
-        "post_accept_pr_number": 1316,
-        "post_accept_target_branch": "cleanup/2d-3d-sync",
-        "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Consume exact-head PR1316 product regression and merge when all required checks are GREEN"
-    }
-  },
+  "expected_coord_head": "729e394a03a0886b33f68e9a5c4cc76609c4dd59",
+  "expected_generation": 10,
+  "effect": {},
   "session_reuse": {
     "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
     "mode": "LIVE_LEASE_CONTINUATION"
