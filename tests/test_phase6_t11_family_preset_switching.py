@@ -224,3 +224,40 @@ def test_fold_designer_baseline_selector_preserves_global_text_size_and_commits_
             root.destroy()
         except tk.TclError:
             pass
+
+def test_leaving_receiving_for_known_family_clears_receiving_only_topology():
+    from phase6_settings_transitions import family_model_transition
+
+    snapshot = {
+        "model": "受電箱",
+        "factory_defaults": {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0, "fw": 25.0},
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        "door_layout_scope": "receiving-main",
+        "door_handle_edges": {"0:0": "left"},
+        "inner_doors": [{"stable_id": "inner-1"}],
+        "door_nameplate_center_datum_top": 150.0,
+    }
+    plan = family_model_transition(
+        "金庫型",
+        "受電箱",
+        new_editable=False,
+        old_editable=False,
+        input_snapshot=snapshot,
+        settings_values={"w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0, "fw": 29.0},
+        corner_state={},
+        corner_pair_same={},
+        endcap_bottom_wrap_state={},
+        assembly_type="INSERT_OVERLAY",
+        available_parts=("box_body", "head", "tail"),
+        current_structure={"active_type": "INTEGRAL", "locked": True},
+    )
+
+    result = plan.input_snapshot
+    assert result["model"] == "金庫型"
+    assert result["multi_door_enabled"] is False
+    assert result["door_layout_columns"] == []
+    assert result["door_layout_scope"] == "main"
+    assert result["door_handle_edges"] == {}
+    assert result["inner_doors"] == []
+    assert result["door_nameplate_center_datum_top"] is None
