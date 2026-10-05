@@ -40,6 +40,8 @@ from tools.execution_record import (
 
 
 TARGET_ADVANCE_PROOF_SCHEMA = "WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1"
+MERGE_ANCHOR_PROOF_SCHEMA = "WHD_FLOW_V2_MERGE_ANCHOR_PROOF_V1"
+MERGE_ANCHOR_CORRECTION_PROOF_SCHEMA = "WHD_FLOW_V2_MERGE_ANCHOR_CORRECTION_PROOF_V1"
 CONTROL_ONLY_TARGET_READBACK_SCHEMA = "WHD_FLOW_V2_CONTROL_ONLY_TARGET_READBACK_V1"
 POST_DELIVERY_RECOVERY_PROOF_SCHEMA = "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1"
 POST_DELIVERY_RECOVERY_MODE = "POST_DELIVERY_RECOVERY"
@@ -993,7 +995,25 @@ def _execute_merge(
     merged_sha = _text(effect.get("merged_sha"), "merged_sha")
     target_sha = _text(effect.get("target_sha"), "target_sha")
     if merged_sha != target_sha:
-        raise ControlTransactionError("MERGE target_sha must equal fresh merged_sha readback")
+        proof = effect.get("merge_anchor_proof")
+        if not isinstance(proof, Mapping):
+            raise ControlTransactionError(
+                "MERGE descendant target requires trusted merge-anchor proof"
+            )
+        if proof.get("schema") != MERGE_ANCHOR_PROOF_SCHEMA:
+            raise ControlTransactionError("MERGE anchor proof schema mismatch")
+        if str(proof.get("target_branch") or "").strip() != record.target_branch:
+            raise ControlTransactionError("MERGE anchor proof branch mismatch")
+        if str(proof.get("merged_sha") or "").strip() != merged_sha:
+            raise ControlTransactionError("MERGE anchor proof merged SHA mismatch")
+        if str(proof.get("observed_target_sha") or "").strip() != target_sha:
+            raise ControlTransactionError("MERGE anchor proof target SHA mismatch")
+        if proof.get("merged_anchor_is_ancestor") is not True:
+            raise ControlTransactionError("MERGE anchor proof must prove ancestry")
+        if proof.get("fresh_readback") is not True:
+            raise ControlTransactionError("MERGE anchor proof requires fresh readback")
+        if str(proof.get("trusted_source") or "").strip() != "control_transaction_production_executor":
+            raise ControlTransactionError("MERGE anchor proof has untrusted source")
     next_action = _action(effect.get("next_action"))
     closure = ClosureState(
         merged_sha=merged_sha,
@@ -1295,6 +1315,44 @@ def _execute_reconcile(
     elif clear_blocker:
         raise ControlTransactionError("RECONCILE clear_blocker requires BLOCKED -> ACTIVE transition")
     requested_semantic = str(effect.get("semantic_state") or record.semantic_state).strip()
+    closure = record.closure
+    if "corrected_merged_sha" in effect:
+        if (
+            record.state != "INTEGRATING"
+            or record.next_action is None
+            or record.next_action.kind != "FINALIZE"
+            or not record.closure.merged_sha
+        ):
+            raise ControlTransactionError(
+                "RECONCILE merge-anchor correction requires INTEGRATING/FINALIZE with existing anchor"
+            )
+        corrected = _text(effect.get("corrected_merged_sha"), "corrected_merged_sha")
+        proof = effect.get("merge_anchor_correction_proof")
+        if not isinstance(proof, Mapping):
+            raise ControlTransactionError(
+                "RECONCILE merge-anchor correction requires trusted proof"
+            )
+        if proof.get("schema") != MERGE_ANCHOR_CORRECTION_PROOF_SCHEMA:
+            raise ControlTransactionError("RECONCILE merge-anchor correction proof schema mismatch")
+        if str(proof.get("target_branch") or "").strip() != record.target_branch:
+            raise ControlTransactionError("RECONCILE merge-anchor correction branch mismatch")
+        if str(proof.get("previous_merged_sha") or "").strip() != record.closure.merged_sha:
+            raise ControlTransactionError("RECONCILE previous merge anchor mismatch")
+        if str(proof.get("corrected_merged_sha") or "").strip() != corrected:
+            raise ControlTransactionError("RECONCILE corrected merge anchor mismatch")
+        if str(proof.get("observed_target_sha") or "").strip() != observed_target:
+            raise ControlTransactionError("RECONCILE corrected anchor target mismatch")
+        if proof.get("corrected_anchor_is_ancestor") is not True:
+            raise ControlTransactionError("RECONCILE corrected anchor must be target ancestor")
+        if proof.get("fresh_readback") is not True:
+            raise ControlTransactionError("RECONCILE merge-anchor correction requires fresh readback")
+        if str(proof.get("trusted_source") or "").strip() != "control_transaction_production_executor":
+            raise ControlTransactionError("RECONCILE merge-anchor correction has untrusted source")
+        closure = ClosureState(
+            merged_sha=corrected,
+            issue_closed=record.closure.issue_closed,
+            released_at=record.closure.released_at,
+        )
 
 
     return _base_update(
@@ -1307,6 +1365,7 @@ def _execute_reconcile(
         blocker=blocker,
         semantic_state=requested_semantic,
         next_action=next_action,
+        closure=closure,
     )
 
 
