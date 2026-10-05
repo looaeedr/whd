@@ -2177,30 +2177,12 @@ def _phase6_joint_form_delete(self):
 
 
 def _phase6_status_projection(self):
-    """Project existing cabinet/part/view owners into one low-noise status line."""
-    family = _phase6_current_cabinet_family(self) or "-"
-    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    if mode == "corner_data":
-        part_key = (
-            getattr(self, "_phase6_corner_data_selected_part_key", None)
-            or getattr(self, "active_part_key", None)
-        )
-    else:
-        part_key = getattr(self, "active_part_key", None)
-    part_text = _phase6_part_label(part_key) if part_key else "-"
-    return Phase6ProjectController.project_status_projection(
-        family=family,
-        mode=mode,
-        part_text=part_text,
-    )
+    return _phase6_composition(self).status_projection(globals())
+
 
 def _phase6_refresh_status_bar(self):
-    """Refresh the projection sink only; never write selection/domain state."""
-    text = _phase6_status_projection(self)
-    var = getattr(self, "status_projection_var", None)
-    if var is not None and hasattr(var, "set"):
-        var.set(text)
-    return text
+    return _phase6_composition(self).refresh_status_bar(globals())
+
 
 # Compatibility routing only: concrete Tk construction lives in
 # phase6_registry_diagnostics_panel.py.
@@ -2281,37 +2263,13 @@ def _phase6_build_persistent_top_area(self):
     _phase6_apply_workspace_shell_bindings(self, owner)
 
 def _phase6_reset_initial_values(self):
-    """Restore immutable AE factory defaults through the Settings coordinator."""
-    self.flush_pending_settings()
-    return _phase6_settings_coordinator(self).reset_factory_settings(
-        getattr(self, "_factory_defaults", {}) or {}
-    )
+    return _phase6_composition(self).reset_initial_values(globals())
+
 
 def _phase6_save_settings_context_as_defaults(self, context):
-    self.flush_pending_settings()
-    callback = self._save_defaults_callback
-    if callback is None:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set("未連接預設值儲存器")
-        return False
-    payload = _phase6_settings_transactions(self).settings_defaults_payload(context)
-    try:
-        Phase6ProjectController.route_settings_defaults(callback, payload)
-    except Exception as exc:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"儲存失敗：{exc}")
-        return False
-    if hasattr(self, "settings_status_var"):
-        self.settings_status_var.set("已儲存到 config.ini")
-    return True
-
-
-
-
-
-
-
-
+    return _phase6_composition(self).save_settings_context_as_defaults(
+        globals(), context
+    )
 
 
 def _phase6_scene_query_payload_for_part(self, part_key):
