@@ -440,7 +440,7 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     gate = payload["direct_root_mutation_test_gate"]
     assert gate["schema"] == "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1"
     assert gate["applies_when"] == "NEVER_CURRENT"
-    assert gate["canonical_surface"] == "/Google Drive/WHD/.unpushed"
+    assert gate["canonical_surface"] is None
     assert gate["interactive_first_substantive_action"] == "ROOT_MUTATE"
     assert gate["required_contiguous_outer_sequence"] == [
         "ROOT_MUTATE", "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
@@ -453,9 +453,9 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     assert "GOVERNANCE_GREEN_ONLY" in gate["forbidden_pre_root_green_outcomes"]
     assert "REMOTE_QA_AS_FIRST_TEST_SURFACE" in gate["forbidden_pre_root_green_outcomes"]
     assert gate["test_red_action"] == "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
-    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME"
+    assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
     assert gate["ordinary_missing_drive_mount_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
-    assert gate["fallback_activation"] == "FRESH_TOUCHED_PATH_SHARED_ZERO_DRIFT_ONLY"
+    assert gate["fallback_activation"] == "RETIRED"
 
 
 def test_flow_v2_skill_defaults_to_workspace_and_keeps_shared_zero_as_fallback():
