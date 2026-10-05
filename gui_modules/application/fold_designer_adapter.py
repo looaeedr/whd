@@ -3125,6 +3125,45 @@ class Phase6FoldDesignerComposition:
                 )
             return None
 
+    def on_assembly_type_selected(self, namespace, *_args):
+        """Commit Assembly intent through the existing Settings transaction owner."""
+        app = self.app
+        if getattr(app, "_phase6_settings_rendering", False):
+            return None
+        required = lambda name: self._required(namespace, name)
+        var = getattr(app, "assembly_type_var", None)
+        type_id = (
+            required("ASSEMBLY_LABEL_TO_TYPE").get(
+                str(var.get()).strip()
+            )
+            if var is not None
+            else None
+        )
+        if type_id is None:
+            return None
+
+        self.settings_transactions().commit_assembly_intent(
+            type_id,
+            available_parts=tuple(
+                getattr(app.designer_workspace, "available_parts", ())
+                or ()
+            ),
+            project_legacy_corner=False,
+            mark_dirty=True,
+        )
+
+        # Do not rebuild the live box-body page while Tk is dispatching the
+        # Combobox event; only dependent EndCap pages are invalidated here.
+        for context in ("head", "tail"):
+            self.invalidate_settings_page(context)
+        required("_phase6_rebuild_linked_endcaps")(app)
+        required("_phase6_render_active_drawing_edge_controls")(app)
+        try:
+            app.do_update()
+        except Exception:
+            pass
+        return type_id
+
     def on_assembly_diagnostic_changed(self):
         app = self.app
         if (
@@ -3686,9 +3725,9 @@ class Phase6FoldDesignerComposition:
             select_structure_type=lambda var: required(
                 "_phase6_select_box_structure_type"
             )(app, var),
-            select_assembly_type=lambda: required(
-                "_phase6_on_assembly_type_selected"
-            )(app),
+            select_assembly_type=lambda: self.on_assembly_type_selected(
+                namespace
+            ),
             refresh_persistent_structure_controls=lambda: required(
                 "_phase6_refresh_persistent_structure_controls"
             )(app),
