@@ -40,3 +40,7 @@ def test_every_active_canonical_skill_is_explicitly_routable() -> None:
         if name not in by_file:
             failures.append(f"{name}: skill-file route missing")
     assert failures == []
+
+def test_handoff_skill_supports_chinese_slash_alias() -> None:
+    assert "handoff" in set(required_skills_for(task="/交接"))
+    assert "handoff" in set(required_skills_for(task="交接"))
