@@ -21,6 +21,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_GATE_V1
 
+Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`，authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`；同 scope 沿用/自動 mint 只是不重問使用者，**不是 bypass machine gate**。
+
 任何 GitHub Actions workflow/run/job/artifact status read 都是 GitHub network action，但同一已授權 repository-content task 的 `WORKSPACE_DELIVERY` 固定包含 `WORKFLOW_READ / REMOTE_QA`；因此 Codex/workspace executor 在 push/PR 後必須直接沿同 scope做 QA read/consume，不得再要求使用者第二次授權。`/推推` delivery authority與 user-authored GitHub-only scheduler authority也可包含這些 actions。只有沒有任何適用 authority、scope 擴張或跨 repository時才 `REMOTE_CONNECTION_DENIED`。
 
 
