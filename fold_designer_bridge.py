@@ -1611,31 +1611,9 @@ def _phase6_delete_user_joint(self, joint_id):
 
 
 def _phase6_on_assembly_type_selected(self, *_args):
-    if getattr(self, "_phase6_settings_rendering", False):
-        return
-    var = getattr(self, "assembly_type_var", None)
-    type_id = ASSEMBLY_LABEL_TO_TYPE.get(str(var.get()).strip()) if var is not None else None
-    if type_id is None:
-        return
-    transactions = _phase6_settings_transactions(self)
-    transactions.commit_assembly_intent(
-        type_id,
-        available_parts=tuple(getattr(self.designer_workspace, "available_parts", ()) or ()),
-        project_legacy_corner=False,
-        mark_dirty=True,
+    return _phase6_composition(self).on_assembly_type_selected(
+        globals(), *_args
     )
-    # The box-body page owns the live assembly Combobox that fired this event.
-    # Destroying/rebuilding that page from inside <<ComboboxSelected>> destroys
-    # the widget while Tk is still dispatching its event. Only dependent EndCap
-    # pages need rebuilding.
-    for context in ("head", "tail"):
-        _phase6_invalidate_settings_page(self, context)
-    _phase6_rebuild_linked_endcaps(self)
-    _phase6_render_active_drawing_edge_controls(self)
-    try:
-        self.do_update()
-    except Exception:
-        pass
 
 
 _ENDCAP_EDGE_LABELS = {
