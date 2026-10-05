@@ -21,7 +21,6 @@ class WorkspaceShellState:
     root: Any
     left: Any
     right: Any
-    renderer_canvas_widget: Any
     ui_text_size_values: tuple[str, ...]
     v_a_bend: Any
     v_a_face: Any
@@ -36,6 +35,7 @@ class WorkspaceShellState:
     external_export_vars: Mapping[str, Any] | None = None
     left_workspace_width: int = 360
     theme_background: str = "#202020"
+    renderer_canvas_widget: Any = None
 
 
 @dataclass(frozen=True)
@@ -170,6 +170,8 @@ class WorkspaceShellOwner:
         # cannot consume canvas geometry or trigger a resize/redraw merely by
         # being shown.
         canvas_widget = self.state.renderer_canvas_widget
+        if canvas_widget is None:
+            canvas_widget = host
         self.parameter_lock_button = original.ttk.Button(
             canvas_widget,
             text="參數鎖定",
