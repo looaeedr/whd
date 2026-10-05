@@ -1,32 +1,26 @@
 {
   "schema": "WHD_POST_INTEGRATION_DURABILITY_V2",
-  "version": 2,
+  "version": 3,
   "status": "CURRENT",
   "owner": "tools/post_integration_durability.py",
   "execution_state_owner": "WHD_EXECUTION_RECORD_V2",
-  "canonical_root": "/Google Drive/WHD",
-  "shared_unpushed_root": "/Google Drive/WHD/.unpushed",
+  "canonical_root": "GITHUB_PRODUCTION_X",
+  "shared_unpushed_root": null,
   "required_order": [
     "FLOW_V2_DONE",
     "MERGE_READBACK_VERIFIED",
-    "LANE_DELIVERY_RECEIPT_BOUND",
-    "LANE_0_ROLLED_FORWARD_OR_EMPTY",
     "DURABLE_CLEANUP_COMPLETE"
   ],
   "root_sync_receipt_schema": "WHD_CANONICAL_ROOT_SYNC_RECEIPT_V1",
-  "lane_delivery_receipt_schema": "WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1",
-  "lane_final_states": [
-    "EMPTY",
-    "ROLLED_FORWARD"
-  ],
+  "lane_delivery_receipt_schema": "HISTORICAL_WHD_UNPUSHED_LANE_DELIVERY_RECEIPT_V1",
+  "lane_final_states": [],
   "forbidden_current_authorities": [
     "SOURCE_SNAPSHOT",
     "CURRENT_SOURCE_MANIFEST",
     "WORK_ACTIVE_ARCHIVE"
   ],
   "fail_closed": {
-    "execution_not_done": "WAIT_EXECUTION_DONE",
-    "lane_not_finalized": "FINALIZE_DELIVERED_LANE_ZERO"
+    "execution_not_done": "WAIT_EXECUTION_DONE"
   },
   "physical_cycle_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
   "supersedes": ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json",
@@ -41,8 +35,16 @@
   "root_sync_policy": {
     "terminal_gate": false,
     "closure_authority": false,
-    "mode": "OPTIONAL_MAINTENANCE",
+    "mode": "OPTIONAL_MIRROR_MAINTENANCE",
     "missing_receipt": "DO_NOT_BLOCK_FLOW_V2_FINALIZE_OR_ISSUE_CLOSURE",
     "invalid_receipt": "REPORT_MAINTENANCE_DRIFT_WITHOUT_REOPENING_TERMINAL_ISSUE"
+  },
+  "production_branch": "cleanup/2d-3d-sync",
+  "drive_role": "MIRROR_BACKUP_ONLY",
+  "shared_zero_cleanup_policy": {
+    "status": "RETIRED",
+    "terminal_gate": false,
+    "closure_authority": false,
+    "missing_receipt": "IGNORE_FOR_CURRENT_COMPLETION"
   }
 }
