@@ -355,3 +355,125 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
         assert all(float(line.get_linewidth()) >= 1.8 for line in visible_marks)
     finally:
         _close(tk, root, designer)
+
+
+def _mapped_widget_texts(root_widget):
+    stack = [root_widget]
+    texts = []
+    while stack:
+        widget = stack.pop()
+        try:
+            stack.extend(list(widget.winfo_children()))
+        except Exception:
+            pass
+        try:
+            if not bool(widget.winfo_ismapped()):
+                continue
+        except Exception:
+            continue
+        try:
+            value = str(widget.cget("text") or "").strip()
+        except Exception:
+            value = ""
+        if value:
+            texts.append(value)
+    return tuple(texts)
+
+
+def _select_box_body_through_tree(designer, root):
+    tree = designer.structure_tree
+    assert tree.exists("part:box_body")
+    tree.selection_set("part:box_body")
+    tree.focus("part:box_body")
+    tree.event_generate("<<TreeviewSelect>>")
+    _pump(root, 6)
+    assert designer.designer_workspace.active_part == "box_body"
+
+
+def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        _select_box_body_through_tree(designer, root)
+
+        frame = designer.receiving_set_bay_control
+        assert bool(frame.winfo_ismapped()), "Receiving control frame is still hidden"
+        packed = list(designer.input_content_host.pack_slaves())
+        assert frame in packed and designer.bend_ui.nb in packed
+        assert packed.index(frame) < packed.index(designer.bend_ui.nb), (
+            "Receiving controls must be inserted before the expanding fold notebook"
+        )
+
+        texts = _mapped_widget_texts(frame)
+        for expected in ("開關", "＋層", "第1層", "1連", "－連", "＋連", "預覽"):
+            assert expected in texts, f"operator-visible Receiving text missing: {expected!r}; got={texts!r}"
+        assert not any("Layer" in text or "Connection" in text for text in texts), texts
+    finally:
+        _close(tk, root, designer)
+
+
+def test_receiving_layer_connection_config_edits_do_not_redraw_3d_canvas():
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 10)
+        _select_box_body_through_tree(designer, root)
+        _pump(root, 10)
+
+        canvas = designer.renderer.canvas
+        calls = {"draw": 0, "draw_idle": 0}
+        original_draw = canvas.draw
+        original_draw_idle = canvas.draw_idle
+
+        def blocked_draw(*_args, **_kwargs):
+            calls["draw"] += 1
+            return None
+
+        def blocked_draw_idle(*_args, **_kwargs):
+            calls["draw_idle"] += 1
+            return None
+
+        canvas.draw = blocked_draw
+        canvas.draw_idle = blocked_draw_idle
+        try:
+            designer.receiving_layer_controls.add_layer_button.invoke()
+            _pump(root, 5)
+            rows = tuple(
+                getattr(
+                    designer.receiving_layer_controls.layer_host,
+                    "_phase6_receiving_layer_rows",
+                    (),
+                )
+                or ()
+            )
+            assert len(rows) >= 2
+            rows[0]["plus_button"].invoke()
+            _pump(root, 5)
+        finally:
+            canvas.draw = original_draw
+            canvas.draw_idle = original_draw_idle
+
+        assert calls == {"draw": 0, "draw_idle": 0}, (
+            "＋層／＋連 are configuration-only and must not redraw/reload 3D: "
+            f"{calls!r}"
+        )
+    finally:
+        _close(tk, root, designer)
+
+
+def test_parameter_lock_is_direct_canvas_overlay_not_layout_row():
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        _pump(root, 6)
+        canvas_widget = designer.renderer.canvas.get_tk_widget()
+        button = designer.parameter_lock_button
+        assert button.master is canvas_widget
+        assert button.winfo_manager() == "place"
+        assert bool(button.winfo_ismapped())
+        assert button.winfo_y() <= 24
+        assert button.winfo_x() >= (
+            canvas_widget.winfo_width() - button.winfo_width() - 24
+        )
+    finally:
+        _close(tk, root, designer)
