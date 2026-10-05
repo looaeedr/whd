@@ -167,18 +167,20 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 
 ## Root-local-first write gate
 
-For WHD interactive/default bug-fix work, diagnosis may use Git read-only evidence, but content mutation follows CURRENT shared-0 `root-local-first`:
+For WHD bug-fix work, repository-content routing follows CURRENT `root-local-first`:
 
-1. Fresh-read canonical Drive root + Current Source Manifest and prove `ROOT_SOURCE_CURRENT`.
-2. Reproduce RED and modify production/tests/docs in the root workspace.
-3. Classify tests through `WHD_CHANGE_TEST_PROFILE_V1`; finish targeted + required full gate in root.
-4. Freeze the exact tested diff and fresh-read target/touched paths.
-5. Merge the tested worker candidate into fresh latest lane `0`; any conflict becomes `BLOCKED_USER_DECISION` and must wait for the user's explicit resolution. Re-test the merged `0`, freeze its manifest, then use `/推推 主體` (or `/推推 文檔` for governance/Skill-only bug fixes) to create the delivery branch.
-6. Remote QA is post-push verification; remote failure returns to root for correction/retest/refreeze.
+1. Resolve the executor-local repo workspace and fresh `cleanup/2d-3d-sync` baseline.
+2. Reproduce RED in that workspace; modify production/tests/docs there.
+3. Classify tests through `WHD_CHANGE_TEST_PROFILE_V1`; finish targeted + required full gate in the same workspace.
+4. Capture the exact tested diff and fresh-read target/touched paths.
+5. Normal route=`WORKSPACE_DEFAULT`: create a tested delivery branch, push, PR, required checks, merge/readback. The user's explicit exact repository-content task may mint one same-scope `WORKSPACE_DELIVERY` authority through QA/finalization.
+6. Only when fresh touched-path evidence proves a newer shared `.unpushed/{docs|body}/0` overlay does the router select `SHARED_ZERO_FALLBACK`; then and only then use lane 0 merge/freeze/`/推推`.
+7. Remote QA is post-push verification; failure returns to the same authoring route for correction/retest.
 
 Hard rules:
 - Never patch `cleanup/2d-3d-sync` / `main` directly.
-- Git branch creation is delivery-only after shared `0` post-merge GREEN; it is never the starting point of diagnosis.
-- Never auto-select ours/theirs for a shared-0 conflict.
-- If target drifts across touched paths, use `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`.
-- Small/docs-only bug corrections follow the same ordering.
+- Missing Drive mount is not a blocker for `WORKSPACE_DEFAULT`.
+- Do not invent shared-0 drift merely because the old workflow mentioned Drive.
+- If fallback is active, never auto-select ours/theirs for a shared-0 conflict.
+- Target drift across touched paths requires fresh baseline + retest before delivery.
+- Small/docs-only bug corrections use the same workspace-first router.
