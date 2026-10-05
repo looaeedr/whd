@@ -60,16 +60,17 @@ def test_default_route_is_executor_workspace_without_drive_or_sync():
     assert route["shared_zero_required"] is False
 
 
-def test_shared_zero_machine_activates_only_on_fresh_drift():
+def test_shared_zero_drift_is_historical_and_never_changes_current_route():
     from tools.root_local_first_gate import select_repository_content_route
 
     route = select_repository_content_route(
         shared_zero_drift_present=True,
         workspace_root="/workspace/whd",
     )
-    assert route["route"] == "SHARED_ZERO_FALLBACK"
-    assert route["workspace_canonical_sync_required"] is True
-    assert route["shared_zero_required"] is True
+    assert route["route"] == "WORKSPACE_DEFAULT"
+    assert route["workspace_canonical_sync_required"] is False
+    assert route["shared_zero_required"] is False
+    assert route["retired_shared_zero_drift_observed"] is True
 
 
 def test_two_executors_may_use_different_workspace_paths_with_same_x_baseline():
@@ -165,7 +166,7 @@ def test_current_contracts_do_not_make_codex_path_or_drive_sync_global_startup()
     assert flow["startup_requires_drive"] is False
     assert flow["startup_requires_shared_zero"] is False
     assert flow["startup_requires_workspace_canonical_sync"] is False
-    assert shared["mode"] == "CONDITIONAL_FALLBACK_ONLY"
+    assert shared["mode"] == "SUPERSEDED_DATA_ONLY"
     assert shared["default_route"] is False
     mirror = shared["delivery_transport"]["workspace_staged_fallback"]["codex_cloud_mount_bridge"][
         "workspace_mirror_policy"
