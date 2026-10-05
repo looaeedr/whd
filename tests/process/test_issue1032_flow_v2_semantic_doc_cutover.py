@@ -8,15 +8,15 @@ ROOT = Path(__file__).resolve().parents[2]
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
-def test_current_execution_docs_use_workspace_default_and_conditional_shared_zero() -> None:
+def test_current_execution_docs_use_workspace_default_and_retire_shared_zero_routing() -> None:
     agents = _read("AGENTS.md")
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
     assert "WORKSPACE_DEFAULT" in agents
-    assert "SHARED_ZERO_FALLBACK" in agents
+    assert "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in agents
     assert "executor-local" in agents
     assert "ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1" in flow
     assert "WORKSPACE_DEFAULT" in flow
-    assert "SHARED_ZERO_FALLBACK" in flow
+    assert "Drive readback 全部退出 CURRENT routing" in flow
     assert "ACQUIRE.effect.admission_reservation" not in agents
 
 
