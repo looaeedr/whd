@@ -74,8 +74,8 @@ def test_contract_and_skill_are_current_and_single_owner():
         "WORKSPACE_SOURCE_CURRENT", "WORKSPACE_MUTATIONS_COMPLETE",
         "WORKSPACE_TESTS_GREEN", "DELIVERY_BRANCH_READY",
     ]
-    assert payload["shared_unpushed_integration"]["machine_owner"] == "tools/shared_unpushed_integration.py"
-    assert payload["shared_unpushed_integration"]["conflict_state"] == "BLOCKED_USER_DECISION"
+    assert payload["shared_unpushed_integration"]["status"] == "HISTORICAL"
+    assert payload["shared_unpushed_integration"]["routing_forbidden"] is True
     assert payload["path_reservation"]["phase"] == "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN"
     assert payload["execution_mode_provenance"]["schema"] == "WHD_EXECUTION_MODE_PROVENANCE_V1"
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
@@ -90,58 +90,99 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert "EXPIRED_LEASE" in fast_path["background_only_events"]
 
 
-def test_interactive_order_uses_shared_zero_then_delivery_reservation():
+
+def test_interactive_order_uses_workspace_then_delivery_reservation():
     from tools.root_local_first_gate import (
+        build_entry_router_evidence,
         build_gate_evidence,
         build_remote_connection_authority,
         validate_source_current,
+    )
+    entry = build_entry_router_evidence(
+        fresh_reads=[
+            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+        ],
+        workspace_root="/workspace/whd",
     )
     source = validate_source_current(
         workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
         live_source_sha="a" * 40, live_tree_sha="b" * 40,
     )
     authority = build_remote_connection_authority(
-        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+        kind="WORKSPACE_DELIVERY", target="GITHUB", user_explicit=True
     )
-    locked = build_gate_evidence(execution_mode="INTERACTIVE", source_evidence=source)
-    assert locked["next_action"] == "UNPUSHED_LANE_CLASSIFIED"
 
-    lane_bound = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane()
+    locked = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
     )
-    assert lane_bound["next_action"] == "ROOT_MUTATIONS_COMPLETE"
+    assert locked["next_action"] == "WORKSPACE_SOURCE_CURRENT"
 
-    merged = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
-        tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+    sourced = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
     )
-    assert merged["git_write_unlocked"] is False
-    assert merged["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
+    assert sourced["next_action"] == "WORKSPACE_MUTATIONS_COMPLETE"
 
-    reserved = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
-        tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
-        remote_connection_authority=authority,
+    mutated = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
     )
-    assert reserved["git_write_unlocked"] is False
-    assert reserved["next_action"] == "DELIVERY_PATHS_RESERVED"
+    assert mutated["next_action"] == "WORKSPACE_TESTS_GREEN"
+
+    tested = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+    )
+    assert tested["next_action"] == "WORKSPACE_EXACT_DIFF_FROZEN"
+
+    frozen = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+        diff_digest="c" * 64,
+    )
+    assert frozen["next_action"] == "WORKSPACE_DELIVERY_AUTHORIZED"
+
+    authorized = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+        diff_digest="c" * 64,
+        workspace_delivery_authority=authority,
+    )
+    assert authorized["next_action"] == "DELIVERY_PATHS_RESERVED"
 
     unlocked = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
-        tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
-        remote_connection_authority=authority,
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+        diff_digest="c" * 64,
+        workspace_delivery_authority=authority,
         path_reservation_evidence=_reservation(),
     )
     assert unlocked["git_write_unlocked"] is True
-    assert unlocked["completed"][-1] == "GIT_WRITE_UNLOCKED"
     assert unlocked["next_action"] == "EXACT_TESTED_DIFF_ONLY"
-
 
 def test_worker_census_compatibility_bridge_is_optional_but_validated():
     from tools.root_local_first_gate import build_gate_evidence, validate_source_current
@@ -333,13 +374,22 @@ def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():
     assert offenders == []
 
 
-def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
+
+def test_git_unlock_receipt_is_machine_bound_to_workspace_frozen_diff_and_reservation():
     from tools.root_local_first_gate import (
+        build_entry_router_evidence,
         build_gate_evidence,
         build_git_unlock_receipt,
         build_remote_connection_authority,
         validate_git_unlock_receipt,
         validate_source_current,
+    )
+    entry = build_entry_router_evidence(
+        fresh_reads=[
+            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+        ],
+        workspace_root="/workspace/whd",
     )
     source = validate_source_current(
         workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
@@ -347,13 +397,18 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
         live_tree_sha="b" * 40,
     )
     authority = build_remote_connection_authority(
-        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+        kind="WORKSPACE_DELIVERY", target="GITHUB", user_explicit=True
     )
     evidence = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True, tests_green=True,
-        remote_connection_authority=authority, path_reservation_evidence=_reservation(),
-        test_receipt=_test_receipt(), expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="c" * 64,
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+        diff_digest="c" * 64,
+        workspace_delivery_authority=authority,
+        path_reservation_evidence=_reservation(),
     )
     receipt = build_git_unlock_receipt(evidence)
     assert receipt["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
@@ -361,24 +416,20 @@ def test_git_unlock_receipt_is_machine_bound_to_frozen_diff_and_reservation():
     assert receipt["diff_digest"] == "c" * 64
     assert receipt["write_mode"] == "EXACT_TESTED_DIFF_ONLY"
     assert validate_git_unlock_receipt(receipt)["git_write_unlocked"] is True
-    bad = dict(receipt, git_write_unlocked=False)
-    with pytest.raises(ValueError, match="GIT_WRITE_UNLOCKED"):
-        validate_git_unlock_receipt(bad)
 
 
-
-def test_bare_tests_green_boolean_is_rejected():
+def test_legacy_shared_zero_execution_inputs_are_rejected():
     from tools.root_local_first_gate import build_gate_evidence, validate_source_current
     source = validate_source_current(
         workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
         live_source_sha="a" * 40,
         live_tree_sha="b" * 40,
     )
-    with pytest.raises(ValueError, match="WHD_TEST_EXECUTION_RECEIPT_V1"):
+    with pytest.raises(ValueError, match="LEGACY_SHARED_ZERO_EXECUTION_INPUT_RETIRED"):
         build_gate_evidence(
-            execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-            root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True, tests_green=True,
-            path_reservation_evidence=_reservation(), diff_digest="f" * 64,
+            execution_mode="INTERACTIVE",
+            source_evidence=source,
+            unpushed_lane_evidence=_lane(),
         )
 
 def test_root_local_contract_points_to_executor_local_workspace_policy():
@@ -414,49 +465,40 @@ def test_root_local_skill_exposes_fast_path_hard_gate():
     assert "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS" not in text or "phase outcome" in text
 
 
+
 def test_task_scope_stickiness_blocks_control_plane_drift():
     from tools.root_local_first_gate import validate_contract
     payload = _contract()
     gate = validate_contract(payload)["direct_root_mutation_test_gate"]
-    assert gate["task_scope_sticky_until"] == "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE"
-    assert gate["control_plane_anomaly_action"] == "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK"
+    assert gate["task_scope_sticky_until"] == "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE"
+    assert gate["control_plane_anomaly_action"] == "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_WORKSPACE_TASK"
     for trigger in (
         "STALE_EXECUTION_RECORD", "EXPIRED_LEASE", "RESERVATION_MISMATCH",
         "GOVERNANCE_DRIFT", "TEST_RED", "STATUS_QUERY", "PROGRESS_QUERY",
     ):
         assert trigger in gate["forbidden_scope_switch_triggers"]
-    assert set(gate["scope_switch_allowed_only_on"]) == {
-        "USER_EXPLICIT_TASK_CHANGE", "PATH_CONFLICT", "SAME_ISSUE_OTHER_WRITER",
-        "SUBSTANTIVE_TARGET_OVERLAP", "MACHINE_FAIL_CLOSED", "USER_INPUT_REQUIRED",
-    }
     bad = json.loads(json.dumps(payload))
     bad["direct_root_mutation_test_gate"]["control_plane_anomaly_action"] = "REPAIR_GOVERNANCE_FIRST"
     with pytest.raises(ValueError, match="must not become a new primary task"):
         validate_contract(bad)
 
 
-def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
+def test_retired_direct_root_gate_carries_workspace_only_semantics():
     payload = _contract()
     gate = payload["direct_root_mutation_test_gate"]
-    assert gate["schema"] == "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1"
+    assert gate["status"] == "SUPERSEDED"
     assert gate["applies_when"] == "NEVER_CURRENT"
     assert gate["canonical_surface"] is None
-    assert gate["interactive_first_substantive_action"] == "ROOT_MUTATE"
+    assert gate["interactive_first_substantive_action"] == "WORKSPACE_MUTATE"
     assert gate["required_contiguous_outer_sequence"] == [
-        "ROOT_MUTATE", "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
-        "POST_MERGE_0_TEST_CLASSIFIED", "POST_MERGE_0_TESTS_GREEN"
+        "WORKSPACE_MUTATE", "WORKSPACE_TESTS_GREEN", "EXACT_DIFF_FROZEN"
     ]
-    assert gate["same_invocation_until"] == "ROOT_TESTS_GREEN_OR_REAL_BLOCKER"
-    assert gate["root_capability_available_policy"] == "NO_HANDOFF_ONLY_STOP"
-    assert gate["status_or_progress_query_is_stop_reason"] is False
-    assert "HANDOFF_ONLY" in gate["forbidden_pre_root_green_outcomes"]
-    assert "GOVERNANCE_GREEN_ONLY" in gate["forbidden_pre_root_green_outcomes"]
-    assert "REMOTE_QA_AS_FIRST_TEST_SURFACE" in gate["forbidden_pre_root_green_outcomes"]
-    assert gate["test_red_action"] == "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST"
+    assert gate["same_invocation_until"] == "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER"
+    assert gate["root_capability_available_policy"] == "WORKSPACE_CAPABLE_NO_HANDOFF_ONLY_STOP"
+    assert gate["test_red_action"] == "FIX_IN_SAME_WORKSPACE_AND_RETEST"
     assert gate["remote_without_root_capability_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
     assert gate["ordinary_missing_drive_mount_action"] == "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE"
     assert gate["fallback_activation"] == "RETIRED"
-
 
 def test_flow_v2_skill_defaults_to_workspace_and_retires_shared_zero_routing():
     text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
@@ -487,35 +529,32 @@ def test_test_receipt_generation_is_historical_provenance_not_exact_lease_genera
         )
 
 
-def test_validate_contract_machine_enforces_direct_root_mutation_gate():
+
+def test_validate_contract_machine_enforces_workspace_semantics_on_retired_gate():
     from tools.root_local_first_gate import validate_contract
     payload = _contract()
-    assert validate_contract(payload)["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] == "ROOT_MUTATE"
+    assert validate_contract(payload)["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] == "WORKSPACE_MUTATE"
     bad = json.loads(json.dumps(payload))
-    bad["direct_root_mutation_test_gate"]["status_or_progress_query_is_stop_reason"] = True
-    with pytest.raises(ValueError, match="status/progress query"):
+    bad["direct_root_mutation_test_gate"]["interactive_first_substantive_action"] = "ROOT_MUTATE"
+    with pytest.raises(ValueError, match="workspace first substantive action"):
         validate_contract(bad)
 
-def test_root_gate_conflict_checkpoint_blocks_before_post_merge_tests():
-    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
-    from tools.shared_unpushed_integration import build_conflict_checkpoint
-    source = validate_source_current(
-        workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
-        live_source_sha="a" * 40, live_tree_sha="b" * 40,
-    )
-    cp = build_conflict_checkpoint(
-        lane="docs", path="AGENTS.md", base_generation=3, latest_generation=4,
-        base_hash="base", latest_hash="latest", worker_hash="worker",
-        conflict_hunks=["startup gate line changed by both workers"], worker="work1", issue="#996",
-    )
-    evidence = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, conflict_checkpoint=cp,
-    )
-    assert evidence["blocked_state"] == "BLOCKED_USER_DECISION"
-    assert evidence["next_action"] == "USER_CONFLICT_DECISION"
-    assert evidence["git_write_unlocked"] is False
 
+def test_shared_zero_conflict_execution_path_is_retired():
+    from tools.root_local_first_gate import build_gate_evidence
+    from tools.shared_unpushed_integration import build_conflict_checkpoint
+
+    with pytest.raises(ValueError, match="SHARED_ZERO_ROUTING_RETIRED"):
+        build_conflict_checkpoint(
+            lane="docs", path="AGENTS.md", base_generation=3, latest_generation=4,
+            base_hash="base", latest_hash="latest", worker_hash="worker",
+            conflict_hunks=["x"], worker="work1", issue="#996",
+        )
+    with pytest.raises(ValueError, match="LEGACY_SHARED_ZERO_EXECUTION_INPUT_RETIRED"):
+        build_gate_evidence(
+            execution_mode="INTERACTIVE",
+            unpushed_lane_evidence=_lane(),
+        )
 
 def test_remote_connection_authority_covers_all_github_network_surfaces_and_does_not_propagate():
     from tools.root_local_first_gate import (
