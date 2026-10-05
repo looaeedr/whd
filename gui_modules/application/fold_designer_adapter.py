@@ -1758,6 +1758,298 @@ class Phase6FoldDesignerComposition:
         app.settings_panel = panel
         return panel
 
+    def registry_collect_rule_form(self):
+        """Collect one editable Registry rule record from the existing panel vars."""
+        app = self.app
+        intent = str(
+            app.relief_registry_intent_var.get() or "INSERT_OVERLAY"
+        )
+        topology = int(
+            float(
+                app.relief_registry_topology_var.get()
+                or (2 if intent == "INSERT_OVERLAY" else 1)
+            )
+        )
+        main_target = str(
+            app.relief_registry_target_role_var.get() or "BOX_SIDE"
+        )
+        region = str(
+            app.relief_registry_joint_face_var.get() or "TOP"
+        )
+        signature = [
+            {
+                "relation": intent,
+                "subject_role": str(
+                    app.relief_registry_part_role_var.get()
+                    or "HEAD_OR_TAIL"
+                ),
+                "target_role": main_target,
+                "subject_region": region,
+                "target_region": (
+                    "MATING_ZONE"
+                    if intent != "OVERLAY"
+                    else "OUTER_SURFACE"
+                ),
+            }
+        ]
+        extra = str(
+            app.relief_registry_extra_joint_var.get() or "NONE"
+        )
+        if extra != "NONE":
+            signature.append(
+                {
+                    "relation": extra,
+                    "subject_role": str(
+                        app.relief_registry_part_role_var.get()
+                        or "HEAD_OR_TAIL"
+                    ),
+                    "target_role": str(
+                        app.relief_registry_extra_target_role_var.get()
+                        or "REAR_PANEL"
+                    ),
+                    "subject_region": region,
+                    "target_region": (
+                        "WRAP_ZONE"
+                        if extra == "WRAP"
+                        else "MATING_ZONE"
+                    ),
+                }
+            )
+        formula = {
+            "primary_u": str(
+                app.relief_registry_primary_u_var.get()
+            ).strip(),
+            "primary_v": str(
+                app.relief_registry_primary_v_var.get()
+            ).strip(),
+        }
+        if topology == 2:
+            formula["secondary_u"] = str(
+                app.relief_registry_secondary_u_var.get()
+            ).strip()
+            formula["secondary_depth"] = str(
+                app.relief_registry_secondary_depth_var.get()
+            ).strip()
+        preconditions = [
+            value.strip()
+            for value in str(
+                app.relief_registry_preconditions_var.get() or ""
+            ).split(",")
+            if value.strip()
+        ]
+        return {
+            "rule_id": str(
+                app.relief_registry_rule_id_var.get() or ""
+            ).strip(),
+            "cabinet_family": str(
+                app.relief_registry_family_var.get() or "ANY"
+            ).strip(),
+            "part_role": str(
+                app.relief_registry_part_role_var.get()
+                or "HEAD_OR_TAIL"
+            ).strip(),
+            "joint_face": region,
+            "assembly_intent": intent,
+            "joint_signature": signature,
+            "topology_levels": topology,
+            "preconditions": preconditions,
+            "formula": formula,
+            "symmetry": str(
+                app.relief_registry_symmetry_var.get()
+                or "MIRROR_IF_GEOMETRY_SYMMETRIC"
+            ),
+            "source": str(
+                app.relief_registry_source_var.get() or ""
+            ).strip(),
+        }
+
+    def registry_sample_variables(self):
+        """Project the Registry sample controls into evaluator variables."""
+        app = self.app
+        values = {}
+        mapping = {
+            "T": app.relief_registry_sample_t_var,
+            "FW": app.relief_registry_sample_fw_var,
+            "side_fold": app.relief_registry_sample_side_var,
+            "ytop1": app.relief_registry_sample_ytop_var,
+            "mating_width": app.relief_registry_sample_mating_var,
+        }
+        for key, var in mapping.items():
+            values[key] = float(var.get())
+        values["effective_mating_width"] = values["mating_width"]
+        values["fold_u"] = values["side_fold"]
+        values["fold_v"] = values["ytop1"]
+        values["clearance"] = 0.0
+        return values
+
+    def registry_validate_formula_form(self):
+        """Validate the editable Registry form through the existing controller."""
+        from ae_engine.certified_relief_registry import (
+            evaluate_relief_formula_record,
+            _validate_editable_rule_record,
+        )
+
+        app = self.app
+        controller = self.registry_diagnostics()
+        try:
+            result = controller.validate_formula(
+                self.registry_collect_rule_form(),
+                self.registry_sample_variables(),
+                validator=_validate_editable_rule_record,
+                evaluator=evaluate_relief_formula_record,
+            )
+            text = (
+                f"公式有效：{result['primary_u']:.3f}"
+                f"×{result['primary_v']:.3f}"
+            )
+            if result.get("secondary_u") is not None:
+                text += (
+                    f" + {result['secondary_u']:.3f}"
+                    f"×{result['secondary_depth']:.3f}"
+                )
+            app.relief_registry_status_var.set(text)
+            app._phase6_last_rule_form_result = result
+            return result
+        except Exception as exc:
+            app.relief_registry_status_var.set(f"公式錯誤：{exc}")
+            app._phase6_last_rule_form_result = None
+            return None
+
+    def registry_preview_payload(self):
+        """Return validated 2D preview data; drawing stays panel-owned."""
+        result = self.registry_validate_formula_form()
+        geometry = self.corner_data_view().registry_preview_geometry(result)
+        return {"result": result, "geometry": geometry}
+
+    def registry_save_candidate_form(self, namespace):
+        """Persist one candidate through the existing Registry controller."""
+        from ae_engine.certified_relief_registry import (
+            save_relief_rule_candidate,
+        )
+
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        result = self.registry_validate_formula_form()
+        if result is None:
+            return None
+        try:
+            record = self.registry_collect_rule_form()
+            controller = self.registry_diagnostics()
+            item = controller.save_candidate(
+                record,
+                saver=save_relief_rule_candidate,
+            )
+            required(
+                "_phase6_sync_registry_diagnostics_compatibility_mirrors"
+            )(app, controller)
+            app.relief_registry_status_var.set(
+                "候選已儲存（尚未認證）"
+            )
+            return item
+        except Exception as exc:
+            app.relief_registry_status_var.set(
+                f"候選儲存失敗：{exc}"
+            )
+            return None
+
+    def registry_run_formula_matrix(self, namespace):
+        """Run the Registry regression matrix through the existing controller."""
+        from ae_engine.certified_relief_registry import (
+            evaluate_relief_formula_record,
+            _validate_editable_rule_record,
+        )
+
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        try:
+            controller = self.registry_diagnostics()
+            evidence = controller.run_formula_matrix(
+                self.registry_collect_rule_form(),
+                self.registry_sample_variables(),
+                validator=_validate_editable_rule_record,
+                evaluator=evaluate_relief_formula_record,
+            )
+            required(
+                "_phase6_sync_registry_diagnostics_compatibility_mirrors"
+            )(app, controller)
+            app.relief_registry_status_var.set(
+                f"公式矩陣通過：{evidence['cases']} 組；立體零穿透="
+                + (
+                    "是"
+                    if evidence.get("zero_penetration")
+                    else "尚未"
+                )
+            )
+            return evidence
+        except Exception as exc:
+            app.relief_registry_status_var.set(f"回歸失敗：{exc}")
+            return None
+
+    def registry_preview_assembly_3d(self, namespace):
+        """Sequence candidate-specific 3D evidence without owning the solver."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        controller = self.registry_diagnostics()
+        try:
+            candidate_id = controller.require_current_candidate(
+                self.registry_collect_rule_form()
+            )
+            record = controller.candidate_record
+            evidence3d = required(
+                "_phase6_registry_validate_candidate_3d"
+            )(app, record, candidate_id=candidate_id)
+            evidence = controller.merge_3d_evidence(evidence3d)
+            required(
+                "_phase6_sync_registry_diagnostics_compatibility_mirrors"
+            )(app, controller)
+            zero = bool(evidence.get("zero_penetration"))
+            app.relief_registry_status_var.set(
+                "候選專屬立體組合驗證："
+                + ("零非法穿透" if zero else "仍有非法穿透")
+            )
+            return zero
+        except Exception as exc:
+            app.relief_registry_status_var.set(
+                f"立體組合驗證失敗：{exc}"
+            )
+            return False
+
+    def registry_promote_form(self):
+        """Promote the current candidate through the existing controller."""
+        from ae_engine.certified_relief_registry import (
+            promote_relief_rule_candidate,
+        )
+
+        app = self.app
+        controller = self.registry_diagnostics()
+        try:
+            promoted = controller.promote_candidate(
+                self.registry_collect_rule_form(),
+                promoter=promote_relief_rule_candidate,
+            )
+            app.relief_registry_status_var.set(
+                f"已認證新版次：{promoted['revision']}"
+            )
+            panel = self._registry_panel or getattr(
+                app, "registry_diagnostics_panel", None
+            )
+            refresh = getattr(panel, "refresh_rule_rows", None)
+            if callable(refresh):
+                refresh()
+            return promoted
+        except Exception as exc:
+            message = str(exc)
+            if message in {
+                "請先儲存候選",
+                "表單已變更；請重新儲存候選後再驗證",
+            }:
+                app.relief_registry_status_var.set(message)
+            else:
+                app.relief_registry_status_var.set(
+                    f"不可認證：{exc}"
+                )
+            return None
+
     def registry_panel(self, namespace):
         """Construct Registry diagnostics presentation through composition."""
         app = self.app
@@ -1784,18 +2076,16 @@ class Phase6FoldDesignerComposition:
                 "_phase6_registry_source_display"
             )(value, presentation_field=presentation_field),
             source_raw=required("_phase6_source_raw"),
-            validate_formula=lambda: required(
-                "_phase6_registry_validate_formula_form"
-            )(app),
-            preview_payload=lambda: required("_phase6_registry_preview_payload")(app),
-            preview_assembly_3d=lambda: required(
-                "_phase6_registry_preview_assembly_3d"
-            )(app),
-            save_candidate=lambda: required("_phase6_registry_save_candidate_form")(app),
-            run_formula_matrix=lambda: required(
-                "_phase6_registry_run_formula_matrix"
-            )(app),
-            promote_candidate=lambda: required("_phase6_registry_promote_form")(app),
+            validate_formula=lambda: self.registry_validate_formula_form(),
+            preview_payload=lambda: self.registry_preview_payload(),
+            preview_assembly_3d=lambda: self.registry_preview_assembly_3d(
+                namespace
+            ),
+            save_candidate=lambda: self.registry_save_candidate_form(namespace),
+            run_formula_matrix=lambda: self.registry_run_formula_matrix(
+                namespace
+            ),
+            promote_candidate=lambda: self.registry_promote_form(),
             load_rule_rows=lambda: required("_phase6_registry_load_rule_rows")(app),
             rule_record=lambda key: self.registry_diagnostics().rule_record(key),
             joint_rows=lambda: required("_phase6_joint_rows")(app),
