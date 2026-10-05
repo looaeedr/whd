@@ -79,7 +79,7 @@ def test_issue250_whd_repository_mutation_requires_flow_v2_and_root_local_first(
     assert 'WHD_REPOSITORY_MUTATION_GATE_V1' in text
     assert 'WHD_EXECUTION_RECORD_V2' in text
     assert 'WORKSPACE_DEFAULT' in text
-    assert 'SHARED_ZERO_FALLBACK' in text
+    assert 'SHARED_ZERO_FALLBACK' not in text
     assert 'executor-local repo workspace' in text
     assert 'WHD_TEST_EXECUTION_RECEIPT_V1' in text
     assert 'ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND' not in text

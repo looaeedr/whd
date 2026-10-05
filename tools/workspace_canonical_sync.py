@@ -1,7 +1,8 @@
-"""Workspace/canonical sync machine for WHD execution mirrors.
+"""Historical data/recovery sync helper; NEVER a CURRENT execution entry.
 
-`/Google Drive/WHD` remains the repository-content authority.  `/workspace/whd`
-is a persistent execution mirror/cache and never becomes authority.
+Production Git is repository-content authority. Executor-local repo workspaces
+own authoring/test execution. This legacy data helper has no startup, routing,
+delivery, FINALIZE or closure authority.
 """
 
 from __future__ import annotations

@@ -140,12 +140,10 @@ def build_work_root_gate_evidence(
             resolved_workspace = str(workspace_root or "").strip()
             if not resolved_workspace:
                 raise ValueError("interactive executor workspace_root must be nonblank")
-        elif read_mode == READ_MODE_GOOGLE_DRIVE:
-            # Legacy evidence transport only. It never nominates Drive as the construction root.
-            source = DRIVE_CONTRACT_PATH
-            resolved_workspace = str(workspace_root or CANONICAL_DRIVE_ROOT).strip()
         else:
             raise ValueError("interactive mode must use executor-local workspace Git baseline")
+    if resolved_workspace.replace("\\", "/").rstrip("/") == CANONICAL_DRIVE_ROOT or resolved_workspace.replace("\\", "/").startswith(CANONICAL_DRIVE_ROOT + "/"):
+        raise ValueError("CURRENT admission requires an executor-local workspace, not a Drive mirror")
     verified = verify_root_entries(root_entries)
     head = str(production_head_sha or "").strip().lower()
     if head and (len(head) != 40 or any(ch not in "0123456789abcdef" for ch in head)):
@@ -181,12 +179,18 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
         raise ValueError("work-root gate evidence is not GREEN")
     if item.get("execution_mode") != str(execution_mode or "INTERACTIVE"):
         raise ValueError("work-root gate evidence execution_mode mismatch")
+    expected_read_mode = READ_MODE_GITHUB_REPO if execution_mode in REMOTE_MODES else READ_MODE_WORKSPACE
+    if item.get("read_mode") != expected_read_mode:
+        raise ValueError("CURRENT admission requires executor-local workspace evidence")
     if item.get("provider") != DEFAULT_PROVIDER:
         raise ValueError("work-root gate evidence provider mismatch")
     if item.get("workspace_policy") != DEFAULT_WORKSPACE_POLICY:
         raise ValueError("work-root gate evidence workspace policy mismatch")
     if not str(item.get("workspace_root") or "").strip():
         raise ValueError("work-root gate evidence workspace_root missing")
+    workspace = str(item["workspace_root"]).replace("\\", "/").rstrip("/")
+    if workspace == CANONICAL_DRIVE_ROOT or workspace.startswith(CANONICAL_DRIVE_ROOT + "/"):
+        raise ValueError("CURRENT admission requires an executor-local workspace, not a Drive mirror")
     if item.get("production_branch") != PRODUCTION_BRANCH:
         raise ValueError("work-root gate evidence production branch mismatch")
     if item.get("drive_role") != "MIRROR_BACKUP_ONLY" or item.get("drive_mirror_root") != "/Google Drive/WHD/WHD_MIRROR/CURRENT":
@@ -334,4 +338,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

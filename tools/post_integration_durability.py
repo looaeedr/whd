@@ -1,11 +1,11 @@
-"""Post-integration durability for the full-repo/shared-unpushed WHD workflow.
+"""Post-integration durability for ordinary WHD workspace delivery.
 
 Flow v2 DONE + merge/Issue readback is terminal execution authority. Canonical
 root synchronization is optional maintenance and must never keep a terminal
 Issue open when the current execution surface cannot access /Google Drive/WHD/.git.
 
-Physical shared-unpushed cleanup still requires the selected lane delivery
-receipt and no longer exposing the delivered generation as pending work.
+Explicit historical lane maintenance validates its own delivery receipt;
+it has no authority over ordinary workspace completion.
 Legacy snapshot/manifests and per-Issue workspace archival are SUPERSEDED and
 must not participate in CURRENT completion decisions.
 """
@@ -67,7 +67,7 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("post-integration durability owner mismatch")
     if item.get("execution_state_owner") != "WHD_EXECUTION_RECORD_V2":
         raise ValueError("execution state owner must remain WHD_EXECUTION_RECORD_V2")
-    if item.get("canonical_root") != CANONICAL_ROOT:
+    if item.get("canonical_root") != "EXECUTOR_LOCAL_REPO_WORKSPACE":
         raise ValueError("canonical root mismatch")
     if item.get("root_sync_receipt_schema") != ROOT_SYNC_RECEIPT_SCHEMA:
         raise ValueError("root sync receipt schema mismatch")
@@ -306,6 +306,7 @@ def validate_lane_delivery_receipt(receipt: object, *, expected_issue: int, expe
 def classify_post_integration_durability(
     *, execution_record: object, root_sync_receipt: object | None,
     lane_delivery_receipt: object | None,
+    legacy_lane_cleanup_requested: bool = False,
 ) -> dict[str, object]:
     try:
         terminal = validate_terminal_execution(execution_record)
@@ -327,6 +328,14 @@ def classify_post_integration_durability(
             root_sync_status = "INVALID_NON_BLOCKING"
             root_sync_reason = str(exc)
 
+    # Ordinary workspace delivery has no shared-zero namespace to finalize.
+    # Historical data cleanup is explicit and cannot acquire terminal authority.
+    if not legacy_lane_cleanup_requested:
+        result = {"state": "DURABLE_CLEANUP_COMPLETE", "next_action": None,
+                  "issue": terminal["issue"], "root_sync_status": root_sync_status}
+        if root_sync_reason is not None:
+            result["root_sync_reason"] = root_sync_reason
+        return result
     if lane_delivery_receipt is None:
         result = {
             "state": "LANE_CLEANUP_PENDING",
@@ -412,4 +421,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

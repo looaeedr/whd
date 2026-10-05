@@ -18,18 +18,13 @@ TARGET = "b" * 40
 
 
 def _root_gate():
-    return {
-        "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V1",
-        "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V1",
-        "gate_status": "CURRENT",
-        "read_mode": "GOOGLE_DRIVE_CANONICAL",
-        "execution_mode": "INTERACTIVE",
-        "source": "/Google Drive/WHD/WHD_WORK_ROOT_HARD_GATE_V1.json",
-        "provider": "google_drive",
-        "library_path": "/Google Drive/WHD",
-        "drive_folder_id": "1z-P-VXPd1xjK-PS3Jj7RreT2BLEmDvf_",
-        "current_source_manifest_file_id": "manifest",
-    }
+    import json
+    from tools.work_root_gate import build_work_root_gate_evidence
+    payload = json.loads((ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text())
+    mode = "INTERACTIVE"
+    return build_work_root_gate_evidence(gate_payload=payload,
+        read_mode="WORKSPACE_GIT_BASELINE" if mode == "INTERACTIVE" else "GITHUB_REPO_CONTRACT",
+        execution_mode=mode, root_entries=payload["required_root_entries"], workspace_root="/workspace/whd")
 
 
 def _payload(**overrides):
@@ -104,7 +99,7 @@ def test_builder_session_reuse_omits_transaction_level_startup_envelope():
     }
 
 
-@pytest.mark.parametrize("kind", ["ACQUIRE", "RECONCILE", "SYNC_TARGET", "RESERVE_PATHS", "HANDOFF"])
+@pytest.mark.parametrize("kind", ["ACQUIRE", "SYNC_TARGET", "RESERVE_PATHS", "HANDOFF"])
 def test_builder_rejects_session_reuse_for_readmission_kinds(kind):
     with pytest.raises(ValueError, match="requires fresh admission"):
         build_control_transaction_request(

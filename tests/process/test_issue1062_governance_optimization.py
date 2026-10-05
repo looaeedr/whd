@@ -10,26 +10,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def _root_evidence(mode="INTERACTIVE"):
-    from tools.work_root_gate import (
-        DEFAULT_DRIVE_FOLDER_ID,
-        EVIDENCE_SCHEMA,
-        GATE_SCHEMA,
-        REQUIRED_ROOT_ENTRIES,
-        UNPUSHED_ROOT,
-    )
-    return {
-        "schema": EVIDENCE_SCHEMA,
-        "gate_schema": GATE_SCHEMA,
-        "execution_mode": mode,
-        "read_mode": "GOOGLE_DRIVE_CANONICAL" if mode == "INTERACTIVE" else "GITHUB_REPO_CONTRACT",
-        "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-        "provider": "google_drive",
-        "library_path": "/Google Drive/WHD",
-        "drive_folder_id": DEFAULT_DRIVE_FOLDER_ID,
-        "root_entries": sorted(REQUIRED_ROOT_ENTRIES),
-        "unpushed_root": UNPUSHED_ROOT,
-        "status": "GREEN",
-    }
+    import json
+    from tools.work_root_gate import build_work_root_gate_evidence
+    payload = json.loads((ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text())
+    mode = mode
+    return build_work_root_gate_evidence(gate_payload=payload,
+        read_mode="WORKSPACE_GIT_BASELINE" if mode == "INTERACTIVE" else "GITHUB_REPO_CONTRACT",
+        execution_mode=mode, root_entries=payload["required_root_entries"], workspace_root="/workspace/whd")
 
 
 def _preflight(*, issue=1062, invocation="chatgpt.flowv2.work1:inv-1", branch="cleanup/2d-3d-sync", head="a" * 40, observed=None):
@@ -63,13 +50,8 @@ def test_retired_continuity_identity_cannot_route_as_active_skill():
         assert "executable-continuity-controller" not in required
 
 
-def test_skill_catalog_physically_classifies_legacy_continuity_as_retired():
-    from tools.skill_catalog import classify_path, load_catalog
-    catalog = load_catalog()
-    assert classify_path(
-        ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
-        catalog,
-    ) == "retired"
+def test_legacy_continuity_skill_is_physically_retired():
+    assert not (ROOT / ".agents/skills/engineering/executable-continuity-controller/SKILL.md").exists()
 
 
 def test_preflight_must_be_complete_and_fresh():
@@ -182,16 +164,13 @@ def test_request_builder_requires_preflight_and_emits_unified_transition():
     assert req["startup_transition"]["schema"] == "WHD_EXECUTION_STARTUP_TRANSITION_V1"
 
 
-def test_flow_v2_documents_single_startup_transition_gate():
-    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
-    for marker in (
-        "STARTUP_TRANSITION_GATE_V1",
-        "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-        "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-        "STARTUP_TRANSITION_STALE_IDENTITY",
-        "startup_evidence + preflight_evidence + startup_transition",
-    ):
-        assert marker in text
+def test_flow_v2_documents_canonical_session_admission():
+    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text()
+    assert "session-first" in text
+    assert "LIVE_LEASE_CONTINUATION" in text
+    assert "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1" in text
+    from tools.execution_entry_contract import build_startup_transition, validate_startup_transition
+    assert callable(build_startup_transition) and callable(validate_startup_transition)
 
 def _stale_release_record():
     from tools.execution_record import execution_record_from_payload

@@ -146,7 +146,9 @@ Flow v2 `FINALIZE → DONE` 加上 trusted GitHub merge/Issue readback就是 ter
 
 repository-content cleanup 固定：
 
-`MERGE_READBACK_VERIFIED → LANE_DELIVERY_RECEIPT_BOUND → FINALIZE_DELIVERED_LANE_ZERO → DURABLE_CLEANUP_COMPLETE`
+`MERGE_READBACK_VERIFIED → FINALIZE → DONE → DURABLE_CLEANUP_COMPLETE`
+
+普通 workspace delivery 不要求 shared-zero lane receipt；歷史資料清理只能是明確要求的獨立維護。
 
 ### DRIVE_MIRROR_NON_AUTHORITY_V1
 
@@ -156,7 +158,7 @@ repository-content cleanup 固定：
 
 ### TEST_RECEIPT_AND_CONNECTOR_REJECTION_HARD_GATE_V2
 
-`POST_MERGE_0_TESTS_GREEN` 不接受裸 `tests_green=true`；必須攜帶 `WHD_TEST_EXECUTION_RECEIPT_V1`，並 exact 綁定 manifest digest 與 exact commands。
+`WORKSPACE_TESTS_GREEN` 不接受裸 `workspace_tests_green=true`；必須攜帶 `WHD_TEST_EXECUTION_RECEIPT_V1`，並 exact 綁定 source SHA、Issue、generation、diff digest 與 exact commands。
 
 單次 connector/runtime mutation rejection 先標 `RETRYABLE_UNCLASSIFIED`，不得直接宣告 permanent blocker。fresh-read authenticated permission、target/base existence、branch protection/ruleset 與 connector action contract 後再分類。delivery branch 只使用 `create_branch(base_sha)`；`update_ref` 只允許 non-authoritative delivery/recovery branch 且 `force=false`，不得直接前推 main/production target。只有所有合法 transport 都有 fresh durable evidence 證明 unavailable/forbidden，才可標 permanent capability blocker。
 

@@ -5,12 +5,12 @@
   "owner": "tools/change_test_profile.py",
   "purpose": "Deterministically select required QA stages from change intent and affected domains. Targeted tests never replace the final full gate for non-doc changes.",
   "workspace": {
-    "interactive_root": "/Google Drive/WHD",
-    "shared_unpushed_root": "/Google Drive/WHD/.unpushed",
-    "body_zero": "/Google Drive/WHD/.unpushed/body/0",
-    "docs_zero": "/Google Drive/WHD/.unpushed/docs/0",
-    "policy": "ROOT_SHARED_UNPUSHED_FIRST",
-    "github_role": "delivery/PR/CI/control-plane; not authoring workspace"
+    "interactive_root": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "shared_unpushed_root": null,
+    "body_zero": null,
+    "docs_zero": null,
+    "policy": "WORKSPACE_ONLY",
+    "github_role": "production baseline + tested delivery/PR/CI/control-plane"
   },
   "primary_change_types": {
     "BUGFIX": [
@@ -90,15 +90,15 @@
       "python tools/control_plane_regression.py"
     ],
     "product_full_regression": [
-      "python -m pytest -q"
+      "python tools/product_ci_regression.py"
     ],
     "github_actions_policy": "WORKFLOW_MUST_CALL_PROFILE_COMMAND_OWNER_NOT_DUPLICATE_TEST_LIST",
-    "root_policy": "ROOT_MUST_RUN_EXACT_PROFILE_COMMANDS_BEFORE_DIFF_FREEZE"
+    "root_policy": "ROOT_MUST_RUN_EXACT_PROFILE_COMMANDS_BEFORE_DIFF_FREEZE",
+    "product_scope": "CANONICAL_PRODUCT_REGRESSION_SLICE_NOT_ALL_PYTEST_COLLECTION"
   },
   "lane_policy": {
-    "classification_owner": "tools/shared_unpushed_integration.py",
-    "docs": "governance/skills/AGENTS/process authority/governance tests/human docs",
-    "body": "product code/tests/UI/renderer/geometry/manufacturing/product-required docs",
-    "post_merge_zero_test_required": true
+    "classification_owner": "tools/change_test_profile.py",
+    "shared_zero_role": "HISTORICAL_DATA_ONLY",
+    "post_merge_zero_test_required": false
   }
 }

@@ -63,7 +63,7 @@ def test_root_gate_requires_machine_test_receipt():
     for token in ("WHD_TEST_EXECUTION_RECEIPT_V1", "manifest_digest", "exact_commands"):
         assert token in gate
         assert token in contract
-    assert "裸 `tests_green=true`" in skill
+    assert "裸 `workspace_tests_green=true`" in skill
 
 
 def test_connector_rejection_requires_fresh_reclassification_before_permanent_blocker():

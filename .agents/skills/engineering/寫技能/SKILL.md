@@ -1,6 +1,6 @@
 ---
 name: 寫技能
-description: 建立、修改、驗證與改善 Agent Skill。當使用者要求「寫技能」「修改技能」「修好這個 SKILL.md」「把流程寫進技能」「優化技能觸發/規則」，或要把既有工作流程沉澱為可重用技能時使用。既有技能修改必須保留可追溯 baseline、遵守專案自己的 AGENTS/Preflight/shared-0/`/推推 文檔` 規則，並用可執行驗證證明修改沒有只停在文字層。
+description: 建立、修改、驗證與改善 Agent Skill。當使用者要求「寫技能」「修改技能」「修好這個 SKILL.md」「把流程寫進技能」「優化技能觸發/規則」，或要把既有工作流程沉澱為可重用技能時使用。既有技能修改必須保留可追溯 baseline、遵守專案自己的 AGENTS/Preflight/workspace-only delivery 規則，並用可執行驗證證明修改沒有只停在文字層。
 whd_doc_role: CURRENT
 whd_contract: skill-authoring
 whd_canonical: null
@@ -12,6 +12,8 @@ whd_schema: WHD_DOC_META_V1
 把 Skill 當成「可執行的工作契約」，不是一篇漂亮的說明文。目標是讓下一個 Agent 在不同工具環境、不同對話回合、甚至沒有原作者上下文時，仍能照同一套規則做出可驗證結果。
 
 ## 1. 執行優先級
+
+專案規則優先。
 
 ### Global Skill startup communication invariant
 
@@ -39,16 +41,16 @@ WHD startup communication 由 `AGENTS.md` 擁有。所有 canonical Skill 必須
 - 修改與測試在 executor-local workspace 完成；
 - tested exact diff 後才進 delivery branch / push / PR / CI / merge；
 - 使用者已明確要求 exact repository-content task 時，可 mint 一次 `WORKSPACE_DELIVERY` authority 供同 invocation + 同 scope delivery 使用，不得到 push/PR 再重問同一授權；
-- 只有 fresh touched-path evidence 證明 shared-0 drift 才切 `SHARED_ZERO_FALLBACK`；此時才啟用 `.unpushed/docs/0`、freeze、`/推推 文檔` 等 fallback 規則；
+- Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。
 - 真實 network/credential failure 才是 capability blocker；Drive mount、AI Library、chat UI 缺失都不是普通 Skill authoring blocker。
 ### SKILL_PREWRITE_PREFLIGHT_HARD_GATE
 
-修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成。普通 route 使用 executor-local workspace；只有 fresh router 選中 `SHARED_ZERO_FALLBACK` 時，Skill 才屬 docs shared-0 lineage並套用 `/推推 文檔` fallback。Flow v2 lease只負責 owning Issue/liveness；delivery reservation 只在 tested exact diff/frozen fallback candidate 準備完成後取得。
+修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成。普通 route 固定使用 executor-local workspace；Drive/shared-zero 不得參與 routing。Flow v2 lease只負責 owning Issue/liveness；delivery reservation 只在 tested exact diff 準備完成後取得。
 
 - `write/commit` 沒有 changed-file identity → fail closed。
 - target 是 `.agents/skills/**/SKILL.md` 但沒有 Preflight evidence、evidence 缺 `寫技能`、required Skill 或 required reference → fail closed。
 - Issue comment、assignee、legacy execution claim 或 retired Remote Guard **都不是 CURRENT Skill write authority**。
-- task scope / planned changed files 擴大時，先重跑 Preflight並先 atomic 擴張 reservation；不得拿舊 evidence 掩蓋新增 requirements。
+- task scope / planned changed files 擴大時，先重跑 Preflight；delivery-only reservation 在 tested exact diff 凍結後才擴張；不得拿舊 evidence 掩蓋新增 requirements。
 - canonical knowledge evidence owner=`tools/phase6_skill_preflight.py`；canonical execution/write fencing owner=`flow-v2-execution` + `tools/control_transaction.py` + `tools/control_transaction_request_ingress.py`。不得重新啟用 `tools/execution_claim_guard.py` 作 CURRENT write gate。
 
 ## 2. 能力偵測：先看環境能做什麼
@@ -130,7 +132,7 @@ skill-name/
 
 ## 4. 修改既有 Skill
 
-修改既有 Skill 時，先建立 **baseline snapshot**：至少保留 canonical root exact path、parent-chain identity、原始內容與檔案雜湊。只有已進入使用者明確授權的 remote/delivery window 時，才可附加 remote commit/ref；不得把 remote SHA 當成取得 root baseline 的前置條件。沒有 baseline 就無法知道修改改善了什麼，也無法安全回復。
+修改既有 Skill 時，先建立 **baseline snapshot**：至少保留 executor-local repo workspace exact path、Git baseline identity、原始內容與檔案雜湊。只有已進入使用者明確授權的 remote/delivery window 時，才可附加 remote commit/ref；不得把 remote SHA 當成取得 root baseline 的前置條件。沒有 baseline 就無法知道修改改善了什麼，也無法安全回復。
 
 ### 4.1 名稱規則
 
@@ -138,19 +140,18 @@ skill-name/
 - **使用者明確要求改名**：使用者指示優先。同步處理 frontmatter、目錄/路徑（若需要）、Registry、測試、文件、其他 Skill **引用**，不得只改一處造成 split identity。
 - 使用者只要求修內容而未要求改名時，不擅自改 identity。
 
-### 4.2 Root shared-0 → /推推 文檔
+### 4.2 Workspace authoring → tested delivery
 
-WHD interactive/default Skill 修改固定：
+WHD Skill 修改固定：
 
-1. 先完成 `WHD_WORK_ROOT_HARD_GATE_V2` + `WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1`。
-2. 將 planned Skill/治理 paths 登記到 `.unpushed/docs/0`；若 path 已存在，fresh-read latest `0` generation+hash 作 base。worker candidate 留在 canonical root `.unpushed/docs/workers/...`，不開 Git branch。
-3. 在 root workspace 完成 RED→GREEN、required regression/final gate。
-4. freeze exact tested diff 與 docs `0` path/hash manifest；**此階段不得先連 GitHub 做 target drift audit**。
-5. worker GREEN 後 fresh latest `0` 三方合併；merge 前逐 path 重驗 latest generation/hash。conflict 一律 `BLOCKED_USER_DECISION`。merge 後再跑治理/Skill tests，最新 docs `0` GREEN 才 freeze。
-6. 只有使用者下達 `/推推 文檔` 才開 GitHub delivery window：先鎖 exact delivery fileset(path+hash/delete marker)，再 fresh-read target；push/PR changed files 必須 exact 等於 lock。merge 前再驗 latest target + locked blobs。補修一律回 shared `0`。
-7. merge readback exact 成功後，只清除本次 readback 已交付的 locked paths；未交付/後來變更保留。之後同檔再改要重新登記為新的 docs `0` 修改。
+1. fresh-read canonical entry，解析 executor-local repo workspace 與 production baseline。
+2. 在 workspace 完成 RED→GREEN、required regression/final gate；authoring 不取得 delivery reservation。
+3. 凍結 exact tested diff 與 WHD_TEST_EXECUTION_RECEIPT_V1，綁 source SHA、Issue、exact commands 與 diff digest；通過 GIT_WRITE_UNLOCKED 後只允許 EXACT_TESTED_DIFF_ONLY。
+4. fresh target compare，依 impact revalidation 沿用 GREEN 或回 workspace 重測。
+5. delivery-only reservation → tested delivery branch → push/PR/required checks → trusted MERGE/FINALIZE → DONE/readback。
+6. 同一 user-authorized scope 的 WORKSPACE_DELIVERY 不得要求第二次授權。
 
-不得直接 patch production target；正常 Skill 施工階段禁止先建 branch。merge conflict 禁止自動 ours/theirs，必須 checkpoint 並等使用者決策。
+Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 前置。不得直接 patch production target；不得自動 ours/theirs 解決實質衝突。
 
 ### 4.3 先找真正問題，不要只換句話
 
@@ -254,7 +255,7 @@ WHD interactive/default Skill 修改固定：
 - [ ] 沒有硬依賴本環境不存在的工具。
 - [ ] 沒有假裝背景 subagent / viewer / package / CI 已存在。
 - [ ] 沒有要求等待不存在的第三方工作。
-- [ ] repo 任務已遵守 `AGENTS.md` / root-local-first shared-0 / Preflight / `/推推 文檔` delivery gate。
+- [ ] repo 任務已遵守 `AGENTS.md` / root-local-first workspace-only / Preflight / tested delivery gate。
 - [ ] baseline snapshot 可追溯。
 - [ ] RED-capable contract 已建立；能執行時已實跑 RED → GREEN。
 - [ ] 使用者明確改名時，frontmatter / tests / Registry / references 已同步。

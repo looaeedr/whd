@@ -61,7 +61,6 @@ def _fixture(tmp_path: Path):
 
 
 def _recover(monkeypatch, root: Path):
-    monkeypatch.setattr(gate, "DEFAULT_LIBRARY_PATH", str(root))
     return gate.recover_canonical_root_to_current_production(
         root_path=str(root),
         production_branch=BRANCH,
@@ -121,7 +120,6 @@ def test_recovery_refuses_diverged_local_history(monkeypatch, tmp_path):
 
 def test_cli_ingress_returns_verified_recovery_receipt(monkeypatch, tmp_path, capsys):
     root, _seed, _previous, current, _tree = _fixture(tmp_path)
-    monkeypatch.setattr(gate, "DEFAULT_LIBRARY_PATH", str(root))
 
     rc = gate.main([
         "recover-current-production",
@@ -138,7 +136,6 @@ def test_cli_ingress_returns_verified_recovery_receipt(monkeypatch, tmp_path, ca
 
 def test_cli_failure_is_nonzero_and_not_a_verified_receipt(monkeypatch, tmp_path, capsys):
     root, _seed, _previous, _current, _tree = _fixture(tmp_path)
-    monkeypatch.setattr(gate, "DEFAULT_LIBRARY_PATH", str(root))
     (root / "tracked.txt").write_text("dirty\n", encoding="utf-8")
 
     rc = gate.main([
@@ -165,4 +162,4 @@ def test_work_root_contract_binds_recovery_owner_and_policy():
     assert recovery["policy"] == "TRACKED_CLEAN_FAST_FORWARD_ONLY_NO_EXECUTION_RECORD_MUTATION"
     assert recovery["terminal_gate"] is False
     assert recovery["closure_authority"] is False
-    assert recovery["purpose"] == "OPTIONAL_ROOT_CATCHUP_MAINTENANCE"
+    assert recovery["purpose"] == "OPTIONAL_WORKSPACE_BASELINE_CATCHUP"

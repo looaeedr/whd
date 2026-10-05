@@ -15,7 +15,7 @@ def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, exe
     from tools.execution_entry_contract import build_startup_evidence as canonical_build_startup_evidence
     from tools.work_root_gate import (
         READ_MODE_GITHUB_REPO,
-        READ_MODE_GOOGLE_DRIVE,
+        READ_MODE_WORKSPACE,
         build_work_root_gate_evidence,
     )
 
@@ -25,13 +25,13 @@ def _build_startup_evidence(*, purpose, invocation_identity, issued_at=None, exe
     read_mode = (
         READ_MODE_GITHUB_REPO
         if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-        else READ_MODE_GOOGLE_DRIVE
+        else READ_MODE_WORKSPACE
     )
     gate_evidence = build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=read_mode,
         execution_mode=execution_mode,
-        root_entries=_root_entries(),
+        root_entries=_root_entries(), workspace_root="/workspace/whd",
     )
     return canonical_build_startup_evidence(
         purpose=purpose,
@@ -97,7 +97,7 @@ def _root_gate_evidence(execution_mode="INTERACTIVE"):
     import json
     from tools.work_root_gate import (
         READ_MODE_GITHUB_REPO,
-        READ_MODE_GOOGLE_DRIVE,
+        READ_MODE_WORKSPACE,
         build_work_root_gate_evidence,
     )
     payload = json.loads(
@@ -106,13 +106,13 @@ def _root_gate_evidence(execution_mode="INTERACTIVE"):
     read_mode = (
         READ_MODE_GITHUB_REPO
         if execution_mode in {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-        else READ_MODE_GOOGLE_DRIVE
+        else READ_MODE_WORKSPACE
     )
     return build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=read_mode,
         execution_mode=execution_mode,
-        root_entries=_root_entries(),
+        root_entries=_root_entries(), workspace_root="/workspace/whd",
     )
 
 

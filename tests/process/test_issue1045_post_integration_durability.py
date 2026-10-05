@@ -45,7 +45,7 @@ def test_v2_contract_keeps_execution_authority_in_flow_v2_and_retires_v1():
     retired_v1 = ROOT / ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V1.json"
     assert payload["execution_state_owner"] == "WHD_EXECUTION_RECORD_V2"
     assert payload["required_order"][-1] == "DURABLE_CLEANUP_COMPLETE"
-    assert payload["canonical_root"] == "/Google Drive/WHD"
+    assert payload["canonical_root"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert payload["root_sync_transport"] == "tools/post_integration_durability.py::sync_canonical_root_to_accepted_head"
     assert payload["root_sync_policy"]["terminal_gate"] is False
     assert "CANONICAL_ROOT_SYNCED_TO_MERGED_HEAD" not in payload["required_order"]
@@ -82,7 +82,7 @@ def test_lane_delivery_receipt_requires_finalized_shared_zero_state():
 def test_cleanup_tail_requires_done_and_lane_finalization_but_not_root_sync():
     from tools.post_integration_durability import classify_post_integration_durability
     result = classify_post_integration_durability(
-        execution_record=_record(), root_sync_receipt=None, lane_delivery_receipt=None,
+        execution_record=_record(), root_sync_receipt=None, lane_delivery_receipt=None, legacy_lane_cleanup_requested=True,
     )
     assert result["next_action"] == "FINALIZE_DELIVERED_LANE_ZERO"
     assert result["root_sync_status"] == "NOT_REQUESTED"
@@ -144,5 +144,5 @@ def test_root_local_skill_and_authority_map_point_to_v2_cleanup():
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
     assert "## 9. POST_INTEGRATION_DURABILITY_V2" in skill
     assert "ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1" in skill
-    assert "FINALIZE_DELIVERED_LANE_ZERO" in skill
+    assert "普通 workspace delivery 不要求 shared-zero lane receipt" in skill
     assert "contract=post-integration-durability-v2 role=CURRENT path=tools/post_integration_durability.py" in authority

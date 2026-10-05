@@ -112,5 +112,27 @@
     "tests/test_phase6_gui_performance_knowledge.py",
     "修改日誌/20260903.md"
   ],
-  "update_cleanup_paths": []
+  "update_cleanup_paths": [
+    "tests/process/test_drive_source_snapshot_export_contract.py",
+    "tests/process/test_issue1124_governance_background_only_gate.py",
+    "tests/process/test_issue1129_runtime_report_identity_gate.py",
+    "tests/process/test_issue402_durable_github_lease.py",
+    "tests/process/test_issue403_runtime_recovery_policy.py",
+    "tests/process/test_issue404_scheduler_driver.py",
+    "tests/process/test_issue404_scheduler_runtime.py",
+    "tests/process/test_issue558_post_commit_claim_head_reconcile.py",
+    "tests/process/test_issue570_merge_head_claim_reconciliation.py",
+    "tests/process/test_issue573_sibling_scheduler_takeover.py",
+    "tests/process/test_issue578_scheduler_runtime_liveness.py",
+    "tests/process/test_issue581_interactive_stale_takeover.py",
+    "tests/process/test_issue589_user_directed_interactive_owner_takeover.py",
+    "tests/process/test_issue595_invalid_phase_claim_recovery.py",
+    "tests/process/test_issue641_helper_reservation_red.py",
+    "tests/process/test_issue645_helper_reservation_race.py",
+    "tests/process/test_issue686_local_guard_reconciliation.py",
+    "tests/process/test_issue687_stop_eligibility_machine_gate.py",
+    "tests/process/test_issue690_closure_drift_classification.py",
+    "tests/process/test_issue697_operation_transaction_core.py",
+    "tests/process/test_issue870_execution_record_v2.py"
+  ]
 }

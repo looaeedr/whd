@@ -434,6 +434,7 @@ def validate_test_execution_receipt(
     expected_issue: int,
     expected_generation: int,
     expected_commands: Iterable[str],
+    expected_manifest_digest: str | None = None,
 ) -> dict[str, object]:
     item = _mapping(receipt, "test execution receipt")
     if item.get("schema") != TEST_EXECUTION_RECEIPT_SCHEMA:
@@ -457,6 +458,8 @@ def validate_test_execution_receipt(
     digest = str(item.get("manifest_digest") or "").strip().lower()
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
         raise ValueError("test receipt manifest_digest must be SHA256")
+    if expected_manifest_digest is not None and digest != expected_manifest_digest:
+        raise ValueError("test receipt manifest_digest mismatch")
     return {str(k): v for k, v in item.items()}
 
 
@@ -1037,6 +1040,7 @@ def build_gate_evidence(
     workspace_tests_green: bool = False,
     workspace_delivery_authority: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
+    expected_test_commands = tuple(expected_test_commands)
     mode = str(execution_mode or "INTERACTIVE").strip().upper()
     if mode in REMOTE_MODES:
         provenance = validate_execution_mode_provenance(
@@ -1082,6 +1086,10 @@ def build_gate_evidence(
                 elif not diff_digest or not re.fullmatch(r"[0-9a-f]{64}", str(diff_digest)):
                     next_action = "WORKSPACE_EXACT_DIFF_FROZEN"
                 else:
+                    if test_receipt is None:
+                        raise ValueError("WORKSPACE_TESTS_GREEN requires WHD_TEST_EXECUTION_RECEIPT_V1")
+                    if not expected_test_commands:
+                        raise ValueError("workspace test receipt requires exact test commands")
                     completed.extend(("WORKSPACE_TESTS_GREEN", "WORKSPACE_EXACT_DIFF_FROZEN"))
                     if workspace_delivery_authority is None:
                         next_action = "WORKSPACE_DELIVERY_AUTHORIZED"
@@ -1100,6 +1108,14 @@ def build_gate_evidence(
                                 raise ValueError("workspace delivery reservation base_sha must match source_sha")
                             if str(reservation.get("target_branch") or "") != PRODUCTION_BRANCH:
                                 raise ValueError("workspace delivery reservation target branch mismatch")
+                            validated_receipt = validate_test_execution_receipt(
+                                test_receipt,
+                                expected_source_sha=str(source_evidence.get("source_sha") or ""),
+                                expected_issue=int(reservation["issue"]),
+                                expected_generation=int(reservation["generation"]),
+                                expected_commands=expected_test_commands,
+                                expected_manifest_digest=str(diff_digest),
+                            )
                             completed.append("DELIVERY_PATHS_RESERVED")
                             drift_resolution = classify_target_drift_action(
                                 target_drift=target_drift,
@@ -1138,6 +1154,8 @@ def build_gate_evidence(
             result["remote_connection_authority"] = dict(remote_authority)
         if reservation:
             result["path_reservation"] = dict(reservation)
+        if 'validated_receipt' in locals():
+            result["test_receipt"] = validated_receipt
         if 'drift_resolution' in locals():
             result["target_drift_resolution"] = dict(drift_resolution)
         return result

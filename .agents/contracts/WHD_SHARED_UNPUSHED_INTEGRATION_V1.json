@@ -1,6 +1,6 @@
 {
   "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
-  "status": "CURRENT",
+  "status": "HISTORICAL",
   "canonical_root": "/Google Drive/WHD",
   "integration_root": "/Google Drive/WHD/.unpushed",
   "lanes": {

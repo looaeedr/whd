@@ -225,7 +225,7 @@ CURRENT machine owners：
 - **terminal tail hard gate**：accepted exact-head QA + `next_action=MERGE`，以及 merged + `next_action=FINALIZE`，都固定由 `classify_invocation_exit` 回 `CONTINUE_TERMINAL_TAIL`；此時 host boundary / substantive progress 不得授權 YIELD。
 - terminal tail 唯一正常終點是 `MERGE → Issue close/readback → FINALIZE → RELEASED/DONE`。`PR_MERGED` 本身仍是 nonterminal；只有 genuine machine blocker 可中斷。
 - static contract：`.agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json`。
-- **repository-content physical-cycle completion**：上述 `DONE` tuple 只代表 Flow v2 execution terminal。若本票產生 repository-content diff，user-visible「完成」與 normal cycle return 還必須呼叫 `tools.execution_invocation_exit.py::assert_repository_content_cycle_complete(record, source_manifest, workspace_location)`；若結果是 `CONSUME_SOURCE_EXPORT` 或 `ARCHIVE_WORKSPACE_TO_DONE`，同一 cycle 繼續 post-integration durability tail，直到 `DURABLE_CLEANUP_COMPLETE`。
+- **repository-content physical-cycle completion**：呼叫 `tools.execution_invocation_exit.py::assert_repository_content_cycle_complete(record)` 驗證 trusted DONE/merge/Issue readback。普通 workspace 不要求 source manifest、workspace archive、Drive sync 或 shared-zero lane receipt。
 
 ### 0.0.2 超長 Log / Context-Safe Execution 硬閘門
 
@@ -234,7 +234,7 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 
 `.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`
 
-硬規則：完整 raw log 落檔／artifact，不得整包灌入執行或聊天 context；running 期間只讀 structured status、bounded tail/new chunk；FAIL 先定位 failure marker 再擷取有限上下文；分段讀取必須保存 offset/cursor；Runtime/聊天視窗被切斷後先反查 run/process + branch + HEAD + checkpoint + artifact + cursor，從同一工作續接，禁止因視窗中斷就重跑 full-suite。Remote QA 的 30 秒 active polling 仍由 `monitoring-remote-qa` 擁有，本 gate 不建立第二套 polling state machine。
+硬規則：完整 raw log 落檔／artifact，不得整包灌入執行或聊天 context；running 期間只讀 structured status、bounded tail/new chunk；FAIL 先定位 failure marker 再擷取有限上下文；分段讀取必須保存 offset/cursor；Runtime/聊天視窗被切斷後先反查 run/process + branch + HEAD + checkpoint + artifact + cursor，從同一工作續接，禁止因視窗中斷就重跑 full-suite。Remote QA 每 invocation 一次 active-status observation、active 時 durable YIELD、後續 resume 的規則由 `monitoring-remote-qa` 擁有，本 gate 不建立第二套 polling state machine。
 <!-- QA_PIPELINE_FAIL_CLOSED_V1 -->
 ### 0.0.2A QA Pipeline Fail-Closed 硬閘門
 
@@ -274,7 +274,7 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 2. 單一板件修改至少跑「驗該板件」；跨 2D/3D/DXF/persistence、multipart/dynamic IDs 時必須跑「完整板件驗收」。
 3. multipart 必須逐 physical piece 驗；不得只驗 aggregate logical `box_body`。
 4. DXF 相關必須 actual export → reopen → compare；Save/Reload 相關必須真的存檔再重建 canonical output。
-5. Remote QA 建立後必須依 `monitoring-remote-qa` 輪詢到 terminal；cleanup 後做 tested-head → cleaned-head drift audit。
+5. Remote QA 依 `monitoring-remote-qa`：本 invocation 觀察 exact run/head 一次；terminal 立即消費，active 則 durable YIELD，後續 invocation resume。cleanup 後做 tested-head → cleaned-head drift audit。
 6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
 7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
 

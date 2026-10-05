@@ -44,7 +44,7 @@ Current repository-content routing is workspace-first:
 3. `WHD_TEST_EXECUTION_RECEIPT_V1` + exact tested diff；bare validator PASS / second-pass zero diff 不能自行解鎖 delivery。
 4. scheduler/GITHUB_ONLY/REMOTE_ACTION 若需要產生新的 repository-content diff，固定 handoff 到 **workspace-capable runtime**；不得在 GitHub control-plane runtime 未測直接 author/hotfix，也不得要求固定 Google Drive root。
 5. 使用者已明確要求 exact repository-content task 時，同 invocation/task scope 可使用 `WORKSPACE_DELIVERY` 完成 branch/push/PR/CI/QA/merge/finalization；不得到 delivery tail 再重問相同授權。
-6. 只有 fresh touched-path evidence 證明 shared `.unpushed/{docs|body}/0` 有較新的 drift 時，router 才切 `SHARED_ZERO_FALLBACK`；此時才要求 latest-0 merge/post-merge test/freeze/`/推推` fallback semantics。
+6. Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 同一 exact user-authorized task 可沿 WORKSPACE_DELIVERY 完成 delivery/readback。
 
 若 workspace baseline、deterministic mapping evidence、tests、exact tested diff 或 Flow v2 delivery evidence缺失，migration 必須 fail closed；**Drive mount、chat UI、AI Library、shared-0 不存在本身都不是 `WORKSPACE_DEFAULT` blocker**。
 

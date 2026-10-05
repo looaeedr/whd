@@ -67,8 +67,8 @@ def test_workspace_entry_bootstrap_does_not_require_drive_or_unpushed():
         assert route["retired_shared_zero_drift_observed"] is drift
 
     skill = SKILL.read_text(encoding="utf-8")
-    assert "不得先去 Google Drive 尋找同名契約" in skill
-    assert "workspace 內沒有 `.unpushed` 都不是要求使用者重新指定施工 root 的理由" in skill
+    assert "Google Drive mirror、舊 Drive Skill、`.unpushed`、shared-zero 或任何 Drive 可見性都不得參與 startup routing" in skill
+    assert "Drive mount 不可見永遠不是 repository-content blocker" in skill
 
 
 @pytest.mark.parametrize(

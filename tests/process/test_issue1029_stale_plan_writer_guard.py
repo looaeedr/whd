@@ -73,7 +73,7 @@ def test_ingress_rejects_live_work_head_advanced_by_another_writer(monkeypatch):
     record = _record()
     guard = build_mutation_writer_guard(record, kind="APPLY_COMMIT", invocation_identity=INV)
     monkeypatch.setattr(ingress, "validate_git_unlock_receipt", lambda receipt: {
-        "issue":1029,"generation":7,"record_fingerprint":guard["record_fingerprint"]
+        "issue":1029,"generation":7,"record_fingerprint":guard["record_fingerprint"], "source_sha": TARGET, "target_branch": record.target_branch, "write_paths": list(record.mutation_scope.write_paths), "delete_paths": []
     })
     monkeypatch.setattr(ingress, "_read_branch_head", lambda repo, token, branch: TARGET if branch == record.target_branch else "d" * 40)
     request={
@@ -85,7 +85,7 @@ def test_ingress_rejects_live_work_head_advanced_by_another_writer(monkeypatch):
         },
     }
     with pytest.raises(ControlTransactionConflict, match="ONE_ISSUE_ONE_MUTATION_WRITER"):
-        ingress._validate_interactive_git_write_receipt(
+        ingress._validate_repository_content_git_write_receipt(
             request, execution_mode="INTERACTIVE", record=record, repo="looaeedr/whd", token="token"
         )
 
@@ -95,7 +95,7 @@ def test_ingress_rejects_live_target_drift_before_mutation(monkeypatch):
     record = _record()
     guard = build_mutation_writer_guard(record, kind="APPLY_COMMIT", invocation_identity=INV)
     monkeypatch.setattr(ingress, "validate_git_unlock_receipt", lambda receipt: {
-        "issue":1029,"generation":7,"record_fingerprint":guard["record_fingerprint"]
+        "issue":1029,"generation":7,"record_fingerprint":guard["record_fingerprint"], "source_sha": TARGET, "target_branch": record.target_branch, "write_paths": list(record.mutation_scope.write_paths), "delete_paths": []
     })
     monkeypatch.setattr(ingress, "_read_branch_head", lambda repo, token, branch: "e" * 40 if branch == record.target_branch else "c" * 40)
     request={
@@ -107,6 +107,6 @@ def test_ingress_rejects_live_target_drift_before_mutation(monkeypatch):
         },
     }
     with pytest.raises(ControlTransactionConflict, match="live target drift"):
-        ingress._validate_interactive_git_write_receipt(
+        ingress._validate_repository_content_git_write_receipt(
             request, execution_mode="INTERACTIVE", record=record, repo="looaeedr/whd", token="token"
         )

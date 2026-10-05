@@ -61,7 +61,7 @@ def test_retired_execution_surfaces_are_physically_absent_and_unrouted() -> None
 def test_git_connector_pitfall_cannot_authorize_production_update_ref() -> None:
     text = _read("個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md")
     assert "WORKSPACE_DEFAULT" in text
-    assert "SHARED_ZERO_FALLBACK" in text
+    assert "SHARED_ZERO_FALLBACK" not in text
     assert "Contents API 永遠不得直接寫 authoritative production target" in text
     assert "production integration 禁用 chat/runtime Contents API" in text
     assert "Flow v2 trusted `MERGE / SYNC_TARGET`" in text
@@ -129,9 +129,9 @@ def test_transport_binds_lease_and_next_action_identity() -> None:
         assert token in terminal
 
 
-def test_product_full_regression_remains_real_full_pytest() -> None:
+def test_product_regression_uses_the_canonical_ci_owner() -> None:
     text = _read("tools/change_test_profile.py")
-    assert '"PRODUCT_FULL_REGRESSION": ("python -m pytest -q",)' in text
+    assert '"PRODUCT_FULL_REGRESSION": ("python tools/product_ci_regression.py",)' in text
     assert "HISTORICAL_ANTI_REGROWTH" not in text
 
 

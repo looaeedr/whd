@@ -30,7 +30,7 @@ CONTRACT = ROOT / ".agents" / "contracts" / "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD
 
 def _ready():
     return build_entry_router_evidence(
-        canonical_root="/Google Drive/WHD",
+        workspace_root="/workspace/whd",
         fresh_reads=(
             ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
@@ -41,7 +41,7 @@ def _ready():
 def test_entry_router_requires_exact_fresh_read_order():
     with pytest.raises(ValueError, match="ENTRY_ROUTER_FIRST_REQUIRED"):
         build_entry_router_evidence(
-            canonical_root="/Google Drive/WHD",
+            workspace_root="/workspace/whd",
             fresh_reads=(".agents/skills/engineering/root-local-first/SKILL.md",),
         )
     evidence = _ready()
@@ -99,25 +99,20 @@ def test_pitfall_records_entry_discovery_regression():
 
 
 
-def test_root_path_resolution_requires_canonical_parent_chain():
+def test_root_path_resolution_requires_workspace_relative_identity():
     evidence = build_root_path_resolution_evidence(
-        repo_relative_path=".agents/skills/engineering/推推/SKILL.md",
-        resolved_absolute_path="/Google Drive/WHD/.agents/skills/engineering/推推/SKILL.md",
+        workspace_root="/workspace/whd", repo_relative_path="AGENTS.md",
+        resolved_absolute_path="/workspace/whd/AGENTS.md",
     )
-    validated = validate_root_path_resolution_evidence(evidence)
-    assert validated["resolution_method"] == "CANONICAL_ROOT_PARENT_CHAIN"
-    assert validated["global_search_role"] == "CANDIDATE_ONLY"
-
-    with pytest.raises(ValueError, match="ROOT_PATH_UNRESOLVED_FAIL_CLOSED"):
-        build_root_path_resolution_evidence(
-            repo_relative_path=".agents/skills/engineering/推推/SKILL.md",
-            resolved_absolute_path="/Google Drive/WHD/.scratch/SKILL.md",
-        )
+    assert validate_root_path_resolution_evidence(evidence)["resolution_method"] == "WORKSPACE_REPO_RELATIVE_PATH"
+    with pytest.raises(ValueError, match="WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED"):
+        build_root_path_resolution_evidence(workspace_root="/workspace/whd", repo_relative_path="AGENTS.md",
+                                            resolved_absolute_path="/tmp/AGENTS.md")
 
 
 def test_remote_connection_is_denied_without_explicit_authority():
     with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
-        assert_remote_connection_allowed(None, target="GITHUB", action="READ")
+        assert_remote_connection_allowed(None, target="GITHUB", action="CREATE_PR")
     with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
         assert_remote_connection_allowed(None, target="REMOTE_LOCAL", action="READ")
 
@@ -155,11 +150,10 @@ def test_push_docs_authority_is_lane_scoped_and_unlocks_git_reads_only_for_deliv
 
 
 def test_git_read_no_longer_bypasses_remote_authority():
-    with pytest.raises(ValueError, match="REMOTE_CONNECTION_DENIED"):
-        assert_git_content_write_allowed(
-            {"applicable": True, "git_write_unlocked": False, "next_action": "ROOT_MUTATE"},
-            action="READ",
-        )
+    assert_git_content_write_allowed(
+        {"applicable": True, "git_write_unlocked": False, "next_action": "WORKSPACE_MUTATIONS_COMPLETE"},
+        action="READ",
+    )
 
     authority = build_remote_connection_authority(
         kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
@@ -188,31 +182,23 @@ def test_git_read_no_longer_bypasses_remote_authority():
 def test_contract_denies_remote_by_default_and_locks_delivery_fileset():
     payload = json.loads(CONTRACT.read_text(encoding="utf-8"))
     validated = validate_contract(payload)
-    assert validated["git_before_unlock"] == []
-    assert set(validated["git_after_remote_authority_before_unlock"]) == {"READ", "FETCH", "COMPARE"}
-    assert validated["root_path_resolution_hard_gate"]["remote_fallback_forbidden"] is True
-    assert validated["remote_connection_hard_gate"]["default"] == "DENY"
-    assert validated["remote_connection_hard_gate"]["pre_delivery_git_read_allowed_without_authority"] is False
+    assert set(validated["git_before_unlock"]) == {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
+    assert set(validated["git_after_remote_authority_before_unlock"]) == {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
+    assert validated["root_path_resolution_hard_gate"]["remote_fallback_forbidden"] is False
+    assert validated["remote_connection_hard_gate"]["default"] == "ALLOW_WORKSPACE_BASELINE_READ_ONLY"
+    assert validated["remote_connection_hard_gate"]["pre_delivery_git_read_allowed_without_authority"] is True
     assert validated["delivery_fileset_lock"]["push_scope"] == "EXACT_LOCK_EQUALITY"
     assert validated["delivery_fileset_lock"]["merge_precheck"] == "FRESH_TARGET_HEAD_AND_LOCKED_BLOB_RECHECK"
     assert validated["post_delivery_cleanup"]["clear_policy"] == "ONLY_LOCKED_PATHS_WITH_EXACT_READBACK_HASH"
     assert validated["post_delivery_cleanup"]["repository_file_delete_forbidden"] is True
 
 
-def test_docs_lock_root_first_and_exact_post_delivery_cleanup_wording():
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    root_skill = (ROOT / ".agents" / "skills" / "engineering" / "root-local-first" / "SKILL.md").read_text(encoding="utf-8")
-    push_skill = (ROOT / ".agents" / "skills" / "engineering" / "推推" / "SKILL.md").read_text(encoding="utf-8")
-    write_skill = (ROOT / ".agents" / "skills" / "engineering" / "寫技能" / "SKILL.md").read_text(encoding="utf-8")
-
-    assert "ROOT_LOOKUP_BEFORE_REMOTE_HARD_GATE_V1" in agents
-    assert "GitHub network READ / FETCH / COMPARE 也禁止" in agents
-    assert "ROOT_PATH_RESOLUTION_BEFORE_REMOTE_HARD_GATE_V1" in root_skill
-    assert "REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1" in root_skill
-    assert "DELIVERY_FILESET_LOCK_HARD_GATE_V1" in push_skill
-    assert "PRE_MERGE_LATEST_FILE_RECHECK_HARD_GATE_V1" in push_skill
-    assert "只清除本次 lock 中且 readback 已證明交付成功的 paths" in push_skill
-    assert "ROOT_BASELINE_LOOKUP_AND_REMOTE_DENY_HARD_GATE_V1" in write_skill
+def test_current_docs_only_route_workspace_and_trusted_delivery():
+    agents = (ROOT / "AGENTS.md").read_text()
+    skill = (ROOT / ".agents/skills/engineering/root-local-first/SKILL.md").read_text()
+    assert "WORKSPACE_DEFAULT" in agents and "WORKSPACE_DEFAULT" in skill
+    assert "GitHub network READ / FETCH / COMPARE 也禁止" not in agents
+    assert "Drive/shared-zero 不再有 CURRENT delivery route" in agents
 
 
 def _delivery_lock():
@@ -308,9 +294,9 @@ def test_finalize_clears_only_exact_readback_delivered_paths():
     assert "RE_REGISTER_AS_NEW_UNPUSHED_CHANGE" in receipt["future_modification_rule"]
 
 
-def test_pitfall_records_parent_chain_stale_zero_and_remote_deny_regression():
-    text = (ROOT / "個人AI檔案庫" / "踩坑庫" / "root_local_first_entry_gate_pitfall.md").read_text(encoding="utf-8")
+def test_pitfall_records_workspace_only_entry_correction():
+    text = (ROOT / "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md").read_text()
     assert "ROOT_PARENT_CHAIN_AND_LATEST_ZERO_PITFALL_V1" in text
-    assert "全域同名搜尋只能是 `CANDIDATE_ONLY`" in text
-    assert "未授權時連 GitHub `READ/FETCH/COMPARE` 都不能" in text
+    assert "CURRENT 永遠是 executor-local WORKSPACE_DEFAULT" in text
+    assert "SHARED_ZERO_FALLBACK" not in text
 
