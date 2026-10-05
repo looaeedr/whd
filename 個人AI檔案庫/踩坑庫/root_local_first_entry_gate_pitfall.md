@@ -6,11 +6,20 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Root-local-first 入口硬閘門踩坑
 
-## 2026-09-29 — workspace-first 與 branch-before-write 同時 CURRENT
+## CURRENT workspace-first 覆寫規則 — 2026-10
+
+- repository-content normal route 固定為 `WORKSPACE_DEFAULT`：使用 **executor-local repo workspace** + fresh `cleanup/2d-3d-sync` baseline 完成 author/test/exact diff，再進 delivery。
+- shared `.unpushed/{docs|body}/0` 只有 fresh touched-path drift 證明較新時才切 `SHARED_ZERO_FALLBACK`；不是普通施工前置。
+- Codex 常見 workspace 為 `/workspace/whd`；missing Drive mount 不是 `WORKSPACE_DEFAULT` blocker。
+- 本檔較早的 Drive/shared-0 順序只保留 **HISTORICAL/SUPERSEDED** 事故脈絡，不得再作 CURRENT execution instruction。
+- Git phase 仍禁止直接寫 `cleanup/2d-3d-sync` / `main`；只允許 exact-tested-diff 的 dedicated delivery path。
+
+
+## 2026-09-29 — workspace-first 與 branch-before-write 衝突（HISTORICAL/SUPERSEDED）
 
 - **事故模式**：Flow v2 / work-root 已要求 `/Google Drive/WHD` 作 interactive workspace，但 AGENTS、Skills 與 contract tests 仍要求第一次 repository write 前先建 Git work branch。結果同一任務同時存在兩個相反順序。
 - **根因**：舊 branch policy 沒有被降級成 Git-phase-only，且 tests 還把 `branch-first` 關鍵字當正向 invariant。
-- **永久規則**：interactive/default content work 唯一順序為 `ROOT_SOURCE_CURRENT → UNPUSHED_LANE_CLASSIFIED → LATEST_0_BASE_BOUND → ROOT_MUTATIONS_COMPLETE → MERGE_TO_0_OR_CONFLICT_CHECKPOINT → POST_MERGE_0_TEST_CLASSIFIED → POST_MERGE_0_TESTS_GREEN → LANE_MANIFEST_FROZEN → DELIVERY_PATHS_RESERVED → GIT_WRITE_UNLOCKED`；root 施工不做 pre-write reservation；`LANE_MANIFEST_FROZEN` 後才取得 delivery reservation，fresh Git delivery branch 只在 unlock 後建立。
+- **歷史修補（SUPERSEDED）**：當時曾把 shared-0 pipeline 當唯一順序；2026-10 已由上方 CURRENT `WORKSPACE_DEFAULT` / conditional `SHARED_ZERO_FALLBACK` 覆寫。
 - **Git phase invariant**：仍禁止直接寫 `cleanup/2d-3d-sync` / `main`；unlock 後只允許 `EXACT_TESTED_DIFF_ONLY`。
 - **source freshness**：Drive full snapshot 若落後，只可作 bootstrap base；manifest 必須標示真實 source SHA/tree，未證明 current 的 touched path 不得修改。
 - **remote scope**：`SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 仍依 Flow v2 remote authority；不得拿 remote mode 當 interactive content-work bypass。
@@ -28,7 +37,7 @@ whd_schema: WHD_DOC_META_V1
 <!-- ROOT_PARENT_CHAIN_AND_LATEST_ZERO_PITFALL_V1 -->
 - **事故模式**：repository-content 任務已指定 `/Google Drive/WHD` 為 canonical root，agent 仍先用 GitHub／全域 Drive 搜尋同名 `SKILL.md`；回到 root 後又直接拿 root 當 baseline，而 `.unpushed/docs/0` 的 frozen generation 已比 root 新，形成「找到對資料夾卻仍用 stale file」的第二條繞路。
 - **根因**：舊入口 gate 只保證先進 root-local-first，沒有把「exact parent-chain path resolution」「remote deny-by-default」「若 path 已在 0，latest 0 優先於 root」做成同一組 machine invariants。
-- **永久規則**：repository-content 找檔／讀 baseline 必須從 `/Google Drive/WHD` 沿 exact parent chain 定位；全域同名搜尋只能是 `CANDIDATE_ONLY`，不得直接成為 baseline。path 已存在於 `.unpushed/{lane}/0` 時，以 fresh latest `generation + hash` 為施工 base；worker 完成後再 fresh-read latest 0，才允許三方合併。
+- **歷史修補（SUPERSEDED）**：曾要求固定 Drive parent-chain + latest-0 作施工 baseline；CURRENT normal route 已改為 executor-local `WORKSPACE_DEFAULT`，只有 fresh touched-path drift 才使用 `SHARED_ZERO_FALLBACK`。
 - **remote boundary**：除「只為開工單」或使用者明確授權的 exact remote action 外，GitHub 與遠端本機預設 `DENY`；未授權時連 GitHub `READ/FETCH/COMPARE` 都不能用來找 baseline。`/推推 文檔|主體` 只打開該次 selected lane delivery window，完成／失敗退出即關閉。
 - **delivery boundary**：freeze 後建立 exact fileset lock；真正 merge 前 fresh-read target 與每個 locked path；target 若碰 locked path，固定回 root/latest 0 reconcile→test→refreeze。merge readback 成功後只清本次 readback 已交付且 hash 未漂移的 locked paths，不刪 repository 實體檔；同一檔之後再改必須重新登記成新的 unpushed change。
 - **錯路處置**：若先前已用 stale root／remote same-name 結果施工，該 baseline evidence 立即失效；必須回 fresh latest 0 重建 candidate，不得把舊修改直接覆蓋新 generation。
