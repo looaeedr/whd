@@ -184,7 +184,7 @@ def test_contract_denies_remote_by_default_and_locks_delivery_fileset():
     validated = validate_contract(payload)
     assert set(validated["git_before_unlock"]) == {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
     assert set(validated["git_after_remote_authority_before_unlock"]) == {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
-    assert validated["root_path_resolution_hard_gate"]["remote_fallback_forbidden"] is False
+    assert validated["root_path_resolution_hard_gate"]["remote_fallback_forbidden"] is True
     assert validated["remote_connection_hard_gate"]["default"] == "ALLOW_WORKSPACE_BASELINE_READ_ONLY"
     assert validated["remote_connection_hard_gate"]["pre_delivery_git_read_allowed_without_authority"] is True
     assert validated["delivery_fileset_lock"]["push_scope"] == "EXACT_LOCK_EQUALITY"
@@ -291,7 +291,7 @@ def test_finalize_clears_only_exact_readback_delivered_paths():
     assert receipt["cleared_paths"] == ["AGENTS.md"]
     assert receipt["preserved_paths"] == [".agents/skills/engineering/推推/SKILL.md"]
     assert receipt["repository_files_deleted"] is False
-    assert "RE_REGISTER_AS_NEW_UNPUSHED_CHANGE" in receipt["future_modification_rule"]
+    assert receipt["future_modification_rule"] == "NEW_CHANGE_MUST_START_FROM_FRESH_PRODUCTION_X_WORKSPACE"
 
 
 def test_pitfall_records_workspace_only_entry_correction():
