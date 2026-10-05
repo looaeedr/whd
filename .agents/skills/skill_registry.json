@@ -870,7 +870,9 @@
     {
       "id": "explicit-skill-handoff",
       "keywords": [
-        "handoff"
+        "handoff",
+        "/交接",
+        "交接"
       ],
       "file_globs": [
         ".agents/skills/productivity/handoff/**"
