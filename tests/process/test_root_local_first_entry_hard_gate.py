@@ -388,9 +388,11 @@ def test_root_local_contract_points_to_executor_local_workspace_policy():
     assert root["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert root["production_branch"] == "cleanup/2d-3d-sync"
     assert root["authority"] is False
-    assert root["canonical_drive_overlay"] == "/Google Drive/WHD"
+    assert root["drive_role"] == "MIRROR_BACKUP_ONLY"
+    assert root["drive_mirror_root"] == "/Google Drive/WHD/WHD_MIRROR/CURRENT"
+    assert "canonical_drive_overlay" not in root
     assert payload["default_repository_content_flow"]["startup_requires_shared_zero"] is False
-    assert payload["shared_unpushed_integration"]["mode"] == "CONDITIONAL_FALLBACK_ONLY"
+    assert payload["shared_unpushed_integration"]["mode"] == "SUPERSEDED_DATA_ONLY"
 
 
 def test_interactive_orchestration_fast_path_is_machine_owned():
@@ -437,7 +439,7 @@ def test_direct_root_mutation_test_hard_gate_forbids_handoff_only_stops():
     payload = _contract()
     gate = payload["direct_root_mutation_test_gate"]
     assert gate["schema"] == "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1"
-    assert gate["applies_when"] == "SHARED_ZERO_FALLBACK_ACTIVE"
+    assert gate["applies_when"] == "NEVER_CURRENT"
     assert gate["canonical_surface"] == "/Google Drive/WHD/.unpushed"
     assert gate["interactive_first_substantive_action"] == "ROOT_MUTATE"
     assert gate["required_contiguous_outer_sequence"] == [
