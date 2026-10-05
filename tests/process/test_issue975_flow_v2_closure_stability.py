@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def _root_gate_evidence(execution_mode: str = "INTERACTIVE") -> dict[str, object]:
     from tools.work_root_gate import (
         READ_MODE_GITHUB_REPO,
-        READ_MODE_GOOGLE_DRIVE,
+        READ_MODE_WORKSPACE,
         build_work_root_gate_evidence,
     )
 
@@ -21,15 +21,16 @@ def _root_gate_evidence(execution_mode: str = "INTERACTIVE") -> dict[str, object
             encoding="utf-8"
         )
     )
-    mode = READ_MODE_GOOGLE_DRIVE if execution_mode == "INTERACTIVE" else READ_MODE_GITHUB_REPO
+    mode = READ_MODE_WORKSPACE if execution_mode == "INTERACTIVE" else READ_MODE_GITHUB_REPO
     return build_work_root_gate_evidence(
         gate_payload=payload,
         read_mode=mode,
         execution_mode=execution_mode,
         root_entries=[
             ".git", ".agents", ".github", "AGENTS.md", "tools", "tests",
-            "ae_engine", "gui_modules", ".unpushed",
+            "ae_engine", "gui_modules",
         ],
+        workspace_root=None if mode == READ_MODE_GITHUB_REPO else "/workspace/whd",
     )
 
 
