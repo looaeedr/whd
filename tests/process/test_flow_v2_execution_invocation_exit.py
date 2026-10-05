@@ -397,7 +397,7 @@ def test_repository_content_done_also_accepts_verified_optional_root_sync():
         invocation_identity=INV,
         now=NOW,
         root_sync_receipt=_root_sync_receipt_for_done(),
-        lane_delivery_receipt=_lane_delivery_receipt_for_done(),
+        lane_delivery_receipt=None,
     )
     assert result.decision == "TASK_TERMINAL"
     assert result.may_return is True
