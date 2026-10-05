@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "0510923fed94814b7e4f37fbb6038aca2b4becca",
-    "released_at": null
+    "released_at": "2026-10-05T12:55:10Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "7cdfae651a37b5723d1c1ea7e292d740e32a6ebd",
   "issue": 1282,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-05T13:09:47Z",
-    "invocation_identity": "github:production-x-post-merge:37312776880:pr1288:issue1282",
-    "token": "recovery:1282:37312776880"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1288,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "governance/issue1282-pr-discovery-repair-20261005",
   "source_sha": "7cdfae651a37b5723d1c1ea7e292d740e32a6ebd",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "0510923fed94814b7e4f37fbb6038aca2b4becca",
-  "transaction": null,
-  "updated_at": "2026-10-05T12:54:47Z",
+  "transaction": {
+    "expected_fingerprint": "b3b962b87523300509f74eb4173d8a48c07cc92f50e4ddee191eeef9b9353e89",
+    "id": "gha:37312776880:1282:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37312776880:pr1288:issue1282",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T12:55:09Z",
   "version": 2,
   "work_branch": "governance/issue1282-pr-discovery-repair-20261005"
 }
