@@ -274,7 +274,12 @@ def refresh_box_body_piece_selector(
     # The aggregate remains the top-level operator identity, while physical
     # children stay directly reachable beneath it. Other parts hide this nested
     # selector so child navigation never becomes a second top-level part list.
-    show_for_box_body = bool(wanted) and (active == "box_body" or active in wanted)
+    mode = str(getattr(host, "_phase6_3d_display_mode", "single") or "single")
+    show_for_box_body = (
+        mode == "single"
+        and bool(wanted)
+        and (active == "box_body" or active in wanted)
+    )
     if show_for_box_body:
         if not notebook.winfo_manager():
             notebook.pack(fill="x", pady=(0, 4))
