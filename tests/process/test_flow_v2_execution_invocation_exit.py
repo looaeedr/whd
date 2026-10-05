@@ -366,8 +366,8 @@ def _root_sync_receipt_for_done():
 
 
 def _lane_delivery_receipt_for_done():
-    from tools.post_integration_durability import build_lane_delivery_receipt
-    return build_lane_delivery_receipt(
+    from tools.post_integration_durability import historical_build_lane_delivery_receipt
+    return historical_build_lane_delivery_receipt(
         lane="docs", issue=844, generation=2, merged_sha="c" * 40,
         manifest_digest="e" * 64, delivered_paths=["AGENTS.md"], lane_state_after="EMPTY",
     )
