@@ -269,3 +269,33 @@ def test_issue1215_project_effects_are_composition_owned_with_bridge_compat_port
     assert "Phase6ProjectController.build_designer_payload" in adapter_source
     assert "Phase6ProjectController.validate_project_load" in adapter_source
     assert "Phase6ProjectController.write_designer_project" in adapter_source
+
+
+def test_issue1217_settings_context_projection_is_composition_owned():
+    moved = {
+        "_phase6_settings_endcap_fw_projection",
+        "_phase6_settings_box_structure_projection",
+        "_phase6_settings_bottom_wrap_projection",
+        "_phase6_settings_corner_projection",
+        "_phase6_settings_context_extension_projection",
+    }
+    assert moved.isdisjoint(_top_functions(BRIDGE))
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "settings_context_extension_projection" in method_names
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "_phase6_settings_context_extension_projection" not in adapter_source
+    assert "self.settings_context_extension_projection(" in adapter_source
+    assert "context_extension_projection=lambda context:" in adapter_source
