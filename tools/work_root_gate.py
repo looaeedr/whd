@@ -48,17 +48,23 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
         raise ValueError("work-root production branch mismatch")
     if root.get("authority") is not False:
         raise ValueError("executor workspace must not become authority")
-    overlay = _mapping(gate.get("canonical_drive_overlay"), "canonical_drive_overlay")
-    if overlay.get("library_path") != CANONICAL_DRIVE_ROOT or overlay.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID:
-        raise ValueError("canonical Drive overlay identity mismatch")
-    if overlay.get("ordinary_startup_required") is not False:
-        raise ValueError("Drive overlay must not be required for ordinary startup")
+    mirror = _mapping(gate.get("drive_mirror"), "drive_mirror")
+    if mirror.get("library_path") != "/Google Drive/WHD/WHD_MIRROR/CURRENT":
+        raise ValueError("Drive mirror path mismatch")
+    if mirror.get("role") != "MIRROR_BACKUP_ONLY" or mirror.get("authority") is not False:
+        raise ValueError("Drive must remain mirror/backup only")
+    if mirror.get("ordinary_startup_required") is not False or mirror.get("routing_forbidden") is not True:
+        raise ValueError("Drive mirror must not participate in startup routing")
     required = set(map(str, gate.get("required_root_entries") or ()))
     if required != set(REQUIRED_ROOT_ENTRIES):
         raise ValueError("full-repo root required entries mismatch")
     unpushed = _mapping(gate.get("unpushed"), "unpushed")
     if unpushed.get("root") != UNPUSHED_ROOT:
-        raise ValueError("shared unpushed root mismatch")
+        raise ValueError("historical shared unpushed root mismatch")
+    if unpushed.get("mode") != "SUPERSEDED_DATA_ONLY" or unpushed.get("activation") != "NEVER_CURRENT":
+        raise ValueError("shared unpushed routing must remain retired")
+    if unpushed.get("routing_forbidden") is not True or unpushed.get("authority") is not False:
+        raise ValueError("shared unpushed data must not regain authority")
     recovery = _mapping(gate.get("root_identity_recovery"), "root_identity_recovery")
     if recovery.get("owner") != "tools/work_root_gate.py::recover_canonical_root_to_current_production":
         raise ValueError("work-root recovery owner mismatch")
@@ -128,9 +134,7 @@ def build_work_root_gate_evidence(
             if not resolved_workspace:
                 raise ValueError("interactive executor workspace_root must be nonblank")
         elif read_mode == READ_MODE_GOOGLE_DRIVE:
-            # Compatibility only for durable callers created before workspace-first cutover.
-            source = DRIVE_CONTRACT_PATH
-            resolved_workspace = str(workspace_root or CANONICAL_DRIVE_ROOT).strip()
+            raise ValueError("DRIVE_WORK_ROOT_RETIRED_USE_EXECUTOR_LOCAL_WORKSPACE")
         else:
             raise ValueError("interactive mode must use executor-local workspace Git baseline")
     verified = verify_root_entries(root_entries)
@@ -148,10 +152,9 @@ def build_work_root_gate_evidence(
         "workspace_root": resolved_workspace,
         "production_branch": PRODUCTION_BRANCH,
         "production_head_sha": head or None,
-        "canonical_drive_root": CANONICAL_DRIVE_ROOT,
-        "drive_folder_id": DEFAULT_DRIVE_FOLDER_ID,
+        "drive_role": "MIRROR_BACKUP_ONLY",
+        "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
         "root_entries": list(verified),
-        "shared_zero_fallback_root": UNPUSHED_ROOT,
         "shared_zero_required": False,
         "status": "GREEN",
     }
@@ -173,11 +176,9 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
         raise ValueError("work-root gate evidence workspace_root missing")
     if item.get("production_branch") != PRODUCTION_BRANCH:
         raise ValueError("work-root gate evidence production branch mismatch")
-    if item.get("drive_folder_id") != DEFAULT_DRIVE_FOLDER_ID or item.get("canonical_drive_root") != CANONICAL_DRIVE_ROOT:
-        raise ValueError("work-root gate evidence Drive overlay identity mismatch")
+    if item.get("drive_role") != "MIRROR_BACKUP_ONLY" or item.get("drive_mirror_root") != "/Google Drive/WHD/WHD_MIRROR/CURRENT":
+        raise ValueError("work-root gate evidence Drive mirror boundary mismatch")
     verify_root_entries(item.get("root_entries") or ())
-    if item.get("shared_zero_fallback_root") != UNPUSHED_ROOT:
-        raise ValueError("work-root gate shared-zero fallback root mismatch")
     if item.get("shared_zero_required") is not False:
         raise ValueError("ordinary work-root evidence must not require shared-zero")
     return {str(k): v for k, v in item.items()}
