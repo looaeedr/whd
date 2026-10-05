@@ -4,6 +4,7 @@ import json
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+# Issue 1308: full Git-only routing purge regression.
 
 
 def _read(path: str) -> str:
