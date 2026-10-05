@@ -137,9 +137,11 @@ def test_receiving_layer_preview_dialog_is_owned_by_existing_controls_owner():
 def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_holes():
     owner_source = inspect.getsource(controls.open_receiving_layer_preview)
     assert 'FigureCanvasTkAgg' in owner_source
-    assert 'Poly3DCollection' in owner_source
+    assert 'Phase6FinalSceneRenderer' in owner_source
+    assert 'apply_mpl_dark_theme' in owner_source
+    assert 'Poly3DCollection' not in owner_source
+    assert 'facecolor="#3b82f6"' not in owner_source
     assert '_phase6_mesh_feature_segments' not in owner_source
-    assert 'edgecolor="none"' in owner_source
     assert 'lock_circles' in owner_source
     assert 'Radiobutton' not in owner_source
     assert 'on_confirm' not in owner_source
@@ -151,6 +153,8 @@ def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_ho
     assert 'query_assembly_render_data()' in adapter_source
     assert 'visible_part_keys=None' in adapter_source
     assert 'visible_box_body_piece_keys=None' in adapter_source
+    assert 'render_request' in adapter_source
+    assert 'replace(part, offset=' in adapter_source
     assert 'last_cutting_mesh' not in _function_source(
         ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
         'receiving_layer_preview_payload',

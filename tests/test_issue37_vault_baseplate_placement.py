@@ -15,6 +15,7 @@ def _vault_snapshot():
         "d": 250.0,
         "t": 2.0,
         "fw": 25.0,
+        "base_plate_bend": 20.0,
         "existing_parts": ["box_body", "head", "tail", "door", "base_plate"],
     }
 
@@ -28,7 +29,7 @@ def _rect_triangles(width: float, height: float):
     )
 
 
-def test_vault_base_plate_resolves_authoritative_center_datum():
+def test_vault_base_plate_resolves_authoritative_rear_inner_datum():
     placement = resolve_assembly_placement(_vault_snapshot(), "base_plate")
 
     assert placement.relationship == "BASE_PLATE"
@@ -36,8 +37,9 @@ def test_vault_base_plate_resolves_authoritative_center_datum():
     assert placement.anchor == "box_body:center:base_plate"
     assert placement.mate_target == "box_body:base_plate_plane"
     assert placement.placement_kind == "base_plate"
-    assert placement.world_offset == pytest.approx((0.0, 0.0, 0.0))
-    assert placement.semantic_position == pytest.approx((0.0, 0.0, 0.0))
+    expected_z = -250.0 / 2.0 + 2.0 + 20.0 / 2.0
+    assert placement.world_offset == pytest.approx((0.0, 0.0, expected_z))
+    assert placement.semantic_position == pytest.approx((0.0, 0.0, expected_z))
 
 
 def test_vault_base_plate_folded_face_stays_inside_box_world_bounds():
@@ -72,7 +74,7 @@ def test_vault_base_plate_placement_persists_through_workspace_snapshot():
         resolver=resolve_assembly_placement,
     )
     assert stored["base_plate"]["placement_kind"] == "base_plate"
-    assert stored["base_plate"]["world_offset"] == pytest.approx([0.0, 0.0, 0.0])
+    assert stored["base_plate"]["world_offset"] == pytest.approx([0.0, 0.0, -113.0])
 
     rebuilt = Phase6DesignerWorkspace.from_snapshot(ws.snapshot())
     assert rebuilt.assembly_placements_snapshot()["base_plate"] == stored["base_plate"]
@@ -84,4 +86,4 @@ def test_bridge_uses_resolver_not_legacy_base_mapping():
     assert "base_plate" not in bridge._PHASE6_ASSEMBLY_PLACEMENTS
     kind, offset = bridge._phase6_assembly_placement_for_part(_vault_snapshot(), "base_plate")
     assert kind == "base_plate"
-    assert offset == pytest.approx((0.0, 0.0, 0.0))
+    assert offset == pytest.approx((0.0, 0.0, -113.0))
