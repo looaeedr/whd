@@ -81,7 +81,7 @@ Git write 仍受限：
 - fresh target changed paths 與 candidate touched paths 不重疊；
 - fresh impact analysis 證明沒有 dependency impact。
 
-符合時直接沿用舊 GREEN，**禁止為了 refresh timestamp / target SHA 再跑一次測試或 CI**。缺 evidence 時先補 compare/identity/impact revalidation；只有 revalidation 證明有影響或 identity 改變才進 `RETEST_REQUIRED`。
+符合時直接沿用舊 GREEN，**禁止為了 refresh timestamp / target SHA 再跑一次測試或 CI**。若 branch protection 要求新 SHA 上同名 required context，必須由 lightweight reuse classifier 產生 `GREEN_REUSED_NO_RETEST` 並讓同名 required check 成功；不得用重跑 full regression 來刷新 status。缺 evidence 時先補 compare/identity/impact revalidation；只有 revalidation 證明有影響或 identity 改變才進 `RETEST_REQUIRED`。
 
 machine owner=`tools/root_local_first_gate.py::classify_target_drift_action`；schema=`WHD_GREEN_REUSE_REVALIDATION_V1`。
 
