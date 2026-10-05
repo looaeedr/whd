@@ -41,6 +41,8 @@ from tools.execution_record import (
 
 TARGET_ADVANCE_PROOF_SCHEMA = "WHD_FLOW_V2_TARGET_ADVANCE_PROOF_V1"
 CONTROL_ONLY_TARGET_READBACK_SCHEMA = "WHD_FLOW_V2_CONTROL_ONLY_TARGET_READBACK_V1"
+POST_DELIVERY_RECOVERY_PROOF_SCHEMA = "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1"
+POST_DELIVERY_RECOVERY_MODE = "POST_DELIVERY_RECOVERY"
 MUTATION_WRITER_GUARD_SCHEMA = "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1"
 
 
@@ -179,6 +181,58 @@ def is_control_only_finalize_record(record: ExecutionRecord) -> bool:
         and record.qa.last_accepted_run is None
         and record.qa.accepted_head_sha is None
         and record.closure.merged_sha is None
+    )
+
+
+
+
+def is_post_delivery_recovery_finalize_record(record: ExecutionRecord) -> bool:
+    """Return whether a trusted post-delivery recovery record may finalize without reconstructed QA.
+
+    This path exists only for work that is already durably merged but lost its
+    historical Flow v2 record.  It never invents prior WAKE/lease/QA history;
+    instead it requires one trusted recovery proof minted from fresh GitHub
+    merge, required-check, issue-link, and target-ancestry readback.
+    """
+    if not isinstance(record, ExecutionRecord):
+        return False
+    if (
+        record.execution_intent != "POST_DELIVERY_RECOVERY"
+        or record.state != "INTEGRATING"
+        or record.next_action is None
+        or record.next_action.kind != "FINALIZE"
+        or str(record.next_action.args.get("recovery_mode") or "").strip()
+        != POST_DELIVERY_RECOVERY_MODE
+        or record.lease is None
+        or not record.closure.merged_sha
+        or record.qa.last_accepted_run is not None
+        or record.qa.accepted_head_sha is not None
+    ):
+        return False
+
+    proof = next(
+        (
+            row
+            for row in reversed(record.recovery_history)
+            if row.get("schema") == POST_DELIVERY_RECOVERY_PROOF_SCHEMA
+            and row.get("kind") == POST_DELIVERY_RECOVERY_MODE
+        ),
+        None,
+    )
+    if proof is None:
+        return False
+    return bool(
+        proof.get("issue") == record.issue
+        and str(proof.get("pr_head_sha") or "").strip() == record.head_sha
+        and str(proof.get("pr_head_ref") or "").strip() == record.work_branch
+        and str(proof.get("target_branch") or "").strip() == record.target_branch
+        and str(proof.get("observed_target_sha") or "").strip() == record.target_sha
+        and str(proof.get("merged_sha") or "").strip() == record.closure.merged_sha
+        and proof.get("merged_anchor_is_ancestor") is True
+        and proof.get("required_checks_green") is True
+        and proof.get("qa_history_reconstructed") is False
+        and str(proof.get("trusted_source") or "").strip()
+        == "control_transaction_production_executor"
     )
 
 
@@ -1078,6 +1132,7 @@ def _execute_finalize(
     effect: Mapping[str, object],
 ) -> ExecutionRecord:
     control_only = is_control_only_finalize_record(record)
+    post_delivery_recovery = is_post_delivery_recovery_finalize_record(record)
     if control_only:
         final_target_sha = _control_only_finalize_target_sha(record, effect)
         merged_sha = None
@@ -1088,7 +1143,10 @@ def _execute_finalize(
                     "CONTROL_ONLY FINALIZE record failed no-content eligibility invariants"
                 )
             raise ControlTransactionError("FINALIZE requires INTEGRATING state")
-        if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+        if (
+            not post_delivery_recovery
+            and (record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha)
+        ):
             raise ControlTransactionError("FINALIZE requires accepted QA for current head")
         if not record.closure.merged_sha:
             raise ControlTransactionError("FINALIZE requires fresh merged target readback or a merged anchor")

@@ -45,11 +45,13 @@ from tools.control_transaction_production_executor import (
     _load_state,
     _read_branch_head,
     execute_one,
+    recover_post_delivery_missing_record,
 )
 
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","CONSUME_QA","FAIL_QA",
     "BLOCK","MERGE","SYNC_TARGET","HANDOFF","FINALIZE","RECONCILE","RESERVE_PATHS","RELEASE_PATHS","YIELD",
+    "RECOVER_POST_DELIVERY",
 }
 
 REQUEST_BRANCH_LANES = {
@@ -660,9 +662,59 @@ def execute_request(
 
     issue = int(request["issue"])
     record = records.get(issue)
-    if record is None:
-        raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     expected_generation = int(request["expected_generation"])
+    if record is None:
+        if str(request["kind"]) != "RECOVER_POST_DELIVERY":
+            raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
+        if expected_generation != 1:
+            raise ProductionExecutorError(
+                "RECOVER_POST_DELIVERY missing-record bootstrap requires expected_generation=1"
+            )
+        recovery = recover_post_delivery_missing_record(
+            repo=repo,
+            token=token,
+            coord_branch=coord_branch,
+            issue=issue,
+            lane_id=str(request["lane_id"]),
+            invocation_identity=str(request["invocation_identity"]),
+            expected_coord_head=expected_parent,
+            supplied_effect=dict(request["effect"]),
+        )
+        if (
+            recovery.get("post_state") != "INTEGRATING"
+            or recovery.get("post_next_action") != "FINALIZE"
+        ):
+            raise ProductionExecutorError(
+                "RECOVER_POST_DELIVERY did not produce exact FINALIZE continuation"
+            )
+        terminal = execute_one(
+            repo=repo,
+            token=token,
+            coord_branch=coord_branch,
+            issue=issue,
+            kind="FINALIZE",
+            lane_id=str(request["lane_id"]),
+            invocation_identity=str(request["invocation_identity"]),
+            supplied_effect={},
+            _allow_terminal_drain=False,
+        )
+        recovery["terminal_tail_drained"] = terminal.get("post_state") == "DONE"
+        recovery["terminal_tail_finalize"] = {
+            "coord_commit_sha": terminal.get("coord_commit_sha"),
+            "post_generation": terminal.get("post_generation"),
+            "post_state": terminal.get("post_state"),
+            "post_next_action": terminal.get("post_next_action"),
+            "runtime_observation_status": terminal.get("runtime_observation_status"),
+        }
+        recovery["post_generation"] = terminal.get("post_generation")
+        recovery["post_state"] = terminal.get("post_state")
+        recovery["post_next_action"] = terminal.get("post_next_action")
+        recovery["lease_invocation_identity"] = terminal.get("lease_invocation_identity")
+        return recovery
+    if str(request["kind"]) == "RECOVER_POST_DELIVERY":
+        raise ControlTransactionConflict(
+            f"RECOVER_POST_DELIVERY requires missing ExecutionRecord; issue {issue} already exists"
+        )
     if record.generation != expected_generation:
         raise ControlTransactionConflict(
             f"generation drift: expected {expected_generation}, observed {record.generation}"
