@@ -3276,6 +3276,88 @@ class Phase6FoldDesignerComposition:
         required("_phase6_notify_corner_change")(app)
         return True
 
+    def refresh_active_endcap_from_linked(
+        self, namespace, linked
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        key = str(app.designer_workspace.active_part or "")
+        if key not in required("ENDCAP_FW_PARTS") or key not in linked:
+            return None
+        profiles = linked[key]
+        clone_profile = required("clone_profile")
+        app.state.profiles = {
+            "X": clone_profile(profiles.get("X", ())),
+            "Y": clone_profile(profiles.get("Y", ())),
+        }
+        try:
+            app.bend_ui.rebuild_tabs()
+        except Exception:
+            pass
+        return app.state.profiles
+
+    def commit_endcap_fw_state(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        linked = required("_phase6_rebuild_linked_endcaps")(app)
+        self.refresh_active_endcap_from_linked(namespace, linked)
+        try:
+            app.do_update()
+        except Exception:
+            pass
+        return linked
+
+    def set_endcap_fw_override(
+        self, namespace, part_key, value
+    ):
+        self.settings_transactions().commit_endcap_fw_override(
+            str(part_key), value
+        )
+        return self.commit_endcap_fw_state(namespace)
+
+    def on_endcap_fw_value_selected(
+        self, namespace, part_key, value_var
+    ):
+        try:
+            value = float(value_var.get())
+        except (TypeError, ValueError):
+            return None
+        return self.set_endcap_fw_override(
+            namespace, part_key, value
+        )
+
+    def on_box_symmetry_changed(self, namespace):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        var = getattr(app, "v_sy", None)
+        if var is None:
+            return None
+        if not required("_phase6_box_symmetry_allowed")(app):
+            required("_phase6_apply_box_symmetry_policy")(app)
+            target = bool(getattr(app.state, "symmetric", False))
+            if hasattr(app, "bend_ui"):
+                app.bend_ui._phase6_refresh_symmetry_bar()
+        else:
+            try:
+                target = bool(var.get())
+            except Exception:
+                return None
+        self.settings_transactions().commit_symmetry(app.state, target)
+
+        pending = getattr(app, "_job", None)
+        root = getattr(app, "root", None)
+        if pending and root is not None:
+            try:
+                root.after_cancel(pending)
+            except Exception:
+                pass
+            app._job = None
+        try:
+            app.do_update()
+        except Exception:
+            pass
+        return target
+
     def on_endcap_edge_relation_selected(
         self, namespace, part_key, edge
     ):

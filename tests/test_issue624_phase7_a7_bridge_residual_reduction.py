@@ -1116,3 +1116,47 @@ def test_issue1267_drawing_edge_ui_is_composition_owned():
     assert "self.render_active_drawing_edge_controls(namespace)" in adapter_source
     assert 'required("_phase6_render_active_drawing_edge_controls")' not in adapter_source
 
+def test_issue1269_endcap_fw_and_symmetry_controls_are_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_refresh_active_endcap_from_linked",
+        "_phase6_commit_endcap_fw_state",
+        "_phase6_set_endcap_fw_override",
+        "_phase6_on_endcap_fw_value_selected",
+        "_phase6_on_box_symmetry_changed",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "commit_endcap_fw_override" not in body
+        assert "commit_symmetry" not in body
+        assert "after_cancel" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "refresh_active_endcap_from_linked",
+        "commit_endcap_fw_state",
+        "set_endcap_fw_override",
+        "on_endcap_fw_value_selected",
+        "on_box_symmetry_changed",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "self.settings_transactions().commit_endcap_fw_override(" in adapter_source
+    assert "self.settings_transactions().commit_symmetry(" in adapter_source
+    assert "root.after_cancel(pending)" in adapter_source
+    assert "self.on_endcap_fw_value_selected(" in adapter_source
+    assert 'required("_phase6_on_endcap_fw_value_selected")' not in adapter_source
+
