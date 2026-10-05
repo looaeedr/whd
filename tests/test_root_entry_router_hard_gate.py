@@ -297,6 +297,9 @@ def test_finalize_clears_only_exact_readback_delivered_paths():
 def test_pitfall_records_workspace_only_entry_correction():
     text = (ROOT / "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md").read_text()
     assert "ROOT_PARENT_CHAIN_AND_LATEST_ZERO_PITFALL_V1" in text
-    assert "CURRENT 永遠是 executor-local WORKSPACE_DEFAULT" in text
+    assert "歷史 Drive/shared-zero authority 被 generic search 重播" in text
+    assert "executor-local repo workspace" in text
+    assert "fresh Git production X" in text
     assert "SHARED_ZERO_FALLBACK" not in text
+    assert "回 root/latest 0 reconcile" not in text
 
