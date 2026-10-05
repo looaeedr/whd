@@ -20,7 +20,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_NON_PROPAGATION_BRIDGE_V1
 
-`/工作0..3`、slot query、takeover 或「fresh-read coord/execution-v2」**不會**自動取得 GitHub network authority。interactive/default 若 durable state 只能透過 GitHub 取得，必須先通過 `root-local-first::REMOTE_CONNECTION_DENY_BY_DEFAULT_HARD_GATE_V1` / `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`（authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`）；沒有 authority 就不得 network read。slot/Flow v2 bridge 不能把 execution authority 冒充 remote authority。
+`/工作0..3`、slot query、takeover 或「fresh-read coord/execution-v2」不會憑空取得 GitHub network authority；但使用者已明確點名 exact Issue/工作槽操作時，可由該 instruction 一次 mint `USER_EXPLICIT_REMOTE` 的 exact Issue/control-plane actions並在同 invocation/scope 沿用，**不得因 bridge 需要再向使用者重問**。`coord/execution-v2` 的 baseline branch/read metadata依 workspace baseline read policy處理。scope 擴張、不同 Issue/repository或未被要求的 remote mutation仍需新 authority。
 
 ## WORK_SLOT_FIXED_IDENTITY_V2
 
