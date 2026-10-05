@@ -3611,203 +3611,76 @@ def _fix11_refresh_part_button_states(self):
     )
 
 def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
-    """Project authoritative workspace identities into the 2D View."""
-    return _phase6_corner_data_view(self).part_keys(
-        _designer_workspace(self)
-    )
+    return _phase6_composition(self).corner_data_part_keys()
+
 
 def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
-    """Project Corner Data rows from the canonical DM7 hierarchy."""
-    return _phase6_corner_data_view(self).navigation_rows(
-        _phase6_corner_data_part_keys(self),
-        hierarchy_projector=_dm7_project_hierarchy,
-    )
+    return _phase6_composition(self).corner_data_navigation_rows(globals())
+
 
 def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
-    """Resolve one stable view identity without activating manufacturing state."""
-    adapter = _phase6_corner_data_view(self)
-    previous = adapter.selected_part_key
-    keys = _phase6_corner_data_part_keys(self)
-    resolved = adapter.resolve_selection(
-        keys,
-        key,
-        resolver=lambda requested: _phase6_resolve_operator_part_key(
-            self, requested
-        ),
+    return _phase6_composition(self).select_corner_data_part(
+        globals(), key, refresh_view=bool(refresh_view)
     )
-    _phase6_sync_corner_data_view_compatibility_mirrors(self, adapter)
-    _phase6_refresh_corner_data_back_panel_mode_control(self)
-    if previous != resolved:
-        canvas = getattr(self, "corner_data_canvas", None)
-        if canvas is not None:
-            try:
-                canvas._phase6_unfold_zoom = 1.0
-            except Exception:
-                pass
-    if (
-        refresh_view
-        and str(getattr(self, "_phase6_3d_display_mode", "") or "")
-        == "corner_data"
-        and getattr(self, "corner_data_canvas", None) is not None
-    ):
-        _phase6_refresh_corner_data_unfold_view(self)
-    _phase6_refresh_status_bar(self)
-    return resolved
+
 
 def _phase6_corner_data_info_request_for_key(self, part_key, render_data):
-    """Build a display-only request from authoritative render/dimension sinks."""
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    settings = getattr(self, "_settings_values", {}) or {}
-    return _phase6_corner_data_view(self).info_request(
-        part_key=part_key,
-        render_data=render_data,
-        request_factory=FinalSceneViewRequest,
-        profile_provider=lambda key, material: _phase6_mesh_profiles_for_part(
-            self, key, material
-        ),
-        dimensions_provider=lambda key: _phase6_operator_finished_dimensions(
-            self, key
-        ),
-        corner_text_provider=_phase6_render_data_corner_dimension_text,
-        blank_text_provider=_phase6_format_unfolded_blank_text,
-        alpha_bend=float(
-            getattr(getattr(self, "state", None), "alpha_bend", 0.85)
-        ),
-        thickness=_num(
-            settings.get("t", snapshot.get("t", 2.0)), 2.0
-        ),
+    return _phase6_composition(self).corner_data_info_request_for_key(
+        globals(), part_key, render_data
     )
 
+
 def _phase6_corner_data_info_text_for_key(self, part_key, render_data):
-    request = _phase6_corner_data_info_request_for_key(self, part_key, render_data)
-    return format_operator_info_text(
-        request, dimensions=request.finished_dimensions, number_text=_setting_number_text
+    return _phase6_composition(self).corner_data_info_text_for_key(
+        globals(), part_key, render_data
     )
 
 
 def _phase6_corner_data_unfold_projection_for_key(self, part_key):
-    """Pair one stable identity with its authoritative render-data sink."""
-    def render_provider(selected):
-        if _phase6_is_box_body_physical_piece_key(selected):
-            return _phase6_box_body_piece_render_data(self, selected)
-        return _phase6_render_data_for_blank(self, selected)
-
-    return _phase6_corner_data_view(self).unfold_projection(
-        part_key,
-        available_parts=_phase6_corner_data_part_keys(self),
-        render_provider=render_provider,
-        projection_factory=Phase6CornerDataUnfoldProjection,
+    return _phase6_composition(self).corner_data_unfold_projection_for_key(
+        globals(), part_key
     )
+
 
 def _phase6_corner_data_unfold_projections(self, part_keys):
-    """Batch view adapter over authoritative per-part projections."""
-    return _phase6_corner_data_view(self).unfold_projections(
-        part_keys,
-        projection_provider=lambda key: _phase6_corner_data_unfold_projection_for_key(
-            self, key
-        ),
+    return _phase6_composition(self).corner_data_unfold_projections(
+        globals(), part_keys
     )
+
 
 def _phase6_corner_data_unfold_projection(self):
-    """Return selected authoritative unfold projection."""
-    return _phase6_corner_data_view(self).selected_projection(
-        projection_provider=lambda key: _phase6_corner_data_unfold_projection_for_key(
-            self, key
-        )
-    )
+    return _phase6_composition(self).corner_data_unfold_projection(globals())
+
 
 def _phase6_refresh_corner_data_unfold_view(self):
-    """Render one adapter-projected authoritative 2D payload."""
-    canvas = getattr(self, "corner_data_canvas", None)
-    projection = _phase6_corner_data_unfold_projection(self)
-    payload = _phase6_corner_data_view(self).view_payload(
-        projection,
-        info_provider=lambda part_key, render_data: _phase6_corner_data_info_text_for_key(
-            self, part_key, render_data
-        ),
-    )
-    if payload is None:
-        if canvas is not None and hasattr(canvas, "delete"):
-            canvas.delete("all")
-        return None
-    info_text = payload["info_text"]
-    info_var = getattr(self, "corner_data_info_var", None)
-    if info_var is not None and hasattr(info_var, "set"):
-        info_var.set(info_text)
-    self.corner_data_info_text = info_text
-    callback = getattr(self, "_corner_data_view_render_callback", None)
-    projection = payload["projection"]
-    if callback is not None and canvas is not None:
-        callback(canvas, projection.part_key, projection.render_data)
-    return projection
+    return _phase6_composition(self).refresh_corner_data_unfold_view(globals())
+
 
 def _phase6_corner_data_back_panel_mode_is_applicable(self):
-    state = _phase6_box_structure_state(self)
-    return _phase6_corner_data_view(self).back_panel_mode_is_applicable(
-        getattr(_phase6_corner_data_view(self), "selected_part_key", None),
-        family_name=cabinet_family_policy.canonical_family_name(
-            getattr(self, "_phase6_input_snapshot", {}) or {}
-        ),
-        active_type=state.get("active_type"),
-        three_piece_type=BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
-    )
+    return _phase6_composition(
+        self
+    ).corner_data_back_panel_mode_is_applicable(globals())
 
 
 def _phase6_refresh_corner_data_back_panel_mode_control(self):
-    state = _phase6_box_structure_state(self)
-    current = back_panel_mode(state)
-    return _phase6_corner_data_view(self).refresh_back_panel_mode_control(
-        self,
-        applicable=_phase6_corner_data_back_panel_mode_is_applicable(self),
-        current_label=_BACK_PANEL_MODE_LABELS[current],
-        values=tuple(_BACK_PANEL_MODE_LABELS[item] for item in BackPanelMode),
-        on_selected=lambda var: _phase6_select_back_panel_mode(self, var),
-    )
+    return _phase6_composition(
+        self
+    ).refresh_corner_data_back_panel_mode_control(globals())
+
 
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
-    """Delegate Corner Data parts-panel presentation to the existing view owner."""
-    keys = _phase6_corner_data_part_keys(self)
-    return _phase6_corner_data_view(self).refresh_parts_panel(
-        self,
-        keys=keys,
-        selected=getattr(self, "_phase6_corner_data_selected_part_key", None),
-        navigation_rows=_phase6_corner_data_navigation_rows(self),
-        label_for=_phase6_part_label,
-        on_select=lambda key: _phase6_select_corner_data_part(self, key),
-        on_refresh_back_panel_mode=lambda: _phase6_refresh_corner_data_back_panel_mode_control(self),
-    )
+    return _phase6_composition(self).refresh_corner_data_parts_panel(globals())
+
 
 def _phase6_on_corner_data_mousewheel(self, event):
-    """Apply viewport zoom only; authoritative manufacturing geometry is untouched."""
-    canvas = getattr(self, "corner_data_canvas", None)
-    if canvas is None:
-        return None
-    updated = _phase6_corner_data_view(self).zoom_from_event(
-        getattr(canvas, "_phase6_unfold_zoom", 1.0),
-        delta=getattr(event, "delta", 0),
-        button=getattr(event, "num", 0),
+    return _phase6_composition(self).on_corner_data_mousewheel(
+        globals(), event
     )
-    if updated is None:
-        return None
-    canvas._phase6_unfold_zoom = updated
-    if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data":
-        _phase6_refresh_corner_data_unfold_view(self)
-    return "break"
+
 
 def _phase6_prepare_corner_data_canvas(self):
-    """Delegate Corner Data canvas lifecycle to the existing view owner."""
-    view = _phase6_corner_data_view(self)
-    return view.prepare_canvas(
-        self,
-        canvas_bg=WHD_THEME["corner_data_canvas"],
-        on_configure=lambda _event: (
-            _phase6_refresh_corner_data_unfold_view(self)
-            if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
-            else None
-        ),
-        on_mousewheel=lambda event: _phase6_on_corner_data_mousewheel(self, event),
-        visibility_plan=view.canvas_visibility_plan(True),
-    )
+    return _phase6_composition(self).prepare_corner_data_canvas(globals())
+
 
 def _phase6_hide_corner_data_canvas(self):
     """Delegate corner-data/Matplotlib visibility projection to the view owner."""
