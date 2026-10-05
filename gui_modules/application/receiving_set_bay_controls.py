@@ -142,36 +142,59 @@ def refresh_receiving_layer_rows(
     on_resize_connections: Callable[[int, int], object],
     on_preview: Callable[[int], object],
 ) -> None:
-    """Render exactly one operator row per layer."""
+    """Render one stable operator row per layer without rebuilding unchanged Tk rows."""
     host = controls.layer_host
-    for child in tuple(host.winfo_children()):
-        child.destroy()
+    counts = tuple(max(1, int(raw)) for raw in connection_counts)
+    rows = list(getattr(host, "_phase6_receiving_layer_rows", ()) or ())
 
-    for layer_index, raw_count in enumerate(tuple(connection_counts)):
-        connection_count = max(1, int(raw_count))
-        row = ttk.Frame(host)
-        row.pack(fill=tk.X, pady=(0, 3))
-        ttk.Label(row, text=f"第{layer_index + 1}層", width=7, anchor=tk.W).pack(
-            side=tk.LEFT, padx=(0, 4)
+    # Reuse existing rows so a connection-count edit only changes text/commands;
+    # it must not tear down/recreate the input surface and indirectly disturb
+    # the renderer canvas.
+    while len(rows) > len(counts):
+        row = rows.pop()
+        try:
+            row["frame"].destroy()
+        except Exception:
+            pass
+
+    while len(rows) < len(counts):
+        row_index = len(rows)
+        frame = ttk.Frame(host)
+        frame.pack(fill=tk.X, pady=(0, 3))
+        layer_label = ttk.Label(frame, width=7, anchor=tk.W)
+        layer_label.pack(side=tk.LEFT, padx=(0, 4))
+        connection_label = ttk.Label(frame, width=5, anchor=tk.W)
+        connection_label.pack(side=tk.LEFT, padx=(0, 4))
+        minus_button = ttk.Button(frame, text="－連", width=5)
+        minus_button.pack(side=tk.LEFT, padx=(0, 2))
+        plus_button = ttk.Button(frame, text="＋連", width=5)
+        plus_button.pack(side=tk.LEFT, padx=(0, 4))
+        preview_button = ttk.Button(frame, text="預覽", width=6)
+        preview_button.pack(side=tk.LEFT)
+        rows.append(
+            {
+                "frame": frame,
+                "layer_label": layer_label,
+                "connection_label": connection_label,
+                "minus_button": minus_button,
+                "plus_button": plus_button,
+                "preview_button": preview_button,
+                "layer_index": row_index,
+            }
         )
-        ttk.Label(row, text=f"{connection_count}連", width=5, anchor=tk.W).pack(
-            side=tk.LEFT, padx=(0, 4)
+
+    for layer_index, (row, connection_count) in enumerate(zip(rows, counts)):
+        row["layer_index"] = layer_index
+        row["layer_label"].configure(text=f"第{layer_index + 1}層")
+        row["connection_label"].configure(text=f"{connection_count}連")
+        row["minus_button"].configure(
+            command=lambda layer_index=layer_index: on_resize_connections(layer_index, -1)
         )
-        ttk.Button(
-            row,
-            text="－連",
-            width=5,
-            command=lambda layer_index=layer_index: on_resize_connections(layer_index, -1),
-        ).pack(side=tk.LEFT, padx=(0, 2))
-        ttk.Button(
-            row,
-            text="＋連",
-            width=5,
-            command=lambda layer_index=layer_index: on_resize_connections(layer_index, 1),
-        ).pack(side=tk.LEFT, padx=(0, 4))
-        ttk.Button(
-            row,
-            text="預覽",
-            width=6,
-            command=lambda layer_index=layer_index: on_preview(layer_index),
-        ).pack(side=tk.LEFT)
+        row["plus_button"].configure(
+            command=lambda layer_index=layer_index: on_resize_connections(layer_index, 1)
+        )
+        row["preview_button"].configure(
+            command=lambda layer_index=layer_index: on_preview(layer_index)
+        )
+
+    host._phase6_receiving_layer_rows = tuple(rows)
