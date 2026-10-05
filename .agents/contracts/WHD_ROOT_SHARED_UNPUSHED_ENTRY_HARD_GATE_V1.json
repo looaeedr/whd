@@ -23,7 +23,7 @@
   "direct_root_mutation_test_gate": {
     "applies_when": "NEVER_CURRENT",
     "canonical_surface": null,
-    "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK",
+    "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_WORKSPACE_TASK",
     "forbidden_pre_root_green_outcomes": [
       "PLANNING_ONLY",
       "CLAIM_ONLY",
@@ -43,17 +43,16 @@
       "STATUS_QUERY",
       "PROGRESS_QUERY"
     ],
-    "git_unlock_dependency": "ROOT_TESTS_GREEN_AND_ROOT_DIFF_FROZEN",
-    "interactive_first_substantive_action": "ROOT_MUTATE",
+    "git_unlock_dependency": "WORKSPACE_TESTS_GREEN_AND_EXACT_DIFF_FROZEN",
+    "interactive_first_substantive_action": "WORKSPACE_MUTATE",
     "remote_without_root_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME",
     "required_contiguous_outer_sequence": [
-      "ROOT_MUTATE",
-      "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
-      "POST_MERGE_0_TEST_CLASSIFIED",
-      "POST_MERGE_0_TESTS_GREEN"
+      "WORKSPACE_MUTATE",
+      "WORKSPACE_TESTS_GREEN",
+      "EXACT_DIFF_FROZEN"
     ],
-    "root_capability_available_policy": "NO_HANDOFF_ONLY_STOP",
-    "same_invocation_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER",
+    "root_capability_available_policy": "WORKSPACE_CAPABLE_NO_HANDOFF_ONLY_STOP",
+    "same_invocation_until": "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER",
     "schema": "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1",
     "scope_switch_allowed_only_on": [
       "USER_EXPLICIT_TASK_CHANGE",
@@ -64,8 +63,8 @@
       "USER_INPUT_REQUIRED"
     ],
     "status_or_progress_query_is_stop_reason": false,
-    "task_scope_sticky_until": "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
-    "test_red_action": "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST",
+    "task_scope_sticky_until": "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
+    "test_red_action": "FIX_IN_SAME_WORKSPACE_AND_RETEST",
     "ordinary_missing_drive_mount_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
     "fallback_activation": "RETIRED",
     "status": "SUPERSEDED"
@@ -216,28 +215,28 @@
     "outer_primary_action_policy": "PHASE_OUTCOME_OR_REAL_BLOCKER_ONLY",
     "outer_visible_pipeline": [
       "FRESH_READ",
-      "ROOT_MUTATE",
+      "WORKSPACE_MUTATE",
       "TARGETED_TEST",
       "EXACT_DIFF",
       "POST_PUSH_CI",
       "MERGE_FINALIZE"
     ],
-    "root_repair_events": [
+    "schema": "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1",
+    "single_writer_policy": "DELIVERY_SCOPE_SINGLE_WRITER_ONLY",
+    "stale_plan_policy": "STALE_PLAN_MUST_DIE",
+    "test_red_outer_action": "RETURN_TO_WORKSPACE_REPAIR_IN_SAME_SESSION",
+    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS",
+    "workspace_repair_events": [
       "TEST_RED"
     ],
-    "root_repair_forbidden_outer_transactions": [
+    "workspace_repair_forbidden_outer_transactions": [
       "FAIL_QA",
       "RECONCILE",
       "START_QA",
       "ACCEPT_QA",
       "ACQUIRE",
       "RESERVE_PATHS"
-    ],
-    "schema": "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1",
-    "single_writer_policy": "SHARED_0_LINEAGE_ROOT__SINGLE_WRITER_ONLY_AT_DELIVERY",
-    "stale_plan_policy": "STALE_PLAN_MUST_DIE",
-    "test_red_outer_action": "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION",
-    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS"
+    ]
   },
   "owner": "tools/root_local_first_gate.py",
   "path_reservation": {
@@ -297,19 +296,8 @@
   "role": "CURRENT",
   "schema": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1",
   "shared_unpushed_integration": {
-    "auto_resolve_forbidden": true,
-    "body_lane": "/Google Drive/WHD/.unpushed/body/0",
-    "conflict_checkpoint_schema": "WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1",
-    "conflict_resolution": "EXPLICIT_USER_DECISION_ONLY",
-    "conflict_state": "BLOCKED_USER_DECISION",
-    "contract": ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json",
-    "docs_lane": "/Google Drive/WHD/.unpushed/docs/0",
-    "integration_root": "/Google Drive/WHD/.unpushed",
-    "lane_authority": "LATEST_0_ONLY",
-    "later_worker_base": "LATEST_0_GENERATION_AND_HASH",
-    "machine_owner": "tools/shared_unpushed_integration.py",
-    "merge_mode": "THREE_WAY",
     "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
+    "status": "HISTORICAL",
     "mode": "SUPERSEDED_DATA_ONLY",
     "default_route": false,
     "activation": "NEVER_CURRENT",
@@ -334,7 +322,7 @@
   },
   "test_profile_owner": "tools/change_test_profile.py",
   "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
-  "version": 11,
+  "version": 12,
   "git_after_remote_authority_before_unlock": [
     "READ",
     "FETCH",
@@ -413,17 +401,17 @@
     "schema": "WHD_DELIVERY_FILESET_LOCK_V1",
     "phase": "AFTER_TESTED_DIFF_FROZEN_BEFORE_REMOTE_CONTENT_WRITE",
     "required_identity": [
-      "lane",
-      "generation",
+      "issue",
+      "source_sha",
+      "target_branch",
       "write_paths",
       "delete_paths",
       "path_hashes",
-      "manifest_digest",
-      "source_zero_identity",
+      "diff_digest",
       "delivery_invocation_identity"
     ],
     "push_scope": "EXACT_LOCK_EQUALITY",
-    "mutation_after_lock": "INVALIDATE_RETURN_ROOT_RETEST_REFREEZE",
+    "mutation_after_lock": "INVALIDATE_RETURN_WORKSPACE_RETEST_REFREEZE",
     "merge_precheck": "FRESH_TARGET_HEAD_AND_LOCKED_BLOB_RECHECK"
   },
   "post_delivery_cleanup": {
@@ -435,9 +423,9 @@
       "LATER_HASH_CHANGES",
       "OTHER_WORKER_MUTATIONS"
     ],
-    "same_path_future_change": "REREGISTER_AS_NEW_ZERO_MODIFICATION",
+    "same_path_future_change": "NEW_WORKSPACE_CHANGE_NEW_TESTED_DIFF",
     "repository_file_delete_forbidden": true,
-    "receipt_required": true,
+    "receipt_required": false,
     "status": "HISTORICAL",
     "activation": "NEVER_CURRENT",
     "terminal_gate": false
