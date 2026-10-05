@@ -1204,57 +1204,22 @@ def _phase6_save_project_file_as(self):
 
 
 def _phase6_refresh_active_endcap_from_linked(self, linked):
-    key = str(self.designer_workspace.active_part or "")
-    if key not in ENDCAP_FW_PARTS or key not in linked:
-        return
-    profiles = linked[key]
-    self.state.profiles = {
-        "X": clone_profile(profiles.get("X", ())),
-        "Y": clone_profile(profiles.get("Y", ())),
-    }
-    try:
-        self.bend_ui.rebuild_tabs()
-    except Exception:
-        pass
-
+    return _phase6_composition(self).refresh_active_endcap_from_linked(
+        globals(), linked
+    )
 
 def _phase6_commit_endcap_fw_state(self):
-    """View/effect refresh after transaction owner committed EndCap FW state."""
-    linked = _phase6_rebuild_linked_endcaps(self)
-    _phase6_refresh_active_endcap_from_linked(self, linked)
-    try:
-        self.do_update()
-    except Exception:
-        pass
-    return linked
-
+    return _phase6_composition(self).commit_endcap_fw_state(globals())
 
 def _phase6_set_endcap_fw_override(self, part_key, value):
-    _phase6_settings_transactions(self).commit_endcap_fw_override(
-        str(part_key), value
+    return _phase6_composition(self).set_endcap_fw_override(
+        globals(), part_key, value
     )
-    return _phase6_commit_endcap_fw_state(self)
-
-
-
 
 def _phase6_on_endcap_fw_value_selected(self, part_key, value_var):
-    try:
-        value = float(value_var.get())
-    except (TypeError, ValueError):
-        return
-    _phase6_set_endcap_fw_override(self, part_key, value)
-
-
-_BOX_STRUCTURE_LABELS = {
-    BoxBodyStructureType.INTEGRAL: "一體成型",
-    BoxBodyStructureType.TWO_PIECE_W_SPLIT: "二件式（W 二分）",
-    BoxBodyStructureType.THREE_PIECE_W_SPLIT: "三件式（W 三分）",
-    BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT: "三件式（側背分離）",
-}
-_BOX_STRUCTURE_LABEL_TO_TYPE = {label: key for key, label in _BOX_STRUCTURE_LABELS.items()}
-
-
+    return _phase6_composition(self).on_endcap_fw_value_selected(
+        globals(), part_key, value_var
+    )
 
 def _phase6_receiving_layout_applicable(self):
     return _phase6_composition(self).receiving_layout_applicable()
@@ -1622,38 +1587,7 @@ def _phase6_render_active_drawing_edge_controls(self):
     return _phase6_composition(self).render_active_drawing_edge_controls(globals())
 
 def _phase6_on_box_symmetry_changed(self):
-    """Keep BoxBody symmetry authoritative and fail closed for asymmetric families."""
-    var = getattr(self, "v_sy", None)
-    if var is None:
-        return
-    transactions = _phase6_settings_transactions(self)
-    if not _phase6_box_symmetry_allowed(self):
-        _phase6_apply_box_symmetry_policy(self)
-        target = bool(getattr(self.state, "symmetric", False))
-        if hasattr(self, "bend_ui"):
-            self.bend_ui._phase6_refresh_symmetry_bar()
-    else:
-        try:
-            target = bool(var.get())
-        except Exception:
-            return
-    transactions.commit_symmetry(self.state, target)
-
-    # v_sy already owns an original trace to queue_update(). When this command
-    # callback is invoked by the restored checkbox, cancel that queued duplicate
-    # redraw and perform the update once with the new authoritative state.
-    pending = getattr(self, "_job", None)
-    root = getattr(self, "root", None)
-    if pending and root is not None:
-        try:
-            root.after_cancel(pending)
-        except Exception:
-            pass
-        self._job = None
-    try:
-        self.do_update()
-    except Exception:
-        pass
+    return _phase6_composition(self).on_box_symmetry_changed(globals())
 
 def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var, reserve_v_var):
     """Commit receiving WRAP reserve values without owning the Joint relation."""
