@@ -1884,30 +1884,54 @@ class Phase6ApplicationHost:
         return resolved
 
     def _door_layout_baseline_scene(self, cell, val):
-        model = self._baseline_source_model()
-        if not model or not ae.has_baseline_part(model, "門.dxf"):
+        family_model = self._baseline_source_model()
+        baseline_model = (
+            cabinet_family_policy.baseline_feature_model_name(family_model)
+            if family_model else None
+        )
+        if not baseline_model or not ae.has_baseline_part(baseline_model, "門.dxf"):
             return None, ae.baseline_source_label("", "門.dxf")
-        source_fp = ae.baseline_source_fingerprint(ae.baseline_expected_path(model, "門.dxf"))
+        source_fp = ae.baseline_source_fingerprint(
+            ae.baseline_expected_path(baseline_model, "門.dxf")
+        )
         cache_key = (
-            source_fp, model, float(cell.start_width), float(cell.start_height), float(val['t']), float(val['fw']),
+            source_fp, family_model, baseline_model,
+            float(cell.start_width), float(cell.start_height),
+            float(val['t']), float(val['fw']),
             float(val['door_gap_w']), float(val['door_gap_h']),
-            float(val['door_fold_l']), float(val['door_fold_r']), float(val['door_fold_t']), float(val['door_fold_b']),
-            bool(cell.edges.left), bool(cell.edges.right), bool(cell.edges.top), bool(cell.edges.bottom),
+            float(val['door_fold_l']), float(val['door_fold_r']),
+            float(val['door_fold_t']), float(val['door_fold_b']),
+            bool(cell.edges.left), bool(cell.edges.right),
+            bool(cell.edges.top), bool(cell.edges.bottom),
         )
         if cache_key in self._door_layout_baseline_cache:
-            return self._door_layout_baseline_cache[cache_key], ae.baseline_source_label(model, "門.dxf")
+            return (
+                self._door_layout_baseline_cache[cache_key],
+                ae.baseline_source_label(baseline_model, "門.dxf"),
+            )
         try:
+            # FW conversion belongs to the cabinet family (Receiving), while
+            # fixed certified Door features may come from its shared Vault baseline.
             material_fw = self._door_material_frame_width(
-                val['fw'], val['t'], model_name=model
+                val['fw'], val['t'], model_name=family_model
             )
             data = ae.get_stretched_door_data(
-                model, cell.start_width, cell.start_height, val['t'], material_fw,
+                baseline_model,
+                cell.start_width, cell.start_height, val['t'], material_fw,
                 val['door_gap_w'], val['door_gap_h'],
-                val['door_fold_l'], val['door_fold_r'], val['door_fold_t'], val['door_fold_b'],
+                val['door_fold_l'], val['door_fold_r'],
+                val['door_fold_t'], val['door_fold_b'],
                 frame_edges=cell.edges,
+                nameplate_center_datum_top=(
+                    cabinet_family_policy.door_nameplate_center_datum_top(
+                        family_model
+                    )
+                ),
             )
             self._door_layout_baseline_cache[cache_key] = data.scene
-            return data.scene, ae.baseline_source_label(model, "門.dxf")
+            return data.scene, ae.baseline_source_label(
+                baseline_model, "門.dxf"
+            )
         except Exception:
             return None, "未使用基準檔（程式計算生成）"
 
@@ -2046,10 +2070,17 @@ class Phase6ApplicationHost:
     def _door_layout_overview_snapshot(self, render_data_by_part_key=None):
         return _door_layout_overview_snapshot_impl(self, render_data_by_part_key)
     def draw_door_layout_overview(self, *, canvas=None, render_data_by_part_key=None):
-        if canvas is None: self._sync_door_canvas_double_click_binding(); canvas = self.canvas_door
+        if canvas is None:
+            self._sync_door_canvas_double_click_binding()
+            canvas = getattr(self, "canvas_door", None)
+        # Phase6PrimaryApplication does not own the legacy 2D Door canvas.  Hole
+        # editor close callbacks must therefore be a safe no-op on that host.
+        if canvas is None:
+            return None
         self._destroy_door_layout_entry_widgets()
         snapshot = self._door_layout_overview_snapshot(render_data_by_part_key)
-        if snapshot.get("error") is not None: return _draw_door_layout_error_impl(self, canvas, snapshot["error"])
+        if snapshot.get("error") is not None:
+            return _draw_door_layout_error_impl(self, canvas, snapshot["error"])
         return _draw_door_layout_overview_preview_impl(self, snapshot, canvas)
 
     def _door_layout_divider_frame_snapshot(self, columns, val):
