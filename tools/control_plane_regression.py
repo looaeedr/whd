@@ -34,6 +34,7 @@ COMPILE_PATHS = (
     "tools/shared_unpushed_integration.py",
     "tools/phase6_remote_preflight.py",
     "tools/phase6_preflight_push_request.py",
+    "tools/production_x_post_merge_finalize.py",
     "tools/control_plane_regression.py",
 )
 
@@ -79,6 +80,7 @@ STATIC_PYTEST_PATHS = (
     "tests/process/test_issue1196_scheduler_host_lifecycle_gap.py",
     "tests/process/test_issue1063_actions_workflow_cleanup.py",
     "tests/process/test_issue1265_codex_git_connector_routing.py",
+    "tests/process/test_issue1282_post_merge_finalize.py",
     "tests/test_execution_work_slot_autoincrement.py",
     "tests/test_dm5_deep_module_writeback_contract.py",
     "tests/test_issue443_t1_dead_glue.py",
