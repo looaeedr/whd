@@ -24,7 +24,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Build exact production X mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          git update-ref refs/heads/cleanup/2d-3d-sync "${GITHUB_SHA}"
+          git bundle create /tmp/WHD_CURRENT_MIRROR.bundle refs/heads/cleanup/2d-3d-sync
+          git bundle verify /tmp/WHD_CURRENT_MIRROR.bundle
+          git archive --format=zip --output=/tmp/WHD_CURRENT_TREE.zip "${GITHUB_SHA}"
+          printf '%s\n' "${GITHUB_SHA}" > /tmp/WHD_CURRENT_HEAD.txt
+          (
+            cd /tmp
+            sha256sum WHD_CURRENT_MIRROR.bundle WHD_CURRENT_TREE.zip WHD_CURRENT_HEAD.txt
+          ) > /tmp/WHD_CURRENT_MIRROR.sha256
 
       - name: Recover missing records and run canonical FINALIZE
         env:
@@ -35,6 +49,19 @@ jobs:
           python tools/production_x_post_merge_finalize.py \
             --head-sha "${GITHUB_SHA}" \
             --output /tmp/production-x-post-merge-finalize.json
+
+      - name: Save current production mirror
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-x-current-mirror-${{ github.run_id }}
+          path: |
+            /tmp/WHD_CURRENT_MIRROR.bundle
+            /tmp/WHD_CURRENT_TREE.zip
+            /tmp/WHD_CURRENT_HEAD.txt
+            /tmp/WHD_CURRENT_MIRROR.sha256
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Save finalization result
         if: always()
