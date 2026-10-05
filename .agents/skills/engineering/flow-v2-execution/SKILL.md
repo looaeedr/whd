@@ -25,14 +25,27 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V2**：repository-content implementation 先解析該 executor 自己的 repo workspace，fresh 對齊 GitHub `cleanup/2d-3d-sync` production baseline；普通 startup 不要求 Drive mount/shared-0。scheduler/GitHub-only 仍依 trusted runtime contract 使用自己的 workspace/remote surface。
 0.5. **ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1**：先由 `select_repository_content_route` 判定。預設 `WORKSPACE_DEFAULT`：`WORKSPACE_SOURCE_CURRENT → WORKSPACE_MUTATIONS_COMPLETE → WORKSPACE_TESTS_GREEN → exact diff → delivery branch/PR/checks`。只有 fresh touched-path shared-0 drift 才進 `SHARED_ZERO_FALLBACK` 舊 generation/freeze 流程。
 0.5.1. **MERGE_CONFLICT_USER_DECISION_HARD_GATE_V1**：只在 `SHARED_ZERO_FALLBACK` 生效；shared `0` 三方合併 conflict 固定 `BLOCKED_USER_DECISION`，禁止 auto ours/theirs。
-1. ChatGPT execution surface 完成 AI Library pre-action gate：`AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。
-2. 使用 canonical `tools/execution_entry_contract.py` 產生並 user-visible 顯示 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。
-3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。此時仍未取得 execution mutation authority。
+1. **ChatGPT surface only**：若本 runtime 實際具有 AI Library connector，完成 `AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。Codex / CLI / headless / scheduler 沒有 AI Library surface 時固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，**不得因此 BLOCKED 或停止**；直接以 repo CURRENT authority + Phase6 required references 繼續。
+2. 使用 canonical `tools/execution_entry_contract.py` 產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。interactive chat 必須 user-visible；Codex/CLI/headless 以 `WHD_EXECUTION_STARTUP_COMMUNICATION_V1` 留 `STDOUT / TASK_EVENT / LOG` machine-visible evidence。
+3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 surface-aware `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。interactive chat 用 user-visible first line；Codex/CLI/headless 用 first machine-visible startup event。缺少 chat UI 本身不是 blocker。此時仍未取得 execution mutation authority。
 4. recurring scheduler / `/排程A` / `/排程B` 若尚不知道 exact owning Issue，才可使用下面的 `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`；其他入口不得借此擴張 startup scope。
 5. 對 exact owning Issue + branch + HEAD 執行 Phase6 Knowledge Preflight。interactive/chat 可用 owner-authored `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1` Issue comment transport；A/B scheduler **不得依賴 scheduler-side Issue comment mutation**，固定用 `.dispatch/preflight-request.json` existing-file CAS push 到 `coord/preflight-requests-a|b`，由 `.github/workflows/whd-phase6-preflight-push.yml` 執行同一 canonical remote runner並由 Actions 發 result comment。
 6. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
 7. scheduler 若曾使用 bootstrap projection，必須丟棄該 projection 並再次 fresh-read canonical scheduler projection；只有到此時，才可進入 Flow v2 ExecutionRecord / transaction / lease / next_action 與正常 WAKE。
 
+
+### CODEX_HEADLESS_EXECUTION_LIVENESS_V1
+
+Codex / CLI / headless runtime 必須走同一 Flow v2 authority，但**不得把 chat-only capability 當硬 prerequisite**：
+
+- `AI Library` 缺失 → `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，不是 `PROJECT_STARTUP_HARD_GATE_FAILED`。
+- startup declaration / Skill announcement → machine-visible evidence 即可；不得等待 chat UI。
+- ordinary content root → executor-local workspace；Codex 常見 `/workspace/whd`，不得回退固定 Drive root。
+- baseline `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 已由 workspace baseline policy 放行，不需第二份 remote authority。
+- 使用者已明確授權 exact repository-content task 後，可 mint `WORKSPACE_DELIVERY` 供同 invocation + 同 task scope 的 tested delivery branch / push / PR / CI / merge/readback；**同 scope 不得在 push/PR 階段再次向使用者索取同一授權**。
+- 真正 host credential/network failure 才屬 capability blocker；policy 不得把 AI Library、chat UI、Drive mount、重複確認偽裝成 capability blocker。
+
+machine communication owner=`tools/execution_entry_contract.py::build_startup_communication_evidence`。
 
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
