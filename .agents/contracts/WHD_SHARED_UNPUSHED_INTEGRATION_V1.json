@@ -1,207 +1,33 @@
 {
   "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
+  "version": 2,
   "status": "HISTORICAL",
-  "canonical_root": "/Google Drive/WHD",
-  "integration_root": "/Google Drive/WHD/.unpushed",
-  "lanes": {
-    "body": "/Google Drive/WHD/.unpushed/body/0",
-    "docs": "/Google Drive/WHD/.unpushed/docs/0"
-  },
-  "classification": {
-    "principle": "CLASSIFY_BY_OWNERSHIP_NOT_EXTENSION",
-    "docs_includes": [
-      "governance",
-      "skills",
-      "AGENTS",
-      "process_authority",
-      "authority_registry",
-      "SOP",
-      "governance_contracts",
-      "governance_tests",
-      "human_reading_docs"
-    ],
-    "body_includes": [
-      "product_code",
-      "product_tests",
-      "ui",
-      "renderer",
-      "geometry",
-      "manufacturing",
-      "product_required_docs"
-    ],
-    "product_required_doc_rule": "IF_OMITTING_THE_DOCUMENT_MAKES_THE_PRODUCT_DELIVERY_INCOMPLETE_OR_UNVERIFIABLE_THEN_BODY"
-  },
-  "path_lineage": {
-    "authority": "LANE_0_IS_SINGLE_UNPUSHED_INTEGRATION_AUTHORITY",
-    "later_worker_base": "LATEST_0",
-    "merge_mode": "THREE_WAY_WITH_BASE_GENERATION_AND_HASH",
-    "overwrite_latest_0": false,
-    "generation_monotonic": true
-  },
-  "merge_conflict_hard_gate": {
-    "schema": "WHD_UNPUSHED_CONFLICT_CHECKPOINT_V1",
-    "state": "BLOCKED_USER_DECISION",
-    "required_actions": [
-      "WRITE_CONFLICT_CHECKPOINT",
-      "RECORD_CONFLICT_PATHS_AND_HUNKS",
-      "RECORD_BASE_CURRENT_WORKER_IDENTITIES",
-      "NOTIFY_USER_FOR_DECISION"
-    ],
-    "forbidden_actions": [
-      "AUTO_RESOLVE",
-      "AUTO_OURS",
-      "AUTO_THEIRS",
-      "AUTO_REWRITE",
-      "ADVANCE_GENERATION",
-      "RUN_PUSH",
-      "CREATE_DELIVERY_BRANCH",
-      "CONTINUE_AS_IF_MERGED"
-    ],
-    "resume_requires": "EXPLICIT_USER_CONFLICT_DECISION"
-  },
-  "push": {
-    "entry_skill": "/推推",
-    "allowed_targets": [
-      "文檔",
-      "主體"
-    ],
-    "branch_creation_timing": "DELIVERY_ONLY_AFTER_LANE_GREEN",
-    "scope_gate": "PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_LOCK",
-    "cross_lane_leakage": "FORBIDDEN",
-    "pre_lock_manifest_equality": "VALIDATION_ONLY_NOT_DELIVERY_AUTHORITY"
-  },
-  "remote_authority_scope": {
-    "interactive_repository_content": "WORKSPACE_BASELINE_READ_ALLOWED_OTHER_ACTIONS_REQUIRE_EXPLICIT_AUTHORITY",
-    "control_plane_authority": "OWN_CURRENT_CONTRACTS_NOT_OVERRIDDEN_BY_PUSH_SKILL",
-    "control_plane_cannot_author_root_content": true,
-    "workspace_baseline_actions": [
-      "READ",
-      "FETCH",
-      "COMPARE",
-      "BRANCH_READ",
-      "REPO_METADATA_READ"
-    ]
-  },
-  "post_delivery_tail": {
-    "execution_terminal_owner": "WHD_EXECUTION_RECORD_V2",
-    "issue_sync_authority": "POST_DELIVERY_ISSUE_SYNC",
-    "required_order": [
-      "MERGE_READBACK_VERIFIED",
-      "DELIVERY_RECEIPT_BOUND",
-      "SYNC_LINKED_GITHUB_ISSUES",
-      "ISSUE_SYNC_READBACK_VERIFIED",
-      "FLOW_V2_DONE",
-      "LANE_DELIVERY_RECEIPT_BOUND",
-      "FINALIZE_DELIVERED_LANE_ZERO",
-      "DURABLE_CLEANUP_COMPLETE"
-    ],
-    "lane_cleanup_requires_flow_v2_done": true
-  },
-  "root_sync_policy": {
-    "mode": "OPTIONAL_MAINTENANCE",
-    "terminal_gate": false,
-    "issue_closure_authority": false,
-    "missing_or_invalid_receipt": "NON_BLOCKING_MAINTENANCE_DRIFT"
-  },
-  "delivery_transport": {
-    "primary": "DIRECT_EXACT_LOCKED_FILESET_APPLY",
-    "workspace_staged_fallback": {
-      "schema": "WHD_WORKSPACE_STAGED_GIT_DELIVERY_FALLBACK_V1",
-      "status": "CURRENT",
-      "workspace_authority": false,
-      "requires_frozen_manifest": true,
-      "requires_exact_hash_readback": true,
-      "bundle_role": "TRANSPORT_CAPSULE_ONLY_NOT_REPOSITORY_CONTENT",
-      "git_tree_must_expand_to_exact_locked_paths": true,
-      "temporary_relay_is_repository_content": false,
-      "cleanup_after_terminal": true,
-      "invariant": "WORKSPACE_STAGED_RELAY_DOES_NOT_CHANGE_DELIVERY_AUTHORITY_OR_FILESET",
-      "triggers": [
-        "FRESH_SHARED_ZERO_DRIFT_ON_TOUCHED_PATHS",
-        "SOURCE_CONNECTOR_NOT_DIRECTLY_USABLE_AS_GIT_CONTENT_WRITE_INPUT"
-      ],
-      "codex_cloud_mount_bridge": {
-        "schema": "WHD_CHATGPT_CLOUD_MOUNT_TO_CODEX_WORKSPACE_BRIDGE_V1",
-        "classification": "CHATGPT_CLOUD_MOUNT_NOT_VISIBLE_TO_CODEX",
-        "classification_kind": "EXECUTION_SURFACE_TRANSPORT_MISMATCH",
-        "blocker": false,
-        "local_machine_unavailable": false,
-        "authority_loss": false,
-        "codex_must_not_require_direct_canonical_mount": true,
-        "stage_exact_paths_only": true,
-        "required_stage_identity": [
-          "canonical_path",
-          "workspace_path",
-          "size",
-          "sha256",
-          "source_generation_or_manifest_digest"
-        ],
-        "mismatch_state": "CODEX_WORKSPACE_STAGE_IDENTITY_MISMATCH",
-        "mismatch_action": "RESTAGE_FROM_CANONICAL_AUTHORITY",
-        "invariant": "CODEX_WORKSPACE_EXECUTION_NEVER_BECOMES_CANONICAL_AUTHORITY",
-        "workspace_mirror_policy": {
-          "schema": "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
-          "compatibility_aliases": [
-            "WHD_CODEX_WORKSPACE_LATEST_MIRROR_V1"
-          ],
-          "machine_owner": "tools/workspace_canonical_sync.py",
-          "persistence": "EXECUTOR_DEFINED",
-          "mirror_scope": "FALLBACK_RECONCILE_CACHE",
-          "authority": false,
-          "canonical_latest_owner": "DRIVE_SHARED_ZERO_ONLY_WHEN_FALLBACK_ACTIVE",
-          "startup_reconcile_required": false,
-          "reconcile_key": "CANONICAL_GENERATION_OR_MANIFEST_DIGEST",
-          "sync_mode": "INCREMENTAL_CHANGED_PATHS",
-          "commands": [
-            "sync-in",
-            "status",
-            "prepare-outbound",
-            "verify-outbound"
-          ],
-          "required_schemas": [
-            "WHD_WORKSPACE_CANONICAL_SYNC_MANIFEST_V1",
-            "WHD_WORKSPACE_CANONICAL_MIRROR_RECEIPT_V1",
-            "WHD_WORKSPACE_CANONICAL_OUTBOUND_RELAY_V1",
-            "WHD_WORKSPACE_CANONICAL_OUTBOUND_RECEIPT_V1"
-          ],
-          "required_mirror_receipt": [
-            "canonical_root_identity",
-            "canonical_generation_or_manifest_digest",
-            "mirror_root",
-            "verified_at"
-          ],
-          "changed_path_readback": [
-            "path",
-            "size",
-            "sha256"
-          ],
-          "preserve_dirty_work": true,
-          "dirty_path_conflict_state": "WORKSPACE_CANONICAL_RECONCILE_REQUIRED",
-          "delivery_scope_still_locked": true,
-          "terminal_cleanup": "KEEP_MIRROR_DROP_EPHEMERAL_RELAY_ONLY",
-          "invariant": "WORKSPACE_CANONICAL_SYNC_IS_CONDITIONAL_FALLBACK_NOT_DEFAULT_STARTUP",
-          "shared_workspace_invariant": "SYNC_MACHINE_IS_SHARED_BUT_WORKSPACE_PATH_IS_EXECUTOR_LOCAL",
-          "activation": "RETIRED_DATA_ONLY",
-          "ordinary_startup_required": false,
-          "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE"
-        },
-        "activation_requires_shared_zero_drift": true
-      }
-    }
-  },
-  "mode": "SUPERSEDED_DATA_ONLY",
-  "default_route": false,
+  "role": "SUPERSEDED_DATA_ONLY",
+  "current_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
+  "current_route": "WORKSPACE_DEFAULT",
+  "current_routing_forbidden": true,
+  "authority": false,
   "activation": "NEVER_CURRENT",
-  "ordinary_workspace_flow": {
-    "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",
-    "production_branch": "cleanup/2d-3d-sync",
-    "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
-    "shared_zero_required": false,
-    "workspace_canonical_sync_required": false,
-    "delivery": "TESTED_DELIVERY_BRANCH_PR",
-    "drive_required": false,
-    "route": "WORKSPACE_DEFAULT"
+  "default_route": false,
+  "historical_paths": {
+    "former_canonical_root": "/Google Drive/WHD",
+    "former_integration_root": "/Google Drive/WHD/.unpushed",
+    "former_body_lane": "/Google Drive/WHD/.unpushed/body/0",
+    "former_docs_lane": "/Google Drive/WHD/.unpushed/docs/0"
   },
-  "routing_forbidden": true,
-  "authority": false
+  "historical_machine": "tools/shared_unpushed_integration.py",
+  "historical_workspace_transport": "tools/workspace_canonical_sync.py",
+  "allowed_use": [
+    "AUDIT",
+    "MIGRATION",
+    "HISTORICAL_RECEIPT_PARSE"
+  ],
+  "forbidden_current_use": [
+    "STARTUP_ROUTING",
+    "CONSTRUCTION_ROOT",
+    "AUTHORING_AUTHORITY",
+    "DELIVERY_AUTHORITY",
+    "BLOCKER_AUTHORITY",
+    "FINALIZE_AUTHORITY"
+  ]
 }
