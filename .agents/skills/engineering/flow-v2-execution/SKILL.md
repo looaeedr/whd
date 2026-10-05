@@ -425,6 +425,8 @@ DELETE 後必須再次 GET exact ref，只有 404/ABSENT 才可產生 `work_bran
 
 accepted merge SHA is an anchor，不是「target branch 永遠不可再前進」的 freeze point。ticket 已有 exact-head accepted QA 且 `closure.merged_sha` 已成立後，其他合法 ticket 可繼續推進同一 target branch；FINALIZE 不得因此強迫原 ticket 重跑 merge/QA/ancestry。
 
+**MERGE anchor identity 固定取 exact delivery PR 的 GitHub `merge_commit_sha`；fresh current target HEAD 只寫入 `record.target_sha`。** `ALREADY_MERGED` 也必須先驗 exact PR head/base identity，且當 current target 已超前 merge commit 時，用 trusted ancestry proof 證明 merge commit 仍是 target ancestor；不得把 current target HEAD 冒充 `closure.merged_sha`。若舊 machine 已寫錯 anchor，必須先走 trusted `RECONCILE` + `WHD_FLOW_V2_MERGE_ANCHOR_CORRECTION_PROOF_V1` 校正，再 FINALIZE；不得重跑 QA 或重做 delivery。
+
 
 FINALIZE trusted executor 必須 fresh-read `record.target_branch`：
 - current target == `closure.merged_sha`：直接使用 exact anchor readback。

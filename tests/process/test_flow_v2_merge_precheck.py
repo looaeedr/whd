@@ -1,4 +1,5 @@
 from tools.flow_v2_merge_precheck import (
+    ALREADY_MERGED,
     PR_IDENTITY_MISMATCH,
     READY_TO_MERGE,
     REQUIRED_CHECKS_PENDING,
@@ -58,3 +59,24 @@ def test_missing_required_check_is_not_ready_to_merge():
 def test_pr_head_identity_mismatch_fails_before_merge():
     result = _evaluate(pr_head_sha="d" * 40)
     assert result.classification == PR_IDENTITY_MISMATCH
+
+
+def test_already_merged_still_requires_exact_pr_identity():
+    result = _evaluate(
+        pr_merged=True,
+        pr_state="closed",
+        pr_head_sha="d" * 40,
+        observed_target_sha=NEW_TARGET,
+    )
+    assert result.classification == PR_IDENTITY_MISMATCH
+
+
+def test_already_merged_accepts_exact_identity_after_target_advanced():
+    result = _evaluate(
+        pr_merged=True,
+        pr_state="closed",
+        observed_target_sha=NEW_TARGET,
+        pr_base_sha=TARGET,
+    )
+    assert result.classification == ALREADY_MERGED
+    assert result.observed_target_sha == NEW_TARGET
