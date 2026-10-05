@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 ## 0. Authority 與遠端邊界
 
 1. 使用者本輪明確指示最高。
-2. WHD repository-content 工作先遵守 CURRENT `root-local-first` router：普通 tracked-path 刪除走 `WORKSPACE_DEFAULT` executor-local workspace；只有 fresh touched-path drift 證明需要 shared overlay 時才切 `SHARED_ZERO_FALLBACK`。同一 exact user-authorized task 可沿 `WORKSPACE_DELIVERY` 完成 delivery/readback，不得強迫先有 `/推推` 或 Drive mount。
+2. WHD repository-content 工作固定遵守 CURRENT `root-local-first`：tracked-path 刪除只走 `WORKSPACE_DEFAULT` executor-local workspace。Drive/shared-zero historical drift 不得改變 route；同一 exact user-authorized task 可沿 `WORKSPACE_DELIVERY` 完成 delivery/readback，不得強迫先有 `/推推` 或 Drive mount。
 3. Google Drive / Library / connector 只是 transport；transport 顯示「不支援 delete」時，不得把 move/archive 冒充 delete。
 4. 任何 destructive action 前先 fresh-read exact target identity：canonical path、file/folder kind、provider id、parent、必要時 hash/size/modified time。
 
@@ -55,9 +55,9 @@ TARGET_PATH_RESOLVED
 
 下列 path 不得因模糊的「清掉」「整理一下」直接刪除：
 
-- `/Google Drive/WHD` repo root；
+- `/Google Drive/WHD/WHD_MIRROR/CURRENT` 等 backup/mirror storage（不是 repo root）；
 - `.git/`、`.agents/`、`AGENTS.md`；
-- `.unpushed/` 根與 lane 根；
+- 歷史 `.unpushed/` evidence / lane 資料（若仍存在，只能依明確 cleanup scope 處理）；
 - canonical contract / registry / Source of Truth；
 - 使用者未明確包含在 scope 的其他 worker / lane / issue 資料。
 
@@ -71,52 +71,20 @@ TARGET_PATH_RESOLVED
 2. 在 workspace 建立 exact delete diff，執行適用 tests / validators，並 fresh-read target/touched-path drift。
 3. 普通 route=`WORKSPACE_DEFAULT`：tested exact delete diff → delivery branch → push/PR/CI → merge/readback → FINALIZE。
 4. 使用者已明確要求 exact repository-content delete task 時，可沿同 scope `WORKSPACE_DELIVERY` 完成 remote QA 與 owning-Issue finalization，不得到 push/PR/close 再重問相同授權。
-5. 只有 fresh evidence 證明 touched path 有較新的 shared `.unpushed/{docs|body}/0` drift 時才切 `SHARED_ZERO_FALLBACK`；此時才建立 delete marker、merge latest 0、post-merge test/freeze並由 `/推推` fallback delivery。
+5. shared `.unpushed/{docs|body}/0` / `SHARED_ZERO_FALLBACK` 已退出 CURRENT routing；historical staging 若需清理，只能作資料 cleanup，不得建立 delete marker、latest-0 merge/freeze 或 `/推推` fallback route。
 6. production target仍禁止直接 patch；target advancement只走正常 PR/merge/readback。
 
 **Missing Drive mount / missing shared-0 不是普通 tracked-path刪除的 blocker。** 不得因歷史 shared-0 流程把 Codex 拉回固定 `/Google Drive/WHD`。
 
-## 5. ACTIVE_ZERO_PHYSICAL_CLEANUP_HARD_GATE_V1
+## 5. HISTORICAL_SHARED_ZERO_CLEANUP_ONLY
 
-`.unpushed/docs/0` / `.unpushed/body/0` 的「清乾淨」必須同時滿足**狀態**與**實際 active namespace**。
+`.unpushed/docs/0` / `.unpushed/body/0` 已不是 CURRENT authoring/delivery namespace。若使用者明確要求清理殘留 historical staging，這是**資料清理**，不是 repository-content routing、施工或 finalization gate。
 
-**只改 `CURRENT.json` / manifest 為 `EMPTY` 不算清乾淨**。
-
-delivery/readback 後：
-
-1. 先依 delivery receipt 判斷哪些 path 已交付、哪些 path 必須 preserve；
-2. 只處理已交付且目前 hash/identity 沒有後續變更的 staging；
-3. fresh-list active `0`；舊 `files/` staging tree、舊 worker payload、舊 conflict staging 不得繼續留在 active `0` 冒充待推內容；
-4. 歷史 manifest / receipt 若需要保留，應留在明確 history/audit 位置，或只保留 active contract 明確要求的最小檔案；
-5. cleanup 後再 fresh-list active `0`，以實際 namespace readback 作完成證據。
-
-### Provider 不支援 child delete 時
-
-若 connector 能列出 staging，但對 child delete/move 回 `unsupported_operation` / `NOT_FOUND`，而 parent folder 本身可 move/rename：
-
-```text
-舊 active 0
-→ rename/move 成 history snapshot
-→ 重新建立乾淨的 active `0`
-→ 只回填 CURRENT + current empty manifest + delivery receipt
-→ fresh-list 驗 active 0 exact allowlist
-```
-
-此結果分類為 `MOVED_OUT_OF_ACTIVE_SCOPE` / `ARCHIVED_NOT_DELETED`；**不是** `PHYSICALLY_DELETED`。
-
-若連 parent move/rename 都不可用，回 `DELETE_UNSUPPORTED`，不得只把 pointer 改 EMPTY 後宣稱清除完成。
-
-## 6. Exact allowlist readback
-
-當任務是「清空 active 0」時，若 delivery 已完成且沒有 preserved paths，active `0` 預期只保留 CURRENT contract 所需最小 evidence，例如：
-
-```text
-CURRENT.json
-manifest.<current>.empty.json
-delivery-receipt.<delivered>.json
-```
-
-若 fresh-list 還看到舊 `files/`、superseded CURRENT、舊 conflict/staging，而且這些不是 CURRENT 明確要求的 active evidence，cleanup 不得回報完成。
+- 不得因 historical staging 存在而切換 `WORKSPACE_DEFAULT`；
+- 不得把 `CURRENT.json` / manifest / worker payload 當 CURRENT execution authority；
+- 不得因 provider 不支援 child delete 而重建新的 active `0`；
+- 能安全刪除／移出 historical scope 就做 exact cleanup；不能則回 `DELETE_UNSUPPORTED`；
+- cleanup readback 只證明資料清理結果，不得影響 Git merge/Flow v2 DONE/Issue closure。
 
 ## 7. Result evidence
 
