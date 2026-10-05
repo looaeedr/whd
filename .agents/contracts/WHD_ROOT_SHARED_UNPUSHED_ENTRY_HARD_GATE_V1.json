@@ -215,28 +215,30 @@
     "outer_primary_action_policy": "PHASE_OUTCOME_OR_REAL_BLOCKER_ONLY",
     "outer_visible_pipeline": [
       "FRESH_READ",
-      "ROOT_MUTATE",
+      "WORKSPACE_MUTATE",
       "TARGETED_TEST",
       "EXACT_DIFF",
       "POST_PUSH_CI",
       "MERGE_FINALIZE"
     ],
-    "root_repair_events": [
+    "root_repair_events": [],
+    "root_repair_forbidden_outer_transactions": [],
+    "schema": "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1",
+    "single_writer_policy": "DELIVERY_SCOPE_SINGLE_WRITER_ONLY",
+    "stale_plan_policy": "STALE_PLAN_MUST_DIE",
+    "test_red_outer_action": "RETURN_TO_WORKSPACE_REPAIR_IN_SAME_SESSION",
+    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS",
+    "workspace_repair_events": [
       "TEST_RED"
     ],
-    "root_repair_forbidden_outer_transactions": [
+    "workspace_repair_forbidden_outer_transactions": [
       "FAIL_QA",
       "RECONCILE",
       "START_QA",
       "ACCEPT_QA",
       "ACQUIRE",
       "RESERVE_PATHS"
-    ],
-    "schema": "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1",
-    "single_writer_policy": "SHARED_0_LINEAGE_ROOT__SINGLE_WRITER_ONLY_AT_DELIVERY",
-    "stale_plan_policy": "STALE_PLAN_MUST_DIE",
-    "test_red_outer_action": "RETURN_TO_ROOT_REPAIR_IN_SAME_SESSION",
-    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS"
+    ]
   },
   "owner": "tools/root_local_first_gate.py",
   "path_reservation": {
