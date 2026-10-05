@@ -116,62 +116,71 @@ Flow v2 對「拆工」與「delivery 完成」都要求 GitHub Issue durable sy
 因此「本地已拆好但 GitHub 沒工單」不是 READY；「推推 merge 好但工單沒同步」也不是完整 durable cycle。
 
 
-## WORKSPACE_EXECUTION_POLICY_V2 — SHARED UNPUSHED 0
+## WORKSPACE_EXECUTION_POLICY_V3 — EXECUTOR LOCAL WORKSPACE FIRST
 
 
-互動式 / chat runtime 的 repository-content 工作面固定是 `/Google Drive/WHD` full repo root；正常施工**不建立 Git work branch**。
+Repository-content routing 必須服從 `root-local-first` 的 CURRENT router；Flow v2 不得再另造 Drive-root-only content policy。
 
 
-- docs authority=`.unpushed/docs/0`；body authority=`.unpushed/body/0`。
-- worker candidate 可放 `.unpushed/{lane}/workers/<worker>/issue-<N>`；candidate 不是 authority。
-- governance / Skill / AGENTS / process authority / governance tests → docs。產品 code/tests/UI/renderer/geometry/manufacturing → body。產品必要文件跟 body。
-- later worker 若 path 已進 `0`，固定以 fresh latest `0` generation+hash 為 base。
-- worker GREEN 後仍必須 fresh-read latest `0` 三方合併，並跑 post-merge tests；最新 `0` GREEN 才能 freeze。
-- conflict 固定 `BLOCKED_USER_DECISION`；沒有使用者明確決策不能自動解。
-- `source/manifests`、ZIP snapshot、`/work/active` 不再是 CURRENT repository-content authority。
+- 預設 route=`WORKSPACE_DEFAULT`：`cleanup/2d-3d-sync → executor-local repo workspace → edit/test → exact tested diff → delivery branch/PR/checks → cleanup/2d-3d-sync`。
+- executor-local workspace 是 execution surface/cache，不是新的 canonical authority；共同 production baseline 是 fresh GitHub `cleanup/2d-3d-sync`。
+- **Google Drive mount 不可見本身不是 blocker，也不得觸發 handoff。** ChatGPT / Codex / C2C / 其他 executor 都使用各自 runtime 可寫、可測的 repo workspace。
+- 只有 `select_repository_content_route` 以 fresh touched-path evidence 判定 `shared_zero_drift_present=true` 時，才進 `SHARED_ZERO_FALLBACK`。
+- `SHARED_ZERO_FALLBACK` 才啟動 `.unpushed/docs/0` / `.unpushed/body/0`、latest-0 generation/hash、三方合併、post-merge tests、freeze、`CANONICAL_SHARED_0_UPDATED` 與 `/推推`。
+- fallback active 時：governance / Skill / AGENTS / process authority / governance tests → docs；產品 code/tests/UI/renderer/geometry/manufacturing → body；產品必要文件跟 body。
+- fallback conflict 固定 `BLOCKED_USER_DECISION`；沒有使用者明確決策不能 auto ours/theirs。
+- `source/manifests`、ZIP snapshot、`/work/active` 與單一固定實體 workspace path 都不是 CURRENT repository-content authority。
 
 
-### REMOTE_CONTENT_IMPLEMENTATION_HANDOFF_HARD_GATE_V2
+### REMOTE_CONTENT_IMPLEMENTATION_ROUTING_HARD_GATE_V3
 
 
-scheduler / GITHUB_ONLY / REMOTE_ACTION 只擁有 control-plane 與 post-push integration。若 next action 會新增/修改/刪除 repository content，固定 handoff 到 canonical root shared-0 workflow；不得在 GitHub branch 直接 author/hotfix。
+Repository-content 能否施工看 **executor repo workspace capability**，不是看 `/Google Drive/WHD` 是否掛載。
 
 
-root/shared-0 完成 `ZERO_MANIFEST_FROZEN` 後，remote lane 才可進 delivery。GitHub Actions 只作 post-push verification；verification 發現內容錯誤時回 root/shared-0 修正。
+- `INTERACTIVE` / chat：只要 `WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT`，就必須在該 executor workspace 繼續 edit/test；不得因 Drive mount 不可見而 handoff。
+- scheduler / `GITHUB_ONLY` / `REMOTE_ACTION`：若 trusted runtime 本身具 repo workspace + edit/test capability，可依同一 `WORKSPACE_DEFAULT` 路由施工；若只有 control-plane/post-push capability，才 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`。
+- 若且唯若 fresh router 已選 `SHARED_ZERO_FALLBACK`，而目前 runtime 無法存取該 shared-0 lineage，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`；這不是普通 startup prerequisite。
+- 任何 route 都禁止未測試的 GitHub-side content hotfix。Git write 只能承接已測 exact diff；GitHub Actions 只作 post-push verification，verification RED 必須回原 content route 修正/重測。
 
 
-### DELIVERY_PATH_RESERVATION_HARD_GATE_V1
+### DELIVERY_PATH_RESERVATION_HARD_GATE_V2
 
 
-Flow v2 `mutation_scope` / `RESERVE_PATHS` 保留，但**只在 selected lane 已 frozen GREEN、準備 `/推推 文檔|主體` 時作 delivery reservation**。它不再是 root/content write 前置 single-writer gate。
+Flow v2 `mutation_scope` / `RESERVE_PATHS` 是 **SHARED_ZERO_FALLBACK delivery 專用協調**，不得回長成 WORKSPACE_DEFAULT 的施工前置。
 
 
-固定：
+- `WORKSPACE_DEFAULT`：workspace tests GREEN + exact diff 後直接進 tested delivery branch / PR/checks；不要求 shared-0 manifest、freeze 或 `/推推` reservation。
+- `SHARED_ZERO_FALLBACK`：selected lane 已 frozen GREEN 後才作 delivery reservation；reservation 只綁 exact manifest paths。
+
+
+fallback 固定：
 
 
 1. selected lane manifest frozen；
-2. fresh-read target `main`；
+2. fresh-read selected production target，預設 `cleanup/2d-3d-sync`；
 3. 取得 delivery reservation，只綁本次 manifest exact paths；
 4. `PUSH_SCOPE_MUST_EQUAL_SELECTED_LANE_MANIFEST`；
-5. 才允許 `START_BRANCH / APPLY_COMMIT`；
+5. 才允許 fallback delivery `START_BRANCH / APPLY_COMMIT`；
 6. reservation conflict 只阻擋 delivery，不得抹掉既有 shared-0 worker成果；
 7. conflict 解除後 fresh target + revalidate manifest，再送 delivery。
 
 
-`RESERVE_PATHS / RELEASE_PATHS` 是 delivery coordination，不算 engineering progress。
+`RESERVE_PATHS / RELEASE_PATHS` 是 fallback delivery coordination，不算 engineering progress。
 
 
-### INVOCATION_ADMISSION_SESSION_V2
+### INVOCATION_ADMISSION_SESSION_V3
 
 
-Startup/root identity 與 Flow v2 lease 仍是 invocation/session-level gate；但 root content authoring 的 authority 是 shared-0 lineage，不是 mutation_scope。
+Startup/workspace identity 與 Flow v2 lease 仍是 invocation/session-level gate；lease / mutation_scope 不得自行把 content route 改成 shared-0。
 
 
-- ACQUIRE/lease 可先存在，用於 owning Issue 與 liveness；不能因此禁止另一 worker以 latest `0` 為 base 做 candidate。
-- delivery 前才要求 exact manifest reservation。
-- `START_BRANCH / APPLY_COMMIT` 仍必須 fresh `mutation_writer_guard` + shared-0 freeze/unlock receipt。
-- source/target/manifest 任一 identity drift，舊 delivery plan固定 `STALE_PLAN_MUST_DIE`。
-- terminal tail沿用既有 Flow v2 merge/finalize規則。
+- `WORKSPACE_DEFAULT` authoring surface 是 fresh-verified executor-local repo workspace；先 edit/test，再以 exact tested diff 開 delivery branch。
+- `SHARED_ZERO_FALLBACK` authoring lineage 才是 latest `0`；worker/candidate、三方合併、post-merge GREEN、freeze 與 reservation 均只在 fallback active 時生效。
+- ACQUIRE/lease 用於 owning Issue 與 liveness，不得強迫 ordinary workspace work 進 shared-0，也不得阻止 fallback worker以 latest `0` 為 base。
+- `START_BRANCH / APPLY_COMMIT`：WORKSPACE_DEFAULT 必須已有 workspace tests GREEN + exact diff；SHARED_ZERO_FALLBACK 必須另有 fresh `mutation_writer_guard` + freeze/unlock receipt。
+- source/target/diff/manifest（若有）任一 identity drift，舊 delivery plan固定 `STALE_PLAN_MUST_DIE`。
+- terminal tail沿用既有 Flow v2 QA/merge/finalize規則。
 
 
 ### SCHEDULER_CONTROL_ONLY_AUTO_FINALIZE_V1
@@ -187,7 +196,7 @@ Startup/root identity 與 Flow v2 lease 仍是 invocation/session-level gate；�
 2. READY record 的 `ACQUIRE.args.post_acquire` 必須綁定 `FINALIZE {completion_mode: CONTROL_ONLY}`；ACQUIRE caller 不得改寫成 `HANDOFF`、`START_BRANCH`、`RESERVE_PATHS` 或其他內容施工 continuation。
 3. ACQUIRE 後只有在 `mutation_scope=None`、無 active run、無 accepted QA、無 merged anchor、`head_sha == source_sha` 且仍為 scheduler lane 時，CONTROL_ONLY FINALIZE 才合法。
 4. trusted production executor 在 FINALIZE 前 fresh-read target HEAD；只有 fresh target readback + GitHub Issue close/readback 成功，才寫 `DONE / RELEASED`。CONTROL_ONLY 不偽造 QA、merge 或 content mutation evidence。
-5. 任一 content identity 已改、reservation/run/QA/merge evidence 出現、unknown `completion`、或 caller 想覆寫 bound continuation，一律 fail-closed；普通施工工單仍走原本 shared-0 → delivery → QA/merge/finalize 流程。
+5. 任一 content identity 已改、reservation/run/QA/merge evidence 出現、unknown `completion`、或 caller 想覆寫 bound continuation，一律 fail-closed；普通施工工單先由 CURRENT content router 選 WORKSPACE_DEFAULT 或 SHARED_ZERO_FALLBACK，再走對應 delivery → QA/merge/finalize；CONTROL_ONLY 不得改寫該 route。
 6. 這條路徑的目的就是消除 #1080 類 `READY → ACQUIRE → HANDOFF/START_BRANCH` 漂移；control-only ticket 不得再回舊 handoff/branch 流程。
 
 
@@ -770,14 +779,15 @@ POLL_QA 是 observation。若 fresh-read 已存在 **exact-head + exact-workflow
 
 
 
-### DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1
-Repository-content implementation uses shared `.unpushed/{body|docs}/0`; no delivery branch or path reservation is allowed before post-merge-0 GREEN and freeze.
+### CONTENT_MUTATION_TEST_HARD_GATE_V2
 
 
+- `WORKSPACE_DEFAULT`：repository-content 修改與 affected/profile tests 固定在 executor-local repo workspace 完成；tests GREEN + exact diff 後才可建立 tested delivery branch / PR。
+- `SHARED_ZERO_FALLBACK`：只有 fresh touched-path drift 已選中 fallback 時，才要求 shared `.unpushed/{body|docs}/0` 的 worker/merge/post-merge GREEN/freeze，之後再進 `/推推` delivery。
 - 使用者詢問進度/狀態只算 non-blocking checkpoint，不得把 status/progress query 當停止理由。
-
-
-- 若 runtime 無 canonical root content capability：`HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK`；禁止 GitHub-side content hotfix。
+- runtime 看不到 `/Google Drive/WHD` **不得**單獨形成 blocker；有可寫、可測 executor repo workspace 就繼續 `WORKSPACE_DEFAULT`。
+- runtime 真的沒有任何 repo workspace/edit/test capability 時，才 `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX`。
+- 已有 fresh evidence 選中 `SHARED_ZERO_FALLBACK`、但 runtime 無該 shared-0 content capability 時，才 `HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME`；禁止以此規則反推普通 startup 必須掛載 Drive。
 
 
 ### Frozen root evidence current-fence rule
