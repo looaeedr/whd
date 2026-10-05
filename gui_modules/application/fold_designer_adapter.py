@@ -2007,6 +2007,181 @@ class Phase6FoldDesignerComposition:
             return None
         return self.apply_ui_text_size(namespace, var.get())
 
+    def receiving_switch_adapter(
+        self,
+        namespace,
+        *,
+        reset=False,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        snapshot = dict(
+            getattr(app, "_phase6_input_snapshot", {}) or {}
+        )
+        layout = required("normalize_receiving_switch_layout")(
+            snapshot.get(required("RECEIVING_SWITCH_LAYOUT_KEY"))
+        )
+        fingerprint = required("stable_fingerprint")(layout)
+        adapter = (
+            None
+            if reset
+            else getattr(
+                app, "_phase6_receiving_switch_layout_adapter", None
+            )
+        )
+        if (
+            adapter is None
+            or getattr(
+                app,
+                "_phase6_receiving_switch_layout_fingerprint",
+                None,
+            )
+            != fingerprint
+        ):
+            adapter = required("ReceivingSwitchLayoutAdapter")(layout)
+            app._phase6_receiving_switch_layout_adapter = adapter
+            app._phase6_receiving_switch_layout_fingerprint = fingerprint
+        return adapter
+
+    def mark_receiving_switch_layout_dirty(
+        self,
+        namespace,
+        adapter,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        layout = adapter.layout
+        app._phase6_input_snapshot[
+            required("RECEIVING_SWITCH_LAYOUT_KEY")
+        ] = layout
+        app._phase6_receiving_switch_layout_fingerprint = required(
+            "stable_fingerprint"
+        )(layout)
+        workspace = getattr(app, "designer_workspace", None)
+        if workspace is not None:
+            workspace.mark_dirty()
+
+    def refresh_receiving_set_bay_control(self, namespace):
+        """Refresh the operator-facing Chinese layer/connection editor."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        controls = getattr(app, "receiving_layer_controls", None)
+        frame = getattr(app, "receiving_set_bay_control", None)
+        if controls is None or frame is None:
+            return False
+        if not required("_phase6_receiving_layout_applicable")(app):
+            if frame.winfo_manager():
+                frame.pack_forget()
+            return False
+
+        switch = self.receiving_switch_adapter(namespace)
+        controls.switch_brand_var.set(switch.brand)
+        original = required("original")
+        required("refresh_receiving_layer_rows")(
+            controls,
+            tk=original.tk,
+            ttk=original.ttk,
+            connection_counts=switch.connection_counts(),
+            on_resize_connections=lambda layer_index, delta: self.resize_receiving_bays(
+                namespace, layer_index, delta
+            ),
+            on_preview=lambda layer_index: self.open_receiving_layer_preview(
+                namespace, layer_index
+            ),
+        )
+        if not frame.winfo_manager():
+            frame.pack(fill=original.tk.X, pady=(0, 4))
+        return True
+
+    def on_receiving_switch_brand_selected(
+        self,
+        namespace,
+        brand,
+    ):
+        switch = self.receiving_switch_adapter(namespace)
+        if not switch.set_brand(brand):
+            return switch.brand
+        self.mark_receiving_switch_layout_dirty(namespace, switch)
+        return switch.brand
+
+    def add_receiving_layer(self, namespace):
+        switch = self.receiving_switch_adapter(namespace)
+        switch.add_layer()
+        self.mark_receiving_switch_layout_dirty(namespace, switch)
+        self.refresh_receiving_set_bay_control(namespace)
+        return True
+
+    def resize_receiving_bays(
+        self,
+        namespace,
+        layer_index,
+        delta,
+    ):
+        """Resize one switch layer's connection count only."""
+        switch = self.receiving_switch_adapter(namespace)
+        if not switch.resize_connections(
+            int(layer_index), int(delta)
+        ):
+            return False
+        self.mark_receiving_switch_layout_dirty(namespace, switch)
+        self.refresh_receiving_set_bay_control(namespace)
+        return True
+
+    def confirm_receiving_opening(
+        self,
+        namespace,
+        layer_index,
+        connection_index,
+        brand,
+    ):
+        app = self.app
+        resolver = getattr(
+            app, "_phase6_receiving_switch_opening_resolver", None
+        )
+        if not callable(resolver):
+            from tkinter import messagebox
+
+            messagebox.showwarning(
+                "開孔規格尚未建立",
+                f"{brand} 的 canonical 開孔規格尚未建立；未修改 3D 或截角資料。",
+                parent=getattr(app, "root", None),
+            )
+            return False
+        committed = resolver(
+            layer_index=int(layer_index),
+            connection_index=int(connection_index),
+            brand=str(brand),
+        )
+        if not committed:
+            return False
+        submit = getattr(app, "submit_update_intent", None)
+        if callable(submit):
+            submit("geometry", commit=True)
+        return True
+
+    def open_receiving_layer_preview(self, namespace, layer_index):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if getattr(app, "receiving_layer_controls", None) is None:
+            return False
+        switch = self.receiving_switch_adapter(namespace)
+        index, brand = int(layer_index), switch.brand
+        original = required("original")
+        return required("open_receiving_layer_preview")(
+            app.root,
+            tk=original.tk,
+            ttk=original.ttk,
+            layer_index=index,
+            connection_count=switch.connection_count(index),
+            brand=brand,
+            on_confirm=lambda connection_index: self.confirm_receiving_opening(
+                namespace,
+                index,
+                connection_index,
+                brand,
+            ),
+        )
+
     def settings_panel(self, namespace):
         """Construct the Settings presentation owner through the composition root."""
         app = self.app

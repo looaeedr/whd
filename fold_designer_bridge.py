@@ -1613,124 +1613,58 @@ def _phase6_commit_receiving_current_bay_controls(self):
 
 
 def _phase6_receiving_switch_adapter(self, *, reset=False):
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    layout = normalize_receiving_switch_layout(snapshot.get(RECEIVING_SWITCH_LAYOUT_KEY))
-    fingerprint = stable_fingerprint(layout)
-    adapter = None if reset else getattr(self, "_phase6_receiving_switch_layout_adapter", None)
-    if adapter is None or getattr(self, "_phase6_receiving_switch_layout_fingerprint", None) != fingerprint:
-        adapter = ReceivingSwitchLayoutAdapter(layout)
-        self._phase6_receiving_switch_layout_adapter = adapter
-        self._phase6_receiving_switch_layout_fingerprint = fingerprint
-    return adapter
+    return _phase6_composition(self).receiving_switch_adapter(
+        globals(), reset=bool(reset)
+    )
 
 
 def _phase6_mark_receiving_switch_layout_dirty(self, adapter):
-    layout = adapter.layout
-    self._phase6_input_snapshot[RECEIVING_SWITCH_LAYOUT_KEY] = layout
-    self._phase6_receiving_switch_layout_fingerprint = stable_fingerprint(layout)
-    workspace = getattr(self, "designer_workspace", None)
-    if workspace is not None:
-        workspace.mark_dirty()
+    return _phase6_composition(self).mark_receiving_switch_layout_dirty(
+        globals(), adapter
+    )
 
 
 def _phase6_refresh_receiving_set_bay_control(self):
-    """Refresh the operator-facing layer/connection editor.
-
-    The legacy function name is retained because callers still use it.  It does
-    not project or mutate the multi-cabinet ``receiving_layout`` Set/Bay state.
-    """
-    controls = getattr(self, "receiving_layer_controls", None)
-    frame = getattr(self, "receiving_set_bay_control", None)
-    if controls is None or frame is None:
-        return False
-    if not _phase6_receiving_layout_applicable(self):
-        if frame.winfo_manager():
-            frame.pack_forget()
-        return False
-
-    adapter = _phase6_receiving_switch_adapter(self)
-    controls.switch_brand_var.set(adapter.brand)
-    refresh_receiving_layer_rows(
-        controls,
-        tk=original.tk,
-        ttk=original.ttk,
-        connection_counts=adapter.connection_counts(),
-        on_resize_connections=lambda layer_index, delta: _phase6_resize_receiving_bays(
-            self, layer_index, delta
-        ),
-        on_preview=lambda layer_index: _phase6_open_receiving_layer_preview(
-            self, layer_index
-        ),
+    return _phase6_composition(self).refresh_receiving_set_bay_control(
+        globals()
     )
-    if not frame.winfo_manager():
-        frame.pack(fill=original.tk.X, pady=(0, 4))
-    return True
 
 
 def _phase6_on_receiving_switch_brand_selected(self, brand):
-    adapter = _phase6_receiving_switch_adapter(self)
-    if not adapter.set_brand(brand):
-        return adapter.brand
-    _phase6_mark_receiving_switch_layout_dirty(self, adapter)
-    return adapter.brand
+    return _phase6_composition(self).on_receiving_switch_brand_selected(
+        globals(), brand
+    )
 
 
 def _phase6_add_receiving_layer(self):
-    adapter = _phase6_receiving_switch_adapter(self)
-    adapter.add_layer()
-    _phase6_mark_receiving_switch_layout_dirty(self, adapter)
-    _phase6_refresh_receiving_set_bay_control(self)
-    return True
+    return _phase6_composition(self).add_receiving_layer(globals())
 
 
 def _phase6_resize_receiving_bays(self, layer_index, delta):
-    """Change one switch layer's connection count without touching 3D/manufacturing."""
-    adapter = _phase6_receiving_switch_adapter(self)
-    if not adapter.resize_connections(int(layer_index), int(delta)):
-        return False
-    _phase6_mark_receiving_switch_layout_dirty(self, adapter)
-    _phase6_refresh_receiving_set_bay_control(self)
-    return True
-
-
-def _phase6_confirm_receiving_opening(self, layer_index, connection_index, brand):
-    """Commit one selected connection only through an authoritative opening resolver."""
-    resolver = getattr(self, "_phase6_receiving_switch_opening_resolver", None)
-    if not callable(resolver):
-        from tkinter import messagebox
-        messagebox.showwarning(
-            "開孔規格尚未建立",
-            f"{brand} 的 canonical 開孔規格尚未建立；未修改 3D 或截角資料。",
-            parent=getattr(self, "root", None),
-        )
-        return False
-    committed = resolver(
-        layer_index=int(layer_index),
-        connection_index=int(connection_index),
-        brand=str(brand),
+    return _phase6_composition(self).resize_receiving_bays(
+        globals(), layer_index, delta
     )
-    if not committed:
-        return False
-    # The resolver owns the canonical feature mutation. One committed mutation
-    # produces one authoritative geometry flush shared by 3D/Corner Data.
-    submit = getattr(self, "submit_update_intent", None)
-    if callable(submit):
-        submit("geometry", commit=True)
-    return True
+
+
+def _phase6_confirm_receiving_opening(
+    self,
+    layer_index,
+    connection_index,
+    brand,
+):
+    return _phase6_composition(self).confirm_receiving_opening(
+        globals(),
+        layer_index,
+        connection_index,
+        brand,
+    )
 
 
 def _phase6_open_receiving_layer_preview(self, layer_index):
-    if getattr(self, "receiving_layer_controls", None) is None:
-        return False
-    adapter = _phase6_receiving_switch_adapter(self)
-    index, brand = int(layer_index), adapter.brand
-    return open_receiving_layer_preview(
-        self.root, tk=original.tk, ttk=original.ttk, layer_index=index,
-        connection_count=adapter.connection_count(index), brand=brand,
-        on_confirm=lambda connection_index: _phase6_confirm_receiving_opening(
-            self, index, connection_index, brand
-        ),
+    return _phase6_composition(self).open_receiving_layer_preview(
+        globals(), layer_index
     )
+
 
 _BACK_PANEL_MODE_LABELS = {
     BackPanelMode.FULL: "全板",

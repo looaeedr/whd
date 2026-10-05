@@ -589,3 +589,63 @@ def test_issue1227_settings_panel_and_external_ingress_are_composition_owned():
     assert "_phase6_sync_settings_panel_extension" not in adapter_source
     assert "_phase6_on_baseline_model_changed" not in adapter_source
     assert "_phase6_apply_ui_text_size" not in adapter_source
+
+
+def test_issue1229_receiving_layer_connection_ui_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_receiving_switch_adapter",
+        "_phase6_mark_receiving_switch_layout_dirty",
+        "_phase6_refresh_receiving_set_bay_control",
+        "_phase6_on_receiving_switch_brand_selected",
+        "_phase6_add_receiving_layer",
+        "_phase6_resize_receiving_bays",
+        "_phase6_confirm_receiving_opening",
+        "_phase6_open_receiving_layer_preview",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "ReceivingSwitchLayoutAdapter" not in body
+        assert "refresh_receiving_layer_rows" not in body
+        assert "open_receiving_layer_preview(" not in body or "_phase6_composition" in body
+
+    # Canonical Set/Bay layout ownership is intentionally not moved by #1229.
+    for name in (
+        "_phase6_receiving_adapter",
+        "_phase6_sync_receiving_current_bay",
+        "_phase6_commit_receiving_current_bay_controls",
+    ):
+        assert name in funcs
+        assert "_phase6_composition(self)" not in _source(BRIDGE, funcs[name])
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "receiving_switch_adapter",
+        "mark_receiving_switch_layout_dirty",
+        "refresh_receiving_set_bay_control",
+        "on_receiving_switch_brand_selected",
+        "add_receiving_layer",
+        "resize_receiving_bays",
+        "confirm_receiving_opening",
+        "open_receiving_layer_preview",
+    }.issubset(method_names)
+
+    controls_source = (
+        ROOT / "gui_modules" / "application" / "receiving_set_bay_controls.py"
+    ).read_text(encoding="utf-8")
+    assert "第{layer_index + 1}層" in controls_source
+    assert "{connection_count}連" in controls_source
+    assert "＋層" in controls_source
