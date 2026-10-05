@@ -17,7 +17,6 @@
     "drive_role": "MIRROR_BACKUP_ONLY",
     "drive_required": false,
     "missing_drive_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
-    "missing_shared_zero_action": "IGNORE_RETIRED_SHARED_ZERO_AND_CONTINUE_WORKSPACE_DEFAULT",
     "versioned_aliases_must_not_be_current": true
   },
   "direct_root_mutation_test_gate": {
@@ -279,8 +278,6 @@
     "drive_mount_absence_is_blocker": false,
     "workspace_capable_action": "CONTINUE_WORKSPACE_DEFAULT",
     "no_workspace_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
-    "shared_zero_fallback_activation": "RETIRED",
-    "shared_zero_missing_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME",
     "interactive_workspace_action": "CONTINUE_WORKSPACE_DEFAULT",
     "remote_mode_repository_content_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
     "drive_routing_forbidden": true
@@ -335,8 +332,6 @@
     "default_workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
     "applies_when": "WORKSPACE_DEFAULT",
-    "shared_zero_fallback_root": null,
-    "shared_zero_fallback_resolution_method": "RETIRED",
     "global_search_role": "CANDIDATE_ONLY",
     "same_name_outside_parent_chain": "REJECT",
     "failure_action": "WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED",
@@ -448,8 +443,6 @@
     "implementation": "EDIT_AND_TEST_IN_WORKSPACE",
     "delivery": "TESTED_DELIVERY_BRANCH_PR",
     "direct_production_push_forbidden": true,
-    "shared_zero_fallback_trigger": "RETIRED",
-    "shared_zero_fallback_machine": null,
     "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
     "executor_examples": {
       "codex": "/workspace/whd",
