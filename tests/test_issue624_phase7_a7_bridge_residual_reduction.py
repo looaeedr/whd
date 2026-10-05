@@ -768,3 +768,33 @@ def test_issue1239_settings_profile_projection_is_composition_owned():
     assert "return self.refresh_profiles_from_settings(" in adapter_source
     assert "self.sync_authoritative_derived_parts(namespace)" in adapter_source
     assert "self.refresh_assembly_parts_panel_if_topology_changed(namespace)" in adapter_source
+
+
+def test_issue1241_workspace_snapshot_application_assembly_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    assert "_phase6_collect_workspace_state" in funcs
+    body = _source(BRIDGE, funcs["_phase6_collect_workspace_state"])
+    assert "_phase6_composition(self)" in body
+    assert "export_shared_snapshot" not in body
+    assert "resolve_and_store_assembly_placements" not in body
+    assert "migrate_legacy_snapshot_joints" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "collect_workspace_state" in method_names
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "workspace = self.collect_workspace_state(namespace)" in adapter_source
+    assert 'required("_phase6_collect_workspace_state")' not in adapter_source
+    assert "workspace.export_shared_snapshot(" in adapter_source
+    assert "workspace.resolve_and_store_assembly_placements(" in adapter_source

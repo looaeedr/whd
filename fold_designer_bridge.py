@@ -1220,55 +1220,7 @@ def _phase6_on_baseline_model_changed(self, *_args):
 
 
 def _phase6_collect_workspace_state(self):
-    active = self.designer_workspace.active_part
-    live_active_profiles = None
-    # The visible fold editor is live canonical state.  The adapter only supplies
-    # that editor payload; DesignerWorkspace owns how it projects the shared schema.
-    if active and active != "box_body":
-        profiles = getattr(self.state, "profiles", {}) or {}
-        live_x = profiles.get("X", ()) or ()
-        live_y = profiles.get("Y", ()) or ()
-        if live_x or live_y:
-            live_active_profiles = {
-                "X": clone_profile(live_x),
-                "Y": clone_profile(live_y),
-            }
-    owner = self.designer_workspace.export_shared_snapshot(
-        live_active_profiles=live_active_profiles
-    )
-    part_features_snapshot = getattr(self.designer_workspace, "part_features_snapshot", None)
-    if callable(part_features_snapshot):
-        owner["part_features"] = part_features_snapshot()
-    part_face_features_snapshot = getattr(self.designer_workspace, "part_face_features_snapshot", None)
-    if callable(part_face_features_snapshot):
-        owner["part_face_features"] = part_face_features_snapshot()
-    assembly_placements_snapshot = getattr(self.designer_workspace, "assembly_placements_snapshot", None)
-    if callable(assembly_placements_snapshot):
-        owner["assembly_placements"] = assembly_placements_snapshot()
-    resolve_and_store = getattr(self.designer_workspace, "resolve_and_store_assembly_placements", None)
-    if callable(resolve_and_store):
-        try:
-            from ae_engine.assembly_placement import resolve_assembly_placement
-            owner["assembly_placements"] = resolve_and_store(
-                dict(getattr(self, "_phase6_input_snapshot", {}) or {}),
-                resolver=resolve_assembly_placement,
-            )
-        except Exception:
-            pass
-    graph_state = migrate_legacy_snapshot_joints(
-        dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    )
-    return {
-        "assembly_type": assembly_intent_value(getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)),
-        "assembly_joint_schema_version": graph_state["assembly_joint_schema_version"],
-        "assembly_joints": deepcopy(graph_state["assembly_joints"]),
-        "endcap_fw": deepcopy(
-            getattr(self, "_phase6_endcap_fw_state", None)
-            or normalize_endcap_fw_state(getattr(self, "_phase6_input_snapshot", {}) or {})
-        ),
-        "box_body_profile": clone_profile(self.state.profiles_vault.get("箱身", [])),
-        **owner,
-    }
+    return _phase6_composition(self).collect_workspace_state(globals())
 
 
 def _phase6_relief_profile_fingerprint(profile):

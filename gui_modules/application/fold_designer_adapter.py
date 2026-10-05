@@ -1071,6 +1071,71 @@ class Phase6FoldDesignerComposition:
             app.flush_pending_settings,
         )
 
+    def collect_workspace_state(self, namespace):
+        """Assemble one application snapshot around the canonical workspace owner."""
+        from ae_engine.assembly_placement import resolve_assembly_placement
+
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        clone = required("clone_profile")
+        workspace = app.designer_workspace
+        active = workspace.active_part
+        live_active_profiles = None
+        if active and active != "box_body":
+            profiles = getattr(app.state, "profiles", {}) or {}
+            live_x = profiles.get("X", ()) or ()
+            live_y = profiles.get("Y", ()) or ()
+            if live_x or live_y:
+                live_active_profiles = {
+                    "X": clone(live_x),
+                    "Y": clone(live_y),
+                }
+
+        owner = workspace.export_shared_snapshot(
+            live_active_profiles=live_active_profiles
+        )
+        owner["part_features"] = workspace.part_features_snapshot()
+        owner["part_face_features"] = workspace.part_face_features_snapshot()
+        owner["assembly_placements"] = workspace.assembly_placements_snapshot()
+        try:
+            owner["assembly_placements"] = (
+                workspace.resolve_and_store_assembly_placements(
+                    dict(
+                        getattr(app, "_phase6_input_snapshot", {}) or {}
+                    ),
+                    resolver=resolve_assembly_placement,
+                )
+            )
+        except Exception:
+            pass
+
+        graph_state = migrate_legacy_snapshot_joints(
+            dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        )
+        return {
+            "assembly_type": assembly_intent_value(
+                getattr(
+                    app,
+                    "_phase6_assembly_type",
+                    CornerTypeId.INSERT_OVERLAY,
+                )
+            ),
+            "assembly_joint_schema_version": graph_state[
+                "assembly_joint_schema_version"
+            ],
+            "assembly_joints": deepcopy(graph_state["assembly_joints"]),
+            "endcap_fw": deepcopy(
+                getattr(app, "_phase6_endcap_fw_state", None)
+                or required("normalize_endcap_fw_state")(
+                    getattr(app, "_phase6_input_snapshot", {}) or {}
+                )
+            ),
+            "box_body_profile": clone(
+                app.state.profiles_vault.get("箱身", [])
+            ),
+            **owner,
+        }
+
     def build_project_snapshot(self, namespace):
         """Capture one complete reloadable Fold Designer project payload."""
         app = self.app
@@ -1086,7 +1151,7 @@ class Phase6FoldDesignerComposition:
             else getattr(app, "_phase6_baseline_initial_model", "") or ""
         ).strip()
         owner_workspace = app.designer_workspace.snapshot()
-        workspace = required("_phase6_collect_workspace_state")(app)
+        workspace = self.collect_workspace_state(namespace)
         base_snapshot = deepcopy(
             getattr(app, "_phase6_input_snapshot", {}) or {}
         )
