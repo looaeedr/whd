@@ -414,8 +414,11 @@ def finalize_delivered_paths(
         "future_modification_rule": "HISTORICAL_ONLY_NO_CURRENT_ROUTE",
     }
 
-# Historical read-only aliases. They do not authorize CURRENT routing.
+# Historical lane parser does not authorize CURRENT routing.
 historical_validate_lane_evidence = validate_lane_evidence
+
+# Exact delivery fileset locking/readback remains CURRENT and is independent
+# of the retired shared-zero authoring route.
 
 
 def _retired_current_api(*args, **kwargs):
@@ -429,10 +432,4 @@ next_generation = _retired_current_api
 build_conflict_checkpoint = _retired_current_api
 assert_conflict_checkpoint_blocks_action = _retired_current_api
 assert_push_scope = _retired_current_api
-build_delivery_fileset_lock = _retired_current_api
-validate_delivery_fileset_lock = _retired_current_api
-assert_push_scope_matches_lock = _retired_current_api
-assert_delivery_hashes_match_lock = _retired_current_api
-assert_premerge_latest_file_recheck = _retired_current_api
-finalize_delivered_paths = _retired_current_api
 
