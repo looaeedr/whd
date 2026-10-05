@@ -77,7 +77,7 @@ def build_startup_declaration(*, purpose: str, repository: str = DEFAULT_REPOSIT
             f"目的：{purpose}",
             "範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，"
             "不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。",
-            "工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 預設使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；shared .unpushed 只在 fresh drift 時 fallback。",
+            "工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Google Drive/shared-zero 已退出 CURRENT routing，Drive 不可見不得形成 blocker。",
         )
     )
 
