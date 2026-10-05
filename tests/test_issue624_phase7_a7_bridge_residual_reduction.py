@@ -905,3 +905,46 @@ def test_issue1248_back_panel_ui_orchestration_is_composition_owned():
     bridge_source = BRIDGE.read_text(encoding="utf-8")
     for label in ("全板", "半截", "背開孔"):
         assert label in bridge_source
+
+
+def test_issue1248_receiving_back_panel_mode_ui_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_back_panel_mode_control_is_applicable",
+        "_phase6_refresh_back_panel_mode_control",
+        "_phase6_select_back_panel_mode",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "ReceivingSetBayAdapter" not in body
+        assert "_BACK_PANEL_MODE_LABEL_TO_MODE" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "back_panel_mode_control_is_applicable",
+        "refresh_back_panel_mode_control",
+        "select_back_panel_mode",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "self.refresh_back_panel_mode_control(namespace)" in adapter_source
+    assert "self.select_back_panel_mode(" in adapter_source
+    assert 'required("_phase6_refresh_back_panel_mode_control")' not in adapter_source
+    assert 'required("_phase6_select_back_panel_mode")' not in adapter_source
+
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    for label in ("全板", "半截", "背開孔"):
+        assert label in bridge_source
