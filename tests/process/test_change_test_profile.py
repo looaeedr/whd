@@ -11,11 +11,13 @@ def test_contract_is_current_and_workspace_first():
     payload = json.loads(CONTRACT.read_text(encoding="utf-8"))
     assert payload["schema"] == "WHD_CHANGE_TEST_PROFILE_V1"
     assert payload["status"] == "CURRENT"
-    assert payload["workspace"]["interactive_root"] == "/Google Drive/WHD"
-    assert payload["workspace"]["shared_unpushed_root"] == "/Google Drive/WHD/.unpushed"
-    assert payload["workspace"]["body_zero"].endswith("/.unpushed/body/0")
-    assert payload["workspace"]["docs_zero"].endswith("/.unpushed/docs/0")
-    assert payload["workspace"]["policy"] == "ROOT_SHARED_UNPUSHED_FIRST"
+    assert payload["workspace"]["root_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
+    assert payload["workspace"]["production_branch"] == "cleanup/2d-3d-sync"
+    assert payload["workspace"]["production_baseline"] == "GITHUB_PRODUCTION_X"
+    assert payload["workspace"]["drive_role"] == "MIRROR_BACKUP_ONLY"
+    assert payload["workspace"]["drive_required"] is False
+    assert payload["workspace"]["shared_zero_required"] is False
+    assert payload["workspace"]["policy"] == "WORKSPACE_FIRST_GIT_BASELINE"
 
 
 def test_bugfix_ui_combines_bugfix_and_ui_stages_then_full_regression():
