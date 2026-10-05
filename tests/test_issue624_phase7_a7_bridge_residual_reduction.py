@@ -992,3 +992,33 @@ def test_issue1253_project_status_and_settings_defaults_routing_is_composition_o
     assert 'required("_phase6_save_settings_context_as_defaults")' not in adapter_source
     assert "Phase6ProjectController.project_status_projection(" in adapter_source
     assert "Phase6ProjectController.route_settings_defaults(" in adapter_source
+
+
+def test_issue1257_assembly_type_selection_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    assert "_phase6_on_assembly_type_selected" in funcs
+    body = _source(BRIDGE, funcs["_phase6_on_assembly_type_selected"])
+    assert "_phase6_composition(self)" in body
+    assert "commit_assembly_intent" not in body
+    assert "_phase6_rebuild_linked_endcaps" not in body
+    assert "_phase6_render_active_drawing_edge_controls" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "on_assembly_type_selected" in method_names
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "self.settings_transactions().commit_assembly_intent(" in adapter_source
+    assert "for context in (\"head\", \"tail\")" in adapter_source
+    assert "self.invalidate_settings_page(context)" in adapter_source
+    assert 'required("_phase6_on_assembly_type_selected")' not in adapter_source
