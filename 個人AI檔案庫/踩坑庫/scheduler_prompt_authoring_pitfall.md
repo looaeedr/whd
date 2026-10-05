@@ -48,7 +48,7 @@ whd_schema: WHD_DOC_META_V1
 10. 正常 return 前必須通過 `tools/execution_invocation_exit.py`；`CONTINUE_EXECUTION / CONTINUE_TERMINAL_TAIL / ACQUIRE_REQUIRED / SCHEDULER_EXECUTION_NO_PROGRESS` 都必須繼續。
 11. scheduler runtime END / entrypoint observation 只屬 NON_AUTHORITY liveness；不得反向授權 owner、mutation、merge 或 closure。
 12. 同一 logical lane 的 entrypoints 共用 durable lane owner；entrypoint 不是 owner。不同 lane 仍受 path reservation、single-writer 與 target drift fence。
-13. repository-content implementation 不得在 scheduler/GitHub branch 直接 author/hotfix；必須 HANDOFF 到 canonical Google Drive root，完成 root tests/freeze/unlock 後才回 remote post-push tail。
+13. repository-content implementation 不得在 scheduler/GitHub branch 直接 author/hotfix；normal route 固定 handoff 到 workspace-capable runtime，以 executor-local repo workspace + fresh X baseline走 `WORKSPACE_DEFAULT` 完成 author/test/exact diff；只有 fresh touched-path shared drift 才切 `SHARED_ZERO_FALLBACK`，之後才回 remote post-push tail。
 14. 修改一個 prompt 發現 reusable authoring defect 時，要檢查 sibling / parallel lanes 與 permanent contract tests，不能只補單一入口。
 
 ### Documentation != enforcement
