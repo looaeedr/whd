@@ -158,7 +158,7 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
     if not str(item.get("workspace_root") or "").strip():
         raise ValueError("work-root gate evidence workspace_root missing")
     workspace = str(item["workspace_root"]).replace("\\", "/").rstrip("/")
-    if workspace == CANONICAL_DRIVE_ROOT or workspace.startswith(CANONICAL_DRIVE_ROOT + "/"):
+    if workspace == RETIRED_DRIVE_ROOT_PREFIX or workspace.startswith(RETIRED_DRIVE_ROOT_PREFIX + "/"):
         raise ValueError("CURRENT admission requires an executor-local workspace, not a Drive mirror")
     if item.get("production_branch") != PRODUCTION_BRANCH:
         raise ValueError("work-root gate evidence production branch mismatch")
