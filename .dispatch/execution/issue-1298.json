@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "c90b58d35bbfa98d29d57748419468406106acbe",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "e60944ee1d1dc13eb7934746a3f11520c499de31",
+  "issue": 1298,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-05T14:54:32Z",
+    "invocation_identity": "github:production-x-post-merge:37326348888:pr1300:issue1298",
+    "token": "recovery:1298:37326348888"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1300,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1298,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "closed",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "c90b58d35bbfa98d29d57748419468406106acbe",
+      "observed_at": "2026-10-05T14:39:32Z",
+      "observed_target_sha": "c90b58d35bbfa98d29d57748419468406106acbe",
+      "pr_head_ref": "fix/issue1298-preview-palette-backpanel-baseplate",
+      "pr_head_sha": "e60944ee1d1dc13eb7934746a3f11520c499de31",
+      "pr_number": 1300,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "fix/issue1298-preview-palette-backpanel-baseplate",
+  "source_sha": "e60944ee1d1dc13eb7934746a3f11520c499de31",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "c90b58d35bbfa98d29d57748419468406106acbe",
+  "transaction": null,
+  "updated_at": "2026-10-05T14:39:32Z",
+  "version": 2,
+  "work_branch": "fix/issue1298-preview-palette-backpanel-baseplate"
+}
