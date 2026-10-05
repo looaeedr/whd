@@ -186,6 +186,11 @@ def test_control_plane_runner_owns_issue1282_regression():
     text = (ROOT / "tools/control_plane_regression.py").read_text(encoding="utf-8")
     assert '"tools/production_x_post_merge_finalize.py"' in text
     assert '"tests/process/test_issue1282_post_merge_finalize.py"' in text
+    workflow = (ROOT / ".github/workflows/whd-control-plane-regression.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "'tools/production_x_post_merge_finalize.py'" in workflow
+    assert "'tests/process/test_issue1282_post_merge_finalize.py'" in workflow
 
 
 def test_direct_cli_entrypoint_bootstraps_repository_root_before_tools_import():
