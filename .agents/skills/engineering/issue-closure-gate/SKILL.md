@@ -22,7 +22,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_GATE_V1
 
-FINALIZE 的 execution authority 不等於 GitHub Issue network authority。若 closure 需要 GitHub Issue read/comment/close/readback，trusted executor 必須先用 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 對 exact action 的允許；interactive/default 缺 remote authority 時不得因 FINALIZE/closure bridge 自動連 GitHub。`/推推` delivery window可包含 owning-Issue finalization actions；scheduler 則必須來自 user-authored GitHub-only entry contract。
+FINALIZE 的 execution authority 不等於任意 GitHub authority；但對**同一已明確授權的 repository-content task**，`WORKSPACE_DELIVERY` 現在固定包含 owning-Issue `ISSUE_READ / ISSUE_COMMENT / ISSUE_CLOSE / READBACK`，所以 merge 後 FINALIZE 必須直接沿同 scope terminal tail，不得再向使用者索取第二次授權。`/推推` delivery window同樣包含 owning-Issue finalization；scheduler 則使用 user-authored GitHub-only entry contract。不同 Issue/repository、額外 remote mutation或 scope 擴張仍 fail closed。
 
 QA PASS或merge不等於完成。FINALIZE驗 target/merge/accepted QA，close Issue後fresh-read，再把同一 record寫成 DONE、清 lease/owner、next_action=null並保存 closure evidence。successor只由record.chain structured fields決定。
 
