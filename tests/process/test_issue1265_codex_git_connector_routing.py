@@ -39,3 +39,5 @@ def test_direct_production_contents_write_remains_forbidden():
 def test_drive_mount_absence_is_not_workspace_default_blocker():
     text = _text()
     assert "Drive mount 缺失不得影響 `WORKSPACE_DEFAULT`" in text
+    assert "OR_SELECTED_FALLBACK" not in text
+    assert "RESTORE_VERIFIED_TREE_IN_EXECUTOR_WORKSPACE" in text
