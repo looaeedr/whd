@@ -8,17 +8,9 @@ import re
 from collections.abc import Iterable, Mapping
 
 from tools.execution_path_reservation import validate_path_reservation_evidence
-from tools.shared_unpushed_integration import (
-    CONFLICT_CHECKPOINT_SCHEMA,
-    CONFLICT_STATE,
-    validate_lane_evidence,
-)
-
 SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
 EVIDENCE_SCHEMA = "WHD_ROOT_SHARED_UNPUSHED_GATE_EVIDENCE_V1"
 WORKSPACE_ROOT_POLICY = "EXECUTOR_LOCAL_REPO_WORKSPACE"
-CANONICAL_DRIVE_ROOT = "/Google Drive/WHD"
-DEFAULT_WORK_PREFIX = "/Google Drive/WHD/.unpushed"
 TEST_PROFILE_SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
 TEST_PROFILE_OWNER = "tools/change_test_profile.py"
 TEST_EXECUTION_RECEIPT_SCHEMA = "WHD_TEST_EXECUTION_RECEIPT_V1"
@@ -790,15 +782,9 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("resolved executor workspace must not require user re-nomination")
     shared = _mapping(contract.get("shared_unpushed_integration"), "shared_unpushed_integration")
     if shared.get("schema") != "WHD_SHARED_UNPUSHED_INTEGRATION_V1":
-        raise ValueError("shared unpushed integration schema mismatch")
-    if shared.get("machine_owner") != "tools/shared_unpushed_integration.py":
-        raise ValueError("shared unpushed integration owner mismatch")
-    if shared.get("integration_root") != DEFAULT_WORK_PREFIX:
-        raise ValueError("shared unpushed integration root mismatch")
-    if shared.get("conflict_state") != CONFLICT_STATE:
-        raise ValueError("merge conflict must block on explicit user decision")
-    if shared.get("conflict_checkpoint_schema") != CONFLICT_CHECKPOINT_SCHEMA:
-        raise ValueError("merge conflict checkpoint schema mismatch")
+        raise ValueError("shared unpushed historical schema mismatch")
+    if shared.get("status") != "HISTORICAL":
+        raise ValueError("shared-unpushed contract must remain HISTORICAL")
     if shared.get("mode") != "SUPERSEDED_DATA_ONLY" or shared.get("default_route") is not False:
         raise ValueError("shared-zero must remain superseded data only")
     if shared.get("activation") != "NEVER_CURRENT":
@@ -852,18 +838,17 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("direct root mutation/test gate must never participate in CURRENT routing")
     if direct_gate.get("canonical_surface") is not None:
         raise ValueError("retired direct-root gate must not nominate a Drive surface")
-    if direct_gate.get("interactive_first_substantive_action") != "ROOT_MUTATE":
-        raise ValueError("direct root mutation/test first action must be ROOT_MUTATE")
+    if direct_gate.get("interactive_first_substantive_action") != "WORKSPACE_MUTATE":
+        raise ValueError("workspace first substantive action mismatch")
     if tuple(direct_gate.get("required_contiguous_outer_sequence") or ()) != (
-        "ROOT_MUTATE", "MERGE_TO_0_OR_CONFLICT_CHECKPOINT",
-        "POST_MERGE_0_TEST_CLASSIFIED", "POST_MERGE_0_TESTS_GREEN"
+        "WORKSPACE_MUTATE", "WORKSPACE_TESTS_GREEN", "EXACT_DIFF_FROZEN"
     ):
-        raise ValueError("direct root mutation/test contiguous sequence mismatch")
-    if direct_gate.get("same_invocation_until") != "ROOT_TESTS_GREEN_OR_REAL_BLOCKER":
-        raise ValueError("direct root mutation/test same-invocation policy mismatch")
-    if direct_gate.get("task_scope_sticky_until") != "ROOT_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE":
-        raise ValueError("current task scope must remain sticky until root green, real blocker, or explicit user task change")
-    if direct_gate.get("control_plane_anomaly_action") != "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_ROOT_TASK":
+        raise ValueError("workspace mutation/test contiguous sequence mismatch")
+    if direct_gate.get("same_invocation_until") != "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER":
+        raise ValueError("workspace same-invocation policy mismatch")
+    if direct_gate.get("task_scope_sticky_until") != "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE":
+        raise ValueError("current task scope must remain sticky until workspace green, real blocker, or explicit user task change")
+    if direct_gate.get("control_plane_anomaly_action") != "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_WORKSPACE_TASK":
         raise ValueError("control-plane anomaly must not become a new primary task")
     forbidden_scope_switch = set(direct_gate.get("forbidden_scope_switch_triggers") or ())
     required_scope_switch_forbidden = {
@@ -879,12 +864,12 @@ def validate_contract(payload: object) -> dict[str, object]:
     }
     if allowed_scope_switch != required_scope_switch_allowed:
         raise ValueError("task scope may change only on explicit user change or a real escalation blocker")
-    if direct_gate.get("root_capability_available_policy") != "NO_HANDOFF_ONLY_STOP":
-        raise ValueError("direct root mutation/test root-capability policy mismatch")
+    if direct_gate.get("root_capability_available_policy") != "WORKSPACE_CAPABLE_NO_HANDOFF_ONLY_STOP":
+        raise ValueError("workspace capability policy mismatch")
     if direct_gate.get("status_or_progress_query_is_stop_reason") is not False:
         raise ValueError("status/progress query must not be a stop reason")
-    if direct_gate.get("test_red_action") != "FIX_IN_SAME_ROOT_WORKSPACE_AND_RETEST":
-        raise ValueError("TEST_RED must remain in the same root workspace")
+    if direct_gate.get("test_red_action") != "FIX_IN_SAME_WORKSPACE_AND_RETEST":
+        raise ValueError("TEST_RED must remain in the same workspace")
     if direct_gate.get("remote_without_root_capability_action") != "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME":
         raise ValueError("missing workspace capability must hand off to a workspace-capable runtime")
     if direct_gate.get("ordinary_missing_drive_mount_action") != "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE":
@@ -1142,139 +1127,26 @@ def build_gate_evidence(
             result["target_drift_resolution"] = dict(drift_resolution)
         return result
 
-    if not source_evidence:
-        next_action = "ROOT_SOURCE_CURRENT"
-    else:
-        status = str(source_evidence.get("status") or "")
-        if status not in {"EXACT_SOURCE_CURRENT", "SCOPED_CURRENT_RECOVERY"}:
-            raise ValueError("invalid ROOT_SOURCE_CURRENT evidence")
-        completed.append("ROOT_SOURCE_CURRENT")
-        if not unpushed_lane_evidence:
-            next_action = "UNPUSHED_LANE_CLASSIFIED"
-        else:
-            try:
-                lane = validate_lane_evidence(unpushed_lane_evidence)
-            except ValueError as exc:
-                raise ValueError(f"invalid UNPUSHED_LANE evidence: {exc}") from exc
-            if str(lane.get("source_sha") or "") != str(source_evidence.get("source_sha") or ""):
-                raise ValueError("LATEST_0 base source_sha must match ROOT_SOURCE_CURRENT source_sha")
-            completed.extend(("UNPUSHED_LANE_CLASSIFIED", "LATEST_0_BASE_BOUND"))
-            if not root_mutations_complete:
-                next_action = "ROOT_MUTATIONS_COMPLETE"
-            else:
-                completed.append("ROOT_MUTATIONS_COMPLETE")
-                if conflict_checkpoint:
-                    cp = _mapping(conflict_checkpoint, "conflict checkpoint")
-                    if cp.get("schema") != CONFLICT_CHECKPOINT_SCHEMA or cp.get("state") != CONFLICT_STATE:
-                        raise ValueError("invalid merge conflict checkpoint")
-                    return {
-                        "schema": EVIDENCE_SCHEMA,
-                        "execution_mode": mode,
-                        "applicable": True,
-                        "completed": completed,
-                        "git_write_unlocked": False,
-                        "next_action": "USER_CONFLICT_DECISION",
-                        "blocked_state": CONFLICT_STATE,
-                        "conflict_checkpoint": dict(cp),
-                        "unpushed_lane": dict(lane),
-                    }
-                if not merge_to_zero_complete:
-                    next_action = "MERGE_TO_0_OR_CONFLICT_CHECKPOINT"
-                else:
-                    completed.append("MERGE_TO_0_OR_CONFLICT_CHECKPOINT")
-                    if not test_classified:
-                        next_action = "POST_MERGE_0_TEST_CLASSIFIED"
-                    else:
-                        completed.append("POST_MERGE_0_TEST_CLASSIFIED")
-                        if not tests_green:
-                            next_action = "POST_MERGE_0_TESTS_GREEN"
-                        elif not test_receipt:
-                            raise ValueError("POST_MERGE_0_TESTS_GREEN requires WHD_TEST_EXECUTION_RECEIPT_V1")
-                        else:
-                            validate_test_execution_receipt(
-                                test_receipt,
-                                expected_source_sha=str(source_evidence.get("source_sha") or ""),
-                                expected_issue=int(lane.get("issue") or 0),
-                                expected_generation=int(lane.get("generation") or 0),
-                                expected_commands=expected_test_commands,
-                            )
-                            completed.append("POST_MERGE_0_TESTS_GREEN")
-                            worker_census_blocks = False
-                            if worker_census_evidence is not None:
-                                census = validate_worker_census_evidence(
-                                    worker_census_evidence,
-                                    expected_lane=str(lane.get("lane") or ""),
-                                    expected_generation=int(lane.get("generation") or 0),
-                                )
-                                if int(census.get("mergeable_green_count") or 0) > 0:
-                                    next_action = "MERGE_TO_FRESH_LATEST_ZERO"
-                                    worker_census_blocks = True
-                                elif int(census.get("blocking_candidate_count") or 0) > 0:
-                                    next_action = "RESOLVE_WORKER_CENSUS_BLOCKERS"
-                                    worker_census_blocks = True
-                                else:
-                                    completed.append("WORKER_CENSUS_NO_MERGEABLE_GREEN")
-                            if not worker_census_blocks and not diff_digest:
-                                next_action = "LANE_MANIFEST_FROZEN"
-                            elif not worker_census_blocks:
-                                if not re.fullmatch(r"[0-9a-f]{64}", diff_digest):
-                                    raise ValueError("diff_digest must be SHA256")
-                                completed.append("LANE_MANIFEST_FROZEN")
-                                if remote_connection_authority is None:
-                                    next_action = "REMOTE_CONNECTION_AUTHORIZED"
-                                else:
-                                    remote_authority = validate_remote_connection_authority(
-                                        remote_connection_authority, target="GITHUB", action="READ"
-                                    )
-                                    if remote_authority.get("kind") not in DELIVERY_AUTHORITY_KINDS:
-                                        raise ValueError("delivery Git authority must be /推推 or explicit user remote authority")
-                                    expected_lane = str(lane.get("lane") or "").strip().lower()
-                                    if remote_authority.get("kind") == "PUSH_DOCS" and expected_lane != "docs":
-                                        raise ValueError("PUSH_DOCS authority cannot deliver non-docs lane")
-                                    if remote_authority.get("kind") == "PUSH_BODY" and expected_lane != "body":
-                                        raise ValueError("PUSH_BODY authority cannot deliver non-body lane")
-                                    completed.append("REMOTE_CONNECTION_AUTHORIZED")
-                                    if not path_reservation_evidence:
-                                        next_action = "DELIVERY_PATHS_RESERVED"
-                                    else:
-                                        try:
-                                            reservation = validate_path_reservation_evidence(path_reservation_evidence)
-                                        except ValueError as exc:
-                                            raise ValueError(f"invalid DELIVERY_PATHS_RESERVED evidence: {exc}") from exc
-                                        if str(reservation.get("base_sha") or "") != str(source_evidence.get("source_sha") or ""):
-                                            raise ValueError("delivery reservation base_sha must match source_sha")
-                                        if int(reservation.get("issue") or 0) != int(lane.get("issue") or 0):
-                                            raise ValueError("delivery reservation issue must match lane issue")
-                                        if str(reservation.get("target_branch") or "") != str(lane.get("target_branch") or ""):
-                                            raise ValueError("delivery reservation target must match lane target")
-                                        if tuple(reservation.get("write_paths") or ()) != tuple(lane.get("write_paths") or ()) or tuple(reservation.get("delete_paths") or ()) != tuple(lane.get("delete_paths") or ()):
-                                            raise ValueError("delivery reservation scope must equal lane manifest scope")
-                                        completed.append("DELIVERY_PATHS_RESERVED")
-                                        drift_resolution = classify_target_drift_action(
-                                            target_drift=target_drift,
-                                            expected_diff_digest=str(diff_digest),
-                                            green_reuse_evidence=green_reuse_evidence,
-                                        )
-                                        if drift_resolution["classification"] == GREEN_REUSE_REVALIDATE:
-                                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "REVALIDATE_GREEN_REUSE_OR_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane), "target_drift_resolution": drift_resolution}
-                                        if drift_resolution["classification"] == GREEN_REUSE_RETEST:
-                                            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": False, "next_action": "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE", "diff_digest": diff_digest, "path_reservation": reservation, "unpushed_lane": dict(lane), "target_drift_resolution": drift_resolution}
-                                        if drift_resolution["classification"] == GREEN_REUSE_REUSED:
-                                            completed.append("GREEN_REUSE_REVALIDATED")
-                                        completed.append("GIT_WRITE_UNLOCKED")
-                                        next_action = "EXACT_TESTED_DIFF_ONLY"
-    result = {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "applicable": True, "completed": completed, "git_write_unlocked": "GIT_WRITE_UNLOCKED" in completed, "next_action": next_action}
-    if entry_router is not None:
-        result["entry_router"] = entry_router
-    if diff_digest:
-        result["diff_digest"] = diff_digest
-    if lane:
-        result["unpushed_lane"] = dict(lane)
-    if remote_authority:
-        result["remote_connection_authority"] = dict(remote_authority)
-    if reservation:
-        result["path_reservation"] = dict(reservation)
-    return result
+    if any((
+        source_evidence,
+        unpushed_lane_evidence,
+        root_mutations_complete,
+        merge_to_zero_complete,
+        conflict_checkpoint,
+        test_classified,
+        tests_green,
+        test_receipt,
+        worker_census_evidence,
+    )):
+        raise ValueError("LEGACY_SHARED_ZERO_EXECUTION_INPUT_RETIRED")
+    return {
+        "schema": EVIDENCE_SCHEMA,
+        "execution_mode": mode,
+        "scope": "NON_REPOSITORY_CONTENT",
+        "applicable": False,
+        "git_write_unlocked": False,
+        "next_action": "FOLLOW_NON_REPOSITORY_AUTHORITY",
+    }
 
 
 def assert_git_content_write_allowed(evidence: object, *, action: str) -> None:
