@@ -4658,6 +4658,20 @@ class Phase6FoldDesignerComposition:
         number_text = required("_setting_number_text")
         original = required("original")
 
+        if baseline_stage == "rollback":
+            model_var = getattr(app, "baseline_model_var", None)
+            app._phase6_baseline_guard = True
+            try:
+                if (
+                    model_var is not None
+                    and str(model_var.get() or "").strip()
+                    != str(new_model or "").strip()
+                ):
+                    model_var.set(str(new_model or ""))
+            finally:
+                app._phase6_baseline_guard = False
+            return
+
         if bool(editor_commit) and editor_snapshot is not None:
             app._phase6_input_snapshot.update(dict(editor_snapshot or {}))
 
