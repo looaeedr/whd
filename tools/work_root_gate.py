@@ -55,8 +55,8 @@ def validate_gate_payload(payload: Mapping[str, object] | object) -> dict[str, o
     if mirror.get("ordinary_startup_required") is not False or mirror.get("routing_forbidden") is not True:
         raise ValueError("Drive mirror must not participate in startup routing")
     recovery = _mapping(gate.get("root_identity_recovery"), "root_identity_recovery")
-    if recovery.get("owner") != "tools/work_root_gate.py::recover_canonical_root_to_current_production":
-        raise ValueError("work-root recovery owner mismatch")
+    if recovery.get("owner") != "tools/work_root_gate.py::recover_workspace_to_current_production":
+        raise ValueError("workspace recovery owner mismatch")
     if recovery.get("success_schema") != ROOT_RECOVERY_RECEIPT_SCHEMA:
         raise ValueError("work-root recovery success schema mismatch")
     if recovery.get("failure_schema") != ROOT_RECOVERY_RESULT_SCHEMA:
@@ -177,11 +177,11 @@ def _run_git(root: Path, *args: str, check: bool = True) -> subprocess.Completed
     except (OSError, subprocess.CalledProcessError) as exc:
         detail = getattr(exc, "stderr", "") or str(exc)
         raise WorkRootRecoveryError(
-            f"canonical root git command failed: {' '.join(args)}: {str(detail).strip()}"
+            f"workspace git command failed: {' '.join(args)}: {str(detail).strip()}"
         ) from exc
 
 
-def recover_canonical_root_to_current_production(
+def recover_workspace_to_current_production(
     *,
     root_path: str = ".",
     remote: str = "origin",
@@ -207,7 +207,7 @@ def recover_canonical_root_to_current_production(
         root, "status", "--porcelain", "--untracked-files=no"
     ).stdout.strip()
     if tracked_status:
-        raise WorkRootRecoveryError("canonical root has tracked worktree/index changes")
+        raise WorkRootRecoveryError("workspace has tracked worktree/index changes")
 
     remote = str(remote or "").strip()
     if not remote:
@@ -237,7 +237,7 @@ def recover_canonical_root_to_current_production(
     root_tree = _run_git(root, "rev-parse", "HEAD^{tree}").stdout.strip().lower()
     if root_head != remote_head:
         raise WorkRootRecoveryError(
-            f"canonical root HEAD readback mismatch: expected {remote_head}, observed {root_head}"
+            f"workspace HEAD readback mismatch: expected {remote_head}, observed {root_head}"
         )
 
     return {
@@ -255,6 +255,13 @@ def recover_canonical_root_to_current_production(
     }
 
 
+
+def recover_canonical_root_to_current_production(*args, **kwargs):
+    """Retired legacy name. CURRENT recovery is executor-local workspace catch-up."""
+    raise WorkRootRecoveryError(
+        "LEGACY_CANONICAL_ROOT_RECOVERY_NAME_RETIRED_USE_WORKSPACE_RECOVERY"
+    )
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="WHD executor-local work-root gate and recovery")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -269,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        receipt = recover_canonical_root_to_current_production(
+        receipt = recover_workspace_to_current_production(
             root_path=args.root,
             remote=args.remote,
             production_branch=args.production_branch,
