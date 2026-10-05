@@ -161,7 +161,7 @@ Repository-content routing 必須服從 `root-local-first` 的 CURRENT router；
 - executor-local workspace 是 execution surface/cache，不是新的 canonical authority；共同 production baseline 是 fresh GitHub `cleanup/2d-3d-sync`。
 - **Google Drive mount 不可見本身不是 blocker，也不得觸發 handoff。** ChatGPT / Codex / C2C / 其他 executor 都使用各自 runtime 可寫、可測的 repo workspace。
 - `select_repository_content_route` 對 `shared_zero_drift_present=false|true` 都固定回 `WORKSPACE_DEFAULT`；舊 drift 只可記錄為 historical evidence。
-- `.unpushed/docs/0`、`.unpushed/body/0`、generation/freeze、`CANONICAL_SHARED_0_UPDATED` 與 Drive readback 全部退出 CURRENT routing。
+- 舊 `.unpushed` lane、generation/freeze、shared-zero receipt 與 Drive readback 全部退出 CURRENT routing。
 - Google Drive 只可作資料／mirror／backup；任何 Drive 可見性、不可見性或舊 pointer 都不得升格成 blocker 或 construction authority。
 - `source/manifests`、ZIP snapshot、`/work/active` 與單一固定實體 workspace path 都不是 CURRENT repository-content authority。
 
