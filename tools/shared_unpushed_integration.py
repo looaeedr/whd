@@ -411,7 +411,7 @@ def finalize_delivered_paths(
         "delivered_hashes": dict(sorted(expected_writes.items())),
         "cleared_at": str(cleared_at),
         "repository_files_deleted": False,
-        "future_modification_rule": "HISTORICAL_ONLY_NO_CURRENT_ROUTE",
+        "future_modification_rule": "NEW_CHANGE_MUST_START_FROM_FRESH_PRODUCTION_X_WORKSPACE",
     }
 
 # Historical lane parser does not authorize CURRENT routing.
