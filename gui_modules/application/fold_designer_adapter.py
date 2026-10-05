@@ -1062,6 +1062,179 @@ class Phase6FoldDesignerComposition:
             app.flush_pending_settings,
         )
 
+    def build_project_snapshot(self, namespace):
+        """Capture one complete reloadable Fold Designer project payload."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        try:
+            app._save_current_part(notify=False)
+        except Exception:
+            pass
+        model_var = getattr(app, "baseline_model_var", None)
+        model = str(
+            model_var.get()
+            if model_var is not None
+            else getattr(app, "_phase6_baseline_initial_model", "") or ""
+        ).strip()
+        owner_workspace = app.designer_workspace.snapshot()
+        workspace = required("_phase6_collect_workspace_state")(app)
+        base_snapshot = deepcopy(
+            getattr(app, "_phase6_input_snapshot", {}) or {}
+        )
+        callback = getattr(app, "_scene_query_callback", None)
+        final_geometry = required("collect_final_geometry_diagnostics")(
+            list(owner_workspace.get("existing_parts") or ()),
+            lambda key: required("_phase6_scene_query_payload_for_part")(app, key),
+            callback if callable(callback) else None,
+        )
+        return Phase6ProjectController.build_designer_payload(
+            schema=required("_phase6_project_file").PROJECT_SCHEMA,
+            model=model,
+            base_snapshot=base_snapshot,
+            settings=getattr(app, "_settings_values", {}) or {},
+            box_whd=getattr(app, "_phase6_box_whd", {}) or {},
+            assembly_type=assembly_intent_value(
+                getattr(
+                    app,
+                    "_phase6_assembly_type",
+                    CornerTypeId.INSERT_OVERLAY,
+                )
+            ),
+            endcap_fw=deepcopy(
+                getattr(
+                    app,
+                    "_phase6_endcap_fw_state",
+                    normalize_endcap_fw_state(base_snapshot),
+                )
+            ),
+            corner_state=getattr(app, "_phase6_corner_state", {}) or {},
+            corner_pair_same=getattr(app, "_phase6_corner_pair_same", {}) or {},
+            owner_workspace=owner_workspace,
+            workspace=workspace,
+            box_body_profile=required("clone_profile")(
+                workspace.get("box_body_profile", [])
+            ),
+            assembly_relief=required(
+                "_phase6_serialize_assembly_relief_state"
+            )(app),
+            final_geometry=final_geometry,
+        )
+
+    def load_project_file(self, namespace):
+        """Open a Phase6 project through the existing host project-load callback."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        project_file = required("_phase6_project_file")
+        from tkinter import filedialog, messagebox
+
+        path = filedialog.askopenfilename(
+            parent=app.root,
+            title="讀檔：Phase6 折彎專案",
+            filetypes=[
+                ("Phase6 折彎專案", f"*{project_file.PROJECT_EXTENSION}"),
+                ("所有檔案", "*.*"),
+            ],
+        )
+        if not path:
+            return None
+
+        callback = getattr(app, "_project_load_callback", None)
+        if not callable(callback):
+            messagebox.showerror(
+                "讀檔失敗",
+                "目前工作區沒有可用的專案讀檔入口。",
+                parent=app.root,
+            )
+            return None
+
+        try:
+            Phase6ProjectController.validate_project_load(
+                path, project_file.read_project
+            )
+            callback(str(path))
+            return str(path)
+        except Exception as exc:
+            try:
+                messagebox.showerror(
+                    "讀檔失敗",
+                    f"無法讀取 Phase6 專案：\n{exc}",
+                    parent=app.root,
+                )
+            except Exception:
+                pass
+            return None
+
+    def save_project_file(self, namespace, *, save_as=False):
+        """Save through committed host ownership or the existing project file owner."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        project_file = required("_phase6_project_file")
+        callback = getattr(app, "_project_save_callback", None)
+        if callable(callback):
+            return callback(
+                save_as=bool(save_as),
+                active_part=getattr(app, "active_part_key", None),
+            )
+
+        from tkinter import filedialog, messagebox
+
+        if getattr(app, "_phase6_pending_settings", None):
+            try:
+                app.flush_pending_settings()
+            except Exception:
+                pass
+
+        current = str(
+            getattr(app, "_phase6_current_project_path", "") or ""
+        ).strip()
+        path = current
+        if save_as or not path:
+            model_var = getattr(app, "baseline_model_var", None)
+            model = (
+                str(model_var.get() if model_var is not None else "").strip()
+                or "自訂"
+            )
+            safe_model = "".join(
+                ch if ch not in '\\/:*?"<>|' else "_" for ch in model
+            )
+            extension = project_file.PROJECT_EXTENSION
+            initial = Path(current).name if current else f"{safe_model}{extension}"
+            path = filedialog.asksaveasfilename(
+                parent=app.root,
+                title="另存新檔：Phase6 專案" if save_as else "儲存專案：Phase6",
+                defaultextension=extension,
+                filetypes=[
+                    ("Phase6 折彎專案", f"*{extension}"),
+                    ("所有檔案", "*.*"),
+                ],
+                initialfile=initial,
+            )
+            if not path:
+                return None
+
+        try:
+            payload = self.build_project_snapshot(namespace)
+            payload.get("snapshot", {}).pop("_runtime_project_path", None)
+            target = Phase6ProjectController.write_designer_project(
+                path, payload, project_file.write_project
+            )
+            app._phase6_current_project_path = str(target)
+            path_callback = getattr(app, "_project_path_change_callback", None)
+            if callable(path_callback):
+                path_callback(str(target))
+            if hasattr(app, "settings_status_var"):
+                app.settings_status_var.set(
+                    f"已存專案：{Path(target).name}（全部板件）"
+                )
+            return str(target)
+        except Exception as exc:
+            messagebox.showerror(
+                "存檔失敗",
+                f"無法儲存 Phase6 專案：\n{exc}",
+                parent=app.root,
+            )
+            return None
+
     def toggle_parameter_panel(self, namespace):
         """Toggle the existing settings surface without creating state ownership."""
         app = self.app
