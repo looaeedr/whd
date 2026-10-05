@@ -12,19 +12,25 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
   "issue": 1197,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "chatgpt.flowv2.work0",
+  "lease": {
+    "expires_at": "2026-10-05T04:24:17Z",
+    "invocation_identity": "codex:issue1197:4837efae-7561-4164-95d8-7287857df818",
+    "token": "lease:1197:local:1"
+  },
   "mutation_scope": null,
   "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1197",
-    "kind": "ACQUIRE"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "Consume already completed exact-head delivery QA",
+    "kind": "START_QA"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work0",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -38,15 +44,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "POST_DELIVERY_RECONCILIATION",
   "slot_id": "worker.slot.0",
   "source_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2",
   "source_sha": "d7dd93ab00ae88b76d5fffe34d44e331a0866d9a",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "0e83ad859db77c5e869f96059bff9946b4af3ede",
-  "transaction": null,
-  "updated_at": "2026-10-05T03:43:08Z",
+  "transaction": {
+    "expected_fingerprint": "9ce7ff423a9f332c08bfa560a75af88e249f53711843b00b4e583030b5217286",
+    "id": "gha:local:1197:ACQUIRE:1",
+    "invocation_identity": "codex:issue1197:4837efae-7561-4164-95d8-7287857df818",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T04:09:17Z",
   "version": 2,
   "work_branch": "refactor/issue1197-part-nav-widget-owner-20261005-r2"
 }
