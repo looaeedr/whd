@@ -83,27 +83,29 @@ def _mesh_bounds(triangles):
     )
 
 
-def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_geometry():
+def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geometry_both_ways():
     tk, root, _app, designer = _open_vault_designer()
     try:
         assert designer._phase6_3d_display_mode == "assembly"
         scene_renderer = designer.final_scene_view
         assert scene_renderer is not None
         before = _mesh_bounds(scene_renderer.last_cutting_mesh)
+        assert not bool(designer.box_body_piece_selector.winfo_ismapped())
 
         designer.baseline_model_var.set("受電箱")
-        _pump(root, 8)
+        _pump(root, 10)
 
         assert str(designer._phase6_input_snapshot.get("model") or "") == "受電箱"
-        assert designer._phase6_3d_display_mode == "assembly", (
-            "Live-switch from a visible Vault assembly must preserve assembly mode"
-        )
+        assert designer._phase6_3d_display_mode == "assembly"
         assert str(designer.part_var.get()) == "組合體"
         assert bool(designer.assembly_parts_panel.winfo_ismapped())
-        after = _mesh_bounds(scene_renderer.last_cutting_mesh)
-        assert after != before, (
+        assert not bool(designer.box_body_piece_selector.winfo_ismapped()), (
+            "Assembly mode must not re-pack 左側板/後面板/右側板 child tabs"
+        )
+        receiving = _mesh_bounds(scene_renderer.last_cutting_mesh)
+        assert receiving != before, (
             "Visible 3D mesh bounds stayed identical after live-switch to 受電箱; "
-            f"before={before!r} after={after!r}"
+            f"before={before!r} receiving={receiving!r}"
         )
         box_children = {
             str(key) for key in designer.designer_workspace.available_parts
@@ -114,6 +116,25 @@ def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_geomet
             "box_body:back",
             "box_body:right_side",
         } <= box_children
+
+        designer.baseline_model_var.set("金庫型")
+        _pump(root, 10)
+
+        assert str(designer._phase6_input_snapshot.get("model") or "") == "金庫型"
+        assert designer._phase6_3d_display_mode == "assembly"
+        assert str(designer.part_var.get()) == "組合體"
+        assert scene_renderer.cutting_mesh_error is None
+        restored = _mesh_bounds(scene_renderer.last_cutting_mesh)
+        assert restored == before, (
+            "受電箱→金庫型 did not restore the original Vault assembly mesh; "
+            f"before={before!r} receiving={receiving!r} restored={restored!r}"
+        )
+        assert not any(
+            str(key).startswith("box_body:")
+            for key in designer.designer_workspace.available_parts
+        )
+        assert not bool(designer.box_body_piece_selector.winfo_ismapped())
+        assert not bool(designer.receiving_set_bay_control.winfo_ismapped())
     finally:
         _close(tk, root, designer)
 
@@ -406,7 +427,7 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         )
 
         texts = _mapped_widget_texts(frame)
-        for expected in ("開關", "＋層", "第1層", "1連", "－連", "＋連", "預覽"):
+        for expected in ("開關", "－層", "＋層", "第1層", "1連", "－連", "＋連", "預覽"):
             assert expected in texts, f"operator-visible Receiving text missing: {expected!r}; got={texts!r}"
         assert not any("Layer" in text or "Connection" in text for text in texts), texts
     finally:
@@ -437,6 +458,8 @@ def test_receiving_layer_connection_config_edits_do_not_redraw_3d_canvas():
         canvas.draw = blocked_draw
         canvas.draw_idle = blocked_draw_idle
         try:
+            remove = designer.receiving_layer_controls.remove_layer_button
+            assert "disabled" in remove.state()
             designer.receiving_layer_controls.add_layer_button.invoke()
             _pump(root, 5)
             rows = tuple(
@@ -448,14 +471,27 @@ def test_receiving_layer_connection_config_edits_do_not_redraw_3d_canvas():
                 or ()
             )
             assert len(rows) >= 2
+            assert "disabled" not in remove.state()
             rows[0]["plus_button"].invoke()
             _pump(root, 5)
+            remove.invoke()
+            _pump(root, 5)
+            rows = tuple(
+                getattr(
+                    designer.receiving_layer_controls.layer_host,
+                    "_phase6_receiving_layer_rows",
+                    (),
+                )
+                or ()
+            )
+            assert len(rows) == 1
+            assert "disabled" in remove.state()
         finally:
             canvas.draw = original_draw
             canvas.draw_idle = original_draw_idle
 
         assert calls == {"draw": 0, "draw_idle": 0}, (
-            "＋層／＋連 are configuration-only and must not redraw/reload 3D: "
+            "＋層／－層／＋連 are configuration-only and must not redraw/reload 3D: "
             f"{calls!r}"
         )
     finally:
@@ -486,8 +522,6 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         _select_box_body_through_tree(designer, root)
         _pump(root, 6)
 
-        source_mesh = tuple(designer.final_scene_view.last_cutting_mesh or ())
-        assert source_mesh, "Receiving current 3D mesh must exist before preview"
 
         rows = tuple(
             getattr(
@@ -509,8 +543,9 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         )
         assert preview_payload["connection_count"] == 3
         assert len(preview_payload["connection_meshes"]) == 3
-        assert tuple(preview_payload["connection_meshes"][0]) == source_mesh, (
-            "Preview must replicate the current resolved CUTTING mesh, not draw a simplified box"
+        assert {"box_body", "head", "tail"} <= set(preview_payload["assembly_part_keys"])
+        assert len(preview_payload["assembly_part_keys"]) >= 5, (
+            "Preview must resolve the complete assembly, not only the current input part"
         )
         assert len(preview_payload["lock_circles"]) > 0, (
             "3連 preview must include canonical mating/lock hole circles between adjacent cabinets"
@@ -537,7 +572,7 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         assert win._phase6_receiving_preview_connection_count == 3
         assert win._phase6_receiving_preview_mesh_count == 3
         assert win._phase6_receiving_preview_lock_circle_count > 0
-        assert win._phase6_receiving_preview_feature_segment_count > 0
+        assert win._phase6_receiving_preview_feature_segment_count == 0
 
         canvas_widget = win._phase6_receiving_preview_canvas.get_tk_widget()
         assert bool(canvas_widget.winfo_ismapped())
