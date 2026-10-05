@@ -2665,7 +2665,18 @@ class Phase6FoldDesignerComposition:
             ),
         )
         if not frame.winfo_manager():
-            frame.pack(fill=original.tk.X, pady=(0, 4))
+            before = getattr(getattr(app, "bend_ui", None), "nb", None)
+            options = {
+                "fill": original.tk.X,
+                "pady": (0, 4),
+            }
+            if (
+                before is not None
+                and before.winfo_manager()
+                and before.master is frame.master
+            ):
+                options["before"] = before
+            frame.pack(**options)
         return True
 
     def on_receiving_switch_brand_selected(
@@ -4185,6 +4196,7 @@ class Phase6FoldDesignerComposition:
             root=app.root,
             left=app.left,
             right=app.right,
+            renderer_canvas_widget=app.renderer.canvas.get_tk_widget(),
             ui_text_size_values=tuple(UI_TEXT_SIZE_LABELS.values()),
             v_a_bend=app.v_a_bend,
             v_a_face=app.v_a_face,

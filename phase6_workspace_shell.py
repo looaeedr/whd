@@ -35,6 +35,7 @@ class WorkspaceShellState:
     external_export_vars: Mapping[str, Any] | None = None
     left_workspace_width: int = 360
     theme_background: str = "#202020"
+    renderer_canvas_widget: Any = None
 
 
 @dataclass(frozen=True)
@@ -163,13 +164,32 @@ class WorkspaceShellOwner:
 
     def build_global_persistent_controls(self):
         host = self.actions.get_left_global_controls()
+
+        # The single parameter lock belongs to the drawing surface, not to a
+        # layout row above it. Keep it as a child of the renderer canvas so it
+        # cannot consume canvas geometry or trigger a resize/redraw merely by
+        # being shown.
+        canvas_widget = self.state.renderer_canvas_widget
+        if canvas_widget is None:
+            canvas_widget = host
         self.parameter_lock_button = original.ttk.Button(
-            host,
+            canvas_widget,
             text="參數鎖定",
             command=self.actions.toggle_parameter_panel,
             style="Secondary.TButton",
+            takefocus=True,
         )
-        self.parameter_lock_button.grid(row=0, column=3, sticky="ew", padx=2, pady=2)
+        self.parameter_lock_button.place(
+            relx=1.0,
+            x=-10,
+            y=10,
+            anchor="ne",
+        )
+        try:
+            self.parameter_lock_button.lift()
+        except Exception:
+            pass
+
 
         structure_cell = original.ttk.Frame(host)
         structure_cell.grid(row=1, column=4, sticky="ew", padx=2, pady=2)
