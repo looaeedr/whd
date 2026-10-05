@@ -1229,36 +1229,8 @@ def _phase6_relief_profile_fingerprint(profile):
     return relief_profile_fingerprint(profile)
 
 def _phase6_current_relief_source_signature(self, required):
-    from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-    from phase6_assembly_relief_state import build_current_source_signature
-
-    source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    source.update(dict(getattr(self, "_settings_values", {}) or {}))
-    source.update(dict(getattr(self, "_phase6_box_whd", {}) or {}))
-    source["assembly_type"] = assembly_intent_value(getattr(
-        self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY
-    ))
-    box_profile = clone_profile(
-        (getattr(self.state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
-    )
-    formed_left, formed_right = formed_box_body_fw_widths(
-        box_profile, float(source.get("t", 0.0) or 0.0)
-    )
-    graph_snapshot = migrate_legacy_snapshot_joints(
-        dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    )
-    return build_current_source_signature(
-        scalar_source=source,
-        joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
-        structure_state=deepcopy(self.designer_workspace.box_body_structure_state() or {}),
-        cabinet_family=str(source.get("model") or source.get("cabinet_type") or ""),
-        formed_left=formed_left,
-        formed_right=formed_right,
-        box_body_profile=box_profile,
-        part_profiles={
-            key: deepcopy(self.designer_workspace.profiles_for(key, {}) or {})
-            for key in required
-        },
+    return _phase6_composition(self).current_relief_source_signature(
+        globals(), required
     )
 
 
@@ -1268,24 +1240,10 @@ def _phase6_relief_source_matches_current(saved_source, current_source, required
     return source_matches_current(saved_source, current_source, required)
 
 def _phase6_serialize_assembly_relief_state(self):
-    """Serialize one atomic persisted relief transaction via the canonical owner."""
-    from phase6_assembly_relief_state import build_persisted_relief_state
-
-    enabled_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
-    fallback_enabled = bool(enabled_var.get()) if enabled_var is not None else True
-    solutions = dict(getattr(self, "_phase6_last_relief_solutions", {}) or {})
-    available = set(getattr(getattr(self, "designer_workspace", None), "available_parts", ()) or ())
-    required = [key for key in ("head", "tail") if key in available]
-    source_signature = dict(_phase6_current_relief_source_signature(self, required) or {})
-    prior = deepcopy((getattr(self, "_phase6_input_snapshot", {}) or {}).get("assembly_relief") or {})
-    return build_persisted_relief_state(
-        required_parts=required,
-        solutions=solutions,
-        source_signature=source_signature,
-        prior_state=prior,
-        fallback_enabled=fallback_enabled,
-        clearance=_phase6_assembly_relief_clearance(self),
+    return _phase6_composition(self).serialize_assembly_relief_state(
+        globals()
     )
+
 
 def _phase6_corner_transaction_payload(self):
     source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
