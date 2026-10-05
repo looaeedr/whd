@@ -12,12 +12,15 @@ on:
       - 'tests/**'
       - 'tools/phase6_bridge_anti_regrowth_guard.py'
       - 'tools/product_ci_regression.py'
+      - 'tools/product_ci_green_reuse.py'
       - 'docs/architecture/phase6_bridge_anti_regrowth_baseline.json'
       - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
       - '.github/workflows/whd-product-regression.yml'
 
 permissions:
   contents: read
+  checks: read
+  pull-requests: read
 
 jobs:
   product-regression:
@@ -29,11 +32,44 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Revalidate prior GREEN after target drift
+        id: green-reuse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/product_ci_green_reuse.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --base-sha "${{ github.event.pull_request.base.sha }}"
+
+      - name: Record reused GREEN evidence
+        if: steps.green-reuse.outputs.reuse == 'true'
+        shell: bash
+        run: |
+          {
+            echo "## Canonical Product Regression"
+            echo
+            echo "**GREEN_REUSED_NO_RETEST**"
+            echo
+            echo 'Prior exact candidate GREEN was revalidated against the new production X base.'
+            echo 'Candidate patch identity is unchanged, target drift is path-disjoint, and no dependency/test-contract impact was detected.'
+            echo
+            echo 'Evidence:'
+            echo '~~~json'
+            echo '${{ steps.green-reuse.outputs.evidence }}'
+            echo '~~~'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Install product test dependencies
+        if: steps.green-reuse.outputs.reuse != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -41,6 +77,8 @@ jobs:
           sudo apt-get install -y -qq xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
       - name: Run canonical root/CI product regression
+        if: steps.green-reuse.outputs.reuse != 'true'
         shell: bash
         run: python tools/product_ci_regression.py
