@@ -779,7 +779,7 @@ def _root_unlock_receipt():
             "issue": 940,
             "generation": 4,
             "exact_commands": ["python tools/control_plane_regression.py"],
-            "manifest_digest": "e" * 64,
+            "manifest_digest": "c" * 64,
         },
         expected_test_commands=["python tools/control_plane_regression.py"],
         workspace_delivery_authority=authority,
