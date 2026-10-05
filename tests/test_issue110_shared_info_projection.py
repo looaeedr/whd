@@ -73,9 +73,11 @@ def test_corner_data_request_uses_selected_stable_key_without_mutating_manufactu
     monkeypatch.setattr(bridge, '_phase6_mesh_profiles_for_part', lambda _owner, key, _mat: (calls.append(('profiles', key)) or ([{'len': 760.0}], [{'len': 700.0}])))
     monkeypatch.setattr(bridge, '_phase6_operator_finished_dimensions', lambda _owner, key: calls.append(('dims', key)) or (760.0, 700.0))
     monkeypatch.setattr(bridge, '_phase6_render_data_corner_dimension_text', lambda _data: '截角尺寸：CROSS')
-    monkeypatch.setattr(bridge, '_phase6_format_unfolded_blank_text', lambda _data, *, part_key='': f'展開料：{part_key}')
+    from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
+    monkeypatch.setattr(Phase6CornerDataViewAdapter, 'unfolded_blank_text', lambda _data, **kwargs: f'展開料：{kwargs["part_key"]}')
     before = (workspace.active_part, workspace.selected_part)
     request = builder(app, 'box_body:back', render_data)
+    assert request.unfolded_blank_text == '展開料：box_body:back'
     assert request.part_key == 'box_body:back'
     assert request.finished_dimensions == (760.0, 700.0)
     assert ('profiles', 'box_body:back') in calls and ('dims', 'box_body:back') in calls

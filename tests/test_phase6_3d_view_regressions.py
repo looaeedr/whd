@@ -25,10 +25,10 @@ def test_unfolded_size_uses_canonical_final_material_not_raw_profiles():
         part_key="door",
         measurer=measure_unfolded_blanks,
     ) == (130.0, 240.0)
-    assert bridge._phase6_format_unfolded_blank_text(render, part_key="door").startswith(
+    assert bridge._phase6_composition(SimpleNamespace()).final_scene_ports(vars(bridge)).blank_text(render, part_key="door").startswith(
         "展開料：130 × 240 mm"
     )
-    assert "淨面積" not in bridge._phase6_format_unfolded_blank_text(render, part_key="door")
+    assert "淨面積" not in bridge._phase6_composition(SimpleNamespace()).final_scene_ports(vars(bridge)).blank_text(render, part_key="door")
 
 def test_scroll_zoom_changes_only_view_scale_and_is_bounded():
     holder = SimpleNamespace(_phase6_zoom_scale=1.0)

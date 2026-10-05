@@ -857,7 +857,7 @@ FINAL_SCENE_PORT_INVENTORY = (
     FinalScenePortInventoryEntry("publish_live_state", "canonical live-sync application seam", "READ_WRITE", "FINAL_SCENE_TO_APP", True, "CANONICAL_APPLICATION_STATE"),
     FinalScenePortInventoryEntry("corner_dimension_text", "phase6_corner_dimension_display", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
     FinalScenePortInventoryEntry("formed_size_text", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
-    FinalScenePortInventoryEntry("blank_text", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("blank_text", "phase6_corner_data_view_adapter", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
     FinalScenePortInventoryEntry("refresh_box_body_piece_info", "phase6_assembly_panel", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
     FinalScenePortInventoryEntry("operator_dimensions", "phase6_manufacturing_adapter", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
     FinalScenePortInventoryEntry("cabinet_family", "phase6_manufacturing_geometry", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
@@ -4090,9 +4090,7 @@ class Phase6FoldDesignerComposition:
             corner_text_provider=required(
                 "_phase6_render_data_corner_dimension_text"
             ),
-            blank_text_provider=required(
-                "_phase6_format_unfolded_blank_text"
-            ),
+            blank_text_provider=self.final_scene_ports(namespace).blank_text,
             alpha_bend=float(
                 getattr(getattr(app, "state", None), "alpha_bend", 0.85)
             ),
@@ -5148,8 +5146,15 @@ class Phase6FoldDesignerComposition:
 
         number_text = required("_setting_number_text")
         part_label = required("_phase6_part_label")
-        blank_text = required("_phase6_format_unfolded_blank_text")
         corner_text = required("_phase6_render_data_corner_dimension_text")
+
+        def blank_text(render_data, *, part_key=""):
+            return Phase6CornerDataViewAdapter.unfolded_blank_text(
+                render_data,
+                part_key=part_key,
+                measurer=manufacturing_api.measure_unfolded_blanks,
+                number_text=number_text,
+            )
 
         def formed_size_text(render_data, **kwargs):
             dimensions = tuple(kwargs.get("finished_dimensions") or ())

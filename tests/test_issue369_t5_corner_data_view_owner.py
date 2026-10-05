@@ -95,7 +95,7 @@ def test_issue369_requires_corner_data_view_adapter_without_solver_ownership():
 
 def test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state():
     funcs = _functions(_tree(BRIDGE))
-    moved_to_adapter = {"_phase6_current_unfolded_size", "_phase6_format_formed_size_text"}
+    moved_to_adapter = {"_phase6_current_unfolded_size", "_phase6_format_formed_size_text", "_phase6_format_unfolded_blank_text"}
     missing = sorted(set(EXPECTED_DELEGATES) - set(funcs))
     assert set(missing) <= moved_to_adapter
 
@@ -106,7 +106,7 @@ def test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state():
         for n in cls.body
         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-    assert {"current_unfolded_size", "formed_size_text"} <= adapter_methods
+    assert {"current_unfolded_size", "formed_size_text", "unfolded_blank_text"} <= adapter_methods
 
     violations = []
     for name, delegate in EXPECTED_DELEGATES.items():
