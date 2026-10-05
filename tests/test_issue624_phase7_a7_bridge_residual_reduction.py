@@ -649,3 +649,45 @@ def test_issue1229_receiving_layer_connection_ui_is_composition_owned():
     assert "第{layer_index + 1}層" in controls_source
     assert "{connection_count}連" in controls_source
     assert "＋層" in controls_source
+
+
+def test_issue1231_receiving_set_bay_application_orchestration_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_receiving_layout_applicable",
+        "_phase6_confirm_receiving_destructive",
+        "_phase6_receiving_adapter",
+        "_phase6_sync_receiving_current_bay",
+        "_phase6_commit_receiving_current_bay_controls",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "ReceivingSetBayAdapter" not in body
+        assert "project_receiving_bay_legacy_aliases" not in body
+        assert "ensure_receiving_layout" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "receiving_layout_applicable",
+        "confirm_receiving_destructive",
+        "receiving_adapter",
+        "sync_receiving_current_bay",
+        "commit_receiving_current_bay_controls",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert 'snapshot["receiving_layout"] = adapter.layout' in adapter_source
+    assert 'persisted_ids=required("receiving_layout_stable_ids")' in adapter_source
