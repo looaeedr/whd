@@ -38,6 +38,9 @@ from tools.control_transaction import (
     is_control_only_finalize_record,
     prepare_transaction,
     CONTROL_ONLY_TARGET_READBACK_SCHEMA,
+    POST_DELIVERY_RECOVERY_MODE,
+    POST_DELIVERY_RECOVERY_PROOF_SCHEMA,
+    is_post_delivery_recovery_finalize_record,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
 from tools.execution_invocation_exit import (
@@ -65,8 +68,10 @@ from tools.flow_v2_merge_precheck import (
 )
 from tools.execution_record import (
     ActionSpec,
+    ClosureState,
     ExecutionRecord,
     ExecutionRecordError,
+    LeaseState,
     execution_record_fingerprint,
     execution_record_from_payload,
     execution_record_to_payload,
@@ -441,6 +446,165 @@ def _check_conclusions_for_head(
 
 
 
+def _pr_body_closes_issue(body: object, issue: int) -> bool:
+    text = str(body or "")
+    return bool(
+        re.search(
+            rf"(?im)\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#\s*{issue}\b",
+            text,
+        )
+    )
+
+
+
+def _slot_for_lane(lane_id: str) -> str | None:
+    return {
+        "chatgpt.flowv2.work0": "worker.slot.0",
+        "chatgpt.flowv2.work1": "worker.slot.1",
+        "chatgpt.flowv2.work2": "worker.slot.2",
+        "chatgpt.flowv2.work3": "worker.slot.3",
+    }.get(lane_id)
+
+
+
+def _build_post_delivery_recovery_record(
+    repo: str,
+    token: str,
+    *,
+    issue: int,
+    lane_id: str,
+    invocation_identity: str,
+    supplied_effect: dict[str, object],
+) -> ExecutionRecord:
+    """Mint current-only recovery state from fresh GitHub delivery evidence.
+
+    This deliberately does not reconstruct historical WAKE, lease, transaction,
+    or QA acceptance.  The only lease created is the live recovery invocation.
+    """
+    pr_number = supplied_effect.get("pr_number")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY requires positive pr_number")
+
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    if pr.get("merged") is not True:
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY requires fresh merged PR readback")
+    if str(pr.get("state") or "").strip().lower() != "closed":
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY merged PR must be closed")
+    if not _pr_body_closes_issue(pr.get("body"), issue):
+        raise ProductionExecutorError(
+            "RECOVER_POST_DELIVERY PR body must contain an exact closing keyword for the Issue"
+        )
+
+    head = pr.get("head") or {}
+    base = pr.get("base") or {}
+    head_repo = head.get("repo") or {}
+    head_ref = str(head.get("ref") or "").strip()
+    head_sha = str(head.get("sha") or "").strip()
+    target_branch = str(base.get("ref") or "").strip()
+    merged_sha = str(pr.get("merge_commit_sha") or "").strip()
+    if str(head_repo.get("full_name") or "").strip() != repo:
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY requires same-repository delivery PR")
+    if not head_ref or not re.fullmatch(r"[0-9A-Za-z._/@-]+", head_ref):
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY PR head ref is invalid")
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", head_sha):
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY PR head SHA is invalid")
+    if target_branch != "cleanup/2d-3d-sync":
+        raise ProductionExecutorError(
+            "RECOVER_POST_DELIVERY delivery target must be cleanup/2d-3d-sync"
+        )
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", merged_sha):
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY merge SHA is invalid")
+
+    issue_readback = _api(repo, "GET", f"/issues/{issue}", token) or {}
+    if issue_readback.get("pull_request") is not None:
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY issue identity resolves to a pull request")
+    if int(issue_readback.get("number") or 0) != issue:
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY issue readback identity mismatch")
+
+    observed_target = _read_branch_head(repo, token, target_branch)
+    anchor_is_ancestor = observed_target == merged_sha or _is_ancestor(
+        repo, token, merged_sha, observed_target
+    )
+    if not anchor_is_ancestor:
+        raise ProductionExecutorError(
+            "RECOVER_POST_DELIVERY merged anchor is not ancestor of current production target"
+        )
+
+    required_checks = _required_checks_for_target(repo, token, target_branch)
+    conclusions = _check_conclusions_for_head(repo, token, head_sha)
+    missing_or_red = [
+        name for name in required_checks if conclusions.get(name) != "success"
+    ]
+    if missing_or_red:
+        raise ProductionExecutorError(
+            "RECOVER_POST_DELIVERY required checks are not GREEN: "
+            + ",".join(missing_or_red)
+        )
+
+    observed_at = _iso(_now())
+    lease_expires_at = _iso(_now() + timedelta(minutes=15))
+    proof = {
+        "schema": POST_DELIVERY_RECOVERY_PROOF_SCHEMA,
+        "kind": POST_DELIVERY_RECOVERY_MODE,
+        "issue": issue,
+        "pr_number": pr_number,
+        "pr_head_ref": head_ref,
+        "pr_head_sha": head_sha.lower(),
+        "target_branch": target_branch,
+        "observed_target_sha": observed_target.lower(),
+        "merged_sha": merged_sha.lower(),
+        "merged_anchor_is_ancestor": True,
+        "required_checks": required_checks,
+        "required_check_conclusions": {
+            name: conclusions.get(name) for name in required_checks
+        },
+        "required_checks_green": True,
+        "issue_link_proof": "PR_CLOSING_KEYWORD",
+        "issue_state_at_recovery": str(issue_readback.get("state") or "").lower(),
+        "qa_history_reconstructed": False,
+        "trusted_source": "control_transaction_production_executor",
+        "observed_at": observed_at,
+    }
+    return ExecutionRecord(
+        issue=issue,
+        execution_intent="POST_DELIVERY_RECOVERY",
+        owner_kind="RECOVERY",
+        owner_id=lane_id,
+        lane_id=lane_id,
+        slot_id=_slot_for_lane(lane_id),
+        source_branch=head_ref,
+        source_sha=head_sha,
+        work_branch=head_ref,
+        head_sha=head_sha,
+        target_branch=target_branch,
+        target_sha=observed_target,
+        state="INTEGRATING",
+        semantic_state="POST_DELIVERY_RECOVERY_FINALIZATION",
+        next_action=ActionSpec(
+            kind="FINALIZE",
+            args={
+                "recovery_mode": POST_DELIVERY_RECOVERY_MODE,
+                "pr_number": pr_number,
+            },
+            display="Finalize already-merged delivery from trusted recovery proof",
+        ),
+        lease=LeaseState(
+            token=f"recovery:{issue}:{os.environ.get('GITHUB_RUN_ID','local')}",
+            invocation_identity=invocation_identity,
+            expires_at=lease_expires_at,
+        ),
+        closure=ClosureState(
+            merged_sha=merged_sha,
+            issue_closed=False,
+            released_at=None,
+        ),
+        recovery_history=(proof,),
+        generation=1,
+        updated_at=observed_at,
+    )
+
+
+
 def _merge_precheck_readback(
     repo: str,
     token: str,
@@ -801,10 +965,14 @@ def _ensure_issue_closed_for_finalize(
 ) -> dict[str, object]:
     """Close/read back the GitHub Issue before a FINALIZE -> DONE transition."""
     control_only = is_control_only_finalize_record(record)
+    post_delivery_recovery = is_post_delivery_recovery_finalize_record(record)
     if not control_only:
         if record.state != "INTEGRATING":
             raise ProductionExecutorError("FINALIZE requires INTEGRATING state before issue close")
-        if record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha:
+        if (
+            not post_delivery_recovery
+            and (record.qa.last_accepted_run is None or record.qa.accepted_head_sha != record.head_sha)
+        ):
             raise ProductionExecutorError("FINALIZE requires accepted QA for current head before issue close")
     target_readback = _finalize_target_readback(repo, token, record=record)
 
@@ -1098,6 +1266,125 @@ def _write_state(
         raise
     return commit["sha"], record_blob["sha"]
 
+
+
+
+def recover_post_delivery_missing_record(
+    *,
+    repo: str,
+    token: str,
+    coord_branch: str,
+    issue: int,
+    lane_id: str,
+    invocation_identity: str,
+    expected_coord_head: str,
+    supplied_effect: dict[str, object],
+) -> dict[str, object]:
+    """Create one current-only recovery record for an already-merged delivery.
+
+    The create is CAS-protected and retries only unrelated coord-branch races.
+    Same-Issue creation by another writer fails closed.  Historical execution
+    events are never synthesized.
+    """
+    parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+    if parent_sha != expected_coord_head:
+        raise ControlTransactionConflict(
+            f"coord head drift: expected {expected_coord_head}, observed {parent_sha}"
+        )
+    if issue in records:
+        raise ControlTransactionConflict(
+            f"RECOVER_POST_DELIVERY requires missing ExecutionRecord; issue {issue} now exists"
+        )
+
+    last_conflict: ControlTransactionConflict | None = None
+    for attempt in range(1, 6):
+        if issue in records:
+            raise ControlTransactionConflict(
+                f"RECOVER_POST_DELIVERY same-Issue record appeared during recovery: {issue}"
+            )
+        record = _build_post_delivery_recovery_record(
+            repo,
+            token,
+            issue=issue,
+            lane_id=lane_id,
+            invocation_identity=invocation_identity,
+            supplied_effect=supplied_effect,
+        )
+        candidate_records = dict(records)
+        candidate_records[issue] = record
+        try:
+            commit_sha, record_blob_sha = _write_state(
+                repo,
+                token,
+                coord_branch,
+                parent_sha=parent_sha,
+                base_tree_sha=tree_sha,
+                records=candidate_records,
+                issue=issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            last_conflict = exc
+            if not str(exc).startswith(
+                "coord/execution-v2 ref advanced during transaction"
+            ) or attempt >= 5:
+                raise
+            parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+            if issue in records:
+                raise ControlTransactionConflict(
+                    "RECOVER_POST_DELIVERY same-Issue record appeared during coord retry"
+                ) from exc
+    else:  # pragma: no cover
+        assert last_conflict is not None
+        raise last_conflict
+
+    _, _, fresh_records = _load_state(repo, token, coord_branch)
+    fresh = fresh_records.get(issue)
+    if fresh is None:
+        raise ProductionExecutorError("RECOVER_POST_DELIVERY post-write record is missing")
+    if execution_record_fingerprint(fresh) != execution_record_fingerprint(record):
+        raise ProductionExecutorError(
+            "RECOVER_POST_DELIVERY post-write record fingerprint mismatch"
+        )
+
+    try:
+        monitor_commit_sha, observation = _publish_transaction_progress(
+            repo,
+            token,
+            record=fresh,
+            invocation_identity=invocation_identity,
+            runtime_owner=lane_id,
+            action="RECOVER_POST_DELIVERY",
+        )
+        monitor_payload = {
+            "runtime_observation_status": "APPLIED",
+            "runtime_observation_commit_sha": monitor_commit_sha,
+            "runtime_observation_event": observation["event"],
+            "runtime_liveness_state": observation["liveness_state"],
+        }
+    except Exception as exc:
+        monitor_payload = {
+            "runtime_observation_status": "DEGRADED",
+            "runtime_observation_error": str(exc),
+            "runtime_observation_commit_sha": None,
+            "runtime_observation_event": None,
+            "runtime_liveness_state": "UNKNOWN",
+        }
+
+    return {
+        "schema": RESULT_SCHEMA,
+        "result": "APPLIED",
+        "issue": issue,
+        "kind": "RECOVER_POST_DELIVERY",
+        "coord_commit_sha": commit_sha,
+        "record_blob_sha": record_blob_sha,
+        "post_generation": fresh.generation,
+        "post_record_fingerprint": execution_record_fingerprint(fresh),
+        "post_state": fresh.state,
+        "post_next_action": fresh.next_action.kind if fresh.next_action else None,
+        "lease_invocation_identity": fresh.lease.invocation_identity if fresh.lease else None,
+        **monitor_payload,
+    }
 
 
 
