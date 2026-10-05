@@ -38,7 +38,7 @@ def _lane(sha="a" * 40, generation=4, lane="docs"):
     }
 
 
-def _test_receipt(sha="a" * 40, issue=996, generation=4):
+def _test_receipt(sha="a" * 40, issue=996, generation=4, manifest_digest="c" * 64):
     return {
         "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
         "status": "GREEN",
@@ -46,7 +46,7 @@ def _test_receipt(sha="a" * 40, issue=996, generation=4):
         "issue": issue,
         "generation": generation,
         "exact_commands": ["python tools/control_plane_regression.py"],
-        "manifest_digest": "e" * 64,
+        "manifest_digest": manifest_digest,
     }
 
 
@@ -264,7 +264,7 @@ def test_target_drift_revalidates_green_before_forcing_retest():
         workspace_mutations_complete=True,
         workspace_tests_green=True,
         diff_digest="d" * 64,
-        test_receipt=_test_receipt(),
+        test_receipt=_test_receipt(manifest_digest="d" * 64),
         expected_test_commands=["python tools/control_plane_regression.py"],
         workspace_delivery_authority=authority,
         path_reservation_evidence=_reservation(),
@@ -416,6 +416,8 @@ def test_git_unlock_receipt_is_machine_bound_to_workspace_frozen_diff_and_reserv
         workspace_mutations_complete=True,
         workspace_tests_green=True,
         diff_digest="c" * 64,
+        test_receipt=_test_receipt(),
+        expected_test_commands=["python tools/control_plane_regression.py"],
         workspace_delivery_authority=authority,
         path_reservation_evidence=_reservation(),
     )
