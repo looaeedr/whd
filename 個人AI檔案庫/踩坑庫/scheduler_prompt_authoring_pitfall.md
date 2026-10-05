@@ -102,7 +102,7 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 2. `UPDATE_ONLY` 不授權 implementation claim、implementation branch、successor chain 或 scheduler lane execution。
 3. `/排程A` / `/排程B` 與真正 scheduled invocation 才是 `SCHEDULER_LANE` execution entrypoint。
 4. `open / unblocked Issue`、空 work slot、legacy Guard 可用都不是 execution authority；只有 canonical READY/ACTIVE ExecutionRecord + valid transition/lease 能授權執行。
-5. `NORMAL_PATH_FIRST`：正常 implementation 走 `READY → canonical root shared-0 authoring/tests → merge-to-latest-0 → post-merge GREEN → lane manifest freeze → delivery reservation → Git candidate → QA → MERGE → FINALIZE/DONE`；不得復活 legacy claim-first / branch-first / pre-write reservation。
+5. `NORMAL_PATH_FIRST`：正常 implementation 走 `READY → workspace-capable runtime → executor-local repo workspace + fresh X baseline → author/test → exact tested diff → delivery branch/PR/CI → QA → MERGE → FINALIZE/DONE`。只有 fresh touched-path evidence 證明較新的 shared-0 drift 時才切 `SHARED_ZERO_FALLBACK`；不得復活 legacy claim-first、Drive-first、shared-0-always 或 pre-write reservation。
 6. `RECOVERY_IS_EXCEPTION_NOT_PHASE`：takeover / reactivate / reconciliation / legacy repair 僅由 fresh machine evidence 觸發；condition 修復後立即回 normal path。
 7. 修改 live recurring automation prompt 時只改本次 scope；cadence、enabled、lane owner 若未被使用者點名就保持原值，並 post-update fresh readback。
 
@@ -117,13 +117,15 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
 
 <!-- ISSUE808_SCHEDULER_REMOTE_ONLY_EXECUTION_V1 -->
-## 排程 remote control-plane 與 root content surface 邊界 — CURRENT
+## 排程 remote control-plane 與 content workspace 邊界 — CURRENT
 
 - 排程A/B 的 **control-plane / post-push integration** 保持 remote：GitHub/SCHEDULER/REMOTE_ACTION 負責 discovery、lease/transaction、preflight、CI/QA、merge、finalization/readback。
-- 只要下一個 action 需要產生 repository-content diff，固定 HANDOFF 到 canonical `/Google Drive/WHD` full repo root 的 selected `.unpushed/{docs|body}/0` lineage；這不是 workstation/local-shell fallback，而是 CURRENT shared-unpushed content surface。
-- `handoff_source=LOCAL` 等 legacy provenance 欄位不提供 authority；CURRENT execution/control-plane authority 是 Flow v2 record + live lease，repository-content authority 是 selected shared `0` lineage；`mutation_scope` 只在 frozen lane delivery 階段作 reservation。
-- remote capability 暫時不可用時保存 genuine blocker；不得改走 Remote Desktop/任意 workstation repo，也不得以 legacy Remote Guard / GitHub-side hotfix繞過 root gate。
-- root-tested/frozen candidate push 後，scheduler 再接回 remote QA/merge/finalization tail。
+- 只要下一個 action 需要產生 repository-content diff，固定 handoff 到 **workspace-capable runtime**，使用 executor-local repo workspace + fresh `cleanup/2d-3d-sync` baseline；Codex 常見 `/workspace/whd`。不得要求固定 `/Google Drive/WHD`。
+- repository-content normal route=`WORKSPACE_DEFAULT`；shared `.unpushed/{docs|body}/0` 只有 fresh touched-path drift 證明較新時才成為 `SHARED_ZERO_FALLBACK`。
+- `handoff_source=LOCAL` 等 legacy provenance欄位不提供 authority；CURRENT execution/control-plane authority是 Flow v2 record + live lease，content authoring authority由 current router + tested exact diff / delivery evidence決定。
+- remote capability暫時不可用時保存 genuine blocker；不得改走未授權 Remote Desktop/任意 workstation repo，也不得以 legacy Remote Guard / untested GitHub-side hotfix繞過 workspace/test gate。
+- workspace-tested candidate push後，scheduler再接回 remote QA/merge/finalization tail。
+
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
 ## Mutating toolcall crash-recovery canonical invariant
 
@@ -139,6 +141,6 @@ Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；
 
 ## FLOW_V2_ROOT_LOCAL_FIRST_SCHEDULER_CONTENT_FENCE_V1
 
-CURRENT：排程A/B、GITHUB_ONLY、REMOTE_ACTION 的 remote authority只涵蓋 control-plane與 post-push integration。只要下一步需要產生新的 repository-content diff，就必須 HANDOFF 到 canonical Google Drive root workspace完成修改、分類測試、full gate、test receipt與 diff freeze；GitHub branch 不得成為 scheduler 的直接施工／熱修面。CI/remote QA 若發現內容錯誤，回 root 修正、重測、refreeze、再推候選。
+CURRENT：排程A/B、GITHUB_ONLY、REMOTE_ACTION 的 remote authority只涵蓋 control-plane與 post-push integration。只要下一步需要產生新的 repository-content diff，就必須 HANDOFF 到 workspace-capable runtime，以 executor-local repo workspace + fresh X baseline完成修改、分類測試、full gate/test receipt與 exact diff；GitHub control-plane runtime不得成為未測直接施工／熱修面。CI/remote QA若發現內容錯誤，回同一 authoring route修正、重測、再推候選。只有 fresh shared drift 才切 `SHARED_ZERO_FALLBACK`。
 
-這條規則用來避免把「scheduler 有 GitHub write capability」誤解成「scheduler 可以跳過 root-local-first」。
+這條規則用來避免把「scheduler 有 GitHub write capability」誤解成「scheduler 可以跳過 workspace-first author/test gate」，也避免把舊 Drive/shared-0 surface復活成唯一施工入口。
