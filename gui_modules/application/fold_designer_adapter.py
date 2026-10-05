@@ -68,6 +68,7 @@ from phase6_workspace_shell import (
     WorkspaceShellActions,
     WorkspaceShellOwner,
     WorkspaceShellState,
+    toggle_fullscreen as workspace_shell_toggle_fullscreen,
 )
 from phase6_box_body_structure import BoxBodyStructureType
 from whd_theme import WHD_THEME
@@ -4129,6 +4130,41 @@ class Phase6FoldDesignerComposition:
             visibility_plan=view.canvas_visibility_plan(True),
         )
 
+    def toggle_fullscreen(self):
+        """Apply fullscreen presentation effects while composition owns app state."""
+        app = self.app
+        enabled, geometry = workspace_shell_toggle_fullscreen(
+            app.root,
+            getattr(app, "fullscreen_button", None),
+            enabled=bool(getattr(app, "_phase6_fullscreen", False)),
+            restore_geometry=getattr(app, "_phase6_restore_geometry", None),
+        )
+        app._phase6_fullscreen = bool(enabled)
+        app._phase6_restore_geometry = geometry
+        return app._phase6_fullscreen
+
+    def build_settings_center(self, namespace):
+        """Build Settings/diagnostics around the renderer without changing owners."""
+        app = self.app
+        renderer_widget = app.renderer.canvas.get_tk_widget()
+        renderer_widget.pack_forget()
+        panel = self.settings_panel(namespace)
+        panel.build_settings_center(app.right)
+        self.registry_panel(namespace).build_assembly_diagnostics(app.right)
+        renderer_widget.pack(fill=tk.BOTH, expand=True)
+        self.sync_settings_panel_compat()
+
+    def install_renderer_view(self, namespace):
+        """Install the FinalScene view and keep its Tk canvas out of focus order."""
+        app = self.app
+        adapter = self.final_scene_adapter(self.final_scene_ports(namespace))
+        result = adapter.install_renderer()
+        try:
+            app.renderer.canvas.get_tk_widget().configure(takefocus=False)
+        except Exception:
+            pass
+        return result
+
     def workspace_shell_owner(self, namespace):
         """Compose WorkspaceShell state/actions without moving presentation ownership."""
         app = self.app
@@ -4215,7 +4251,7 @@ class Phase6FoldDesignerComposition:
             install_keyboard_shortcuts=lambda: required(
                 "_phase6_install_keyboard_shortcuts"
             )(app),
-            toggle_fullscreen=lambda: required("_phase6_toggle_fullscreen")(app),
+            toggle_fullscreen=lambda: self.toggle_fullscreen(),
         )
         owner = WorkspaceShellOwner(shell_state, actions)
         self._workspace_shell_owner = owner
