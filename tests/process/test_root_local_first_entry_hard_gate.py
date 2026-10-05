@@ -184,68 +184,59 @@ def test_interactive_order_uses_workspace_then_delivery_reservation():
     assert unlocked["git_write_unlocked"] is True
     assert unlocked["next_action"] == "EXACT_TESTED_DIFF_ONLY"
 
-def test_worker_census_compatibility_bridge_is_optional_but_validated():
-    from tools.root_local_first_gate import build_gate_evidence, validate_source_current
+def test_worker_census_compatibility_input_is_retired():
+    from tools.root_local_first_gate import build_gate_evidence
 
-    source = validate_source_current(
-        workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
-        live_source_sha="a" * 40, live_tree_sha="b" * 40,
-    )
-    common = dict(
-        execution_mode="INTERACTIVE", source_evidence=source,
-        unpushed_lane_evidence=_lane(), root_mutations_complete=True,
-        merge_to_zero_complete=True, test_classified=True, tests_green=True,
-        test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"],
-        diff_digest="c" * 64,
-    )
+    with pytest.raises(ValueError, match="LEGACY_SHARED_ZERO_EXECUTION_INPUT_RETIRED"):
+        build_gate_evidence(
+            execution_mode="INTERACTIVE",
+            worker_census_evidence=_worker_census(),
+        )
 
-    current = build_gate_evidence(**common)
-    assert current["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
-
-    compatible = build_gate_evidence(**common, worker_census_evidence=_worker_census())
-    assert compatible["next_action"] == "REMOTE_CONNECTION_AUTHORIZED"
-    assert "WORKER_CENSUS_NO_MERGEABLE_GREEN" in compatible["completed"]
-
-    mergeable = build_gate_evidence(
-        **common, worker_census_evidence=_worker_census(mergeable=1)
-    )
-    assert mergeable["next_action"] == "MERGE_TO_FRESH_LATEST_ZERO"
-
-    blocked = build_gate_evidence(
-        **common, worker_census_evidence=_worker_census(blocking=1)
-    )
-    assert blocked["next_action"] == "RESOLVE_WORKER_CENSUS_BLOCKERS"
-
-    bad = _worker_census()
-    bad["schema"] = "BROKEN"
-    with pytest.raises(ValueError, match="worker census evidence schema mismatch"):
-        build_gate_evidence(**common, worker_census_evidence=bad)
-
-
-def test_git_content_write_is_forbidden_before_unlock():
+def test_git_content_write_is_forbidden_before_workspace_delivery_unlock():
     from tools.root_local_first_gate import (
         assert_git_content_write_allowed,
+        build_entry_router_evidence,
         build_gate_evidence,
-        build_remote_connection_authority,
+        validate_source_current,
     )
-    evidence = build_gate_evidence(execution_mode="INTERACTIVE")
+
+    entry = build_entry_router_evidence(
+        fresh_reads=[
+            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+        ],
+        workspace_root="/workspace/whd",
+    )
+    source = validate_source_current(
+        workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
+        live_source_sha="a" * 40,
+        live_tree_sha="b" * 40,
+    )
+    evidence = build_gate_evidence(
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+    )
     assert_git_content_write_allowed(evidence, action="READ")
-
-    authority = build_remote_connection_authority(
-        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
-    )
-    authorized = dict(evidence, remote_connection_authority=authority)
-    assert_git_content_write_allowed(authorized, action="READ")
     with pytest.raises(ValueError, match="GIT_WRITE_LOCKED"):
-        assert_git_content_write_allowed(authorized, action="COMMIT")
-
+        assert_git_content_write_allowed(evidence, action="COMMIT")
 
 def test_target_drift_revalidates_green_before_forcing_retest():
     from tools.root_local_first_gate import (
+        build_entry_router_evidence,
         build_gate_evidence,
         build_remote_connection_authority,
         validate_source_current,
+    )
+
+    entry = build_entry_router_evidence(
+        fresh_reads=[
+            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+        ],
+        workspace_root="/workspace/whd",
     )
     source = validate_source_current(
         workspace_git={"head_sha": "a" * 40, "tree_sha": "b" * 40},
@@ -253,21 +244,24 @@ def test_target_drift_revalidates_green_before_forcing_retest():
         live_tree_sha="b" * 40,
     )
     authority = build_remote_connection_authority(
-        kind="PUSH_DOCS", target="GITHUB", lane="docs", user_explicit=True
+        kind="WORKSPACE_DELIVERY", target="GITHUB", user_explicit=True
     )
     evidence = build_gate_evidence(
-        execution_mode="INTERACTIVE", source_evidence=source, unpushed_lane_evidence=_lane(),
-        root_mutations_complete=True, merge_to_zero_complete=True, test_classified=True,
-        tests_green=True, test_receipt=_test_receipt(),
-        expected_test_commands=["python tools/control_plane_regression.py"], diff_digest="d" * 64,
-        remote_connection_authority=authority,
-        path_reservation_evidence=_reservation(), target_drift=True,
+        execution_mode="INTERACTIVE",
+        repository_content_implementation=True,
+        entry_router_evidence=entry,
+        source_evidence=source,
+        workspace_mutations_complete=True,
+        workspace_tests_green=True,
+        diff_digest="d" * 64,
+        workspace_delivery_authority=authority,
+        path_reservation_evidence=_reservation(),
+        target_drift=True,
     )
     assert evidence["git_write_unlocked"] is False
-    assert evidence["next_action"] == "REVALIDATE_GREEN_REUSE_OR_RETEST_BEFORE_GIT_WRITE"
+    assert evidence["next_action"] == "REVALIDATE_GREEN_REUSE_OR_RETEST_BEFORE_DELIVERY"
     assert evidence["target_drift_resolution"]["retest_required"] is False
     assert evidence["target_drift_resolution"]["extra_test_run"] is False
-
 
 def test_legacy_manifest_and_scoped_recovery_are_historical_only():
     from tools.root_local_first_gate import validate_source_current
@@ -326,12 +320,20 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
     assert (
         agents.index("ENTRY_ROUTER_FIRST_HARD_GATE_V1")
         < agents.index("WORK_ROOT_BOOTSTRAP_HARD_GATE_V2")
-        < agents.index("## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1")
         < agents.index("# 0. 啟動硬閘門")
     )
-    root_gate = json.loads((ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8"))
+    root_gate = json.loads(
+        (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8")
+    )
+    assert root_gate["required_sequence"] == [
+        "WORKSPACE_ROOT_RESOLVED",
+        "WORKSPACE_GIT_IDENTITY_VERIFIED",
+        "PRODUCTION_BASELINE_CURRENT",
+        "REQUESTED_OPERATION",
+    ]
     assert root_gate["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
-    assert "ROOT_SHARED_UNPUSHED_GATE_READ" in root_gate["required_sequence"]
+    assert "unpushed" not in root_gate
+    assert "canonical_drive_overlay" not in root_gate
     registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
     route = next(r for r in registry["routes"] if r["id"] == "root-local-first")
     assert route["file_globs"] == ["**"]
@@ -339,10 +341,6 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
     assert "whd_contract: canonical-authority-map" in authority
     assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json" in authority
-    assert "contract=root-local-first-entry-gate role=HISTORICAL" in authority
-    assert "contract=root-shared-unpushed-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md" in authority
-    assert "contract=root-shared-unpushed-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md" in authority
-
 
 def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():
     from tools.skill_catalog import inventory
