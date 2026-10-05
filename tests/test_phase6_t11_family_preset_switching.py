@@ -167,3 +167,61 @@ def test_fold_designer_receiving_to_vault_restores_vault_structure_preset_even_w
             root.destroy()
         except tk.TclError:
             pass
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+def test_fold_designer_baseline_selector_preserves_global_text_size_and_commits_model():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+    try:
+        designer = app.open_original_fold_designer()
+        _pump(root)
+
+        designer.ui_text_size_var.set("大")
+        _pump(root)
+        assert designer._settings_values["ui_text_size"] == "large"
+        assert designer._ui_text_controller.size_key == "large"
+
+        menu = designer.baseline_model_combo._phase6_menu
+
+        def select(value):
+            end = menu.index("end")
+            for index in range((end if end is not None else -1) + 1):
+                try:
+                    if str(menu.entrycget(index, "value")) == value:
+                        menu.invoke(index)
+                        _pump(root)
+                        return
+                except tk.TclError:
+                    continue
+            raise AssertionError(f"baseline selector missing {value!r}")
+
+        select("受電箱")
+        assert designer.baseline_model_var.get() == "受電箱"
+        assert designer._phase6_input_snapshot["model"] == "受電箱"
+        assert designer._phase6_baseline_last_model == "受電箱"
+        assert designer._settings_values["ui_text_size"] == "large"
+        assert designer._phase6_input_snapshot["ui_text_size"] == "large"
+        assert designer._ui_text_controller.size_key == "large"
+        assert designer.ui_text_size_var.get() == "大"
+
+        select("金庫型")
+        assert designer.baseline_model_var.get() == "金庫型"
+        assert designer._phase6_input_snapshot["model"] == "金庫型"
+        assert designer._phase6_baseline_last_model == "金庫型"
+        assert designer._settings_values["ui_text_size"] == "large"
+        assert designer._phase6_input_snapshot["ui_text_size"] == "large"
+        assert designer._ui_text_controller.size_key == "large"
+        assert designer.ui_text_size_var.get() == "大"
+    finally:
+        try:
+            if app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
+
