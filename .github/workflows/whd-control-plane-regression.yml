@@ -34,6 +34,8 @@ on:
       - 'tests/process/test_issue1022_root_ci_parity.py'
       - 'tests/process/test_issue724_report_handler_identity_prefix.py'
       - 'tools/control_plane_regression.py'
+      - 'tools/production_x_post_merge_finalize.py'
+      - 'tests/process/test_issue1282_post_merge_finalize.py'
       - '.agents/skills/engineering/工作槽/SKILL.md'
       - '.agents/skills/engineering/寫排程/SKILL.md'
       - '.agents/skills/engineering/派工/SKILL.md'
