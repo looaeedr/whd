@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "e4d4493d4a9cd0668fc88c5991763298ac7956b6",
-    "released_at": null
+    "released_at": "2026-10-05T13:05:27Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "c0f89f1ac7f37a70009790c309344c795ba379ef",
   "issue": 1285,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-05T13:20:40Z",
-    "invocation_identity": "github:production-x-post-merge:37314064583:pr1290:issue1285",
-    "token": "recovery:1285:37314064583"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1290,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "fix/issue1285-baseline-switch-text-scale-r3",
   "source_sha": "c0f89f1ac7f37a70009790c309344c795ba379ef",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e4d4493d4a9cd0668fc88c5991763298ac7956b6",
-  "transaction": null,
-  "updated_at": "2026-10-05T13:05:40Z",
+  "transaction": {
+    "expected_fingerprint": "ef28d021daa4e42254ebd6eedd9c6359c7e38a5415ed9d83b35f84ff95ce57d6",
+    "id": "gha:37314064583:1285:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37314064583:pr1290:issue1285",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-05T13:06:23Z",
   "version": 2,
   "work_branch": "fix/issue1285-baseline-switch-text-scale-r3"
 }
