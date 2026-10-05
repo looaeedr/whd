@@ -18,6 +18,8 @@ The two axes stay logically separate so one cannot mask the other. They may run 
 
 ### REMOTE_AUTHORITY_GATE_V1
 
+Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`，authority schema=`WHD_REMOTE_CONNECTION_AUTHORITY_V1`；同 scope 沿用/自動 mint 只是不重問使用者，**不是 bypass machine gate**。
+
 在 WHD，review 需要 GitHub Issue/PR、commit reference `#123`、PR diff或 metadata 時仍須 exact remote authority；但若使用者本輪**明確要求 review 該 exact GitHub PR/Issue/ref**，machine 可由該 instruction 一次 mint `USER_EXPLICIT_REMOTE` 所需 read actions，不得回頭要求第二次授權。同一 `WORKSPACE_DELIVERY` task 的 PR/CI/owning-Issue review則直接沿既有 delivery authority。只有 scope 不明、跨 repository/Issue或額外 remote mutation時才標 `REMOTE_SOURCE_NOT_AUTHORIZED`。
 
 
