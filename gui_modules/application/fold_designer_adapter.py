@@ -974,6 +974,76 @@ class Phase6FoldDesignerComposition:
         self._final_scene_renderer = None
         self._final_scene_adapter = None
 
+    def corner_transaction_payload(self, namespace):
+        """Assemble the live-sync payload from existing canonical owners."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        source = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        graph_state = migrate_legacy_snapshot_joints(source)
+        workspace = self.collect_workspace_state(namespace)
+        clone = required("clone_profile")
+        return {
+            "model": str(app.baseline_model_var.get() or "").strip(),
+            "settings": dict(getattr(app, "_settings_values", {})),
+            "multi_door_enabled": bool(source.get("multi_door_enabled", False)),
+            "door_layout_columns": deepcopy(
+                source.get("door_layout_columns") or []
+            ),
+            "door_layout_scope": str(
+                source.get("door_layout_scope") or "main"
+            ),
+            "door_handle_edges": deepcopy(
+                source.get("door_handle_edges") or {}
+            ),
+            "assembly_type": assembly_intent_value(
+                getattr(
+                    app,
+                    "_phase6_assembly_type",
+                    CornerTypeId.INSERT_OVERLAY,
+                )
+            ),
+            "assembly_joint_schema_version": graph_state[
+                "assembly_joint_schema_version"
+            ],
+            "assembly_joints": deepcopy(graph_state["assembly_joints"]),
+            "endcap_fw": deepcopy(
+                getattr(app, "_phase6_endcap_fw_state", None)
+                or required("normalize_endcap_fw_state")(
+                    getattr(app, "_phase6_input_snapshot", {}) or {}
+                )
+            ),
+            "corner_state": deepcopy(
+                getattr(app, "_phase6_corner_state", {})
+            ),
+            "corner_pair_same": deepcopy(
+                getattr(app, "_phase6_corner_pair_same", {})
+            ),
+            "active_part": getattr(app, "active_part_key", None),
+            "assembly_relief": self.serialize_assembly_relief_state(namespace),
+            "workspace": workspace,
+            "existing_parts": list(
+                workspace.get("existing_parts", [])
+            ),
+            "part_profiles": deepcopy(
+                workspace.get("part_profiles", {})
+            ),
+            "box_body_structure": deepcopy(
+                workspace.get("box_body_structure", {})
+            ),
+            "box_body_profile": clone(
+                workspace.get("box_body_profile", [])
+            ),
+            "part_features": deepcopy(
+                workspace.get("part_features", {})
+            ),
+            "part_face_features": deepcopy(
+                workspace.get("part_face_features", {})
+            ),
+            "assembly_placements": deepcopy(
+                workspace.get("assembly_placements", {})
+            ),
+        }
+
     def publish_live_state(self, namespace, *, force=False):
         """Own the live-sync plan -> callback -> application-state effect boundary."""
         app = self.app
@@ -988,7 +1058,7 @@ class Phase6FoldDesignerComposition:
         ):
             return False
 
-        state = self._required(namespace, "_phase6_corner_transaction_payload")(app)
+        state = self.corner_transaction_payload(namespace)
         input_snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
         host_relief_present = (
             isinstance(input_snapshot, Mapping)
