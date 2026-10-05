@@ -25,7 +25,7 @@ def test_drive_transport_cannot_produce_current_workspace_admission():
     from tools.work_root_gate import build_work_root_gate_evidence
 
     payload = json.loads((ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text())
-    with pytest.raises(ValueError, match="executor-local workspace"):
+    with pytest.raises(ValueError, match="DRIVE_WORK_ROOT_RETIRED"):
         build_work_root_gate_evidence(
             gate_payload=payload, read_mode="GOOGLE_DRIVE_CANONICAL",
             execution_mode="INTERACTIVE", root_entries=payload["required_root_entries"],
