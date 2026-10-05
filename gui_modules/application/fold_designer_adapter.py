@@ -2807,18 +2807,18 @@ class Phase6FoldDesignerComposition:
             bottom_wrap_commit=lambda part_key, reserve_u_var, reserve_v_var: required(
                 "_phase6_commit_receiving_bottom_wrap_controls"
             )(app, part_key, reserve_u_var, reserve_v_var),
-            corner_pair_changed=lambda part_key, pair_key, var: required(
-                "_phase6_corner_pair_var_changed"
-            )(app, part_key, pair_key, var),
-            corner_type_selected=lambda part_key, target_key: required(
-                "_phase6_corner_type_selected"
-            )(app, part_key, target_key),
-            corner_mode_selected=lambda part_key, target_key: required(
-                "_phase6_corner_mode_selected"
-            )(app, part_key, target_key),
-            corner_target_changed=lambda part_key, target_key: required(
-                "_phase6_corner_target_var_changed"
-            )(app, part_key, target_key),
+            corner_pair_changed=lambda part_key, pair_key, var: self.corner_pair_var_changed(
+                namespace, part_key, pair_key, var
+            ),
+            corner_type_selected=lambda part_key, target_key: self.corner_type_selected(
+                namespace, part_key, target_key
+            ),
+            corner_mode_selected=lambda part_key, target_key: self.corner_mode_selected(
+                namespace, part_key, target_key
+            ),
+            corner_target_changed=lambda part_key, target_key: self.corner_target_var_changed(
+                namespace, part_key, target_key
+            ),
             sync_context_extension=lambda state, context: self.sync_settings_panel_extension(
                 namespace, state, context
             ),
@@ -3124,6 +3124,157 @@ class Phase6FoldDesignerComposition:
                     f"不可認證：{exc}"
                 )
             return None
+
+    def corner_pair_var_changed(
+        self,
+        namespace,
+        part_key,
+        pair_key,
+        var,
+    ):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if (
+            getattr(app, "_phase6_corner_guard", False)
+            or getattr(app, "_phase6_settings_rendering", False)
+        ):
+            return None
+        if not required("_phase6_corner_parameters_editable")(
+            app, part_key
+        ):
+            return None
+        self.settings_transactions().commit_corner_pair(
+            part_key, pair_key, bool(var.get())
+        )
+        required("_phase6_notify_corner_change")(app)
+        self.invalidate_settings_page(part_key)
+        self.render_settings_context(namespace, part_key)
+        return True
+
+    def corner_type_selected(self, namespace, part_key, target_key):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if (
+            getattr(app, "_phase6_corner_guard", False)
+            or getattr(app, "_phase6_settings_rendering", False)
+        ):
+            return None
+        if not required("_phase6_corner_type_editable")(app, part_key):
+            return None
+        var = app.corner_type_vars.get(target_key)
+        if var is None:
+            return None
+        type_id = required("_CORNER_TYPE_BY_LABEL").get(
+            str(var.get()).strip()
+        )
+        if type_id is None:
+            return None
+        self.settings_transactions().commit_corner_type(
+            part_key, target_key, type_id
+        )
+        required("_phase6_notify_corner_change")(app)
+        self.invalidate_settings_page(part_key)
+        self.render_settings_context(namespace, part_key)
+        return type_id
+
+    def corner_mode_selected(self, namespace, part_key, target_key):
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if (
+            getattr(app, "_phase6_corner_guard", False)
+            or getattr(app, "_phase6_settings_rendering", False)
+        ):
+            return None
+        if not required("_phase6_corner_parameters_editable")(
+            app, part_key
+        ):
+            return None
+        transactions = self.settings_transactions()
+        current = transactions.corner_selection(part_key, target_key)
+        if current.type_id is not CornerTypeId.CROSS:
+            return None
+        var = app.corner_mode_vars.get(target_key)
+        mode = (
+            required("_CORNER_MODE_BY_LABEL").get(str(var.get()).strip())
+            if var is not None
+            else None
+        )
+        if mode is None:
+            return None
+        transactions.commit_corner_mode(part_key, target_key, mode)
+        required("_phase6_notify_corner_change")(app)
+        self.invalidate_settings_page(part_key)
+        self.render_settings_context(namespace, part_key)
+        return mode
+
+    def corner_target_var_changed(self, namespace, part_key, target_key):
+        """Commit semantic Corner parameter widgets through the T2 owner."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        if (
+            getattr(app, "_phase6_corner_guard", False)
+            or getattr(app, "_phase6_settings_rendering", False)
+        ):
+            return None
+        if not required("_phase6_corner_parameters_editable")(
+            app, part_key
+        ):
+            return None
+
+        transactions = self.settings_transactions()
+        current = transactions.corner_selection(part_key, target_key)
+        try:
+            amount_var = app.corner_amount_vars.get(target_key)
+            amount = (
+                float(amount_var.get())
+                if amount_var is not None
+                else current.amount_t
+            )
+            mode_var = app.corner_mode_vars.get(target_key)
+            mode = (
+                required("_CORNER_MODE_BY_LABEL").get(
+                    str(mode_var.get()).strip(), current.cross_mode
+                )
+                if mode_var is not None
+                else current.cross_mode
+            )
+            direction_var = app.corner_direction_vars.get(target_key)
+            direction = (
+                required("_CORNER_DIRECTION_BY_LABEL").get(
+                    str(direction_var.get()).strip(), current.direction
+                )
+                if direction_var is not None
+                else current.direction
+            )
+            retain_var = app.corner_secondary_retain_vars.get(target_key)
+            depth_var = app.corner_secondary_depth_vars.get(target_key)
+            retain = (
+                float(retain_var.get())
+                if retain_var is not None
+                else current.secondary_retain_t
+            )
+            depth = (
+                float(depth_var.get())
+                if depth_var is not None
+                else current.secondary_depth_t
+            )
+            transactions.commit_corner_parameters(
+                part_key,
+                target_key,
+                amount_t=amount,
+                cross_mode=mode,
+                direction=direction,
+                secondary_retain_t=retain,
+                secondary_depth_t=depth,
+            )
+        except (
+            TypeError,
+            ValueError,
+            required("original").tk.TclError,
+        ):
+            return None
+        required("_phase6_notify_corner_change")(app)
+        return True
 
     def on_assembly_type_selected(self, namespace, *_args):
         """Commit Assembly intent through the existing Settings transaction owner."""

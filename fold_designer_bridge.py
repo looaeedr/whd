@@ -1062,102 +1062,28 @@ def _phase6_corner_parameter_summary(selection):
 
 
 def _phase6_corner_pair_var_changed(self, part_key, pair_key, var):
-    if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
-        return
-    if not _phase6_corner_parameters_editable(self, part_key):
-        return
-    _phase6_settings_transactions(self).commit_corner_pair(
-        part_key, pair_key, bool(var.get())
+    return _phase6_composition(self).corner_pair_var_changed(
+        globals(), part_key, pair_key, var
     )
-    _phase6_notify_corner_change(self)
-    _phase6_invalidate_settings_page(self, part_key)
-    _phase6_render_settings_context(self, part_key)
-
 
 
 def _phase6_corner_type_selected(self, part_key, target_key):
-    if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
-        return
-    if not _phase6_corner_type_editable(self, part_key):
-        return
-    var = self.corner_type_vars.get(target_key)
-    if var is None:
-        return
-    type_id = _CORNER_TYPE_BY_LABEL.get(str(var.get()).strip())
-    if type_id is None:
-        return
-    _phase6_settings_transactions(self).commit_corner_type(
-        part_key, target_key, type_id
+    return _phase6_composition(self).corner_type_selected(
+        globals(), part_key, target_key
     )
-    _phase6_notify_corner_change(self)
-    _phase6_invalidate_settings_page(self, part_key)
-    _phase6_render_settings_context(self, part_key)
+
 
 def _phase6_corner_mode_selected(self, part_key, target_key):
-    if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
-        return
-    if not _phase6_corner_parameters_editable(self, part_key):
-        return
-    transactions = _phase6_settings_transactions(self)
-    current = transactions.corner_selection(part_key, target_key)
-    if current.type_id is not CornerTypeId.CROSS:
-        return
-    var = self.corner_mode_vars.get(target_key)
-    mode = _CORNER_MODE_BY_LABEL.get(str(var.get()).strip()) if var is not None else None
-    if mode is None:
-        return
-    transactions.commit_corner_mode(part_key, target_key, mode)
-    _phase6_notify_corner_change(self)
-    _phase6_invalidate_settings_page(self, part_key)
-    _phase6_render_settings_context(self, part_key)
+    return _phase6_composition(self).corner_mode_selected(
+        globals(), part_key, target_key
+    )
+
 
 def _phase6_corner_target_var_changed(self, part_key, target_key):
-    """Commit semantic parameter widgets through the T2 transaction owner."""
-    if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
-        return
-    if not _phase6_corner_parameters_editable(self, part_key):
-        return
-    transactions = _phase6_settings_transactions(self)
-    current = transactions.corner_selection(part_key, target_key)
-    try:
-        amount_var = self.corner_amount_vars.get(target_key)
-        amount = float(amount_var.get()) if amount_var is not None else current.amount_t
-        mode_var = self.corner_mode_vars.get(target_key)
-        mode = (
-            _CORNER_MODE_BY_LABEL.get(str(mode_var.get()).strip(), current.cross_mode)
-            if mode_var is not None else current.cross_mode
-        )
-        direction_var = self.corner_direction_vars.get(target_key)
-        direction = (
-            _CORNER_DIRECTION_BY_LABEL.get(
-                str(direction_var.get()).strip(), current.direction
-            )
-            if direction_var is not None else current.direction
-        )
-        retain_var = self.corner_secondary_retain_vars.get(target_key)
-        depth_var = self.corner_secondary_depth_vars.get(target_key)
-        retain = (
-            float(retain_var.get())
-            if retain_var is not None
-            else current.secondary_retain_t
-        )
-        depth = (
-            float(depth_var.get())
-            if depth_var is not None
-            else current.secondary_depth_t
-        )
-        transactions.commit_corner_parameters(
-            part_key,
-            target_key,
-            amount_t=amount,
-            cross_mode=mode,
-            direction=direction,
-            secondary_retain_t=retain,
-            secondary_depth_t=depth,
-        )
-    except (TypeError, ValueError, original.tk.TclError):
-        return
-    _phase6_notify_corner_change(self)
+    return _phase6_composition(self).corner_target_var_changed(
+        globals(), part_key, target_key
+    )
+
 
 def _phase6_is_unknown_baseline(self, value):
     text = str(value or "").strip()

@@ -1022,3 +1022,49 @@ def test_issue1257_assembly_type_selection_is_composition_owned():
     assert "for context in (\"head\", \"tail\")" in adapter_source
     assert "self.invalidate_settings_page(context)" in adapter_source
     assert 'required("_phase6_on_assembly_type_selected")' not in adapter_source
+
+
+def test_issue1259_corner_edit_events_are_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    delegates = {
+        "_phase6_corner_pair_var_changed",
+        "_phase6_corner_type_selected",
+        "_phase6_corner_mode_selected",
+        "_phase6_corner_target_var_changed",
+    }
+    assert delegates.issubset(funcs)
+    for name in delegates:
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "commit_corner_" not in body
+        assert "_phase6_notify_corner_change" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "corner_pair_var_changed",
+        "corner_type_selected",
+        "corner_mode_selected",
+        "corner_target_var_changed",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    for token in (
+        "_phase6_corner_pair_var_changed",
+        "_phase6_corner_type_selected",
+        "_phase6_corner_mode_selected",
+        "_phase6_corner_target_var_changed",
+    ):
+        assert f'required("{token}")' not in adapter_source
+    assert "self.settings_transactions().commit_corner_pair(" in adapter_source
+    assert "transactions.commit_corner_parameters(" in adapter_source
