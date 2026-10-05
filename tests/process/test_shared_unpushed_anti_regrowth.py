@@ -214,11 +214,11 @@ def test_flow_v2_workspace_default_cannot_regrow_drive_root_only_handoff():
     assert "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX" in flow
     assert "HANDOFF_TO_SHARED_ZERO_CAPABLE_RUNTIME" in flow
 
-    assert "互動式 / chat runtime 的 repository-content 工作面固定是 \`/Google Drive/WHD\` full repo root" not in flow
+    assert "互動式 / chat runtime 的 repository-content 工作面固定是 `/Google Drive/WHD` full repo root" not in flow
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in flow
     assert "root content authoring 的 authority 是 shared-0 lineage" not in flow
     assert "普通施工工單仍走原本 shared-0 → delivery → QA/merge/finalize 流程" not in flow
-    assert "fresh-read target \`main\`" not in flow
+    assert "fresh-read target `main`" not in flow
 
     assert "普通 workspace startup **不要求** Google Drive generation/manifest" in root_skill
     assert "shared_zero_drift_present=false → WORKSPACE_DEFAULT" in root_skill
