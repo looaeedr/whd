@@ -200,7 +200,7 @@ def test_git_content_write_is_forbidden_before_unlock():
         assert_git_content_write_allowed(authorized, action="COMMIT")
 
 
-def test_target_drift_forces_resync_and_retest_before_git_write():
+def test_target_drift_revalidates_green_before_forcing_retest():
     from tools.root_local_first_gate import (
         build_gate_evidence,
         build_remote_connection_authority,
@@ -223,7 +223,9 @@ def test_target_drift_forces_resync_and_retest_before_git_write():
         path_reservation_evidence=_reservation(), target_drift=True,
     )
     assert evidence["git_write_unlocked"] is False
-    assert evidence["next_action"] == "RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE"
+    assert evidence["next_action"] == "REVALIDATE_GREEN_REUSE_OR_RETEST_BEFORE_GIT_WRITE"
+    assert evidence["target_drift_resolution"]["retest_required"] is False
+    assert evidence["target_drift_resolution"]["extra_test_run"] is False
 
 
 def test_legacy_manifest_and_scoped_recovery_are_historical_only():
