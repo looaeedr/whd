@@ -258,8 +258,14 @@ class Phase6FinalSceneRenderer:
         total_w = max(float(getattr(p, "formed_w_end", 0.0)) for p in pieces)
         visible_set = None if visible_piece_keys is None else set(visible_piece_keys)
         for piece in pieces:
-            piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+            piece_role = str(getattr(piece, "role", "") or "").strip()
+            piece_key = f"box_body:{piece_role}"
             if visible_set is not None and piece_key not in visible_set:
+                continue
+            # The back panel is a broad operator-facing reference surface.
+            # Keep its physical CUTTING geometry/holes, but suppress display-only
+            # bend overlays that make the panel look like a wireframe.
+            if piece_role == "back":
                 continue
             data = piece.render_data
             x_profile = _phase6_contract_profile_rows(piece.fold_profile)
@@ -700,8 +706,10 @@ class Phase6FinalSceneRenderer:
                                     linewidths=0.0,
                                 )
                                 ax.add_collection3d(poly)
-                                self._add_mesh_boundary_lines(piece_placed, edge)
-                                self._draw_joint_marking_world_rows(piece.render_data)
+                                piece_role = str(getattr(piece, "role", "") or "").strip()
+                                if piece_role != "back":
+                                    self._add_mesh_boundary_lines(piece_placed, edge)
+                                    self._draw_joint_marking_world_rows(piece.render_data)
                                 triangles.extend(piece_placed)
                             if visible_rows:
                                 materials.append(tuple(piece.render_data.material for piece in visible_rows))
@@ -869,7 +877,8 @@ class Phase6FinalSceneRenderer:
                     edgecolor="none", linewidths=0.0,
                 )
                 self.renderer.ax3d.add_collection3d(poly)
-                self._add_mesh_boundary_lines(piece_tris, edge)
+                if str(getattr(_piece, "role", "") or "").strip() != "back":
+                    self._add_mesh_boundary_lines(piece_tris, edge)
             self._draw_box_body_structure_bends(
                 render_data, thickness=request.thickness
             )
