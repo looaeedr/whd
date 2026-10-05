@@ -44,20 +44,9 @@ def evaluate_merge_precheck(
 ) -> MergePrecheckResult:
     """Classify whether an exact Flow v2 MERGE may execute now."""
 
-    if pr_merged:
-        return MergePrecheckResult(
-            ALREADY_MERGED,
-            f"PR #{pr_number} is already merged",
-            observed_target_sha,
-        )
-
-    if pr_state != "open":
-        return MergePrecheckResult(
-            PR_IDENTITY_MISMATCH,
-            f"PR #{pr_number} is not open",
-            observed_target_sha,
-        )
-
+    # Identity is checked even for an already-merged PR. Otherwise a caller
+    # could point at an unrelated merged PR and incorrectly acquire its merge
+    # evidence as this Issue's delivery anchor.
     if pr_head_sha != record_head_sha:
         return MergePrecheckResult(
             PR_IDENTITY_MISMATCH,
@@ -69,6 +58,20 @@ def evaluate_merge_precheck(
         return MergePrecheckResult(
             PR_IDENTITY_MISMATCH,
             "PR base branch does not match ExecutionRecord target branch",
+            observed_target_sha,
+        )
+
+    if pr_merged:
+        return MergePrecheckResult(
+            ALREADY_MERGED,
+            f"PR #{pr_number} is already merged",
+            observed_target_sha,
+        )
+
+    if pr_state != "open":
+        return MergePrecheckResult(
+            PR_IDENTITY_MISMATCH,
+            f"PR #{pr_number} is not open",
             observed_target_sha,
         )
 
