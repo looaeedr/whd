@@ -1292,6 +1292,52 @@ class Phase6FoldDesignerComposition:
                 f"Fold Designer composition port is unavailable: {name}"
             ) from exc
 
+    def flush_pending_settings(self, namespace):
+        """Apply one drained Settings batch through the existing coordinator."""
+        app = self.app
+        service = self.settings_service()
+        plan = service.drain_pending()
+        if plan.cancel_job is not None:
+            try:
+                app.root.after_cancel(plan.cancel_job)
+            except Exception:
+                pass
+        if not plan.pending:
+            return {}
+        coordinator = self.settings_coordinator(
+            self.settings_application_ports(namespace)
+        )
+        return coordinator.apply_updates(
+            plan.pending,
+            notify=True,
+            external_apply_guard=bool(
+                getattr(app, "_phase6_external_apply_guard", False)
+            ),
+        )
+
+    def stage_setting_update(self, namespace, key, value):
+        """Own Tk debounce timing while the Settings service owns pending state."""
+        app = self.app
+        service = self.settings_service()
+        plan = service.stage_setting_update(
+            key,
+            value,
+            destroying=bool(getattr(app, "_phase6_destroying", False)),
+        )
+        if not plan.changed:
+            return None
+        if plan.cancel_job is not None:
+            try:
+                app.root.after_cancel(plan.cancel_job)
+            except Exception:
+                pass
+        job = app.root.after(
+            plan.schedule_after_ms,
+            lambda: self.flush_pending_settings(namespace),
+        )
+        service.install_debounce_job(job)
+        return job
+
     def settings_context_extension_projection(self, namespace, context):
         """Project Settings context extensions at the existing composition boundary."""
         app = self.app
@@ -2333,10 +2379,10 @@ class Phase6FoldDesignerComposition:
         query = getattr(app, "_baseline_data_query_callback", None)
         panel = Phase6SettingsPanel(
             values_snapshot=lambda: dict(app._settings_values),
-            stage_setting_update=lambda key, value: required(
-                "_phase6_stage_setting_update"
-            )(app, key, value),
-            flush_settings=lambda: required("_phase6_flush_pending_settings")(app),
+            stage_setting_update=lambda key, value: self.stage_setting_update(
+                namespace, key, value
+            ),
+            flush_settings=lambda: self.flush_pending_settings(namespace),
             save_defaults=lambda context: required(
                 "_phase6_save_settings_context_as_defaults"
             )(app, context),
