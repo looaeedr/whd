@@ -130,3 +130,9 @@ def test_receiving_preview_owner_keeps_confirmation_authority_in_bridge():
     assert '_phase6_receiving_switch_opening_resolver' in confirm_source
     assert 'submit("geometry", commit=True)' in confirm_source
 
+def test_programmatic_box_body_notebook_changes_keep_guard_until_tk_idle():
+    source = _function_source(NAV, 'refresh_box_body_piece_selector')
+    assert source.count('notebook.after_idle(') == 2
+    assert 'ttk.Notebook posts <<NotebookTabChanged>> asynchronously' in source
+    assert 'show_for_box_body' in source
+
