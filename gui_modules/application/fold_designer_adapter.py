@@ -1136,6 +1136,90 @@ class Phase6FoldDesignerComposition:
             **owner,
         }
 
+    def current_relief_source_signature(self, namespace, required_parts):
+        """Collect current mechanical identity for persisted relief replay."""
+        from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
+        from phase6_assembly_relief_state import build_current_source_signature
+
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        source = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        source.update(dict(getattr(app, "_settings_values", {}) or {}))
+        source.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
+        source["assembly_type"] = assembly_intent_value(
+            getattr(app, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
+        )
+
+        clone = required("clone_profile")
+        box_profile = clone(
+            (getattr(app.state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
+        )
+        formed_left, formed_right = formed_box_body_fw_widths(
+            box_profile,
+            float(source.get("t", 0.0) or 0.0),
+        )
+        graph_snapshot = migrate_legacy_snapshot_joints(
+            dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        )
+        wanted = tuple(str(key) for key in tuple(required_parts or ()))
+        return build_current_source_signature(
+            scalar_source=source,
+            joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
+            structure_state=deepcopy(
+                app.designer_workspace.box_body_structure_state() or {}
+            ),
+            cabinet_family=str(
+                source.get("model") or source.get("cabinet_type") or ""
+            ),
+            formed_left=formed_left,
+            formed_right=formed_right,
+            box_body_profile=box_profile,
+            part_profiles={
+                key: deepcopy(app.designer_workspace.profiles_for(key, {}) or {})
+                for key in wanted
+            },
+        )
+
+    def serialize_assembly_relief_state(self, namespace):
+        """Serialize resolved relief through the canonical persisted-state owner."""
+        from phase6_assembly_relief_state import build_persisted_relief_state
+
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+        enabled_var = getattr(app, "assembly_ignore_fixed_corner_var", None)
+        fallback_enabled = (
+            bool(enabled_var.get()) if enabled_var is not None else True
+        )
+        solutions = dict(
+            getattr(app, "_phase6_last_relief_solutions", {}) or {}
+        )
+        available = set(
+            getattr(app.designer_workspace, "available_parts", ()) or ()
+        )
+        required_parts = tuple(
+            key for key in ("head", "tail") if key in available
+        )
+        source_signature = dict(
+            self.current_relief_source_signature(
+                namespace, required_parts
+            )
+            or {}
+        )
+        prior = deepcopy(
+            (getattr(app, "_phase6_input_snapshot", {}) or {}).get(
+                "assembly_relief"
+            )
+            or {}
+        )
+        return build_persisted_relief_state(
+            required_parts=required_parts,
+            solutions=solutions,
+            source_signature=source_signature,
+            prior_state=prior,
+            fallback_enabled=fallback_enabled,
+            clearance=required("_phase6_assembly_relief_clearance")(app),
+        )
+
     def build_project_snapshot(self, namespace):
         """Capture one complete reloadable Fold Designer project payload."""
         app = self.app
@@ -1188,9 +1272,9 @@ class Phase6FoldDesignerComposition:
             box_body_profile=required("clone_profile")(
                 workspace.get("box_body_profile", [])
             ),
-            assembly_relief=required(
-                "_phase6_serialize_assembly_relief_state"
-            )(app),
+            assembly_relief=self.serialize_assembly_relief_state(
+                namespace
+            ),
             final_geometry=final_geometry,
         )
 

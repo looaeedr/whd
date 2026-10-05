@@ -798,3 +798,39 @@ def test_issue1241_workspace_snapshot_application_assembly_is_composition_owned(
     assert 'required("_phase6_collect_workspace_state")' not in adapter_source
     assert "workspace.export_shared_snapshot(" in adapter_source
     assert "workspace.resolve_and_store_assembly_placements(" in adapter_source
+
+
+def test_issue1244_relief_persistence_application_assembly_is_composition_owned():
+    funcs = _top_functions(BRIDGE)
+    for name in (
+        "_phase6_current_relief_source_signature",
+        "_phase6_serialize_assembly_relief_state",
+    ):
+        assert name in funcs
+        body = _source(BRIDGE, funcs[name])
+        assert "_phase6_composition(self)" in body
+        assert "build_current_source_signature" not in body
+        assert "build_persisted_relief_state" not in body
+        assert "resolved_joint_graph_fingerprint" not in body
+
+    adapter_tree = _tree(ADAPTER)
+    composition = next(
+        node
+        for node in adapter_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    method_names = {
+        node.name
+        for node in composition.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "current_relief_source_signature",
+        "serialize_assembly_relief_state",
+    }.issubset(method_names)
+
+    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    assert "self.current_relief_source_signature(" in adapter_source
+    assert "self.serialize_assembly_relief_state(" in adapter_source
+    assert 'required("_phase6_serialize_assembly_relief_state")' not in adapter_source
