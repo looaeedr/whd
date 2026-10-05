@@ -1193,6 +1193,9 @@ def test_issue1271_workspace_shell_view_effects_are_composition_owned():
         "install_renderer_view",
     }.issubset(method_names)
 
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert "_workspace_shell_toggle_fullscreen" not in bridge_source
+
     adapter_source = ADAPTER.read_text(encoding="utf-8")
     assert "workspace_shell_toggle_fullscreen(" in adapter_source
     assert "panel.build_settings_center(app.right)" in adapter_source
