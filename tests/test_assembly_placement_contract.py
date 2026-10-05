@@ -69,3 +69,16 @@ def test_receiving_base_plate_keeps_cell_xy_but_mates_to_rear_inner_plane():
     assert placement.world_offset[:2] == (125.0, -150.0)
     assert placement.world_offset[2] == -90.5
     assert placement.semantic_position == placement.world_offset
+
+def test_base_plate_rear_z_tracks_depth_thickness_and_bend_without_magic_offset():
+    snapshot = _snapshot()
+    snapshot.update({"d": 300.0, "t": 3.0, "base_plate_bend": 20.0})
+
+    placement = resolve_assembly_placement(snapshot, "base_plate_c1_r1")
+
+    assert placement.world_offset[2] == -137.0
+    assert placement.world_offset[2] == (
+        -snapshot["d"] / 2.0
+        + snapshot["t"]
+        + snapshot["base_plate_bend"] / 2.0
+    )
