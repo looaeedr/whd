@@ -424,6 +424,14 @@ class ExecutionRecord:
         object.__setattr__(self, "owner_id", _text(self.owner_id, "owner_id"))
         object.__setattr__(self, "lane_id", _text(self.lane_id, "lane_id", optional=True))
         object.__setattr__(self, "slot_id", _text(self.slot_id, "slot_id", optional=True))
+        # Scheduler ownership has one canonical identity: owner_id == lane_id.
+        # Reject split identities before scheduler views or takeover logic can
+        # classify the record.
+        if self.owner_kind == "SCHEDULER":
+            if self.lane_id is None or self.owner_id != self.lane_id:
+                raise ExecutionRecordError(
+                    "SCHEDULER owner_id must equal non-null lane_id"
+                )
         object.__setattr__(self, "source_branch", _text(self.source_branch, "source_branch"))
         object.__setattr__(self, "source_sha", _sha(self.source_sha, "source_sha"))
         object.__setattr__(self, "work_branch", _text(self.work_branch, "work_branch"))
