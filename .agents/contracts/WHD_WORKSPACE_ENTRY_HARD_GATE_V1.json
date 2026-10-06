@@ -1,0 +1,475 @@
+{
+  "canonical_root": {
+    "provider": "executor_local_workspace",
+    "path_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "production_branch": "cleanup/2d-3d-sync",
+    "authority": false,
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT"
+  },
+  "canonical_source": {
+    "canonical_filename": "WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+    "canonical_payload_sha256": "SELF_HASH_RECOMPUTE_REQUIRED_AFTER_WRITE",
+    "provider": "executor_local_repo_workspace",
+    "repo_relative_path": ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+    "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
+    "drive_mirror_path": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_required": false,
+    "missing_drive_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
+    "versioned_aliases_must_not_be_current": true
+  },
+  "direct_root_mutation_test_gate": {
+    "applies_when": "NEVER_CURRENT",
+    "canonical_surface": null,
+    "control_plane_anomaly_action": "RECORD_AS_EVIDENCE_AND_CONTINUE_CURRENT_WORKSPACE_TASK",
+    "forbidden_pre_root_green_outcomes": [
+      "PLANNING_ONLY",
+      "CLAIM_ONLY",
+      "OWNER_ONLY",
+      "HANDOFF_ONLY",
+      "BRANCH_CREATED_ONLY",
+      "GOVERNANCE_GREEN_ONLY",
+      "GITHUB_PATCH",
+      "REMOTE_QA_AS_FIRST_TEST_SURFACE"
+    ],
+    "forbidden_scope_switch_triggers": [
+      "STALE_EXECUTION_RECORD",
+      "EXPIRED_LEASE",
+      "RESERVATION_MISMATCH",
+      "GOVERNANCE_DRIFT",
+      "TEST_RED",
+      "STATUS_QUERY",
+      "PROGRESS_QUERY"
+    ],
+    "git_unlock_dependency": "WORKSPACE_TESTS_GREEN_AND_EXACT_DIFF_FROZEN",
+    "interactive_first_substantive_action": "WORKSPACE_MUTATE",
+    "remote_without_root_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME",
+    "required_contiguous_outer_sequence": [
+      "WORKSPACE_MUTATE",
+      "WORKSPACE_TESTS_GREEN",
+      "EXACT_DIFF_FROZEN"
+    ],
+    "root_capability_available_policy": "WORKSPACE_CAPABLE_NO_HANDOFF_ONLY_STOP",
+    "same_invocation_until": "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER",
+    "schema": "WHD_DIRECT_ROOT_MUTATION_TEST_HARD_GATE_V1",
+    "scope_switch_allowed_only_on": [
+      "USER_EXPLICIT_TASK_CHANGE",
+      "PATH_CONFLICT",
+      "SAME_ISSUE_OTHER_WRITER",
+      "SUBSTANTIVE_TARGET_OVERLAP",
+      "MACHINE_FAIL_CLOSED",
+      "USER_INPUT_REQUIRED"
+    ],
+    "status_or_progress_query_is_stop_reason": false,
+    "task_scope_sticky_until": "WORKSPACE_TESTS_GREEN_OR_REAL_BLOCKER_OR_USER_EXPLICIT_TASK_CHANGE",
+    "test_red_action": "FIX_IN_SAME_WORKSPACE_AND_RETEST",
+    "ordinary_missing_drive_mount_action": "CONTINUE_WORKSPACE_DEFAULT_IF_EXECUTOR_WORKSPACE_CAPABLE",
+    "fallback_activation": "RETIRED",
+    "status": "SUPERSEDED"
+  },
+  "entry_router_hard_gate": {
+    "allowed_before_ready": [
+      "READ_CANONICAL_ENTRY_CONTRACT",
+      "READ_ROOT_LOCAL_FIRST_SKILL"
+    ],
+    "applies_when": "INTERACTIVE_WHD_REPOSITORY_CONTENT",
+    "chat_memory_is_not_evidence": true,
+    "failure_action": "FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY",
+    "forbidden_before_ready": [
+      "GENERAL_FILE_DISCOVERY",
+      "GENERIC_DRIVE_SEARCH",
+      "REMOTE_DESKTOP",
+      "LOCAL_MACHINE_SEARCH",
+      "GITHUB_CONTENT_DISCOVERY",
+      "GITHUB_MUTATION",
+      "BRANCH_CREATE",
+      "CLAIM",
+      "FLOW_V2_DISCOVERY"
+    ],
+    "fresh_each_invocation": true,
+    "machine_owner": "tools/root_local_first_gate.py::build_entry_router_evidence/validate_entry_router_evidence/assert_entry_router_action_allowed",
+    "ready_state": "ENTRY_ROUTER_READY",
+    "required_fresh_read_order": [
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      ".agents/skills/engineering/root-local-first/SKILL.md"
+    ],
+    "schema": "WHD_ENTRY_ROUTER_FIRST_HARD_GATE_V1",
+    "canonical_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "bootstrap_source": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "bootstrap_paths_are_repo_relative": true,
+    "drive_lookup_before_ready": "FORBIDDEN",
+    "missing_drive_is_blocker": false,
+    "missing_shared_zero_is_blocker": false,
+    "workspace_root_user_renomination_required": false
+  },
+  "execution_mode_provenance": {
+    "interactive_must_not_self_assert_remote_mode": true,
+    "remote_exception_requires": "TRUSTED_RUNTIME_PROVENANCE",
+    "scheduler_lane_ids": [
+      "scheduler.6ab13fa557fc8191935c671214b865e2",
+      "scheduler.e58ea936e7d0b12bd0d475314709d6f1"
+    ],
+    "scheduler_source": "FLOW_V2_LANE_ID",
+    "schema": "WHD_EXECUTION_MODE_PROVENANCE_V1"
+  },
+  "execution_modes": {
+    "GITHUB_ONLY": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF",
+    "INTERACTIVE": "WORKSPACE_FIRST_CONTENT",
+    "REMOTE_ACTION": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF",
+    "SCHEDULER_LANE": "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+  },
+  "git_before_unlock": [
+    "READ",
+    "FETCH",
+    "COMPARE",
+    "BRANCH_READ",
+    "REPO_METADATA_READ"
+  ],
+  "git_write_mode": "EXACT_TESTED_DIFF_ONLY",
+  "git_write_receipt": {
+    "current_execution_fence": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+    "frozen_content_identity": [
+      "issue",
+      "source_sha",
+      "target_branch",
+      "write_paths",
+      "delete_paths",
+      "diff_digest"
+    ],
+    "ingress_owner": "tools/control_transaction_request_ingress.py",
+    "lease_renewal_generation_drift": "DOES_NOT_INVALIDATE_UNCHANGED_FROZEN_EVIDENCE",
+    "required_for_repository_content_actions": [
+      "START_BRANCH",
+      "APPLY_COMMIT"
+    ],
+    "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+    "validation_order": "BEFORE_EXECUTION_RECORD_STATE_READ"
+  },
+  "github_actions_role": "POST_PUSH_VERIFICATION",
+  "mirror_policy": "POINTER_ONLY",
+  "orchestration_fast_path": {
+    "background_only_events": [
+      "STALE_EXECUTION_RECORD",
+      "EXPIRED_LEASE",
+      "RESERVATION_MISMATCH",
+      "GOVERNANCE_DRIFT",
+      "TEST_RED",
+      "STATUS_QUERY",
+      "PROGRESS_QUERY"
+    ],
+    "control_plane_event_disposition": "BACKGROUND_CONTINUE_PRIMARY_TASK",
+    "default": "SESSION_INTERNAL_ORCHESTRATION",
+    "escalate_only_on": [
+      "PATH_CONFLICT",
+      "SAME_ISSUE_OTHER_WRITER",
+      "SUBSTANTIVE_TARGET_OVERLAP",
+      "MACHINE_FAIL_CLOSED",
+      "USER_INPUT_REQUIRED"
+    ],
+    "machine_internal_only": [
+      "LEASE",
+      "RESERVATION",
+      "CAS_RETRY",
+      "SESSION_REUSE",
+      "QA_CONSUME",
+      "FINALIZE_DRAIN",
+      "QA_FAILURE_CONSUME"
+    ],
+    "machine_internal_transaction_kinds": [
+      "LEASE",
+      "LEASE_RENEW",
+      "ACQUIRE",
+      "RESERVE_PATHS",
+      "RELEASE_PATHS",
+      "CAS_RETRY",
+      "SESSION_REUSE",
+      "RECONCILE",
+      "START_BRANCH",
+      "APPLY_COMMIT",
+      "START_QA",
+      "POLL_QA",
+      "ACCEPT_QA",
+      "CONSUME_QA",
+      "FAIL_QA",
+      "QA_CONSUME",
+      "QA_FAILURE_CONSUME",
+      "MERGE",
+      "SYNC_TARGET",
+      "HANDOFF",
+      "YIELD",
+      "FINALIZE",
+      "FINALIZE_DRAIN"
+    ],
+    "manual_transaction_orchestration_after_escalation_allowed": false,
+    "outer_action_gate": "tools/root_local_first_gate.py::assert_outer_primary_action",
+    "outer_forbidden": [
+      "PER_TRANSACTION_MANUAL_ORCHESTRATION",
+      "REPEAT_ADMISSION_WITH_LIVE_SESSION",
+      "REPEAT_RESERVATION_WITH_UNCHANGED_SCOPE",
+      "MANUAL_LEASE_RENEW_BEFORE_EXPIRY",
+      "START_QA_THEN_ACCEPT_QA_WHEN_CONSUME_QA_IS_ELIGIBLE",
+      "REDUNDANT_EVIDENCE_ARTIFACTS_WITHOUT_CONTRACT_REQUIREMENT"
+    ],
+    "outer_primary_action_policy": "PHASE_OUTCOME_OR_REAL_BLOCKER_ONLY",
+    "outer_visible_pipeline": [
+      "FRESH_READ",
+      "WORKSPACE_MUTATE",
+      "TARGETED_TEST",
+      "EXACT_DIFF",
+      "POST_PUSH_CI",
+      "MERGE_FINALIZE"
+    ],
+    "schema": "WHD_INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1",
+    "single_writer_policy": "DELIVERY_SCOPE_SINGLE_WRITER_ONLY",
+    "stale_plan_policy": "STALE_PLAN_MUST_DIE",
+    "test_red_outer_action": "RETURN_TO_WORKSPACE_REPAIR_IN_SAME_SESSION",
+    "user_update_policy": "REPORT_PHASE_OUTCOME_NOT_CONTROL_PLANE_INTERNALS",
+    "workspace_repair_events": [
+      "TEST_RED"
+    ],
+    "workspace_repair_forbidden_outer_transactions": [
+      "FAIL_QA",
+      "RECONCILE",
+      "START_QA",
+      "ACCEPT_QA",
+      "ACQUIRE",
+      "RESERVE_PATHS"
+    ]
+  },
+  "owner": "tools/root_local_first_gate.py",
+  "path_reservation": {
+    "conflict_policy": "DELIVERY_SCOPE_SINGLE_WRITER_ONLY",
+    "evaluator": "tools/execution_path_reservation.py",
+    "evidence_schema": "WHD_PATH_RESERVATION_EVIDENCE_V1",
+    "expansion_policy": "MONOTONIC_CAS",
+    "phase": "DELIVERY_ONLY_AFTER_TESTED_DIFF_FROZEN",
+    "release_policy": "FINALIZE_OR_EXPLICIT_RELEASE_PATHS",
+    "schema": "WHD_PATH_RESERVATION_V1",
+    "state_owner": "WHD_EXECUTION_RECORD_V2.mutation_scope",
+    "workspace_isolation": "NOT_CONTENT_AUTHORITY"
+  },
+  "remote_content_implementation": {
+    "applies_to": [
+      "production",
+      "tests",
+      "docs",
+      "workflow",
+      "skill",
+      "ai_library",
+      "registry",
+      "fixtures",
+      "other_repository_content"
+    ],
+    "github_side_hotfix_forbidden": true,
+    "policy": "WORKSPACE_MIRROR_IMPLEMENTATION",
+    "qa_failure_action": "FIX_IN_WORKSPACE_RETEST_REPUSH",
+    "remote_allowed_after_candidate_push": [
+      "CI",
+      "REMOTE_QA",
+      "MERGE",
+      "FINALIZATION",
+      "READBACK"
+    ],
+    "remote_allowed_before_root_unlock": [],
+    "remote_connection_authority_required": true,
+    "route_owner": "tools/root_local_first_gate.py::select_repository_content_route",
+    "ordinary_route": "WORKSPACE_DEFAULT",
+    "drive_mount_absence_is_blocker": false,
+    "workspace_capable_action": "CONTINUE_WORKSPACE_DEFAULT",
+    "no_workspace_capability_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
+    "interactive_workspace_action": "CONTINUE_WORKSPACE_DEFAULT",
+    "remote_mode_repository_content_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
+    "drive_routing_forbidden": true
+  },
+  "required_order": [
+    "WORKSPACE_SOURCE_CURRENT",
+    "WORKSPACE_MUTATIONS_COMPLETE",
+    "WORKSPACE_TESTS_GREEN",
+    "DELIVERY_BRANCH_READY",
+    "POST_PUSH_CI",
+    "MERGE_READBACK_VERIFIED"
+  ],
+  "role": "CURRENT",
+  "schema": "WHD_WORKSPACE_ENTRY_HARD_GATE_V1",
+  "shared_unpushed_integration": {
+    "schema": "WHD_SHARED_UNPUSHED_INTEGRATION_V1",
+    "status": "HISTORICAL",
+    "mode": "SUPERSEDED_DATA_ONLY",
+    "default_route": false,
+    "activation": "NEVER_CURRENT",
+    "routing_forbidden": true,
+    "authority": false
+  },
+  "skill_owner": ".agents/skills/engineering/root-local-first/SKILL.md",
+  "status": "CURRENT",
+  "target_drift_action": "REVALIDATE_GREEN_REUSE_IF_UNCHANGED_ELSE_RETEST",
+  "test_execution_receipt": {
+    "bare_tests_green_boolean_sufficient": false,
+    "generation_role": "HISTORICAL_FREEZE_PROVENANCE_ONLY",
+    "required_identity": [
+      "source_sha",
+      "issue",
+      "exact_commands",
+      "manifest_digest"
+    ],
+    "schema": "WHD_TEST_EXECUTION_RECEIPT_V1",
+    "status_required": "GREEN",
+    "validator": "tools/root_local_first_gate.py::validate_test_execution_receipt"
+  },
+  "test_profile_owner": "tools/change_test_profile.py",
+  "test_profile_schema": "WHD_CHANGE_TEST_PROFILE_V1",
+  "version": 13,
+  "git_after_remote_authority_before_unlock": [
+    "READ",
+    "FETCH",
+    "COMPARE",
+    "BRANCH_READ",
+    "REPO_METADATA_READ"
+  ],
+  "root_path_resolution_hard_gate": {
+    "schema": "WHD_ROOT_PATH_RESOLUTION_HARD_GATE_V1",
+    "default_workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "resolution_method": "WORKSPACE_REPO_RELATIVE_PATH",
+    "applies_when": "WORKSPACE_DEFAULT",
+    "global_search_role": "CANDIDATE_ONLY",
+    "same_name_outside_parent_chain": "REJECT",
+    "failure_action": "WORKSPACE_PATH_UNRESOLVED_FAIL_CLOSED",
+    "remote_fallback_forbidden": false,
+    "machine_owner": "tools/root_local_first_gate.py::build_root_path_resolution_evidence/validate_root_path_resolution_evidence",
+    "drive_mirror_role": "MIRROR_BACKUP_ONLY"
+  },
+  "remote_connection_hard_gate": {
+    "schema": "WHD_REMOTE_CONNECTION_AUTHORITY_V1",
+    "default": "ALLOW_WORKSPACE_BASELINE_READ_ONLY",
+    "targets": [
+      "GITHUB",
+      "REMOTE_LOCAL"
+    ],
+    "pre_delivery_git_read_allowed_without_authority": true,
+    "issue_authority_scope": "ISSUE_CREATE_READBACK_ONLY",
+    "push_authorities": [
+      "WORKSPACE_DELIVERY",
+      "PUSH_DOCS",
+      "PUSH_BODY"
+    ],
+    "explicit_user_authority": "USER_EXPLICIT_REMOTE",
+    "scheduler_exception_requires": "USER_AUTHORED_ENTRY_CONTRACT_AND_TRUSTED_RUNTIME_PROVENANCE",
+    "remote_local_fallback_forbidden": true,
+    "machine_owner": "tools/root_local_first_gate.py::build_remote_connection_authority/validate_remote_connection_authority/assert_remote_connection_allowed",
+    "covers_all_network_surfaces": true,
+    "authority_non_propagating": true,
+    "skill_invocation_is_not_authority": true,
+    "covered_github_surfaces": [
+      "repo_metadata",
+      "code_search",
+      "contents",
+      "branches",
+      "commits",
+      "issues",
+      "pull_requests",
+      "actions_workflows",
+      "actions_runs",
+      "artifacts",
+      "connector_api",
+      "git_network_transport"
+    ],
+    "non_authority_examples": [
+      "SKILL_AUTO_TRIGGER",
+      "FLOW_V2_BRIDGE",
+      "TRACKER_CONFIGURED_GITHUB",
+      "CONNECTOR_AVAILABLE",
+      "READ_ONLY_INTENT",
+      "PREFLIGHT_NEEDS_HEAD",
+      "CONFIRM_LATEST",
+      "COMMIT_HAS_ISSUE_REFERENCE"
+    ],
+    "workspace_baseline_actions": [
+      "READ",
+      "FETCH",
+      "COMPARE",
+      "BRANCH_READ",
+      "REPO_METADATA_READ"
+    ]
+  },
+  "delivery_fileset_lock": {
+    "schema": "WHD_DELIVERY_FILESET_LOCK_V1",
+    "phase": "AFTER_TESTED_DIFF_FROZEN_BEFORE_REMOTE_CONTENT_WRITE",
+    "required_identity": [
+      "issue",
+      "source_sha",
+      "target_branch",
+      "write_paths",
+      "delete_paths",
+      "path_hashes",
+      "diff_digest",
+      "delivery_invocation_identity"
+    ],
+    "push_scope": "EXACT_LOCK_EQUALITY",
+    "mutation_after_lock": "INVALIDATE_RETURN_WORKSPACE_RETEST_REFREEZE",
+    "merge_precheck": "FRESH_TARGET_HEAD_AND_LOCKED_BLOB_RECHECK"
+  },
+  "post_delivery_cleanup": {
+    "schema": "WHD_FINALIZE_DELIVERED_PATHS_V1",
+    "requires": "MERGE_READBACK_VERIFIED",
+    "clear_policy": "ONLY_LOCKED_PATHS_WITH_EXACT_READBACK_HASH",
+    "preserve": [
+      "UNDELIVERED_PATHS",
+      "LATER_HASH_CHANGES",
+      "OTHER_WORKER_MUTATIONS"
+    ],
+    "same_path_future_change": "NEW_WORKSPACE_CHANGE_NEW_TESTED_DIFF",
+    "repository_file_delete_forbidden": true,
+    "receipt_required": false,
+    "status": "HISTORICAL",
+    "activation": "NEVER_CURRENT",
+    "terminal_gate": false
+  },
+  "default_repository_content_flow": {
+    "schema": "WHD_WORKSPACE_FIRST_CONTENT_FLOW_V1",
+    "status": "CURRENT",
+    "production_branch": "cleanup/2d-3d-sync",
+    "baseline": "GITHUB_PRODUCTION_BRANCH",
+    "startup_requires_drive": false,
+    "startup_requires_shared_zero": false,
+    "startup_requires_workspace_canonical_sync": false,
+    "baseline_git_actions_without_extra_authority": [
+      "READ",
+      "FETCH",
+      "COMPARE",
+      "BRANCH_READ",
+      "REPO_METADATA_READ"
+    ],
+    "implementation": "EDIT_AND_TEST_IN_WORKSPACE",
+    "delivery": "TESTED_DELIVERY_BRANCH_PR",
+    "direct_production_push_forbidden": true,
+    "workspace_root_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "executor_examples": {
+      "codex": "/workspace/whd",
+      "chatgpt": "RUNTIME_LOCAL_WORKSPACE",
+      "other": "RUNTIME_LOCAL_WORKSPACE"
+    },
+    "drive_routing_forbidden": true,
+    "missing_workspace_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME"
+  },
+  "green_reuse_fast_path": {
+    "schema": "WHD_GREEN_REUSE_REVALIDATION_V1",
+    "status": "CURRENT",
+    "purpose": "AVOID_REDUNDANT_RETEST_ON_NON_IMPACTING_TARGET_DRIFT",
+    "machine_owner": "tools/root_local_first_gate.py::classify_target_drift_action",
+    "required_when": "TARGET_DRIFT_AND_PRIOR_GREEN_EXISTS",
+    "reuse_when_all": [
+      "CANDIDATE_DIFF_DIGEST_UNCHANGED",
+      "CANDIDATE_HEAD_UNCHANGED",
+      "EXACT_TEST_COMMANDS_UNCHANGED",
+      "TEST_PROFILE_UNCHANGED",
+      "TEST_CONTRACT_UNCHANGED",
+      "TARGET_DRIFT_PATHS_DISJOINT_FROM_CANDIDATE",
+      "TARGET_DRIFT_HAS_NO_DEPENDENCY_IMPACT"
+    ],
+    "revalidate_only_first": true,
+    "retest_when_any_impact": true,
+    "extra_test_run_on_reuse": false,
+    "missing_reuse_evidence_action": "REVALIDATE_BEFORE_RETEST"
+  }
+}
