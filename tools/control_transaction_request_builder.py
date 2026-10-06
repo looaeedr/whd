@@ -23,6 +23,7 @@ from tools.execution_entry_contract import (
 REQUEST_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1"
 INTENT_SCHEMA = "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1"
 SESSION_REUSE_SCHEMA = "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1"
+CONTROL_PLANE_ONLY_FRESH_KINDS = frozenset({"DISPATCH_READY"})
 SESSION_REUSE_KINDS = frozenset({
     "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA",
     "FAIL_QA", "BLOCK", "MERGE", "FINALIZE", "RECONCILE", "YIELD", "RELEASE_PATHS",
@@ -126,6 +127,9 @@ def build_control_transaction_request(
         raise ValueError("work_root_gate_evidence is required for fresh admission")
     if not isinstance(preflight_evidence, Mapping):
         raise ValueError("preflight_evidence is required for fresh admission")
+    root_scope = str(work_root_gate_evidence.get("scope") or "REPOSITORY_CONTENT")
+    if root_scope == "CONTROL_PLANE_ONLY" and kind not in CONTROL_PLANE_ONLY_FRESH_KINDS:
+        raise ValueError(f"control-plane-only admission is not allowed for transaction kind {kind}")
     request["startup_evidence"] = build_startup_evidence(
         purpose=purpose,
         invocation_identity=invocation_identity,
