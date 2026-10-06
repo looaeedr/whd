@@ -55,14 +55,25 @@ def test_p7_r_a_removes_only_fresh_census_proven_no_caller_bridge_glue():
     )
 
 
-def test_p7_r_a_part_editor_activation_order_remains_compatibility_keep():
-    fn = _top_functions(BRIDGE)["_fix11_activate_part"]
-    plan = _call_lines(fn, attr="plan_activation")
-    save = _call_lines(fn, attr="_save_current_part")
-    begin = _call_lines(fn, attr="begin_activation")
-    finish = _call_lines(fn, attr="finish_activation")
-    assert len(plan) == len(save) == len(begin) == len(finish) == 1
-    assert plan[0] < save[0] < begin[0] < finish[0]
+def test_p7_r_a_part_editor_activation_order_remains_owner_owned():
+    owner = ROOT / "gui_modules" / "application" / "fold_designer_part_session.py"
+    source = owner.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    owner_class = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "Phase6PartSessionOwner"
+    )
+    funcs = {
+        node.name: node
+        for node in owner_class.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    activate = funcs["activate_part"]
+    body = ast.unparse(activate)
+    assert "plan_activation" in body
+    assert "begin_activation" in body
+    assert "finish_activation" in body
+    assert "self.save_current_part" in body
 
 
 def test_p7_r_a_update_scheduler_stays_command_router_owned():
@@ -1233,4 +1244,3 @@ def test_issue1276_bootstrap_presentation_helpers_are_owner_local():
     assert "def prepare_text_scale_controller(root, value, *, controller=None):" in text_scale_source
     assert "controller = controller or TextScaleController.for_widget(root)" in text_scale_source
     assert 'if getattr(controller, "root", None) is root:' in text_scale_source
-

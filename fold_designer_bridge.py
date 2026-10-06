@@ -106,6 +106,8 @@ from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
 )
+from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner
+
 from gui_modules.application.receiving_set_bay_adapter import (
     ReceivingSetBayAdapter,
     receiving_layout_stable_ids,
@@ -2897,134 +2899,17 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
     _phase6_sync_authoritative_derived_parts(self)
 
 
+def _phase6_part_session_owner(self):
+    owner = getattr(self, "_phase6_part_session_owner", None)
+    if owner is None:
+        owner = Phase6PartSessionOwner()
+        owner.bind_application(self)
+        self._phase6_part_session_owner = owner
+    return owner
+
+
 def _fix11_save_current_part(self, notify=True):
-    if self.designer_workspace.switching:
-        return
-    key = self.designer_workspace.active_part
-    if not key:
-        return
-    try:
-        self.bend_ui.save()
-    except Exception:
-        return
-
-    _phase6_replace_mapping(self, "_phase6_box_whd", {
-        "w": original.get_int(self.v_w.get()),
-        "h": original.get_int(self.v_h.get()),
-        "d": original.get_int(self.v_d.get()),
-    })
-    if _phase6_is_box_body_physical_piece_key(key):
-        profiles = {
-            "X": clone_profile(self.state.profiles.get("X", [])),
-            "Y": clone_profile(self.state.profiles.get("Y", [])),
-        }
-        if _phase6_is_side_back_editable_piece_key(key):
-            _phase6_commit_box_body_physical_piece_profile(
-                self, key, profiles, notify=notify
-            )
-        else:
-            # Two-/three-piece W-split children are manufacturing projections of
-            # the aggregate BoxBody + width allocation.  Their editor is a sink:
-            # preserve the current workspace view only; canonical dimensions stay
-            # owned by box_body_structure and the aggregate BoxBody profile.
-            self.designer_workspace.stash_profiles(key, profiles)
-        return
-    if _phase6_is_derived_physical_part_key(key):
-        _phase6_sync_authoritative_derived_parts(self)
-        return
-
-    if key == "box_body":
-        if getattr(self, "_phase6_sync_ready", False):
-            self._sync_dwd_with_top_whd()
-        values = read_box_body_profile(self.state.profiles_vault["箱身"], self._phase6_input_snapshot)
-        values["h"] = self._phase6_box_whd["h"]
-        _phase6_store_editor_values(self, values, notify=notify)
-        # Box FW changed: followers resolve the new value; detached end caps keep
-        # their overrides. Rebuild both derived mating profiles once.
-        self._phase6_input_snapshot["endcap_fw"] = deepcopy(self._phase6_endcap_fw_state)
-        _phase6_rebuild_linked_endcaps(self)
-        return
-
-    profiles = {
-        "X": clone_profile(self.state.profiles.get("X", [])),
-        "Y": clone_profile(self.state.profiles.get("Y", [])),
-    }
-    self.designer_workspace.stash_profiles(key, profiles)
-    if key in ENDCAP_FW_PARTS:
-        x = {str(seg.get("phase6_key")): seg for seg in profiles.get("X", ()) if seg.get("phase6_key")}
-        y = {str(seg.get("phase6_key")): seg for seg in profiles.get("Y", ()) if seg.get("phase6_key")}
-        required_x = {"yl1", "endcap_w_core", "yr1"}
-        flat_x = len(profiles.get("X", ())) == 1 and profiles["X"][0].get("phase6_key") == "endcap_w_flat"
-        if not required_x.issubset(x) and not flat_x:
-            raise ValueError("封頭/封尾 X 折彎資料不完整")
-
-        # FW is cabinet frame-width semantics with per-endcap link/override. It
-        # must never be routed through _phase6_store_editor_values(), because
-        # that function owns the shared box settings and would back-write box FW.
-        fw_item = self._phase6_endcap_fw_state.setdefault(
-            key, {"follow_box": True, "value": _num(self._phase6_input_snapshot.get("fw", 25), 25)}
-        )
-        if "fw" in y:
-            # Receiving EndCap Y profiles store FW in MATERIAL space
-            # (29 outside -> 25 span at T=2).  Treating that span as the
-            # operator value makes every Head/Tail save detach FW to 25, then
-            # the next rebuild subtracts 2T again and the blank height drifts
-            # by 4 mm per switch.  Vault legacy profiles still use the stored
-            # length as the editable FW value.
-            edited_fw = (
-                engine_segment_length_to_ui(y["fw"])
-                if cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(
-                    self._phase6_input_snapshot
-                )
-                else _ui_len(y["fw"].get("len"))
-            )
-            effective_before = resolve_endcap_fw(
-                self._phase6_input_snapshot, key, state=self._phase6_endcap_fw_state
-            )
-            if abs(float(edited_fw) - float(effective_before)) > 1e-9:
-                commit_endcap_fw(
-                    self._phase6_endcap_fw_state, key, edited_fw,
-                    box_fw=_num(self._phase6_input_snapshot.get("fw", 25), 25),
-                )
-        self._phase6_input_snapshot["endcap_fw"] = deepcopy(self._phase6_endcap_fw_state)
-
-        canonical_y_keys = {"ytop1", "fw", "endcap_d_core", "ybottom1"}
-        if canonical_y_keys.issubset(y):
-            values = read_endcap_xy_profiles(profiles, self._phase6_input_snapshot)
-            values.pop("fw", None)
-        else:
-            # Arbitrary linked Y is derived. Only independently editable X values
-            # are persisted here; the box chain rebuild below regenerates Y.
-            values = (
-                {}
-                if flat_x else {
-                    "yl1": _ui_len(x["yl1"].get("len")),
-                    "yr1": _ui_len(x["yr1"].get("len")),
-                }
-            )
-        _phase6_store_editor_values(self, values, notify=notify)
-
-        if "w" in values:
-            self._phase6_box_whd["w"] = original.get_int(values["w"])
-        if "d" in values:
-            self._phase6_box_whd["d"] = original.get_int(values["d"])
-        w_text = str(self._phase6_box_whd["w"])
-        d_text = str(self._phase6_box_whd["d"])
-        if self.v_w.get() != w_text:
-            self.v_w.set(w_text)
-        if self.v_d.get() != d_text:
-            self.v_d.set(d_text)
-
-        # Both head and tail are regenerated from the one authoritative box
-        # topology. Tail retains its native ordering inside the derivation.
-        _phase6_rebuild_linked_endcaps(self)
-        legacy = build_endcap_profile(self._phase6_input_snapshot)
-        self.state.profiles_vault["封頭"] = clone_profile(legacy)
-        self.state.profiles_vault["封尾"] = clone_profile(legacy)
-    else:
-        _phase6_store_editor_values(
-            self, read_standard_part_profiles(key, profiles, self._phase6_input_snapshot), notify=notify
-        )
+    return _phase6_part_session_owner(self).save_current_part(notify=notify)
 
 
 def _fix11_load_part_holes(self, key):
@@ -3067,182 +2952,7 @@ def _phase6_show_home(self):
 
 
 def _fix11_activate_part(self, key, initial=False):
-    navigation = _phase6_workspace_navigation(self)
-    if not navigation.has_part(key):
-        return
-    _phase6_clear_navigation_residue(self)
-    _phase6_hide_corner_data_canvas(self)
-    if _phase6_is_box_body_physical_piece_key(key):
-        self._phase6_box_body_active_piece_key = str(key)
-    before_signature = None
-    if not initial:
-        try:
-            before_signature = _phase6_manufacturing_state_signature(self)
-        except Exception:
-            before_signature = None
-    # Assembly keeps a real part (normally box_body) as geometry backing.  A Tk
-    # Menu radiobutton updates part_var before invoking this callback, so neither
-    # active_part nor part_var can tell us that the user is leaving assembly.
-    # Capture the display mode first: assembly/corner-data -> same backing part
-    # is still a real view transition and must rebuild/show the input editor.
-    was_non_single = str(getattr(self, "_phase6_3d_display_mode", "single") or "single") != "single"
-    plan = navigation.plan_activation(
-        key,
-        initial=initial,
-        leaving_non_single_view=was_non_single,
-    )
-    if not initial:
-        self._phase6_3d_display_mode = "single"
-        diagnostics = getattr(self, "assembly_diagnostics_frame", None)
-        if diagnostics is not None and diagnostics.winfo_manager():
-            diagnostics.pack_forget()
-    if not initial and getattr(self, "_phase6_pending_settings", None):
-        self.flush_pending_settings()
-    if plan.noop:
-        return
-
-    # A delayed edit/preview update from the previous part must never run after
-    # the new part becomes active.  Cancel it before saving/switching state.
-    pending = getattr(self, "_job", None)
-    if pending:
-        try:
-            self.root.after_cancel(pending)
-        except Exception:
-            pass
-        self._job = None
-
-    if plan.save_outgoing:
-        self._save_current_part()
-        # Saving head/tail can normalize W/D through traced Tk variables.  That
-        # work belongs to the outgoing part and may enqueue a delayed update;
-        # cancel it before the new part becomes active.
-        pending = getattr(self, "_job", None)
-        if pending:
-            try:
-                self.root.after_cancel(pending)
-            except Exception:
-                pass
-            self._job = None
-
-    _phase6_mount_shared_content(self, "single")
-    canvas_widget = self.renderer.canvas.get_tk_widget()
-    # Do not expose the Matplotlib canvas yet. Build/select the editor and the
-    # right settings page first so Tk settles on one final viewport size before
-    # the first visible model render.
-
-    navigation.begin_activation(plan)
-    try:
-        _navigation_view_project_active_part_selector(
-            self,
-            key=key,
-            label=_phase6_part_label("box_body") if _phase6_is_box_body_physical_piece_key(key) else _phase6_part_label(key),
-            removable=key != "box_body" and not _phase6_is_derived_physical_part_key(key),
-            refresh_part_button_states=getattr(self, "_refresh_part_button_states", None),
-        )
-
-        if key == "box_body":
-            # Prepare the custom X-only editor BEFORE changing v_mode.  v_mode
-            # owns one trace that rebuilds the notebook; the old code changed the
-            # mode first and then rebuilt a second time after installing these
-            # profiles.
-            self.state.phase6_fold_ui_profiles = {"X": self.state.profiles_vault["箱身"]}
-            self.state.phase6_fold_ui_tabs = ["X"]
-            self.state.phase6_fold_ui_vault_key = "箱身"
-            self.state.struct_mode = "vault"
-            self.state.active_bend = "X"
-            target_mode = "vault"
-        else:
-            self.state.phase6_fold_ui_profiles = None
-            self.state.phase6_fold_ui_vault_key = None
-            if key in {"head", "tail"}:
-                default_profiles = build_endcap_xy_profiles(self._phase6_input_snapshot, part_key=key)
-            elif _phase6_is_derived_physical_part_key(key):
-                default_profiles = self.designer_workspace.profiles_for(key, {}) or {}
-            else:
-                default_profiles = build_standard_part_profiles(self._phase6_input_snapshot, key)
-            profiles = self.designer_workspace.profiles_for(key)
-            if profiles is None:
-                profiles = default_profiles
-                navigation.stash_profiles(key, profiles)
-            self.state.profiles["X"] = clone_profile(profiles.get("X", []))
-            self.state.profiles["Y"] = clone_profile(profiles.get("Y", []))
-            self.state.phase6_fold_ui_tabs = _phase6_fold_tabs_for_part(
-                self._phase6_input_snapshot, key
-            )
-            self.state.struct_mode = "standard"
-            self.state.active_bend = (
-                self.state.phase6_fold_ui_tabs[0]
-                if self.state.phase6_fold_ui_tabs else "X"
-            )
-            self.state.enable_y = bool(self.state.profiles["Y"])
-            if bool(self.v_ey.get()) != self.state.enable_y:
-                self.v_ey.set(self.state.enable_y)
-            target_mode = "standard"
-
-        # Rebuild exactly once.  When the Tk variable really changes, its
-        # existing on_mode_change trace performs the rebuild; otherwise do it
-        # explicitly.  queue_update() is suppressed while switching.
-        if self.v_mode.get() != target_mode:
-            self.v_mode.set(target_mode)
-        elif (
-            target_mode == "standard"
-            and self.state.phase6_fold_ui_tabs is None
-            and list(getattr(self.bend_ui, "tabs", ())) == ["X", "Y"]
-        ):
-            # Standard parts all use the same X/Y notebook shell.  Rebuilding it
-            # destroys/recreates dozens of Tk widgets and is especially costly on
-            # Windows.  Select X and refresh values in-place instead.
-            try:
-                if self.bend_ui.nb.index("current") != 0:
-                    self.bend_ui.nb.select(0)
-            except Exception:
-                pass
-            self.bend_ui.refresh_active_profile()
-        else:
-            self.bend_ui.rebuild_tabs()
-
-        # W/H/D at the top always remain the cabinet-global dimensions.  Avoid
-        # no-op StringVar.set calls because each one owns a trace callback.
-        for var, value in (
-            (self.v_w, self._phase6_box_whd["w"]),
-            (self.v_h, self._phase6_box_whd["h"]),
-            (self.v_d, self._phase6_box_whd["d"]),
-        ):
-            text = str(value)
-            if var.get() != text:
-                var.set(text)
-        self._load_part_holes(key)
-    finally:
-        navigation.finish_activation()
-
-    _navigation_view_finalize_single_part_layout(
-        self,
-        settings_context="box_body" if _phase6_is_box_body_physical_piece_key(key) else key,
-        render_settings_context=lambda context: _phase6_render_settings_context(self, context),
-        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
-        render_active_drawing_edge_controls=lambda: _phase6_render_active_drawing_edge_controls(self),
-        tk_both=original.tk.BOTH,
-    )
-
-    try:
-        after_signature = _phase6_manufacturing_state_signature(self)
-    except Exception:
-        after_signature = None
-    reason = (
-        "display"
-        if (not initial and before_signature is not None and before_signature == after_signature)
-        else "geometry"
-    )
-    submit = getattr(self, "submit_update_intent", None)
-    if callable(submit):
-        submit(reason, commit=True)
-    else:
-        self.do_update()
-    _phase6_refresh_persistent_structure_controls(self)
-    _phase6_refresh_box_body_piece_selector(self)
-    _phase6_refresh_receiving_set_bay_control(self)
-    _phase6_refresh_back_panel_mode_control(self)
-    _phase6_refresh_content_switch(self)
+    return _phase6_part_session_owner(self).activate_part(key, initial=initial)
 
 
 def _fix11_add_part(self, key):
