@@ -156,6 +156,12 @@ def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_ho
     assert '"right_side": "右側板"' in owner_source
     assert '"divider": "中隔"' in owner_source
     assert '"inner_door": "內門框"' in owner_source
+    assert 'for step in range(17)' in owner_source
+    assert 'for step in range(49)' not in owner_source
+    assert 'render_overrides["show_interference"] = False' in owner_source
+    assert '"_add_mesh_feature_lines"' in owner_source
+    assert '"_draw_joint_diagnostic_overlays"' in owner_source
+    assert 'win.after_idle(lambda: _render_preview(reset_view=True))' in owner_source
 
     adapter_source = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
         encoding="utf-8"
