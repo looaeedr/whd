@@ -100,7 +100,7 @@ Flow v2 透過 `tools/flow_v2_runtime_observation.py` adapter 投影至 `coord/m
 
 `【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
 
-- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(..., event=...)` 產生第一行。`TERMINAL/EXIT` 另外必須攜帶由 `tools/execution_invocation_exit.py::build_host_exit_proof(...)` 對 fresh ExecutionRecord 產生、並由 formatter 重新驗證的 `WHD_FLOW_V2_HOST_EXIT_PROOF_V1`；classifier 若 `may_return=false`、缺 proof 或 proof stale 一律 fail closed。PROGRESS/CHECKPOINT 可回報但不是停止權。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
 
 相容核心模板仍為：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`，但 CURRENT 輸出必須追加 exact `slot + invocation_identity`。
 
