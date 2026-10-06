@@ -30,6 +30,12 @@ canonical machine owner 固定是 `tools/execution_entry_contract.py`，本 Skil
 
 本 Skill 是入口／角色 bridge，不擁有 execution state machine。所有 execution authority、resume、mutation、lease、handoff、recovery、scheduler 與 closure 語意一律服從 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 
+
+### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1_BRIDGE
+
+`EXECUTE_TICKET` 若由使用者以 exact Issue（例如 `/接手 1331`）啟動，task selection 已完成。不得在 execution startup 重新跑 AUTO DISCOVERY、READY census、open-Issue scan、scheduler candidate selection 或 takeover search。fresh-read same-Issue state後，直接做 exact ingress/resume + primary implementation。只有 entry 沒有 exact Issue 時才允許由合法 auto-selection owner 執行 discovery。
+
+
 ## Intent
 UPDATE_ONLY只做指定更新與readback；EXECUTE_TICKET只做指定Issue並依structured chain續接；EXECUTE_CHAIN依record.chain連續施工；SCHEDULER_LANE交由A/B lane。
 任何mutation前確認current generation、canonical branch/head與record fingerprint。
