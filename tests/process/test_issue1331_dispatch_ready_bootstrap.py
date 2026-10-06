@@ -55,6 +55,8 @@ def test_interactive_dispatch_ready_binds_preflight_identity_and_lane_slot():
     request = ingress._build_dispatch_ready_ingress_request(
         _interactive_request(),
         execution_mode="INTERACTIVE",
+        repo="looaeedr/whd",
+        token="unused",
     )
     plan = plan_dispatch_ingress(request)
 
@@ -80,8 +82,85 @@ def test_interactive_dispatch_ready_rejects_slot_spoof():
         ingress._build_dispatch_ready_ingress_request(
             _interactive_request(slot_id="worker.slot.3"),
             execution_mode="INTERACTIVE",
+            repo="looaeedr/whd",
+            token="unused",
         )
 
+
+
+def test_scheduler_dispatch_ready_revalidates_live_owner_marker(monkeypatch):
+    monkeypatch.setattr(
+        ingress,
+        "_fetch_issue_snapshot",
+        lambda *args, **kwargs: {
+            "issue_number": ISSUE,
+            "state": "open",
+            "user": {"login": "looaeedr"},
+            "body": "WHD_SCHEDULER_DISPATCH_REQUEST_V1\nlane=A",
+            "created_at": "2026-10-06T15:00:00Z",
+        },
+    )
+    request = {
+        "issue": ISSUE,
+        "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "effect": {
+            "authority_kind": "USER_EXPLICIT",
+            "authority_ref": f"github-issue:{ISSUE}:WHD_SCHEDULER_DISPATCH_REQUEST_V1",
+        },
+        "startup_transition": {
+            "branch": "cleanup/2d-3d-sync",
+            "head_sha": HEAD,
+            "issued_at": "2026-10-06T15:00:00Z",
+        },
+    }
+
+    built = ingress._build_dispatch_ready_ingress_request(
+        request,
+        execution_mode="SCHEDULER_LANE",
+        repo="looaeedr/whd",
+        token="unused",
+    )
+
+    assert built.execution_intent == "SCHEDULER_LANE"
+    assert built.authority_ref == f"github-issue:{ISSUE}:WHD_SCHEDULER_DISPATCH_REQUEST_V1"
+    assert built.work_branch == f"scheduler/issue{ISSUE}-auto-dispatch"
+
+
+def test_scheduler_dispatch_ready_rejects_non_owner_marker(monkeypatch):
+    monkeypatch.setattr(
+        ingress,
+        "_fetch_issue_snapshot",
+        lambda *args, **kwargs: {
+            "issue_number": ISSUE,
+            "state": "open",
+            "user": {"login": "someone-else"},
+            "body": "WHD_SCHEDULER_DISPATCH_REQUEST_V1\nlane=A",
+        },
+    )
+    request = {
+        "issue": ISSUE,
+        "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
+        "effect": {
+            "authority_kind": "USER_EXPLICIT",
+            "authority_ref": f"github-issue:{ISSUE}:WHD_SCHEDULER_DISPATCH_REQUEST_V1",
+        },
+        "startup_transition": {
+            "branch": "cleanup/2d-3d-sync",
+            "head_sha": HEAD,
+            "issued_at": "2026-10-06T15:00:00Z",
+        },
+    }
+
+    with pytest.raises(
+        executor.ProductionExecutorError,
+        match="scheduler authority rejected",
+    ):
+        ingress._build_dispatch_ready_ingress_request(
+            request,
+            execution_mode="SCHEDULER_LANE",
+            repo="looaeedr/whd",
+            token="unused",
+        )
 
 def test_dispatch_ready_writer_is_create_only_and_rebuilds_state(monkeypatch):
     ingress_request = _dispatch_request()
