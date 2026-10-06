@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,14 +38,13 @@
   },
   "next_action": {
     "args": {
-      "expected_target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
-      "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
       "pr_number": 1316,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
+      "qa_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync",
+      "target_sha": "cfd8555e3e4375605c7e80c88072cecad6587d2b"
     },
-    "display": "Merge accepted PR1316",
-    "kind": "MERGE"
+    "display": "Sync live target into work branch and revalidate exact head",
+    "kind": "SYNC_TARGET"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -62,21 +61,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "GREEN",
+  "semantic_state": "TARGET_DRIFT_REQUIRES_SYNC",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
+  "target_sha": "cfd8555e3e4375605c7e80c88072cecad6587d2b",
   "transaction": {
-    "expected_fingerprint": "5d87bc3fad4d8c49ba3f5186f7bc8179caf510326d538e1b19259066f884b215",
-    "id": "gha:37392430348:1279:ACCEPT_QA:12",
+    "expected_fingerprint": "b14bbeb625a2ee1bd7394e42492cd762eaed0a5016ec6a82aec959760d677f0c",
+    "id": "gha:37392615595:1279:MERGE:13",
     "invocation_identity": "codex.issue1279.712c4e93-fc91-41bc-b1e6-1b0cf764bc22",
-    "kind": "ACCEPT_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T00:09:39Z",
+  "updated_at": "2026-10-06T00:11:33Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
