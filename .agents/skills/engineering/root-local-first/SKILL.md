@@ -125,6 +125,18 @@ CURRENT 文件/Skill/contract 不得再宣告：
 舊文字如需保留，只能明確標 `HISTORICAL/SUPERSEDED`，不得參與 routing。
 
 
+### EXPLICIT_TAKEOVER_RC_WORKSPACE_V1
+
+一般 repository-content route 仍是 executor-local workspace；但使用者明確入口 `/接手 <issue>` 有一個窄化 routing exception：
+
+- execution transport 固定 **Remote Desktop Commander（RC）→ 使用者授權本機**；
+- workspace root 固定 `/workspace/whd`；
+- 該 root 必須驗證為 `looaeedr/whd` 且 baseline fresh 對齊 `cleanup/2d-3d-sync`；
+- edit / focused test / commit 必須在此 root 完成；
+- 可交接成果不得只留未 push worktree，必須形成 GitHub 可見的 issue branch/commit，交付時走 PR/checks；
+- RC 或 `/workspace/whd` 不可用 → `LOCAL_MACHINE_UNAVAILABLE`，禁止改送 ChatGPT/Codex cloud private workspace；
+- 此固定 root **只對 explicit `/接手` 生效**，不得擴張成 scheduler、一般 interactive task、Codex 或其他 entry 的全域 fixed-path policy。
+
 ## Compatibility / delivery invariants
 
 - Git write mode remains `EXACT_TESTED_DIFF_ONLY`.
