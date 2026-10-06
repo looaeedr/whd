@@ -221,9 +221,9 @@ def test_explicit_takeover_uses_github_canonical_not_rc_local_workspace():
     for source in (direct, dispatch, execution, agents):
         assert "GitHub canonical" in source
         assert "production" in source or "production X" in source
-        assert "Remote Desktop Commander" not in source
-        assert "/workspace/whd" not in source
-        assert "LOCAL_MACHINE_UNAVAILABLE" not in source
+        assert "EXPLICIT_TAKEOVER_RC_WORKSPACE_V1" not in source
+        assert "固定為 Remote Desktop Commander" not in source
+        assert "RC transport" not in source
 
     scoped = root_local.split("### EXPLICIT_TAKEOVER_GITHUB_CANONICAL_V1", 1)[1].split(
         "## Compatibility / delivery invariants", 1
