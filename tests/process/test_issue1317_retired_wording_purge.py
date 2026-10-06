@@ -30,3 +30,10 @@ def test_root_local_pitfall_cannot_be_replayed_as_drive_or_latest_zero_workflow(
     assert "歷史 Drive/shared-zero authority 被 generic search 重播" in text
     assert "executor-local repo workspace" in text
     assert "tested exact diff → dedicated delivery branch → PR/required checks → trusted merge/readback" in text
+
+
+def test_process_tests_do_not_carry_retired_drive_work_root_manifest_fixture():
+    text = _read("tests/process/test_flow_v2_execution_invocation_exit.py")
+    assert "root_local_gate_json_path" not in text
+    assert "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json" not in text
+
