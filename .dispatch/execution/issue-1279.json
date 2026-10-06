@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
-    "id": 37386553810,
-    "purpose": "Canonical Product Regression",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
@@ -43,21 +38,20 @@
   },
   "next_action": {
     "args": {
+      "expected_target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
       "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
-      "post_accept_pr_number": 1316,
-      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "run_id": 37386553810,
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "pr_number": 1316,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume exact-head PR1316 product regression and merge when all required checks are GREEN",
-    "kind": "POLL_QA"
+    "display": "Merge accepted PR1316",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
+    "last_accepted_run": 37386553810
   },
   "recovery_history": [
     {
@@ -68,21 +62,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "GREEN",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
   "transaction": {
-    "expected_fingerprint": "d065a3c52871f1545e9a782bbd77e22bd25126f299c8acb4776a65123f0cb866",
-    "id": "gha:37392211770:1279:ACQUIRE:11",
+    "expected_fingerprint": "5d87bc3fad4d8c49ba3f5186f7bc8179caf510326d538e1b19259066f884b215",
+    "id": "gha:37392430348:1279:ACCEPT_QA:12",
     "invocation_identity": "codex.issue1279.712c4e93-fc91-41bc-b1e6-1b0cf764bc22",
-    "kind": "ACQUIRE",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T00:07:12Z",
+  "updated_at": "2026-10-06T00:09:39Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
