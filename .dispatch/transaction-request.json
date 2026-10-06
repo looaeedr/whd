@@ -1,27 +1,66 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1062-block-root-full-regression-20261003T1442Z",
-  "issue": 1062,
-  "kind": "BLOCK",
+  "request_id": "issue1334-dispatch-ready-6020470685",
+  "issue": 1334,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.flowv2.work1.issue1062.20261003T143041Z",
-  "expected_coord_head": "35dfd7b53a2f9ce2ed195db8ebb2a739ef9273f6",
-  "expected_generation": 44,
+  "invocation_identity": "chatgpt.issue1334.bootstrap.6020470685",
+  "expected_coord_head": "4b838937aff85da2ed28837e75b19c30deb4d34a",
+  "expected_generation": 1,
   "effect": {
-    "blocker_kind": "ROOT_FULL_REGRESSION_EXECUTION_REQUIRED",
-    "blocker_evidence": "Stale docs-generation-13 delivery reservation was released at generation 44. Current chat runtime has canonical Drive read/write but no command/pytest execution surface on /Google Drive/WHD. Issue #1062 requires canonical-root `python -m pytest -q` against current production cleanup/2d-3d-sync@5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692 and classification of every remaining failure. GitHub-side authoring/hotfix is forbidden; #1115 frozen body/0 must remain untouched.",
-    "semantic_state": "BLOCKED_ROOT_FULL_REGRESSION",
-    "next_action": {
-      "kind": "WAIT_EXTERNAL",
-      "args": {
-        "blocker_kind": "ROOT_FULL_REGRESSION_EXECUTION_REQUIRED",
-        "canonical_root": "/Google Drive/WHD",
-        "target_branch": "cleanup/2d-3d-sync",
-        "target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
-        "command": "python -m pytest -q"
-      },
-      "display": "Run canonical-root full product regression at current X and classify every remaining failure"
-    }
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user-explicit:issue-1334"
   },
-  "reuse_admission_session": true
+  "purpose": "Create canonical generation-1 READY record for Issue #1334 host-level turn-exit enforcement repair",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".git",
+      ".agents",
+      ".github",
+      "AGENTS.md",
+      "tools",
+      "tests",
+      "ae_engine",
+      "gui_modules"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1334,
+    "invocation_identity": "chatgpt.issue1334.bootstrap.6020470685",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+    "required_skills": [
+      "flow-v2-execution"
+    ],
+    "completed_skills": [
+      "flow-v2-execution"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "observed_at": "2026-10-06T16:13:21Z"
+  }
 }
