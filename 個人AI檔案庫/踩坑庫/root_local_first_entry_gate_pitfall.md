@@ -28,7 +28,7 @@ whd_schema: WHD_DOC_META_V1
 - **根因**：舊規則只規範「進入 root-local-first 之後怎麼做」，沒有 machine-enforce「找到入口本身必須是第一個 routing sequence」。
 - **永久規則**：每個 WHD repository-content invocation 固定先 `READ canonical entry contract → READ root-local-first Skill → ENTRY_ROUTER_READY`；READY 前 generic discovery、Remote Desktop/local search、GitHub content discovery、claim/Flow v2 discovery 全部 fail closed。
 - **錯序處置**：任何 READY 前取得的 generic discovery 只能標記為 non-execution evidence；固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`，不得沿錯路續做。
-- **防回歸 owner**：`tools/root_local_first_gate.py`、`WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`、`AGENTS.md`、`tests/test_root_entry_router_hard_gate.py`。
+- **防回歸 owner**：`tools/root_local_first_gate.py`、`WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json`、`AGENTS.md`、`tests/test_root_entry_router_hard_gate.py`。
 
 ## 2026-10-03 — 歷史 Drive/shared-zero authority 被 generic search 重播（HISTORICAL/SUPERSEDED）
 
