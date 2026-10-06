@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "c65d7860-5f39-4b8a-add0-44c09f25183c",
+  "request_id": "6bb9ba5f-bd42-4335-83d5-50ca5c85ba1c",
   "issue": 1279,
   "kind": "BLOCK",
   "lane_id": "chatgpt.flowv2.work0",
@@ -8,12 +8,12 @@
   "expected_coord_head": "81947e942b0f963c12a420cfc1df2fc596003e7b",
   "expected_generation": 15,
   "effect": {
-    "blocker_kind": "GITHUB_ACTION_REQUIRED",
+    "blocker_kind": "EXTERNAL_DEPENDENCY",
     "blocker_evidence": "Exact synchronized head e7b8ad2d08dcbd251d77a616fa73a39bc9641018: Product Regression run37392795983 and governance run37392793927 both completed/action_required, no jobs. Connector rerun-failed-jobs returned GitHub403: This workflow run cannot be retried. No workflow-approve capability is available. Prior eedf73c63 product QA run37386553810 succeeded; candidate patch identity remains unchanged. Requires owner action in GitHub Actions before exact-head acceptance and merge.",
     "next_action": {
       "kind": "WAIT_EXTERNAL",
       "args": {
-        "blocker_kind": "GITHUB_ACTION_REQUIRED",
+        "blocker_kind": "EXTERNAL_DEPENDENCY",
         "run_id": 37392795983,
         "governance_run_id": 37392793927,
         "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
