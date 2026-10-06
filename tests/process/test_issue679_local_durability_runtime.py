@@ -5,6 +5,7 @@ import importlib.util
 from pathlib import Path
 
 import pytest
+import json
 
 ISSUE = 679
 WORKER = "chatgpt.sol260926.wi1.1"
@@ -194,7 +195,25 @@ def _end(
             f"head_sha={HEAD}\n"
             "executor_source=chat\n"
             "ended_at=2026-09-26T05:02:30Z\n"
-            "reason=PLANNED_HANDOFF"
+            "reason=PLANNED_HANDOFF\n"
+            "host_exit_proof="
+            + json.dumps(
+                {
+                    "schema": "WHD_FLOW_V2_HOST_EXIT_PROOF_V1",
+                    "version": 1,
+                    "issue": ISSUE,
+                    "generation": 1,
+                    "record_fingerprint": "e" * 64,
+                    "invocation_identity": invocation,
+                    "decision": "YIELDED",
+                    "may_return": True,
+                    "requires_yield": False,
+                    "next_action_kind": None,
+                    "active_run_id": None,
+                    "classified_at": "2026-09-26T05:02:30Z",
+                },
+                separators=(",", ":"),
+            )
         ),
     }
 
