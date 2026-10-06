@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "SCHEDULER_LANE",
-  "generation": 6,
-  "head_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "generation": 7,
+  "head_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
   "issue": 1080,
   "lane_id": null,
   "lease": null,
@@ -61,18 +61,26 @@
       "reason": "CONTROL_ONLY smoke had not executed; refresh source/head/target to the current production X before ACQUIRE.",
       "refreshed_to_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
       "refreshed_at": "2026-10-06T03:01:26.639Z"
+    },
+    {
+      "kind": "CONTROL_ONLY_TARGET_REFRESH",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "github-issue:1080:WHD_SCHEDULER_DISPATCH_REQUEST_V1",
+      "reason": "Production X advanced after the smoke regression merge; refresh exact source/head/target before ACQUIRE.",
+      "refreshed_to_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
+      "refreshed_at": "2026-10-06T03:02:10.001Z"
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
   "semantic_state": "READY",
   "slot_id": null,
   "source_branch": "cleanup/2d-3d-sync",
-  "source_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "source_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
   "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "45e3343daff709d8c7c6a0966755e32d7a390872",
+  "target_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
   "transaction": null,
-  "updated_at": "2026-10-06T03:01:26.639Z",
+  "updated_at": "2026-10-06T03:02:10.001Z",
   "version": 2,
   "work_branch": "cleanup/2d-3d-sync"
 }
