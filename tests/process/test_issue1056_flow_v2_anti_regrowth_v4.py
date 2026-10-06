@@ -68,9 +68,11 @@ def test_work_root_next_gate_explicitly_covers_remote_repository_content() -> No
     payload = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json")
     assert payload["next_gate"]["schema"] == "WHD_WORKSPACE_ENTRY_HARD_GATE_V1"
     root = _json(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json")
-    for mode in ("SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"):
-        assert root["execution_modes"][mode] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
-    assert root["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
+    assert root["execution_modes"]["SCHEDULER_LANE"] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+    for mode in ("GITHUB_ONLY", "REMOTE_ACTION"):
+        assert root["execution_modes"][mode] == "GITHUB_CANONICAL_DURABLE_WORK_BRANCH_PR"
+    assert root["remote_content_implementation"]["direct_production_hotfix_forbidden"] is True
+    assert root["remote_content_implementation"]["github_work_branch_mutation_allowed"] is True
 
 
 def test_authority_map_fences_historical_governance_parity() -> None:
