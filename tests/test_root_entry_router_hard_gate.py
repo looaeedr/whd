@@ -25,14 +25,14 @@ from tools.shared_unpushed_integration import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / ".agents" / "contracts" / "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+CONTRACT = ROOT / ".agents" / "contracts" / "WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
 
 
 def _ready():
     return build_entry_router_evidence(
         workspace_root="/workspace/whd",
         fresh_reads=(
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ),
     )

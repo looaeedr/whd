@@ -36,7 +36,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 <!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
 <!-- WHD_AUTHORITY contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py -->
-<!-- WHD_AUTHORITY contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json -->
+<!-- WHD_AUTHORITY contract=workspace-entry-hard-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json -->
 <!-- WHD_AUTHORITY contract=shared-unpushed-integration role=HISTORICAL path=tools/shared_unpushed_integration.py canonical=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=push-delivery-skill role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
 <!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=HISTORICAL path=tools/root_local_first_gate.py canonical=tools/shared_unpushed_integration.py -->

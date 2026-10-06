@@ -739,7 +739,7 @@ def _root_unlock_receipt():
 
     entry = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
@@ -1092,7 +1092,7 @@ def test_issue1072_root_contract_treats_generation_as_provenance_not_content_ide
     import json
 
     contract = json.loads(
-        (ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json").read_text(
+        (ROOT / ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json").read_text(
             encoding="utf-8"
         )
     )

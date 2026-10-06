@@ -44,6 +44,11 @@ from tools.control_transaction import (
     POST_DELIVERY_RECOVERY_PROOF_SCHEMA,
     is_post_delivery_recovery_finalize_record,
 )
+from tools.execution_dispatch_ingress import (
+    DispatchIngressError,
+    DispatchIngressRequest,
+    plan_dispatch_ingress,
+)
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
 from tools.execution_invocation_exit import (
     InvocationExitError,
@@ -1471,6 +1476,112 @@ def _write_state(
         raise
     return commit["sha"], record_blob["sha"]
 
+
+
+
+
+def dispatch_ready_missing_record(
+    *,
+    repo: str,
+    token: str,
+    coord_branch: str,
+    issue: int,
+    expected_coord_head: str,
+    ingress_request: DispatchIngressRequest,
+) -> dict[str, object]:
+    """Create one generation-1 READY record from explicit typed authority.
+
+    This is the canonical bootstrap for a genuinely missing ExecutionRecord.
+    It is create-only, CAS-protected, rebuilds the derived ready-index, and
+    fresh-reads the record after the write.  It never claims a lease; ACQUIRE
+    remains the next trusted transaction.
+    """
+    parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+    if parent_sha != expected_coord_head:
+        raise ControlTransactionConflict(
+            f"coord head drift: expected {expected_coord_head}, observed {parent_sha}"
+        )
+    if issue in records:
+        raise ControlTransactionConflict(
+            f"DISPATCH_READY requires missing ExecutionRecord; issue {issue} now exists"
+        )
+    if not isinstance(ingress_request, DispatchIngressRequest):
+        raise ProductionExecutorError("DISPATCH_READY requires DispatchIngressRequest")
+    if ingress_request.issue != issue:
+        raise ProductionExecutorError("DISPATCH_READY ingress issue mismatch")
+    try:
+        plan = plan_dispatch_ingress(ingress_request)
+    except DispatchIngressError as exc:
+        raise ProductionExecutorError(f"DISPATCH_READY ingress rejected: {exc}") from exc
+    record = plan.record
+    if (
+        record.generation != 1
+        or record.state != "READY"
+        or record.owner_kind != "UNCLAIMED"
+        or record.owner_id != "NONE"
+        or record.lease is not None
+        or record.next_action is None
+        or record.next_action.kind != "ACQUIRE"
+    ):
+        raise ProductionExecutorError("DISPATCH_READY planner did not produce canonical READY record")
+
+    last_conflict: ControlTransactionConflict | None = None
+    for attempt in range(1, 6):
+        if issue in records:
+            raise ControlTransactionConflict(
+                f"DISPATCH_READY same-Issue record appeared during bootstrap: {issue}"
+            )
+        candidate_records = dict(records)
+        candidate_records[issue] = record
+        try:
+            commit_sha, record_blob_sha = _write_state(
+                repo,
+                token,
+                coord_branch,
+                parent_sha=parent_sha,
+                base_tree_sha=tree_sha,
+                records=candidate_records,
+                issue=issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            last_conflict = exc
+            if not str(exc).startswith(
+                "coord/execution-v2 ref advanced during transaction"
+            ) or attempt >= 5:
+                raise
+            parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+            if issue in records:
+                raise ControlTransactionConflict(
+                    "DISPATCH_READY same-Issue record appeared during coord retry"
+                ) from exc
+    else:  # pragma: no cover
+        assert last_conflict is not None
+        raise last_conflict
+
+    _, _, fresh_records = _load_state(repo, token, coord_branch)
+    fresh = fresh_records.get(issue)
+    if fresh is None:
+        raise ProductionExecutorError("DISPATCH_READY post-write record is missing")
+    if execution_record_fingerprint(fresh) != execution_record_fingerprint(record):
+        raise ProductionExecutorError("DISPATCH_READY post-write record fingerprint mismatch")
+
+    return {
+        "schema": RESULT_SCHEMA,
+        "result": "APPLIED",
+        "issue": issue,
+        "kind": "DISPATCH_READY",
+        "coord_commit_sha": commit_sha,
+        "record_blob_sha": record_blob_sha,
+        "request_fingerprint": plan.request_fingerprint,
+        "authority_fingerprint": plan.authority_fingerprint,
+        "post_generation": fresh.generation,
+        "post_record_fingerprint": execution_record_fingerprint(fresh),
+        "post_state": fresh.state,
+        "post_next_action": fresh.next_action.kind if fresh.next_action else None,
+        "lease_invocation_identity": None,
+        "runtime_observation_status": "NOT_APPLICABLE_UNCLAIMED_READY",
+    }
 
 
 

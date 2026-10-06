@@ -32,9 +32,9 @@ def _canonical_payload_from_mirror(rel: str) -> dict[str, object]:
 def test_root_shared_unpushed_contract_is_current_canonical_projection() -> None:
     from tools.root_local_first_gate import validate_contract
 
-    contract = _json(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
+    contract = _json(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json")
     validate_contract(contract)
-    assert contract["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
+    assert contract["schema"] == "WHD_WORKSPACE_ENTRY_HARD_GATE_V1"
     assert contract["canonical_root"]["provider"] == "executor_local_workspace"
     assert contract["canonical_root"]["path_policy"] == "EXECUTOR_LOCAL_REPO_WORKSPACE"
     assert contract["canonical_root"]["production_branch"] == "cleanup/2d-3d-sync"
@@ -56,8 +56,8 @@ def test_work_root_v2_points_to_shared_unpushed_entry_gate() -> None:
         "PRODUCTION_BASELINE_CURRENT",
         "REQUESTED_OPERATION",
     ]
-    assert contract["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
-    assert contract["next_gate"]["repository_contract"] == ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+    assert contract["next_gate"]["schema"] == "WHD_WORKSPACE_ENTRY_HARD_GATE_V1"
+    assert contract["next_gate"]["repository_contract"] == ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
     assert not (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").exists()
 
 

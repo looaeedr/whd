@@ -11,7 +11,7 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_current_root_gate_is_v2_full_repo_shared_unpushed() -> None:
+def test_current_root_gate_points_to_workspace_entry_and_keeps_shared_zero_retired() -> None:
     work_root = json.loads(_read(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json"))
     assert work_root["status"] == "CURRENT"
     assert work_root["default_work_root"]["provider"] == "executor_local_workspace"
@@ -22,9 +22,13 @@ def test_current_root_gate_is_v2_full_repo_shared_unpushed() -> None:
     assert work_root["drive_mirror"]["routing_forbidden"] is True
     assert set(work_root["required_root_entries"]) >= {".git", ".agents", "tools", "tests"}
     assert ".unpushed" not in set(work_root["required_root_entries"])
-    assert work_root["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
-    root_gate = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
+    assert work_root["next_gate"]["schema"] == "WHD_WORKSPACE_ENTRY_HARD_GATE_V1"
+    root_gate = json.loads(_read(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"))
     assert root_gate["status"] == "CURRENT"
+    retired_alias = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
+    assert retired_alias["status"] == "RETIRED"
+    assert retired_alias["role"] == "HISTORICAL_COMPATIBILITY_ALIAS"
+    assert retired_alias["replacement"] == ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
     assert not (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").exists()
     assert not (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").exists()
 

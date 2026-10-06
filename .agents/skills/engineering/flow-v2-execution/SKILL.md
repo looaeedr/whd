@@ -23,7 +23,7 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 
 
 0. **WORK_ROOT_BOOTSTRAP_HARD_GATE_V2**：repository-content implementation 先解析該 executor 自己的 repo workspace，fresh 對齊 GitHub `cleanup/2d-3d-sync` production baseline；普通 startup 不要求 Drive mount/shared-0。scheduler/GitHub-only 仍依 trusted runtime contract 使用自己的 workspace/remote surface。
-0.5. **WORKSPACE_ENTRY_HARD_GATE_V1**：CURRENT repository-content entry contract 固定是 workspace-first：`WORKSPACE_SOURCE_CURRENT → WORKSPACE_MUTATIONS_COMPLETE → WORKSPACE_TESTS_GREEN → exact diff → delivery branch/PR/checks`。Drive/shared-zero 不得改變 route。
+0.5. **WORKSPACE_ENTRY_HARD_GATE_V1**：CURRENT repository-content entry contract 固定 `route=WORKSPACE_DEFAULT`，並以 workspace-first：`WORKSPACE_SOURCE_CURRENT → WORKSPACE_MUTATIONS_COMPLETE → WORKSPACE_TESTS_GREEN → exact diff → delivery branch/PR/checks`。Drive/shared-zero 不得改變 route。Google Drive 已退出 repository-content execution routing；Drive 只允許保存資料、artifact、backup 與 production mirror。
 0.5.1. **MERGE_CONFLICT_USER_DECISION_HARD_GATE_V1**：保留給歷史 shared-zero evidence 的解析；不參與 CURRENT repository-content routing。
 1. **ChatGPT surface only**：若本 runtime 實際具有 AI Library connector，完成 `AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。Codex / CLI / headless / scheduler 沒有 AI Library surface 時固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，**不得因此 BLOCKED 或停止**；直接以 repo CURRENT authority + Phase6 required references 繼續。
 2. 使用 canonical `tools/execution_entry_contract.py` 產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。interactive chat 必須 user-visible；Codex/CLI/headless 以 `WHD_EXECUTION_STARTUP_COMMUNICATION_V1` 留 `STDOUT / TASK_EVENT / LOG` machine-visible evidence。
@@ -51,7 +51,7 @@ machine communication owner=`tools/execution_entry_contract.py::build_startup_co
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
 
-對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content router=`tools/root_local_first_gate.py::select_repository_content_route`; shared-unpushed machine僅可解析歷史資料，不參與 CURRENT 路由； Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
+對 `INTERACTIVE` repository-content work，Flow v2 的 lease / reservation / CAS / session reuse / reconcile / Git-transport transaction / QA consume / finalize drain 都是 machine-internal plumbing。chat outer layer 不得把 `DISPATCH_READY / ACQUIRE / RESERVE_PATHS / RECONCILE / LEASE_RENEW / START_QA / ACCEPT_QA / FINALIZE` 等 transaction kind 當成本輪 primary task 或 user-visible next action。canonical content router=`tools/root_local_first_gate.py::select_repository_content_route`; shared-unpushed machine僅可解析歷史資料，不參與 CURRENT 路由； Flow v2 transaction guard仍由既有 execution owners負責；continuity 的 first-substantive-action 記錄也必須拒絕 background-only governance event。
 
 
 外層普通 route只報 `FRESH_READ → WORKSPACE_MUTATE_TEST → EXACT_DIFF → DELIVERY_BRANCH_PR → POST_PUSH_CI → MERGE_FINALIZE`；不得追加已退役的 shared-zero 步驟。只有真 `PATH_CONFLICT / SAME_ISSUE_OTHER_WRITER / SUBSTANTIVE_TARGET_OVERLAP / MACHINE_FAIL_CLOSED / USER_INPUT_REQUIRED` 才以 `REPORT_BLOCKER` 浮到前台；普通 lease expiry、record stale、governance drift、test RED、status/progress query 一律記 evidence 後繼續目前 primary task。
@@ -802,6 +802,20 @@ Phase6 Preflight 亦遵守同一能力模型：A/B scheduler 的 startup Preflig
 - trusted push workflow: `.github/workflows/whd-control-transaction-v2-request.yml`
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
+
+### MISSING_EXECUTION_RECORD_READY_INGRESS_V1
+
+對**尚未施工、尚未交付**且 native `ExecutionRecord` 不存在的 exact owning Issue，缺 record 本身不得成為永久 blocker。只有在本 invocation 已完成 startup + exact Phase6 Preflight，且有 typed explicit authority 時，才允許走 trusted `DISPATCH_READY` bootstrap：
+
+1. request 固定走對應 lane 的 existing-file CAS push transport，`kind=DISPATCH_READY`、`expected_generation=1`，並綁 exact `expected_coord_head + invocation_identity`。
+2. trusted ingress 必須以已驗證的 `startup_transition.branch + head_sha` 建立 `DispatchIngressRequest`；caller 不得自行提供另一組 source/target identity。
+3. authority 僅接受 `execution_dispatch_ingress` 已允許的 typed authority（`USER_EXPLICIT / CHAIN_SUCCESSOR / WORK_SLOT_ASSIGNMENT`）；interactive slot 必須由 request branch/lane identity 推導，caller 不得跨 slot 偽造。
+4. trusted production writer 只允許 **create-only**：same-Issue record 已存在即 fail-closed；成功時原子寫入 generation 1 `READY / UNCLAIMED / lease=null / next_action=ACQUIRE`，並同步重建 DERIVED_CACHE_ONLY ready-index。
+5. 寫入後必須 fresh-read exact record 並驗 fingerprint；`DISPATCH_READY` 本身不得偷做 ACQUIRE、不得建立 lease、不得直接進 ACTIVE。
+6. READY 建立成功後，同一 invocation 若仍可執行，立即 fresh-read 並走正常 `ACQUIRE`；不得把「READY 已建立」當成停止點。
+7. 已 merge delivery 的 missing-record 情境仍只走 `RECOVER_POST_DELIVERY`，不得改走 `DISPATCH_READY` 倒填歷史。
+
+Machine owner=`tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py::dispatch_ready_missing_record`；planner owner=`tools/execution_dispatch_ingress.py`。
 
 建立／續送 control transaction 時固定遵守 **session-first**：
 1. fresh-read `coord/execution-v2` exact HEAD、native record、generation 與 structured `next_action`；本 Issue identity 若已前進，舊 plan 立即 `STALE_PLAN_MUST_DIE`，不得補完舊 action。

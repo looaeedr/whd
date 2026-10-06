@@ -98,7 +98,7 @@ def test_dependency_or_test_contract_change_requires_retest():
 
 def test_current_contract_declares_no_extra_test_on_green_reuse():
     payload = json.loads(
-        Path(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json").read_text(
+        Path(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json").read_text(
             encoding="utf-8"
         )
     )

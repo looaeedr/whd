@@ -3,7 +3,7 @@ from dataclasses import replace
 import pytest
 
 from tools.execution_ready_index import build_ready_index
-from tools.execution_record import ActionSpec, ChainState, LeaseState, execution_record_from_payload
+from tools.execution_record import ActionSpec, ChainState, ExecutionRecordError, LeaseState, execution_record_from_payload
 from tools.execution_scheduler_view import (
     SchedulerViewError,
     build_scheduler_view,
@@ -198,11 +198,9 @@ def test_multiple_same_lane_nonterminal_records_fail_closed():
         build_scheduler_view([first, second], lane_id=LANE_A, invocation_identity="scheduled:00:new", now=NOW)
 
 
-def test_lane_owner_identity_mismatch_fails_closed_instead_of_false_no_work():
-    broken = _record(844, "ACTIVE", lane=LANE_A, owner_id=LANE_B)
-
-    with pytest.raises(SchedulerViewError, match="owner/lane identity mismatch"):
-        build_scheduler_view([broken], lane_id=LANE_A, invocation_identity="scheduled:00:new", now=NOW)
+def test_lane_owner_identity_mismatch_fails_closed_before_scheduler_projection():
+    with pytest.raises(ExecutionRecordError, match="owner_id must equal non-null lane_id"):
+        _record(844, "ACTIVE", lane=LANE_A, owner_id=LANE_B)
 
 
 def test_stale_ready_index_fails_closed():

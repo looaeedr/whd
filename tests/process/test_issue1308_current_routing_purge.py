@@ -13,7 +13,7 @@ def _json(path: str):
 
 def test_current_contracts_do_not_restore_drive_or_shared_zero_routing():
     work_root = _json(".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json")
-    root = _json(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
+    root = _json(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json")
     reservation = _json(".agents/contracts/WHD_PATH_RESERVATION_V1.json")
     durability = _json(".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json")
     assert "canonical_drive_overlay" not in work_root
@@ -42,7 +42,7 @@ def test_current_machine_text_has_no_legacy_execution_markers():
     paths = (
         ".agents/contracts/WHD_PATH_RESERVATION_V1.json",
         ".agents/contracts/WHD_POST_INTEGRATION_DURABILITY_V2.json",
-        ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+        ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
         ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
         "tools/post_integration_durability.py",
         "tools/root_local_first_gate.py",

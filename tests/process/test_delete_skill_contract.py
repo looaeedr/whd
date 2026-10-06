@@ -38,4 +38,4 @@ def test_delete_skill_registry_route_is_narrow_and_canonical():
     assert '.agents/skills/engineering/刪除/**' in route['file_globs']
     assert '刪除' in route['keywords']
     assert '清空' in route['keywords']
-    assert '.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json' in route['required_references']
+    assert route['required_references'] == ['.agents/skills/engineering/刪除/SKILL.md']

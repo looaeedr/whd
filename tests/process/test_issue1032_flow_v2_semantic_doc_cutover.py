@@ -14,7 +14,7 @@ def test_current_execution_docs_use_workspace_default_and_retire_shared_zero_rou
     assert "WORKSPACE_DEFAULT" in agents
     assert "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in agents
     assert "executor-local" in agents
-    assert "ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1" in flow
+    assert "WORKSPACE_ENTRY_HARD_GATE_V1" in flow
     assert "WORKSPACE_DEFAULT" in flow
     assert "Drive readback 全部退出 CURRENT routing" in flow
     assert "ACQUIRE.effect.admission_reservation" not in agents
@@ -68,7 +68,7 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     flow = _read(".agents/skills/engineering/flow-v2-execution/SKILL.md")
     scheduler = _read(".agents/skills/engineering/排程模擬/SKILL.md")
     agents = _read("AGENTS.md")
-    contract_text = _read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
+    contract_text = _read(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json")
     contract = json.loads(contract_text)
 
     retired = "SCHEDULER_LANE / GITHUB_ONLY / REMOTE_ACTION` 不直接套用此 workspace content gate"

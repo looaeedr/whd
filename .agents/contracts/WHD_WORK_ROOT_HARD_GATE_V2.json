@@ -33,8 +33,8 @@
     "REQUESTED_OPERATION"
   ],
   "next_gate": {
-    "schema": "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1",
-    "repository_contract": ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+    "schema": "WHD_WORKSPACE_ENTRY_HARD_GATE_V1",
+    "repository_contract": ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
     "machine_owner": "tools/root_local_first_gate.py"
   },
   "github_role": "GitHub cleanup/2d-3d-sync is the ordinary production baseline shared by executor-local workspaces. Delivery remains branch + PR + checks; direct production push is forbidden.",

@@ -21,13 +21,13 @@ whd_schema: WHD_DOC_META_V1
 
 任何 WHD repository-content 任務、續作或修補，每個 invocation 的**第一個 routing sequence** 固定是：
 
-`READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json → READ .agents/skills/engineering/root-local-first/SKILL.md → ENTRY_ROUTER_READY`
+`READ .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json → READ .agents/skills/engineering/root-local-first/SKILL.md → ENTRY_ROUTER_READY`
 
 `ENTRY_ROUTER_READY` 前只允許上述 bootstrap read。禁止 generic Drive/file search、Remote Desktop/local-machine search、GitHub content discovery、branch create、claim、Flow v2 discovery 或 mutation；聊天記憶、上一輪摘要、上一 invocation evidence 都不能代替 fresh read。
 
 若已先走錯路，該段 discovery 不得算 execution evidence，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY` 回本 executor 的 repo workspace 重新進場；不得因「已經查到了」就沿錯路續做。
 
-machine owner=`tools/root_local_first_gate.py::assert_entry_router_action_allowed`；contract=`.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`。
+machine owner=`tools/root_local_first_gate.py::assert_entry_router_action_allowed`；contract=`.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json`。
 
 ## -1. WORK_ROOT_BOOTSTRAP_HARD_GATE_V2：executor-local repo workspace
 
@@ -43,7 +43,7 @@ workspace 至少必須存在 `.git/.agents/.github/AGENTS.md/tools/tests/ae_engi
 
 canonical contracts：
 - `.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json`
-- `.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json`
+- `.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json`
 - `.agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json`（HISTORICAL/SUPERSEDED data contract only）
 
 machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
@@ -60,9 +60,9 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 3. target 前進時 refresh baseline；碰到 touched path 就 retest，再 delivery。
 4. GitHub baseline read 不等於一般 Issue/PR/Actions 或任意 remote authority；Skill 自動觸發也不會擴張 authority，非 baseline 動作仍走原 authority gate，未授權固定 `REMOTE_CONNECTION_DENIED`。
 5. Google Drive / `.unpushed/{docs|body}/0` / shared-zero 全部退出 CURRENT repository-content routing；不得因其存在、缺失或 drift 改變施工 route。
-## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1：workspace-only current route
+## -0.5. WORKSPACE_ENTRY_HARD_GATE_V1：workspace-only current route
 
-<!-- ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1 -->
+<!-- WORKSPACE_ENTRY_HARD_GATE_V1 -->
 
 CURRENT route 固定 `WORKSPACE_DEFAULT`；route machine=`tools/root_local_first_gate.py::select_repository_content_route`：
 
