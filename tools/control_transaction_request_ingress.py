@@ -28,6 +28,10 @@ from tools.execution_entry_contract import (
     validate_startup_transition,
 )
 from tools.execution_dispatch_ingress import DispatchIngressRequest
+from tools.scheduler_ready_ingress import (
+    SchedulerIssueCandidateError,
+    build_scheduler_dispatch_candidate,
+)
 from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
     INTENT_SCHEMA,
@@ -202,6 +206,30 @@ def _bind_trusted_github_actions_runtime_provenance(
         assert isinstance(payload, dict)
         payload["invocation_identity"] = minted_invocation
     return rebound
+
+
+def _fetch_issue_snapshot(repo: str, token: str, issue: int) -> dict[str, object]:
+    url = f"https://api.github.com/repos/{repo}/issues/{int(issue)}"
+    request = Request(
+        url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "whd-flow-v2-ingress",
+        },
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise ProductionExecutorError(
+            f"DISPATCH_READY Issue readback failed: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ProductionExecutorError("DISPATCH_READY Issue readback must be an object")
+    payload["issue_number"] = int(payload.get("number") or issue)
+    return {str(k): v for k, v in payload.items()}
 
 
 def _fetch_issue_comment(repo: str, token: str, comment_id: int) -> dict[str, object]:
@@ -541,6 +569,8 @@ def _build_dispatch_ready_ingress_request(
     request: dict[str, object],
     *,
     execution_mode: str,
+    repo: str,
+    token: str,
 ) -> DispatchIngressRequest:
     """Bind missing-record READY creation to the already-validated startup identity."""
     effect = dict(request["effect"])
@@ -562,9 +592,36 @@ def _build_dispatch_ready_ingress_request(
     issue = int(request["issue"])
     lane_id = str(request["lane_id"])
     if execution_mode == "SCHEDULER_LANE":
-        execution_intent = "SCHEDULER_LANE"
-        slot_id = None
-        default_work_branch = f"scheduler/issue{issue}-auto-dispatch"
+        issue_snapshot = _fetch_issue_snapshot(repo, token, issue)
+        try:
+            candidate = build_scheduler_dispatch_candidate(
+                issue_snapshot,
+                repository_owner=repo.split("/", 1)[0],
+                source_branch=branch,
+                source_sha=head_sha,
+                target_branch=branch,
+                target_sha=head_sha,
+            )
+        except SchedulerIssueCandidateError as exc:
+            raise ProductionExecutorError(
+                f"DISPATCH_READY scheduler authority rejected: {exc}"
+            ) from exc
+        if not candidate.matches_lane(lane_id):
+            raise ProductionExecutorError(
+                "DISPATCH_READY scheduler marker does not authorize this lane"
+            )
+        canonical = candidate.ingress_request
+        for key, expected in (
+            ("authority_kind", canonical.authority_kind),
+            ("authority_ref", canonical.authority_ref),
+            ("work_branch", canonical.work_branch),
+        ):
+            supplied = effect.get(key)
+            if supplied not in (None, "", expected):
+                raise ProductionExecutorError(
+                    f"DISPATCH_READY scheduler effect {key} conflicts with live Issue authority"
+                )
+        return canonical
     elif execution_mode == "INTERACTIVE":
         execution_intent = "EXECUTE_TICKET"
         slot_id = INTERACTIVE_SLOT_BY_LANE.get(lane_id)
@@ -745,6 +802,8 @@ def execute_request(
             ingress_request = _build_dispatch_ready_ingress_request(
                 request,
                 execution_mode=execution_mode,
+                repo=repo,
+                token=token,
             )
             return dispatch_ready_missing_record(
                 repo=repo,
