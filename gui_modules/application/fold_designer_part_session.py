@@ -33,25 +33,25 @@ class Phase6PartSessionOwner:
             app.bend_ui.save()
         except Exception:
             return
-        bridge._phase6_replace_mapping(self, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
+        bridge._phase6_replace_mapping(app, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
         if bridge._phase6_is_box_body_physical_piece_key(key):
             profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
             if bridge._phase6_is_side_back_editable_piece_key(key):
-                bridge._phase6_commit_box_body_physical_piece_profile(self, key, profiles, notify=notify)
+                bridge._phase6_commit_box_body_physical_piece_profile(app, key, profiles, notify=notify)
             else:
                 app.designer_workspace.stash_profiles(key, profiles)
             return
         if bridge._phase6_is_derived_physical_part_key(key):
-            bridge._phase6_sync_authoritative_derived_parts(self)
+            bridge._phase6_sync_authoritative_derived_parts(app)
             return
         if key == 'box_body':
-            if getattr(self, '_phase6_sync_ready', False):
+            if getattr(app, '_phase6_sync_ready', False):
                 app._sync_dwd_with_top_whd()
             values = bridge.read_box_body_profile(app.state.profiles_vault['箱身'], app._phase6_input_snapshot)
             values['h'] = app._phase6_box_whd['h']
-            bridge._phase6_store_editor_values(self, values, notify=notify)
+            bridge._phase6_store_editor_values(app, values, notify=notify)
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
-            bridge._phase6_rebuild_linked_endcaps(self)
+            bridge._phase6_rebuild_linked_endcaps(app)
             return
         profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
         app.designer_workspace.stash_profiles(key, profiles)
@@ -75,7 +75,7 @@ class Phase6PartSessionOwner:
                 values.pop('fw', None)
             else:
                 values = {} if flat_x else {'yl1': bridge._ui_len(x['yl1'].get('len')), 'yr1': bridge._ui_len(x['yr1'].get('len'))}
-            bridge._phase6_store_editor_values(self, values, notify=notify)
+            bridge._phase6_store_editor_values(app, values, notify=notify)
             if 'w' in values:
                 app._phase6_box_whd['w'] = bridge.original.get_int(values['w'])
             if 'd' in values:
@@ -86,42 +86,42 @@ class Phase6PartSessionOwner:
                 app.v_w.set(w_text)
             if app.v_d.get() != d_text:
                 app.v_d.set(d_text)
-            bridge._phase6_rebuild_linked_endcaps(self)
+            bridge._phase6_rebuild_linked_endcaps(app)
             legacy = bridge.build_endcap_profile(app._phase6_input_snapshot)
             app.state.profiles_vault['封頭'] = bridge.clone_profile(legacy)
             app.state.profiles_vault['封尾'] = bridge.clone_profile(legacy)
         else:
-            bridge._phase6_store_editor_values(self, bridge.read_standard_part_profiles(key, profiles, app._phase6_input_snapshot), notify=notify)
+            bridge._phase6_store_editor_values(app, bridge.read_standard_part_profiles(key, profiles, app._phase6_input_snapshot), notify=notify)
 
     def activate_part(self, key, initial=False):
         app = self.app
 
         bridge = __import__('fold_designer_bridge')
-        navigation = bridge._phase6_workspace_navigation(self)
+        navigation = bridge._phase6_workspace_navigation(app)
         if not navigation.has_part(key):
             return
-        bridge._phase6_clear_navigation_residue(self)
-        bridge._phase6_hide_corner_data_canvas(self)
+        bridge._phase6_clear_navigation_residue(app)
+        bridge._phase6_hide_corner_data_canvas(app)
         if bridge._phase6_is_box_body_physical_piece_key(key):
             app._phase6_box_body_active_piece_key = str(key)
         before_signature = None
         if not initial:
             try:
-                before_signature = bridge._phase6_manufacturing_state_signature(self)
+                before_signature = bridge._phase6_manufacturing_state_signature(app)
             except Exception:
                 before_signature = None
-        was_non_single = str(getattr(self, '_phase6_3d_display_mode', 'single') or 'single') != 'single'
+        was_non_single = str(getattr(app, '_phase6_3d_display_mode', 'single') or 'single') != 'single'
         plan = navigation.plan_activation(key, initial=initial, leaving_non_single_view=was_non_single)
         if not initial:
             app._phase6_3d_display_mode = 'single'
-            diagnostics = getattr(self, 'assembly_diagnostics_frame', None)
+            diagnostics = getattr(app, 'assembly_diagnostics_frame', None)
             if diagnostics is not None and diagnostics.winfo_manager():
                 diagnostics.pack_forget()
-        if not initial and getattr(self, '_phase6_pending_settings', None):
+        if not initial and getattr(app, '_phase6_pending_settings', None):
             app.flush_pending_settings()
         if plan.noop:
             return
-        pending = getattr(self, '_job', None)
+        pending = getattr(app, '_job', None)
         if pending:
             try:
                 app.root.after_cancel(pending)
@@ -130,18 +130,18 @@ class Phase6PartSessionOwner:
             app._job = None
         if plan.save_outgoing:
             self.save_current_part()
-            pending = getattr(self, '_job', None)
+            pending = getattr(app, '_job', None)
             if pending:
                 try:
                     app.root.after_cancel(pending)
                 except Exception:
                     pass
                 app._job = None
-        bridge._phase6_mount_shared_content(self, 'single')
+        bridge._phase6_mount_shared_content(app, 'single')
         canvas_widget = app.renderer.canvas.get_tk_widget()
         navigation.begin_activation(plan)
         try:
-            bridge._navigation_view_project_active_part_selector(self, key=key, label=bridge._phase6_part_label('box_body') if bridge._phase6_is_box_body_physical_piece_key(key) else bridge._phase6_part_label(key), removable=key != 'box_body' and (not bridge._phase6_is_derived_physical_part_key(key)), refresh_part_button_states=getattr(self, '_refresh_part_button_states', None))
+            bridge._navigation_view_project_active_part_selector(app, key=key, label=bridge._phase6_part_label('box_body') if bridge._phase6_is_box_body_physical_piece_key(key) else bridge._phase6_part_label(key), removable=key != 'box_body' and (not bridge._phase6_is_derived_physical_part_key(key)), refresh_part_button_states=getattr(app, '_refresh_part_button_states', None))
             if key == 'box_body':
                 app.state.phase6_fold_ui_profiles = {'X': app.state.profiles_vault['箱身']}
                 app.state.phase6_fold_ui_tabs = ['X']
@@ -189,19 +189,19 @@ class Phase6PartSessionOwner:
             app._load_part_holes(key)
         finally:
             navigation.finish_activation()
-        bridge._navigation_view_finalize_single_part_layout(self, settings_context='box_body' if bridge._phase6_is_box_body_physical_piece_key(key) else key, render_settings_context=lambda context: bridge._phase6_render_settings_context(self, context), pack_right_panel=lambda widget: bridge._phase6_pack_right_panel_above_canvas(self, widget), render_active_drawing_edge_controls=lambda: bridge._phase6_render_active_drawing_edge_controls(self), tk_both=bridge.original.tk.BOTH)
+        bridge._navigation_view_finalize_single_part_layout(app, settings_context='box_body' if bridge._phase6_is_box_body_physical_piece_key(key) else key, render_settings_context=lambda context: bridge._phase6_render_settings_context(app, context), pack_right_panel=lambda widget: bridge._phase6_pack_right_panel_above_canvas(app, widget), render_active_drawing_edge_controls=lambda: bridge._phase6_render_active_drawing_edge_controls(app), tk_both=bridge.original.tk.BOTH)
         try:
-            after_signature = bridge._phase6_manufacturing_state_signature(self)
+            after_signature = bridge._phase6_manufacturing_state_signature(app)
         except Exception:
             after_signature = None
         reason = 'display' if not initial and before_signature is not None and (before_signature == after_signature) else 'geometry'
-        submit = getattr(self, 'submit_update_intent', None)
+        submit = getattr(app, 'submit_update_intent', None)
         if callable(submit):
             submit(reason, commit=True)
         else:
             app.do_update()
-        bridge._phase6_refresh_persistent_structure_controls(self)
-        bridge._phase6_refresh_box_body_piece_selector(self)
-        bridge._phase6_refresh_receiving_set_bay_control(self)
-        bridge._phase6_refresh_back_panel_mode_control(self)
-        bridge._phase6_refresh_content_switch(self)
+        bridge._phase6_refresh_persistent_structure_controls(app)
+        bridge._phase6_refresh_box_body_piece_selector(app)
+        bridge._phase6_refresh_receiving_set_bay_control(app)
+        bridge._phase6_refresh_back_panel_mode_control(app)
+        bridge._phase6_refresh_content_switch(app)
