@@ -352,7 +352,7 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
     assert "root-local-first" in route["required_skills"]
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
     assert "whd_contract: canonical-authority-map" in authority
-    assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json" in authority
+    assert "contract=workspace-entry-hard-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json" in authority
 
 def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():
     from tools.skill_catalog import inventory
