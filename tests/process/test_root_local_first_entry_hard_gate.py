@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-CONTRACT = ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+CONTRACT = ROOT / ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
 SKILL = ROOT / ".agents/skills/engineering/root-local-first/SKILL.md"
 
 
@@ -100,7 +100,7 @@ def test_interactive_order_uses_workspace_then_delivery_reservation():
     )
     entry = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
@@ -210,7 +210,7 @@ def test_git_content_write_is_forbidden_before_workspace_delivery_unlock():
 
     entry = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
@@ -243,7 +243,7 @@ def test_target_drift_revalidates_green_before_forcing_retest():
 
     entry = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
@@ -343,7 +343,7 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
         "PRODUCTION_BASELINE_CURRENT",
         "REQUESTED_OPERATION",
     ]
-    assert root_gate["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
+    assert root_gate["next_gate"]["schema"] == "WHD_WORKSPACE_ENTRY_HARD_GATE_V1"
     assert "unpushed" not in root_gate
     assert "canonical_drive_overlay" not in root_gate
     registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
@@ -352,7 +352,7 @@ def test_agents_registry_authority_map_and_root_gate_wire_forward():
     assert "root-local-first" in route["required_skills"]
     authority = (ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
     assert "whd_contract: canonical-authority-map" in authority
-    assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json" in authority
+    assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json" in authority
 
 def test_active_governance_does_not_regrow_old_branch_before_root_write_rule():
     from tools.skill_catalog import inventory
@@ -395,7 +395,7 @@ def test_git_unlock_receipt_is_machine_bound_to_workspace_frozen_diff_and_reserv
     )
     entry = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
