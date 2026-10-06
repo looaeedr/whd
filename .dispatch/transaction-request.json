@@ -1,13 +1,7 @@
 {
-  "effect": {
-    "next_action": {
-      "args": {},
-      "display": "Implement #1334 host-level Turn Exit enforcement in isolated workspace and test exact diff",
-      "kind": "START_BRANCH"
-    }
-  },
-  "expected_coord_head": "459ef80db534f3b04103cdaacce9ae413fc2da5d",
-  "expected_generation": 1,
+  "effect": {},
+  "expected_coord_head": "f20e0c9a4cffb8b47e6fec37f868140e6b6fc7dc",
+  "expected_generation": 2,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
   "kind": "ACQUIRE",
@@ -25,7 +19,7 @@
     "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "observed_at": "2026-10-06T16:29:14Z",
+    "observed_at": "2026-10-06T17:11:32Z",
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
@@ -36,15 +30,15 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN"
   },
-  "request_id": "issue1334-acquire-impl-work1-v3",
+  "request_id": "issue1334-acquire-resume-work1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Acquire Issue #1334 and continue immediately into host-level Turn Exit enforcement implementation\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew expired same-invocation lease and continue exact START_BRANCH\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T16:34:14Z",
+    "expires_at": "2026-10-06T17:16:32Z",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issued_at": "2026-10-06T16:29:14Z",
-    "purpose": "Acquire Issue #1334 and continue immediately into host-level Turn Exit enforcement implementation",
+    "issued_at": "2026-10-06T17:11:32Z",
+    "purpose": "Renew expired same-invocation lease and continue exact START_BRANCH",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
@@ -79,15 +73,15 @@
   "startup_transition": {
     "branch": "cleanup/2d-3d-sync",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T16:34:14Z",
+    "expires_at": "2026-10-06T17:16:32Z",
     "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "issued_at": "2026-10-06T16:29:14Z",
-    "preflight_observed_at": "2026-10-06T16:29:14Z",
+    "issued_at": "2026-10-06T17:11:32Z",
+    "preflight_observed_at": "2026-10-06T17:11:32Z",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-    "startup_issued_at": "2026-10-06T16:29:14Z",
+    "startup_issued_at": "2026-10-06T17:11:32Z",
     "status": "READY_FOR_EXECUTION"
   }
 }
