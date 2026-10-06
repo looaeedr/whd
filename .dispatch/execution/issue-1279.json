@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 14,
-  "head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
+  "generation": 15,
+  "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -38,13 +38,13 @@
   },
   "next_action": {
     "args": {
-      "pr_number": 1316,
-      "qa_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "cfd8555e3e4375605c7e80c88072cecad6587d2b"
+      "post_accept_pr_number": 1316,
+      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "post_accept_target_branch": "cleanup/2d-3d-sync",
+      "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Sync live target into work branch and revalidate exact head",
-    "kind": "SYNC_TARGET"
+    "display": "Revalidate exact head after target synchronization",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -61,7 +61,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "TARGET_DRIFT_REQUIRES_SYNC",
+  "semantic_state": "QA_INVALIDATED_BY_TARGET_SYNC",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
@@ -69,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cfd8555e3e4375605c7e80c88072cecad6587d2b",
   "transaction": {
-    "expected_fingerprint": "b14bbeb625a2ee1bd7394e42492cd762eaed0a5016ec6a82aec959760d677f0c",
-    "id": "gha:37392615595:1279:MERGE:13",
+    "expected_fingerprint": "c056bbc168d166f0fd4f724e9830cbdcd3813dc74308011566fa9e4a750df49e",
+    "id": "gha:37392736919:1279:SYNC_TARGET:14",
     "invocation_identity": "codex.issue1279.712c4e93-fc91-41bc-b1e6-1b0cf764bc22",
-    "kind": "MERGE",
+    "kind": "SYNC_TARGET",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T00:11:33Z",
+  "updated_at": "2026-10-06T00:12:42Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
