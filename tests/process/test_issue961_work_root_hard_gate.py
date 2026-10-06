@@ -90,7 +90,7 @@ def test_agents_places_workspace_gate_then_retired_shared_zero_compatibility_bef
     text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     entry = text.index("ENTRY_ROUTER_FIRST_HARD_GATE_V1")
     work = text.index("WORK_ROOT_BOOTSTRAP_HARD_GATE_V2")
-    shared = text.index("## -0.5. ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1")
+    shared = text.index("## -0.5. WORKSPACE_ENTRY_HARD_GATE_V1")
     phase6 = text.index("# 0. 啟動硬閘門")
     assert entry < work < shared < phase6
     assert "executor 自己的 repo workspace" in text
@@ -155,7 +155,7 @@ def test_authority_map_still_points_to_single_current_machine_owners():
         encoding="utf-8"
     )
     assert "contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py" in text
-    assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json" in text
+    assert "contract=workspace-entry-hard-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json" in text
     assert "contract=shared-unpushed-integration role=HISTORICAL path=tools/shared_unpushed_integration.py" in text
 
 
