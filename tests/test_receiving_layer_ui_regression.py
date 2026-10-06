@@ -13,6 +13,7 @@ from ae_engine.receiving_switch_layout import (
 )
 from gui_modules.application import receiving_set_bay_controls as controls
 from gui_modules.application.receiving_switch_layout_adapter import ReceivingSwitchLayoutAdapter
+from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
 
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / 'fold_designer_bridge.py'
@@ -83,16 +84,18 @@ def test_each_layer_row_has_own_connection_resize_and_preview_callbacks():
 def test_receiving_connection_resize_is_configuration_only_and_never_flushes_3d():
     source = _function_source(BRIDGE, '_phase6_resize_receiving_bays')
     assert 'layer_index' in source
-    assert '_phase6_receiving_switch_adapter' in source
-    assert 'receiving_layout' not in source
-    assert '_phase6_sync_receiving_current_bay' not in source
+    assert '.resize_receiving_bays(' in source
+    source = inspect.getsource(Phase6FoldDesignerComposition.resize_receiving_bays)
+    assert 'receiving_switch_adapter' in source
     assert '.do_update(' not in source
     assert 'submit_update_intent' not in source
-    assert '_phase6_refresh_receiving_set_bay_control' in source
+    assert 'refresh_receiving_set_bay_control' in source
 
 
 def test_preview_confirmation_fails_closed_without_authoritative_brand_opening_resolver():
     source = _function_source(BRIDGE, '_phase6_confirm_receiving_opening')
+    assert '.confirm_receiving_opening(' in source
+    source = inspect.getsource(Phase6FoldDesignerComposition.confirm_receiving_opening)
     assert '_phase6_receiving_switch_opening_resolver' in source
     assert '開孔規格尚未建立' in source
     assert 'layer_index' in source and 'connection_index' in source
@@ -110,6 +113,9 @@ def test_box_body_physical_child_notebook_is_only_visible_in_single_input_mode()
 def test_assembly_visibility_and_diagnostic_changes_are_display_only():
     for name in ('_phase6_on_assembly_part_visibility_changed', '_phase6_on_assembly_diagnostic_changed'):
         source = _function_source(BRIDGE, name)
+        method_name = name.removeprefix('_phase6_')
+        assert f'.{method_name}()' in source
+        source = inspect.getsource(getattr(Phase6FoldDesignerComposition, method_name))
         assert 'submit_update_intent' in source
         assert '"display"' in source
         assert '.do_update(' not in source
@@ -161,17 +167,15 @@ def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_ho
         encoding="utf-8"
     )
     assert 'def receiving_layer_preview_payload(' in adapter_source
-    assert 'query_assembly_render_data()' in adapter_source
-    assert 'visible_part_keys=None' in adapter_source
-    assert 'visible_box_body_piece_keys=None' in adapter_source
-    assert 'render_request' in adapter_source
-    assert 'replace(part, offset=' in adapter_source
-    assert 'last_cutting_mesh' not in _function_source(
-        ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
-        'receiving_layer_preview_payload',
-    )
-    assert 'resolve_receiving_joint_lock_pattern(' in adapter_source
-    assert 'resize_receiving_preview_bays(' in adapter_source
+    preview_source = inspect.getsource(Phase6FoldDesignerComposition.receiving_bay_preview_request)
+    assert 'build_manufacturing_request(' in preview_source
+    assert 'resolve(request).geometry' in preview_source
+    assert 'receiving_bay_joint_face_features(' in preview_source
+    assert 'receiving_bay_assembly_offsets(' in preview_source
+    assert 'bay_requests' in adapter_source
+    assert 'AppendOnlyAxes' in owner_source
+    assert 'last_cutting_mesh' not in inspect.getsource(Phase6FoldDesignerComposition.receiving_layer_preview_payload)
+    assert 'range(49)' not in preview_source
 
 def test_programmatic_box_body_notebook_changes_keep_guard_until_tk_idle():
     source = _function_source(NAV, 'refresh_box_body_piece_selector')

@@ -578,15 +578,23 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         assert preview_payload["connection_count"] == 3
         request = preview_payload["render_request"]
         assert request.part_key == "assembly"
-        rendered_parts = tuple(request.render_data.assembly_parts or ())
+        bay_requests = tuple(preview_payload["bay_requests"])
+        assert len(bay_requests) == 3
+        rendered_parts = tuple(part for bay in bay_requests for part in bay.render_data.assembly_parts)
         assert len(rendered_parts) == 3 * len(preview_payload["assembly_part_keys"])
         assert {"box_body", "head", "tail"} <= set(preview_payload["assembly_part_keys"])
         assert len(preview_payload["assembly_part_keys"]) >= 5, (
             "Preview must resolve the complete assembly, not only the current input part"
         )
-        assert len(preview_payload["lock_circles"]) > 0, (
-            "3連 preview must include canonical mating/lock hole circles between adjacent cabinets"
-        )
+        assert preview_payload["lock_circles"] == (), "接合孔必須由 canonical features 產生，不能另畫 overlay"
+        from ae_engine.sheetmetal_drawing import CirclePrimitive
+        for bay_request in bay_requests:
+            box = next(part.render_data for part in bay_request.render_data.assembly_parts if part.part_key == "box_body")
+            lock_holes = [primitive for piece in box.pieces for primitive in piece.render_data.scene.primitives
+                          if isinstance(primitive, CirclePrimitive)
+                          and primitive.layer == "CUTTING"
+                          and primitive.source_type == "receiving_joint_side_lock"]
+            assert lock_holes, "每連實體側板必須包含可匯出 DXF 的 canonical 接合孔"
 
         rows = tuple(
             getattr(
@@ -609,7 +617,7 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         assert win._phase6_receiving_preview_connection_count == 3
         assert win._phase6_receiving_preview_mesh_count == 3
         assert win._phase6_receiving_preview_uses_final_scene_renderer is True
-        assert win._phase6_receiving_preview_lock_circle_count > 0
+        assert win._phase6_receiving_preview_lock_circle_count == 0
         assert win._phase6_receiving_preview_feature_segment_count == 0
         assert win.title() == "第1套設定"
 
