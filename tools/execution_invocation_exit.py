@@ -8,11 +8,16 @@ record before returning.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
 from tools.execution_action_contract import ACTION_TRANSACTION_KIND, OBSERVATION_ACTION_KINDS
-from tools.execution_record import ExecutionRecord, execution_record_to_payload
+from tools.execution_record import (
+    ExecutionRecord,
+    execution_record_fingerprint,
+    execution_record_to_payload,
+)
 
 
 SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
@@ -20,6 +25,9 @@ SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
 })
 REMOTE_ACTIVE_STATUSES = frozenset({"queued", "in_progress", "pending", "waiting", "requested"})
 REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = 1
+HOST_EXIT_PROOF_SCHEMA = "WHD_FLOW_V2_HOST_EXIT_PROOF_V1"
+HOST_EXIT_PROOF_VERSION = 1
+HOST_EXIT_PROOF_TTL_SECONDS = 60
 
 
 class InvocationExitError(ValueError):
@@ -283,6 +291,133 @@ def assert_terminal_tail_owning_issue_sticky(
         f"current_issue={record.issue} foreign_issue={requested_issue} "
         f"requested_action={action}"
     )
+
+def build_host_exit_proof(
+    record: ExecutionRecord,
+    *,
+    invocation_identity: str,
+    now: str,
+    root_sync_receipt: object | None = None,
+    lane_delivery_receipt: object | None = None,
+    remote_qa_active_observation_count: int = 1,
+    alternative_executable_leaf_count: int = 0,
+) -> dict[str, object]:
+    """Mint a short-lived proof only when the canonical host boundary may return.
+
+    The proof is bound to the exact ExecutionRecord fingerprint and invocation.
+    It is not durable authority by itself: every consumer must revalidate it
+    against a fresh record and re-run classify_invocation_exit.
+    """
+
+    decision = classify_invocation_exit(
+        record,
+        invocation_identity=invocation_identity,
+        now=now,
+        host_boundary=True,
+        root_sync_receipt=root_sync_receipt,
+        lane_delivery_receipt=lane_delivery_receipt,
+        remote_qa_active_observation_count=remote_qa_active_observation_count,
+        alternative_executable_leaf_count=alternative_executable_leaf_count,
+    )
+    if not decision.may_return:
+        raise InvocationExitError(
+            "HOST_EXIT_BLOCKED "
+            f"decision={decision.decision} "
+            f"next_action={decision.next_action_kind or 'NONE'}"
+        )
+    if decision.requires_yield:
+        raise InvocationExitError(
+            "HOST_EXIT_BLOCKED classifier returned may_return with requires_yield"
+        )
+    classified_at = _aware(now, "now").isoformat().replace("+00:00", "Z")
+    return {
+        "schema": HOST_EXIT_PROOF_SCHEMA,
+        "version": HOST_EXIT_PROOF_VERSION,
+        "issue": record.issue,
+        "generation": record.generation,
+        "invocation_identity": _text(invocation_identity, "invocation_identity"),
+        "record_fingerprint": execution_record_fingerprint(record),
+        "decision": decision.decision,
+        "may_return": True,
+        "requires_yield": False,
+        "next_action_kind": decision.next_action_kind,
+        "active_run_id": decision.active_run_id,
+        "classified_at": classified_at,
+        "remote_qa_active_observation_count": remote_qa_active_observation_count,
+        "alternative_executable_leaf_count": alternative_executable_leaf_count,
+    }
+
+
+def validate_host_exit_proof(
+    proof: object,
+    record: ExecutionRecord,
+    *,
+    invocation_identity: str,
+    now: str,
+    root_sync_receipt: object | None = None,
+    lane_delivery_receipt: object | None = None,
+) -> dict[str, object]:
+    """Fail closed unless proof still authorizes this exact host return."""
+
+    if not isinstance(record, ExecutionRecord):
+        raise InvocationExitError("record must be an ExecutionRecord")
+    if not isinstance(proof, Mapping):
+        raise InvocationExitError("host exit proof must be an object")
+    item = {str(key): value for key, value in proof.items()}
+    if item.get("schema") != HOST_EXIT_PROOF_SCHEMA:
+        raise InvocationExitError("host exit proof schema mismatch")
+    if item.get("version") != HOST_EXIT_PROOF_VERSION:
+        raise InvocationExitError("host exit proof version mismatch")
+    invocation = _text(invocation_identity, "invocation_identity")
+    if item.get("invocation_identity") != invocation:
+        raise InvocationExitError("host exit proof invocation mismatch")
+    if item.get("issue") != record.issue:
+        raise InvocationExitError("host exit proof issue mismatch")
+    if item.get("generation") != record.generation:
+        raise InvocationExitError("host exit proof generation mismatch")
+    if item.get("record_fingerprint") != execution_record_fingerprint(record):
+        raise InvocationExitError("host exit proof record fingerprint mismatch")
+    if item.get("may_return") is not True or item.get("requires_yield") is not False:
+        raise InvocationExitError("host exit proof does not authorize return")
+
+    classified_at = _aware(item.get("classified_at"), "host exit proof classified_at")
+    now_dt = _aware(now, "now")
+    age = (now_dt - classified_at).total_seconds()
+    if age < 0:
+        raise InvocationExitError("host exit proof is from the future")
+    if age > HOST_EXIT_PROOF_TTL_SECONDS:
+        raise InvocationExitError("host exit proof expired")
+
+    observation_count = item.get("remote_qa_active_observation_count", 1)
+    alternative_count = item.get("alternative_executable_leaf_count", 0)
+    if isinstance(observation_count, bool) or not isinstance(observation_count, int):
+        raise InvocationExitError("host exit proof remote observation count is invalid")
+    if isinstance(alternative_count, bool) or not isinstance(alternative_count, int):
+        raise InvocationExitError("host exit proof alternative leaf count is invalid")
+
+    current = classify_invocation_exit(
+        record,
+        invocation_identity=invocation,
+        now=now,
+        host_boundary=True,
+        root_sync_receipt=root_sync_receipt,
+        lane_delivery_receipt=lane_delivery_receipt,
+        remote_qa_active_observation_count=observation_count,
+        alternative_executable_leaf_count=alternative_count,
+    )
+    if not current.may_return or current.requires_yield:
+        raise InvocationExitError(
+            "HOST_EXIT_PROOF_NO_LONGER_RETURNABLE "
+            f"decision={current.decision}"
+        )
+    if item.get("decision") != current.decision:
+        raise InvocationExitError("host exit proof decision drift")
+    if item.get("next_action_kind") != current.next_action_kind:
+        raise InvocationExitError("host exit proof next_action drift")
+    if item.get("active_run_id") != current.active_run_id:
+        raise InvocationExitError("host exit proof active_run drift")
+    return item
+
 
 def classify_invocation_exit(
     record: ExecutionRecord,

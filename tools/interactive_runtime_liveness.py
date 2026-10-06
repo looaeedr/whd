@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timezone
 from typing import Iterable, Mapping
+
+from tools.execution_invocation_exit import (
+    HOST_EXIT_PROOF_SCHEMA,
+    HOST_EXIT_PROOF_VERSION,
+)
 
 MARKER = "WHD_INTERACTIVE_RUNTIME_LIVENESS_V1"
 END_MARKER = "WHD_INTERACTIVE_RUNTIME_END_V1"
@@ -36,6 +42,7 @@ _END_REQUIRED = {
     "executor_source",
     "ended_at",
     "reason",
+    "host_exit_proof",
 }
 
 
@@ -187,6 +194,55 @@ def parse_interactive_runtime_end_comment(
     reason = fields["reason"]
     if not _ID_RE.fullmatch(reason):
         raise InteractiveRuntimeLivenessError("interactive runtime END reason is invalid")
+    try:
+        host_exit_proof = json.loads(fields["host_exit_proof"])
+    except json.JSONDecodeError as exc:
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof must be JSON"
+        ) from exc
+    if not isinstance(host_exit_proof, Mapping):
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof must be an object"
+        )
+    if host_exit_proof.get("schema") != HOST_EXIT_PROOF_SCHEMA:
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof schema mismatch"
+        )
+    if host_exit_proof.get("version") != HOST_EXIT_PROOF_VERSION:
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof version mismatch"
+        )
+    if host_exit_proof.get("issue") != issue:
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof issue mismatch"
+        )
+    if str(host_exit_proof.get("invocation_identity") or "") != invocation:
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof invocation mismatch"
+        )
+    if host_exit_proof.get("may_return") is not True or host_exit_proof.get("requires_yield") is not False:
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof does not authorize return"
+        )
+    generation = _positive_int(
+        "interactive runtime END host_exit_proof generation",
+        host_exit_proof.get("generation"),
+    )
+    fingerprint = str(host_exit_proof.get("record_fingerprint") or "").strip()
+    if not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof fingerprint is invalid"
+        )
+    decision = str(host_exit_proof.get("decision") or "").strip()
+    if not _ID_RE.fullmatch(decision):
+        raise InteractiveRuntimeLivenessError(
+            "interactive runtime END host_exit_proof decision is invalid"
+        )
+    _utc(
+        "interactive runtime END host_exit_proof classified_at",
+        host_exit_proof.get("classified_at"),
+    )
+    host_exit_proof["generation"] = generation
     return {
         "schema": END_MARKER,
         "issue": issue,
@@ -200,6 +256,7 @@ def parse_interactive_runtime_end_comment(
         "executor_source": "chat",
         "ended_at": fields["ended_at"],
         "end_reason": reason,
+        "host_exit_proof": host_exit_proof,
         "source_comment_id": cid,
         "source_comment_created_at": created.isoformat().replace("+00:00", "Z"),
         "_ended_dt": ended,
@@ -332,6 +389,7 @@ def select_interactive_runtime_liveness(
                 "ended_at": end["ended_at"],
                 "end_reason": end["end_reason"],
                 "end_source_comment_id": int(end["source_comment_id"]),
+                "host_exit_proof": end["host_exit_proof"],
             }
         )
     return selected

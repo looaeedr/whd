@@ -1,6 +1,6 @@
 {
   "schema": "WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1",
-  "version": 2,
+  "version": 3,
   "status": "CURRENT",
   "machine_owner": "tools/execution_invocation_exit.py",
   "state_owner": "WHD_EXECUTION_RECORD_V2",
@@ -54,5 +54,26 @@
   "genuine_machine_blocker_only_escape": true,
   "execution_terminal_scope": "FLOW_V2_EXECUTION_ONLY",
   "repository_content_completion_guard": "tools/execution_invocation_exit.py::assert_repository_content_cycle_complete",
-  "repository_content_completion_requires": "DURABLE_CLEANUP_COMPLETE"
+  "repository_content_completion_requires": "DURABLE_CLEANUP_COMPLETE",
+  "host_exit_proof": {
+    "schema": "WHD_FLOW_V2_HOST_EXIT_PROOF_V1",
+    "builder": "tools/execution_invocation_exit.py::build_host_exit_proof",
+    "validator": "tools/execution_invocation_exit.py::validate_host_exit_proof",
+    "ttl_seconds": 60,
+    "binds": [
+      "issue",
+      "generation",
+      "invocation_identity",
+      "record_fingerprint",
+      "decision"
+    ],
+    "fresh_reclassification_required": true
+  },
+  "report_boundary_enforcement": {
+    "machine_owner": "tools/runtime_report_identity.py::format_runtime_report_prefix",
+    "terminal_exit_require_proof": true,
+    "progress_checkpoint_require_proof": false,
+    "may_return_false_policy": "FAIL_CLOSED_CONTINUE_EXACT_NEXT_ACTION",
+    "missing_or_stale_proof_policy": "FAIL_CLOSED"
+  }
 }

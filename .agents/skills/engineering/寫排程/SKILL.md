@@ -30,7 +30,7 @@ prompt 必須明寫：A/B scheduler 先找同 lane/Issue/branch/HEAD、40 分鐘
 
 `【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
 
-- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(..., event=...)` 產生第一行。生成的 scheduler prompt 必須要求 `TERMINAL/EXIT` 使用 current `WHD_FLOW_V2_HOST_EXIT_PROOF_V1`，並由 formatter fresh revalidate；`may_return=false`、缺 proof 或 stale proof 不得正常結束 invocation。progress/CHECKPOINT 不是 exit authority。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
 
 相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
 
