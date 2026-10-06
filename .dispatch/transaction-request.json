@@ -1,6 +1,6 @@
 {
   "effect": {},
-  "expected_coord_head": "e1e5c2a8d1b59fb10777cc0e407cb23f7e55e435",
+  "expected_coord_head": "e3bd4f62a89de2aef2036d3c59e88f36a57f2ba9",
   "expected_generation": 5,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
@@ -19,7 +19,7 @@
     "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "observed_at": "2026-10-06T17:25:20Z",
+    "observed_at": "2026-10-06T23:02:57Z",
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
@@ -30,15 +30,15 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN"
   },
-  "request_id": "issue1334-acquire-resume-after-tests",
+  "request_id": "issue1334-acquire-resume-delivery-work1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew #1334 lease after exact tests while preserving PATHS_RESERVED and START_BRANCH\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew expired same-invocation lease before exact tested delivery\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T17:30:20Z",
+    "expires_at": "2026-10-06T23:07:57Z",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issued_at": "2026-10-06T17:25:20Z",
-    "purpose": "Renew #1334 lease after exact tests while preserving PATHS_RESERVED and START_BRANCH",
+    "issued_at": "2026-10-06T23:02:57Z",
+    "purpose": "Renew expired same-invocation lease before exact tested delivery",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
@@ -73,15 +73,15 @@
   "startup_transition": {
     "branch": "cleanup/2d-3d-sync",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T17:30:20Z",
+    "expires_at": "2026-10-06T23:07:57Z",
     "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "issued_at": "2026-10-06T17:25:20Z",
-    "preflight_observed_at": "2026-10-06T17:25:20Z",
+    "issued_at": "2026-10-06T23:02:57Z",
+    "preflight_observed_at": "2026-10-06T23:02:57Z",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-    "startup_issued_at": "2026-10-06T17:25:20Z",
+    "startup_issued_at": "2026-10-06T23:02:57Z",
     "status": "READY_FOR_EXECUTION"
   }
 }
