@@ -765,10 +765,10 @@ scheduler runtime liveness 與 #679 interactive runtime liveness 若仍是 CURRE
 `【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
 
 
-唯一 machine owner=`tools/runtime_report_identity.py`。caller 必須先用 `build_runtime_report_identity(...)` 驗證 `handler / owner / issue / slot / invocation_identity / runtime_kind`，再用 `format_runtime_report_prefix(...)` 產生第一行；不得手工拼接。`invocation_identity` 缺失、空白、`NONE / UNBOUND / UNAVAILABLE` 或 handler/runtime/slot identity 不一致都 fail closed。owner/issue/slot 取 fresh canonical ExecutionRecord/projection；invocation_identity 取 exact current runtime observation/startup provenance，禁止由聊天時間、entrypoint、task id 或上一輪 runtime 推測。
+唯一 report machine owner=`tools/runtime_report_identity.py`。caller 必須先用 `build_runtime_report_identity(...)` 驗證 `handler / owner / issue / slot / invocation_identity / runtime_kind`，再用 `format_runtime_report_prefix(..., event=...)` 產生第一行；不得手工拼接。`invocation_identity` 缺失、空白、`NONE / UNBOUND / UNAVAILABLE` 或 handler/runtime/slot identity 不一致都 fail closed。owner/issue/slot 取 fresh canonical ExecutionRecord/projection；invocation_identity 取 exact current runtime observation/startup provenance，禁止由聊天時間、entrypoint、task id 或上一輪 runtime 推測。
 
 
-此 gate 只保證 user-visible provenance，不建立 execution authority。`tools/execution_invocation_exit.py` 在允許正常 turn exit 前必須驗 exact report identity 與 native ExecutionRecord exit state，因此「無身份退出」不是合法 terminal path。回報後只要 current invocation 還能合法施工，就立即繼續。
+此 gate 不新增第二套 execution authority；host return authority 仍唯一來自 `tools/execution_invocation_exit.py::classify_invocation_exit`。`TERMINAL / EXIT` 回報前固定以 fresh native ExecutionRecord 呼叫 `build_host_exit_proof(...)`；只有 classifier 回 `may_return=true` 才能產生 `WHD_FLOW_V2_HOST_EXIT_PROOF_V1`。`format_runtime_report_prefix(..., event="TERMINAL|EXIT")` 必須再以 `validate_host_exit_proof(...)` 驗 exact `issue + generation + invocation_identity + record_fingerprint + decision`；`TERMINAL` 另外只接受 `TASK_TERMINAL`。缺 proof、stale proof、identity mismatch、proof 超過 TTL 或 fresh reclassification 變成 `may_return=false` 一律 fail closed。`PROGRESS / CHECKPOINT / STATUS` 不需要 exit proof，但永遠不是 return authority；回報後只要 current invocation 還能合法施工，就立即繼續 exact `next_action`。
 
 
 ## Production transaction transport
