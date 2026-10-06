@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "e91af2ffb55b53aa96ae1320184071e57149444c",
-    "released_at": null
+    "released_at": "2026-10-06T14:06:00Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "871c2b739d2a079c4df213cf509ec030eb64268e",
   "issue": 1326,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-06T14:21:44Z",
-    "invocation_identity": "github:production-x-post-merge:37476092650:pr1329:issue1326",
-    "token": "recovery:1326:37476092650"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1329,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "fix/issue1326-receiving-set-settings-fullscreen",
   "source_sha": "871c2b739d2a079c4df213cf509ec030eb64268e",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "e91af2ffb55b53aa96ae1320184071e57149444c",
-  "transaction": null,
-  "updated_at": "2026-10-06T14:06:44Z",
+  "transaction": {
+    "expected_fingerprint": "522360dd8dbaeb35fdf0d2e185ee567d47239a5def029c5e7b1b3e91052fd462",
+    "id": "gha:37476092650:1326:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37476092650:pr1329:issue1326",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-06T14:07:33Z",
   "version": 2,
   "work_branch": "fix/issue1326-receiving-set-settings-fullscreen"
 }
