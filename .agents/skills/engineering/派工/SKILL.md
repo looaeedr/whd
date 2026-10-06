@@ -34,8 +34,8 @@ Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_c
 - 只 fresh-read該 exact Issue、same-Issue ExecutionRecord、live refs/HEAD 與 required Preflight；
 - record 缺失時只補同一 Issue 的 explicit ingress，不得改找別張；
 - admission後立即施工／resume exact structured `next_action`，不得停在「找到工單／ACQUIRE 完成」。
-- interactive `/接手 <issue>` 的實作固定 **RC → 使用者本機 `/workspace/whd`**；不得在雲端 executor 私有 workspace 實作後只留未 push 狀態。
-- RC 本機實作完成後至少要形成該 Issue 可追蹤的 Git branch + commit；需交付時 push/PR，讓下一個執行器可見。RC/本機 root 不可用時回 `LOCAL_MACHINE_UNAVAILABLE`，禁止 cloud-workspace fallback。
+- interactive `/接手 <issue>` 的實作固定 **Remote Desktop Commander（RC）→ 使用者本機 `/workspace/whd`**；不得在雲端 executor 私有 workspace 實作後只留未 push 狀態。
+- Remote Desktop Commander（RC）本機實作完成後至少要形成該 Issue 可追蹤的 Git branch + commit；需交付時 push/PR，讓下一個執行器可見。RC/本機 root 不可用時回 `LOCAL_MACHINE_UNAVAILABLE`，禁止 cloud-workspace fallback。
 
 只有**沒有指定 exact Issue**的自動派工／scheduler 才可進 candidate discovery。
 
