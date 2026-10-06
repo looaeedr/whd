@@ -2,6 +2,8 @@ import pytest
 
 import tools.control_transaction_production_executor as executor
 import tools.control_transaction_request_ingress as ingress
+from tools.control_transaction_request_builder import build_control_transaction_request
+from tools.work_root_gate import build_work_root_gate_evidence
 from tools.execution_dispatch_ingress import (
     DispatchIngressRequest,
     plan_dispatch_ingress,
@@ -56,6 +58,105 @@ def test_dispatch_ready_is_machine_internal_orchestration():
     classified = classify_outer_orchestration_event("DISPATCH_READY")
     assert classified["disposition"] == "BACKGROUND_CONTINUE_PRIMARY_TASK"
     assert classified["outer_visible"] is False
+
+
+def _control_plane_root_evidence():
+    gate = {
+        "schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+        "status": "CURRENT",
+        "default_work_root": {
+            "provider": "executor_local_workspace",
+            "path_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+            "production_branch": "cleanup/2d-3d-sync",
+            "authority": False,
+        },
+        "drive_mirror": {
+            "library_path": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+            "role": "MIRROR_BACKUP_ONLY",
+            "authority": False,
+            "ordinary_startup_required": False,
+            "routing_forbidden": True,
+        },
+        "required_root_entries": [".git", ".agents", ".github", "AGENTS.md", "tools", "tests", "ae_engine", "gui_modules"],
+        "root_identity_recovery": {
+            "owner": "tools/work_root_gate.py::recover_canonical_root_to_current_production",
+            "success_schema": "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1",
+            "failure_schema": "WHD_WORK_ROOT_RECOVERY_RESULT_V1",
+            "terminal_gate": False,
+            "closure_authority": False,
+            "purpose": "OPTIONAL_WORKSPACE_BASELINE_CATCHUP",
+        },
+    }
+    return build_work_root_gate_evidence(
+        gate_payload=gate,
+        read_mode="GITHUB_REPO_CONTRACT",
+        execution_mode="INTERACTIVE",
+        root_entries=gate["required_root_entries"],
+        production_head_sha=HEAD,
+        control_plane_only=True,
+    )
+
+
+def _preflight(invocation="chatgpt.issue1331.bootstrap"):
+    return {
+        "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+        "status": "GREEN",
+        "issue": ISSUE,
+        "invocation_identity": invocation,
+        "branch": "cleanup/2d-3d-sync",
+        "head_sha": HEAD,
+        "required_skills": ["phase6-corner-3d-model-integrity"],
+        "completed_skills": ["phase6-corner-3d-model-integrity"],
+        "required_references": ["ref.md"],
+        "completed_references": ["ref.md"],
+        "observed_at": "2026-10-06T15:49:43Z",
+    }
+
+
+def test_dispatch_ready_accepts_control_plane_only_fresh_admission():
+    invocation = "chatgpt.issue1331.bootstrap"
+    request = build_control_transaction_request(
+        request_id="issue1331-ready-bootstrap",
+        issue=ISSUE,
+        kind="DISPATCH_READY",
+        lane_id="chatgpt.flowv2.work0",
+        invocation_identity=invocation,
+        expected_coord_head=COORD,
+        expected_generation=1,
+        effect={
+            "authority_kind": "USER_EXPLICIT",
+            "authority_ref": "user-explicit:issue-1331",
+        },
+        purpose="bootstrap issue 1331 READY",
+        work_root_gate_evidence=_control_plane_root_evidence(),
+        preflight_evidence=_preflight(invocation),
+        issued_at=__import__("datetime").datetime.fromisoformat("2026-10-06T15:49:43+00:00"),
+    )
+
+    root = request["startup_evidence"]["work_root_gate"]
+    assert root["scope"] == "CONTROL_PLANE_ONLY"
+    assert root["provider"] == "github_repository_contract"
+    assert root["repository_content_write_unlocked"] is False
+    assert request["startup_transition"]["status"] == "READY_FOR_EXECUTION"
+
+
+def test_control_plane_only_admission_cannot_unlock_other_transaction_kind():
+    invocation = "chatgpt.issue1331.bootstrap"
+    with pytest.raises(ValueError, match="not allowed for transaction kind ACQUIRE"):
+        build_control_transaction_request(
+            request_id="issue1331-illegal-acquire",
+            issue=ISSUE,
+            kind="ACQUIRE",
+            lane_id="chatgpt.flowv2.work0",
+            invocation_identity=invocation,
+            expected_coord_head=COORD,
+            expected_generation=1,
+            effect={},
+            purpose="illegal control-only acquire",
+            work_root_gate_evidence=_control_plane_root_evidence(),
+            preflight_evidence=_preflight(invocation),
+            issued_at=__import__("datetime").datetime.fromisoformat("2026-10-06T15:49:43+00:00"),
+        )
 
 
 def test_interactive_dispatch_ready_binds_preflight_identity_and_lane_slot():
