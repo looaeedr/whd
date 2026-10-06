@@ -1,60 +1,10 @@
 {
-  "effect": {
-    "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
-    "mutation_writer_guard": {
-      "expected_next_action": "START_BRANCH",
-      "expected_target_head": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
-      "expected_work_branch": "work/issue-1334",
-      "expected_work_head": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
-      "generation": 6,
-      "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-      "issue": 1334,
-      "lease_token": "lease:1334:37544340553:1",
-      "record_fingerprint": "bc6b14908d6e97f72b9d8b3590b228da187cf6fad36ecc0e0e630b1b69f14dd0",
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1"
-    },
-    "next_action": {
-      "args": {
-        "diff_digest": "15c601d2a76e6b53d06c8ba846491a2607b592f574e6dfe922b6ae6fccb6a99d"
-      },
-      "display": "Apply exact tested #1334 commit",
-      "kind": "APPLY_COMMIT"
-    },
-    "root_local_first_git_write_receipt": {
-      "delete_paths": [],
-      "diff_digest": "15c601d2a76e6b53d06c8ba846491a2607b592f574e6dfe922b6ae6fccb6a99d",
-      "execution_mode": "INTERACTIVE",
-      "generation": 6,
-      "git_write_unlocked": true,
-      "issue": 1334,
-      "record_fingerprint": "bc6b14908d6e97f72b9d8b3590b228da187cf6fad36ecc0e0e630b1b69f14dd0",
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "source_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_mode": "EXACT_TESTED_DIFF_ONLY",
-      "write_paths": [
-        ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".agents/skills/engineering/寫排程/SKILL.md",
-        ".agents/skills/engineering/工作槽/SKILL.md",
-        ".agents/skills/engineering/排程模擬/SKILL.md",
-        "tests/process/test_issue1334_host_turn_exit_enforcement.py",
-        "tests/process/test_issue1334_host_turn_exit_gate.py",
-        "tests/process/test_issue679_local_durability_runtime.py",
-        "tools/execution_invocation_exit.py",
-        "tools/flow_v2_runtime_observation.py",
-        "tools/interactive_runtime_liveness.py",
-        "tools/runtime_report_identity.py"
-      ]
-    },
-    "semantic_state": "BRANCH_READY",
-    "work_branch": "work/issue-1334"
-  },
-  "expected_coord_head": "bbb2c52f570b9253fbe7fff772e596400cc65aef",
-  "expected_generation": 6,
+  "effect": {},
+  "expected_coord_head": "013bb71163b7a6fa2a1d2a21bb52cac25853e9b3",
+  "expected_generation": 7,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "START_BRANCH",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "preflight_evidence": {
     "branch": "cleanup/2d-3d-sync",
@@ -69,7 +19,7 @@
     "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "observed_at": "2026-10-06T23:09:24Z",
+    "observed_at": "2026-10-06T23:21:59Z",
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
@@ -80,15 +30,15 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN"
   },
-  "request_id": "issue1334-start-branch-gen6",
+  "request_id": "issue1334-acquire-resume-apply-work1",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Bind clean work/issue-1334 branch and continue to exact tested commit\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew expired same-invocation lease before APPLY_COMMIT\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T23:14:24Z",
+    "expires_at": "2026-10-06T23:26:59Z",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issued_at": "2026-10-06T23:09:24Z",
-    "purpose": "Bind clean work/issue-1334 branch and continue to exact tested commit",
+    "issued_at": "2026-10-06T23:21:59Z",
+    "purpose": "Renew expired same-invocation lease before APPLY_COMMIT",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
@@ -123,15 +73,15 @@
   "startup_transition": {
     "branch": "cleanup/2d-3d-sync",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T23:14:24Z",
+    "expires_at": "2026-10-06T23:26:59Z",
     "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "issued_at": "2026-10-06T23:09:24Z",
-    "preflight_observed_at": "2026-10-06T23:09:24Z",
+    "issued_at": "2026-10-06T23:21:59Z",
+    "preflight_observed_at": "2026-10-06T23:21:59Z",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-    "startup_issued_at": "2026-10-06T23:09:24Z",
+    "startup_issued_at": "2026-10-06T23:21:59Z",
     "status": "READY_FOR_EXECUTION"
   }
 }
