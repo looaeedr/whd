@@ -19,7 +19,7 @@ READ .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json
 → ENTRY_ROUTER_READY
 ```
 
-`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。workspace-capable executor 從自己的 repo workspace 讀；**GITHUB_ONLY / REMOTE_ACTION runtime 則從 fresh production `cleanup/2d-3d-sync` 直接讀同兩個 repo-relative path**。兩者都不得使用 Google Drive、Remote Desktop、local-machine search、`.unpushed` 或 shared-zero 取代 canonical source。
+`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。workspace-capable executor 從自己的 repo workspace 讀；**GITHUB_ONLY / REMOTE_ACTION runtime 則從 fresh production `cleanup/2d-3d-sync` 直接讀同兩個 repo-relative path**。Google Drive mirror、舊 Drive Skill、`.unpushed`、shared-zero 或任何 Drive 可見性都不得參與 startup routing。Drive mount 不可見永遠不是 repository-content blocker。Remote Desktop / local-machine search 也不得取代 canonical source。
 
 以下動作全部 fail closed：
 
@@ -29,7 +29,7 @@ READ .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json
 - claim / Flow v2 discovery；
 - 任何用聊天記憶、舊摘要或上一 invocation evidence 代替 fresh entry read 的行為。
 
-若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，依 runtime surface 回到 canonical entry；workspace runtime 回自己的 repo workspace，GITHUB_ONLY/REMOTE_ACTION 回 fresh production branch。不得為 recovery 去尋找 Remote Desktop、本機固定路徑或 Google Drive。
+若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，依 runtime surface 回到 canonical entry；workspace runtime 回到**本 executor 的 repo workspace canonical entry**，GITHUB_ONLY/REMOTE_ACTION 回 fresh production branch。不得因這個 recovery 去尋找或等待 `/Google Drive/WHD`，也不得轉用 Remote Desktop／本機固定路徑。
 
 machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / validate_entry_router_evidence / assert_entry_router_action_allowed`。
 
