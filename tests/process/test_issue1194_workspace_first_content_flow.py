@@ -15,7 +15,7 @@ def _entry(workspace: str):
     return build_entry_router_evidence(
         workspace_root=workspace,
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
     )
@@ -152,7 +152,7 @@ def test_current_contracts_do_not_make_codex_path_or_drive_sync_global_startup()
         (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8")
     )
     entry = json.loads(
-        (ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json").read_text(
+        (ROOT / ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json").read_text(
             encoding="utf-8"
         )
     )
