@@ -51,7 +51,7 @@ machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / val
 開工前只需：
 `WORKSPACE_ROOT_RESOLVED → WORKSPACE_GIT_IDENTITY_VERIFIED → PRODUCTION_BASELINE_CURRENT`
 
-普通 workspace startup **不要求** Google Drive generation/manifest、shared-0、`workspace_canonical_sync.py` 或 `CANONICAL_SHARED_0_UPDATED`。
+普通 workspace startup **不要求** Google Drive generation/manifest、任何 shared-zero receipt 或 `workspace_canonical_sync.py`。
 
 ### 1.1 Workspace baseline / GitHub read policy
 

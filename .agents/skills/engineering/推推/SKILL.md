@@ -21,7 +21,7 @@ CURRENT 唯一路徑：
 - 修改與測試只能在 executor-local repo workspace 完成。
 - `/推推` 只能承接 **已測試、exact frozen diff** 的 Git delivery。
 - Google Drive 只存 data / mirror / backup；不得作 `/推推` source、root、lane、readback hard gate 或 blocker。
-- `.unpushed/docs/0`、`.unpushed/body/0`、shared-zero generation/freeze、`CANONICAL_SHARED_0_UPDATED`、Drive canonical-root sync 都是 HISTORICAL/SUPERSEDED，不得參與 CURRENT routing。
+- 舊 `.unpushed` lane、shared-zero generation/freeze/receipt 與 Drive root sync 都是 HISTORICAL/SUPERSEDED，不得參與 CURRENT routing。
 - production target 禁止 direct push；只能 delivery branch → PR → required checks → merge/readback。
 
 ## 1. 指令
@@ -71,7 +71,7 @@ delivery 前必須同時成立：
 - 因 Drive mount 不可見而回 blocker；
 - 從 `.unpushed/docs/0` / `.unpushed/body/0` 取得 authoring authority；
 - 啟動 `workspace_canonical_sync.py` 作普通或 fallback routing；
-- 要求 `CANONICAL_SHARED_0_UPDATED` 才能 delivery；
+- 要求任何 retired shared-zero receipt 才能 delivery；
 - 以 Drive readback 取代 GitHub merge/readback。
 
 若看到上述舊 evidence，只能標記 HISTORICAL/SUPERSEDED 並回 CURRENT workspace route。
