@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
 ADAPTER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
 ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
+PART_SESSION = ROOT / "gui_modules" / "application" / "fold_designer_part_session.py"
 
 P7_R_A_PROVEN_NO_CALLER = {
     "_phase6_active_mesh_profiles",
@@ -56,7 +57,24 @@ def test_p7_r_a_removes_only_fresh_census_proven_no_caller_bridge_glue():
 
 
 def test_p7_r_a_part_editor_activation_order_remains_compatibility_keep():
-    fn = _top_functions(BRIDGE)["_fix11_activate_part"]
+    bridge_fn = _top_functions(BRIDGE)["_fix11_activate_part"]
+    bridge_body = _source(BRIDGE, bridge_fn)
+    assert len(bridge_fn.body) <= 2
+    assert "_phase6_part_session" in bridge_body
+    assert ".activate_part(" in bridge_body
+
+    session_tree = _tree(PART_SESSION)
+    controller = next(
+        node
+        for node in session_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6PartSessionController"
+    )
+    fn = next(
+        node
+        for node in controller.body
+        if isinstance(node, ast.FunctionDef) and node.name == "activate_part"
+    )
     plan = _call_lines(fn, attr="plan_activation")
     save = _call_lines(fn, attr="_save_current_part")
     begin = _call_lines(fn, attr="begin_activation")

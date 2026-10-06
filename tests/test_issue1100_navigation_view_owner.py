@@ -9,6 +9,7 @@ import phase6_navigation_view_adapter as view
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
 OWNER = ROOT / "phase6_navigation_view_adapter.py"
+PART_SESSION = ROOT / "gui_modules" / "application" / "fold_designer_part_session.py"
 
 
 def _function(name: str):
@@ -150,9 +151,27 @@ def test_active_part_selector_and_canvas_settle_are_owned_by_navigation_view_ada
     adapter_source = OWNER.read_text(encoding="utf-8")
     assert "def project_active_part_selector(" in adapter_source
     assert "def finalize_single_part_layout(" in adapter_source
-    activate = ast.unparse(_function("_fix11_activate_part"))
-    assert "_navigation_view_project_active_part_selector" in activate
-    assert "_navigation_view_finalize_single_part_layout" in activate
+
+    bridge_activate = _function("_fix11_activate_part")
+    bridge_source = ast.unparse(bridge_activate)
+    assert len(bridge_activate.body) <= 2
+    assert "_phase6_part_session" in bridge_source
+    assert ".activate_part(" in bridge_source
+
+    session_tree = ast.parse(PART_SESSION.read_text(encoding="utf-8"))
+    controller = next(
+        node
+        for node in session_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6PartSessionController"
+    )
+    activate = ast.unparse(next(
+        node
+        for node in controller.body
+        if isinstance(node, ast.FunctionDef) and node.name == "activate_part"
+    ))
+    assert "project_active_part_selector" in activate
+    assert "finalize_single_part_layout" in activate
     assert "_phase6_manufacturing_state_signature" in activate
     assert "navigation.begin_activation" in activate
     assert "navigation.finish_activation" in activate
