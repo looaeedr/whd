@@ -28,7 +28,8 @@ Flow v2 不得繞過專案啟動硬閘門。每一個新的 task/runtime/invocat
 1. **ChatGPT surface only**：若本 runtime 實際具有 AI Library connector，完成 `AI_LIBRARY_SEARCHED → RELEVANT_HISTORY_READ → LIVE_VS_HISTORY_RECONCILED`。Codex / CLI / headless / scheduler 沒有 AI Library surface 時固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，**不得因此 BLOCKED 或停止**；直接以 repo CURRENT authority + Phase6 required references 繼續。
 2. 使用 canonical `tools/execution_entry_contract.py` 產生 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`；每個 invocation 必須重新產生。interactive chat 必須 user-visible；Codex/CLI/headless 以 `WHD_EXECUTION_STARTUP_COMMUNICATION_V1` 留 `STDOUT / TASK_EVENT / LOG` machine-visible evidence。
 3. fresh-read project `AGENTS.md` 與本 `flow-v2-execution` Skill，完成 surface-aware `SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1`。interactive chat 用 user-visible first line；Codex/CLI/headless 用 first machine-visible startup event。缺少 chat UI 本身不是 blocker。此時仍未取得 execution mutation authority。
-4. recurring scheduler / `/排程A` / `/排程B` 若尚不知道 exact owning Issue，才可使用下面的 `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`；其他入口不得借此擴張 startup scope。
+4. **EXPLICIT_ISSUE_DIRECT_EXECUTION_V1**：若使用者入口已明確給出 exact Issue（例如 `/接手 1331`、`/接手 #1331`、`接手工單 1331`），owning Issue identity 在 entry 時即已成立；固定走 exact-Issue direct route，**禁止為了「找工作」再跑 READY/open-Issue/scheduler/takeover discovery**。只 fresh-read該 Issue、該 Issue 的 native ExecutionRecord（若有）、exact live refs/HEAD 與本次 Preflight 所需資料；若 record 不存在，只能對同一 exact Issue 做 explicit ingress/recovery，不得改找其他 Issue。
+4.5. recurring scheduler / `/排程A` / `/排程B` **只有在入口沒有 exact Issue、且確實尚不知道 owning Issue 時**，才可使用下面的 `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1`；其他入口不得借此擴張 startup scope。
 5. 對 exact owning Issue + branch + HEAD 執行 Phase6 Knowledge Preflight。interactive/chat 可用 owner-authored `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1` Issue comment transport；A/B scheduler **不得依賴 scheduler-side Issue comment mutation**，固定用 `.dispatch/preflight-request.json` existing-file CAS push 到 `coord/preflight-requests-a|b`，由 `.github/workflows/whd-phase6-preflight-push.yml` 執行同一 canonical remote runner並由 Actions 發 result comment。
 6. fresh-read Preflight 回傳的全部 REQUIRED SKILLS / REQUIRED REFERENCES 並保留 evidence。
 7. scheduler 若曾使用 bootstrap projection，必須丟棄該 projection 並再次 fresh-read canonical scheduler projection；只有到此時，才可進入 Flow v2 ExecutionRecord / transaction / lease / next_action 與正常 WAKE。
@@ -78,6 +79,22 @@ canonical recovery 只允許 trusted ingress `RECOVER_POST_DELIVERY`：
 因此 `native ExecutionRecord missing for issue N` 在「已 merge delivery」情境下不得再直接成為終止訊息；必須先評估本 recovery route。
 
 <!-- MISSING_EXECUTION_RECORD_POST_DELIVERY_RECOVERY_V1 -->
+
+
+
+### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1
+
+當使用者明確指定 exact owning Issue 時（canonical examples：`/接手 1331`、`/接手 #1331`、`接手工單 1331`），這不是 discovery request，而是 **DIRECT_ISSUE_EXECUTION**：
+
+- exact Issue number 在 entry 時就是 task selection authority；不得再掃 open Issues、READY candidates、ready-index、scheduler projection、`TAKEOVER_CANDIDATE`、owner-authored scheduler markers或其他 candidate list 來重新選工作。
+- startup/readback 僅限同一 exact Issue 所需的最小集合：owning Issue、該 Issue 的 native ExecutionRecord（若存在）、source/work/target live refs + HEAD、Phase6 Preflight 所需 identity，以及該 Issue 已存在的 PR/QA/closure evidence。
+- 若 native ExecutionRecord 缺失，固定分類為 **EXACT_ISSUE_INGRESS_REQUIRED**（或已交付時走既有 post-delivery recovery）；只可對同一 Issue 建立/修復 ingress。不得以「record missing」為理由進 AUTO DISCOVERY 或挑另一張工單。
+- 若該 Issue 已有 ACTIVE/DONE/BLOCKED record，fresh-read後依其 structured `next_action` resume/reconcile/finalize；不得先做全域工作 census。
+- `SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1` 只適用於**入口沒有 exact Issue**的 scheduler/A/B auto-selection。explicit-Issue invocation 命中它即為 `EXPLICIT_ISSUE_AUTO_DISCOVERY_FORBIDDEN`。
+- direct route 不取消真正不可省的 startup/Preflight、same-Issue conflict、live-ref freshness、tests/QA/merge/finalization gate；它只移除「工作已指定卻還到處找工單」的 selection discovery。
+- exact Issue admission完成後，同一 invocation 必須直接進 ACQUIRE/resume → primary task；不得把「已找到 #N / READY / ACQUIRE 成功」當停止點。
+
+AUTO DISCOVERY 只有在使用者/entrypoint **沒有指定 exact Issue** 時才合法。
 
 
 ### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
