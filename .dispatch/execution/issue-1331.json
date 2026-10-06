@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
-  "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+  "generation": 7,
+  "head_sha": "42ee3f97e724983d5557a220305008d33169cbc1",
   "issue": 1331,
   "lane_id": "chatgpt.flowv2.work0",
   "lease": {
@@ -41,9 +41,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "交付 #1331 已測試 exact diff",
-    "kind": "START_BRANCH"
+    "args": {
+      "workflow": ".github/workflows/whd-product-regression.yml"
+    },
+    "display": "驗證 #1331 exact delivery head",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -60,7 +62,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
@@ -68,13 +70,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
   "transaction": {
-    "expected_fingerprint": "462255cb42eab9aef1135e39381983bba47c01f08662a2f97bafe1f59dedc0da",
-    "id": "gha:37545712504:1331:RESERVE_PATHS:5",
+    "expected_fingerprint": "36d615931ee1770f27ce409d72026c169ea7a33e485991355b2eeb228939ed43",
+    "id": "gha:37546096775:1331:START_BRANCH:6",
     "invocation_identity": "codex.issue1331.0c274de2-8e5f-4711-811a-59f48fd68791",
-    "kind": "RESERVE_PATHS",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T23:18:00Z",
+  "updated_at": "2026-10-06T23:22:04Z",
   "version": 2,
   "work_branch": "work/issue-1331"
 }
