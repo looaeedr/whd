@@ -2,7 +2,7 @@
 """View-only builder for Receiving layer/connection controls.
 
 The legacy filename is retained for compatibility, but operator-facing terms are
-層/連. Layer/connection state is projected from receiving_switch_layout; this module owns
+套/連. Layer/connection state is projected from receiving_switch_layout; this module owns
 Tk widgets only and never owns manufacturing geometry.
 """
 from __future__ import annotations
@@ -60,11 +60,11 @@ def build_receiving_set_bay_controls(
     layer_actions = ttk.Frame(frame)
     layer_actions.pack(anchor=tk.W, pady=(2, 0))
     remove_layer_button = ttk.Button(
-        layer_actions, text="－層", command=on_remove_layer, width=5
+        layer_actions, text="－套", command=on_remove_layer, width=5
     )
     remove_layer_button.pack(side=tk.LEFT, padx=(0, 2))
     add_layer_button = ttk.Button(
-        layer_actions, text="＋層", command=on_add_layer, width=5
+        layer_actions, text="＋套", command=on_add_layer, width=5
     )
     add_layer_button.pack(side=tk.LEFT)
 
@@ -110,21 +110,32 @@ def open_receiving_layer_preview(
     import math
 
     win = tk.Toplevel(parent)
-    win.title(f"第{index + 1}層 3D 預覽")
+    win.title(f"第{index + 1}套設定")
     win.transient(parent)
-    win.geometry("1080x760")
+    # Open the settings surface maximized. Keep a portable fallback for Tk builds
+    # that do not support the Windows ``zoomed`` state.
+    try:
+        win.state("zoomed")
+    except Exception:
+        try:
+            win.attributes("-zoomed", True)
+        except Exception:
+            win.geometry(
+                f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0"
+            )
     try:
         win.grab_set()
     except Exception:
         pass
 
-    body = ttk.Frame(win, padding=10)
+    body = ttk.Frame(win, padding=0)
     body.pack(fill=tk.BOTH, expand=True)
     ttk.Label(
-        body, text=f"第{index + 1}層｜{count}連｜開關：{label}"
+        body, text=f"第{index + 1}套｜{count}連｜開關：{label}"
     ).pack(anchor=tk.W, pady=(0, 6))
 
     figure = Figure(figsize=(10.0, 6.2), dpi=100)
+    figure.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0)
     ax = figure.add_subplot(111, projection="3d")
     apply_mpl_dark_theme(figure, (ax,))
     canvas = FigureCanvasTkAgg(figure, master=body)
@@ -141,14 +152,30 @@ def open_receiving_layer_preview(
 
     def _visibility_group(part_key):
         key = str(part_key)
-        if key.startswith("door"):
+        if "box_body:divider:" in key:
+            return "divider"
+        if key.endswith("box_body:left_side") or "box_body:left_side:" in key:
+            return "left_side"
+        if key.endswith("box_body:back") or "box_body:back:" in key:
+            return "back"
+        if key.endswith("box_body:right_side") or "box_body:right_side:" in key:
+            return "right_side"
+        if "inner_door:" in key:
+            return "inner_door"
+        if key.startswith("door") or ":door" in key:
             return "door"
-        if key.startswith("base_plate"):
+        if key.startswith("base_plate") or ":base_plate" in key:
             return "base_plate"
-        if key.startswith("indicator_box"):
+        if key.startswith("indicator_box") or ":indicator_box" in key:
             return "indicator_box"
-        if key.startswith("indicator_door"):
+        if key.startswith("indicator_door") or ":indicator_door" in key:
             return "indicator_door"
+        if key == "box_body" or key.endswith(":box_body"):
+            return "box_body"
+        if key == "head" or key.endswith(":head"):
+            return "head"
+        if key == "tail" or key.endswith(":tail"):
+            return "tail"
         return key
 
     group_members = {}
@@ -163,6 +190,11 @@ def open_receiving_layer_preview(
         "base_plate": "底板",
         "indicator_box": "指示燈盒",
         "indicator_door": "指示燈小門",
+        "left_side": "左側板",
+        "back": "後側板",
+        "right_side": "右側板",
+        "divider": "中隔",
+        "inner_door": "內門框",
     }
     selected_part_keys = set(all_part_keys)
 
@@ -236,6 +268,10 @@ def open_receiving_layer_preview(
         _draw_lock_rows()
         ax.view_init(elev=elev, azim=azim)
         ax.set_axis_off()
+        # Matplotlib 3D normally keeps a square-ish axes box even when the Tk
+        # canvas grows. Reuse the FinalScene rectangular viewport helper so the
+        # model fills the settings window instead of staying in a small box.
+        preview_renderer.configure_3d_only_figure()
         canvas.draw_idle()
 
     def _toggle_group(group):
@@ -247,12 +283,12 @@ def open_receiving_layer_preview(
                 selected_part_keys.discard(part_key)
         _render_preview()
 
-    for group in group_members:
+    for ordinal, group in enumerate(group_members, start=1):
         var = tk.BooleanVar(master=visibility, value=True)
         visibility_vars[group] = var
         ttk.Checkbutton(
             visibility,
-            text=group_labels.get(group, group),
+            text=group_labels.get(group, f"零件{ordinal}"),
             variable=var,
             command=lambda group=group: _toggle_group(group),
         ).pack(side=tk.LEFT, padx=(0, 8))
@@ -333,7 +369,7 @@ def refresh_receiving_layer_rows(
         minus_button.pack(side=tk.LEFT, padx=(0, 2))
         plus_button = ttk.Button(frame, text="＋連", width=5)
         plus_button.pack(side=tk.LEFT, padx=(0, 4))
-        preview_button = ttk.Button(frame, text="預覽", width=6)
+        preview_button = ttk.Button(frame, text="設定", width=6)
         preview_button.pack(side=tk.LEFT)
         rows.append(
             {
@@ -349,7 +385,7 @@ def refresh_receiving_layer_rows(
 
     for layer_index, (row, connection_count) in enumerate(zip(rows, counts)):
         row["layer_index"] = layer_index
-        row["layer_label"].configure(text=f"第{layer_index + 1}層")
+        row["layer_label"].configure(text=f"第{layer_index + 1}套")
         row["connection_label"].configure(text=f"{connection_count}連")
         row["minus_button"].configure(
             command=lambda layer_index=layer_index: on_resize_connections(layer_index, -1)

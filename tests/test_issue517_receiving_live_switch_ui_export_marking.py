@@ -461,7 +461,7 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         )
 
         texts = _mapped_widget_texts(frame)
-        for expected in ("開關", "－層", "＋層", "第1層", "1連", "－連", "＋連", "預覽"):
+        for expected in ("開關", "－套", "＋套", "第1套", "1連", "－連", "＋連", "設定"):
             assert expected in texts, f"operator-visible Receiving text missing: {expected!r}; got={texts!r}"
         assert not any("Layer" in text or "Connection" in text for text in texts), texts
     finally:
@@ -525,7 +525,7 @@ def test_receiving_layer_connection_config_edits_do_not_redraw_3d_canvas():
             canvas.draw_idle = original_draw_idle
 
         assert calls == {"draw": 0, "draw_idle": 0}, (
-            "＋層／－層／＋連 are configuration-only and must not redraw/reload 3D: "
+            "＋套／－套／＋連 are configuration-only and must not redraw/reload 3D: "
             f"{calls!r}"
         )
     finally:
@@ -611,11 +611,19 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         assert win._phase6_receiving_preview_uses_final_scene_renderer is True
         assert win._phase6_receiving_preview_lock_circle_count > 0
         assert win._phase6_receiving_preview_feature_segment_count == 0
+        assert win.title() == "第1套設定"
 
         canvas_widget = win._phase6_receiving_preview_canvas.get_tk_widget()
         assert bool(canvas_widget.winfo_ismapped())
         assert canvas_widget.winfo_width() > 100
         assert canvas_widget.winfo_height() > 100
+        assert canvas_widget.winfo_width() >= int(win.winfo_width() * 0.75)
+        assert canvas_widget.winfo_height() >= int(win.winfo_height() * 0.55)
+        preview_texts = _mapped_widget_texts(win)
+        assert not any(
+            "box_body:" in text or "inner_door:" in text or "indicator_box:" in text
+            for text in preview_texts
+        ), preview_texts
         assert "Radiobutton" not in {
             str(child.winfo_class())
             for child in win.winfo_children()
