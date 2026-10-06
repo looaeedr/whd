@@ -515,8 +515,8 @@ def test_flow_v2_skill_defaults_to_workspace_and_retires_shared_zero_routing():
     assert "WORKSPACE_DEFAULT" in text
     assert "WORKSPACE_MUTATIONS_COMPLETE" in text
     assert "WORKSPACE_TESTS_GREEN" in text
-    assert "Drive readback 全部退出 CURRENT routing" in text
-    assert "Google Drive 只可作資料／mirror／backup" in text
+    assert "Google Drive 已退出 repository-content execution routing" in text
+    assert "Drive 只允許保存資料、artifact、backup 與 production mirror" in text
 
 
 def test_test_receipt_generation_is_historical_provenance_not_exact_lease_generation():
