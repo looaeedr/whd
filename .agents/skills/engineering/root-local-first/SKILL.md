@@ -2,7 +2,7 @@
 name: root-local-first
 description: WHD repository-content implementation 的 CURRENT workspace-first 入口。Git production X 是唯一流程 authority；每個 executor 在自己的 repo workspace 修改/測試後走 delivery branch + PR/checks。Google Drive 僅為資料／mirror／backup，永不參與 startup、routing 或施工 authority。
 whd_doc_role: CURRENT
-whd_contract: root-shared-unpushed-v1
+whd_contract: workspace-entry-v1
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 任何 WHD repository-content 任務（新任務、續作、修補、測試、治理修改）進場時，**第一個路由不得先做一般 discovery**。每個 invocation 都必須 fresh 依序完成：
 
 ```text
-READ .agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json
+READ .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json
 → READ .agents/skills/engineering/root-local-first/SKILL.md
 → ENTRY_ROUTER_READY
 ```
