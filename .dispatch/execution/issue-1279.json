@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 19,
+  "generation": 20,
   "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,19 +38,20 @@
   },
   "next_action": {
     "args": {
-      "post_accept_pr_number": 1316,
-      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
+      "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
+      "pr_number": 1316,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Consume approved exact-head product regression GREEN",
-    "kind": "START_QA"
+    "display": "Merge exact accepted PR1316",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "eedf73c63e25a842e60cb29b6bcf71fef1ef7fda",
-    "last_accepted_run": 37386553810
+    "accepted_head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
+    "last_accepted_run": 37392795983
   },
   "recovery_history": [
     {
@@ -61,21 +62,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "APPROVAL_RESOLVED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
   "transaction": {
-    "expected_fingerprint": "455287b0395d7cd1fe6e71a91044bec3ce22a94f3780d590fd0a1b11a468b146",
-    "id": "gha:37401440003:1279:RECONCILE:18",
+    "expected_fingerprint": "3b6c7f7fe26a2e4f3a564dceb110fc33b22bc97d9e69ab4a3c23469f303c8ea6",
+    "id": "gha:37401536459:1279:CONSUME_QA:19",
     "invocation_identity": "codex.issue1279.a7814929-8b89-4d5c-9066-ad577d6215c5",
-    "kind": "RECONCILE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T01:54:19Z",
+  "updated_at": "2026-10-06T01:55:30Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
