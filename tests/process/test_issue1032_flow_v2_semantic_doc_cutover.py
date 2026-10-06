@@ -98,7 +98,8 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert remote["github_work_branch_mutation_allowed"] is True
     assert remote["remote_mode_repository_content_action"] == "CONTINUE_GITHUB_CANONICAL_DURABLE_ROUTE"
     assert "shared_zero_missing_capability_action" not in remote
-    assert remote["github_side_hotfix_forbidden"] is True
+    assert remote["github_side_hotfix_forbidden"] is False
+    assert remote["direct_production_hotfix_forbidden"] is True
 
     fallback_gate = contract["direct_root_mutation_test_gate"]
     assert fallback_gate["applies_when"] == "NEVER_CURRENT"
