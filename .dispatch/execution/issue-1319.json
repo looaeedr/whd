@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
-    "released_at": null
+    "released_at": "2026-10-06T00:22:45Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "6a4eedf3d9bc1ca972cd579ef3213722b6c714bc",
   "issue": 1319,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-06T00:37:27Z",
-    "invocation_identity": "github:production-x-post-merge:37393605676:pr1320:issue1319",
-    "token": "recovery:1319:37393605676"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1320,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "governance/issue1319-final-drive-fixture-purge-20261006",
   "source_sha": "6a4eedf3d9bc1ca972cd579ef3213722b6c714bc",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
-  "transaction": null,
-  "updated_at": "2026-10-06T00:22:27Z",
+  "transaction": {
+    "expected_fingerprint": "96f44a7d10f31536b1594fd728e9a557fab8d5466ab888eb49dc34fa8cd00336",
+    "id": "gha:37393605676:1319:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37393605676:pr1320:issue1319",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-06T00:22:53Z",
   "version": 2,
   "work_branch": "governance/issue1319-final-drive-fixture-purge-20261006"
 }
