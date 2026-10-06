@@ -173,3 +173,62 @@ def test_scheduler_startup_bootstrap_read_only_discovery_breaks_issue_binding_cy
     assert "bootstrap projection" in scheduler
     assert "fresh-read" in scheduler
 
+def test_explicit_issue_direct_execution_forbids_auto_discovery():
+    canonical = text(CANONICAL)
+    dispatch = text(ROOT / ".agents/skills/engineering/派工/SKILL.md")
+    execution = text(ROOT / ".agents/skills/engineering/執行開發任務/SKILL.md")
+    agents = text(ROOT / "AGENTS.md")
+    marker = "EXPLICIT_ISSUE_DIRECT_EXECUTION_V1"
+
+    for source in (canonical, dispatch, execution, agents):
+        assert marker in source
+
+    direct = canonical.split("### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1", 1)[1].split(
+        "### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1", 1
+    )[0]
+    assert "/接手 1331" in direct
+    assert "DIRECT_ISSUE_EXECUTION" in direct
+    assert "EXACT_ISSUE_INGRESS_REQUIRED" in direct
+    assert "EXPLICIT_ISSUE_AUTO_DISCOVERY_FORBIDDEN" in direct
+    assert "AUTO DISCOVERY 只有" in direct
+    assert "不得再掃 open Issues" in direct
+    assert "ready-index" in direct
+    assert "TAKEOVER_CANDIDATE" in direct
+    assert "不得以「record missing」為理由進 AUTO DISCOVERY 或挑另一張工單" in direct
+    assert "直接進 ACQUIRE/resume" in direct
+
+    registry = json.loads(text(ROOT / ".agents/skills/skill_registry.json"))
+    routes = {r["id"]: r for r in registry["routes"]}
+    keywords = routes["dispatching-workflow"]["keywords"]
+    assert "/接手" in keywords
+    assert "接手 #" in keywords
+    assert "接手工單" in keywords
+
+def test_explicit_takeover_uses_github_canonical_not_rc_local_workspace():
+    canonical = text(CANONICAL)
+    dispatch = text(ROOT / ".agents/skills/engineering/派工/SKILL.md")
+    execution = text(ROOT / ".agents/skills/engineering/執行開發任務/SKILL.md")
+    root_local = text(ROOT / ".agents/skills/engineering/root-local-first/SKILL.md")
+    agents = text(ROOT / "AGENTS.md")
+    marker = "EXPLICIT_TAKEOVER_GITHUB_CANONICAL_V1"
+
+    for source in (canonical, root_local, agents):
+        assert marker in source
+
+    direct = canonical.split("### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1", 1)[1].split(
+        "### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1", 1
+    )[0]
+    for source in (direct, dispatch, execution, agents):
+        assert "GitHub canonical" in source
+        assert "production" in source or "production X" in source
+        assert "Remote Desktop Commander" not in source
+        assert "/workspace/whd" not in source
+        assert "LOCAL_MACHINE_UNAVAILABLE" not in source
+
+    scoped = root_local.split("### EXPLICIT_TAKEOVER_GITHUB_CANONICAL_V1", 1)[1].split(
+        "## Compatibility / delivery invariants", 1
+    )[0]
+    assert "GitHub Actions" in scoped
+    assert "non-production" in scoped
+    assert "禁止再把施工轉送本機/Remote Desktop" in scoped
+

@@ -28,7 +28,12 @@ REQUIRED_ORDER = (
 )
 INTERACTIVE_MODES = {"INTERACTIVE", "CHAT", "DEFAULT"}
 REMOTE_MODES = {"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"}
-REMOTE_CONTENT_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+GITHUB_REMOTE_CONTENT_MODES = {"GITHUB_ONLY", "REMOTE_ACTION"}
+SCHEDULER_REMOTE_CONTENT_POLICY = "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+GITHUB_REMOTE_CONTENT_POLICY = "GITHUB_CANONICAL_DURABLE_WORK_BRANCH_PR"
+GITHUB_CANONICAL_ROOT_POLICY = "GITHUB_CANONICAL_REPOSITORY"
+GITHUB_CANONICAL_SCOPE = "GITHUB_CANONICAL_REMOTE_CONTENT"
+GITHUB_CANONICAL_ROUTE = "GITHUB_CANONICAL_REMOTE"
 WORKSPACE_ROOT = WORKSPACE_ROOT_POLICY
 PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
 WORKSPACE_BASELINE_ACTIONS = {"READ", "FETCH", "COMPARE", "BRANCH_READ", "REPO_METADATA_READ"}
@@ -44,6 +49,7 @@ REMOTE_AUTHORITY_KINDS = {
     "PUSH_DOCS",
     "PUSH_BODY",
     "WORKSPACE_DELIVERY",
+    "GITHUB_CANONICAL_CONTENT",
     "SCHEDULER_GITHUB_ONLY",
 }
 ISSUE_ONLY_ACTIONS = {"CREATE_ISSUE", "ISSUE_READBACK"}
@@ -143,23 +149,49 @@ def _event_token(value: object) -> str:
 
 
 def build_entry_router_evidence(
-    *, fresh_reads: Iterable[str], workspace_root: str | None = None, canonical_root: str | None = None
+    *,
+    fresh_reads: Iterable[str],
+    workspace_root: str | None = None,
+    canonical_root: str | None = None,
+    execution_mode: str = "INTERACTIVE",
+    production_head_sha: str | None = None,
 ) -> dict[str, object]:
-    """Bind an interactive WHD content invocation to its executor-local repository workspace."""
-    resolved_root = str(workspace_root or canonical_root or "").strip()
-    if not resolved_root:
-        raise ValueError("ENTRY_ROUTER_FIRST_REQUIRED: executor workspace_root missing")
+    """Bind startup to either an executor workspace or GitHub production source."""
+    mode = str(execution_mode or "INTERACTIVE").strip().upper()
     reads = tuple(str(item).strip() for item in fresh_reads if str(item).strip())
     if reads != ENTRY_ROUTER_FRESH_READS:
         raise ValueError(
             "ENTRY_ROUTER_FIRST_REQUIRED: fresh-read canonical contract then root-local-first Skill"
         )
+    if mode in GITHUB_REMOTE_CONTENT_MODES:
+        head = _sha(production_head_sha, "entry router production_head_sha")
+        return {
+            "schema": ENTRY_ROUTER_EVIDENCE_SCHEMA,
+            "gate_schema": ENTRY_ROUTER_SCHEMA,
+            "state": ENTRY_ROUTER_READY,
+            "execution_mode": mode,
+            "workspace_root": "NOT_APPLICABLE_GITHUB_CANONICAL",
+            "workspace_policy": GITHUB_CANONICAL_ROOT_POLICY,
+            "bootstrap_source": "GITHUB_PRODUCTION_BRANCH",
+            "production_branch": PRODUCTION_BRANCH,
+            "production_head_sha": head,
+            "fresh_reads": list(reads),
+            "fresh_each_invocation": True,
+            "chat_memory_used_as_evidence": False,
+        }
+    resolved_root = str(workspace_root or canonical_root or "").strip()
+    if not resolved_root:
+        raise ValueError("ENTRY_ROUTER_FIRST_REQUIRED: executor workspace_root missing")
     return {
         "schema": ENTRY_ROUTER_EVIDENCE_SCHEMA,
         "gate_schema": ENTRY_ROUTER_SCHEMA,
         "state": ENTRY_ROUTER_READY,
+        "execution_mode": mode,
         "workspace_root": resolved_root,
         "workspace_policy": WORKSPACE_ROOT_POLICY,
+        "bootstrap_source": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+        "production_branch": PRODUCTION_BRANCH,
+        "production_head_sha": production_head_sha,
         "fresh_reads": list(reads),
         "fresh_each_invocation": True,
         "chat_memory_used_as_evidence": False,
@@ -174,10 +206,24 @@ def validate_entry_router_evidence(evidence: object) -> dict[str, object]:
         raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: invalid gate schema")
     if item.get("state") != ENTRY_ROUTER_READY:
         raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: entry router is not READY")
-    if item.get("workspace_policy") != WORKSPACE_ROOT_POLICY:
-        raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: workspace policy mismatch")
-    if not str(item.get("workspace_root") or "").strip():
-        raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: executor workspace_root missing")
+    mode = str(item.get("execution_mode") or "INTERACTIVE").strip().upper()
+    if mode in GITHUB_REMOTE_CONTENT_MODES:
+        if item.get("workspace_policy") != GITHUB_CANONICAL_ROOT_POLICY:
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: GitHub canonical policy mismatch")
+        if item.get("workspace_root") != "NOT_APPLICABLE_GITHUB_CANONICAL":
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: GitHub canonical workspace sentinel mismatch")
+        if item.get("bootstrap_source") != "GITHUB_PRODUCTION_BRANCH":
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: GitHub bootstrap source mismatch")
+        if item.get("production_branch") != PRODUCTION_BRANCH:
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: production branch mismatch")
+        _sha(item.get("production_head_sha"), "entry router production_head_sha")
+    else:
+        if item.get("workspace_policy") != WORKSPACE_ROOT_POLICY:
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: workspace policy mismatch")
+        if not str(item.get("workspace_root") or "").strip():
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: executor workspace_root missing")
+        if item.get("bootstrap_source") not in {None, "EXECUTOR_LOCAL_REPO_WORKSPACE"}:
+            raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: workspace bootstrap source mismatch")
     if tuple(item.get("fresh_reads") or ()) != ENTRY_ROUTER_FRESH_READS:
         raise ValueError("ENTRY_ROUTER_FIRST_HARD_GATE: fresh-read order mismatch")
     if item.get("fresh_each_invocation") is not True:
@@ -237,8 +283,27 @@ def validate_root_path_resolution_evidence(evidence: object) -> dict[str, object
         resolution_method=str(item.get("resolution_method") or ""),
     )
 
-def select_repository_content_route(*, shared_zero_drift_present: bool, workspace_root: str = WORKSPACE_ROOT_POLICY) -> dict[str, object]:
-    """Always route repository-content work through the executor-local workspace."""
+def select_repository_content_route(
+    *,
+    shared_zero_drift_present: bool,
+    workspace_root: str = WORKSPACE_ROOT_POLICY,
+    execution_mode: str = "INTERACTIVE",
+) -> dict[str, object]:
+    """Choose the canonical content surface without ever routing through Drive/local fallback."""
+    mode = str(execution_mode or "INTERACTIVE").strip().upper()
+    if mode in GITHUB_REMOTE_CONTENT_MODES:
+        return {
+            "schema": CONTENT_ROUTE_SCHEMA,
+            "route": GITHUB_CANONICAL_ROUTE,
+            "workspace_root": "NOT_APPLICABLE_GITHUB_CANONICAL",
+            "production_branch": PRODUCTION_BRANCH,
+            "workspace_canonical_sync_required": False,
+            "shared_zero_required": False,
+            "retired_shared_zero_drift_observed": bool(shared_zero_drift_present),
+            "direct_production_push_forbidden": True,
+            "required_test_surface": "GITHUB_ACTIONS_EXACT_HEAD",
+            "required_delivery": "PULL_REQUEST_REQUIRED_CHECKS",
+        }
     return {
         "schema": CONTENT_ROUTE_SCHEMA,
         "route": "WORKSPACE_DEFAULT",
@@ -281,6 +346,10 @@ def build_remote_connection_authority(
         if remote_target != "GITHUB" or user_explicit is not True:
             raise ValueError("REMOTE_CONNECTION_DENIED: workspace delivery requires explicit repository-content task")
         actions = tuple(sorted(WORKSPACE_DELIVERY_ACTIONS))
+    elif authority_kind == "GITHUB_CANONICAL_CONTENT":
+        if remote_target != "GITHUB" or user_explicit is not True:
+            raise ValueError("REMOTE_CONNECTION_DENIED: GitHub canonical content requires explicit repository-content task")
+        actions = tuple(sorted(PUSH_GITHUB_ACTIONS))
     elif authority_kind == "USER_EXPLICIT_REMOTE":
         if user_explicit is not True or not actions:
             raise ValueError("REMOTE_CONNECTION_DENIED: explicit remote authority requires exact actions")
@@ -753,6 +822,10 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("entry router hard gate schema mismatch")
     if entry_router.get("fresh_each_invocation") is not True:
         raise ValueError("entry router must be fresh each invocation")
+    if entry_router.get("github_only_bootstrap_source") != "GITHUB_PRODUCTION_BRANCH":
+        raise ValueError("GitHub-only entry bootstrap source mismatch")
+    if entry_router.get("github_only_remote_desktop_required") is not False:
+        raise ValueError("GitHub-only entry must not require Remote Desktop")
     if entry_router.get("chat_memory_is_not_evidence") is not True:
         raise ValueError("chat memory must not satisfy entry router")
     if tuple(entry_router.get("required_fresh_read_order") or ()) != ENTRY_ROUTER_FRESH_READS:
@@ -797,15 +870,21 @@ def validate_contract(payload: object) -> dict[str, object]:
         raise ValueError("path reservation release policy mismatch")
     modes = _mapping(contract.get("execution_modes"), "execution_modes")
     if modes.get("INTERACTIVE") != "WORKSPACE_FIRST_CONTENT":
-        raise ValueError("interactive execution mode must be workspace-first")
-    for mode in REMOTE_MODES:
-        if modes.get(mode) != REMOTE_CONTENT_POLICY:
-            raise ValueError(f"remote execution mode must require workspace-capable runtime handoff for content: {mode}")
+        raise ValueError("interactive execution mode must remain workspace-first by default")
+    if modes.get("SCHEDULER_LANE") != SCHEDULER_REMOTE_CONTENT_POLICY:
+        raise ValueError("scheduler content mode must still require workspace-capable handoff")
+    for mode in GITHUB_REMOTE_CONTENT_MODES:
+        if modes.get(mode) != GITHUB_REMOTE_CONTENT_POLICY:
+            raise ValueError(f"{mode} must use GitHub canonical durable content route")
     remote_content = _mapping(contract.get("remote_content_implementation"), "remote_content_implementation")
-    if remote_content.get("policy") != "WORKSPACE_MIRROR_IMPLEMENTATION":
-        raise ValueError("remote repository-content implementation must use workspace mirror")
-    if remote_content.get("qa_failure_action") != "FIX_IN_WORKSPACE_RETEST_REPUSH":
-        raise ValueError("remote QA failure must return to workspace and retest")
+    if remote_content.get("policy") != "SURFACE_AWARE_WORKSPACE_OR_GITHUB_CANONICAL":
+        raise ValueError("remote repository-content policy must be surface-aware")
+    if remote_content.get("direct_production_hotfix_forbidden") is not True:
+        raise ValueError("direct production hotfix must remain forbidden")
+    if remote_content.get("github_work_branch_mutation_allowed") is not True:
+        raise ValueError("GitHub canonical work-branch mutation must be enabled")
+    if remote_content.get("remote_mode_repository_content_action") != "CONTINUE_GITHUB_CANONICAL_DURABLE_ROUTE":
+        raise ValueError("remote content route must continue on GitHub canonical durable path")
     provenance = _mapping(contract.get("execution_mode_provenance"), "execution_mode_provenance")
     if provenance.get("schema") != EXECUTION_MODE_PROVENANCE_SCHEMA:
         raise ValueError("execution mode provenance schema mismatch")
@@ -1022,7 +1101,53 @@ def build_gate_evidence(
             execution_mode=mode, provenance=execution_mode_provenance
         )
         if repository_content_implementation:
-            return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF", "applicable": False, "git_write_unlocked": False, "next_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"}
+            if mode == "SCHEDULER_LANE":
+                return {
+                    "schema": EVIDENCE_SCHEMA,
+                    "execution_mode": mode,
+                    "execution_mode_provenance": provenance,
+                    "scope": "REMOTE_CONTENT_IMPLEMENTATION_REQUIRES_HANDOFF",
+                    "applicable": False,
+                    "git_write_unlocked": False,
+                    "next_action": "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX",
+                }
+            route = select_repository_content_route(
+                shared_zero_drift_present=False,
+                execution_mode=mode,
+            )
+            if remote_connection_authority is None:
+                return {
+                    "schema": EVIDENCE_SCHEMA,
+                    "execution_mode": mode,
+                    "execution_mode_provenance": provenance,
+                    "scope": GITHUB_CANONICAL_SCOPE,
+                    "route": route["route"],
+                    "applicable": True,
+                    "git_write_unlocked": False,
+                    "direct_production_push_forbidden": True,
+                    "required_test_surface": "GITHUB_ACTIONS_EXACT_HEAD",
+                    "required_delivery": "PULL_REQUEST_REQUIRED_CHECKS",
+                    "next_action": "GITHUB_REMOTE_AUTHORITY_REQUIRED",
+                }
+            remote_authority = validate_remote_connection_authority(
+                remote_connection_authority, target="GITHUB", action="CREATE_BRANCH"
+            )
+            if remote_authority.get("kind") not in {"GITHUB_CANONICAL_CONTENT", "USER_EXPLICIT_REMOTE"}:
+                raise ValueError("GitHub canonical content authority kind mismatch")
+            return {
+                "schema": EVIDENCE_SCHEMA,
+                "execution_mode": mode,
+                "execution_mode_provenance": provenance,
+                "scope": GITHUB_CANONICAL_SCOPE,
+                "route": route["route"],
+                "applicable": True,
+                "git_write_unlocked": False,
+                "remote_connection_authority": remote_authority,
+                "direct_production_push_forbidden": True,
+                "required_test_surface": "GITHUB_ACTIONS_EXACT_HEAD",
+                "required_delivery": "PULL_REQUEST_REQUIRED_CHECKS",
+                "next_action": "GITHUB_CANONICAL_WORK_BRANCH_MUTATE_THEN_ACTIONS",
+            }
         return {"schema": EVIDENCE_SCHEMA, "execution_mode": mode, "execution_mode_provenance": provenance, "scope": "REMOTE_CONTROL_PLANE_EXCEPTION", "applicable": False, "git_write_unlocked": False, "next_action": "FOLLOW_FLOW_V2_REMOTE_AUTHORITY"}
     if mode not in INTERACTIVE_MODES:
         raise ValueError(f"unsupported execution mode: {mode}")

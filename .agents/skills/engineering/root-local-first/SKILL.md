@@ -1,6 +1,6 @@
 ---
 name: root-local-first
-description: WHD repository-content implementation 的 CURRENT workspace-first 入口。Git production X 是唯一流程 authority；每個 executor 在自己的 repo workspace 修改/測試後走 delivery branch + PR/checks。Google Drive 僅為資料／mirror／backup，永不參與 startup、routing 或施工 authority。
+description: WHD repository-content implementation 的 CURRENT surface-aware 入口。Git production X 是唯一流程 authority；workspace-capable executor 可 workspace-first，GITHUB_ONLY/REMOTE_ACTION 可走 GitHub canonical durable work branch + Actions + PR/checks。Google Drive 僅為資料／mirror／backup，永不參與 startup、routing 或施工 authority。
 whd_doc_role: CURRENT
 whd_contract: workspace-entry-v1
 whd_canonical: null
@@ -19,7 +19,7 @@ READ .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json
 → ENTRY_ROUTER_READY
 ```
 
-`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。**兩個 bootstrap path 都只從已解析的 executor-local repo workspace 讀取。Google Drive mirror、舊 Drive Skill、`.unpushed`、shared-zero 或任何 Drive 可見性都不得參與 startup routing。Drive mount 不可見永遠不是 repository-content blocker。**
+`ENTRY_ROUTER_READY` 前只允許上述兩個 bootstrap read。workspace-capable executor 從自己的 repo workspace 讀；**GITHUB_ONLY / REMOTE_ACTION runtime 則從 fresh production `cleanup/2d-3d-sync` 直接讀同兩個 repo-relative path**。兩者都不得使用 Google Drive、Remote Desktop、local-machine search、`.unpushed` 或 shared-zero 取代 canonical source。
 
 以下動作全部 fail closed：
 
@@ -29,7 +29,7 @@ READ .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json
 - claim / Flow v2 discovery；
 - 任何用聊天記憶、舊摘要或上一 invocation evidence 代替 fresh entry read 的行為。
 
-若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，回到**本 executor 的 repo workspace canonical entry** 從兩個 fresh read 重新開始；Codex 通常是 `/workspace/whd`，不得因這個 recovery 去尋找或等待 `/Google Drive/WHD`。
+若操作員先走錯路，固定 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`：撤銷該段 discovery 作為 execution evidence，依 runtime surface 回到 canonical entry；workspace runtime 回自己的 repo workspace，GITHUB_ONLY/REMOTE_ACTION 回 fresh production branch。不得為 recovery 去尋找 Remote Desktop、本機固定路徑或 Google Drive。
 
 machine owner=`tools/root_local_first_gate.py::build_entry_router_evidence / validate_entry_router_evidence / assert_entry_router_action_allowed`。
 
@@ -125,11 +125,24 @@ CURRENT 文件/Skill/contract 不得再宣告：
 舊文字如需保留，只能明確標 `HISTORICAL/SUPERSEDED`，不得參與 routing。
 
 
+### EXPLICIT_TAKEOVER_GITHUB_CANONICAL_V1
+
+使用者明確入口 `/接手 <issue>` 的 repository-content execution 固定走 GitHub canonical durable route：
+
+- 不要求 Remote Desktop Commander、不要求使用者本機、不固定 `/workspace/whd`，也不以 `LOCAL_MACHINE_UNAVAILABLE` 作 canonical blocker；
+- fresh-read production `cleanup/2d-3d-sync` 與 same-Issue ExecutionRecord 後，建立／續用 non-production issue work branch；
+- 所有 mutation durable 寫入該 GitHub work branch；不得 direct-push `cleanup/2d-3d-sync`、`main` 或任何 `coord/*` branch；
+- GitHub Actions 必須對 exact work-branch HEAD 執行 required tests/checks；只有 GREEN + exact readback 才能建立／更新 PR 並 merge；
+- target drift 先 fresh compare/revalidate；有 overlap/impact 就在同 GitHub work branch 修補後重新跑 exact-head checks；
+- GitHub canonical route 是 execution surface；production authority 仍只有 `cleanup/2d-3d-sync`，control-plane authority 仍只有 Flow v2 ExecutionRecord/transaction。
+
+workspace-capable 的一般任務仍可使用預設 workspace-first route；這個 explicit route 的目的只是在使用者指定 `/接手` 且 runtime 本身具 GitHub canonical capability 時，**禁止再把施工轉送本機/Remote Desktop**。
+
 ## Compatibility / delivery invariants
 
 - Git write mode remains `EXACT_TESTED_DIFF_ONLY`.
 - `INTERACTIVE_ORCHESTRATION_FAST_PATH_HARD_GATE_V1` remains CURRENT; control-plane internals **不得由聊天層逐顆手動編排**.
-- Repository-content fixes must never be a GitHub-side hotfix; mutate/test in the executor-local workspace first.
+- Direct production GitHub hotfix remains forbidden. GITHUB_ONLY/REMOTE_ACTION may mutate only a non-production GitHub work branch and must use GitHub Actions exact-head checks + PR before production integration.
 - Delivery still requires `DELIVERY_RESERVATION` after the exact tested diff is frozen.
 - production target 的 ref advancement 一律交回 Flow v2 trusted `MERGE` / `SYNC_TARGET`；chat/runtime connector 不得直接前推 production target。
 - `ROOT_SYNC_MAINTENANCE_NON_BLOCKING_V1` is retained as a compatibility label only: Drive/root sync is non-blocking maintenance and no longer nominates Drive as a construction root.

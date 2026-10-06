@@ -25,6 +25,21 @@ Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_c
 
 派工/READY/ACQUIRE/owning Issue 語意本身不會憑空產生 GitHub network authority；但**使用者已明確要求執行 exact GitHub Issue/ticket** 時，該 user instruction 就是 `USER_EXPLICIT_REMOTE` 的來源，可由 machine 一次 mint 本 task 所需的 exact `ISSUE_READ / ISSUE_COMMENT / READBACK` 等 actions，並在同 invocation/task scope 內沿用；不得再向使用者重問同一授權。`coord/execution-v2` 的 baseline branch/read metadata仍服從 workspace baseline read policy。只有 scope 擴張、不同 repository/Issue 或額外 remote action 才需新的 explicit authority。
 
+
+### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1_BRIDGE
+
+使用者若已明確輸入 `/接手 <issue>`、`/接手 #<issue>` 或等價 exact Issue 指令，固定 bridge 到 canonical `flow-v2-execution::EXPLICIT_ISSUE_DIRECT_EXECUTION_V1`：
+
+- 不做 open Issue / READY / scheduler view / takeover candidate discovery；
+- 只 fresh-read該 exact Issue、same-Issue ExecutionRecord、live refs/HEAD 與 required Preflight；
+- record 缺失時只補同一 Issue 的 explicit ingress，不得改找別張；
+- admission後立即施工／resume exact structured `next_action`，不得停在「找到工單／ACQUIRE 完成」。
+- interactive `/接手 <issue>` 的實作固定走 **GitHub canonical durable work branch**；不得要求 Remote Desktop、使用者本機、固定 `/workspace/whd` 或 local-shell fallback。
+- branch 必須綁 same-Issue 且為 non-production/non-`coord/*`；GitHub Actions exact-head GREEN 後才可 PR/merge/readback。GitHub transport 真正不可用才是 capability blocker；`LOCAL_MACHINE_UNAVAILABLE` 不是 canonical blocker。
+
+只有**沒有指定 exact Issue**的自動派工／scheduler 才可進 candidate discovery。
+
+
 ## Dispatch
 open Issue、dependency-unblocked、空工作槽都不等於 execution authority。新工作必須由 `tools/execution_dispatch_ingress.py` 以明確 authority建立 READY record，再由 ACQUIRE transaction取得 owner/lease。互動式新工作未指定 slot 時仍以 `/工作0` / `worker.slot.0` 為既有預設；建立 READY 前若 fresh-read 發現 slot0 已 BOUND，才使用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往 `1→2→3` overflow；全滿即 fail closed，不得搶槽。
 PM/Implementer/QA只是角色視角；branch/head/owner/QA/closure/next_action只寫同一 native record。

@@ -81,7 +81,10 @@ def test_contract_and_skill_are_current_and_single_owner():
     assert payload["git_write_receipt"]["schema"] == "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1"
     assert payload["test_execution_receipt"]["schema"] == "WHD_TEST_EXECUTION_RECEIPT_V1"
     assert payload["execution_modes"]["SCHEDULER_LANE"] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
-    assert payload["remote_content_implementation"]["github_side_hotfix_forbidden"] is True
+    assert payload["execution_modes"]["GITHUB_ONLY"] == "GITHUB_CANONICAL_DURABLE_WORK_BRANCH_PR"
+    assert payload["execution_modes"]["REMOTE_ACTION"] == "GITHUB_CANONICAL_DURABLE_WORK_BRANCH_PR"
+    assert payload["remote_content_implementation"]["direct_production_hotfix_forbidden"] is True
+    assert payload["remote_content_implementation"]["github_work_branch_mutation_allowed"] is True
     fast_path = payload["orchestration_fast_path"]
     assert fast_path["outer_action_gate"] == "tools/root_local_first_gate.py::assert_outer_primary_action"
     assert fast_path["outer_primary_action_policy"] == "PHASE_OUTCOME_OR_REAL_BLOCKER_ONLY"
@@ -292,6 +295,59 @@ def test_legacy_manifest_and_scoped_recovery_are_historical_only():
                 {"path": "AGENTS.md", "live_blob_sha": "3" * 40, "workspace_blob_sha": "3" * 40}
             ],
         )
+
+
+def test_github_only_entry_and_content_route_never_require_remote_desktop():
+    from tools.root_local_first_gate import (
+        build_entry_router_evidence,
+        build_gate_evidence,
+        build_remote_connection_authority,
+        validate_entry_router_evidence,
+    )
+
+    entry = build_entry_router_evidence(
+        fresh_reads=[
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+        ],
+        execution_mode="GITHUB_ONLY",
+        production_head_sha="a" * 40,
+    )
+    validated = validate_entry_router_evidence(entry)
+    assert validated["bootstrap_source"] == "GITHUB_PRODUCTION_BRANCH"
+    assert validated["workspace_root"] == "NOT_APPLICABLE_GITHUB_CANONICAL"
+
+    provenance = {
+        "schema": "WHD_EXECUTION_MODE_PROVENANCE_V1",
+        "execution_mode": "GITHUB_ONLY",
+        "source": "TRUSTED_REMOTE_RUNTIME",
+        "invocation_identity": "chatgpt.issue1338.remote",
+    }
+    locked = build_gate_evidence(
+        execution_mode="GITHUB_ONLY",
+        execution_mode_provenance=provenance,
+        repository_content_implementation=True,
+    )
+    assert locked["scope"] == "GITHUB_CANONICAL_REMOTE_CONTENT"
+    assert locked["route"] == "GITHUB_CANONICAL_REMOTE"
+    assert locked["next_action"] == "GITHUB_REMOTE_AUTHORITY_REQUIRED"
+    assert locked["direct_production_push_forbidden"] is True
+
+    authority = build_remote_connection_authority(
+        kind="GITHUB_CANONICAL_CONTENT",
+        target="GITHUB",
+        user_explicit=True,
+    )
+    routed = build_gate_evidence(
+        execution_mode="GITHUB_ONLY",
+        execution_mode_provenance=provenance,
+        repository_content_implementation=True,
+        remote_connection_authority=authority,
+    )
+    assert routed["route"] == "GITHUB_CANONICAL_REMOTE"
+    assert routed["next_action"] == "GITHUB_CANONICAL_WORK_BRANCH_MUTATE_THEN_ACTIONS"
+    assert routed["required_test_surface"] == "GITHUB_ACTIONS_EXACT_HEAD"
+    assert routed["required_delivery"] == "PULL_REQUEST_REQUIRED_CHECKS"
 
 
 def test_remote_execution_modes_require_trusted_provenance_and_are_not_unlock_tokens():
