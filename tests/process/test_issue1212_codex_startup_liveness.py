@@ -68,6 +68,7 @@ def test_codex_workspace_recovery_never_returns_to_drive_root():
     )[0]
     assert "本 executor 的 repo workspace canonical entry" in section
     assert "不得因這個 recovery 去尋找或等待 `/Google Drive/WHD`" in section
+    assert "GITHUB_ONLY/REMOTE_ACTION 回 fresh production branch" in section
 
 
 def test_same_scope_workspace_delivery_authority_is_machine_valid():
