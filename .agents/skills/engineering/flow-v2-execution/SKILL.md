@@ -803,6 +803,20 @@ Phase6 Preflight 亦遵守同一能力模型：A/B scheduler 的 startup Preflig
 - trusted writer: `tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py`
 
 
+### MISSING_EXECUTION_RECORD_READY_INGRESS_V1
+
+對**尚未施工、尚未交付**且 native `ExecutionRecord` 不存在的 exact owning Issue，缺 record 本身不得成為永久 blocker。只有在本 invocation 已完成 startup + exact Phase6 Preflight，且有 typed explicit authority 時，才允許走 trusted `DISPATCH_READY` bootstrap：
+
+1. request 固定走對應 lane 的 existing-file CAS push transport，`kind=DISPATCH_READY`、`expected_generation=1`，並綁 exact `expected_coord_head + invocation_identity`。
+2. trusted ingress 必須以已驗證的 `startup_transition.branch + head_sha` 建立 `DispatchIngressRequest`；caller 不得自行提供另一組 source/target identity。
+3. authority 僅接受 `execution_dispatch_ingress` 已允許的 typed authority（`USER_EXPLICIT / CHAIN_SUCCESSOR / WORK_SLOT_ASSIGNMENT`）；interactive slot 必須由 request branch/lane identity 推導，caller 不得跨 slot 偽造。
+4. trusted production writer 只允許 **create-only**：same-Issue record 已存在即 fail-closed；成功時原子寫入 generation 1 `READY / UNCLAIMED / lease=null / next_action=ACQUIRE`，並同步重建 DERIVED_CACHE_ONLY ready-index。
+5. 寫入後必須 fresh-read exact record 並驗 fingerprint；`DISPATCH_READY` 本身不得偷做 ACQUIRE、不得建立 lease、不得直接進 ACTIVE。
+6. READY 建立成功後，同一 invocation 若仍可執行，立即 fresh-read 並走正常 `ACQUIRE`；不得把「READY 已建立」當成停止點。
+7. 已 merge delivery 的 missing-record 情境仍只走 `RECOVER_POST_DELIVERY`，不得改走 `DISPATCH_READY` 倒填歷史。
+
+Machine owner=`tools/control_transaction_request_ingress.py` → `tools/control_transaction_production_executor.py::dispatch_ready_missing_record`；planner owner=`tools/execution_dispatch_ingress.py`。
+
 建立／續送 control transaction 時固定遵守 **session-first**：
 1. fresh-read `coord/execution-v2` exact HEAD、native record、generation 與 structured `next_action`；本 Issue identity 若已前進，舊 plan 立即 `STALE_PLAN_MUST_DIE`，不得補完舊 action。
 2. 本 lane request branch 必須已有 `.dispatch/transaction-request.json` seed，所有 request 以 existing-file CAS 更新。
