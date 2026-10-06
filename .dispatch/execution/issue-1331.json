@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
   "issue": 1331,
   "lane_id": "chatgpt.flowv2.work0",
@@ -21,10 +21,28 @@
     "invocation_identity": "codex.issue1331.0c274de2-8e5f-4711-811a-59f48fd68791",
     "token": "lease:1331:37544858282:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "ae_engine/receiving_layout.py",
+      "ae_engine/receiving_shared_settings.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "gui_modules/application/receiving_set_bay_adapter.py",
+      "gui_modules/application/receiving_set_bay_controls.py",
+      "phase6_project_file.py",
+      "tests/test_issue1112_receiving_set_bay_editor.py",
+      "tests/test_issue1331_receiving_shared_settings.py",
+      "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+      "tests/test_receiving_layer_ui_regression.py",
+      "修改日誌/20261007.md"
+    ]
+  },
   "next_action": {
     "args": {},
-    "display": "完成 #1331 workspace 修改與測試後交付 exact diff",
+    "display": "交付 #1331 已測試 exact diff",
     "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work0",
@@ -42,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
@@ -50,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
   "transaction": {
-    "expected_fingerprint": "e74e4d5e1e32fe901dc363bfbd3a5c50bf6fe2ac37bd73174a72ae4e12f6b90d",
-    "id": "gha:37545095135:1331:RECONCILE:4",
+    "expected_fingerprint": "462255cb42eab9aef1135e39381983bba47c01f08662a2f97bafe1f59dedc0da",
+    "id": "gha:37545712504:1331:RESERVE_PATHS:5",
     "invocation_identity": "codex.issue1331.0c274de2-8e5f-4711-811a-59f48fd68791",
-    "kind": "RECONCILE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T23:11:33Z",
+  "updated_at": "2026-10-06T23:18:00Z",
   "version": 2,
   "work_branch": "work/issue-1331"
 }
