@@ -1,12 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "732775c6-89e5-4663-8d77-6f4c6451994f",
+  "request_id": "8b212dff-5f0e-4661-81e4-d3241b7f0a0a",
   "issue": 1331,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1331.0c274de2-8e5f-4711-811a-59f48fd68791",
-  "expected_coord_head": "e1e5c2a8d1b59fb10777cc0e407cb23f7e55e435",
-  "expected_generation": 2,
+  "expected_coord_head": "bb530718963e668e1d4763a70514ee7a07464791",
+  "expected_generation": 3,
   "effect": {},
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
@@ -41,10 +41,10 @@
       "repository_content_write_unlocked": null,
       "status": "GREEN"
     },
-    "purpose": "#1331 依使用者指定本機工作區續作原本每連設定實作與驗證",
-    "issued_at": "2026-10-06T22:45:52Z",
-    "expires_at": "2026-10-06T22:50:52Z",
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：#1331 依使用者指定本機工作區續作原本每連設定實作與驗證\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
+    "purpose": "接續 #1331 使用者指定本機工作區，完成已測試變更交付",
+    "issued_at": "2026-10-06T23:08:14Z",
+    "expires_at": "2026-10-06T23:13:14Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：接續 #1331 使用者指定本機工作區，完成已測試變更交付\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
@@ -93,7 +93,7 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-06T22:45:52Z"
+    "observed_at": "2026-10-06T23:08:14Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -104,9 +104,10 @@
     "issue": 1331,
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-    "startup_issued_at": "2026-10-06T22:45:52Z",
-    "preflight_observed_at": "2026-10-06T22:45:52Z",
-    "issued_at": "2026-10-06T22:45:52Z",
-    "expires_at": "2026-10-06T22:50:52Z"
+    "startup_issued_at": "2026-10-06T23:08:14Z",
+    "preflight_observed_at": "2026-10-06T23:08:14Z",
+    "issued_at": "2026-10-06T23:08:14Z",
+    "expires_at": "2026-10-06T23:13:14Z"
   }
 }
+
