@@ -2011,17 +2011,6 @@ def _phase6_render_data_for_blank(self, part_key=None):
     return callback(key, _phase6_scene_query_payload_for_part(self, key))
 
 
-def _phase6_format_unfolded_blank_text(render_data, *, part_key=""):
-    from ae_engine.manufacturing_api import measure_unfolded_blanks
-
-    return Phase6CornerDataViewAdapter.unfolded_blank_text(
-        render_data,
-        part_key=part_key,
-        measurer=measure_unfolded_blanks,
-        number_text=_setting_number_text,
-    )
-
-
 _PHASE6_DEFAULT_VIEW = (50.0, -90.0)
 
 

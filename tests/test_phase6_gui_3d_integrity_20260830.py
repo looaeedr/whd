@@ -24,7 +24,7 @@ def test_unfolded_blank_operator_text_has_piece_sizes_without_area_or_raw_ids():
         preview_render_data=left,
         canonical_strip_render_data=canonical,
     )
-    text = bridge._phase6_format_unfolded_blank_text(render, part_key="box_body")
+    text = bridge._phase6_composition(SimpleNamespace()).final_scene_ports(vars(bridge)).blank_text(render, part_key="box_body")
     assert "左箱身 123 × 456 mm" in text
     assert "右箱身 234 × 456 mm" in text
     assert "淨面積" not in text

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,6 +89,50 @@ def test_t1_owner_modules_never_reverse_import_bridge():
         source = path.read_text(encoding="utf-8")
         assert "from fold_designer_bridge import" not in source
         assert "import fold_designer_bridge" not in source
+
+
+def test_issue1279_unfolded_blank_formatting_has_no_bridge_callback():
+    assert "_phase6_format_unfolded_blank_text" not in BRIDGE.read_text(encoding="utf-8")
+    assert "_phase6_format_unfolded_blank_text" not in ADAPTER.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("material, expected", [
+    (None, "展開料：-"),
+    ((-10, -20, 120, 220), "展開料：130 × 240 mm"),
+    ((0, 0, 123.5, 456.25), "展開料：123.5 × 456.25 mm"),
+])
+def test_issue1279_composed_blank_text_keeps_canonical_measurement_output(material, expected):
+    import fold_designer_bridge as bridge
+    from ae_engine.manufacturing_api import PartRenderData
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+    from shapely.geometry import box
+
+    namespace = dict(vars(bridge))
+    namespace.pop("_phase6_format_unfolded_blank_text", None)
+    ports = Phase6FoldDesignerComposition(SimpleNamespace()).final_scene_ports(namespace)
+    render_data = None if material is None else PartRenderData(scene=object(), material=box(*material))
+    assert ports.blank_text(render_data, part_key="door") == expected
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_issue1279_composed_blank_text_handles_empty_or_failed_measurement(monkeypatch, fails):
+    import fold_designer_bridge as bridge
+    from ae_engine import manufacturing_api
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+
+    calls = []
+
+    def measure(render_data, *, part_key):
+        calls.append((render_data, part_key))
+        if fails:
+            raise ValueError("measurement unavailable")
+        return ()
+
+    monkeypatch.setattr(manufacturing_api, "measure_unfolded_blanks", measure)
+    render_data = object()
+    ports = Phase6FoldDesignerComposition(SimpleNamespace()).final_scene_ports(vars(bridge))
+    assert ports.blank_text(render_data, part_key="box_body:back") == "展開料：-"
+    assert calls == [(render_data, "box_body:back")]
 
 
 def test_t1_facade_ratchet_does_not_grow_past_t0_baseline():
