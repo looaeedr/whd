@@ -143,6 +143,23 @@ def open_receiving_layer_preview(
         SimpleNamespace(ax3d=ax, canvas=canvas)
     )
 
+    # This settings dialog is a fast operator preview, not the manufacturing
+    # rendering authority. Keep the authoritative CUTTING mesh, but skip
+    # expensive presentation-only overlays/wireframes so rotate/zoom stays
+    # responsive for multi-connection sets.
+    for method_name in (
+        "_draw_joint_marking_world_rows",
+        "_draw_assembly_scene_markings",
+        "_draw_box_body_structure_bends",
+        "_draw_assembly_box_body_bends",
+        "_add_mesh_boundary_lines",
+        "_add_mesh_feature_lines",
+        "_add_mesh_boundary_and_crease_lines",
+        "_draw_joint_diagnostic_overlays",
+    ):
+        if hasattr(preview_renderer, method_name):
+            setattr(preview_renderer, method_name, lambda *_args, **_kwargs: None)
+
     render_data = render_request.render_data
     source_parts = tuple(getattr(render_data, "assembly_parts", ()) or ())
     all_part_keys = tuple(
@@ -210,13 +227,15 @@ def open_receiving_layer_preview(
             y = float(row["y"])
             z = float(row["z"])
             radius = float(row["diameter"]) / 2.0
+            # Settings preview only: 16 segments are enough to show mating holes
+            # clearly while avoiding the cost of 48-segment circles.
             points = tuple(
                 (
                     x,
-                    y + radius * math.cos(2.0 * math.pi * step / 48.0),
-                    z + radius * math.sin(2.0 * math.pi * step / 48.0),
+                    y + radius * math.cos(2.0 * math.pi * step / 16.0),
+                    z + radius * math.sin(2.0 * math.pi * step / 16.0),
                 )
-                for step in range(49)
+                for step in range(17)
             )
             ax.plot(
                 [point[0] for point in points],
@@ -243,7 +262,10 @@ def open_receiving_layer_preview(
                 if selected_part_keys == set(all_part_keys)
                 else tuple(key for key in all_part_keys if key in selected_part_keys)
             )
-            data = replace(render_data, visible_part_keys=visible)
+            render_overrides = {"visible_part_keys": visible}
+            if hasattr(render_data, "show_interference"):
+                render_overrides["show_interference"] = False
+            data = replace(render_data, **render_overrides)
             request = replace(render_request, render_data=data)
             triangles = tuple(preview_renderer.render(request) or ())
             if not triangles:
@@ -320,7 +342,10 @@ def open_receiving_layer_preview(
     )
     ttk.Button(actions, text="關閉", command=win.destroy).pack(side=tk.RIGHT)
 
-    _render_preview(reset_view=True)
+    try:
+        win.after_idle(lambda: _render_preview(reset_view=True))
+    except Exception:
+        _render_preview(reset_view=True)
 
     # Exact GUI acceptance/readback metadata. These are presentation facts only.
     win._phase6_receiving_preview_canvas = canvas
