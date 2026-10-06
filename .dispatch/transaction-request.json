@@ -1,33 +1,10 @@
 {
-  "effect": {
-    "base_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
-    "delete_paths": [],
-    "next_action": {
-      "args": {},
-      "display": "Start isolated implementation branch for Issue #1334",
-      "kind": "START_BRANCH"
-    },
-    "target_branch": "cleanup/2d-3d-sync",
-    "write_paths": [
-      ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-      ".agents/skills/engineering/寫排程/SKILL.md",
-      ".agents/skills/engineering/工作槽/SKILL.md",
-      ".agents/skills/engineering/排程模擬/SKILL.md",
-      "tests/process/test_issue1334_host_turn_exit_enforcement.py",
-      "tests/process/test_issue1334_host_turn_exit_gate.py",
-      "tests/process/test_issue679_local_durability_runtime.py",
-      "tools/execution_invocation_exit.py",
-      "tools/flow_v2_runtime_observation.py",
-      "tools/interactive_runtime_liveness.py",
-      "tools/runtime_report_identity.py"
-    ]
-  },
-  "expected_coord_head": "e303dce6eaae1ec36c0ce4c870573f248750a2bd",
-  "expected_generation": 4,
+  "effect": {},
+  "expected_coord_head": "e1e5c2a8d1b59fb10777cc0e407cb23f7e55e435",
+  "expected_generation": 5,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "preflight_evidence": {
     "branch": "cleanup/2d-3d-sync",
@@ -42,7 +19,7 @@
     "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "observed_at": "2026-10-06T17:20:35Z",
+    "observed_at": "2026-10-06T17:25:20Z",
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
@@ -53,15 +30,15 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN"
   },
-  "request_id": "issue1334-reserve-paths-work1-v2",
+  "request_id": "issue1334-acquire-resume-after-tests",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Reserve sorted exact tested host-turn-exit enforcement write set for Issue #1334\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew #1334 lease after exact tests while preserving PATHS_RESERVED and START_BRANCH\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T17:25:35Z",
+    "expires_at": "2026-10-06T17:30:20Z",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issued_at": "2026-10-06T17:20:35Z",
-    "purpose": "Reserve sorted exact tested host-turn-exit enforcement write set for Issue #1334",
+    "issued_at": "2026-10-06T17:25:20Z",
+    "purpose": "Renew #1334 lease after exact tests while preserving PATHS_RESERVED and START_BRANCH",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "work_root_gate": {
@@ -96,15 +73,15 @@
   "startup_transition": {
     "branch": "cleanup/2d-3d-sync",
     "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-06T17:25:35Z",
+    "expires_at": "2026-10-06T17:30:20Z",
     "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "issue": 1334,
-    "issued_at": "2026-10-06T17:20:35Z",
-    "preflight_observed_at": "2026-10-06T17:20:35Z",
+    "issued_at": "2026-10-06T17:25:20Z",
+    "preflight_observed_at": "2026-10-06T17:25:20Z",
     "repository": "looaeedr/whd",
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-    "startup_issued_at": "2026-10-06T17:20:35Z",
+    "startup_issued_at": "2026-10-06T17:25:20Z",
     "status": "READY_FOR_EXECUTION"
   }
 }
