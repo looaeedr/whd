@@ -1,6 +1,10 @@
 {
   "active_run": null,
-  "blocker": null,
+  "blocker": {
+    "evidence": "Exact synchronized head e7b8ad2d08dcbd251d77a616fa73a39bc9641018: Product Regression run37392795983 and governance run37392793927 both completed/action_required, no jobs. Connector rerun-failed-jobs returned GitHub403: This workflow run cannot be retried. No workflow-approve capability is available. Prior eedf73c63 product QA run37386553810 succeeded; candidate patch identity remains unchanged. Requires owner action in GitHub Actions before exact-head acceptance and merge.",
+    "kind": "EXTERNAL_DEPENDENCY",
+    "recheck_after": null
+  },
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -12,7 +16,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 15,
+  "generation": 16,
   "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
@@ -38,13 +42,15 @@
   },
   "next_action": {
     "args": {
-      "post_accept_pr_number": 1316,
-      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "blocker_kind": "EXTERNAL_DEPENDENCY",
+      "governance_run_id": 37392793927,
+      "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
+      "pr_number": 1316,
+      "resume_action": "RECONCILE clear_blocker then consume exact-head GREEN and MERGE",
+      "run_id": 37392795983
     },
-    "display": "Revalidate exact head after target synchronization",
-    "kind": "START_QA"
+    "display": "Repository owner resolve GitHub action_required for both exact-head CI runs; resume trusted acceptance and merge",
+    "kind": "WAIT_EXTERNAL"
   },
   "owner_id": "chatgpt.flowv2.work0",
   "owner_kind": "SCHEDULER",
@@ -61,21 +67,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_INVALIDATED_BY_TARGET_SYNC",
+  "semantic_state": "BLOCKED",
   "slot_id": "worker.slot.0",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "79ef64b0f31e30198e1c776047e1c36eb26ba480",
-  "state": "INTEGRATING",
+  "state": "BLOCKED",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cfd8555e3e4375605c7e80c88072cecad6587d2b",
   "transaction": {
-    "expected_fingerprint": "c056bbc168d166f0fd4f724e9830cbdcd3813dc74308011566fa9e4a750df49e",
-    "id": "gha:37392736919:1279:SYNC_TARGET:14",
+    "expected_fingerprint": "28865296d91cac3647c03edc5cb8c3dcea3e2e0a04513947752cdbd4d4ebfe23",
+    "id": "gha:37393236534:1279:BLOCK:15",
     "invocation_identity": "codex.issue1279.712c4e93-fc91-41bc-b1e6-1b0cf764bc22",
-    "kind": "SYNC_TARGET",
+    "kind": "BLOCK",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T00:12:42Z",
+  "updated_at": "2026-10-06T00:18:12Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
