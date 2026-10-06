@@ -138,6 +138,8 @@ GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力
 #### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1
 使用者入口已明確指定 exact Issue（例如 `/接手 1331`、`/接手 #1331`）時，**工單 selection 已完成**。只允許 fresh-read該 Issue、same-Issue ExecutionRecord、exact live refs/HEAD 與 required Preflight；禁止為了「找工作」再掃 READY/open Issues/ready-index/scheduler view/`TAKEOVER_CANDIDATE`/scheduler marker。ExecutionRecord 缺失時只可對同一 exact Issue 做 explicit ingress/recovery，不得轉入 AUTO DISCOVERY 或挑另一張。真正 startup/Preflight、same-Issue conflict、tests/QA/merge/finalization gate仍照常；admission後必須直接施工/resume，不得停在「找到工單／ACQUIRE」。
 
+**EXPLICIT_TAKEOVER_RC_WORKSPACE_V1**：interactive `/接手 <issue>` 的 repository-content 施工固定使用 **Remote Desktop Commander（RC）連使用者授權本機 `/workspace/whd`**。修改、測試、commit 必須在該 root；不得換到雲端 executor 私有 workspace。可交接成果必須 push 成 GitHub 可見 branch/commit/PR，不得只留未 push worktree。RC 或該 root 不可用時固定 `LOCAL_MACHINE_UNAVAILABLE`，禁止 cloud-workspace fallback。此規則只限 explicit `/接手`，其他 entry 不受影響。
+
 #### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1
 
 GitHub-only scheduler A/B 若在 startup 時尚不知道 exact owning Issue，可在適用於該 runtime 的 startup communication、fresh per-invocation `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`、fresh-read `AGENTS.md` 與 canonical Flow v2 Skill 都完成後，先做一次 `READ_ONLY_BOOTSTRAP_ONLY` discovery，專門解除 remote Preflight 的 Issue-binding 循環。**AI Library 只在 runtime 實際具有 ChatGPT AI Library surface 時作 pre-action enrichment；Codex/headless/scheduler 缺 AI Library transport 固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`，不得阻塞 bootstrap 或 Preflight。**

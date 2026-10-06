@@ -87,6 +87,10 @@ canonical recovery 只允許 trusted ingress `RECOVER_POST_DELIVERY`：
 當使用者明確指定 exact owning Issue 時（canonical examples：`/接手 1331`、`/接手 #1331`、`接手工單 1331`），這不是 discovery request，而是 **DIRECT_ISSUE_EXECUTION**：
 
 - exact Issue number 在 entry 時就是 task selection authority；不得再掃 open Issues、READY candidates、ready-index、scheduler projection、`TAKEOVER_CANDIDATE`、owner-authored scheduler markers或其他 candidate list 來重新選工作。
+- **EXPLICIT_TAKEOVER_RC_WORKSPACE_V1**：interactive `/接手 <issue>` 的 repository-content 實作 surface 固定為 **Remote Desktop Commander（RC）連到使用者授權本機**，施工 root 固定 `/workspace/whd`。所有程式修改、focused tests、commit 都必須在該 root 完成；不得改用 ChatGPT/Codex/其他 executor 的雲端私有 workspace。
+- RC 進入後先驗 `/workspace/whd` 為正確 `looaeedr/whd` Git repo，fresh 對齊 production `cleanup/2d-3d-sync`，再續 same-Issue implementation；這個 RC workspace 是 execution surface，不改變 GitHub production authority。
+- 本輪完成可交接的實作後，變更不得只留在未 push worktree：必須建立/更新該 Issue 可追蹤的 Git branch + commit，並在需要交付時 push/PR，使下一個執行器可從 GitHub durable state 看見。只有聊天 checkpoint 或 RC 本機未 push 修改不算可交接成果。
+- 若 RC transport 不可用、授權本機不可達或 `/workspace/whd` 不存在/不是正確 repo，固定 `LOCAL_MACHINE_UNAVAILABLE`；**不得 fallback 到雲端 private workspace 代做**。這條固定路徑只適用 explicit `/接手`；其他 execution entry 仍依一般 executor-local workspace policy。
 - startup/readback 僅限同一 exact Issue 所需的最小集合：owning Issue、該 Issue 的 native ExecutionRecord（若存在）、source/work/target live refs + HEAD、Phase6 Preflight 所需 identity，以及該 Issue 已存在的 PR/QA/closure evidence。
 - 若 native ExecutionRecord 缺失，固定分類為 **EXACT_ISSUE_INGRESS_REQUIRED**（或已交付時走既有 post-delivery recovery）；只可對同一 Issue 建立/修復 ingress。不得以「record missing」為理由進 AUTO DISCOVERY 或挑另一張工單。
 - 若該 Issue 已有 ACTIVE/DONE/BLOCKED record，fresh-read後依其 structured `next_action` resume/reconcile/finalize；不得先做全域工作 census。
