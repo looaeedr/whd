@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "6a4eedf3d9bc1ca972cd579ef3213722b6c714bc",
+  "issue": 1319,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-06T00:37:27Z",
+    "invocation_identity": "github:production-x-post-merge:37393605676:pr1320:issue1319",
+    "token": "recovery:1319:37393605676"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1320,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1319,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "open",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
+      "observed_at": "2026-10-06T00:22:27Z",
+      "observed_target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
+      "pr_head_ref": "governance/issue1319-final-drive-fixture-purge-20261006",
+      "pr_head_sha": "6a4eedf3d9bc1ca972cd579ef3213722b6c714bc",
+      "pr_number": 1320,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "governance/issue1319-final-drive-fixture-purge-20261006",
+  "source_sha": "6a4eedf3d9bc1ca972cd579ef3213722b6c714bc",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
+  "transaction": null,
+  "updated_at": "2026-10-06T00:22:27Z",
+  "version": 2,
+  "work_branch": "governance/issue1319-final-drive-fixture-purge-20261006"
+}
