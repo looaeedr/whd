@@ -150,12 +150,13 @@ def test_active_part_selector_and_canvas_settle_are_owned_by_navigation_view_ada
     adapter_source = OWNER.read_text(encoding="utf-8")
     assert "def project_active_part_selector(" in adapter_source
     assert "def finalize_single_part_layout(" in adapter_source
-    activate = ast.unparse(_function("_fix11_activate_part"))
-    assert "_navigation_view_project_active_part_selector" in activate
-    assert "_navigation_view_finalize_single_part_layout" in activate
-    assert "_phase6_manufacturing_state_signature" in activate
-    assert "navigation.begin_activation" in activate
-    assert "navigation.finish_activation" in activate
+    session_owner = (ROOT / "gui_modules" / "application" / "fold_designer_part_session.py").read_text(
+        encoding="utf-8"
+    )
+    assert "project_active_part_selector" in session_owner
+    assert "finalize_single_part_layout" in session_owner
+    assert "navigation.begin_activation" in session_owner
+    assert "navigation.finish_activation" in session_owner
 
 
 def test_bridge_loc_ratchets_below_6000_after_active_part_view_extraction():
@@ -204,4 +205,3 @@ def test_part_navigation_widget_construction_is_owned_by_navigation_view_adapter
 def test_bridge_loc_ratchets_below_5800_after_part_navigation_widget_construction_extraction():
     loc = BRIDGE.read_text(encoding="utf-8").count("\n")
     assert loc <= 5800, f"Bridge regrew past #1197 navigation-widget ratchet: {loc}"
-
