@@ -6,7 +6,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 # Issue 1297: Drive/shared-zero cannot regain CURRENT routing authority.
-CONTRACT = ROOT / ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+CONTRACT = ROOT / ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
 SKILL = ROOT / ".agents/skills/engineering/root-local-first/SKILL.md"
 
 
@@ -27,7 +27,7 @@ def test_workspace_entry_bootstrap_does_not_require_drive_or_unpushed():
     default_flow = payload["default_repository_content_flow"]
 
     assert source["provider"] == "executor_local_repo_workspace"
-    assert source["repo_relative_path"] == ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"
+    assert source["repo_relative_path"] == ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
     assert source["resolution_method"] == "WORKSPACE_REPO_RELATIVE_PATH"
     assert source["drive_role"] == "MIRROR_BACKUP_ONLY"
     assert source["drive_required"] is False
@@ -47,7 +47,7 @@ def test_workspace_entry_bootstrap_does_not_require_drive_or_unpushed():
 
     evidence = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
@@ -125,7 +125,7 @@ def test_legacy_shared_zero_drift_cannot_block_repository_content_work():
 
     entry = build_entry_router_evidence(
         fresh_reads=[
-            ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+            ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
             ".agents/skills/engineering/root-local-first/SKILL.md",
         ],
         workspace_root="/workspace/whd",
