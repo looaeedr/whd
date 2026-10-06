@@ -204,3 +204,33 @@ def test_explicit_issue_direct_execution_forbids_auto_discovery():
     assert "接手 #" in keywords
     assert "接手工單" in keywords
 
+def test_explicit_takeover_requires_rc_local_workspace():
+    canonical = text(CANONICAL)
+    dispatch = text(ROOT / ".agents/skills/engineering/派工/SKILL.md")
+    execution = text(ROOT / ".agents/skills/engineering/執行開發任務/SKILL.md")
+    root_local = text(ROOT / ".agents/skills/engineering/root-local-first/SKILL.md")
+    agents = text(ROOT / "AGENTS.md")
+    marker = "EXPLICIT_TAKEOVER_RC_WORKSPACE_V1"
+
+    for source in (canonical, root_local, agents):
+        assert marker in source
+
+    for source in (canonical, dispatch, execution, root_local, agents):
+        assert "Remote Desktop Commander" in source
+        assert "/workspace/whd" in source
+        assert "LOCAL_MACHINE_UNAVAILABLE" in source
+
+    direct = canonical.split("### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1", 1)[1].split(
+        "### SCHEDULER_STARTUP_BOOTSTRAP_READ_ONLY_DISCOVERY_V1", 1
+    )[0]
+    assert "不得改用 ChatGPT/Codex/其他 executor 的雲端私有 workspace" in direct
+    assert "Git branch + commit" in direct
+    assert "push/PR" in direct
+    assert "不得 fallback 到雲端 private workspace 代做" in direct
+
+    scoped = root_local.split("### EXPLICIT_TAKEOVER_RC_WORKSPACE_V1", 1)[1].split(
+        "## Compatibility / delivery invariants", 1
+    )[0]
+    assert "只對 explicit `/接手` 生效" in scoped
+    assert "不得擴張成 scheduler" in scoped
+
