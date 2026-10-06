@@ -1,27 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "7ed41687-622f-4a4c-bd67-ccab8f8752b1",
+  "request_id": "2e10bb92-638b-4bc6-a87f-e02068157b57",
   "issue": 1279,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1279.a7814929-8b89-4d5c-9066-ad577d6215c5",
-  "expected_coord_head": "c65ddf1ad9245439446366dc915536464bfafa80",
-  "expected_generation": 19,
-  "effect": {
-    "run_id": 37392795983,
-    "next_state": "INTEGRATING",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1316,
-        "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
-        "target_branch": "cleanup/2d-3d-sync",
-        "expected_target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Merge exact accepted PR1316"
-    }
-  },
+  "expected_coord_head": "784b1051fd279f372d4e049ad482757a6e4ea46b",
+  "expected_generation": 20,
+  "effect": {},
   "session_reuse": {
     "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
     "mode": "LIVE_LEASE_CONTINUATION"
