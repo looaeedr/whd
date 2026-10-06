@@ -155,7 +155,7 @@ def test_authority_map_still_points_to_single_current_machine_owners():
         encoding="utf-8"
     )
     assert "contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py" in text
-    assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json" in text
+    assert "contract=root-shared-unpushed-entry-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json" in text
     assert "contract=shared-unpushed-integration role=HISTORICAL path=tools/shared_unpushed_integration.py" in text
 
 
