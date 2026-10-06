@@ -58,7 +58,7 @@ def test_control_plane_workflow_triggers_on_work_slot_identity_regression():
 
 def test_root_gate_requires_machine_test_receipt():
     gate = _text("tools/root_local_first_gate.py")
-    contract = _text(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json")
+    contract = _text(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json")
     skill = _text(".agents/skills/engineering/root-local-first/SKILL.md")
     for token in ("WHD_TEST_EXECUTION_RECEIPT_V1", "manifest_digest", "exact_commands"):
         assert token in gate
