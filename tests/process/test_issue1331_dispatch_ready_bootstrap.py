@@ -50,6 +50,13 @@ def _dispatch_request():
 def test_dispatch_ready_is_a_trusted_request_kind():
     assert "DISPATCH_READY" in ingress.ALLOWED_KINDS
 
+def test_dispatch_ready_is_machine_internal_orchestration():
+    from tools.root_local_first_gate import classify_outer_orchestration_event
+
+    classified = classify_outer_orchestration_event("DISPATCH_READY")
+    assert classified["disposition"] == "BACKGROUND_CONTINUE_PRIMARY_TASK"
+    assert classified["outer_visible"] is False
+
 
 def test_interactive_dispatch_ready_binds_preflight_identity_and_lane_slot():
     request = ingress._build_dispatch_ready_ingress_request(
