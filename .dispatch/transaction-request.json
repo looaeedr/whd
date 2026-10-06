@@ -1,28 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "33dfbfe9-7691-4126-9113-efdf15a86818",
+  "request_id": "7ed41687-622f-4a4c-bd67-ccab8f8752b1",
   "issue": 1279,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "codex.issue1279.a7814929-8b89-4d5c-9066-ad577d6215c5",
-  "expected_coord_head": "432c07568d740c5bd5e2d0332f24bf69f884c37f",
-  "expected_generation": 18,
+  "expected_coord_head": "c65ddf1ad9245439446366dc915536464bfafa80",
+  "expected_generation": 19,
   "effect": {
-    "observed_work_branch": "refactor/issue-1279-unfolded-blank-composition",
-    "observed_head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
-    "observed_target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
-    "state": "ACTIVE",
-    "clear_blocker": true,
-    "semantic_state": "APPROVAL_RESOLVED",
+    "run_id": 37392795983,
+    "next_state": "INTEGRATING",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml",
-        "post_accept_pr_number": 1316,
-        "post_accept_target_branch": "cleanup/2d-3d-sync",
-        "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml"
+        "pr_number": 1316,
+        "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "2a9d891a4f03f5911b43e81f23a787008b35c871",
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Consume approved exact-head product regression GREEN"
+      "display": "Merge exact accepted PR1316"
     }
   },
   "session_reuse": {
