@@ -756,6 +756,17 @@ def execute_request(
     execution_mode = _execution_mode_for_request(request)
     reuse_session = _session_reuse_requested(request)
     if not reuse_session:
+        startup_payload = request.get("startup_evidence")
+        if isinstance(startup_payload, dict):
+            root_payload = startup_payload.get("work_root_gate")
+            if (
+                isinstance(root_payload, dict)
+                and str(root_payload.get("scope") or "") == "CONTROL_PLANE_ONLY"
+                and str(request["kind"]) != "DISPATCH_READY"
+            ):
+                raise ProductionExecutorError(
+                    "control-plane-only admission is restricted to DISPATCH_READY"
+                )
         try:
             validate_startup_evidence(
                 request.get("startup_evidence"),
