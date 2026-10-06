@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "e91af2ffb55b53aa96ae1320184071e57149444c",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "871c2b739d2a079c4df213cf509ec030eb64268e",
+  "issue": 1326,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-06T14:21:44Z",
+    "invocation_identity": "github:production-x-post-merge:37476092650:pr1329:issue1326",
+    "token": "recovery:1326:37476092650"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1329,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1326,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "closed",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "e91af2ffb55b53aa96ae1320184071e57149444c",
+      "observed_at": "2026-10-06T14:06:44Z",
+      "observed_target_sha": "e91af2ffb55b53aa96ae1320184071e57149444c",
+      "pr_head_ref": "fix/issue1326-receiving-set-settings-fullscreen",
+      "pr_head_sha": "871c2b739d2a079c4df213cf509ec030eb64268e",
+      "pr_number": 1329,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "fix/issue1326-receiving-set-settings-fullscreen",
+  "source_sha": "871c2b739d2a079c4df213cf509ec030eb64268e",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "e91af2ffb55b53aa96ae1320184071e57149444c",
+  "transaction": null,
+  "updated_at": "2026-10-06T14:06:44Z",
+  "version": 2,
+  "work_branch": "fix/issue1326-receiving-set-settings-fullscreen"
+}

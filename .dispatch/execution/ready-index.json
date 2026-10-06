@@ -1,6 +1,18 @@
 {
   "authority": "DERIVED_CACHE_ONLY",
-  "entries": [],
+  "entries": [
+    {
+      "execution_intent": "SCHEDULER_LANE",
+      "generation": 7,
+      "issue": 1080,
+      "next_action_display": "Acquire Issue #1080",
+      "next_action_kind": "ACQUIRE",
+      "record_fingerprint": "871b5ccbf23ee303e23f2372d0c30e7e3808fd3ad2d30271dd661b2a6a4eb7ec",
+      "target_branch": "cleanup/2d-3d-sync",
+      "target_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
+      "updated_at": "2026-10-06T03:02:10.001Z"
+    }
+  ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "8f0adabee6b0827107764739121492aa35f7b5ebd5f6d7fbc9193d379fcdb66c"
+  "source_digest": "05056fc12385aab852c4b3e764c081f113e8d99c50a14d254058fba6d57bdd1c"
 }
