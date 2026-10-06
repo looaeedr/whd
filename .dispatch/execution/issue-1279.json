@@ -16,15 +16,11 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 16,
+  "generation": 17,
   "head_sha": "e7b8ad2d08dcbd251d77a616fa73a39bc9641018",
   "issue": 1279,
   "lane_id": "chatgpt.flowv2.work0",
-  "lease": {
-    "expires_at": "2026-10-06T00:22:12Z",
-    "invocation_identity": "codex.issue1279.712c4e93-fc91-41bc-b1e6-1b0cf764bc22",
-    "token": "lease:1279:37392211770:1"
-  },
+  "lease": null,
   "mutation_scope": {
     "base_sha": "2a31a6623505019f657740d7f1e89aa7d564a55d",
     "delete_paths": [],
@@ -75,13 +71,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "cfd8555e3e4375605c7e80c88072cecad6587d2b",
   "transaction": {
-    "expected_fingerprint": "28865296d91cac3647c03edc5cb8c3dcea3e2e0a04513947752cdbd4d4ebfe23",
-    "id": "gha:37393236534:1279:BLOCK:15",
+    "expected_fingerprint": "59253f32d3f62e554ddafb8240325fc44d46e9b82fda23d07944a0b4820bf4b6",
+    "id": "gha:37393307482:1279:YIELD:16",
     "invocation_identity": "codex.issue1279.712c4e93-fc91-41bc-b1e6-1b0cf764bc22",
-    "kind": "BLOCK",
+    "kind": "YIELD",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T00:18:12Z",
+  "updated_at": "2026-10-06T00:19:21Z",
   "version": 2,
   "work_branch": "refactor/issue-1279-unfolded-blank-composition"
 }
