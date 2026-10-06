@@ -36,12 +36,7 @@
       "keywords": [
         "root-local-first",
         "根目錄先做",
-        "根目錄修改",
-        "共享0",
-        "未推送0",
-        "latest 0",
-        "BLOCKED_USER_DECISION",
-        "GIT_WRITE_UNLOCKED"
+        "根目錄修改"
       ],
       "file_globs": [
         "**"
@@ -50,8 +45,7 @@
         "root-local-first"
       ],
       "required_references": [
-        ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
-        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+        ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
       ]
     },
     {
@@ -1288,7 +1282,7 @@
         "推推"
       ],
       "required_references": [
-        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+        ".agents/skills/engineering/推推/SKILL.md"
       ]
     },
     {
@@ -1314,7 +1308,7 @@
         "刪除"
       ],
       "required_references": [
-        ".agents/contracts/WHD_SHARED_UNPUSHED_INTEGRATION_V1.json"
+        ".agents/skills/engineering/刪除/SKILL.md"
       ]
     }
   ]
