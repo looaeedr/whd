@@ -2902,7 +2902,8 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
 def _phase6_part_session_owner(self):
     owner = getattr(self, "_phase6_part_session_owner", None)
     if owner is None:
-        owner = Phase6PartSessionOwner(self)
+        owner = Phase6PartSessionOwner()
+        owner.bind_application(self)
         self._phase6_part_session_owner = owner
     return owner
 

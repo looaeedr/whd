@@ -43,6 +43,7 @@ def test_issue1321_moves_part_session_orchestration_out_of_bridge():
     activate_body = ast.unparse(activate)
     assert "Phase6PartSessionOwner" in save_body or "_phase6_part_session_owner" in save_body
     assert "Phase6PartSessionOwner" in activate_body or "_phase6_part_session_owner" in activate_body
+    assert "self.save_current_part()" in ast.unparse(owner["activate_part"])
 
 
 def test_issue1321_owner_keeps_bridge_compatibility_via_lazy_bridge_resolution():
@@ -50,6 +51,9 @@ def test_issue1321_owner_keeps_bridge_compatibility_via_lazy_bridge_resolution()
     assert "class Phase6PartSessionOwner" in source
     assert "__import__('fold_designer_bridge')" in source
     assert "formula ownership remains" in source
+    assert "def __init__(self):" in source
+    assert "def bind_application(self, host: Any):" in source
+    assert "def __init__(self, app:" not in source
 
 
 def test_issue1321_bridge_only_owns_delegate_ports():
