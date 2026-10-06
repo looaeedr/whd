@@ -35,9 +35,9 @@ def test_receiving_operator_terms_are_chinese_layers_connections_and_switch_bran
     assert 'Set 1' not in source
     assert 'Bay 1' not in source
     assert '開關' in source
-    assert '＋層' in source
-    assert '－層' in source
-    assert '預覽' in source
+    assert '＋套' in source
+    assert '－套' in source
+    assert 'text="設定"' in source
 
 
 def test_switch_layout_is_separate_from_multi_cabinet_receiving_layout():
@@ -75,8 +75,9 @@ def test_each_layer_row_has_own_connection_resize_and_preview_callbacks():
     assert 'on_resize_connections(layer_index, -1)' in source
     assert 'on_resize_connections(layer_index, 1)' in source
     assert 'on_preview(layer_index)' in source
-    assert '第{layer_index + 1}層' in source
+    assert '第{layer_index + 1}套' in source
     assert '{connection_count}連' in source
+    assert 'text="設定"' in source
 
 
 def test_receiving_connection_resize_is_configuration_only_and_never_flushes_3d():
@@ -145,6 +146,16 @@ def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_ho
     assert 'lock_circles' in owner_source
     assert 'Radiobutton' not in owner_source
     assert 'on_confirm' not in owner_source
+    assert 'win.state("zoomed")' in owner_source
+    assert 'figure.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0)' in owner_source
+    assert 'preview_renderer.configure_3d_only_figure()' in owner_source
+    assert 'group_labels.get(group, group)' not in owner_source
+    assert 'group_labels.get(group, f"零件{ordinal}")' in owner_source
+    assert '"left_side": "左側板"' in owner_source
+    assert '"back": "後側板"' in owner_source
+    assert '"right_side": "右側板"' in owner_source
+    assert '"divider": "中隔"' in owner_source
+    assert '"inner_door": "內門框"' in owner_source
 
     adapter_source = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
         encoding="utf-8"
