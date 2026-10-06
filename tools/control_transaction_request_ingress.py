@@ -27,6 +27,7 @@ from tools.execution_entry_contract import (
     validate_startup_evidence,
     validate_startup_transition,
 )
+from tools.execution_dispatch_ingress import DispatchIngressRequest
 from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
     INTENT_SCHEMA,
@@ -44,6 +45,7 @@ from tools.control_transaction_production_executor import (
     _is_ancestor,
     _load_state,
     _read_branch_head,
+    dispatch_ready_missing_record,
     execute_one,
     recover_post_delivery_missing_record,
 )
@@ -51,7 +53,7 @@ from tools.control_transaction_production_executor import (
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","CONSUME_QA","FAIL_QA",
     "BLOCK","MERGE","SYNC_TARGET","HANDOFF","FINALIZE","RECONCILE","RESERVE_PATHS","RELEASE_PATHS","YIELD",
-    "RECOVER_POST_DELIVERY",
+    "DISPATCH_READY","RECOVER_POST_DELIVERY",
 }
 
 REQUEST_BRANCH_LANES = {
@@ -61,6 +63,13 @@ REQUEST_BRANCH_LANES = {
     "coord/transaction-requests-work1": "chatgpt.flowv2.work1",
     "coord/transaction-requests-work2": "chatgpt.flowv2.work2",
     "coord/transaction-requests-work3": "chatgpt.flowv2.work3",
+}
+
+INTERACTIVE_SLOT_BY_LANE = {
+    "chatgpt.flowv2.work0": "worker.slot.0",
+    "chatgpt.flowv2.work1": "worker.slot.1",
+    "chatgpt.flowv2.work2": "worker.slot.2",
+    "chatgpt.flowv2.work3": "worker.slot.3",
 }
 
 
@@ -526,6 +535,69 @@ def _validate_stale_record_live_target_reconcile_bridge(
     return True
 
 
+
+
+def _build_dispatch_ready_ingress_request(
+    request: dict[str, object],
+    *,
+    execution_mode: str,
+) -> DispatchIngressRequest:
+    """Bind missing-record READY creation to the already-validated startup identity."""
+    effect = dict(request["effect"])
+    authority_kind = str(effect.get("authority_kind") or "").strip()
+    authority_ref = str(effect.get("authority_ref") or "").strip()
+    if not authority_kind:
+        raise ProductionExecutorError("DISPATCH_READY effect requires authority_kind")
+    if not authority_ref:
+        raise ProductionExecutorError("DISPATCH_READY effect requires authority_ref")
+
+    transition = request.get("startup_transition")
+    if not isinstance(transition, dict):
+        raise ProductionExecutorError("DISPATCH_READY requires startup_transition")
+    branch = str(transition.get("branch") or "").strip()
+    head_sha = str(transition.get("head_sha") or "").strip()
+    if not branch or not head_sha:
+        raise ProductionExecutorError("DISPATCH_READY startup transition identity is incomplete")
+
+    issue = int(request["issue"])
+    lane_id = str(request["lane_id"])
+    if execution_mode == "SCHEDULER_LANE":
+        execution_intent = "SCHEDULER_LANE"
+        slot_id = None
+        default_work_branch = f"scheduler/issue{issue}-auto-dispatch"
+    elif execution_mode == "INTERACTIVE":
+        execution_intent = "EXECUTE_TICKET"
+        slot_id = INTERACTIVE_SLOT_BY_LANE.get(lane_id)
+        if slot_id is None:
+            raise ProductionExecutorError("DISPATCH_READY interactive lane has no canonical work slot")
+        supplied_slot = effect.get("slot_id")
+        if supplied_slot not in (None, "", slot_id):
+            raise ProductionExecutorError("DISPATCH_READY effect slot_id conflicts with request lane")
+        default_work_branch = f"work/issue-{issue}"
+    else:
+        raise ProductionExecutorError(
+            f"DISPATCH_READY unsupported execution mode: {execution_mode}"
+        )
+
+    work_branch = str(effect.get("work_branch") or default_work_branch).strip()
+    if not work_branch:
+        raise ProductionExecutorError("DISPATCH_READY work_branch must be nonblank")
+
+    return DispatchIngressRequest(
+        issue=issue,
+        execution_intent=execution_intent,
+        authority_kind=authority_kind,
+        authority_ref=authority_ref,
+        source_branch=branch,
+        source_sha=head_sha,
+        work_branch=work_branch,
+        target_branch=branch,
+        target_sha=head_sha,
+        parent_issue=effect.get("parent_issue"),
+        slot_id=slot_id,
+        created_at=str(transition.get("issued_at") or "").strip() or None,
+    )
+
 def _load_request(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -663,8 +735,26 @@ def execute_request(
     issue = int(request["issue"])
     record = records.get(issue)
     expected_generation = int(request["expected_generation"])
+    kind = str(request["kind"])
     if record is None:
-        if str(request["kind"]) != "RECOVER_POST_DELIVERY":
+        if kind == "DISPATCH_READY":
+            if expected_generation != 1:
+                raise ProductionExecutorError(
+                    "DISPATCH_READY missing-record bootstrap requires expected_generation=1"
+                )
+            ingress_request = _build_dispatch_ready_ingress_request(
+                request,
+                execution_mode=execution_mode,
+            )
+            return dispatch_ready_missing_record(
+                repo=repo,
+                token=token,
+                coord_branch=coord_branch,
+                issue=issue,
+                expected_coord_head=expected_parent,
+                ingress_request=ingress_request,
+            )
+        if kind != "RECOVER_POST_DELIVERY":
             raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
         if expected_generation != 1:
             raise ProductionExecutorError(
@@ -711,7 +801,11 @@ def execute_request(
         recovery["post_next_action"] = terminal.get("post_next_action")
         recovery["lease_invocation_identity"] = terminal.get("lease_invocation_identity")
         return recovery
-    if str(request["kind"]) == "RECOVER_POST_DELIVERY":
+    if kind == "DISPATCH_READY":
+        raise ControlTransactionConflict(
+            f"DISPATCH_READY requires missing ExecutionRecord; issue {issue} already exists"
+        )
+    if kind == "RECOVER_POST_DELIVERY":
         raise ControlTransactionConflict(
             f"RECOVER_POST_DELIVERY requires missing ExecutionRecord; issue {issue} already exists"
         )
