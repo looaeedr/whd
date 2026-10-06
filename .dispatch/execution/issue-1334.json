@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
   "issue": 1334,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,7 +21,26 @@
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
     "token": "lease:1334:37501664018:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".agents/skills/engineering/寫排程/SKILL.md",
+      ".agents/skills/engineering/工作槽/SKILL.md",
+      ".agents/skills/engineering/排程模擬/SKILL.md",
+      "tests/process/test_issue1334_host_turn_exit_enforcement.py",
+      "tests/process/test_issue1334_host_turn_exit_gate.py",
+      "tests/process/test_issue679_local_durability_runtime.py",
+      "tools/execution_invocation_exit.py",
+      "tools/flow_v2_runtime_observation.py",
+      "tools/interactive_runtime_liveness.py",
+      "tools/runtime_report_identity.py"
+    ]
+  },
   "next_action": {
     "args": {},
     "display": "Start isolated implementation branch for Issue #1334",
@@ -42,7 +61,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
@@ -50,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
   "transaction": {
-    "expected_fingerprint": "7bef98ab71b8afe5b7fb56f6432aee764978ef9796750cde06b248f07ec0a282",
-    "id": "gha:37502404455:1334:RECONCILE:3",
+    "expected_fingerprint": "0a4a8a4e8a054ffd31cc73f091fc37e14bae5ca1eed61625ea45b9a59a8acdb2",
+    "id": "gha:37502839063:1334:RESERVE_PATHS:4",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "kind": "RECONCILE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T17:18:25Z",
+  "updated_at": "2026-10-06T17:21:49Z",
   "version": 2,
   "work_branch": "work/issue-1334"
 }
