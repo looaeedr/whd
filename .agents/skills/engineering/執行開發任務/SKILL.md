@@ -35,6 +35,8 @@ canonical machine owner 固定是 `tools/execution_entry_contract.py`，本 Skil
 
 `EXECUTE_TICKET` 若由使用者以 exact Issue（例如 `/接手 1331`）啟動，task selection 已完成。不得在 execution startup 重新跑 AUTO DISCOVERY、READY census、open-Issue scan、scheduler candidate selection 或 takeover search。fresh-read same-Issue state後，直接做 exact ingress/resume + primary implementation。只有 entry 沒有 exact Issue 時才允許由合法 auto-selection owner 執行 discovery。
 
+對 interactive `/接手 <issue>`，primary implementation surface 固定為 Remote Desktop Commander 連到使用者授權本機 `/workspace/whd`。修改／測試／commit 必須在該 root；不得改用雲端私有 workspace。可交接成果必須 push 成可見 branch/commit/PR；RC 或本機 root 不可用時固定 `LOCAL_MACHINE_UNAVAILABLE`，不得 fallback。
+
 
 ## Intent
 UPDATE_ONLY只做指定更新與readback；EXECUTE_TICKET只做指定Issue並依structured chain續接；EXECUTE_CHAIN依record.chain連續施工；SCHEDULER_LANE交由A/B lane。
