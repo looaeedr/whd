@@ -22,8 +22,8 @@ def test_current_root_gate_is_v2_full_repo_shared_unpushed() -> None:
     assert work_root["drive_mirror"]["routing_forbidden"] is True
     assert set(work_root["required_root_entries"]) >= {".git", ".agents", "tools", "tests"}
     assert ".unpushed" not in set(work_root["required_root_entries"])
-    assert work_root["next_gate"]["schema"] == "WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1"
-    root_gate = json.loads(_read(".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json"))
+    assert work_root["next_gate"]["schema"] == "WHD_WORKSPACE_ENTRY_HARD_GATE_V1"
+    root_gate = json.loads(_read(".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"))
     assert root_gate["status"] == "CURRENT"
     assert not (ROOT / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V1.json").exists()
     assert not (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").exists()
