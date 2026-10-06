@@ -20,6 +20,10 @@ REQUIRED_ROOT_ENTRIES = frozenset({
 })
 READ_MODE_WORKSPACE = "WORKSPACE_GIT_BASELINE"
 READ_MODE_GITHUB_REPO = "GITHUB_REPO_CONTRACT"
+CONTROL_PLANE_SCOPE = "CONTROL_PLANE_ONLY"
+CONTROL_PLANE_PROVIDER = "github_repository_contract"
+CONTROL_PLANE_WORKSPACE_POLICY = "NOT_APPLICABLE_CONTROL_PLANE_ONLY"
+CONTROL_PLANE_WORKSPACE_ROOT = "NOT_APPLICABLE_CONTROL_PLANE_ONLY"
 REMOTE_MODES = frozenset({"SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"})
 PRODUCTION_BRANCH = "cleanup/2d-3d-sync"
 ROOT_RECOVERY_RECEIPT_SCHEMA = "WHD_WORK_ROOT_RECOVERY_RECEIPT_V1"
@@ -98,10 +102,16 @@ def build_work_root_gate_evidence(
     root_entries,
     workspace_root: str | None = None,
     production_head_sha: str | None = None,
+    control_plane_only: bool = False,
 ) -> dict[str, object]:
     validate_gate_payload(gate_payload)
     mode = str(execution_mode or "INTERACTIVE")
-    if mode in REMOTE_MODES:
+    if control_plane_only:
+        if read_mode != READ_MODE_GITHUB_REPO:
+            raise ValueError("control-plane-only admission must read the GitHub repository contract")
+        source = REPO_CONTRACT_PATH
+        resolved_workspace = CONTROL_PLANE_WORKSPACE_ROOT
+    elif mode in REMOTE_MODES:
         if read_mode != READ_MODE_GITHUB_REPO:
             raise ValueError("remote mode must read the repository work-root contract")
         source = REPO_CONTRACT_PATH
@@ -124,10 +134,11 @@ def build_work_root_gate_evidence(
         "schema": EVIDENCE_SCHEMA,
         "gate_schema": GATE_SCHEMA,
         "execution_mode": mode,
+        "scope": CONTROL_PLANE_SCOPE if control_plane_only else "REPOSITORY_CONTENT",
         "read_mode": read_mode,
         "source": source,
-        "provider": DEFAULT_PROVIDER,
-        "workspace_policy": DEFAULT_WORKSPACE_POLICY,
+        "provider": CONTROL_PLANE_PROVIDER if control_plane_only else DEFAULT_PROVIDER,
+        "workspace_policy": CONTROL_PLANE_WORKSPACE_POLICY if control_plane_only else DEFAULT_WORKSPACE_POLICY,
         "workspace_root": resolved_workspace,
         "production_branch": PRODUCTION_BRANCH,
         "production_head_sha": head or None,
@@ -135,6 +146,7 @@ def build_work_root_gate_evidence(
         "drive_mirror_root": DRIVE_MIRROR_ROOT,
         "root_entries": list(verified),
         "shared_zero_required": False,
+        "repository_content_write_unlocked": False if control_plane_only else None,
         "status": "GREEN",
     }
 
@@ -147,18 +159,31 @@ def validate_work_root_gate_evidence(evidence, *, execution_mode: str) -> dict[s
         raise ValueError("work-root gate evidence is not GREEN")
     if item.get("execution_mode") != str(execution_mode or "INTERACTIVE"):
         raise ValueError("work-root gate evidence execution_mode mismatch")
-    expected_read_mode = READ_MODE_GITHUB_REPO if execution_mode in REMOTE_MODES else READ_MODE_WORKSPACE
-    if item.get("read_mode") != expected_read_mode:
-        raise ValueError("CURRENT admission requires executor-local workspace evidence")
-    if item.get("provider") != DEFAULT_PROVIDER:
-        raise ValueError("work-root gate evidence provider mismatch")
-    if item.get("workspace_policy") != DEFAULT_WORKSPACE_POLICY:
-        raise ValueError("work-root gate evidence workspace policy mismatch")
-    if not str(item.get("workspace_root") or "").strip():
-        raise ValueError("work-root gate evidence workspace_root missing")
-    workspace = str(item["workspace_root"]).replace("\\", "/").rstrip("/")
-    if workspace == RETIRED_DRIVE_WORK_ROOT or workspace.startswith(RETIRED_DRIVE_WORK_ROOT + "/"):
-        raise ValueError("CURRENT admission requires an executor-local workspace, not a Drive mirror")
+    scope = str(item.get("scope") or "REPOSITORY_CONTENT")
+    if scope == CONTROL_PLANE_SCOPE:
+        if item.get("read_mode") != READ_MODE_GITHUB_REPO:
+            raise ValueError("control-plane-only admission must use GitHub repository contract read mode")
+        if item.get("provider") != CONTROL_PLANE_PROVIDER:
+            raise ValueError("control-plane-only admission provider mismatch")
+        if item.get("workspace_policy") != CONTROL_PLANE_WORKSPACE_POLICY:
+            raise ValueError("control-plane-only workspace policy mismatch")
+        if item.get("workspace_root") != CONTROL_PLANE_WORKSPACE_ROOT:
+            raise ValueError("control-plane-only workspace sentinel mismatch")
+        if item.get("repository_content_write_unlocked") is not False:
+            raise ValueError("control-plane-only admission must not unlock repository content writes")
+    else:
+        expected_read_mode = READ_MODE_GITHUB_REPO if execution_mode in REMOTE_MODES else READ_MODE_WORKSPACE
+        if item.get("read_mode") != expected_read_mode:
+            raise ValueError("CURRENT admission requires executor-local workspace evidence")
+        if item.get("provider") != DEFAULT_PROVIDER:
+            raise ValueError("work-root gate evidence provider mismatch")
+        if item.get("workspace_policy") != DEFAULT_WORKSPACE_POLICY:
+            raise ValueError("work-root gate evidence workspace policy mismatch")
+        if not str(item.get("workspace_root") or "").strip():
+            raise ValueError("work-root gate evidence workspace_root missing")
+        workspace = str(item["workspace_root"]).replace("\\", "/").rstrip("/")
+        if workspace == RETIRED_DRIVE_WORK_ROOT or workspace.startswith(RETIRED_DRIVE_WORK_ROOT + "/"):
+            raise ValueError("CURRENT admission requires an executor-local workspace, not a Drive mirror")
     if item.get("production_branch") != PRODUCTION_BRANCH:
         raise ValueError("work-root gate evidence production branch mismatch")
     if item.get("drive_role") != "MIRROR_BACKUP_ONLY" or item.get("drive_mirror_root") != DRIVE_MIRROR_ROOT:
