@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
-  "head_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
+  "generation": 9,
+  "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
   "issue": 1334,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -43,10 +43,10 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "15c601d2a76e6b53d06c8ba846491a2607b592f574e6dfe922b6ae6fccb6a99d"
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Apply exact tested #1334 commit",
-    "kind": "APPLY_COMMIT"
+    "display": "Run Control Plane Regression for #1334",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -63,7 +63,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "BRANCH_READY",
+  "semantic_state": "IMPLEMENTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
@@ -71,13 +71,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
   "transaction": {
-    "expected_fingerprint": "ee1f0f9b4fe224026905908f33555bd31605e2a5a8a31fb00700c430f2484f80",
-    "id": "gha:37546308722:1334:ACQUIRE:7",
+    "expected_fingerprint": "70eec1d5732a371e67ca2a30ee25edb2f3d20a0218d0560de3fd1cfbecee8d8b",
+    "id": "gha:37546514486:1334:APPLY_COMMIT:8",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "kind": "ACQUIRE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-06T23:24:22Z",
+  "updated_at": "2026-10-06T23:26:35Z",
   "version": 2,
   "work_branch": "work/issue-1334"
 }
