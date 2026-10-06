@@ -321,27 +321,6 @@ def test_terminal_exit_contract_forbids_green_boundary_yield():
     assert payload["terminal_tail_exit_decision"] == "CONTINUE_TERMINAL_TAIL"
 
 
-def _complete_source_manifest_for_done():
-    return {
-        "source_sha": "c" * 40,
-        "tree_sha": "d" * 40,
-        "durable_snapshot_base_sha": "c" * 40,
-        "durable_snapshot_base_tree_sha": "d" * 40,
-        "durable_snapshot_file_id": "drive-file",
-        "durable_snapshot_name": "snapshot.zip",
-        "durable_snapshot_status": "CURRENT_EXACT_HEAD",
-        "export_writeback_status": "COMPLETE",
-        "post_integration_export_run_id": 1,
-        "post_integration_export_trigger_head_sha": "c" * 40,
-        "post_integration_export_artifact_id": 2,
-        "post_integration_export_artifact_digest": "sha256:" + "e" * 64,
-        "durable_snapshot_sha256": "f" * 64,
-        "durable_snapshot_readback": "VERIFIED",
-        "root_local_gate_json_path": "/Google Drive/WHD/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json",
-        "root_local_gate_json_file_id": "1qOMBtDwNGK5yxq_iyfISKYYDkBITXFuV",
-    }
-
-
 def _repository_content_done_record():
     return replace(
         _record("DONE"),
