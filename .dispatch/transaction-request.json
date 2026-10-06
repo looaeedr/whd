@@ -1,70 +1,93 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1331-dispatch-ready-6020206285",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
+  "request_id": "cc1b43e5-2fde-4397-96d1-303ec4f482be",
   "issue": 1331,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "chatgpt.issue1331.bootstrap.6020206285",
-  "expected_coord_head": "db9705a0b81a9ca6bbfd35cddc5e5a69ff45e8b8",
+  "invocation_identity": "codex.issue1331.a2de0c67-cd1f-45b1-8acc-bae4b2c2f552",
+  "expected_coord_head": "a6908f28ba5748a4c25eea75154af589fe43dbb0",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user-explicit:issue-1331"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "完成 #1331 workspace 修改與測試後交付 exact diff"
+    }
   },
-  "purpose": "Create canonical generation-1 READY record for Issue #1331 after trusted Phase6 GREEN",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+  "startup_evidence": {
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "codex.issue1331.a2de0c67-cd1f-45b1-8acc-bae4b2c2f552",
     "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".git",
-      ".agents",
-      ".github",
-      "AGENTS.md",
-      "tools",
-      "tests",
-      "ae_engine",
-      "gui_modules"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
+    "work_root_gate": {
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+      "execution_mode": "INTERACTIVE",
+      "scope": "REPOSITORY_CONTENT",
+      "read_mode": "WORKSPACE_GIT_BASELINE",
+      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+      "provider": "executor_local_workspace",
+      "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+      "workspace_root": "Z:\\新WHD\\.scratch\\issue1331-acquire",
+      "production_branch": "cleanup/2d-3d-sync",
+      "production_head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+      "drive_role": "MIRROR_BACKUP_ONLY",
+      "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+      "root_entries": [
+        ".agents",
+        ".git",
+        ".github",
+        "AGENTS.md",
+        "ae_engine",
+        "gui_modules",
+        "tests",
+        "tools"
+      ],
+      "shared_zero_required": false,
+      "repository_content_write_unlocked": null,
+      "status": "GREEN"
+    },
+    "purpose": "依使用者明確指令 ACQUIRE #1331",
+    "issued_at": "2026-10-06T16:04:47Z",
+    "expires_at": "2026-10-06T16:09:47Z",
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：依使用者明確指令 ACQUIRE #1331\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1331,
-    "invocation_identity": "chatgpt.issue1331.bootstrap.6020206285",
+    "invocation_identity": "codex.issue1331.a2de0c67-cd1f-45b1-8acc-bae4b2c2f552",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
     "required_skills": [
-      "phase6-corner-3d-model-integrity"
+      "flow-v2-execution"
     ],
     "completed_skills": [
-      "phase6-corner-3d-model-integrity"
+      "root-local-first",
+      "flow-v2-execution"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
-    "observed_at": "2026-10-06T15:59:28Z"
+    "observed_at": "2026-10-06T16:04:47Z"
+  },
+  "startup_transition": {
+    "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
+    "status": "READY_FOR_EXECUTION",
+    "repository": "looaeedr/whd",
+    "invocation_identity": "codex.issue1331.a2de0c67-cd1f-45b1-8acc-bae4b2c2f552",
+    "execution_mode": "INTERACTIVE",
+    "issue": 1331,
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+    "startup_issued_at": "2026-10-06T16:04:47Z",
+    "preflight_observed_at": "2026-10-06T16:04:47Z",
+    "issued_at": "2026-10-06T16:04:47Z",
+    "expires_at": "2026-10-06T16:09:47Z"
   }
 }
