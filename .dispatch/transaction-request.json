@@ -1,66 +1,90 @@
+[Reading 86 lines from start (total: 86 lines, 0 remaining)]
+
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1334-dispatch-ready-6020470685",
-  "issue": 1334,
-  "kind": "DISPATCH_READY",
-  "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1334.bootstrap.6020470685",
-  "expected_coord_head": "4b838937aff85da2ed28837e75b19c30deb4d34a",
+  "effect": {},
+  "expected_coord_head": "459ef80db534f3b04103cdaacce9ae413fc2da5d",
   "expected_generation": 1,
-  "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user-explicit:issue-1334"
-  },
-  "purpose": "Create canonical generation-1 READY record for Issue #1334 host-level turn-exit enforcement repair",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".git",
-      ".agents",
-      ".github",
-      "AGENTS.md",
-      "tools",
-      "tests",
-      "ae_engine",
-      "gui_modules"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
-  },
+  "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+  "issue": 1334,
+  "kind": "ACQUIRE",
+  "lane_id": "chatgpt.flowv2.work1",
   "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1334,
-    "invocation_identity": "chatgpt.issue1334.bootstrap.6020470685",
     "branch": "cleanup/2d-3d-sync",
-    "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-    "required_skills": [
-      "flow-v2-execution"
-    ],
-    "completed_skills": [
-      "flow-v2-execution"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-    ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
-    "observed_at": "2026-10-06T16:13:21Z"
+    "completed_skills": [
+      "flow-v2-execution"
+    ],
+    "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+    "issue": 1334,
+    "observed_at": "2026-10-06T16:21:56Z",
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "required_skills": [
+      "flow-v2-execution"
+    ],
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN"
+  },
+  "request_id": "issue1334-acquire-impl-work1",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
+  "startup_evidence": {
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Acquire Issue #1334 and implement host-level Turn Exit enforcement in isolated executor-local workspace\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
+    "execution_mode": "INTERACTIVE",
+    "expires_at": "2026-10-06T16:26:56Z",
+    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+    "issued_at": "2026-10-06T16:21:56Z",
+    "purpose": "Acquire Issue #1334 and implement host-level Turn Exit enforcement in isolated executor-local workspace",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "work_root_gate": {
+      "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+      "drive_role": "MIRROR_BACKUP_ONLY",
+      "execution_mode": "INTERACTIVE",
+      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+      "production_branch": "cleanup/2d-3d-sync",
+      "production_head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+      "provider": "executor_local_workspace",
+      "read_mode": "WORKSPACE_GIT_BASELINE",
+      "repository_content_write_unlocked": null,
+      "root_entries": [
+        ".agents",
+        ".git",
+        ".github",
+        "AGENTS.md",
+        "ae_engine",
+        "gui_modules",
+        "tests",
+        "tools"
+      ],
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+      "scope": "REPOSITORY_CONTENT",
+      "shared_zero_required": false,
+      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+      "status": "GREEN",
+      "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+      "workspace_root": "/workspace/whd-issue1334"
+    }
+  },
+  "startup_transition": {
+    "branch": "cleanup/2d-3d-sync",
+    "execution_mode": "INTERACTIVE",
+    "expires_at": "2026-10-06T16:26:56Z",
+    "head_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
+    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+    "issue": 1334,
+    "issued_at": "2026-10-06T16:21:56Z",
+    "preflight_observed_at": "2026-10-06T16:21:56Z",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
+    "startup_issued_at": "2026-10-06T16:21:56Z",
+    "status": "READY_FOR_EXECUTION"
   }
 }
+
+[executed on device: 5bca4a576178 (de6bf74a-257f-4c1f-bb9a-1d5e91034a8a)]
