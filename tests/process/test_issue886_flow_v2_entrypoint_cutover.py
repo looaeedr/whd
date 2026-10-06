@@ -194,7 +194,7 @@ def test_explicit_issue_direct_execution_forbids_auto_discovery():
     assert "不得再掃 open Issues" in direct
     assert "ready-index" in direct
     assert "TAKEOVER_CANDIDATE" in direct
-    assert "不得改找其他 Issue" in direct
+    assert "不得以「record missing」為理由進 AUTO DISCOVERY 或挑另一張工單" in direct
     assert "直接進 ACQUIRE/resume" in direct
 
     registry = json.loads(text(ROOT / ".agents/skills/skill_registry.json"))
