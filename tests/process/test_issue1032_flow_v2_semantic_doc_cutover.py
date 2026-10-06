@@ -76,22 +76,27 @@ def test_scheduler_and_remote_modes_cannot_bypass_root_local_first_content_work(
     assert "REMOTE_CONTENT_IMPLEMENTATION_ROUTING_HARD_GATE_V3" in flow
     assert "REPOSITORY_CONTENT_ROUTING_HARD_GATE_V2" in scheduler
     assert "executor-local workspace" in agents and "cleanup/2d-3d-sync" in agents
-    assert "GitHub-side hotfix" in root and "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in root
+    assert "Direct production GitHub hotfix remains forbidden" in root
+    assert "shared_zero_drift_present=true → WORKSPACE_DEFAULT" in root
 
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in flow
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in scheduler
     assert "HANDOFF_TO_ROOT_CAPABLE_RUNTIME_NO_GITHUB_CONTENT_FALLBACK" not in contract_text
     assert "ROOT_WORKSPACE_HANDOFF" not in contract_text
 
-    for mode in ("GITHUB_ONLY", "REMOTE_ACTION", "SCHEDULER_LANE"):
-        assert contract["execution_modes"][mode] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+    assert contract["execution_modes"]["SCHEDULER_LANE"] == "CONTROL_PLANE_OR_POST_PUSH_ONLY_REPOSITORY_CONTENT_REQUIRES_WORKSPACE_CAPABLE_RUNTIME_HANDOFF"
+    for mode in ("GITHUB_ONLY", "REMOTE_ACTION"):
+        assert contract["execution_modes"][mode] == "GITHUB_CANONICAL_DURABLE_WORK_BRANCH_PR"
 
     remote = contract["remote_content_implementation"]
     assert remote["route_owner"] == "tools/root_local_first_gate.py::select_repository_content_route"
     assert remote["ordinary_route"] == "WORKSPACE_DEFAULT"
     assert remote["drive_mount_absence_is_blocker"] is False
     assert remote["interactive_workspace_action"] == "CONTINUE_WORKSPACE_DEFAULT"
-    assert remote["remote_mode_repository_content_action"] == "HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME_NO_UNTESTED_GITHUB_HOTFIX"
+    assert remote["policy"] == "SURFACE_AWARE_WORKSPACE_OR_GITHUB_CANONICAL"
+    assert remote["direct_production_hotfix_forbidden"] is True
+    assert remote["github_work_branch_mutation_allowed"] is True
+    assert remote["remote_mode_repository_content_action"] == "CONTINUE_GITHUB_CANONICAL_DURABLE_ROUTE"
     assert "shared_zero_missing_capability_action" not in remote
     assert remote["github_side_hotfix_forbidden"] is True
 
