@@ -41,7 +41,7 @@ def _workspace_gate(**overrides):
         execution_mode="INTERACTIVE", repository_content_implementation=True,
         entry_router_evidence=build_entry_router_evidence(
             workspace_root="/workspace/whd", fresh_reads=[
-                ".agents/contracts/WHD_ROOT_SHARED_UNPUSHED_ENTRY_HARD_GATE_V1.json",
+                ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
                 ".agents/skills/engineering/root-local-first/SKILL.md",
             ],
         ),
