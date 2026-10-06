@@ -42,8 +42,9 @@ def test_root_shared_unpushed_contract_is_current_canonical_projection() -> None
     assert contract["canonical_root"]["drive_mirror_root"] == "/Google Drive/WHD/WHD_MIRROR/CURRENT"
     assert "canonical_drive_overlay" not in contract["canonical_root"]
     assert contract["shared_unpushed_integration"]["mode"] == "SUPERSEDED_DATA_ONLY"
-    for mode in ("SCHEDULER_LANE", "GITHUB_ONLY", "REMOTE_ACTION"):
-        assert contract["execution_modes"][mode] == REMOTE_POLICY
+    assert contract["execution_modes"]["SCHEDULER_LANE"] == REMOTE_POLICY
+    for mode in ("GITHUB_ONLY", "REMOTE_ACTION"):
+        assert contract["execution_modes"][mode] == "GITHUB_CANONICAL_DURABLE_WORK_BRANCH_PR"
     assert not (ROOT / ".agents/contracts/WHD_ROOT_LOCAL_FIRST_ENTRY_HARD_GATE_V1.json").exists()
 
 
