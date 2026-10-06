@@ -358,7 +358,10 @@
         "角色切換",
         "轉移至：實作者",
         "當前角色：總控審查",
-        "PM → Implementer → QA"
+        "PM → Implementer → QA",
+        "/接手",
+        "接手 #",
+        "接手工單"
       ],
       "file_globs": [
         ".agents/skills/engineering/派工/**"
