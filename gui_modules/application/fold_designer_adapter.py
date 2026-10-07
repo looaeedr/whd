@@ -43,6 +43,7 @@ from ae_engine.sheetmetal_part_adapters import (
 from phase6_fold_profiles import formed_box_body_fw_widths
 from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import (
+    normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
@@ -2442,6 +2443,20 @@ class Phase6FoldDesignerComposition:
                 "d": projected["d"],
             },
         )
+        if "surface_features" in projected:
+            for role in ("head", "tail"):
+                if role in projected["surface_features"]:
+                    app.designer_workspace.stash_features(role, projected["surface_features"][role])
+        from ae_engine.receiving_layout import receiving_bay_joint_face_features
+        workspace = app.designer_workspace
+        workspace.stash_face_features("box_body", receiving_bay_joint_face_features(
+            adapter.layout,
+            set_index=adapter.selection.set_index,
+            bay_index=adapter.selection.bay_index,
+            thickness=float(projected.get("t", 2)),
+            frame_width=float(projected.get("fw", 29)),
+            existing=workspace.face_features_for("box_body"),
+        ))
         original = required("original")
         app.state.w = original.get_int(projected["w"])
         app.state.h = original.get_int(projected["h"])
@@ -2586,50 +2601,13 @@ class Phase6FoldDesignerComposition:
         *,
         reset=False,
     ):
-        app = self.app
-        required = lambda name: self._required(namespace, name)
-        snapshot = dict(
-            getattr(app, "_phase6_input_snapshot", {}) or {}
-        )
-        layout = required("normalize_receiving_switch_layout")(
-            snapshot.get(required("RECEIVING_SWITCH_LAYOUT_KEY"))
-        )
-        fingerprint = required("stable_fingerprint")(layout)
-        adapter = (
-            None
-            if reset
-            else getattr(
-                app, "_phase6_receiving_switch_layout_adapter", None
-            )
-        )
-        if (
-            adapter is None
-            or getattr(
-                app,
-                "_phase6_receiving_switch_layout_fingerprint",
-                None,
-            )
-            != fingerprint
-        ):
-            adapter = required("ReceivingSwitchLayoutAdapter")(layout)
-            app._phase6_receiving_switch_layout_adapter = adapter
-            app._phase6_receiving_switch_layout_fingerprint = fingerprint
-        return adapter
+        from gui_modules.application.receiving_set_bay_adapter import ReceivingSwitchProjectionAdapter
+        return ReceivingSwitchProjectionAdapter(self.receiving_adapter(namespace, reset=reset))
 
-    def mark_receiving_switch_layout_dirty(
-        self,
-        namespace,
-        adapter,
-    ):
+    def mark_receiving_switch_layout_dirty(self, namespace, adapter):
         app = self.app
-        required = lambda name: self._required(namespace, name)
-        layout = adapter.layout
-        app._phase6_input_snapshot[
-            required("RECEIVING_SWITCH_LAYOUT_KEY")
-        ] = layout
-        app._phase6_receiving_switch_layout_fingerprint = required(
-            "stable_fingerprint"
-        )(layout)
+        app._phase6_input_snapshot["receiving_layout"] = adapter.layout
+        app._phase6_input_snapshot.pop("receiving_switch_layout", None)
         workspace = getattr(app, "designer_workspace", None)
         if workspace is not None:
             workspace.mark_dirty()
@@ -2751,130 +2729,189 @@ class Phase6FoldDesignerComposition:
             submit("geometry", commit=True)
         return True
 
-    def receiving_layer_preview_payload(self, namespace, layer_index):
-        """Build a complete display-only assembly preview for one switch layer.
-
-        The preview always resolves the full current assembly, independent of the
-        main viewport's current single/assembly mode or visibility toggles. Every
-        connection reuses that exact CUTTING mesh, so physical openings remain
-        geometry rather than a second preview-only hole table.
-        """
+    def receiving_bay_preview_request(self, namespace, set_index, bay_index):
+        """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
+        from types import SimpleNamespace
+        from copy import deepcopy
+        from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
+        from phase6_manufacturing_service import resolve
+        from phase6_fold_profiles import merge_box_body_profile, build_endcap_xy_profiles
+        from phase6_settings_profile_projection import project_part_dimensions
+        from phase6_designer_workspace import Phase6DesignerWorkspace
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        from ae_engine.display_dimensions import resolve_operator_finished_dimensions
         app = self.app
+        snapshot = project_receiving_bay_legacy_aliases(
+            app._phase6_input_snapshot, set_index=set_index, bay_index=bay_index,
+        )
+        settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
+        snapshot.update(settings)
+        snapshot["part_dimensions"] = project_part_dimensions(snapshot)
+        from phase6_sync_envelope import stable_fingerprint
+        fingerprint = stable_fingerprint({"snapshot": snapshot, "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
+        cache = getattr(self, "_receiving_bay_preview_cache", {})
+        cache_key = (set_index, bay_index)
+        if cache_key in cache and cache[cache_key][0] == fingerprint:
+            return cache[cache_key][1]
+        box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
+        profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
+        workspace = app.designer_workspace
+        structure = snapshot.get("workspace", {}).get("box_body_structure", snapshot.get("box_body_structure", {}))
+        from ae_engine.receiving_layout import receiving_bay_joint_face_features
+        joint_faces = receiving_bay_joint_face_features(
+            snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
+            thickness=float(snapshot.get("t", 2)), frame_width=float(snapshot.get("fw", 29)),
+            existing=workspace.face_features_for("box_body"),
+        )
+        proxy_workspace = Phase6DesignerWorkspace.from_snapshot({
+            **snapshot, "existing_parts": workspace.available_parts,
+            "part_profiles": workspace.part_profiles_snapshot(),
+            "part_features": {**workspace.part_features_snapshot(), **snapshot.get("part_features", {})},
+            "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": joint_faces},
+        })
+        proxy_workspace.set_box_body_structure_state(structure)
+        for key, profiles in profile_map.items():
+            proxy_workspace.stash_profiles(key, profiles)
+        proxy = SimpleNamespace(**app.__dict__)
+        proxy._phase6_input_snapshot = snapshot
+        proxy._settings_values = settings
+        proxy._phase6_box_whd = {key: snapshot[key] for key in ("w", "h", "d")}
+        proxy.designer_workspace = proxy_workspace
+        proxy.state = SimpleNamespace(profiles_vault={"箱身": box_profile}, profiles={})
+        self.sync_authoritative_derived_parts(
+            namespace,
+            projected_snapshot=snapshot,
+            projected_workspace=proxy.designer_workspace,
+            projected_box_render_data=self._required(namespace, "_phase6_box_body_structure_render_data")(proxy),
+        )
+        def dimensions(key=None):
+            return resolve_operator_finished_dimensions(key or "box_body", snapshot=snapshot, settings=settings)
+        def feature_payload(key, payload):
+            # committed fallback 解凍的 scene payload 是可序列化資料；孔特徵
+            # 仍由 workspace 的 typed feature authority 提供，不能送入 legacy hole DTO。
+            return {**dict(payload), "features": proxy_workspace.features_for(key), "face_features": proxy_workspace.face_features_for(key)}
+        request = build_manufacturing_request(
+            proxy, scene_payload_builder=lambda key: build_scene_payload_for_app(proxy, key),
+            render_data_provider=lambda key, payload: app._scene_query_callback(key, feature_payload(key, payload)),
+            part_spec_provider=lambda key, payload: app._part_spec_query_callback(key, feature_payload(key, payload)),
+            finished_dimensions_provider=dimensions,
+        )
+        resolved = resolve(request).geometry
+        from ae_engine.receiving_layout import receiving_bay_assembly_offsets
+        bay_offset = receiving_bay_assembly_offsets(snapshot["receiving_layout"], set_index=set_index)[bay_index]
+        parts = tuple(AssemblyScenePart(
+            part_key=part.part_key, render_data=part.render_data,
+            x_profile=part.x_profile, y_profile=part.y_profile,
+            placement=part.placement, offset=tuple(a + b for a, b in zip(part.offset, bay_offset)),
+        ) for part in resolved.parts)
+        result = FinalSceneViewRequest(
+            render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
+            x_profile=(), y_profile=(), part_key="assembly",
+            finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
+        )
+        cache[cache_key] = (fingerprint, result)
+        self._receiving_bay_preview_cache = cache
+        return result
+
+    def receiving_layer_preview_payload(self, namespace, layer_index):
+        """每連獨立 canonical request；顯示不改製造 precision 或持久化。"""
         switch = self.receiving_switch_adapter(namespace)
         index = int(layer_index)
         count = switch.connection_count(index)
-
-        snapshot = ensure_receiving_preview_layout(
-            getattr(app, "_phase6_input_snapshot", {}) or {}
-        )
-        settings = dict(getattr(app, "_settings_values", {}) or {})
-        thickness = float(settings.get("t", snapshot.get("t", 2.0)))
-
-        view = self.final_scene_adapter(self.final_scene_ports(namespace))
-        assembly_data = view.query_assembly_render_data()
-        assembly_data = replace(
-            assembly_data,
-            visible_part_keys=None,
-            visible_box_body_piece_keys=None,
-        )
-        assembly_part_keys = tuple(
-            str(getattr(part, "part_key", "") or "")
-            for part in tuple(getattr(assembly_data, "assembly_parts", ()) or ())
-        )
-        if not assembly_part_keys:
-            raise RuntimeError("目前沒有可用的完整組合體 3D 幾何")
-
-        from matplotlib.figure import Figure
-        from types import SimpleNamespace
-
-        figure = Figure(figsize=(1.0, 1.0), dpi=40)
-        axis = figure.add_subplot(111, projection="3d")
-        temp_renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=axis))
-        request = FinalSceneViewRequest(
-            render_data=assembly_data,
-            x_profile=(),
-            y_profile=(),
-            part_key="assembly",
-            alpha_bend=0.86,
-            finished_dimensions=operator_finished_dimensions_for_app(app, None),
-            thickness=thickness,
-        )
-        try:
-            base_mesh = tuple(temp_renderer.render(request) or ())
-        finally:
-            figure.clear()
-        if not base_mesh:
-            raise RuntimeError("完整組合體 3D 幾何為空")
-
-        vertices = [point for tri in base_mesh for point in tri]
-        xs, ys, zs = tuple(zip(*vertices))
-        min_x, max_x = min(map(float, xs)), max(map(float, xs))
-        min_y = min(map(float, ys))
-        max_z = max(map(float, zs))
-        span_x = float(max_x - min_x)
-        if span_x <= 1e-9:
-            raise RuntimeError("完整組合體 3D 幾何沒有有效寬度")
-
-        repeated_parts = []
-        source_parts = tuple(getattr(assembly_data, "assembly_parts", ()) or ())
-        for connection_index in range(count):
-            shift_x = span_x * connection_index
-            for part in source_parts:
-                raw_offset = tuple(getattr(part, "offset", ()) or (0.0, 0.0, 0.0))
-                ox, oy, oz = tuple(float(v) for v in raw_offset)
-                repeated_parts.append(
-                    replace(part, offset=(ox + shift_x, oy, oz))
-                )
-        preview_data = replace(
-            assembly_data,
-            assembly_parts=tuple(repeated_parts),
-            visible_part_keys=None,
-            visible_box_body_piece_keys=None,
-            show_interference=False,
-        )
-        preview_request = FinalSceneViewRequest(
-            render_data=preview_data,
-            x_profile=(),
-            y_profile=(),
-            part_key="assembly",
-            alpha_bend=float(getattr(getattr(app, "state", None), "alpha_bend", 0.85)),
-            finished_dimensions=operator_finished_dimensions_for_app(app, None),
-            thickness=thickness,
-        )
-
-        layout = resize_receiving_preview_bays(
-            snapshot["receiving_layout"],
-            set_index=0,
-            bay_count=count,
-        )
-        frame_width = float(settings.get("fw", snapshot.get("fw", 29.0)))
-        lock_circles = []
-        for joint_index in range(max(count - 1, 0)):
-            resolved = resolve_receiving_joint_lock_pattern(
-                layout,
-                set_index=0,
-                joint_index=joint_index,
-                thickness=thickness,
-                frame_width=frame_width,
-            )
-            mating_x = min_x + span_x * (joint_index + 1)
-            for circle in tuple(resolved.canonical_pattern or ()):
-                lock_circles.append(
-                    {
-                        "joint_index": joint_index,
-                        "x": float(mating_x),
-                        "y": float(min_y + float(circle.v)),
-                        "z": float(max_z - float(circle.u)),
-                        "diameter": float(circle.diameter),
-                        "layer": str(circle.layer),
-                    }
-                )
-
+        requests = tuple(self.receiving_bay_preview_request(namespace, index, i) for i in range(count))
         return {
             "connection_count": count,
-            "render_request": preview_request,
-            "lock_circles": tuple(lock_circles),
-            "assembly_part_keys": assembly_part_keys,
+            "render_request": requests[0],
+            "lock_circles": (),
+            "assembly_part_keys": tuple(part.part_key for part in requests[0].render_data.assembly_parts),
+            "bay_requests": requests,
+        }
+
+    def receiving_settings_ports(self, namespace, set_index):
+        from ae_engine.receiving_shared_settings import setting_value
+        from ae_engine.sheetmetal_features import (
+            resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
+        )
+        adapter = self.receiving_adapter(namespace)
+        adapter.select_set(set_index + 1)
+
+        def commit():
+            self.app._phase6_input_snapshot["receiving_layout"] = adapter.layout
+            self.sync_receiving_current_bay(namespace)
+            self.app.submit_update_intent("geometry", commit=True)
+
+        def selected(index):
+            adapter.select_bay(index + 1)
+
+        def change(kind, value, indices=()):
+            current = adapter.selection.bay_index
+            for index in tuple(indices) or (current,):
+                adapter.select_bay(index + 1)
+                adapter.update_setting(kind, value)
+            adapter.select_bay(current + 1)
+            commit()
+
+        def share(kind, indices):
+            adapter.share_setting(kind, indices)
+            commit()
+
+        def unlink(kind):
+            adapter.unlink_setting(kind)
+            commit()
+
+        def dimensions(width, height, depth, door_columns=None):
+            from ae_engine.sheetmetal_part_adapters import validate_door_layout_dimensions
+            changes = {"width": width, "height": height, "depth": depth}
+            if door_columns is not None:
+                validate_door_layout_dimensions(door_columns, total_width=width, total_height=height)
+                door_state = deepcopy(adapter.current_bay().get("door_state", {}))
+                door_state["door_layout_columns"] = [[w, list(heights)] for w, heights in door_columns]
+                door_state["multi_door_enabled"] = True
+                changes["door_state"] = door_state
+            adapter.update_current_bay(**changes)
+            commit()
+
+        def alignment(index, depth, height):
+            adapter.update_joint_alignment(index, depth_alignment=depth, height_alignment=height)
+            commit()
+
+        def brand(value):
+            adapter.set_brand(value)
+            commit()
+
+        def holes(role, indices=()):
+            bay = adapter.current_bay()
+            width, depth = float(bay["width"]), float(bay["depth"])
+            thickness = float(self.app._phase6_input_snapshot.get("t", 2))
+            guide = resolve_endcap_finished_face_guide(width, depth, thickness)
+            surface = feature_surface_from_rect(f"{role}_finished_face", guide.min_point, guide.max_point)
+            row = adapter.layout["sets"][set_index]
+            features = setting_value(row, adapter.selection.bay_index, f"{role}_features")
+            host = getattr(self.app._scene_query_callback, "__self__", None)
+            if host is None or not hasattr(host, "_open_unified_hole_editor"):
+                raise ValueError("目前未連接既有 Hole Editor")
+            def save_features():
+                kind = f"{role}_features"
+                current = adapter.selection.bay_index
+                targets = tuple(indices) or (current,)
+                if len(targets) > 1:
+                    adapter.select_bay(targets[0] + 1)
+                    adapter.share_setting(kind, targets)
+                adapter.update_setting(kind, features)
+                adapter.select_bay(current + 1)
+                commit()
+
+            host._open_unified_hole_editor(
+                role, "封頭" if role == "head" else "封尾", surface, width, depth,
+                feature_list_override=features,
+                sync_callback=save_features,
+                reference_guide=RectGuide(Vec2(0, 0), Vec2(width, depth), "finished_boundary"),
+            )
+
+        return {
+            "row": lambda: adapter.layout["sets"][set_index],
+            "select": selected, "change": change, "share": share, "unlink": unlink,
+            "dimensions": dimensions, "alignment": alignment, "brand": brand, "holes": holes,
         }
 
     def open_receiving_layer_preview(self, namespace, layer_index):
@@ -2904,6 +2941,9 @@ class Phase6FoldDesignerComposition:
             brand=brand,
             render_request=preview["render_request"],
             lock_circles=preview["lock_circles"],
+            settings_ports=self.receiving_settings_ports(namespace, index),
+            bay_requests=preview["bay_requests"],
+            bay_request_provider=lambda: tuple(self.receiving_bay_preview_request(namespace, index, i) for i in range(preview["connection_count"])),
         )
 
     def settings_panel(self, namespace):
@@ -4406,13 +4446,16 @@ class Phase6FoldDesignerComposition:
         app._phase6_workspace_shell_owner = owner
         return owner
 
-    def sync_authoritative_derived_parts(self, namespace):
+    def sync_authoritative_derived_parts(
+        self, namespace, *, projected_snapshot=None,
+        projected_workspace=None, projected_box_render_data=None,
+    ):
         """Compose cross-domain derived topology, then delegate the unique workspace mutation."""
         app = self.app
         required = lambda name: self._required(namespace, name)
-        snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-        workspace = getattr(app, "designer_workspace", None)
-        navigation = self.workspace_navigation()
+        snapshot = dict(projected_snapshot if projected_snapshot is not None else getattr(app, "_phase6_input_snapshot", {}) or {})
+        workspace = projected_workspace if projected_workspace is not None else getattr(app, "designer_workspace", None)
+        navigation = Phase6WorkspaceNavigationController(workspace) if projected_workspace is not None else self.workspace_navigation()
         if workspace is None or not navigation.supports_derived_sync:
             return (), ()
 
@@ -4463,10 +4506,13 @@ class Phase6FoldDesignerComposition:
                 local["part_dimensions"] = local_dims
                 base_plate_profiles[base_key] = build_profiles(local, base_key)
 
-        try:
-            box_render_data = required("_phase6_box_body_structure_render_data")(app)
-        except Exception:
-            box_render_data = None
+        if projected_workspace is not None:
+            box_render_data = projected_box_render_data
+        else:
+            try:
+                box_render_data = required("_phase6_box_body_structure_render_data")(app)
+            except Exception:
+                box_render_data = None
         box_piece_profiles = (
             required("_phase6_box_body_piece_part_profiles")(box_render_data, snapshot)
             if box_render_data is not None

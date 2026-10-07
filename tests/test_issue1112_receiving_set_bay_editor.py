@@ -203,7 +203,8 @@ def test_t007_each_bay_reuses_existing_common_door_validation_and_fails_closed_w
 def test_t015_transient_current_bay_projection_never_mutates_persisted_layout_or_input_snapshot():
     layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
     layout = update_receiving_bay(layout, set_index=0, bay_index=1, width=930, height=1800, depth=500, back_panel_mode="HALF")
-    snap = _snapshot(layout)
+    from ae_engine.receiving_layout import ensure_receiving_layout
+    snap = ensure_receiving_layout(_snapshot(layout))
     before = deepcopy(snap)
 
     projected = project_receiving_bay_legacy_aliases(
@@ -231,7 +232,10 @@ def test_bridge_projects_receiving_layers_as_rows_without_legacy_set_bay_selecto
     assert "self.receiving_set_bay_control" in source
     assert "self.receiving_layer_controls" in source
     assert "self.receiving_switch_brand_selector" in source
-    assert "refresh_receiving_layer_rows(" in source
+    import inspect
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+    owner_source = inspect.getsource(Phase6FoldDesignerComposition.refresh_receiving_set_bay_control)
+    assert 'required("refresh_receiving_layer_rows")' in owner_source
     assert "self.receiving_set_selector" not in source
     assert "self.receiving_bay_selector" not in source
     assert "_phase6_confirm_receiving_opening" in source
