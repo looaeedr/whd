@@ -77,7 +77,7 @@ def _build(kind: str):
 
 
 def test_dispatch_control_plane_allowlist_contains_ready_and_acquire_only():
-    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE"})
+    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF"})
 
 
 def test_ready_issue_can_be_acquired_with_control_plane_only_github_admission():
@@ -90,6 +90,13 @@ def test_ready_issue_can_be_acquired_with_control_plane_only_github_admission():
 def test_stale_ready_record_can_reconcile_with_control_plane_only_github_admission():
     request = _build("RECONCILE")
     assert request["kind"] == "RECONCILE"
+    assert request["startup_evidence"]["work_root_gate"]["scope"] == "CONTROL_PLANE_ONLY"
+    assert request["startup_transition"]["status"] == "READY_FOR_EXECUTION"
+
+
+def test_routing_only_handoff_can_use_control_plane_only_github_admission():
+    request = _build("HANDOFF")
+    assert request["kind"] == "HANDOFF"
     assert request["startup_evidence"]["work_root_gate"]["scope"] == "CONTROL_PLANE_ONLY"
     assert request["startup_transition"]["status"] == "READY_FOR_EXECUTION"
 
