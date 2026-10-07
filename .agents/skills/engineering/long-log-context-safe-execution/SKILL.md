@@ -16,7 +16,7 @@ whd_schema: WHD_DOC_META_V1
 ## 何時強制使用
 
 - pytest / Xvfb / full-suite / Combined Acceptance 等輸出可能達數百到數千行。
-- GitHub Actions / remote CI 長時間執行，需要多次 polling。
+- GitHub Actions / remote CI 長時間執行，需要跨 invocation / resume 的狀態續接；**同一 invocation 對同一 remote run 只允許一次 status observation**，不得 busy polling。
 - 本機 command/process 持續輸出，而下一輪只需要新增輸出。
 - Runtime、聊天或執行視窗可能被平台切斷，需要 checkpoint 續接。
 
@@ -28,7 +28,7 @@ whd_schema: WHD_DOC_META_V1
 2. **正常執行只讀摘要 + bounded tail。** 每輪優先讀 process/run/job/step 狀態、iteration、PASS/FAIL/score、elapsed，以及最後固定上限 N 行。N 必須有上限，不能隨 log 成長；預設可從 80 行以下開始。
 3. **FAIL 先定位、再切片。** 先搜尋 `FAILED`、`ERROR`、`Traceback`、`AssertionError`、exit code 或 provider failed-step annotation，只擷取命中點前後有限區段；不足才按 chunk 向外擴。
 4. **分段反讀必須保留 offset/cursor。** 對 line/byte range、resource cursor、`next_read`、artifact offset 等記錄 `last_read_offset`；下一輪從 checkpoint 後續讀，禁止因 context 截斷就從第 1 行重讀。
-5. **遠端 QA 優先結構化狀態。** polling 用 run → jobs → steps；失敗時優先 failed-job/failed-step log、搜尋或 bounded slice。若環境真的有 GitHub CLI，可用 `gh run view <run> --log-failed`；沒有 CLI 就用 connector/API 等價能力，不得假裝工具存在。
+5. **遠端 QA 優先結構化狀態，但 observation cadence 服從 Flow v2。** 單次 observation 用 run → jobs → steps；第一次若仍 active，立即 durable YIELD，後續只可在下一個 invocation/resume 再觀測；第一次若已 terminal，立即走 consume/accept/fail，**同一 invocation 不得再讀第二次相同 run/job/status**。失敗時優先 failed-job/failed-step log、搜尋或 bounded slice。若環境真的有 GitHub CLI，可用 `gh run view <run> --log-failed`；沒有 CLI 就用 connector/API 等價能力，不得假裝工具存在。
 6. **provider 只能整包下載時，先落檔再搜尋。** 不得把整份下載內容直接回傳聊天；先保存 raw file，再以 grep/search/find/offset 取需要的片段。
 7. **執行視窗被切斷 ≠ 工作失敗。** 恢復時先反查 durable `run_id/process_id + branch + HEAD + checkpoint + artifact/raw-log location + last_read_offset + last known state`，再續同一工作；禁止只因聊天中斷就重新跑整套測試。
 8. **terminal 後才做完整 evidence 收斂。** 終態收 pass/fail counts、failed nodeids、invariants、head SHA、cleanup/drift evidence；完整 raw log 可作證據來源，但仍不必整份搬入 context。
@@ -41,20 +41,21 @@ whd_schema: WHD_DOC_META_V1
 
 | 狀態 | 動作 |
 |---|---|
-| queued / running | structured status + bounded tail/new chunk；更新 cursor；依 owning cadence 回報 |
+| queued / running | 單次 structured status + bounded tail/new chunk；更新 cursor；立即依 Flow v2 YIELD，下一 invocation/resume 才可再觀測 |
 | failed | 搜 failure marker → bounded error slice → 必要時向外擴；raw log 留 durable storage |
-| terminal success | 收 counts / invariants / HEAD / cleanup evidence；不重播整份 log |
+| terminal success | **第一次 terminal observation 立即 consume/accept/finalize；同一 invocation 不再 poll 同一 run**；收 counts / invariants / HEAD / cleanup evidence，不重播整份 log |
 | Runtime cut | 讀 checkpoint → 驗 branch/HEAD/run → 從 cursor 續讀；不重 trigger |
 
 ## 禁止事項
 
 - 每次 polling 都重新 fetch / paste 整份 job log。
+- **同一 invocation 對同一 remote run 做第二次 status observation，包含第一次已經是 `completed` / terminal 的情況。**
 - 因 tool response 被截斷就從頭再抓一次超長 log。
 - 用「log 太長看不到」當成重跑 full-suite 的理由。
 - non-terminal 長流程等全部跑完才第一次回報；應依 owning monitoring/long-run cadence 回報狀態、iteration、score 或 bounded tail。
 - 把 raw log 當成 production/domain authority；log 只提供 validation/evidence。
 
-`monitoring-remote-qa` 擁有 remote run 的 active polling state machine；本 Skill 擁有**所有長輸出的 context-safe 讀取與續接策略**。兩者不得建立第二套互相衝突的 state machine。
+`monitoring-remote-qa` 擁有 remote run 的 observation state machine；本 Skill 只擁有**長輸出的 context-safe 讀取與續接策略**。active/terminal status cadence 一律服從 Flow v2：同一 invocation 同一 run 一次 observation；active→YIELD，terminal→立即 consume。不得建立第二套 polling state machine。
 
 ## CI classifier / retry semantics bridge
 
