@@ -17,3 +17,14 @@ def test_issue1345_ae_facade_shrinks_and_config_owner_is_one_way():
     owner = inspect.getsource(ae_config)
     assert "from .ae import" not in owner
     assert "import ae_engine.ae" not in owner
+
+
+def test_issue1345_calculation_owner_is_extracted_one_way():
+    from ae_engine import ae_calculations
+    assert ae.calculate_z_length is ae_calculations.calculate_z_length
+    assert ae.calculate_y_width is ae_calculations.calculate_y_width
+    assert ae.calculate_door_finished_size is ae_calculations.calculate_door_finished_size
+    assert len(inspect.getsource(ae).splitlines()) < 1800
+    owner = inspect.getsource(ae_calculations)
+    assert "from .ae import" not in owner
+    assert "import ae_engine.ae" not in owner
