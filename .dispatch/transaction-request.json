@@ -1,27 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1385-block-missing-workspace-retry-20261007T2310Z",
+  "request_id": "dm8-1385-stale-active-reconcile-20261007T2319Z",
   "issue": 1385,
-  "kind": "BLOCK",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
-  "expected_coord_head": "93d6cfaa892db9652b5191e8d65c61975114016f",
+  "expected_coord_head": "a1863f71303075c2425cc6bf058eae09a8829a10",
   "expected_generation": 3,
   "effect": {
-    "blocker_kind": "MISSING_CAPABILITY",
-    "blocker_evidence": "Current /派工 runtime is GitHub/control-plane only under DISPATCH_LOCAL_MACHINE_PROHIBITION_HARD_GATE_V1. Issue #1385 next_action=START_BRANCH requires ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1 from a writable/testable executor-local repo workspace with exact tested diff. This chat runtime has no non-local writable/testable repo workspace. RC /workspace/whd is reserved for explicit /接手 and cannot be borrowed by /派工. Untested GitHub hotfix is forbidden.",
-    "semantic_state": "WAITING_FOR_WORKSPACE_CAPABLE_RUNTIME",
+    "observed_work_branch": "work/issue-1385",
+    "observed_head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+    "observed_target_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+    "state": "ACTIVE",
+    "semantic_state": "CLAIMED",
     "next_action": {
-      "kind": "WAIT_EXTERNAL",
-      "args": {
-        "blocker_kind": "MISSING_CAPABILITY",
-        "required_capability": "WRITABLE_TESTABLE_EXECUTOR_REPO_WORKSPACE",
-        "resume_action": "START_BRANCH"
-      },
-      "display": "等待 workspace-capable runtime 接手 #1385 並續 START_BRANCH"
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "開始 #1385 DM8-B0 O1 Part Session authority reconciliation"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1385,
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390"
     }
   },
-  "purpose": "Durably block #1385 rather than leave a false ACTIVE/CLAIMED dispatch when /派工 has no legal repository-content workspace surface.",
+  "purpose": "Bare /派工 #1385: reconcile ACTIVE record target drift caused by merged control-plane HANDOFF fix; preserve unimplemented work head and START_BRANCH continuation.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -33,7 +41,7 @@
     "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+    "production_head_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
     "drive_role": "MIRROR_BACKUP_ONLY",
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "root_entries": [
@@ -56,23 +64,31 @@
     "issue": 1385,
     "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
     "branch": "cleanup/2d-3d-sync",
-    "head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+    "head_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
     "required_skills": [
+      "flow-v2-execution",
+      "派工",
+      "issue-closure-gate",
+      "diagnosing-bugs",
+      "tdd",
       "handoff"
     ],
     "completed_skills": [
+      "flow-v2-execution",
+      "派工",
+      "issue-closure-gate",
+      "diagnosing-bugs",
+      "tdd",
       "handoff"
     ],
     "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
     "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-07T23:03:13Z"
-  },
-  "session_reuse": {
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
-    "mode": "LIVE_LEASE_CONTINUATION"
+    "observed_at": "2026-10-07T23:18:47Z"
   }
 }
