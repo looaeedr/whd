@@ -34,3 +34,14 @@ def test_issue1343_baseline_policy_owner_is_extracted_one_way():
     owner = inspect.getsource(manufacturing_baseline_policy)
     assert "import ae_engine.manufacturing_api" not in owner
     assert "from .manufacturing_api import" not in owner
+
+
+def test_issue1343_door_indicator_owner_is_extracted_one_way():
+    from ae_engine import manufacturing_door_indicator
+    assert manufacturing_api.door_finished_face_size is manufacturing_door_indicator.door_finished_face_size
+    assert manufacturing_api.validate_door_indicator_fit is manufacturing_door_indicator.validate_door_indicator_fit
+    assert manufacturing_api.indicator_box_opening_size is manufacturing_door_indicator.indicator_box_opening_size
+    assert len(inspect.getsource(manufacturing_api).splitlines()) < 1550
+    owner = inspect.getsource(manufacturing_door_indicator)
+    assert "import ae_engine.manufacturing_api" not in owner
+    assert "from .manufacturing_api import" not in owner
