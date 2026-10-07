@@ -34,3 +34,16 @@ def test_issue1359_corner_policy_owner_is_reexported_one_way():
     owner = inspect.getsource(sheetmetal_corner_policy)
     assert "from .sheetmetal_geometry import" not in owner
     assert "import ae_engine.sheetmetal_geometry" not in owner
+
+
+def test_issue1359_four_side_and_shared_owners_are_one_way():
+    from ae_engine import sheetmetal_geometry_shared
+    from ae_engine import sheetmetal_four_side_geometry
+    assert sheetmetal_geometry.placed_corner_cut_polygons is sheetmetal_geometry_shared.placed_corner_cut_polygons
+    assert sheetmetal_geometry.FourSideFlangeGeometry is sheetmetal_four_side_geometry.FourSideFlangeGeometry
+    assert sheetmetal_geometry.build_four_side_outline is sheetmetal_four_side_geometry.build_four_side_outline
+    assert sheetmetal_geometry.build_four_side_bend_segments is sheetmetal_four_side_geometry.build_four_side_bend_segments
+    assert len(inspect.getsource(sheetmetal_geometry).splitlines()) < 650
+    for owner in (inspect.getsource(sheetmetal_geometry_shared), inspect.getsource(sheetmetal_four_side_geometry)):
+        assert "from .sheetmetal_geometry import" not in owner
+        assert "import ae_engine.sheetmetal_geometry" not in owner

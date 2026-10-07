@@ -66,269 +66,27 @@ from .sheetmetal_corner_policy import (
     box_body_height_from_corner_policies,
 )
 
-@dataclass(frozen=True)
-class FourSideFlangeGeometry:
-    total_width: float
-    total_height: float
-    thickness: float
-    left_fold: float
-    right_fold: float
-    top_fold: float
-    bottom_fold: float
+from .sheetmetal_geometry_shared import (
+    _local_cross_slot_polygon,
+    _mirror_local_corner_polygon,
+    _placed_corner_cut_polygons,
+    placed_corner_cut_polygons,
+    _clip_axis_bend,
+    _require_shapely,
+    _normalize_ring,
+)
 
-
-@dataclass(frozen=True)
-class RectCornerReliefPolicy:
-    bottom_left_x: float
-    bottom_right_x: float
-    top_left_x: float
-    top_right_x: float
-    bottom_y: float
-    top_y: float
-
-@dataclass(frozen=True)
-class FourSideBendExtentPolicy:
-    horizontal_to_blank_edges: bool = False
-
-
-def _validate_four_side_geometry(g: FourSideFlangeGeometry) -> None:
-    if g.total_width <= 0 or g.total_height <= 0:
-        raise GeometryError("blank dimensions must be greater than zero")
-    if g.thickness <= 0:
-        raise GeometryError("板厚必須大於 0")
-    if any(v < 0 for v in (g.left_fold, g.right_fold, g.top_fold, g.bottom_fold)):
-        raise GeometryError("fold dimensions must not be negative")
-
-
-def _validate_four_side(g: FourSideFlangeGeometry, policy: RectCornerReliefPolicy) -> None:
-    _validate_four_side_geometry(g)
-    values = (
-        policy.bottom_left_x, policy.bottom_right_x,
-        policy.top_left_x, policy.top_right_x,
-        policy.bottom_y, policy.top_y,
-    )
-    if any(v < 0 for v in values):
-        raise GeometryError("relief dimensions must not be negative")
-    if policy.bottom_left_x + policy.bottom_right_x >= g.total_width:
-        raise GeometryError("bottom corner reliefs consume blank width")
-    if policy.top_left_x + policy.top_right_x >= g.total_width:
-        raise GeometryError("top corner reliefs consume blank width")
-    if policy.bottom_y + policy.top_y >= g.total_height:
-        raise GeometryError("corner reliefs consume blank height")
-
-
-def _local_cross_slot_polygon(relief: ResolvedCornerRelief):
-    """Build an optional rounded-end slot in canonical +U/+V corner coordinates."""
-    if relief.slot_width is None:
-        return None
-    if relief.slot_straight_depth is None or relief.slot_radius is None:
-        raise GeometryError("十字截角槽參數不完整")
-    width = float(relief.slot_width)
-    straight = float(relief.slot_straight_depth)
-    radius = float(relief.slot_radius)
-    u0 = float(relief.primary_u) - width
-    u1 = float(relief.primary_u)
-    tangent_v = float(relief.primary_v) + straight
-    if u0 < -DEFAULT_TOLERANCE:
-        raise GeometryError("十字截角槽超出主截角U範圍")
-    rectangle = box(max(0.0, u0), float(relief.primary_v), u1, tangent_v)
-    axis_left = u0 + radius
-    axis_right = u1 - radius
-    if axis_right < axis_left - DEFAULT_TOLERANCE:
-        raise GeometryError("十字截角槽R與槽寬不相容")
-    if abs(axis_right - axis_left) <= DEFAULT_TOLERANCE:
-        cap = Point(((axis_left + axis_right) / 2.0, tangent_v)).buffer(radius)
-    else:
-        cap = LineString(((axis_left, tangent_v), (axis_right, tangent_v))).buffer(
-            radius, cap_style=1, join_style=1
-        )
-    cap = cap.intersection(box(u0, tangent_v, u1, tangent_v + radius + DEFAULT_TOLERANCE))
-    return unary_union((rectangle, cap))
-
-
-def _mirror_local_corner_polygon(poly, *, corner_name: str, width: float, height: float):
-    from shapely.affinity import scale, translate
-    if corner_name == "bottom_left":
-        return poly
-    if corner_name == "bottom_right":
-        return translate(scale(poly, xfact=-1.0, yfact=1.0, origin=(0.0, 0.0)), xoff=float(width))
-    if corner_name == "top_left":
-        return translate(scale(poly, xfact=1.0, yfact=-1.0, origin=(0.0, 0.0)), yoff=float(height))
-    if corner_name == "top_right":
-        mirrored = scale(poly, xfact=-1.0, yfact=-1.0, origin=(0.0, 0.0))
-        return translate(mirrored, xoff=float(width), yoff=float(height))
-    raise GeometryError(f"unknown physical corner: {corner_name}")
-
-
-def _placed_corner_cut_polygons(
-    *,
-    corner_name: str,
-    relief: ResolvedCornerRelief,
-    width: float,
-    height: float,
-):
-    """Place a canonical inward +U/+V corner cut at one physical blank corner."""
-    pu, pv = relief.primary_u, relief.primary_v
-    if corner_name == "bottom_left":
-        primary = box(0.0, 0.0, pu, pv)
-        secondary = (
-            None if relief.secondary_u is None or relief.secondary_depth is None
-            else box(0.0, pv, relief.secondary_u, pv + relief.secondary_depth)
-        )
-    elif corner_name == "bottom_right":
-        primary = box(width - pu, 0.0, width, pv)
-        secondary = (
-            None if relief.secondary_u is None or relief.secondary_depth is None
-            else box(width - relief.secondary_u, pv, width, pv + relief.secondary_depth)
-        )
-    elif corner_name == "top_left":
-        primary = box(0.0, height - pv, pu, height)
-        secondary = (
-            None if relief.secondary_u is None or relief.secondary_depth is None
-            else box(0.0, height - pv - relief.secondary_depth, relief.secondary_u, height - pv)
-        )
-    elif corner_name == "top_right":
-        primary = box(width - pu, height - pv, width, height)
-        secondary = (
-            None if relief.secondary_u is None or relief.secondary_depth is None
-            else box(
-                width - relief.secondary_u,
-                height - pv - relief.secondary_depth,
-                width,
-                height - pv,
-            )
-        )
-    else:
-        raise GeometryError(f"unknown physical corner: {corner_name}")
-    slot_local = _local_cross_slot_polygon(relief)
-    slot = (
-        None if slot_local is None
-        else _mirror_local_corner_polygon(
-            slot_local, corner_name=corner_name, width=width, height=height
-        )
-    )
-    return [
-        poly for poly in (primary, secondary, slot)
-        if poly is not None and not poly.is_empty
-    ]
-
-
-def placed_corner_cut_polygons(
-    *,
-    corner_name: str,
-    relief: ResolvedCornerRelief,
-    width: float,
-    height: float,
-):
-    """Public geometry seam for placing one already-resolved CornerType cut."""
-    return _placed_corner_cut_polygons(
-        corner_name=corner_name, relief=relief, width=width, height=height
-    )
-
-
-def _four_side_type_cut_polygons(g: FourSideFlangeGeometry, policy: FourCornerTypePolicy):
-    _validate_four_side_geometry(g)
-    specs = {
-        "bottom_left": (policy.bottom_left, g.left_fold, g.bottom_fold),
-        "bottom_right": (policy.bottom_right, g.right_fold, g.bottom_fold),
-        "top_left": (policy.top_left, g.left_fold, g.top_fold),
-        "top_right": (policy.top_right, g.right_fold, g.top_fold),
-    }
-    cuts = []
-    for name, (selection, fold_u, fold_v) in specs.items():
-        relief = resolve_corner_relief(
-            selection, fold_u=fold_u, fold_v=fold_v, thickness=g.thickness,
-            fw=policy.fw_for(name),
-        )
-        if relief.primary_u > g.total_width or relief.primary_v > g.total_height:
-            raise GeometryError("corner relief exceeds blank dimensions")
-        if relief.secondary_u is not None and relief.secondary_u > g.total_width:
-            raise GeometryError("secondary corner relief exceeds blank dimensions")
-        if relief.secondary_depth is not None and relief.primary_v + relief.secondary_depth > g.total_height:
-            raise GeometryError("secondary corner relief exceeds blank dimensions")
-        cuts.extend(_placed_corner_cut_polygons(
-            corner_name=name, relief=relief, width=g.total_width, height=g.total_height
-        ))
-    return cuts
-
-
-def _four_side_material_polygon(
-    g: FourSideFlangeGeometry,
-    policy: RectCornerReliefPolicy | FourCornerTypePolicy,
-):
-    _require_shapely()
-    w, h = g.total_width, g.total_height
-    blank = box(0.0, 0.0, w, h)
-    if isinstance(policy, RectCornerReliefPolicy):
-        _validate_four_side(g, policy)
-        cuts = [
-            box(0.0, 0.0, policy.bottom_left_x, policy.bottom_y),
-            box(w - policy.bottom_right_x, 0.0, w, policy.bottom_y),
-            box(0.0, h - policy.top_y, policy.top_left_x, h),
-            box(w - policy.top_right_x, h - policy.top_y, w, h),
-        ]
-    elif isinstance(policy, FourCornerTypePolicy):
-        cuts = _four_side_type_cut_polygons(g, policy)
-    else:
-        raise TypeError(f"unsupported corner policy: {type(policy).__name__}")
-    cut_union = unary_union(cuts) if cuts else None
-    result = blank if cut_union is None else blank.difference(cut_union)
-    if result.geom_type != "Polygon" or result.is_empty or not result.is_valid:
-        raise GeometryError("invalid four-side flange outline")
-    return orient(result, sign=1.0)
-
-
-def build_four_side_outline(
-    g: FourSideFlangeGeometry,
-    policy: RectCornerReliefPolicy | FourCornerTypePolicy,
-) -> list[Vec2]:
-    result = _four_side_material_polygon(g, policy)
-    return _normalize_ring(result.exterior.coords)
-
-
-def _clip_axis_bend(name: str, line: LineString, material, vertical: bool) -> BendLine:
-    clipped = material.intersection(line)
-    if clipped.is_empty:
-        raise GeometryError(f"bend {name} does not intersect material")
-    if clipped.geom_type == "MultiLineString":
-        clipped = max(clipped.geoms, key=lambda geom: geom.length)
-    if clipped.geom_type != "LineString":
-        raise GeometryError(f"bend {name} did not clip to a line")
-    coords = list(clipped.coords)
-    a = Vec2(float(coords[0][0]), float(coords[0][1]))
-    b = Vec2(float(coords[-1][0]), float(coords[-1][1]))
-    if vertical:
-        if a.y > b.y:
-            a, b = b, a
-    elif a.x > b.x:
-        a, b = b, a
-    return BendLine(name, a, b)
-
-
-def build_four_side_bend_segments(
-    g: FourSideFlangeGeometry,
-    policy: RectCornerReliefPolicy | FourCornerTypePolicy,
-    extent: FourSideBendExtentPolicy = FourSideBendExtentPolicy(),
-) -> list[BendLine]:
-    _require_shapely()
-    material = _four_side_material_polygon(g, policy)
-    w, h = g.total_width, g.total_height
-    vertical = [
-        _clip_axis_bend("left", LineString([(g.left_fold, 0.0), (g.left_fold, h)]), material, True),
-        _clip_axis_bend("right", LineString([(w - g.right_fold, 0.0), (w - g.right_fold, h)]), material, True),
-    ]
-    if extent.horizontal_to_blank_edges:
-        horizontal = [
-            BendLine("bottom", Vec2(0.0, g.bottom_fold), Vec2(w, g.bottom_fold)),
-            BendLine("top", Vec2(0.0, h - g.top_fold), Vec2(w, h - g.top_fold)),
-        ]
-    else:
-        horizontal = [
-            _clip_axis_bend("bottom", LineString([(0.0, g.bottom_fold), (w, g.bottom_fold)]), material, False),
-            _clip_axis_bend("top", LineString([(0.0, h - g.top_fold), (w, h - g.top_fold)]), material, False),
-        ]
-    return vertical + horizontal
-
+from .sheetmetal_four_side_geometry import (
+    FourSideFlangeGeometry,
+    RectCornerReliefPolicy,
+    FourSideBendExtentPolicy,
+    _validate_four_side_geometry,
+    _validate_four_side,
+    _four_side_type_cut_polygons,
+    _four_side_material_polygon,
+    build_four_side_outline,
+    build_four_side_bend_segments,
+)
 
 @dataclass(frozen=True)
 class EndCapGeometry:
@@ -758,12 +516,6 @@ def _validate_reliefs_fit_blank(
         raise GeometryError("relief exceeds blank dimensions")
 
 
-def _require_shapely() -> None:
-    if Polygon is None or box is None or unary_union is None:
-        raise GeometryError(
-            "Shapely is required for boolean outline generation in this build"
-        )
-
 
 def build_endcap_reliefs(
     g: EndCapGeometry,
@@ -824,24 +576,6 @@ def build_endcap_reliefs(
         for name, rule, poly in specs
     ]
 
-
-def _normalize_ring(points: Iterable[tuple[float, float]]) -> list[Vec2]:
-    coords = [Vec2(float(x), float(y)) for x, y in points]
-    if len(coords) < 4:
-        raise GeometryError("outline exterior has too few points")
-    if coords[0] == coords[-1]:
-        coords = coords[:-1]
-
-    # Deterministic start: left-most surviving point on the bottom edge.
-    min_y = min(p.y for p in coords)
-    bottom_indices = [
-        i for i, p in enumerate(coords) if math.isclose(p.y, min_y, abs_tol=DEFAULT_TOLERANCE)
-    ]
-    start = min(bottom_indices, key=lambda i: coords[i].x)
-
-    rotated = coords[start:] + coords[:start]
-    rotated.append(rotated[0])
-    return rotated
 
 
 def build_endcap_outline(
