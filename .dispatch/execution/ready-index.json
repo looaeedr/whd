@@ -14,17 +14,6 @@
     },
     {
       "execution_intent": "EXECUTE_TICKET",
-      "generation": 2,
-      "issue": 1378,
-      "next_action_display": "Acquire Issue #1378",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "d3c2e097225b5162422e9b9675709799f31b7d39549a82498a3138983d697ca1",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-      "updated_at": "2026-10-07T16:49:10Z"
-    },
-    {
-      "execution_intent": "EXECUTE_TICKET",
       "generation": 1,
       "issue": 1385,
       "next_action_display": "Acquire Issue #1385",
@@ -36,5 +25,5 @@
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "eb5115d66ff7ba1637eb238f1c6ce04e2a400b560502a8a1bf516c3fd22b7c40"
+  "source_digest": "04ef065e22602d097e453a8bfca895f3a4f460c81c2b5e307dc5913d6b83fbcb"
 }
