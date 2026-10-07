@@ -13,7 +13,7 @@ from ae_engine.corner_type_ui import is_unknown_model
 from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, door_layout_feature_map_to_part_features
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
-from phase6_endcap_semantics import assembly_intent_value
+from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
 
 def _snapshot_base_state(self):
