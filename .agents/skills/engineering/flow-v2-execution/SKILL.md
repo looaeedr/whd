@@ -626,7 +626,7 @@ Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
 ## Work slot / handoff
 
 
-固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。`worker.slot.N` identity 永遠固定；下面的自動遞增只決定新工作要綁哪個既有 fixed slot。
+固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。 routing-only HANDOFF 若由同一 invocation reconciled，且 durable readback 已是 `owner_kind=NONE / owner_id=NONE / lane_id=null / lease=null`，host-exit classifier 固定回 `HANDOFF_COMPLETE`；這是唯一允許 lease-null HANDOFF 正常 return 的窄例外。其他 lease-null nonterminal record仍為 `ACQUIRE_REQUIRED`。`worker.slot.N` identity 永遠固定；下面的自動遞增只決定新工作要綁哪個既有 fixed slot。
 
 
 ### DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
