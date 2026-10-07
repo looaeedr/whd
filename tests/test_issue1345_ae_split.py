@@ -28,3 +28,14 @@ def test_issue1345_calculation_owner_is_extracted_one_way():
     owner = inspect.getsource(ae_calculations)
     assert "from .ae import" not in owner
     assert "import ae_engine.ae" not in owner
+
+
+def test_issue1345_endcap_owner_is_extracted_one_way():
+    from ae_engine import ae_endcap
+    assert ae.export_end_cap_dxf is ae_endcap.export_end_cap_dxf
+    assert ae.export_stretched_end_cap_dxf is ae_endcap.export_stretched_end_cap_dxf
+    assert ae.baseline_part_path is ae_endcap.baseline_part_path
+    assert len(inspect.getsource(ae).splitlines()) < 1500
+    owner = inspect.getsource(ae_endcap)
+    assert "from .ae import" not in owner
+    assert "import ae_engine.ae" not in owner
