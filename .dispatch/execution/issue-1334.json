@@ -1,10 +1,6 @@
 {
   "active_run": null,
-  "blocker": {
-    "evidence": "GitHub Actions approval required after trusted SYNC_TARGET advanced work/issue-1334 to 9e879638df6efa7b8a2bc1c5ee26508584bf68c3; all PR checks are action_required and connector rerun returned HTTP 403; maintainer must click Approve and run. run_ids=37560423820,37560423812,37560423799,37560423891",
-    "kind": "EXTERNAL_DEPENDENCY",
-    "recheck_after": null
-  },
+  "blocker": null,
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -16,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 15,
+  "generation": 16,
   "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
   "issue": 1334,
   "lane_id": "chatgpt.flowv2.work1",
@@ -47,18 +43,11 @@
   },
   "next_action": {
     "args": {
-      "blocker_kind": "EXTERNAL_DEPENDENCY",
       "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
-      "pr_number": 1340,
-      "run_ids": [
-        37560423820,
-        37560423812,
-        37560423799,
-        37560423891
-      ]
+      "run_id": 37560423820
     },
-    "display": "Wait for maintainer Approve and run on PR #1340 exact-head checks",
-    "kind": "WAIT_EXTERNAL"
+    "display": "Consume exact-head Control Plane GREEN for PR #1340",
+    "kind": "CONSUME_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -75,21 +64,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "WAITING_FOR_GITHUB_ACTIONS_APPROVAL",
+  "semantic_state": "QA_GREEN",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-  "state": "BLOCKED",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
   "transaction": {
-    "expected_fingerprint": "ebdfad4b5d0fe027f0dfb2628f60ea6efd38fad04a9338f834fcc8ccbbc59a98",
-    "id": "gha:37567046148:1334:ACQUIRE:14",
+    "expected_fingerprint": "6213ab1a62866df1ffbdf655ac02f308cc6f8742ebbcc7809ab49ec8e5b76b8e",
+    "id": "gha:37567196140:1334:RECONCILE:15",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-07T03:30:58Z",
+  "updated_at": "2026-10-07T03:32:37Z",
   "version": 2,
   "work_branch": "work/issue-1334"
 }
