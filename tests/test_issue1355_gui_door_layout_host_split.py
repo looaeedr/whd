@@ -24,3 +24,19 @@ def test_issue1355_adapter_excludes_receiving_inner_door_and_gui_shrinks():
     assert "_set_receiving_inner_door_enabled" not in owner
     assert "def set_door_layout_columns" not in facade
     assert "def set_door_layout_columns" in owner
+
+
+def test_issue1355_render_projection_methods_are_extracted_without_editor_lifecycle():
+    from gui_modules.application import door_render_host_adapter
+    host = gui.Phase6ApplicationHost
+    assert host.draw_door is door_render_host_adapter.draw_door
+    assert host.draw_door_layout_overview is door_render_host_adapter.draw_door_layout_overview
+    assert host.draw_indicator_box is door_render_host_adapter.draw_indicator_box
+    assert host.draw_indicator_door is door_render_host_adapter.draw_indicator_door
+    assert host.draw_base_plate is door_render_host_adapter.draw_base_plate
+    assert len(inspect.getsource(gui).splitlines()) < 2050
+    owner = inspect.getsource(door_render_host_adapter)
+    assert "open_door_layout_cell_editor" not in owner
+    assert "_set_receiving_inner_door_enabled" not in owner
+    assert "from gui import" not in owner
+    assert "import gui" not in owner
