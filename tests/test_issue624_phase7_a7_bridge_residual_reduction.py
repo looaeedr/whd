@@ -8,6 +8,17 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
 ADAPTER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
+COMPOSITION_IMPLEMENTATIONS = tuple(
+    ROOT / "gui_modules" / "application" / f"fold_designer_composition_{name}.py"
+    for name in (
+        "state",
+        "settings",
+        "receiving",
+        "registry_edges",
+        "assembly_corner",
+        "shell_settings",
+    )
+)
 ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
 
 P7_R_A_PROVEN_NO_CALLER = {
@@ -18,6 +29,14 @@ P7_R_A_PROVEN_NO_CALLER = {
     "_phase6_export_selected_dxf_from_3d",
 }
 
+
+
+
+def _composition_source() -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ADAPTER, *COMPOSITION_IMPLEMENTATIONS)
+    )
 
 def _tree(path: Path) -> ast.Module:
     return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -131,7 +150,7 @@ def test_p7_r_a_retains_composition_ports_proven_live_by_broader_readback():
         "_phase6_toggle_parameter_panel",
     ):
         assert name in funcs
-    adapter = ADAPTER.read_text(encoding="utf-8")
+    adapter = _composition_source()
     assert "_phase6_refresh_sticky_structure_tree" in adapter
     assert "_phase6_install_keyboard_shortcuts" in adapter
     assert "_phase6_final_scene_view_request" in adapter
@@ -227,7 +246,7 @@ def test_issue1213_settings_application_effects_live_only_in_composition_owner()
         "settings_application_publish_live_state",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "_phase6_settings_application_apply_profile_plan" not in adapter_source
     assert "_phase6_settings_application_project_ui_values" not in adapter_source
     assert "_phase6_settings_application_submit_update_intent" not in adapter_source
@@ -276,7 +295,7 @@ def test_issue1215_project_effects_are_composition_owned_with_bridge_compat_port
         "save_project_file",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "Phase6ProjectController.build_designer_payload" in adapter_source
     assert "Phase6ProjectController.validate_project_load" in adapter_source
     assert "Phase6ProjectController.write_designer_project" in adapter_source
@@ -306,7 +325,7 @@ def test_issue1217_settings_context_projection_is_composition_owned():
     }
     assert "settings_context_extension_projection" in method_names
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "_phase6_settings_context_extension_projection" not in adapter_source
     assert "self.settings_context_extension_projection(" in adapter_source
     assert "context_extension_projection=lambda context:" in adapter_source
@@ -350,7 +369,7 @@ def test_issue1219_registry_application_sequencing_is_composition_owned():
         "registry_promote_form",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.registry_validate_formula_form()" in adapter_source
     assert "self.registry_preview_payload()" in adapter_source
     assert "self.registry_preview_assembly_3d(" in adapter_source
@@ -396,7 +415,7 @@ def test_issue1221_registry_presentation_translation_is_panel_owned():
     ):
         assert token in panel_source
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "_phase6_registry_present_token" not in adapter_source
     assert "_phase6_registry_formula_display" not in adapter_source
     assert "_phase6_registry_source_display" not in adapter_source
@@ -596,7 +615,7 @@ def test_issue1227_settings_panel_and_external_ingress_are_composition_owned():
         "on_ui_text_size_changed",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "_phase6_sync_settings_panel_extension" not in adapter_source
     assert "_phase6_on_baseline_model_changed" not in adapter_source
     assert "_phase6_apply_ui_text_size" not in adapter_source
@@ -699,7 +718,7 @@ def test_issue1231_receiving_set_bay_application_orchestration_is_composition_ow
         "commit_receiving_current_bay_controls",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert 'snapshot["receiving_layout"] = adapter.layout' in adapter_source
     assert 'persisted_ids=required("receiving_layout_stable_ids")' in adapter_source
 
@@ -735,7 +754,7 @@ def test_issue1234_settings_debounce_and_flush_are_composition_owned():
         "stage_setting_update",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert 'service.drain_pending()' in adapter_source
     assert 'service.stage_setting_update(' in adapter_source
     assert 'lambda: self.flush_pending_settings(namespace)' in adapter_source
@@ -774,7 +793,7 @@ def test_issue1239_settings_profile_projection_is_composition_owned():
         "refresh_profiles_from_settings",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert 'required("_phase6_refresh_profiles_from_settings")' not in adapter_source
     assert "return self.refresh_profiles_from_settings(" in adapter_source
     assert "self.sync_authoritative_derived_parts(namespace)" in adapter_source
@@ -804,7 +823,7 @@ def test_issue1241_workspace_snapshot_application_assembly_is_composition_owned(
     }
     assert "collect_workspace_state" in method_names
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "workspace = self.collect_workspace_state(namespace)" in adapter_source
     assert 'required("_phase6_collect_workspace_state")' not in adapter_source
     assert "workspace.export_shared_snapshot(" in adapter_source
@@ -841,7 +860,7 @@ def test_issue1244_relief_persistence_application_assembly_is_composition_owned(
         "serialize_assembly_relief_state",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.current_relief_source_signature(" in adapter_source
     assert "self.serialize_assembly_relief_state(" in adapter_source
     assert 'required("_phase6_serialize_assembly_relief_state")' not in adapter_source
@@ -870,7 +889,7 @@ def test_issue1246_live_sync_payload_assembly_is_composition_owned():
     }
     assert "corner_transaction_payload" in method_names
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "state = self.corner_transaction_payload(namespace)" in adapter_source
     assert 'self._required(namespace, "_phase6_corner_transaction_payload")' not in adapter_source
     assert "self.collect_workspace_state(namespace)" in adapter_source
@@ -909,7 +928,7 @@ def test_issue1248_back_panel_ui_orchestration_is_composition_owned():
         "select_back_panel_mode",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.refresh_back_panel_mode_control(namespace)" in adapter_source
     assert "self.select_back_panel_mode(" in adapter_source
 
@@ -950,7 +969,7 @@ def test_issue1248_receiving_back_panel_mode_ui_is_composition_owned():
         "select_back_panel_mode",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.refresh_back_panel_mode_control(namespace)" in adapter_source
     assert "self.select_back_panel_mode(" in adapter_source
     assert 'required("_phase6_refresh_back_panel_mode_control")' not in adapter_source
@@ -996,7 +1015,7 @@ def test_issue1253_project_status_and_settings_defaults_routing_is_composition_o
         "save_settings_context_as_defaults",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.refresh_status_bar(namespace)" in adapter_source
     assert "self.save_settings_context_as_defaults(" in adapter_source
     assert 'required("_phase6_refresh_status_bar")' not in adapter_source
@@ -1028,7 +1047,7 @@ def test_issue1257_assembly_type_selection_is_composition_owned():
     }
     assert "on_assembly_type_selected" in method_names
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.settings_transactions().commit_assembly_intent(" in adapter_source
     assert "for context in (\"head\", \"tail\")" in adapter_source
     assert "self.invalidate_settings_page(context)" in adapter_source
@@ -1069,7 +1088,7 @@ def test_issue1259_corner_edit_events_are_composition_owned():
         "corner_target_var_changed",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     for token in (
         "_phase6_corner_pair_var_changed",
         "_phase6_corner_type_selected",
@@ -1121,7 +1140,7 @@ def test_issue1267_drawing_edge_ui_is_composition_owned():
         "render_active_drawing_edge_controls",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.settings_transactions().commit_endcap_edge_relation(" in adapter_source
     assert "self.stage_setting_update(namespace, key, value)" in adapter_source
     assert "self.render_active_drawing_edge_controls(namespace)" in adapter_source
@@ -1164,7 +1183,7 @@ def test_issue1269_endcap_fw_and_symmetry_controls_are_composition_owned():
         "on_box_symmetry_changed",
     }.issubset(method_names)
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "self.settings_transactions().commit_endcap_fw_override(" in adapter_source
     assert "self.settings_transactions().commit_symmetry(" in adapter_source
     assert "root.after_cancel(pending)" in adapter_source
@@ -1207,7 +1226,7 @@ def test_issue1271_workspace_shell_view_effects_are_composition_owned():
     bridge_source = BRIDGE.read_text(encoding="utf-8")
     assert "_workspace_shell_toggle_fullscreen" not in bridge_source
 
-    adapter_source = ADAPTER.read_text(encoding="utf-8")
+    adapter_source = _composition_source()
     assert "workspace_shell_toggle_fullscreen(" in adapter_source
     assert "panel.build_settings_center(app.right)" in adapter_source
     assert "self.final_scene_adapter(self.final_scene_ports(namespace))" in adapter_source

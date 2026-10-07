@@ -40,7 +40,14 @@ def test_issue1128_composition_is_single_orchestration_owner():
         if isinstance(node, ast.FunctionDef) and node.name == "sync_authoritative_derived_parts"
     ]
     assert len(methods) == 1
-    body = ast.get_source_segment(source, methods[0]) or ""
+    implementation_path = Path("gui_modules/application/fold_designer_composition_shell_settings.py")
+    implementation_source = implementation_path.read_text(encoding="utf-8")
+    implementation_tree = ast.parse(implementation_source)
+    implementation = next(
+        node for node in implementation_tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "sync_authoritative_derived_parts"
+    )
+    body = ast.get_source_segment(implementation_source, implementation) or ""
     for token in (
         "DerivedPartRequestAssemblyInput(",
         "build_derived_part_projection_request(",
@@ -49,7 +56,7 @@ def test_issue1128_composition_is_single_orchestration_owner():
     ):
         assert token in body
     reverse_imports = [
-        node for node in ast.walk(tree)
+        node for parsed in (tree, implementation_tree) for node in ast.walk(parsed)
         if (isinstance(node, ast.Import) and any(alias.name == "fold_designer_bridge" for alias in node.names))
         or (isinstance(node, ast.ImportFrom) and node.module == "fold_designer_bridge")
     ]

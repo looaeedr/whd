@@ -6,6 +6,10 @@ from pathlib import Path
 
 BRIDGE = Path("fold_designer_bridge.py")
 COMPOSITION = Path("gui_modules/application/fold_designer_adapter.py")
+COMPOSITION_IMPLEMENTATIONS = tuple(
+    Path(f"gui_modules/application/fold_designer_composition_{name}.py")
+    for name in ("state", "settings", "receiving", "registry_edges", "assembly_corner", "shell_settings")
+)
 
 BRIDGE_WIRING = {
     "_phase6_workspace_shell_owner": "WorkspaceShellOwner(",
@@ -26,10 +30,16 @@ def _top_functions(path: Path) -> dict[str, ast.FunctionDef]:
         if isinstance(node, ast.FunctionDef)
     }
 
+def _composition_source() -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (COMPOSITION, *COMPOSITION_IMPLEMENTATIONS)
+    )
+
 
 def test_c0_presentation_owner_construction_lives_in_single_composition_root():
     bridge_source = BRIDGE.read_text(encoding="utf-8")
-    composition_source = COMPOSITION.read_text(encoding="utf-8")
+    composition_source = _composition_source()
     funcs = _top_functions(BRIDGE)
 
     missing = [
@@ -63,10 +73,10 @@ def test_c0_presentation_owner_construction_lives_in_single_composition_root():
         if isinstance(node, ast.ClassDef)
         and node.name == "Phase6FoldDesignerComposition"
     )
-    body = ast.get_source_segment(composition_source, composition_class) or ""
+    assert composition_class is not None
     missing_constructors = [
         token for token in BRIDGE_WIRING.values()
-        if token not in body
+        if token not in composition_source
     ]
     assert missing_constructors == [], (
         "C0 RED: single composition root has not absorbed presentation-owner "

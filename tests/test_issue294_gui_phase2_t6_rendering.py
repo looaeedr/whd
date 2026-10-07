@@ -160,6 +160,7 @@ def test_issue294_t7_hold_authority_remains_outside_rendering_package():
             path.read_text(encoding="utf-8")
             for path in (
                 ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+                ROOT / "gui_modules" / "application" / "fold_designer_manufacturing_projection.py",
                 ROOT / "gui_modules" / "application" / "manufacturing_adapter.py",
             )
         )

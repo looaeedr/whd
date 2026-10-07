@@ -152,7 +152,15 @@ def test_r2_composition_owns_derived_sync_orchestration_and_bridge_only_delegate
         for node in owner.body
         if isinstance(node, ast.FunctionDef) and node.name == "sync_authoritative_derived_parts"
     )
-    body = ast.get_source_segment(composition_source, method) or ""
+    implementation_source = Path(
+        "gui_modules/application/fold_designer_composition_shell_settings.py"
+    ).read_text(encoding="utf-8")
+    implementation_tree = ast.parse(implementation_source)
+    implementation = next(
+        node for node in implementation_tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "sync_authoritative_derived_parts"
+    )
+    body = ast.get_source_segment(implementation_source, implementation) or ""
     for token in (
         "_phase6_door_part_projections",
         "derive_door_layout_cells",

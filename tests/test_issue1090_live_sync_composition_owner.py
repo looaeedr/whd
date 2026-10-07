@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
 OWNER = ROOT / "gui_modules/application/fold_designer_adapter.py"
+IMPLEMENTATION = ROOT / "gui_modules/application/fold_designer_composition_state.py"
 
 
 def _tree(path: Path) -> ast.Module:
@@ -25,14 +26,21 @@ def test_bridge_live_sync_publish_is_thin_composition_wrapper():
 
 
 def test_composition_owns_live_sync_effect_boundary():
-    tree = _tree(OWNER)
+    owner_tree = _tree(OWNER)
     owner = next(
-        node for node in tree.body
+        node for node in owner_tree.body
         if isinstance(node, ast.ClassDef) and node.name == "Phase6FoldDesignerComposition"
     )
-    methods = {node.name: node for node in owner.body if isinstance(node, ast.FunctionDef)}
-    assert "publish_live_state" in methods
-    block = ast.get_source_segment(OWNER.read_text(encoding="utf-8"), methods["publish_live_state"]) or ""
+    assert any(
+        isinstance(node, ast.FunctionDef) and node.name == "publish_live_state"
+        for node in owner.body
+    )
+    tree = _tree(IMPLEMENTATION)
+    fn = next(
+        node for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "publish_live_state"
+    )
+    block = ast.get_source_segment(IMPLEMENTATION.read_text(encoding="utf-8"), fn) or ""
     for token in (
         "plan_live_sync_envelope(",
         "materialize_sync_value(",

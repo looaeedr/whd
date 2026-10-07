@@ -7,7 +7,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
-OWNER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
+OWNER = ROOT / "gui_modules" / "application" / "fold_designer_manufacturing_projection.py"
 
 SLICE_METHODS = (
     "_fold_designer_secondary_scene_rows",
