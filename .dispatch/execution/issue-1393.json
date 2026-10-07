@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "1de7181aace36e34be2cf939751aa71a17cbceba",
+  "issue": 1393,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-07T17:01:40Z",
+    "invocation_identity": "github:production-x-post-merge:37654601259:pr1394:issue1393",
+    "token": "recovery:1393:37654601259"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1394,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1393,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "open",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
+      "observed_at": "2026-10-07T16:46:40Z",
+      "observed_target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
+      "pr_head_ref": "work/issue-1393-dispatch-reconcile-control-plane",
+      "pr_head_sha": "1de7181aace36e34be2cf939751aa71a17cbceba",
+      "pr_number": 1394,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "work/issue-1393-dispatch-reconcile-control-plane",
+  "source_sha": "1de7181aace36e34be2cf939751aa71a17cbceba",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
+  "transaction": null,
+  "updated_at": "2026-10-07T16:46:40Z",
+  "version": 2,
+  "work_branch": "work/issue-1393-dispatch-reconcile-control-plane"
+}
