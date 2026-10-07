@@ -470,6 +470,8 @@ from gui_modules.application import state_sync as _phase6_state_sync
 from gui_modules.application import cabinet_controller as _phase6_cabinet_controller
 from gui_modules.application import calculation_controller as _phase6_calculation_controller
 from gui_modules.application import fold_designer_adapter as _phase6_fold_adapter
+from gui_modules.application import door_layout_host_adapter as _door_layout_host_adapter
+from gui_modules.application import door_render_host_adapter as _door_render_host_adapter
 from gui_modules.application import manufacturing_adapter as _phase6_manufacturing_adapter
 from gui_modules.project import export_actions as _phase6_project_export
 from gui_modules.visibility import controller as _phase6_visibility
@@ -1317,333 +1319,30 @@ class Phase6ApplicationHost:
     def setup_tab_base_plate_ui(self):
         return _setup_tab_base_plate_ui_impl(self)
 
-    @staticmethod
-    def _door_layout_number_text(value):
-        value = float(value)
-        return str(int(value)) if value.is_integer() else str(value)
-
-    def _new_door_layout_column(self, width, heights, *, width_auto=False, height_auto=None):
-        height_values = list(heights)
-        if height_auto is None:
-            height_auto = [False] * len(height_values)
-        return {
-            "width_var": tk.StringVar(value=self._door_layout_number_text(width)),
-            "width_auto": bool(width_auto),
-            "width_committed": float(width),
-            "height_vars": [tk.StringVar(value=self._door_layout_number_text(v)) for v in height_values],
-            "height_auto": [bool(v) for v in height_auto],
-            "height_committed": [float(v) for v in height_values],
-            "height_completion": None,
-        }
-
-    def set_door_layout_columns(self, columns):
-        """Replace Door layout with explicit user values, then append any W/H remainders."""
-        model = []
-        for width, heights in columns:
-            height_values = list(heights)
-            if not height_values:
-                raise ValueError("每一欄至少需要一層高度")
-            model.append(self._new_door_layout_column(width, height_values))
-        if not model:
-            raise ValueError("門配置至少需要一欄")
-        self.door_layout_columns = model
-        self.door_layout_selected_var.set("0:0")
-        self._recompute_door_layout_remainders(rebuild=False)
-        if hasattr(self, "door_layout_columns_frame"):
-            self.rebuild_door_layout_ui()
-
-    def _ensure_door_layout_default(self):
-        if self.door_layout_columns:
-            return
-        try:
-            width = float(self.w_var.get())
-            height = float(self.h_var.get())
-        except ValueError:
-            width, height = ae.W, ae.H
-        self.door_layout_columns = [self._new_door_layout_column(width, [height])]
-        self._recompute_door_layout_remainders(rebuild=False)
-
-    @staticmethod
-    def _parse_layout_value(var, label):
-        return _parse_layout_value_impl(var, label)
-
-    def _door_layout_controller_columns(self):
-        columns = []
-        for index, column in enumerate(self.door_layout_columns, start=1):
-            columns.append(_DoorLayoutColumnState(
-                width=self._parse_layout_value(column["width_var"], f"欄 {index} 寬度"),
-                width_auto=bool(column.get("width_auto", False)),
-                heights=tuple(
-                    self._parse_layout_value(var, f"欄 {index} 第 {row} 層高度")
-                    for row, var in enumerate(column["height_vars"], start=1)
-                ),
-                height_auto=tuple(bool(value) for value in column["height_auto"]),
-            ))
-        return tuple(columns)
-
-    def _recompute_door_layout_remainders(self, *, rebuild=True):
-        """Apply the bounded application Door Layout transition to Tk presentation state."""
-        if not self.door_layout_columns:
-            return
-        try:
-            total_width = float(self.w_var.get())
-            total_height = float(self.h_var.get())
-        except ValueError as exc:
-            raise ValueError("W / H 必須先填入有效數字") from exc
-        result = _recompute_door_layout_impl(
-            self._door_layout_controller_columns(),
-            total_width=total_width,
-            total_height=total_height,
-            selected_key=self.door_layout_selected_var.get(),
-        )
-        model = []
-        for column in result.columns:
-            item = self._new_door_layout_column(
-                column.width,
-                column.heights,
-                width_auto=column.width_auto,
-                height_auto=column.height_auto,
-            )
-            item["height_completion"] = column.height_completion
-            model.append(item)
-        self.door_layout_columns = model
-        self._door_layout_width_completion = result.width_completion
-        self.door_layout_selected_var.set(result.selected_key)
-        if rebuild and hasattr(self, "door_layout_columns_frame"):
-            self.rebuild_door_layout_ui()
-
-    def get_door_layout_columns(self):
-        """Read current fixed + generated remainder cells as numeric layout values."""
-        if not self.door_layout_columns:
-            self._ensure_door_layout_default()
-        columns = []
-        for column_index, column in enumerate(self.door_layout_columns, start=1):
-            if isinstance(column, (list, tuple)):
-                columns.append((float(column[0]), [float(h) for h in list(column[1])]))
-                continue
-            width = self._parse_layout_value(column["width_var"], f"欄 {column_index} 寬度")
-            heights = [
-                self._parse_layout_value(var, f"欄 {column_index} 第 {row_index} 層高度")
-                for row_index, var in enumerate(column["height_vars"], start=1)
-            ]
-            columns.append((width, heights))
-        return columns
-
-    def get_door_layout_cells(self):
-        columns = self.get_door_layout_columns()
-        try:
-            total_width = float(self.w_var.get())
-            total_height = float(self.h_var.get())
-        except ValueError as exc:
-            raise ValueError("W / H 必須先填入有效數字") from exc
-        return _door_layout_cells_impl(
-            columns, total_width=total_width, total_height=total_height
-        )
-
-    @staticmethod
-    def _door_layout_cell_key(cell):
-        return f"{cell.column_index}:{cell.row_index}"
-
-    def get_selected_door_layout_cell(self):
-        cells = self.get_door_layout_cells()
-        selected_key = self.door_layout_selected_var.get()
-        for cell in cells:
-            if self._door_layout_cell_key(cell) == selected_key:
-                return cell
-        first = cells[0]
-        self.door_layout_selected_var.set(self._door_layout_cell_key(first))
-        return first
-
-    def select_door_layout_cell(self, column_index, row_index):
-        """Select one multi-door cell without rebuilding geometry or Canvas widgets."""
-        selected_key = f"{int(column_index)}:{int(row_index)}"
-        self.door_layout_selected_var.set(selected_key)
-
-        canvas = getattr(self, "canvas_door", None)
-        designer = getattr(self, "fold_designer_app", None)
-        if (
-            designer is not None
-            and str(getattr(designer, "_phase6_3d_display_mode", "") or "") == "corner_data"
-        ):
-            corner_canvas = getattr(designer, "corner_data_canvas", None)
-            if corner_canvas is not None:
-                canvas = corner_canvas
-            import fold_designer_bridge as phase6_bridge
-            stable_key = f"door_c{int(column_index) + 1}_r{int(row_index) + 1}"
-            phase6_bridge._phase6_select_corner_data_part(
-                designer, stable_key, refresh_view=False
-            )
-        if canvas is not None:
-            for key, item_id in getattr(self, "door_layout_cell_items", {}).items():
-                try:
-                    canvas.itemconfigure(
-                        item_id,
-                        outline=self.COLOR_ACCENT if key == selected_key else "#30d158",
-                        width=3 if key == selected_key else 2,
-                    )
-                except tk.TclError:
-                    pass
-
-        if hasattr(self, "last_door_layout_overview"):
-            self.last_door_layout_overview["selected"] = selected_key
-
-    def _sync_door_canvas_double_click_binding(self):
-        """Multi-door counts two Button-1 presses itself; single Door keeps Tk double-click."""
-        if not hasattr(self, "canvas_door"):
-            return
-        self.canvas_door.unbind("<Double-Button-1>")
-        if not self.multi_door_enabled_var.get():
-            self.canvas_door.bind("<Double-Button-1>", self.on_door_canvas_double_click)
-
-    def toggle_multi_door_layout(self):
-        self._door_layout_last_click = None
-        if self.multi_door_enabled_var.get():
-            self._ensure_door_layout_default()
-            self._recompute_door_layout_remainders(rebuild=False)
-        self._sync_door_canvas_double_click_binding()
-        # 舊的欄/層表單永久不佔 Door 分頁空間；尺寸直接在 Canvas 上編輯。
-        if hasattr(self, "door_layout_body"):
-            self.door_layout_body.pack_forget()
-        self._on_door_layout_value_changed()
-
-    def _reject_door_layout_dimension(self, var, previous_value, message):
-        return _reject_door_layout_dimension_impl(self, var, previous_value, message)
-
-    def commit_door_layout_width(self, column_index):
-        column = self.door_layout_columns[column_index]
-        previous = float(column.get("width_committed", self._parse_layout_value(column["width_var"], "欄寬")))
-        try:
-            current = self._parse_layout_value(column["width_var"], f"欄 {column_index+1} 寬度")
-            total_width = self._parse_layout_value(self.w_var, "W")
-            validation = _validate_door_layout_width_commit_impl(
-                self._door_layout_controller_columns(), column_index, total_width, current
-            )
-        except ValueError as exc:
-            return self._reject_door_layout_dimension(column["width_var"], previous, str(exc))
-        if not validation.valid:
-            return self._reject_door_layout_dimension(
-                column["width_var"], previous,
-                f"欄 {column_index+1} 寬度不可超過盤體 W。\n"
-                f"W = {total_width:g} mm，其餘固定欄合計 {validation.other_fixed:g} mm，"
-                f"此欄最大只能輸入 {max(0.0, validation.maximum):g} mm。"
-            )
-        column["width_auto"] = validation.keep_auto
-        column["width_committed"] = current
-        self._recompute_door_layout_remainders(rebuild=True)
-        self._on_door_layout_value_changed(recompute=False)
-        return True
-
-    def commit_door_layout_height(self, column_index, row_index):
-        column = self.door_layout_columns[column_index]
-        committed = column.get("height_committed") or []
-        previous = float(committed[row_index]) if row_index < len(committed) else self._parse_layout_value(
-            column["height_vars"][row_index], "高度"
-        )
-        try:
-            current = self._parse_layout_value(
-                column["height_vars"][row_index], f"欄 {column_index+1} 第 {row_index+1} 層高度"
-            )
-            total_height = self._parse_layout_value(self.h_var, "H")
-            validation = _validate_door_layout_height_commit_impl(
-                self._door_layout_controller_columns(), column_index, row_index, total_height, current
-            )
-        except ValueError as exc:
-            return self._reject_door_layout_dimension(column["height_vars"][row_index], previous, str(exc))
-        if not validation.valid:
-            return self._reject_door_layout_dimension(
-                column["height_vars"][row_index], previous,
-                f"欄 {column_index+1} 第 {row_index+1} 層高度不可超過盤體 H。\n"
-                f"H = {total_height:g} mm，同欄其他固定高度合計 {validation.other_fixed:g} mm，"
-                f"此層最大只能輸入 {max(0.0, validation.maximum):g} mm。"
-            )
-        column["height_auto"][row_index] = validation.keep_auto
-        if row_index >= len(committed):
-            column["height_committed"] = [
-                self._parse_layout_value(var, "高度") for var in column["height_vars"]
-            ]
-        else:
-            column["height_committed"][row_index] = current
-        self._recompute_door_layout_remainders(rebuild=True)
-        self._on_door_layout_value_changed(recompute=False)
-        return True
-
-    def add_door_layout_column(self):
-        """Compatibility action: promote current auto width; remainder creates the next column."""
-        self._ensure_door_layout_default()
-        auto_index = next((i for i, c in enumerate(self.door_layout_columns) if c.get("width_auto")), None)
-        if auto_index is not None:
-            self.commit_door_layout_width(auto_index)
-
-    def _remap_door_layout_owned_data(self, mapper):
-        for attr in (
-            "door_layout_features", "door_layout_indicator_states",
-            "door_layout_indicator_box_features", "door_layout_indicator_door_features",
-        ):
-            setattr(
-                self,
-                attr,
-                _remap_door_layout_owned_data_impl(getattr(self, attr, {}), mapper),
-            )
-
-    def remove_door_layout_column(self, column_index):
-        if not self.door_layout_columns:
-            return
-        if self.door_layout_columns[column_index].get("width_auto"):
-            return
-        self._remap_door_layout_owned_data(
-            lambda c, r: None if c == column_index else ((c - 1, r) if c > column_index else (c, r))
-        )
-        del self.door_layout_columns[column_index]
-        self.door_layout_selected_var.set("0:0")
-        if not self.door_layout_columns:
-            try:
-                total_h = float(self.h_var.get())
-            except ValueError:
-                total_h = ae.H
-            self.door_layout_columns = [self._new_door_layout_column(0.0, [total_h], width_auto=True, height_auto=[True])]
-        self._recompute_door_layout_remainders(rebuild=True)
-        self._on_door_layout_value_changed(recompute=False)
-
-    def add_door_layout_height(self, column_index):
-        """Compatibility action: promote current auto height; remainder creates the next segment."""
-        column = self.door_layout_columns[column_index]
-        auto_index = next((i for i, value in enumerate(column["height_auto"]) if value), None)
-        if auto_index is not None:
-            self.commit_door_layout_height(column_index, auto_index)
-
-    def remove_door_layout_height(self, column_index, row_index):
-        column = self.door_layout_columns[column_index]
-        if column["height_auto"][row_index]:
-            return
-        self._remap_door_layout_owned_data(
-            lambda c, r: (
-                None if c == column_index and r == row_index
-                else ((c, r - 1) if c == column_index and r > row_index else (c, r))
-            )
-        )
-        del column["height_vars"][row_index]
-        del column["height_auto"][row_index]
-        self.door_layout_selected_var.set(f"{column_index}:0")
-        self._recompute_door_layout_remainders(rebuild=True)
-        self._on_door_layout_value_changed(recompute=False)
-
-    def _on_door_layout_value_changed(self, *, recompute=True):
-        if recompute and self.multi_door_enabled_var.get():
-            try:
-                self._recompute_door_layout_remainders(rebuild=False)
-            except Exception:
-                pass
-        self.refresh_door_layout_status()
-        self._request_phase6_update("geometry")
-
-    def _on_total_door_dimension_changed(self):
-        if self.multi_door_enabled_var.get() and self.door_layout_columns:
-            try:
-                self._recompute_door_layout_remainders(rebuild=True)
-            except Exception:
-                self.refresh_door_layout_status()
-
-
+    _door_layout_number_text = staticmethod(_door_layout_host_adapter._door_layout_number_text)
+    _new_door_layout_column = _door_layout_host_adapter._new_door_layout_column
+    set_door_layout_columns = _door_layout_host_adapter.set_door_layout_columns
+    _ensure_door_layout_default = _door_layout_host_adapter._ensure_door_layout_default
+    _parse_layout_value = staticmethod(_door_layout_host_adapter._parse_layout_value)
+    _door_layout_controller_columns = _door_layout_host_adapter._door_layout_controller_columns
+    _recompute_door_layout_remainders = _door_layout_host_adapter._recompute_door_layout_remainders
+    get_door_layout_columns = _door_layout_host_adapter.get_door_layout_columns
+    get_door_layout_cells = _door_layout_host_adapter.get_door_layout_cells
+    _door_layout_cell_key = staticmethod(_door_layout_host_adapter._door_layout_cell_key)
+    get_selected_door_layout_cell = _door_layout_host_adapter.get_selected_door_layout_cell
+    select_door_layout_cell = _door_layout_host_adapter.select_door_layout_cell
+    _sync_door_canvas_double_click_binding = _door_layout_host_adapter._sync_door_canvas_double_click_binding
+    toggle_multi_door_layout = _door_layout_host_adapter.toggle_multi_door_layout
+    _reject_door_layout_dimension = _door_layout_host_adapter._reject_door_layout_dimension
+    commit_door_layout_width = _door_layout_host_adapter.commit_door_layout_width
+    commit_door_layout_height = _door_layout_host_adapter.commit_door_layout_height
+    add_door_layout_column = _door_layout_host_adapter.add_door_layout_column
+    _remap_door_layout_owned_data = _door_layout_host_adapter._remap_door_layout_owned_data
+    remove_door_layout_column = _door_layout_host_adapter.remove_door_layout_column
+    add_door_layout_height = _door_layout_host_adapter.add_door_layout_height
+    remove_door_layout_height = _door_layout_host_adapter.remove_door_layout_height
+    _on_door_layout_value_changed = _door_layout_host_adapter._on_door_layout_value_changed
+    _on_total_door_dimension_changed = _door_layout_host_adapter._on_total_door_dimension_changed
 
     def _on_main_geometry_var_changed(self, reason="geometry"):
         self._phase6_update_scheduler.mark_dirty(reason)
@@ -1799,142 +1498,28 @@ class Phase6ApplicationHost:
 
 
 
-    def _indicator_box_render_snapshot(self, val):
-        return _indicator_box_render_snapshot_impl(self, val)
-    def draw_indicator_box(self, val):
-        canvas = self.canvas_indicator_box; canvas.delete("all")
-        cw = canvas.winfo_width(); ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1: return
-        self.draw_grid(canvas, cw, ch)
-        try: snapshot = self._indicator_box_render_snapshot(val)
-        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "指示燈盒", exc)
-        return _draw_indicator_box_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
-
-    def _normalize_door_indicator_state(self, state):
-        return _normalize_door_indicator_state_impl(state)
-    def _door_layout_indicator_state_for_key(self, key):
-        state = self.door_layout_indicator_states.get(key)
-        normalized = self._normalize_door_indicator_state(state)
-        if state is None:
-            state = normalized
-            self.door_layout_indicator_states[key] = state
-        else:
-            state.clear()
-            state.update(normalized)
-        return state
+    _indicator_box_render_snapshot = _door_render_host_adapter._indicator_box_render_snapshot
+    draw_indicator_box = _door_render_host_adapter.draw_indicator_box
+    _normalize_door_indicator_state = _door_render_host_adapter._normalize_door_indicator_state
+    _door_layout_indicator_state_for_key = _door_render_host_adapter._door_layout_indicator_state_for_key
+    _door_layout_cell_result = _door_render_host_adapter._door_layout_cell_result
+    _door_layout_cell_resolved_features = _door_render_host_adapter._door_layout_cell_resolved_features
+    _door_layout_baseline_scene = _door_render_host_adapter._door_layout_baseline_scene
+    _door_layout_overview_snapshot = _door_render_host_adapter._door_layout_overview_snapshot
+    draw_door_layout_overview = _door_render_host_adapter.draw_door_layout_overview
+    _door_layout_divider_frame_snapshot = _door_render_host_adapter._door_layout_divider_frame_snapshot
+    _draw_door_layout_dividers_and_frames = _door_render_host_adapter._draw_door_layout_dividers_and_frames
+    _single_door_render_snapshot = _door_render_host_adapter._single_door_render_snapshot
+    draw_door = _door_render_host_adapter.draw_door
+    _base_plate_render_snapshot = _door_render_host_adapter._base_plate_render_snapshot
+    draw_base_plate = _door_render_host_adapter.draw_base_plate
+    _indicator_door_render_snapshot = _door_render_host_adapter._indicator_door_render_snapshot
+    draw_indicator_door = _door_render_host_adapter.draw_indicator_door
 
     def _destroy_door_layout_entry_widgets(self):
         return _destroy_door_layout_entry_widgets_impl(self)
     def _door_layout_entry_menu(self, entry, *, column_index, row_index=None):
         return _door_layout_entry_menu_impl(self, entry, column_index=column_index, row_index=row_index)
-    def _door_layout_cell_result(self, cell, val=None):
-        val = val or self.get_float_values()
-        return build_door_result(
-            w=cell.start_width, h=cell.start_height, t=val['t'],
-            fw=self._door_material_frame_width(val['fw'], val['t']),
-            gap_w=val['door_gap_w'], gap_h=val['door_gap_h'],
-            fold_left=val['door_fold_l'], fold_right=val['door_fold_r'],
-            fold_top=val['door_fold_t'], fold_bottom=val['door_fold_b'],
-            frame_edges=cell.edges,
-        )
-
-    def _door_layout_cell_resolved_features(self, cell, result, key):
-        resolved = []
-        features = self.door_layout_features.setdefault(key, [])
-        if features:
-            surface = feature_surface_from_structural_result("door", result)
-            try:
-                resolved.extend(resolve_surface_features(surface, features, result.width, result.height))
-            except ValueError:
-                pass
-        state = self._door_layout_indicator_state_for_key(key)
-        mode = state.get("mode", "indicator" if state.get("enabled") else "none")
-        if mode in {"indicator", "indicator_box"}:
-            try:
-                material_fw = self._door_material_frame_width(
-                    self.fw_z_var.get(), self.t_var.get()
-                )
-                finished_w, finished_h = ae.calculate_door_finished_size(
-                    cell.start_width, cell.start_height, material_fw,
-                    self.door_gap_w_var.get(), self.door_gap_h_var.get(), self.t_var.get(),
-                    frame_edges=cell.edges,
-                )
-                context = DoorIndicatorContext(
-                    finished_width=float(finished_w), finished_height=float(finished_h),
-                    left_fold=float(self.door_fold_l_var.get()), bottom_fold=float(self.door_fold_b_var.get()),
-                )
-                groups = tuple(int(v) for v in state.get("groups", [2])[:int(state.get("layers", 1))])
-                if mode == "indicator":
-                    layout = resolve_door_indicator_layout(
-                        context, groups,
-                        Vec2(float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0))),
-                    )
-                    resolved.extend(layout.features)
-                else:
-                    hole_w, hole_h = manufacturing_api.indicator_box_opening_size(groups, thickness=float(self.t_var.get()))
-                    resolved.append(ResolvedRect(
-                        center=Vec2(
-                            context.left_fold + context.finished_width / 2.0 + float(state.get("offset_x", 0.0)),
-                            context.bottom_fold + context.finished_height / 2.0 + float(state.get("offset_y", 0.0)),
-                        ),
-                        width=hole_w, height=hole_h, layer="CUTTING", source_type="indicator_box_opening",
-                    ))
-            except Exception:
-                pass
-        return resolved
-
-    def _door_layout_baseline_scene(self, cell, val):
-        family_model = self._baseline_source_model()
-        baseline_model = (
-            cabinet_family_policy.baseline_feature_model_name(family_model)
-            if family_model else None
-        )
-        if not baseline_model or not ae.has_baseline_part(baseline_model, "門.dxf"):
-            return None, ae.baseline_source_label("", "門.dxf")
-        source_fp = ae.baseline_source_fingerprint(
-            ae.baseline_expected_path(baseline_model, "門.dxf")
-        )
-        cache_key = (
-            source_fp, family_model, baseline_model,
-            float(cell.start_width), float(cell.start_height),
-            float(val['t']), float(val['fw']),
-            float(val['door_gap_w']), float(val['door_gap_h']),
-            float(val['door_fold_l']), float(val['door_fold_r']),
-            float(val['door_fold_t']), float(val['door_fold_b']),
-            bool(cell.edges.left), bool(cell.edges.right),
-            bool(cell.edges.top), bool(cell.edges.bottom),
-        )
-        if cache_key in self._door_layout_baseline_cache:
-            return (
-                self._door_layout_baseline_cache[cache_key],
-                ae.baseline_source_label(baseline_model, "門.dxf"),
-            )
-        try:
-            # FW conversion belongs to the cabinet family (Receiving), while
-            # fixed certified Door features may come from its shared Vault baseline.
-            material_fw = self._door_material_frame_width(
-                val['fw'], val['t'], model_name=family_model
-            )
-            data = ae.get_stretched_door_data(
-                baseline_model,
-                cell.start_width, cell.start_height, val['t'], material_fw,
-                val['door_gap_w'], val['door_gap_h'],
-                val['door_fold_l'], val['door_fold_r'],
-                val['door_fold_t'], val['door_fold_b'],
-                frame_edges=cell.edges,
-                nameplate_center_datum_top=(
-                    cabinet_family_policy.door_nameplate_center_datum_top(
-                        family_model
-                    )
-                ),
-            )
-            self._door_layout_baseline_cache[cache_key] = data.scene
-            return data.scene, ae.baseline_source_label(
-                baseline_model, "門.dxf"
-            )
-        except Exception:
-            return None, "未使用基準檔（程式計算生成）"
-
     def open_door_indicator_component_editor(self, key, component):
         state = self._door_layout_indicator_state_for_key(key)
         if state.get("mode") != "indicator_box":
@@ -2067,49 +1652,6 @@ class Phase6ApplicationHost:
             ),
         )
 
-    def _door_layout_overview_snapshot(self, render_data_by_part_key=None):
-        return _door_layout_overview_snapshot_impl(self, render_data_by_part_key)
-    def draw_door_layout_overview(self, *, canvas=None, render_data_by_part_key=None):
-        if canvas is None:
-            self._sync_door_canvas_double_click_binding()
-            canvas = getattr(self, "canvas_door", None)
-        # Phase6PrimaryApplication does not own the legacy 2D Door canvas.  Hole
-        # editor close callbacks must therefore be a safe no-op on that host.
-        if canvas is None:
-            return None
-        self._destroy_door_layout_entry_widgets()
-        snapshot = self._door_layout_overview_snapshot(render_data_by_part_key)
-        if snapshot.get("error") is not None:
-            return _draw_door_layout_error_impl(self, canvas, snapshot["error"])
-        return _draw_door_layout_overview_preview_impl(self, snapshot, canvas)
-
-    def _door_layout_divider_frame_snapshot(self, columns, val):
-        return _door_layout_divider_frame_snapshot_impl(self, columns, val)
-    def _draw_door_layout_dividers_and_frames(self, canvas, scale, x0, y0, columns, cells, val):
-        snapshot = self._door_layout_divider_frame_snapshot(columns, val)
-        return _draw_door_layout_dividers_and_frames_preview_impl(canvas, snapshot, scale, x0, y0)
-
-    def _single_door_render_snapshot(self):
-        return _single_door_render_snapshot_impl(self)
-    def draw_door(self, val):
-        if self.multi_door_enabled_var.get(): return self.draw_door_layout_overview()
-        canvas = self.canvas_door; canvas.delete("all"); cw = canvas.winfo_width(); ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1: return
-        self.draw_grid(canvas, cw, ch)
-        try: snapshot = self._single_door_render_snapshot()
-        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "門板", exc, width=cw-40, font_size=10)
-        return _draw_single_door_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
-
-    def _base_plate_render_snapshot(self, val):
-        return _base_plate_render_snapshot_impl(self, val)
-    def draw_base_plate(self, val):
-        canvas = self.canvas_base_plate; canvas.delete("all"); cw = canvas.winfo_width(); ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1: return
-        self.draw_grid(canvas, cw, ch)
-        try: snapshot = self._base_plate_render_snapshot(val)
-        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "底板", exc, font_size=10)
-        return _draw_base_plate_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
-
     def _disable_all_door_indicators(self):
         """Disable only the legacy single-Door direct-indicator mode.
 
@@ -2232,17 +1774,6 @@ class Phase6ApplicationHost:
 
     def setup_tab_indicator_door_ui(self):
         return _setup_tab_indicator_door_ui_impl(self)
-
-    def _indicator_door_render_snapshot(self, val):
-        return _indicator_door_render_snapshot_impl(self, val)
-    def draw_indicator_door(self, val):
-        canvas = self.canvas_indicator_door; canvas.delete("all")
-        cw = canvas.winfo_width(); ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1: return
-        self.draw_grid(canvas, cw, ch)
-        try: snapshot = self._indicator_door_render_snapshot(val)
-        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "指示燈小門", exc)
-        return _draw_indicator_door_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     _inherit_known_corner_state_into_custom = _phase6_cabinet_controller._inherit_known_corner_state_into_custom
     _capture_cabinet_family_runtime = _phase6_cabinet_controller._capture_cabinet_family_runtime
