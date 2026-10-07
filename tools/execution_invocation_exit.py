@@ -482,6 +482,28 @@ def classify_invocation_exit(
                     requires_yield=False,
                 )
             return _decision(record, "YIELDED", may_return=True, requires_yield=False)
+        if (
+            tx is not None
+            and tx.status == "RECONCILED"
+            and tx.kind == "HANDOFF"
+            and tx.invocation_identity == invocation
+            and record.owner_kind == "NONE"
+            and record.owner_id == "NONE"
+            and record.lane_id is None
+        ):
+            if alternative_executable_leaf_count > 0:
+                return _decision(
+                    record,
+                    "CONTINUE_OTHER_EXECUTABLE_LEAF",
+                    may_return=False,
+                    requires_yield=False,
+                )
+            return _decision(
+                record,
+                "HANDOFF_COMPLETE",
+                may_return=True,
+                requires_yield=False,
+            )
         return _decision(record, "ACQUIRE_REQUIRED", may_return=False, requires_yield=False)
 
     expires_at = _aware(record.lease.expires_at, "lease.expires_at")

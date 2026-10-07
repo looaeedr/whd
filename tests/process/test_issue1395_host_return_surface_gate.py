@@ -2,7 +2,7 @@ from dataclasses import replace
 
 import pytest
 
-from tools.execution_invocation_exit import build_host_exit_proof
+from tools.execution_invocation_exit import build_host_exit_proof, classify_invocation_exit
 from tools.execution_record import TransactionState, execution_record_from_payload
 from tools.runtime_report_identity import (
     build_runtime_report_identity,
@@ -236,3 +236,61 @@ def test_dispatch_complete_machine_event_requires_host_attestation_after_legal_y
         surface_id="chatgpt-interactive",
     )
     assert "工單：#1378" in prefix
+
+
+def test_routing_only_handoff_allows_exact_same_invocation_host_return():
+    record = replace(
+        _record(),
+        generation=5,
+        owner_kind="NONE",
+        owner_id="NONE",
+        lane_id=None,
+        lease=None,
+        transaction=TransactionState(
+            id="tx-handoff",
+            kind="HANDOFF",
+            status="RECONCILED",
+            expected_fingerprint="f" * 64,
+            invocation_identity=INV,
+        ),
+    )
+    decision = classify_invocation_exit(
+        record,
+        invocation_identity=INV,
+        now="2026-10-08T00:10:00Z",
+        host_boundary=True,
+    )
+    assert decision.decision == "HANDOFF_COMPLETE"
+    assert decision.may_return is True
+    proof = build_host_exit_proof(
+        record,
+        invocation_identity=INV,
+        now="2026-10-08T00:10:00Z",
+    )
+    assert proof["decision"] == "HANDOFF_COMPLETE"
+
+
+def test_lease_null_reconcile_still_requires_acquire():
+    record = replace(
+        _record(),
+        generation=5,
+        owner_kind="NONE",
+        owner_id="NONE",
+        lane_id=None,
+        lease=None,
+        transaction=TransactionState(
+            id="tx-reconcile-unowned",
+            kind="RECONCILE",
+            status="RECONCILED",
+            expected_fingerprint="9" * 64,
+            invocation_identity=INV,
+        ),
+    )
+    decision = classify_invocation_exit(
+        record,
+        invocation_identity=INV,
+        now="2026-10-08T00:10:00Z",
+        host_boundary=True,
+    )
+    assert decision.decision == "ACQUIRE_REQUIRED"
+    assert decision.may_return is False
