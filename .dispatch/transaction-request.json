@@ -1,34 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1385-stale-ready-reconcile-20261007T2304Z",
+  "request_id": "dm8-1385-acquire-work2-20261007T2306Z",
   "issue": 1385,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
-  "expected_coord_head": "87c1a329f74277b0ae96f3f47f3123ee7cce531a",
-  "expected_generation": 1,
+  "expected_coord_head": "9dd4d11a13b3ef53ca97aedf44726718d7968eac",
+  "expected_generation": 2,
   "effect": {
-    "observed_work_branch": "work/issue-1385",
-    "observed_head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
-    "observed_target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
-    "semantic_state": "READY",
     "next_action": {
-      "kind": "ACQUIRE",
+      "kind": "START_BRANCH",
       "args": {},
-      "display": "Acquire Issue #1385"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1385,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "f96194a985c3da07ba0e5335110afbec655fc968"
+      "display": "開始 #1385 DM8-B0 O1 Part Session authority reconciliation"
     }
   },
-  "purpose": "Bare /派工 selected interactive EXECUTE_TICKET #1385; reconcile stale READY identity to live production before ACQUIRE. GitHub canonical only.",
+  "purpose": "Bare /派工 selected interactive EXECUTE_TICKET #1385; ACQUIRE on work2 and continue beyond control-plane-only progress.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
