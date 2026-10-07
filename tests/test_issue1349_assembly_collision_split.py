@@ -22,3 +22,14 @@ def test_issue1349_basic_owner_is_one_way_and_reduces_facade():
     assert "class AssemblyRole" in owner
     assert "from .assembly_collision import" not in owner
     assert "import ae_engine.assembly_collision" not in owner
+
+
+def test_issue1349_backprojection_owner_is_extracted_one_way():
+    from ae_engine import assembly_collision_backprojection
+    assert assembly_collision.FlatInterferenceProjection is assembly_collision_backprojection.FlatInterferenceProjection
+    assert assembly_collision.backproject_world_interference_to_endcap_flat is assembly_collision_backprojection.backproject_world_interference_to_endcap_flat
+    assert assembly_collision.backproject_world_interference_to_flat is assembly_collision_backprojection.backproject_world_interference_to_flat
+    assert len(inspect.getsource(assembly_collision).splitlines()) < 1500
+    owner = inspect.getsource(assembly_collision_backprojection)
+    assert "from .assembly_collision import" not in owner
+    assert "import ae_engine.assembly_collision" not in owner
