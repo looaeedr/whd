@@ -19,3 +19,10 @@ def test_issue1368_owner_is_one_way_and_api_shrinks():
     assert "from .manufacturing_api import" not in owner
     assert "import ae_engine.manufacturing_api" not in owner
     assert "_manufacturing_export.save_part_render_data_dxf" in owner
+
+
+def test_issue1368_render_data_compat_exports_stay_on_public_api():
+    from ae_engine import manufacturing_render_data
+    assert manufacturing_api.measure_unfolded_blanks is manufacturing_render_data.measure_unfolded_blanks
+    assert manufacturing_api.material_polygon_from_final_scene is manufacturing_render_data.material_polygon_from_final_scene
+    assert manufacturing_api._exploded_box_body_preview is manufacturing_render_data._exploded_box_body_preview
