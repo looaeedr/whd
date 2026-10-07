@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-    "released_at": null
+    "released_at": "2026-10-07T16:27:18Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "ff50d65fbb6f3d06b06134d74de0213913f739bf",
   "issue": 1389,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-07T16:41:43Z",
-    "invocation_identity": "github:production-x-post-merge:37651980816:pr1390:issue1389",
-    "token": "recovery:1389:37651980816"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1390,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "work/issue-1389-dispatch-no-local",
   "source_sha": "ff50d65fbb6f3d06b06134d74de0213913f739bf",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-  "transaction": null,
-  "updated_at": "2026-10-07T16:26:43Z",
+  "transaction": {
+    "expected_fingerprint": "e4518c18bedd5c9d6edd13925e42c6e8f4804462e92e82afc23f9761ea50f07a",
+    "id": "gha:37651980816:1389:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37651980816:pr1390:issue1389",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-07T16:27:17Z",
   "version": 2,
   "work_branch": "work/issue-1389-dispatch-no-local"
 }
