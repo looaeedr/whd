@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 17,
+  "generation": 18,
   "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
   "issue": 1334,
   "lane_id": "chatgpt.flowv2.work1",
@@ -44,16 +44,17 @@
   "next_action": {
     "args": {
       "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "pr_number": 1340,
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Start or consume exact-head Control Plane QA for PR #1340",
-    "kind": "START_QA"
+    "display": "Merge exact accepted PR #1340",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
-    "last_accepted_run": 37559526922
+    "accepted_head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
+    "last_accepted_run": 37560423820
   },
   "recovery_history": [
     {
@@ -64,21 +65,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_READY",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
   "transaction": {
-    "expected_fingerprint": "8f50473e39fdfba49f9546635a2efd72bc3773aafa08b6cd53138b0b81c9430b",
-    "id": "gha:37567495861:1334:RECONCILE:16",
+    "expected_fingerprint": "5df6ea3a2705fa3860e444e086632132e6b98500ceb7ed8f5c7056e48990ec99",
+    "id": "gha:37567611521:1334:CONSUME_QA:17",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "kind": "RECONCILE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-07T03:36:32Z",
+  "updated_at": "2026-10-07T03:38:23Z",
   "version": 2,
   "work_branch": "work/issue-1334"
 }
