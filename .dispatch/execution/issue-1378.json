@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
-  "head_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+  "generation": 2,
+  "head_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
   "issue": 1378,
   "lane_id": null,
   "lease": null,
@@ -45,9 +45,15 @@
   "source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
   "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-  "transaction": null,
-  "updated_at": "2026-10-07T16:29:27Z",
+  "target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
+  "transaction": {
+    "expected_fingerprint": "c373e407645a53cb45912e98bbe2004d5593ce73aa14fd1f3ca406197f70f181",
+    "id": "gha:37654924343:1378:RECONCILE:1",
+    "invocation_identity": "chatgpt.dm8.dispatch.issue1378.reconcile.work1.20261007T164624Z",
+    "kind": "RECONCILE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-07T16:49:10Z",
   "version": 2,
   "work_branch": "work/issue-1378"
 }
