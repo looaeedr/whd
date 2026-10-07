@@ -1174,4 +1174,5 @@ from .sheetmetal_strip_geometry import (
     _validate_strip_chain,
     build_strip_outline,
     build_strip_bend_segments,
+)
 
