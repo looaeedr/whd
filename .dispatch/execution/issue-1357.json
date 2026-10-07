@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "6ee5bdac8db08bab702cb3922c27d9ae48c970bf",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "8c1f67f72ff51fd221564a7e2fa91188d1be2cd8",
+  "issue": 1357,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-07T09:20:56Z",
+    "invocation_identity": "github:production-x-post-merge:37598147573:pr1358:issue1357",
+    "token": "recovery:1357:37598147573"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1358,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1357,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "closed",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "6ee5bdac8db08bab702cb3922c27d9ae48c970bf",
+      "observed_at": "2026-10-07T09:05:56Z",
+      "observed_target_sha": "6ee5bdac8db08bab702cb3922c27d9ae48c970bf",
+      "pr_head_ref": "work/issue-1357",
+      "pr_head_sha": "8c1f67f72ff51fd221564a7e2fa91188d1be2cd8",
+      "pr_number": 1358,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "work/issue-1357",
+  "source_sha": "8c1f67f72ff51fd221564a7e2fa91188d1be2cd8",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "6ee5bdac8db08bab702cb3922c27d9ae48c970bf",
+  "transaction": null,
+  "updated_at": "2026-10-07T09:05:56Z",
+  "version": 2,
+  "work_branch": "work/issue-1357"
+}
