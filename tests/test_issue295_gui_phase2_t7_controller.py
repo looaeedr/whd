@@ -10,6 +10,8 @@ EXPECTED_MODULES = (
     ROOT / "gui_modules" / "application" / "state_sync.py",
     ROOT / "gui_modules" / "application" / "cabinet_controller.py",
     ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+    ROOT / "gui_modules" / "application" / "fold_designer_manufacturing_projection.py",
+    ROOT / "gui_modules" / "application" / "fold_designer_snapshot_projection.py",
     ROOT / "gui_modules" / "application" / "manufacturing_adapter.py",
     ROOT / "gui_modules" / "application" / "calculation_controller.py",
     ROOT / "gui_modules" / "project" / "export_actions.py",

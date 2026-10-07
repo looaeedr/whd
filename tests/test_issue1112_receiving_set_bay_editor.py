@@ -233,8 +233,8 @@ def test_bridge_projects_receiving_layers_as_rows_without_legacy_set_bay_selecto
     assert "self.receiving_layer_controls" in source
     assert "self.receiving_switch_brand_selector" in source
     import inspect
-    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
-    owner_source = inspect.getsource(Phase6FoldDesignerComposition.refresh_receiving_set_bay_control)
+    from gui_modules.application import fold_designer_composition_receiving as composition_receiving
+    owner_source = inspect.getsource(composition_receiving.refresh_receiving_set_bay_control)
     assert 'required("refresh_receiving_layer_rows")' in owner_source
     assert "self.receiving_set_selector" not in source
     assert "self.receiving_bay_selector" not in source

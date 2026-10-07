@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
-OWNER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
+OWNER = ROOT / "gui_modules" / "application" / "fold_designer_snapshot_projection.py"
 
 
 def _functions(path: Path):

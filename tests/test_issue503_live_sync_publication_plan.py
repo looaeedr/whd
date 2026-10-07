@@ -121,7 +121,16 @@ def test_issue503_composition_publish_is_plan_then_effect_boundary():
         if isinstance(node, ast.FunctionDef)
         and node.name == "publish_live_state"
     )
-    block = ast.get_source_segment(source, fn) or ""
+    implementation_path = Path(
+        "gui_modules/application/fold_designer_composition_state.py"
+    )
+    implementation_source = implementation_path.read_text(encoding="utf-8")
+    implementation_tree = ast.parse(implementation_source)
+    implementation = next(
+        node for node in implementation_tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "publish_live_state"
+    )
+    block = ast.get_source_segment(implementation_source, implementation) or ""
 
     assert "plan_live_sync_envelope(" in block
     assert "materialize_sync_value(" in block

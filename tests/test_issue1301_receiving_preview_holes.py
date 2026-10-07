@@ -44,17 +44,27 @@ def test_receiving_preview_exposes_zoom_rotation_and_part_visibility_controls():
     assert 'replace(render_request, render_data=data)' in source
 
 
+def _module_function_source(path: Path, method_name: str) -> str:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    node = next(
+        item for item in tree.body
+        if isinstance(item, ast.FunctionDef) and item.name == method_name
+    )
+    return ast.get_source_segment(source, node) or ""
+
+
 def test_rear_panel_selector_is_promoted_into_same_receiving_header_as_switch():
     controls_source = (ROOT / "gui_modules" / "application" / "receiving_set_bay_controls.py").read_text(
         encoding="utf-8"
     )
     bridge_source = (ROOT / "fold_designer_bridge.py").read_text(encoding="utf-8")
-    adapter_path = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
-    applicability = _class_method_source(
-        adapter_path, "Phase6FoldDesignerComposition", "back_panel_mode_control_is_applicable"
+    owner_path = ROOT / "gui_modules" / "application" / "fold_designer_composition_receiving.py"
+    applicability = _module_function_source(
+        owner_path, "back_panel_mode_control_is_applicable"
     )
-    refresh = _class_method_source(
-        adapter_path, "Phase6FoldDesignerComposition", "refresh_back_panel_mode_control"
+    refresh = _module_function_source(
+        owner_path, "refresh_back_panel_mode_control"
     )
 
     assert "header: object" in controls_source
