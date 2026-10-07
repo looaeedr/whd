@@ -1,27 +1,25 @@
 {
   "effect": {
-    "clear_blocker": true,
     "next_action": {
       "args": {
         "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
-        "run_id": 37560423820
+        "pr_number": 1340,
+        "target_branch": "cleanup/2d-3d-sync"
       },
-      "display": "Consume exact-head Control Plane GREEN for PR #1340",
-      "kind": "CONSUME_QA"
+      "display": "Merge exact accepted PR #1340",
+      "kind": "MERGE"
     },
-    "observed_head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
-    "observed_target_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
-    "observed_work_branch": "work/issue-1334",
-    "semantic_state": "QA_GREEN",
-    "state": "ACTIVE"
+    "next_state": "INTEGRATING",
+    "run_id": 37560423820,
+    "semantic_state": "QA_ACCEPTED"
   },
-  "expected_coord_head": "29869d0a68f5b64ad7b104911e59d11e82a7de60",
-  "expected_generation": 15,
+  "expected_coord_head": "86ee0d00e3304040203748159823194fc847cc18",
+  "expected_generation": 16,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1334-unblock-after-approval",
+  "request_id": "issue1334-consume-qa-approved-head",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "session_reuse": {
     "mode": "LIVE_LEASE_CONTINUATION",
