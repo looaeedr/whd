@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "75ad9aa8c8ed68074dcce3db8f7977f282d84b46",
+  "issue": 1395,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-07T23:16:22Z",
+    "invocation_identity": "github:production-x-post-merge:37699680967:pr1396:issue1395",
+    "token": "recovery:1395:37699680967"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1396,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1395,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "closed",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+      "observed_at": "2026-10-07T23:01:22Z",
+      "observed_target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+      "pr_head_ref": "work/issue-1395-host-return-seam-attestation",
+      "pr_head_sha": "75ad9aa8c8ed68074dcce3db8f7977f282d84b46",
+      "pr_number": 1396,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "work/issue-1395-host-return-seam-attestation",
+  "source_sha": "75ad9aa8c8ed68074dcce3db8f7977f282d84b46",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+  "transaction": null,
+  "updated_at": "2026-10-07T23:01:22Z",
+  "version": 2,
+  "work_branch": "work/issue-1395-host-return-seam-attestation"
+}
