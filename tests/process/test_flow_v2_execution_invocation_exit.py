@@ -105,11 +105,11 @@ def test_current_invocation_with_executable_action_must_continue():
     assert result.may_return is False
 
 
-def test_active_remote_run_can_yield_between_physical_runtimes():
+def test_active_remote_run_continues_polling_until_terminal():
     result = classify_invocation_exit(_record("VERIFYING"), invocation_identity=INV, now=NOW)
-    assert result.decision == "YIELD_REQUIRED_REMOTE_WAIT"
+    assert result.decision == "CONTINUE_REMOTE_QA_POLL"
     assert result.may_return is False
-    assert result.requires_yield is True
+    assert result.requires_yield is False
 
 
 def test_genuine_durable_blocker_can_yield_but_remains_nonterminal():
