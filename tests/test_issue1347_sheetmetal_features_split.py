@@ -35,3 +35,15 @@ def test_issue1347_surface_owner_is_extracted_one_way():
     owner = inspect.getsource(sheetmetal_feature_surface)
     assert "from .sheetmetal_features import" not in owner
     assert "import ae_engine.sheetmetal_features" not in owner
+
+
+def test_issue1347_reference_owner_is_extracted_one_way():
+    from ae_engine import sheetmetal_feature_reference
+    assert sheetmetal_features.ReferenceAnchor is sheetmetal_feature_reference.ReferenceAnchor
+    assert sheetmetal_features.reference_distances is sheetmetal_feature_reference.reference_distances
+    assert sheetmetal_features.generate_round_fill is sheetmetal_feature_reference.generate_round_fill
+    assert sheetmetal_features.generate_round_refill is sheetmetal_feature_reference.generate_round_refill
+    assert len(inspect.getsource(sheetmetal_features).splitlines()) < 1050
+    owner = inspect.getsource(sheetmetal_feature_reference)
+    assert "from .sheetmetal_features import" not in owner
+    assert "import ae_engine.sheetmetal_features" not in owner
