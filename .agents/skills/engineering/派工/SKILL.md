@@ -53,6 +53,19 @@ Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_c
 - `/派工` 不得借用上述 `/接手` 例外先碰本機再回來建立 READY；即使 exact Issue 已知，dispatch control plane 仍須留在 GitHub canonical。
 - machine gate owner=`tools/execution_dispatch_ingress.py::validate_dispatch_transport`；READY request 的 `dispatch_transport` 只接受 `GITHUB_CANONICAL`。
 
+### DISPATCH_COMPLETION_HOST_SEAM_HARD_GATE_V1
+
+`/派工` 的成功回報不得再以 `READY`、`ACQUIRE`、`ACTIVE/CLAIMED` 或 `next_action=START_BRANCH` 代替實際 continuation。machine owner=`tools/host_return_surface_gate.py`。
+
+固定規則：
+
+- `ACQUIRE-only + START_BRANCH` = `DISPATCH_INCOMPLETE`；不得輸出「派工完成／已派出去／已開工完成」類 completion claim。
+- control-plane-only `RECONCILE` 也不算 first substantive progress。
+- first substantive transaction、合法 `YIELD`、durable `BLOCK/HANDOFF` 或 `DONE` 才能通過 dispatch-completion classifier；若本 physical invocation 要在該處 return，仍必須另外取得 current `WHD_FLOW_V2_HOST_EXIT_PROOF_V1`。
+- user-visible `DISPATCH_COMPLETE` 固定走 `tools/runtime_report_identity.py` 的 machine event；它同時要求 fresh ExecutionRecord、合法 host-exit proof、dispatch completion classifier PASS，以及 `WHD_HOST_RETURN_SEAM_ENFORCEMENT_V1` host-surface attestation。
+- host surface 若不能證明 `return_hook_enforced=true + plain_final_bypass_blocked=true`，固定標 `HOST_RETURN_SEAM_UNENFORCED`；**不得把 repo-level verifier 宣稱成 physical host hard gate**。
+- 普通 `STATUS/PROGRESS/CHECKPOINT` 可以輸出，但不是 completion/exit authority；輸出後 exact `next_action` 可執行時必須繼續。
+
 ## Dispatch
 open Issue、dependency-unblocked、空工作槽都不等於 execution authority。新工作必須由 `tools/execution_dispatch_ingress.py` 以明確 authority建立 READY record，再由 ACQUIRE transaction取得 owner/lease。互動式新工作未指定 slot 時仍以 `/工作0` / `worker.slot.0` 為既有預設；建立 READY 前若 fresh-read 發現 slot0 已 BOUND，才使用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往 `1→2→3` overflow；全滿即 fail closed，不得搶槽。
 PM/Implementer/QA只是角色視角；branch/head/owner/QA/closure/next_action只寫同一 native record。
