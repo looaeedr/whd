@@ -470,6 +470,7 @@ from gui_modules.application import state_sync as _phase6_state_sync
 from gui_modules.application import cabinet_controller as _phase6_cabinet_controller
 from gui_modules.application import calculation_controller as _phase6_calculation_controller
 from gui_modules.application import fold_designer_adapter as _phase6_fold_adapter
+from gui_modules.application import door_layout_host_adapter as _door_layout_host_adapter
 from gui_modules.application import manufacturing_adapter as _phase6_manufacturing_adapter
 from gui_modules.project import export_actions as _phase6_project_export
 from gui_modules.visibility import controller as _phase6_visibility
