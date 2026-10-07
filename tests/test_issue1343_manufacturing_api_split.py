@@ -45,3 +45,12 @@ def test_issue1343_door_indicator_owner_is_extracted_one_way():
     owner = inspect.getsource(manufacturing_door_indicator)
     assert "import ae_engine.manufacturing_api" not in owner
     assert "from .manufacturing_api import" not in owner
+
+
+def test_issue1343_endcap_compat_owner_is_extracted_one_way():
+    from ae_engine import manufacturing_endcap_compat
+    assert manufacturing_api.resolve_endcap_request is manufacturing_endcap_compat.resolve_endcap_request
+    assert len(inspect.getsource(manufacturing_api).splitlines()) < 1300
+    owner = inspect.getsource(manufacturing_endcap_compat)
+    assert "import ae_engine.manufacturing_api" not in owner
+    assert "from .manufacturing_api import" not in owner
