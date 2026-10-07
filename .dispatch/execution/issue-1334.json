@@ -1,6 +1,10 @@
 {
   "active_run": null,
-  "blocker": null,
+  "blocker": {
+    "evidence": "GitHub Actions approval required after trusted SYNC_TARGET advanced work/issue-1334 to 9e879638df6efa7b8a2bc1c5ee26508584bf68c3; all PR checks are action_required and connector rerun returned HTTP 403; maintainer must click Approve and run. run_ids=37560423820,37560423812,37560423799,37560423891",
+    "kind": "EXTERNAL_DEPENDENCY",
+    "recheck_after": null
+  },
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -12,7 +16,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 13,
+  "generation": 14,
   "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
   "issue": 1334,
   "lane_id": "chatgpt.flowv2.work1",
@@ -43,13 +47,18 @@
   },
   "next_action": {
     "args": {
-      "post_accept_pr_number": 1340,
-      "post_accept_revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "blocker_kind": "EXTERNAL_DEPENDENCY",
+      "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
+      "pr_number": 1340,
+      "run_ids": [
+        37560423820,
+        37560423812,
+        37560423799,
+        37560423891
+      ]
     },
-    "display": "Revalidate exact head after target synchronization",
-    "kind": "START_QA"
+    "display": "Wait for maintainer Approve and run on PR #1340 exact-head checks",
+    "kind": "WAIT_EXTERNAL"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -66,21 +75,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_INVALIDATED_BY_TARGET_SYNC",
+  "semantic_state": "WAITING_FOR_GITHUB_ACTIONS_APPROVAL",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "68c799d5708e29dd763eb1c168f81d08a3520957",
-  "state": "INTEGRATING",
+  "state": "BLOCKED",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
   "transaction": {
-    "expected_fingerprint": "b57bb22ede92867bbe2b27ae0ae1ce443501af0d920595e27aa24b8a6420a7e7",
-    "id": "gha:37560371170:1334:SYNC_TARGET:12",
+    "expected_fingerprint": "cd1d9d05388fb1cfa96c6bd26d524a24d7f921779b548727094cfa5090b7c6cb",
+    "id": "gha:37560612107:1334:BLOCK:13",
     "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "kind": "SYNC_TARGET",
+    "kind": "BLOCK",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-07T02:06:56Z",
+  "updated_at": "2026-10-07T02:10:09Z",
   "version": 2,
   "work_branch": "work/issue-1334"
 }
