@@ -37,6 +37,7 @@ from tools.scheduler_ready_ingress import (
 )
 from tools.root_local_first_gate import validate_git_unlock_receipt
 from tools.control_transaction_request_builder import (
+    CONTROL_PLANE_ONLY_FRESH_KINDS,
     INTENT_SCHEMA,
     REQUEST_SCHEMA,
     SESSION_REUSE_KINDS,
@@ -768,10 +769,11 @@ def execute_request(
             if (
                 isinstance(root_payload, dict)
                 and str(root_payload.get("scope") or "") == "CONTROL_PLANE_ONLY"
-                and str(request["kind"]) != "DISPATCH_READY"
+                and str(request["kind"]) not in CONTROL_PLANE_ONLY_FRESH_KINDS
             ):
                 raise ProductionExecutorError(
-                    "control-plane-only admission is restricted to DISPATCH_READY"
+                    "control-plane-only admission is restricted to "
+                    f"{sorted(CONTROL_PLANE_ONLY_FRESH_KINDS)}"
                 )
         try:
             validate_startup_evidence(
