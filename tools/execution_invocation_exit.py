@@ -24,8 +24,11 @@ SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
     "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA", "MERGE", "HANDOFF", "FINALIZE", "RECONCILE", "BLOCK"
 })
 REMOTE_ACTIVE_STATUSES = frozenset({"queued", "in_progress", "pending", "waiting", "requested"})
-REMOTE_QA_OBSERVATION_BUDGET = 1
-REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = REMOTE_QA_OBSERVATION_BUDGET
+REMOTE_QA_TERMINAL_OBSERVATION_BUDGET = 1
+# Compatibility names retained for callers/tests. Active polling itself is not
+# count-limited; only terminal re-observation is forbidden.
+REMOTE_QA_OBSERVATION_BUDGET = REMOTE_QA_TERMINAL_OBSERVATION_BUDGET
+REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = REMOTE_QA_TERMINAL_OBSERVATION_BUDGET
 HOST_EXIT_PROOF_SCHEMA = "WHD_FLOW_V2_HOST_EXIT_PROOF_V1"
 HOST_EXIT_PROOF_VERSION = 1
 HOST_EXIT_PROOF_TTL_SECONDS = 60
@@ -79,26 +82,22 @@ def assert_remote_qa_active_observation_budget(
     observation_count: int,
     run_status: str,
 ) -> bool:
-    """Reject same-invocation re-observation of one remote QA run.
+    """Allow active polling, but forbid repeated terminal observations.
 
-    The legacy function name is retained for compatibility, but the budget now
-    applies to both active and terminal statuses. Once any status observation is
-    consumed in an invocation, that invocation must not read the same run again.
+    The legacy function name is retained for compatibility. Active remote QA may
+    be observed repeatedly with bounded polling cadence. Once a terminal status
+    is observed, the next action must consume that result rather than poll again.
     """
     if isinstance(observation_count, bool) or not isinstance(observation_count, int):
         raise InvocationExitError("observation_count must be an integer")
     if observation_count <= 0:
         raise InvocationExitError("observation_count must be positive")
     status = _text(run_status, "run_status").lower()
-    if observation_count > REMOTE_QA_OBSERVATION_BUDGET:
-        code = (
-            "REMOTE_QA_POLL_BUDGET_EXHAUSTED"
-            if status in REMOTE_ACTIVE_STATUSES
-            else "REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN"
-        )
+    if status not in REMOTE_ACTIVE_STATUSES and observation_count > REMOTE_QA_TERMINAL_OBSERVATION_BUDGET:
         raise InvocationExitError(
-            f"{code} observation_count={observation_count} "
-            f"budget={REMOTE_QA_OBSERVATION_BUDGET} run_status={status}"
+            "REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN "
+            f"observation_count={observation_count} "
+            f"budget={REMOTE_QA_TERMINAL_OBSERVATION_BUDGET} run_status={status}"
         )
     return True
 
@@ -504,7 +503,7 @@ def classify_invocation_exit(
                 run_status=run_status,
             )
             if run_status in REMOTE_ACTIVE_STATUSES:
-                return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
+                return _decision(record, "CONTINUE_REMOTE_QA_POLL", may_return=False, requires_yield=False)
 
     if terminal_tail_active(record):
         return _decision(

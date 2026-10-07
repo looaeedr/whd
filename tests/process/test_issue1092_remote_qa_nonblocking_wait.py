@@ -8,6 +8,7 @@ from tools.execution_invocation_exit import (
     InvocationExitError,
     REMOTE_QA_ACTIVE_OBSERVATION_BUDGET,
     REMOTE_QA_OBSERVATION_BUDGET,
+    REMOTE_QA_TERMINAL_OBSERVATION_BUDGET,
     assert_remote_qa_active_observation_budget,
     classify_invocation_exit,
 )
@@ -64,33 +65,24 @@ def _remote_wait_record(status: str = "in_progress"):
     })
 
 
-def test_remote_qa_observation_budget_is_exactly_one():
-    assert REMOTE_QA_OBSERVATION_BUDGET == 1
-    assert REMOTE_QA_ACTIVE_OBSERVATION_BUDGET == REMOTE_QA_OBSERVATION_BUDGET
+def test_remote_qa_terminal_observation_budget_is_exactly_one():
+    assert REMOTE_QA_TERMINAL_OBSERVATION_BUDGET == 1
+    assert REMOTE_QA_OBSERVATION_BUDGET == REMOTE_QA_TERMINAL_OBSERVATION_BUDGET
+    assert REMOTE_QA_ACTIVE_OBSERVATION_BUDGET == REMOTE_QA_TERMINAL_OBSERVATION_BUDGET
 
 
 @pytest.mark.parametrize("status", ["queued", "in_progress", "pending", "waiting", "requested"])
-def test_first_active_qa_observation_yields_immediately(status: str):
+@pytest.mark.parametrize("count", [1, 2, 5])
+def test_active_qa_observation_continues_polling(status: str, count: int):
     decision = classify_invocation_exit(
         _remote_wait_record(status),
         invocation_identity=INV,
         now=NOW,
-        remote_qa_active_observation_count=1,
+        remote_qa_active_observation_count=count,
     )
-    assert decision.decision == "YIELD_REQUIRED_REMOTE_WAIT"
-    assert decision.requires_yield is True
+    assert decision.decision == "CONTINUE_REMOTE_QA_POLL"
+    assert decision.requires_yield is False
     assert decision.may_return is False
-
-
-@pytest.mark.parametrize("status", ["queued", "in_progress", "pending", "waiting", "requested"])
-def test_second_active_qa_observation_in_same_invocation_is_rejected(status: str):
-    with pytest.raises(InvocationExitError, match="REMOTE_QA_POLL_BUDGET_EXHAUSTED"):
-        classify_invocation_exit(
-            _remote_wait_record(status),
-            invocation_identity=INV,
-            now=NOW,
-            remote_qa_active_observation_count=2,
-        )
 
 
 def test_second_terminal_observation_in_same_invocation_is_rejected():
@@ -135,12 +127,11 @@ def test_flow_and_remote_qa_skills_lock_nonblocking_wait_contract():
     longlog = (ROOT / ".agents/skills/engineering/long-log-context-safe-execution/SKILL.md").read_text(encoding="utf-8")
     for text in (flow, mirror):
         assert "REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1" in text
-        assert "YIELD_REQUIRED_REMOTE_WAIT" in text
-        assert "REMOTE_QA_POLL_BUDGET_EXHAUSTED" in text
-        assert "assert_remote_qa_active_observation_budget" in text
-    assert "同一 invocation 禁止第二次讀同一 active run" in flow
-    assert "terminal observation" in flow
-    assert "每個 invocation" in mirror
-    assert "terminal observation" in mirror
-    assert "同一 invocation 對同一 remote run 只允許一次 status observation" in longlog
+        assert "active" in text
+        assert "terminal observation" in text
+        assert "REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN" in text
+    assert "CONTINUE_REMOTE_QA_POLL" in flow
+    assert "持續輪詢" in flow
+    assert "持續輪詢" in mirror
+    assert "active run 可持續 polling" in longlog
     assert "terminal success" in longlog
