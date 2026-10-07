@@ -116,6 +116,24 @@ from .manufacturing_endcap_compat import (
     _scene_with_authoritative_fold_profiles,
 )
 
+from .manufacturing_render_data import (
+    FoldGuide,
+    fold_guides_from_final_scene,
+    MaterialSegment,
+    UnfoldedBlankTopology,
+    _profile_material_segments,
+    PartRenderData,
+    collision_part_from_render_data,
+    UnfoldedBlankInfo,
+    _measure_one_unfolded_blank,
+    measure_unfolded_blanks,
+    BoxBodyPieceRenderData,
+    BoxBodyStructureRenderData,
+    material_polygon_from_final_scene,
+    _translated_scene,
+    _exploded_box_body_preview,
+)
+
 from .manufacturing_scene_orchestration import (
     build_part_scene,
     build_inner_door_panel_render_data,
