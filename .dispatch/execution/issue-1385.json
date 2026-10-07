@@ -12,23 +12,19 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
+  "generation": 5,
   "head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
   "issue": 1385,
-  "lane_id": "chatgpt.flowv2.work2",
-  "lease": {
-    "expires_at": "2026-10-07T23:21:11Z",
-    "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
-    "token": "lease:1385:37700221554:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
   "next_action": {
     "args": {},
     "display": "開始 #1385 DM8-B0 O1 Part Session authority reconciliation",
     "kind": "START_BRANCH"
   },
-  "owner_id": "chatgpt.flowv2.work2",
-  "owner_kind": "SCHEDULER",
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -51,13 +47,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
   "transaction": {
-    "expected_fingerprint": "78db63020490121bf244a5067c19a4577f07b4f1885bffb90e0dbe8e1d907523",
-    "id": "gha:37701733085:1385:RECONCILE:3",
-    "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
-    "kind": "RECONCILE",
+    "expected_fingerprint": "69b32569c3106a3abe50ed02b3f337fcb0ed0eb406d23e5514dccfbcfff5ef22",
+    "id": "gha:37702283225:1385:HANDOFF:4",
+    "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.handoff.work2.20261007T2325Z",
+    "kind": "HANDOFF",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-07T23:21:54Z",
+  "updated_at": "2026-10-07T23:27:35Z",
   "version": 2,
   "work_branch": "work/issue-1385"
 }
