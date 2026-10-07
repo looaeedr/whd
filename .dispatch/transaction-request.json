@@ -1,87 +1,28 @@
 {
-  "effect": {},
-  "expected_coord_head": "3af0c2a452323f84fb43024c5bdd8c6c43488d5d",
-  "expected_generation": 9,
+  "effect": {
+    "next_action": {
+      "args": {
+        "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
+        "pr_number": 1340,
+        "target_branch": "cleanup/2d-3d-sync"
+      },
+      "display": "Merge exact accepted PR #1340",
+      "kind": "MERGE"
+    },
+    "next_state": "INTEGRATING",
+    "run_id": 37559526922,
+    "semantic_state": "QA_ACCEPTED"
+  },
+  "expected_coord_head": "b35bb2f40b4ed72cc409d80cbec221c2998feb46",
+  "expected_generation": 10,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "ACQUIRE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
-  "preflight_evidence": {
-    "branch": "work/issue-1334",
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "flow-v2-execution"
-    ],
-    "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
-    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issue": 1334,
-    "observed_at": "2026-10-07T01:59:43Z",
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-    ],
-    "required_skills": [
-      "flow-v2-execution"
-    ],
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN"
-  },
-  "request_id": "issue1334-acquire-resume-qa-tail",
+  "request_id": "issue1334-consume-qa-1340",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "startup_evidence": {
-    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Renew #1334 lease on exact work head for QA consume and merge tail\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
-    "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-07T02:04:43Z",
-    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issued_at": "2026-10-07T01:59:43Z",
-    "purpose": "Renew #1334 lease on exact work head for QA consume and merge tail",
-    "repository": "looaeedr/whd",
-    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
-    "work_root_gate": {
-      "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-      "drive_role": "MIRROR_BACKUP_ONLY",
-      "execution_mode": "INTERACTIVE",
-      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-      "production_branch": "cleanup/2d-3d-sync",
-      "production_head_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
-      "provider": "executor_local_workspace",
-      "read_mode": "WORKSPACE_GIT_BASELINE",
-      "repository_content_write_unlocked": null,
-      "root_entries": [
-        ".agents",
-        ".git",
-        ".github",
-        "AGENTS.md",
-        "ae_engine",
-        "gui_modules",
-        "tests",
-        "tools"
-      ],
-      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-      "scope": "REPOSITORY_CONTENT",
-      "shared_zero_required": false,
-      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-      "status": "GREEN",
-      "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
-      "workspace_root": "/workspace/whd-issue1334"
-    }
-  },
-  "startup_transition": {
-    "branch": "work/issue-1334",
-    "execution_mode": "INTERACTIVE",
-    "expires_at": "2026-10-07T02:04:43Z",
-    "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
-    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
-    "issue": 1334,
-    "issued_at": "2026-10-07T01:59:43Z",
-    "preflight_observed_at": "2026-10-07T01:59:43Z",
-    "repository": "looaeedr/whd",
-    "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
-    "startup_issued_at": "2026-10-07T01:59:43Z",
-    "status": "READY_FOR_EXECUTION"
+  "session_reuse": {
+    "mode": "LIVE_LEASE_CONTINUATION",
+    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1"
   }
 }
