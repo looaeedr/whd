@@ -1,20 +1,34 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1385-dispatch-ready-20261007T163035Z",
+  "request_id": "dm8-1385-stale-ready-reconcile-20261007T2304Z",
   "issue": 1385,
-  "kind": "DISPATCH_READY",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.dm8.dispatch.issue1385.work2.20261007T163035Z",
-  "expected_coord_head": "5931bfcdd93701c5366fbbae39449a8cee8ab5f2",
+  "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
+  "expected_coord_head": "87c1a329f74277b0ae96f3f47f3123ee7cce531a",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:/派工 DM8-v16 #1385",
-    "slot_id": "worker.slot.2",
-    "work_branch": "work/issue-1385",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "observed_work_branch": "work/issue-1385",
+    "observed_head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+    "observed_target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+    "semantic_state": "READY",
+    "next_action": {
+      "kind": "ACQUIRE",
+      "args": {},
+      "display": "Acquire Issue #1385"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1385,
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "f96194a985c3da07ba0e5335110afbec655fc968"
+    }
   },
-  "purpose": "Formal /派工 READY ingress for DM8-B0 O1 Part Session authority reconciliation. GitHub canonical control plane only; no local-machine transport.",
+  "purpose": "Bare /派工 selected interactive EXECUTE_TICKET #1385; reconcile stale READY identity to live production before ACQUIRE. GitHub canonical only.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -26,7 +40,7 @@
     "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+    "production_head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
     "drive_role": "MIRROR_BACKUP_ONLY",
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "root_entries": [
@@ -47,23 +61,21 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1385,
-    "invocation_identity": "chatgpt.dm8.dispatch.issue1385.work2.20261007T163035Z",
+    "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.work2.20261007T2304Z",
     "branch": "cleanup/2d-3d-sync",
-    "head_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+    "head_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
     "required_skills": [
-      "flow-v2-execution"
+      "handoff"
     ],
     "completed_skills": [
-      "flow-v2-execution"
+      "handoff"
     ],
     "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
     ],
     "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
     ],
-    "observed_at": "2026-10-07T16:27:32Z"
+    "observed_at": "2026-10-07T23:03:13Z"
   }
 }
