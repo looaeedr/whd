@@ -11,19 +11,8 @@
       "target_branch": "cleanup/2d-3d-sync",
       "target_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
       "updated_at": "2026-10-06T03:02:10.001Z"
-    },
-    {
-      "execution_intent": "EXECUTE_TICKET",
-      "generation": 2,
-      "issue": 1385,
-      "next_action_display": "Acquire Issue #1385",
-      "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "d8215e85e4e101ae9c6181cfbaf06f354a64e2e704b07259504cf1dc145e4a0b",
-      "target_branch": "cleanup/2d-3d-sync",
-      "target_sha": "c4fd08a39264aae4e2a697e3eb3ea43ffcae8390",
-      "updated_at": "2026-10-07T23:04:33Z"
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "7d56e648200adb552bd885297875a4b8c8549e818243c5b7a32cbfca726ccfa8"
+  "source_digest": "386023c9da13dcbd54f4c6c901c79a5c300db6b74b513bab349337fb00ae0a7a"
 }
