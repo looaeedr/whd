@@ -33,3 +33,15 @@ def test_issue1349_backprojection_owner_is_extracted_one_way():
     owner = inspect.getsource(assembly_collision_backprojection)
     assert "from .assembly_collision import" not in owner
     assert "import ae_engine.assembly_collision" not in owner
+
+
+def test_issue1349_corner_owner_is_extracted_one_way():
+    from ae_engine import assembly_collision_corner
+    assert assembly_collision.CornerReliefMeasurement is assembly_collision_corner.CornerReliefMeasurement
+    assert assembly_collision.derive_corner_relief_from_flat_interference is assembly_collision_corner.derive_corner_relief_from_flat_interference
+    assert assembly_collision.classify_joint_interference is assembly_collision_corner.classify_joint_interference
+    assert assembly_collision.apply_verified_endcap_relief_material is assembly_collision_corner.apply_verified_endcap_relief_material
+    assert len(inspect.getsource(assembly_collision).splitlines()) < 1000
+    owner = inspect.getsource(assembly_collision_corner)
+    assert "from .assembly_collision import" not in owner
+    assert "import ae_engine.assembly_collision" not in owner
