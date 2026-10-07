@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "1dffc2d1056e1e9d64b2acaa8dc7e56b7a2f7c62",
+  "issue": 1397,
+  "lane_id": "github.flowv2.postmerge",
+  "lease": {
+    "expires_at": "2026-10-07T23:33:52Z",
+    "invocation_identity": "github:production-x-post-merge:37701457215:pr1398:issue1397",
+    "token": "recovery:1397:37701457215"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1398,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "github.flowv2.postmerge",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1397,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "closed",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+      "observed_at": "2026-10-07T23:18:52Z",
+      "observed_target_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+      "pr_head_ref": "work/issue-1397-control-plane-handoff",
+      "pr_head_sha": "1dffc2d1056e1e9d64b2acaa8dc7e56b7a2f7c62",
+      "pr_number": 1398,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": null,
+  "source_branch": "work/issue-1397-control-plane-handoff",
+  "source_sha": "1dffc2d1056e1e9d64b2acaa8dc7e56b7a2f7c62",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+  "transaction": null,
+  "updated_at": "2026-10-07T23:18:52Z",
+  "version": 2,
+  "work_branch": "work/issue-1397-control-plane-handoff"
+}
