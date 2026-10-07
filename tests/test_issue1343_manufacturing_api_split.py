@@ -24,3 +24,13 @@ def test_issue1343_manufacturing_api_shrinks_without_second_authority():
     assert "def generate_part" in source
     assert "import ae_engine.manufacturing_api" not in owner
     assert "from .manufacturing_api import" not in owner
+
+
+def test_issue1343_baseline_policy_owner_is_extracted_one_way():
+    from ae_engine import manufacturing_baseline_policy
+    assert manufacturing_api.resolve_policy is manufacturing_baseline_policy.resolve_policy
+    assert manufacturing_api.expected_baseline_path_for is manufacturing_baseline_policy.expected_baseline_path_for
+    assert len(inspect.getsource(manufacturing_api).splitlines()) < 1800
+    owner = inspect.getsource(manufacturing_baseline_policy)
+    assert "import ae_engine.manufacturing_api" not in owner
+    assert "from .manufacturing_api import" not in owner
