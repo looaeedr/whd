@@ -21,3 +21,14 @@ def test_issue1353_primitives_owner_is_one_way_and_facade_shrinks():
     assert len(owner.splitlines()) < 350
     assert "from .assembly_geometry import" not in owner
     assert "import ae_engine.assembly_geometry" not in owner
+
+
+def test_issue1353_folded_mesh_owner_is_extracted_one_way():
+    from ae_engine import assembly_geometry_folded_mesh
+    assert assembly_geometry.folded_mesh_from_polygon is assembly_geometry_folded_mesh.folded_mesh_from_polygon
+    assert assembly_geometry.folded_world_mesh_from_render_data is assembly_geometry_folded_mesh.folded_world_mesh_from_render_data
+    assert assembly_geometry.place_box_body_structure_points is assembly_geometry_folded_mesh.place_box_body_structure_points
+    assert len(inspect.getsource(assembly_geometry).splitlines()) < 850
+    owner = inspect.getsource(assembly_geometry_folded_mesh)
+    assert "from .assembly_geometry import" not in owner
+    assert "import ae_engine.assembly_geometry" not in owner
