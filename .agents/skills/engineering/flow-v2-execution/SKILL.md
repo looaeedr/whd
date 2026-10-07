@@ -82,6 +82,18 @@ canonical recovery 只允許 trusted ingress `RECOVER_POST_DELIVERY`：
 
 
 
+### PHYSICAL_HOST_RETURN_SEAM_ATTESTATION_HARD_GATE_V1
+
+repo 內的 `build_host_exit_proof / validate_host_exit_proof` 只證明 **Flow v2 classifier/formatter** 能 fail closed；它本身不能證明 ChatGPT/Codex/其他 host 的實際 final/return seam 一定呼叫 verifier。為避免「硬閘門名義、軟閘門效果」，CURRENT 新增 machine owner=`tools/host_return_surface_gate.py` 與 contract=`.agents/contracts/WHD_HOST_RETURN_SEAM_ENFORCEMENT_V1.json`。
+
+- 只有 host runtime 自己提供 attestation，且 exact `surface_id`、`return_hook_enforced=true`、`plain_final_bypass_blocked=true`、`exit_verifier=tools.execution_invocation_exit.validate_host_exit_proof`、`report_formatter=tools.runtime_report_identity.format_runtime_report_prefix` 全部成立時，surface 才可標 `HARD_ENFORCED`。
+- 缺 attestation、attestation 由 repo/chat 自行偽造、plain final response 仍可繞過 formatter、或 verifier/formatter identity 不符，一律 `HOST_RETURN_SEAM_UNENFORCED`。此時不得對使用者聲稱「physical host hard gate 已生效」。
+- `/派工` 的 completion claim 另走 `classify_dispatch_completion(...)`：`READY / ACQUIRE-only / ACTIVE+CLAIMED+START_BRANCH / control-plane RECONCILE-only` 固定 `DISPATCH_INCOMPLETE`。
+- user-visible `DISPATCH_COMPLETE` 是 machine event，不是自由文字同義詞；`runtime_report_identity` 必須同時驗 fresh record + current host-exit proof + dispatch completion + host-surface attestation。
+- `STATUS / PROGRESS / CHECKPOINT` 仍不是 return authority；若 host seam 無法被本 repo 控制，只能如實回報 capability boundary，不得以 repo tests GREEN 冒充 product-host integration 已完成。
+
+<!-- PHYSICAL_HOST_RETURN_SEAM_ATTESTATION_HARD_GATE_V1 -->
+
 ### DISPATCH_LOCAL_MACHINE_PROHIBITION_HARD_GATE_V1
 
 `/派工` / READY ingress 的 control plane 固定 **GitHub canonical only**。Issue 建立/同步、dependency readback、工作槽投影、Phase6 Preflight、`DISPATCH_READY`、ACQUIRE 與後續 control-plane readback 不得使用 Remote Desktop Commander、host/local shell、local repository/worktree、`/workspace/whd` 或其他使用者本機資料作為 authority、evidence、fallback 或 transport。
