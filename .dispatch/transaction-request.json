@@ -1,104 +1,69 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1129-reconcile-gen21-20261003T1335Z",
-  "issue": 1129,
-  "kind": "RECONCILE",
+  "request_id": "dm8-1385-dispatch-ready-20261007T163035Z",
+  "issue": 1385,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1335Z",
-  "expected_coord_head": "ee79ebeb36128a048c90e3b39ae55f121c2968bf",
+  "invocation_identity": "chatgpt.dm8.dispatch.issue1385.work2.20261007T163035Z",
+  "expected_coord_head": "5931bfcdd93701c5366fbbae39449a8cee8ab5f2",
   "expected_generation": 1,
   "effect": {
-    "observed_work_branch": "governance/issue1129-runtime-report-identity-gate-20261002",
-    "observed_head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
-    "observed_target_sha": "5fff8b7f2302e8bcb5a8a7ffc63d8e49c3003692",
-    "semantic_state": "READY",
-    "next_action": {
-      "kind": "ACQUIRE",
-      "args": {},
-      "display": "Acquire #1129 for docs gen21 delivery"
-    }
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user:/派工 DM8-v16 #1385",
+    "slot_id": "worker.slot.2",
+    "work_branch": "work/issue-1385",
+    "dispatch_transport": "GITHUB_CANONICAL"
   },
-  "purpose": "Reconcile stale #1129 identity to live accepted target before /推推 文檔 gen21 exact 17-path delivery.",
+  "purpose": "Formal /派工 READY ingress for DM8-B0 O1 Part Session authority reconciliation. GitHub canonical control plane only; no local-machine transport.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "read_mode": "GOOGLE_DRIVE_CANONICAL",
-    "source": "/Google Drive/WHD/.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "google_drive",
-    "library_path": "/Google Drive/WHD",
-    "drive_folder_id": "1XEh4VRM9oXhPhGvGb8UyDNGZs61AC0NN",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "root_entries": [
-      ".agents",
       ".git",
+      ".agents",
       ".github",
-      ".unpushed",
       "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
+      "tools",
       "tests",
-      "tools"
+      "ae_engine",
+      "gui_modules"
     ],
-    "unpushed_root": "/Google Drive/WHD/.unpushed",
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
     "status": "GREEN"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1129,
-    "invocation_identity": "chatgpt.flowv2.work2.issue1129.docsgen21.20261003T1335Z",
-    "branch": "governance/issue1129-runtime-report-identity-gate-20261002",
-    "head_sha": "456760e19373edf3e23e958d4222f6532f53f47a",
+    "issue": 1385,
+    "invocation_identity": "chatgpt.dm8.dispatch.issue1385.work2.20261007T163035Z",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
     "required_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "寫技能",
-      "工作槽",
-      "找技能",
-      "MCP工具操作",
-      "Python測試實務",
-      "派工",
-      "issue-closure-gate",
-      "phase6-release-packaging",
-      "git-remote-sync-fallback",
-      "code-review",
-      "triage",
-      "wayfinder",
-      "long-log-context-safe-execution",
-      "monitoring-remote-qa"
+      "flow-v2-execution"
     ],
     "completed_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "寫技能",
-      "工作槽",
-      "找技能",
-      "MCP工具操作",
-      "Python測試實務",
-      "派工",
-      "issue-closure-gate",
-      "phase6-release-packaging",
-      "git-remote-sync-fallback",
-      "code-review",
-      "triage",
-      "wayfinder",
-      "long-log-context-safe-execution",
-      "monitoring-remote-qa"
+      "flow-v2-execution"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
-    "observed_at": "2026-10-03T13:35:38Z"
+    "observed_at": "2026-10-07T16:27:32Z"
   }
 }
