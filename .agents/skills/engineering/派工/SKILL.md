@@ -40,6 +40,19 @@ Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_c
 只有**沒有指定 exact Issue**的自動派工／scheduler 才可進 candidate discovery。
 
 
+### DISPATCH_LOCAL_MACHINE_PROHIBITION_HARD_GATE_V1
+
+`/派工` 是 **GitHub canonical control-plane only** 入口。自進入 `/派工` 到 Issue sync / dependency readback / slot projection / Phase6 Preflight / READY ingress / ACQUIRE 與 control-plane readback 完成為止，固定禁止把使用者本機或任何 local execution surface 當作 evidence、fallback 或 transport。
+
+硬規則：
+
+- 禁止呼叫或依賴 Remote Desktop Commander（RC）、host/local shell、local repo/worktree、`/workspace/whd`、Windows 本機路徑或任何本機檔案來做派工判定、Preflight、slot/READY、claim 或 control-plane mutation。
+- 上述派工階段只可使用 GitHub Issue/PR/Actions、`coord/execution-v2`、canonical request branches/workflows 與其他 Flow v2 明定的 GitHub durable surfaces。
+- GitHub canonical capability 暫時不可用時，固定 fail closed / 回 capability blocker；**不得 fallback 到本機**。
+- 唯一 RC 例外是使用者明確輸入 `/接手 <issue>`、`/接手 #<issue>` 或等價 exact-Issue takeover 指令後，依 `EXPLICIT_TAKEOVER_RC_WORKSPACE_V1` 進入 **repository-content implementation**。這是另一個 entrypoint，不是 `/派工` 的 fallback。
+- `/派工` 不得借用上述 `/接手` 例外先碰本機再回來建立 READY；即使 exact Issue 已知，dispatch control plane 仍須留在 GitHub canonical。
+- machine gate owner=`tools/execution_dispatch_ingress.py::validate_dispatch_transport`；READY request 的 `dispatch_transport` 只接受 `GITHUB_CANONICAL`。
+
 ## Dispatch
 open Issue、dependency-unblocked、空工作槽都不等於 execution authority。新工作必須由 `tools/execution_dispatch_ingress.py` 以明確 authority建立 READY record，再由 ACQUIRE transaction取得 owner/lease。互動式新工作未指定 slot 時仍以 `/工作0` / `worker.slot.0` 為既有預設；建立 READY 前若 fresh-read 發現 slot0 已 BOUND，才使用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往 `1→2→3` overflow；全滿即 fail closed，不得搶槽。
 PM/Implementer/QA只是角色視角；branch/head/owner/QA/closure/next_action只寫同一 native record。

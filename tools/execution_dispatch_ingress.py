@@ -32,11 +32,45 @@ DEFAULT_INTERACTIVE_SLOT_ID = "worker.slot.0"
 ALLOWED_EXECUTION_INTENTS = frozenset({"EXECUTE_TICKET", "EXECUTE_CHAIN", "SCHEDULER_LANE"})
 AUTHORITY_KINDS = frozenset({"USER_EXPLICIT", "CHAIN_SUCCESSOR", "WORK_SLOT_ASSIGNMENT"})
 
+CANONICAL_DISPATCH_TRANSPORT = "GITHUB_CANONICAL"
+LOCAL_MACHINE_DISPATCH_TRANSPORTS = frozenset(
+    {
+        "REMOTE_DESKTOP_COMMANDER",
+        "RC",
+        "LOCAL_SHELL",
+        "LOCAL_WORKSPACE",
+        "LOCAL_REPO",
+        "LOCAL_WORKTREE",
+        "/WORKSPACE/WHD",
+        "WORKSPACE/WHD",
+    }
+)
+
 
 
 
 class DispatchIngressError(ValueError):
     """Raised when a READY record would be created without exact authority."""
+
+
+
+def validate_dispatch_transport(value: object) -> str:
+    """Require GitHub canonical transport for /派工 and READY control-plane work."""
+
+    raw = str(value or "").strip()
+    normalized = raw.upper().replace("-", "_").replace(" ", "_").rstrip("/")
+    if normalized in LOCAL_MACHINE_DISPATCH_TRANSPORTS:
+        raise DispatchIngressError(
+            "DISPATCH_LOCAL_MACHINE_FORBIDDEN: "
+            "/派工 READY ingress cannot use Remote Desktop/local shell/local workspace; "
+            "explicit /接手 RC is implementation-only"
+        )
+    if normalized != CANONICAL_DISPATCH_TRANSPORT:
+        raise DispatchIngressError(
+            "DISPATCH_LOCAL_MACHINE_PROHIBITION_HARD_GATE_V1 requires "
+            f"dispatch_transport={CANONICAL_DISPATCH_TRANSPORT}"
+        )
+    return CANONICAL_DISPATCH_TRANSPORT
 
 
 
@@ -85,6 +119,7 @@ class DispatchIngressRequest:
     parent_issue: int | None = None
     slot_id: str | None = None
     created_at: str | None = None
+    dispatch_transport: str = CANONICAL_DISPATCH_TRANSPORT
 
 
 
@@ -117,6 +152,7 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
         raise DispatchIngressError("request must be a DispatchIngressRequest")
     issue = _issue(request.issue, "issue")
     assert issue is not None
+    dispatch_transport = validate_dispatch_transport(request.dispatch_transport)
     execution_intent = _text(request.execution_intent, "execution_intent")
     if execution_intent not in ALLOWED_EXECUTION_INTENTS:
         raise DispatchIngressError(
@@ -211,6 +247,7 @@ def plan_dispatch_ingress(request: DispatchIngressRequest) -> DispatchIngressPla
                 "authority_kind": authority_kind,
                 "authority_ref": authority_ref,
                 "authority_fingerprint": authority_fp,
+                "dispatch_transport": dispatch_transport,
             },
         ),
         generation=1,

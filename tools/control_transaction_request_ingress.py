@@ -27,7 +27,10 @@ from tools.execution_entry_contract import (
     validate_startup_evidence,
     validate_startup_transition,
 )
-from tools.execution_dispatch_ingress import DispatchIngressRequest
+from tools.execution_dispatch_ingress import (
+    CANONICAL_DISPATCH_TRANSPORT,
+    DispatchIngressRequest,
+)
 from tools.scheduler_ready_ingress import (
     SchedulerIssueCandidateError,
     build_scheduler_dispatch_candidate,
@@ -653,6 +656,9 @@ def _build_dispatch_ready_ingress_request(
         parent_issue=effect.get("parent_issue"),
         slot_id=slot_id,
         created_at=str(transition.get("issued_at") or "").strip() or None,
+        dispatch_transport=str(
+            effect.get("dispatch_transport") or CANONICAL_DISPATCH_TRANSPORT
+        ).strip(),
     )
 
 def _load_request(path: Path) -> dict[str, object]:
