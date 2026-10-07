@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1378-stale-ready-reconcile-20261007T164624Z",
+  "request_id": "dm8-1378-stale-ready-reconcile-retry-20261007T164755Z",
   "issue": 1378,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.dm8.dispatch.issue1378.reconcile.work1.20261007T164624Z",
-  "expected_coord_head": "7ba9b9b251ee5d81c79621455104e0bd62bacf17",
+  "expected_coord_head": "f1c683df59b80e86511ec776ecc6574c957042ae",
   "expected_generation": 1,
   "effect": {
     "observed_work_branch": "work/issue-1378",
