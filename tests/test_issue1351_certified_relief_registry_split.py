@@ -21,3 +21,14 @@ def test_issue1351_corner_policy_owner_is_extracted_one_way():
     for owner in (inspect.getsource(certified_relief_models), inspect.getsource(certified_relief_corner_policy)):
         assert "from .certified_relief_registry import" not in owner
         assert "import ae_engine.certified_relief_registry" not in owner
+
+
+def test_issue1351_formula_io_owner_is_extracted_one_way():
+    from ae_engine import certified_relief_formula_io
+    assert certified_relief_registry.evaluate_relief_formula_expression is certified_relief_formula_io.evaluate_relief_formula_expression
+    assert certified_relief_registry.evaluate_relief_formula_record is certified_relief_formula_io.evaluate_relief_formula_record
+    assert certified_relief_registry.load_external_relief_rule_records is certified_relief_formula_io.load_external_relief_rule_records
+    assert len(inspect.getsource(certified_relief_registry).splitlines()) < 1100
+    owner = inspect.getsource(certified_relief_formula_io)
+    assert "from .certified_relief_registry import" not in owner
+    assert "import ae_engine.certified_relief_registry" not in owner
