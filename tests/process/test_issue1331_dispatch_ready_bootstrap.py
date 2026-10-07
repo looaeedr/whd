@@ -140,19 +140,19 @@ def test_dispatch_ready_accepts_control_plane_only_fresh_admission():
     assert request["startup_transition"]["status"] == "READY_FOR_EXECUTION"
 
 
-def test_control_plane_only_admission_cannot_unlock_other_transaction_kind():
+def test_control_plane_only_admission_cannot_unlock_repository_content_mutation():
     invocation = "chatgpt.issue1331.bootstrap"
-    with pytest.raises(ValueError, match="not allowed for transaction kind ACQUIRE"):
+    with pytest.raises(ValueError, match="not allowed for transaction kind START_BRANCH"):
         build_control_transaction_request(
-            request_id="issue1331-illegal-acquire",
+            request_id="issue1331-illegal-start-branch",
             issue=ISSUE,
-            kind="ACQUIRE",
+            kind="START_BRANCH",
             lane_id="chatgpt.flowv2.work0",
             invocation_identity=invocation,
             expected_coord_head=COORD,
             expected_generation=1,
             effect={},
-            purpose="illegal control-only acquire",
+            purpose="illegal control-only repository-content mutation",
             work_root_gate_evidence=_control_plane_root_evidence(),
             preflight_evidence=_preflight(invocation),
             issued_at=__import__("datetime").datetime.fromisoformat("2026-10-06T15:49:43+00:00"),
