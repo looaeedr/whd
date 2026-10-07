@@ -150,17 +150,20 @@ def test_issue292_raw_5500_gate_is_proven_impossible_without_stealing_later_scop
     )
 
 def test_issue292_reconciled_gate_matches_conservative_legal_t4_budget():
+    current_loc = len(GUI.read_text(encoding="utf-8").splitlines())
+    # The reconciled T4 number is an accepted upper bound, not a formula to
+    # recompute after T5/T6/T7 legally remove additional root code.  Once the
+    # root is already below that bound, later legal extraction must not be
+    # rejected because historical presentation methods no longer live as root
+    # FunctionDef nodes.
+    if current_loc <= RECONCILED_GATE:
+        assert current_loc <= RECONCILED_GATE
+        return
+
     methods = _host_methods()
     missing = sorted(UNAMBIGUOUS_T4_PRESENTATION_METHODS - methods.keys())
     assert not missing, f"legal T4 presentation inventory is stale; missing methods: {missing}"
     assert UNAMBIGUOUS_T4_PRESENTATION_METHODS.isdisjoint(EXPLICIT_LATER_SLICE_METHODS)
-
-    current_loc = len(GUI.read_text(encoding="utf-8").splitlines())
-    # The reconciled T4 number is an accepted upper bound, not a formula to
-    # recompute after T5/T6/T7 legally remove additional root code.
-    if current_loc <= RECONCILED_GATE:
-        assert current_loc <= RECONCILED_GATE
-        return
 
     removable_loc = sum(
         _span(methods[name]) for name in UNAMBIGUOUS_T4_PRESENTATION_METHODS
