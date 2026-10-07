@@ -89,7 +89,7 @@ scheduler invocation 在 project startup hard gate 完成後、寫 WAKE 前，�
 
 `【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>｜slot=<worker.slot.N|NONE|UNBOUND>｜invocation_identity=<exact invocation_identity>】`
 
-- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(...)` 產生第一行。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
+- machine owner 固定為 `tools/runtime_report_identity.py`；所有 progress / CHECKPOINT / terminal / exit 必須先經 `build_runtime_report_identity(...)` 驗完整 identity，再由 `format_runtime_report_prefix(..., event=...)` 產生第一行。`TERMINAL/EXIT` 必須帶 current `WHD_FLOW_V2_HOST_EXIT_PROOF_V1`，由 `build_host_exit_proof(...)` mint、formatter 以 `validate_host_exit_proof(...)` 對 fresh ExecutionRecord 重驗；`may_return=false`、缺 proof、stale proof 一律禁止正常 return。progress/CHECKPOINT 不是 exit authority。缺欄、空白或 invocation_identity=`NONE/UNBOUND/UNAVAILABLE` 一律 fail closed；不得手工拼 prefix 冒充合法回報。
 
 相容核心模板：`【處理者：<handler>｜owner=<exact owner|NONE>｜工單：#<issue|NONE|UNBOUND>】`。
 

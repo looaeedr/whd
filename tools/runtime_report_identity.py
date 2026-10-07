@@ -8,8 +8,13 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import json
+from pathlib import Path
 import re
 
+
+from tools.execution_invocation_exit import InvocationExitError, validate_host_exit_proof
+from tools.execution_record import ExecutionRecord, execution_record_from_payload
 
 INTERACTIVE_HANDLERS = frozenset({"工作0", "工作1", "工作2", "工作3"})
 SCHEDULER_HANDLERS = frozenset({"排程A", "排程B"})
@@ -125,11 +130,90 @@ def build_runtime_report_identity(
     )
 
 
-def format_runtime_report_prefix(identity: RuntimeReportIdentity) -> str:
-    """Render the complete CURRENT identity prefix; no fields are optional."""
+def assert_runtime_report_event_allowed(
+    event: object,
+    identity: RuntimeReportIdentity,
+    *,
+    record: ExecutionRecord | None = None,
+    exit_proof: object | None = None,
+    now: object | None = None,
+) -> bool:
+    """Enforce the host-return boundary at the sole report formatter seam."""
 
     if not isinstance(identity, RuntimeReportIdentity):
         raise RuntimeReportIdentityError("identity must be RuntimeReportIdentity")
+    report_event = _text("event", event).upper()
+    if report_event not in REPORT_EVENTS:
+        raise RuntimeReportIdentityError(
+            f"event must be one of {sorted(REPORT_EVENTS)}"
+        )
+    if report_event not in {"TERMINAL", "EXIT"}:
+        return True
+
+    if not isinstance(record, ExecutionRecord):
+        raise RuntimeReportIdentityError(
+            f"{report_event} report requires fresh ExecutionRecord"
+        )
+    if identity.issue in EXPLICIT_UNBOUND or int(identity.issue) != record.issue:
+        raise RuntimeReportIdentityError(
+            f"{report_event} report issue does not match ExecutionRecord"
+        )
+    if identity.owner != record.owner_id:
+        raise RuntimeReportIdentityError(
+            f"{report_event} report owner does not match ExecutionRecord"
+        )
+    expected_slot = record.slot_id or "NONE"
+    if identity.slot != expected_slot:
+        raise RuntimeReportIdentityError(
+            f"{report_event} report slot does not match ExecutionRecord"
+        )
+    current_now = _text("now", now)
+    if exit_proof is None:
+        raise RuntimeReportIdentityError(
+            f"{report_event} host-exit proof rejected: missing proof"
+        )
+    try:
+        validated = validate_host_exit_proof(
+            exit_proof,
+            record,
+            invocation_identity=identity.invocation_identity,
+            now=current_now,
+        )
+    except InvocationExitError as exc:
+        raise RuntimeReportIdentityError(
+            f"{report_event} host-exit proof rejected: {exc}"
+        ) from exc
+    if report_event == "TERMINAL" and validated.get("decision") != "TASK_TERMINAL":
+        raise RuntimeReportIdentityError(
+            "TERMINAL report requires TASK_TERMINAL host-exit proof"
+        )
+    return True
+
+
+def format_runtime_report_prefix(
+    identity: RuntimeReportIdentity,
+    *,
+    event: object,
+    execution_record: ExecutionRecord | None = None,
+    host_exit_proof: object | None = None,
+    now: object | None = None,
+) -> str:
+    """Render CURRENT identity after enforcing the event host-exit boundary.
+
+    PROGRESS/CHECKPOINT/STATUS remain non-terminal presentation events.
+    TERMINAL/EXIT cannot be formatted unless the canonical invocation-exit
+    classifier has minted a current proof for the exact ExecutionRecord.
+    """
+
+    if not isinstance(identity, RuntimeReportIdentity):
+        raise RuntimeReportIdentityError("identity must be RuntimeReportIdentity")
+    assert_runtime_report_event_allowed(
+        event,
+        identity,
+        record=execution_record,
+        exit_proof=host_exit_proof,
+        now=now,
+    )
     return (
         f"【處理者：{identity.handler}｜owner={identity.owner}｜工單：#{identity.issue}"
         f"｜slot={identity.slot}｜invocation_identity={identity.invocation_identity}】"
@@ -147,6 +231,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--slot", required=True)
     parser.add_argument("--invocation-identity", required=True)
     parser.add_argument("--runtime-kind", required=True, choices=tuple(sorted(RUNTIME_KINDS)))
+    parser.add_argument("--execution-record-file")
+    parser.add_argument("--host-exit-proof-file")
+    parser.add_argument("--now")
     return parser
 
 
@@ -164,7 +251,40 @@ def main() -> int:
     except RuntimeReportIdentityError as exc:
         print(f"RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: {exc}")
         return 2
-    print(format_runtime_report_prefix(identity))
+    execution_record = None
+    host_exit_proof = None
+    if args.event in {"TERMINAL", "EXIT"}:
+        if not args.execution_record_file or not args.host_exit_proof_file or not args.now:
+            print(
+                "RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: "
+                f"{args.event} requires --execution-record-file "
+                "--host-exit-proof-file --now"
+            )
+            return 2
+        try:
+            record_payload = json.loads(
+                Path(args.execution_record_file).read_text(encoding="utf-8")
+            )
+            proof_payload = json.loads(
+                Path(args.host_exit_proof_file).read_text(encoding="utf-8")
+            )
+            execution_record = execution_record_from_payload(record_payload)
+            host_exit_proof = proof_payload
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: invalid exit evidence: {exc}")
+            return 2
+    try:
+        prefix = format_runtime_report_prefix(
+            identity,
+            event=args.event,
+            execution_record=execution_record,
+            host_exit_proof=host_exit_proof,
+            now=args.now,
+        )
+    except RuntimeReportIdentityError as exc:
+        print(f"RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: {exc}")
+        return 2
+    print(prefix)
     print(f"RUNTIME_REPORT_IDENTITY_VALID event={args.event}")
     return 0
 

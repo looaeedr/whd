@@ -233,11 +233,29 @@ def project_interactive_liveness(
     *,
     previous: Mapping[str, object] | None = None,
     event: str = "HEARTBEAT",
+    record: ExecutionRecord | None = None,
 ) -> dict[str, object]:
     """Adapt output from #679 interactive_runtime_liveness; do not re-parse it."""
     if parsed.get("schema") not in {interactive_liveness.MARKER, interactive_liveness.END_MARKER}:
         raise RuntimeObservationError("interactive evidence was not parsed by #679 authority")
     ended = str(parsed.get("runtime_status") or "") == "ENDED" or parsed.get("ended_at")
+    if ended:
+        if not isinstance(record, ExecutionRecord):
+            raise RuntimeObservationError(
+                "interactive END projection requires current ExecutionRecord"
+            )
+        from tools.execution_invocation_exit import InvocationExitError, validate_host_exit_proof
+        try:
+            validate_host_exit_proof(
+                parsed.get("host_exit_proof"),
+                record=record,
+                invocation_identity=str(parsed.get("invocation_identity") or ""),
+                now=str(parsed.get("ended_at") or ""),
+            )
+        except InvocationExitError as exc:
+            raise RuntimeObservationError(
+                f"interactive END host-exit proof rejected: {exc}"
+            ) from exc
     chosen_event = "EXIT" if ended else event
     if chosen_event not in {"HEARTBEAT", "EXIT"}:
         raise RuntimeObservationError("interactive liveness adapter only accepts HEARTBEAT/EXIT")
