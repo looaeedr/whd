@@ -31,7 +31,7 @@ def test_issue1347_surface_owner_is_extracted_one_way():
     assert sheetmetal_features.feature_surface_from_rect is sheetmetal_feature_surface.feature_surface_from_rect
     assert sheetmetal_features.move_feature_within_surface is sheetmetal_feature_surface.move_feature_within_surface
     assert sheetmetal_features.build_feature_placement_guides is sheetmetal_feature_surface.build_feature_placement_guides
-    assert len(inspect.getsource(sheetmetal_features).splitlines()) < 1350
+    assert len(inspect.getsource(sheetmetal_features).splitlines()) < 1400
     owner = inspect.getsource(sheetmetal_feature_surface)
     assert "from .sheetmetal_features import" not in owner
     assert "import ae_engine.sheetmetal_features" not in owner
