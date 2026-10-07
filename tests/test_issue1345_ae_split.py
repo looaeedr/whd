@@ -39,3 +39,14 @@ def test_issue1345_endcap_owner_is_extracted_one_way():
     owner = inspect.getsource(ae_endcap)
     assert "from .ae import" not in owner
     assert "import ae_engine.ae" not in owner
+
+
+def test_issue1345_door_indicator_owner_is_extracted_one_way():
+    from ae_engine import ae_door_indicator
+    assert ae.export_door_dxf is ae_door_indicator.export_door_dxf
+    assert ae.export_stretched_door_dxf is ae_door_indicator.export_stretched_door_dxf
+    assert ae.export_indicator_box_dxf is ae_door_indicator.export_indicator_box_dxf
+    assert len(inspect.getsource(ae).splitlines()) < 900
+    owner = inspect.getsource(ae_door_indicator)
+    assert "from .ae import" not in owner
+    assert "import ae_engine.ae" not in owner
