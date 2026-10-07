@@ -670,14 +670,13 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 ### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
 
 
-Remote QA 是外部等待，不得佔住同一 invocation 做 busy polling。對同一 `issue + run_id + head_sha`，**每個 invocation 的 active-status observation budget 固定為 1**：
+Remote QA 是外部等待，但 active run 必須**持續輪詢到 terminal**，不能看到一次 `in_progress` 就停止本 invocation。對同一 `issue + run_id + head_sha`：
 
-
-1. fresh-read exact run/head 一次；若已 terminal，立刻走 `CONSUME_QA / ACCEPT_QA / FAIL_QA` 的既有 terminal 路徑。**terminal observation 一旦成立，同一 invocation 對同一 run 的 status observation budget 立即耗盡；下一個動作只能是 terminal consume/accept/fail，不得再讀第二次 run/job/status。**
-2. 若第一次 observation 仍為 `queued / in_progress / pending / waiting / requested`，立即呼叫 `classify_invocation_exit(..., remote_qa_active_observation_count=1)`；其結果必須是 `YIELD_REQUIRED_REMOTE_WAIT`，接著 durable `YIELD`。
-3. **同一 invocation 禁止第二次讀同一 active run 的 workflow/job/status**；machine budget owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget`。第二次 active observation 固定 `REMOTE_QA_POLL_BUDGET_EXHAUSTED`。
-4. remote wait 不算 executable engineering progress，也不得阻止 scheduler/worker 在 durable YIELD 後處理另一個合法 executable leaf；原 QA 只在後續 wake/resume 再觀測。
-5. progress/status 回報是 non-blocking checkpoint，不得用「再看一次 CI」延長本 invocation。
+1. `queued / in_progress / pending / waiting / requested` 都屬 active；依 provider 合理 cadence 持續讀 structured run/job/status，classifier 回 `CONTINUE_REMOTE_QA_POLL`，不得因此 YIELD 或把「仍在跑」當停止點。
+2. progress/status 回報只是 non-blocking checkpoint；回報後繼續同一 exact run 的輪詢。
+3. **第一次 terminal observation 是狀態讀取終點**：`completed/success` 立刻走 `CONSUME_QA / ACCEPT_QA`，terminal non-success 立刻走 `FAIL_QA`；不得再讀第二次相同 run/job/status。
+4. terminal 後若同一 invocation 再觀測同一 run，machine owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget` 必須 fail closed：`REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN`。
+5. active polling 只讀結構化狀態；長 log 仍依 `long-log-context-safe-execution` 使用 bounded slice，不得每輪重抓整包 log。
 
 
 <!-- REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1 -->
