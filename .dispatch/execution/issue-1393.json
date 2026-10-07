@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-    "released_at": null
+    "released_at": "2026-10-07T16:47:16Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "1de7181aace36e34be2cf939751aa71a17cbceba",
   "issue": 1393,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-07T17:01:40Z",
-    "invocation_identity": "github:production-x-post-merge:37654601259:pr1394:issue1393",
-    "token": "recovery:1393:37654601259"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1394,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "work/issue-1393-dispatch-reconcile-control-plane",
   "source_sha": "1de7181aace36e34be2cf939751aa71a17cbceba",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-  "transaction": null,
-  "updated_at": "2026-10-07T16:46:40Z",
+  "transaction": {
+    "expected_fingerprint": "a1c0fede0c25398586259ae4ef3061100a7346b3357804e48b668c70c7282a9c",
+    "id": "gha:37654601259:1393:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37654601259:pr1394:issue1393",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-07T16:47:16Z",
   "version": 2,
   "work_branch": "work/issue-1393-dispatch-reconcile-control-plane"
 }
