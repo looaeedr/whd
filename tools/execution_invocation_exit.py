@@ -24,7 +24,8 @@ SUBSTANTIVE_TRANSACTION_KINDS = frozenset({
     "START_BRANCH", "APPLY_COMMIT", "START_QA", "ACCEPT_QA", "CONSUME_QA", "MERGE", "HANDOFF", "FINALIZE", "RECONCILE", "BLOCK"
 })
 REMOTE_ACTIVE_STATUSES = frozenset({"queued", "in_progress", "pending", "waiting", "requested"})
-REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = 1
+REMOTE_QA_OBSERVATION_BUDGET = 1
+REMOTE_QA_ACTIVE_OBSERVATION_BUDGET = REMOTE_QA_OBSERVATION_BUDGET
 HOST_EXIT_PROOF_SCHEMA = "WHD_FLOW_V2_HOST_EXIT_PROOF_V1"
 HOST_EXIT_PROOF_VERSION = 1
 HOST_EXIT_PROOF_TTL_SECONDS = 60
@@ -78,17 +79,26 @@ def assert_remote_qa_active_observation_budget(
     observation_count: int,
     run_status: str,
 ) -> bool:
-    """Reject same-invocation busy polling of one active remote QA run."""
+    """Reject same-invocation re-observation of one remote QA run.
+
+    The legacy function name is retained for compatibility, but the budget now
+    applies to both active and terminal statuses. Once any status observation is
+    consumed in an invocation, that invocation must not read the same run again.
+    """
     if isinstance(observation_count, bool) or not isinstance(observation_count, int):
         raise InvocationExitError("observation_count must be an integer")
     if observation_count <= 0:
         raise InvocationExitError("observation_count must be positive")
     status = _text(run_status, "run_status").lower()
-    if status in REMOTE_ACTIVE_STATUSES and observation_count > REMOTE_QA_ACTIVE_OBSERVATION_BUDGET:
+    if observation_count > REMOTE_QA_OBSERVATION_BUDGET:
+        code = (
+            "REMOTE_QA_POLL_BUDGET_EXHAUSTED"
+            if status in REMOTE_ACTIVE_STATUSES
+            else "REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN"
+        )
         raise InvocationExitError(
-            "REMOTE_QA_POLL_BUDGET_EXHAUSTED "
-            f"observation_count={observation_count} budget={REMOTE_QA_ACTIVE_OBSERVATION_BUDGET} "
-            f"run_status={status}"
+            f"{code} observation_count={observation_count} "
+            f"budget={REMOTE_QA_OBSERVATION_BUDGET} run_status={status}"
         )
     return True
 
@@ -488,12 +498,13 @@ def classify_invocation_exit(
 
     if record.active_run is not None and record.next_action is not None:
         run_status = str(record.active_run.status or "").strip().lower()
-        if record.next_action.kind == "POLL_QA" and record.next_action.kind in OBSERVATION_ACTION_KINDS and run_status in REMOTE_ACTIVE_STATUSES:
+        if record.next_action.kind == "POLL_QA" and record.next_action.kind in OBSERVATION_ACTION_KINDS:
             assert_remote_qa_active_observation_budget(
                 observation_count=remote_qa_active_observation_count,
                 run_status=run_status,
             )
-            return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
+            if run_status in REMOTE_ACTIVE_STATUSES:
+                return _decision(record, "YIELD_REQUIRED_REMOTE_WAIT", may_return=False, requires_yield=True)
 
     if terminal_tail_active(record):
         return _decision(

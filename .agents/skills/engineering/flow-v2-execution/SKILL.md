@@ -673,7 +673,7 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 Remote QA 是外部等待，不得佔住同一 invocation 做 busy polling。對同一 `issue + run_id + head_sha`，**每個 invocation 的 active-status observation budget 固定為 1**：
 
 
-1. fresh-read exact run/head 一次；若已 terminal，立刻走 `CONSUME_QA / ACCEPT_QA / FAIL_QA` 的既有 terminal 路徑。
+1. fresh-read exact run/head 一次；若已 terminal，立刻走 `CONSUME_QA / ACCEPT_QA / FAIL_QA` 的既有 terminal 路徑。**terminal observation 一旦成立，同一 invocation 對同一 run 的 status observation budget 立即耗盡；下一個動作只能是 terminal consume/accept/fail，不得再讀第二次 run/job/status。**
 2. 若第一次 observation 仍為 `queued / in_progress / pending / waiting / requested`，立即呼叫 `classify_invocation_exit(..., remote_qa_active_observation_count=1)`；其結果必須是 `YIELD_REQUIRED_REMOTE_WAIT`，接著 durable `YIELD`。
 3. **同一 invocation 禁止第二次讀同一 active run 的 workflow/job/status**；machine budget owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget`。第二次 active observation 固定 `REMOTE_QA_POLL_BUDGET_EXHAUSTED`。
 4. remote wait 不算 executable engineering progress，也不得阻止 scheduler/worker 在 durable YIELD 後處理另一個合法 executable leaf；原 QA 只在後續 wake/resume 再觀測。
