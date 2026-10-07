@@ -1,34 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1378-stale-ready-reconcile-retry-20261007T164755Z",
+  "request_id": "dm8-1378-acquire-work1-20261007T2237Z",
   "issue": 1378,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.dm8.dispatch.issue1378.reconcile.work1.20261007T164624Z",
-  "expected_coord_head": "f1c683df59b80e86511ec776ecc6574c957042ae",
-  "expected_generation": 1,
+  "invocation_identity": "chatgpt.dm8.dispatch.issue1378.acquire.work1.20261007T2237Z",
+  "expected_coord_head": "696de7adc81213da748f9af3efa70faee51b782b",
+  "expected_generation": 2,
   "effect": {
-    "observed_work_branch": "work/issue-1378",
-    "observed_head_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-    "observed_target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-    "semantic_state": "READY",
     "next_action": {
-      "kind": "ACQUIRE",
+      "kind": "START_BRANCH",
       "args": {},
-      "display": "Acquire Issue #1378"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1378,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "f96194a985c3da07ba0e5335110afbec655fc968"
+      "display": "開始 #1378 DM8-A0 T0 characterization"
     }
   },
-  "purpose": "/派工1378 stale READY live-target reconciliation on GitHub canonical control plane before ACQUIRE.",
+  "purpose": "User explicit /派工1378: acquire native READY Issue #1378 on work1 using GitHub canonical control plane only.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -61,27 +47,17 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1378,
-    "invocation_identity": "chatgpt.dm8.dispatch.issue1378.reconcile.work1.20261007T164624Z",
+    "invocation_identity": "chatgpt.dm8.dispatch.issue1378.acquire.work1.20261007T2237Z",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-    "required_skills": [
-      "flow-v2-execution",
-      "派工",
-      "issue-closure-gate"
-    ],
-    "completed_skills": [
-      "flow-v2-execution",
-      "派工",
-      "issue-closure-gate"
-    ],
+    "required_skills": [],
+    "completed_skills": [],
     "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
     ],
     "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
     ],
-    "observed_at": "2026-10-07T16:46:24Z"
+    "observed_at": "2026-10-07T22:36:49Z"
   }
 }
