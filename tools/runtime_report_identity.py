@@ -15,12 +15,17 @@ import re
 
 from tools.execution_invocation_exit import InvocationExitError, validate_host_exit_proof
 from tools.execution_record import ExecutionRecord, execution_record_from_payload
+from tools.host_return_surface_gate import (
+    HostReturnSurfaceGateError,
+    assert_dispatch_completion,
+    validate_host_return_seam_attestation,
+)
 
 INTERACTIVE_HANDLERS = frozenset({"工作0", "工作1", "工作2", "工作3"})
 SCHEDULER_HANDLERS = frozenset({"排程A", "排程B"})
 RUNTIME_KINDS = frozenset({"INTERACTIVE", "SCHEDULER"})
 EXPLICIT_UNBOUND = frozenset({"NONE", "UNBOUND"})
-REPORT_EVENTS = frozenset({"PROGRESS", "CHECKPOINT", "TERMINAL", "EXIT", "STATUS"})
+REPORT_EVENTS = frozenset({"PROGRESS", "CHECKPOINT", "TERMINAL", "EXIT", "STATUS", "DISPATCH_COMPLETE"})
 
 
 class RuntimeReportIdentityError(ValueError):
@@ -137,6 +142,8 @@ def assert_runtime_report_event_allowed(
     record: ExecutionRecord | None = None,
     exit_proof: object | None = None,
     now: object | None = None,
+    host_surface_attestation: object | None = None,
+    surface_id: object | None = None,
 ) -> bool:
     """Enforce the host-return boundary at the sole report formatter seam."""
 
@@ -147,7 +154,7 @@ def assert_runtime_report_event_allowed(
         raise RuntimeReportIdentityError(
             f"event must be one of {sorted(REPORT_EVENTS)}"
         )
-    if report_event not in {"TERMINAL", "EXIT"}:
+    if report_event not in {"TERMINAL", "EXIT", "DISPATCH_COMPLETE"}:
         return True
 
     if not isinstance(record, ExecutionRecord):
@@ -187,6 +194,20 @@ def assert_runtime_report_event_allowed(
         raise RuntimeReportIdentityError(
             "TERMINAL report requires TASK_TERMINAL host-exit proof"
         )
+    if report_event == "DISPATCH_COMPLETE":
+        try:
+            validate_host_return_seam_attestation(
+                host_surface_attestation,
+                surface_id=_text("surface_id", surface_id),
+            )
+            assert_dispatch_completion(
+                record,
+                invocation_identity=identity.invocation_identity,
+            )
+        except HostReturnSurfaceGateError as exc:
+            raise RuntimeReportIdentityError(
+                f"DISPATCH_COMPLETE rejected: {exc}"
+            ) from exc
     return True
 
 
@@ -197,6 +218,8 @@ def format_runtime_report_prefix(
     execution_record: ExecutionRecord | None = None,
     host_exit_proof: object | None = None,
     now: object | None = None,
+    host_surface_attestation: object | None = None,
+    surface_id: object | None = None,
 ) -> str:
     """Render CURRENT identity after enforcing the event host-exit boundary.
 
@@ -213,6 +236,8 @@ def format_runtime_report_prefix(
         record=execution_record,
         exit_proof=host_exit_proof,
         now=now,
+        host_surface_attestation=host_surface_attestation,
+        surface_id=surface_id,
     )
     return (
         f"【處理者：{identity.handler}｜owner={identity.owner}｜工單：#{identity.issue}"
@@ -233,6 +258,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--runtime-kind", required=True, choices=tuple(sorted(RUNTIME_KINDS)))
     parser.add_argument("--execution-record-file")
     parser.add_argument("--host-exit-proof-file")
+    parser.add_argument("--host-surface-attestation-file")
+    parser.add_argument("--surface-id")
     parser.add_argument("--now")
     return parser
 
@@ -253,7 +280,7 @@ def main() -> int:
         return 2
     execution_record = None
     host_exit_proof = None
-    if args.event in {"TERMINAL", "EXIT"}:
+    if args.event in {"TERMINAL", "EXIT", "DISPATCH_COMPLETE"}:
         if not args.execution_record_file or not args.host_exit_proof_file or not args.now:
             print(
                 "RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: "
@@ -273,6 +300,24 @@ def main() -> int:
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             print(f"RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: invalid exit evidence: {exc}")
             return 2
+    host_surface_attestation = None
+    if args.event == "DISPATCH_COMPLETE":
+        if not args.host_surface_attestation_file or not args.surface_id:
+            print(
+                "RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: "
+                "DISPATCH_COMPLETE requires --host-surface-attestation-file --surface-id"
+            )
+            return 2
+        try:
+            host_surface_attestation = json.loads(
+                Path(args.host_surface_attestation_file).read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(
+                "RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: "
+                f"invalid host surface attestation: {exc}"
+            )
+            return 2
     try:
         prefix = format_runtime_report_prefix(
             identity,
@@ -280,6 +325,8 @@ def main() -> int:
             execution_record=execution_record,
             host_exit_proof=host_exit_proof,
             now=args.now,
+            host_surface_attestation=host_surface_attestation,
+            surface_id=args.surface_id,
         )
     except RuntimeReportIdentityError as exc:
         print(f"RUNTIME_REPORT_IDENTITY_FAIL_CLOSED: {exc}")
