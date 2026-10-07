@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "d83fd5f051c2db88a5714026461b5f068753261f",
-    "released_at": null
+    "released_at": "2026-10-07T04:45:45Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "1e66c648a75a6d2352e95bc9d6389f09a00c12d0",
   "issue": 1343,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-07T05:01:04Z",
-    "invocation_identity": "github:production-x-post-merge:37572988617:pr1344:issue1343",
-    "token": "recovery:1343:37572988617"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1344,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "work/issue-1343",
   "source_sha": "1e66c648a75a6d2352e95bc9d6389f09a00c12d0",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d83fd5f051c2db88a5714026461b5f068753261f",
-  "transaction": null,
-  "updated_at": "2026-10-07T04:46:04Z",
+  "transaction": {
+    "expected_fingerprint": "d37c3d1c1fa5c98114fb3b465176da6490d6b0b4af776021368fd9ca6e0c305d",
+    "id": "gha:37572988617:1343:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37572988617:pr1344:issue1343",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-07T04:46:31Z",
   "version": 2,
   "work_branch": "work/issue-1343"
 }
