@@ -3,23 +3,23 @@
     "next_action": {
       "args": {
         "head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "pr_number": 1340,
+        "target_branch": "cleanup/2d-3d-sync"
       },
-      "display": "Start or consume exact-head Control Plane QA for PR #1340",
-      "kind": "START_QA"
+      "display": "Merge exact accepted PR #1340",
+      "kind": "MERGE"
     },
-    "observed_head_sha": "9e879638df6efa7b8a2bc1c5ee26508584bf68c3",
-    "observed_target_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
-    "observed_work_branch": "work/issue-1334",
-    "semantic_state": "QA_READY"
+    "next_state": "INTEGRATING",
+    "run_id": 37560423820,
+    "semantic_state": "QA_ACCEPTED"
   },
-  "expected_coord_head": "86ee0d00e3304040203748159823194fc847cc18",
-  "expected_generation": 16,
+  "expected_coord_head": "e4c581c98da43c357a0b103daac8f441767e85a5",
+  "expected_generation": 17,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1334-reconcile-start-qa",
+  "request_id": "issue1334-consume-qa-fastpath-final",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "session_reuse": {
     "mode": "LIVE_LEASE_CONTINUATION",
