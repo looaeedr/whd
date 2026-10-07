@@ -1,0 +1,53 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+  "issue": 1378,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1378",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "bb1ca065863c9c2045342905eea824803055b166d8d0779a280e816980e3894a",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:/派工 DM8-v16 #1378",
+      "dispatch_transport": "GITHUB_CANONICAL",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
+  "transaction": null,
+  "updated_at": "2026-10-07T16:29:27Z",
+  "version": 2,
+  "work_branch": "work/issue-1378"
+}
