@@ -669,7 +669,12 @@ def generate_box_body_structure_parts(
     for piece in data.pieces:
         name = labels.get(piece.role, piece.key) + ".dxf"
         path = root / name
-        _manufacturing_export.save_part_render_data_dxf(piece.render_data, path, overwrite=bool(ctx.overwrite))
+        _manufacturing_export.save_part_render_data_dxf(
+            piece.render_data.scene,
+            path,
+            serializer=save_scene_dxf,
+            overwrite=bool(ctx.overwrite),
+        )
         results.append(PartExportResult(
             part_kind=piece.key, output_path=str(path),
             exporter_name="final_scene_box_body_structure_export", used_baseline=False,
