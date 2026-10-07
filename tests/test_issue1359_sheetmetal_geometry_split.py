@@ -22,3 +22,15 @@ def test_issue1359_strip_owner_is_reexported_one_way():
     for owner in (inspect.getsource(sheetmetal_geometry_core), inspect.getsource(sheetmetal_strip_geometry)):
         assert "from .sheetmetal_geometry import" not in owner
         assert "import ae_engine.sheetmetal_geometry" not in owner
+
+
+def test_issue1359_corner_policy_owner_is_reexported_one_way():
+    from ae_engine import sheetmetal_corner_policy
+    assert sheetmetal_geometry.FourCornerTypePolicy is sheetmetal_corner_policy.FourCornerTypePolicy
+    assert sheetmetal_geometry.resolve_corner_relief is sheetmetal_corner_policy.resolve_corner_relief
+    assert sheetmetal_geometry.box_body_vertical_offsets is sheetmetal_corner_policy.box_body_vertical_offsets
+    assert sheetmetal_geometry.VAULT_ENDCAP_CORNER_POLICY is sheetmetal_corner_policy.VAULT_ENDCAP_CORNER_POLICY
+    assert len(inspect.getsource(sheetmetal_geometry).splitlines()) < 900
+    owner = inspect.getsource(sheetmetal_corner_policy)
+    assert "from .sheetmetal_geometry import" not in owner
+    assert "import ae_engine.sheetmetal_geometry" not in owner
