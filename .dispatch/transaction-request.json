@@ -1,25 +1,14 @@
 {
   "effect": {
-    "next_action": {
-      "args": {
-        "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
-        "pr_number": 1340,
-        "target_branch": "cleanup/2d-3d-sync"
-      },
-      "display": "Merge exact accepted PR #1340",
-      "kind": "MERGE"
-    },
-    "next_state": "INTEGRATING",
-    "run_id": 37559526922,
-    "semantic_state": "QA_ACCEPTED"
+    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
   },
-  "expected_coord_head": "b35bb2f40b4ed72cc409d80cbec221c2998feb46",
-  "expected_generation": 10,
+  "expected_coord_head": "ccaa924b02bf7b0ba5047ad06294906a9f2a6399",
+  "expected_generation": 11,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1334-consume-qa-1340",
+  "request_id": "issue1334-merge-1340-g11",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
   "session_reuse": {
     "mode": "LIVE_LEASE_CONTINUATION",
