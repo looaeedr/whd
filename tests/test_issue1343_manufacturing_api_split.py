@@ -1,0 +1,26 @@
+from __future__ import annotations
+
+import inspect
+
+from ae_engine import manufacturing_api
+from ae_engine import manufacturing_render_data
+
+
+def test_issue1343_render_data_owner_is_extracted_and_public_api_is_preserved():
+    assert manufacturing_api.PartRenderData is manufacturing_render_data.PartRenderData
+    assert manufacturing_api.UnfoldedBlankTopology is manufacturing_render_data.UnfoldedBlankTopology
+    assert manufacturing_api.measure_unfolded_blanks is manufacturing_render_data.measure_unfolded_blanks
+    assert manufacturing_api.material_polygon_from_final_scene is manufacturing_render_data.material_polygon_from_final_scene
+
+
+def test_issue1343_manufacturing_api_shrinks_without_second_authority():
+    source = inspect.getsource(manufacturing_api)
+    owner = inspect.getsource(manufacturing_render_data)
+    assert len(source.splitlines()) < 2100
+    assert len(owner.splitlines()) < 600
+    assert "class PartRenderData" not in source
+    assert "class PartRenderData" in owner
+    assert "def build_part_render_data" in source
+    assert "def generate_part" in source
+    assert "import ae_engine.manufacturing_api" not in owner
+    assert "from .manufacturing_api import" not in owner
