@@ -8,6 +8,7 @@ project truth and therefore never belong in ``receiving_layout``.
 from __future__ import annotations
 
 from copy import deepcopy
+from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
@@ -114,6 +115,10 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 "depth": _number(raw_bay.get("depth"), label=f"Receiving Set{set_index} Bay{bay_index} depth"),
                 "back_panel_mode": _back_panel_mode(raw_bay.get("back_panel_mode")),
             }
+            if "door_state" in raw_bay:
+                if not isinstance(raw_bay["door_state"], Mapping):
+                    raise ValueError("每連門分割必須為物件")
+                bay["door_state"] = {key: deepcopy(raw_bay["door_state"][key]) for key in RECEIVING_DOOR_STATE_KEYS if key in raw_bay["door_state"]}
             bays.append(bay)
 
         raw_joints = raw_set.get("joints")
@@ -159,7 +164,18 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                     "height_alignment": height_alignment,
                 }
             )
-        sets.append({"stable_id": set_id, "bays": bays, "joints": joints})
+        selected = {"stable_id": set_id, "bays": bays, "joints": joints}
+        if "switch_brand" in raw_set:
+            from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+            brand = str(raw_set["switch_brand"])
+            if brand not in RECEIVING_SWITCH_BRANDS:
+                raise ValueError("不支援的開關品牌")
+            selected["switch_brand"] = brand
+        if "settings" in raw_set:
+            selected["settings"] = normalize_set_settings(raw_set["settings"], bays)
+            for index, bay in enumerate(bays):
+                bay["back_panel_mode"] = setting_value(selected, index, "back_panel_mode")
+        sets.append(selected)
 
     return {"schema": RECEIVING_LAYOUT_SCHEMA, "sets": sets}
 
@@ -228,6 +244,34 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
         )
     else:
         result["receiving_layout"] = normalize_receiving_layout(result["receiving_layout"])
+    layout = result["receiving_layout"]
+    legacy_switch = result.pop("receiving_switch_layout", None)
+    if legacy_switch and not any("switch_brand" in row for row in layout["sets"]):
+        from ae_engine.receiving_switch_layout import normalize_receiving_switch_layout
+        switch = normalize_receiving_switch_layout(legacy_switch)
+        layout = resize_receiving_sets(layout, set_count=max(len(layout["sets"]), len(switch["layers"])))
+        for index, layer in enumerate(switch["layers"]):
+            layout = resize_receiving_bays(layout, set_index=index, bay_count=max(len(layout["sets"][index]["bays"]), layer["connection_count"]))
+            layout["sets"][index]["switch_brand"] = switch["switch_brand"]
+    source_features = {**dict(result.get("surface_features") or {}), **dict(result.get("part_features") or {})}
+    from ae_engine.sheetmetal_features import legacy_hole_to_feature
+    for role in ("head", "tail"):
+        if role not in source_features and result.get(f"{role}_holes"):
+            source_features[role] = [legacy_hole_to_feature(hole) for hole in result[f"{role}_holes"]]
+    if any(source_features.get(role) for role in ("head", "tail")):
+        for selected in layout["sets"]:
+            if "settings" not in selected:
+                template_bays = deepcopy(selected["bays"])
+                for bay in template_bays:
+                    for role in ("head", "tail"):
+                        bay[f"{role}_features"] = deepcopy(source_features.get(role, []))
+                selected["settings"] = normalize_set_settings(None, template_bays)
+    if "door_layout_columns" in result:
+        door_state = {key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result}
+        for selected in layout["sets"]:
+            for bay in selected["bays"]:
+                bay.setdefault("door_state", deepcopy(door_state))
+    result["receiving_layout"] = layout
     return result
 
 
@@ -256,6 +300,11 @@ def project_primary_bay_legacy_aliases(snapshot: Mapping[str, object] | None) ->
 
 
 
+RECEIVING_DOOR_STATE_KEYS = (
+    "multi_door_enabled", "door_layout_columns", "door_handle_edges",
+    "door_layout_scope", "door_nameplate_center_datum_top", "inner_doors",
+)
+
 RECEIVING_BAY_COMMON_STATE_INVALID = "RECEIVING_BAY_COMMON_STATE_INVALID"
 
 
@@ -283,6 +332,7 @@ def _layout_set(layout: Mapping[str, object], set_index: int) -> tuple[dict[str,
 def _copy_bay_fields(bay: Mapping[str, object], *, stable_id: str) -> dict[str, object]:
     """Copy only persisted per-Bay input fields; never create a live link."""
     return {
+        **({"door_state": deepcopy(bay["door_state"])} if "door_state" in bay else {}),
         "stable_id": str(stable_id),
         "width": float(bay["width"]),
         "height": float(bay["height"]),
@@ -343,6 +393,12 @@ def resize_receiving_bays(layout: Mapping[str, object], *, set_index: int, bay_c
                 previous=previous_joint,
             )
         )
+        if "settings" in selected:
+            for kind, row in selected["settings"].items():
+                prior_ref = row["refs"][previous_bay["stable_id"]]
+                ref = f"{new_bay['stable_id']}:{kind}"
+                row["refs"][new_bay["stable_id"]] = ref
+                row["values"][ref] = deepcopy(row["values"][prior_ref])
         bays.append(new_bay)
 
     if len(bays) > wanted:
@@ -350,6 +406,7 @@ def resize_receiving_bays(layout: Mapping[str, object], *, set_index: int, bay_c
         joints = joints[: max(wanted - 1, 0)]
 
     normalized["sets"][set_index] = {
+        **selected,
         "stable_id": str(selected["stable_id"]),
         "bays": bays,
         "joints": joints,
@@ -400,7 +457,7 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     if bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
-    allowed = {"width", "height", "depth", "back_panel_mode"}
+    allowed = {"width", "height", "depth", "back_panel_mode", "door_state"}
     unknown = set(changes) - allowed
     if unknown:
         raise ValueError(f"unsupported Receiving Bay fields: {sorted(unknown)}")
@@ -411,9 +468,16 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     if "depth" in changes:
         bay["depth"] = _number(changes["depth"], label="Receiving Bay depth")
     if "back_panel_mode" in changes:
-        bay["back_panel_mode"] = _back_panel_mode(changes["back_panel_mode"])
+        mode = _back_panel_mode(changes["back_panel_mode"])
+        bay["back_panel_mode"] = mode
+        if "settings" in selected:
+            row = selected["settings"]["back_panel_mode"]
+            row["values"][row["refs"][bay["stable_id"]]] = mode
+    if "door_state" in changes:
+        bay["door_state"] = deepcopy(dict(changes["door_state"]))
     bays[bay_index] = bay
     normalized["sets"][set_index] = {
+        **selected,
         "stable_id": str(selected["stable_id"]),
         "bays": [deepcopy(dict(row)) for row in bays],
         "joints": [deepcopy(dict(row)) for row in selected["joints"]],
@@ -489,10 +553,24 @@ def project_receiving_bay_legacy_aliases(
         "set_id": str(selected["stable_id"]),
         "bay_id": str(bay["stable_id"]),
     }
+    if "door_state" in bay:
+        for key in RECEIVING_DOOR_STATE_KEYS:
+            result.pop(key, None)
+        result.update(deepcopy(bay["door_state"]))
     result["w"] = float(bay["width"])
     result["h"] = float(bay["height"])
     result["d"] = float(bay["depth"])
     _set_transient_back_panel_mode(result, str(bay["back_panel_mode"]))
+    if "settings" in selected:
+        features = deepcopy(dict(result.get("surface_features") or {}))
+        for role in ("head", "tail"):
+            features[role] = setting_value(selected, bay_index, f"{role}_features")
+        result["surface_features"] = features
+        part_features = deepcopy(dict(result.get("part_features") or {}))
+        for role in ("head", "tail"):
+            part_features[role] = deepcopy(features[role])
+        result["part_features"] = part_features
+        result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
     if validate_common:
         try:
             _validate_common_receiving_state(result)
@@ -553,6 +631,7 @@ def update_receiving_joint_alignment(
         row["height_alignment"] = value
     joints[joint_index] = row
     normalized["sets"][set_index] = {
+        **selected,
         "stable_id": str(selected["stable_id"]),
         "bays": [deepcopy(dict(item)) for item in selected["bays"]],
         "joints": [deepcopy(dict(item)) for item in joints],
@@ -605,6 +684,27 @@ def _strip_back_panel_mode_from_structure(state: object) -> object:
     return result
 
 
+def receiving_bay_assembly_offsets(layout, *, set_index=0):
+    """由相鄰 Joint 與包外 W/H/D 解析各連中心；不從 renderer bbox 推算。
+
+    Assembly 使用置中箱體座標，FRONT=+Z、TOP=+Y。每個相鄰
+    Joint 對齊指定的外表面，故中心差為兩側包外尺寸差的一半。
+    """
+    normalized, selected = _layout_set(layout, set_index)
+    bays = selected["bays"]
+    offsets = [(0.0, 0.0, 0.0)]
+    for index, joint in enumerate(selected["joints"]):
+        left, right = bays[index:index + 2]
+        x, y, z = offsets[-1]
+        x += (float(left["width"]) + float(right["width"])) / 2
+        height_delta = (float(right["height"]) - float(left["height"])) / 2
+        depth_delta = (float(right["depth"]) - float(left["depth"])) / 2
+        y += height_delta if joint["height_alignment"] == "BOTTOM" else -height_delta
+        z += -depth_delta if joint["depth_alignment"] == "FRONT" else depth_delta
+        offsets.append((x, y, z))
+    return tuple(offsets)
+
+
 def strip_legacy_receiving_aliases(snapshot: Mapping[str, object] | None) -> dict[str, object]:
     """Return v2 persisted Receiving snapshot with legacy single-box aliases removed."""
     result = ensure_receiving_layout(snapshot)
@@ -621,6 +721,35 @@ def strip_legacy_receiving_aliases(snapshot: Mapping[str, object] | None) -> dic
         result["workspace"] = workspace_copy
     if "box_body_structure" in result:
         result["box_body_structure"] = _strip_back_panel_mode_from_structure(result["box_body_structure"])
+    for selected in result["receiving_layout"]["sets"]:
+        if "settings" in selected:
+            for bay in selected["bays"]:
+                bay.pop("back_panel_mode", None)
+    if all("door_state" in bay for selected in result["receiving_layout"]["sets"] for bay in selected["bays"]):
+        for key in RECEIVING_DOOR_STATE_KEYS:
+            result.pop(key, None)
+    if any("settings" in selected for selected in result["receiving_layout"]["sets"]):
+        result.pop("head_holes", None)
+        result.pop("tail_holes", None)
+        for key in ("surface_features", "part_features"):
+            if isinstance(result.get(key), Mapping):
+                result[key] = {role: value for role, value in result[key].items() if role not in ("head", "tail")}
     for key in _DERIVED_LAYOUT_KEYS:
         result.pop(key, None)
+    return result
+
+
+def receiving_bay_joint_face_features(layout, *, set_index, bay_index, thickness, frame_width, existing=None):
+    """取得本連相鄰接合的 canonical lock feature；原有非接合特徵保留。"""
+    from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
+    normalized, selected = _layout_set(layout, set_index)
+    if bay_index < 0 or bay_index >= len(selected["bays"]):
+        raise IndexError("連選取超出範圍")
+    result = {face: [feature for feature in values if getattr(feature, "source_type", "") != "receiving_joint_side_lock"] for face, values in dict(existing or {}).items()}
+    for joint_index in (bay_index - 1, bay_index):
+        if joint_index < 0 or joint_index >= len(selected["joints"]):
+            continue
+        resolved = resolve_receiving_joint_lock_pattern(normalized, set_index=set_index, joint_index=joint_index, thickness=thickness, frame_width=frame_width)
+        participant = resolved.right_bay if joint_index == bay_index - 1 else resolved.left_bay
+        result.setdefault(participant.face_key, []).extend(participant.features)
     return result

@@ -187,6 +187,31 @@ class ReceivingSetBayAdapter:
             self.mark_current_bay_dirty()
         return changed
 
+    def update_setting(self, kind, value):
+        from ae_engine.receiving_shared_settings import edit_setting
+        self._layout = edit_setting(self._layout, set_index=self.selection.set_index,
+                                    bay_index=self.selection.bay_index, kind=kind, value=value)
+        self.mark_current_bay_dirty()
+
+    def share_setting(self, kind, bay_indices):
+        from ae_engine.receiving_shared_settings import share_setting
+        self._layout = share_setting(self._layout, set_index=self.selection.set_index,
+                                     source_bay_index=self.selection.bay_index,
+                                     bay_indices=bay_indices, kind=kind)
+        self.mark_current_bay_dirty()
+
+    def unlink_setting(self, kind):
+        from ae_engine.receiving_shared_settings import unlink_setting
+        self._layout = unlink_setting(self._layout, set_index=self.selection.set_index,
+                                      bay_index=self.selection.bay_index, kind=kind)
+        self.mark_current_bay_dirty()
+
+    def set_brand(self, brand):
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if brand not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("不支援的開關品牌")
+        self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
+
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
         return receiving_joint_alignment_editability(
             self._layout,
@@ -228,3 +253,51 @@ class ReceivingSetBayAdapter:
         report = evaluate_receiving_manufacturing_readiness(self._layout, failures)
         return receiving_readiness_projection(report)
 
+
+
+class ReceivingSwitchProjectionAdapter:
+    """舊套／連 controls facade；唯一資料為 ReceivingSetBayAdapter。"""
+    def __init__(self, adapter):
+        self.adapter = adapter
+
+    @property
+    def layout(self):
+        return self.adapter.layout
+
+    @property
+    def brand(self):
+        selected = self.adapter.layout["sets"][self.adapter.selection.set_index]
+        return selected.get("switch_brand", "士林")
+
+    def connection_counts(self):
+        return tuple(len(row["bays"]) for row in self.adapter.layout["sets"])
+
+    def connection_count(self, index):
+        return self.connection_counts()[index]
+
+    def set_brand(self, brand):
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if brand not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("不支援的開關品牌")
+        changed = self.brand != brand
+        self.adapter.set_brand(brand)
+        return changed
+
+    def add_layer(self):
+        self.adapter.set_set_count(len(self.adapter.layout["sets"]) + 1)
+
+    def remove_layer(self):
+        count = len(self.adapter.layout["sets"])
+        if count == 1:
+            return False
+        self.adapter.set_set_count(count - 1)
+        return True
+
+    def resize_connections(self, index, delta):
+        current = self.connection_count(index)
+        wanted = max(1, current + delta)
+        if wanted == current:
+            return False
+        self.adapter.select_set(index + 1)
+        self.adapter.set_bay_count(wanted)
+        return True
