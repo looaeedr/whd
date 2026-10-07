@@ -82,6 +82,18 @@ canonical recovery 只允許 trusted ingress `RECOVER_POST_DELIVERY`：
 
 
 
+### DISPATCH_LOCAL_MACHINE_PROHIBITION_HARD_GATE_V1
+
+`/派工` / READY ingress 的 control plane 固定 **GitHub canonical only**。Issue 建立/同步、dependency readback、工作槽投影、Phase6 Preflight、`DISPATCH_READY`、ACQUIRE 與後續 control-plane readback 不得使用 Remote Desktop Commander、host/local shell、local repository/worktree、`/workspace/whd` 或其他使用者本機資料作為 authority、evidence、fallback 或 transport。
+
+- trusted READY planner 必須經 `tools/execution_dispatch_ingress.py::validate_dispatch_transport(...)`；canonical value 固定 `GITHUB_CANONICAL`。任何 `REMOTE_DESKTOP_COMMANDER / RC / LOCAL_SHELL / LOCAL_WORKSPACE / /workspace/whd` 或其他非 GitHub transport 一律 `DISPATCH_LOCAL_MACHINE_FORBIDDEN` fail closed。
+- `tools/control_transaction_request_ingress.py` 建立 `DispatchIngressRequest` 時必須把 caller-supplied `effect.dispatch_transport` 交給同一 gate；未提供時由 trusted GitHub request ingress 固定補 `GITHUB_CANONICAL`。caller 不得用 local transport string 擴張 authority。
+- GitHub canonical transport 不可用時只能回 genuine capability blocker；禁止因方便、速度或本機已連線而 fallback local。
+- **唯一 local/RC 例外只屬 explicit `/接手 <issue>` 的 repository-content implementation stage**，沿用下方 `EXPLICIT_TAKEOVER_RC_WORKSPACE_V1`。該例外不涵蓋 ticket selection、Preflight、slot/READY、claim、`DISPATCH_READY` 或其他 dispatch/control-plane mutation。
+- 因此 `/派工 → 本機檢查/Preflight → GitHub READY` 是明確禁止路徑；`/派工` 與 `/接手` 不得混用 execution surface。
+
+<!-- DISPATCH_LOCAL_MACHINE_PROHIBITION_HARD_GATE_V1 -->
+
 ### EXPLICIT_ISSUE_DIRECT_EXECUTION_V1
 
 當使用者明確指定 exact owning Issue 時（canonical examples：`/接手 1331`、`/接手 #1331`、`接手工單 1331`），這不是 discovery request，而是 **DIRECT_ISSUE_EXECUTION**：
