@@ -2,7 +2,12 @@ from dataclasses import replace
 
 import pytest
 
+from tools.execution_invocation_exit import build_host_exit_proof
 from tools.execution_record import TransactionState, execution_record_from_payload
+from tools.runtime_report_identity import (
+    build_runtime_report_identity,
+    format_runtime_report_prefix,
+)
 from tools.host_return_surface_gate import (
     HOST_RETURN_HARD_ENFORCED,
     HOST_RETURN_SEAM_UNENFORCED,
@@ -161,3 +166,73 @@ def test_attested_surface_requires_plain_final_bypass_to_be_machine_blocked():
         _attestation(plain_final_bypass_blocked=False),
         surface_id="chatgpt-interactive",
     ) == HOST_RETURN_SEAM_UNENFORCED
+
+
+def _identity(record):
+    return build_runtime_report_identity(
+        handler="工作1",
+        owner=record.owner_id,
+        issue=record.issue,
+        slot=record.slot_id,
+        invocation_identity=INV,
+        runtime_kind="INTERACTIVE",
+    )
+
+
+def test_dispatch_complete_machine_event_rejects_acquire_only_even_with_attestation():
+    record = _record()
+    with pytest.raises(Exception, match="HOST_EXIT_BLOCKED|host-exit proof"):
+        proof = build_host_exit_proof(
+            record,
+            invocation_identity=INV,
+            now="2026-10-08T00:10:00Z",
+        )
+        format_runtime_report_prefix(
+            _identity(record),
+            event="DISPATCH_COMPLETE",
+            execution_record=record,
+            host_exit_proof=proof,
+            now="2026-10-08T00:10:00Z",
+            host_surface_attestation=_attestation(),
+            surface_id="chatgpt-interactive",
+        )
+
+
+def test_dispatch_complete_machine_event_requires_host_attestation_after_legal_yield():
+    record = replace(
+        _record(),
+        generation=5,
+        lease=None,
+        transaction=TransactionState(
+            id="tx-yield",
+            kind="YIELD",
+            status="RECONCILED",
+            expected_fingerprint="e" * 64,
+            invocation_identity=INV,
+        ),
+    )
+    proof = build_host_exit_proof(
+        record,
+        invocation_identity=INV,
+        now="2026-10-08T00:10:00Z",
+    )
+    with pytest.raises(Exception, match="DISPATCH_COMPLETE rejected.*HOST_RETURN_SEAM_UNENFORCED"):
+        format_runtime_report_prefix(
+            _identity(record),
+            event="DISPATCH_COMPLETE",
+            execution_record=record,
+            host_exit_proof=proof,
+            now="2026-10-08T00:10:00Z",
+            host_surface_attestation=None,
+            surface_id="chatgpt-interactive",
+        )
+    prefix = format_runtime_report_prefix(
+        _identity(record),
+        event="DISPATCH_COMPLETE",
+        execution_record=record,
+        host_exit_proof=proof,
+        now="2026-10-08T00:10:00Z",
+        host_surface_attestation=_attestation(),
+        surface_id="chatgpt-interactive",
+    )
+    assert "工單：#1378" in prefix
