@@ -1,17 +1,87 @@
 {
-  "effect": {
-    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-  },
-  "expected_coord_head": "ccaa924b02bf7b0ba5047ad06294906a9f2a6399",
-  "expected_generation": 11,
+  "effect": {},
+  "expected_coord_head": "6cc5301028904bd37814fe8de80405bdca756cb3",
+  "expected_generation": 12,
   "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
   "issue": 1334,
-  "kind": "MERGE",
+  "kind": "SYNC_TARGET",
   "lane_id": "chatgpt.flowv2.work1",
-  "request_id": "issue1334-merge-1340-g11",
+  "preflight_evidence": {
+    "branch": "work/issue-1334",
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "completed_skills": [
+      "root-local-first",
+      "flow-v2-execution"
+    ],
+    "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
+    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+    "issue": 1334,
+    "observed_at": "2026-10-07T02:06:10Z",
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+    ],
+    "required_skills": [
+      "flow-v2-execution"
+    ],
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN"
+  },
+  "request_id": "issue1334-sync-target-g12",
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "session_reuse": {
-    "mode": "LIVE_LEASE_CONTINUATION",
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1"
+  "startup_evidence": {
+    "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Sync current production target into #1334 work branch and revalidate exact head\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。",
+    "execution_mode": "INTERACTIVE",
+    "expires_at": "2026-10-07T02:11:10Z",
+    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+    "issued_at": "2026-10-07T02:06:10Z",
+    "purpose": "Sync current production target into #1334 work branch and revalidate exact head",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
+    "work_root_gate": {
+      "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+      "drive_role": "MIRROR_BACKUP_ONLY",
+      "execution_mode": "INTERACTIVE",
+      "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+      "production_branch": "cleanup/2d-3d-sync",
+      "production_head_sha": "03cbe4538079baa606bb66db004c4c448ca78df0",
+      "provider": "executor_local_workspace",
+      "read_mode": "WORKSPACE_GIT_BASELINE",
+      "repository_content_write_unlocked": null,
+      "root_entries": [
+        ".agents",
+        ".git",
+        ".github",
+        "AGENTS.md",
+        "ae_engine",
+        "gui_modules",
+        "tests",
+        "tools"
+      ],
+      "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+      "scope": "REPOSITORY_CONTENT",
+      "shared_zero_required": false,
+      "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+      "status": "GREEN",
+      "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+      "workspace_root": "/workspace/whd-issue1334"
+    }
+  },
+  "startup_transition": {
+    "branch": "work/issue-1334",
+    "execution_mode": "INTERACTIVE",
+    "expires_at": "2026-10-07T02:11:10Z",
+    "head_sha": "4d3b474464de31d5d8caa25ee90eee9515ffb97e",
+    "invocation_identity": "chatgpt.issue1334.impl.6020470685.work1",
+    "issue": 1334,
+    "issued_at": "2026-10-07T02:06:10Z",
+    "preflight_observed_at": "2026-10-07T02:06:10Z",
+    "repository": "looaeedr/whd",
+    "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
+    "startup_issued_at": "2026-10-07T02:06:10Z",
+    "status": "READY_FOR_EXECUTION"
   }
 }
