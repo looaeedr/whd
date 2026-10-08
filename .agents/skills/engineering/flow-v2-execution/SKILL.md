@@ -702,9 +702,9 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 ### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
 
 
-Remote QA 是外部等待，但 active run 不能看到一次 `in_progress` 就無條件停止本 invocation。只要仍有合法可執行 `POLL_QA` 或其他 structured `next_action`，就持續輪詢並繼續執行；僅在沒有可消費 terminal result、沒有任何合法可執行 leaf 且 invocation-exit classifier 授權 genuine remote wait 時，才可 durable YIELD 並由下一個 invocation resume。對同一 `issue + run_id + head_sha`：
+Remote QA 是外部等待，但 active run 不能看到一次 `in_progress` 就無條件停止本 invocation。只要仍有合法可執行 `POLL_QA` 或其他 structured `next_action`，就持續輪詢並繼續執行；QA active 期間不得因等待而 YIELD 或離開；依 provider 合理 cadence 持續輪詢同一 run/head 直到 terminal。僅真正工具／權限／provider 故障依既有 fail-closed blocker gate 處理。對同一 `issue + run_id + head_sha`：
 
-1. `queued / in_progress / pending / waiting / requested` 都屬 active；依 provider 合理 cadence 讀 structured run/job/status。若 `POLL_QA` 仍可執行，classifier 回 `CONTINUE_REMOTE_QA_POLL`，不得因此 YIELD 或把「仍在跑」當完成；確實沒有可執行 leaf 時才按正式 classifier 進 remote-wait durable YIELD。
+1. `queued / in_progress / pending / waiting / requested` 都屬 active；依 provider 合理 cadence 讀 structured run/job/status。若 `POLL_QA` 仍可執行，classifier 回 `CONTINUE_REMOTE_QA_POLL`，不得因此 YIELD 或把「仍在跑」當完成；即使本次尚無 terminal result，也持續輪詢，不走 remote-wait YIELD；真實故障走既有 blocker gate。
 2. progress/status 回報只是 non-blocking checkpoint；回報後繼續同一 exact run 的輪詢。
 3. **第一次 terminal observation 是狀態讀取終點**：`completed/success` 立刻走 `CONSUME_QA / ACCEPT_QA`，terminal non-success 立刻走 `FAIL_QA`；不得再讀第二次相同 run/job/status。
 4. terminal 後若同一 invocation 再觀測同一 run，machine owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget` 必須 fail closed：`REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN`。
@@ -749,7 +749,7 @@ START_QA 綁 exact head；同 record/head只允許一個 active run。START_QA �
 3. sibling 已有 native ExecutionRecord 時不得覆寫或建立第二套 authority；只有 **OPEN + missing record** 才可建立 chain `RECOVER_POST_DELIVERY`。
 4. current DONE record 以 `chain.next_issue + chain.next_action=RECOVER_POST_DELIVERY` durable handoff；monitor 此時固定保持 `PROGRESS / LIVE`，不得先投影 `EXIT`。
 5. 同一 trusted invocation 必須立即 create-only recovery sibling，沿既有 post-delivery recovery proof驗 merged PR / required checks / ancestry，然後 FINALIZE；若下一張仍有 sibling，遞迴 drain。
-6. 只有 exact delivery PR 的全部 OPEN missing-record siblings 都已 terminal，最後一張 DONE 才可投影 `EXIT / ENDED`。
+6. exact delivery PR 的全部 OPEN missing-record siblings 結束後，還須先依 current ExecutionRecord chain.next_issue/next_action 接續；若沒有指定 successor，且 invocation 具有下一張派工權限，轉正式 READY discovery→ACQUIRE→next_action。僅在沒有合法可執行工單或 genuine blocker 時才可投影 `EXIT / ENDED`；不得以單張 RELEASED 作停止理由，也不可繞過新工單的獨立原子接取。
 7. 不得因 sibling drain 重做 implementation / QA，也不得把普通 open Issue 擴張成 authority；scope 僅限 **同一 exact merged PR 的 closing-keyword siblings**。
 8. fresh PR identity、merge anchor、required checks、Issue identity 或 ancestry 任何一項不能證明時固定 fail-closed；不得猜測 handoff。
 
