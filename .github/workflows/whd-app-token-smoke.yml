@@ -77,3 +77,22 @@ jobs:
           # Exact same SHA: tests permission without advancing the test branch.
           gh api -X PATCH "repos/$GH_REPO/git/refs/$ref" -f sha="$sha" -F force=false >/dev/null
           echo "APP_REF_PATCH_PERMISSION_GREEN"
+      - name: Verify App advances isolated test ref using actual commit
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="heads/test/flow-v2-app-token-smoke"
+          parent="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
+          base_tree="$(gh api "repos/$GH_REPO/git/commits/$parent" --jq '.tree.sha')"
+          blob="$(gh api -X POST "repos/$GH_REPO/git/blobs" -f content='GITHUB_APP_WRITE_CAPABILITY_TEST' -f encoding=utf-8 --jq '.sha')"
+          tree_payload="$(python -c 'import json,sys;print(json.dumps({"base_tree":sys.argv[1],"tree":[{"path":".dispatch/app-token-write-probe.txt","mode":"100644","type":"blob","sha":sys.argv[2]}]}))' "$base_tree" "$blob")"
+          tree="$(printf '%s' "$tree_payload" | gh api -X POST "repos/$GH_REPO/git/trees" --input - --jq '.sha')"
+          commit_payload="$(python -c 'import json,sys;print(json.dumps({"message":"test: isolated app write capability probe","tree":sys.argv[1],"parents":[sys.argv[2]]}))' "$tree" "$parent")"
+          commit="$(printf '%s' "$commit_payload" | gh api -X POST "repos/$GH_REPO/git/commits" --input - --jq '.sha')"
+          gh api -X PATCH "repos/$GH_REPO/git/refs/$ref" -f sha="$commit" -F force=false >/dev/null
+          observed="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
+          test "$observed" = "$commit"
+          echo "APP_REF_FORWARD_WRITE_GREEN"
