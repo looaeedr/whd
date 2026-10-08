@@ -267,6 +267,15 @@ Flow v2 `mutation_scope` / `RESERVE_PATHS` 是 **delivery-only coordination**，
 `RESERVE_PATHS / RELEASE_PATHS` 是 delivery coordination，不算 engineering progress；WORKSPACE_DEFAULT 不得在 tests GREEN + exact diff 以前 reservation。
 
 
+### ISSUE1431_NATIVE_WORK_AND_PR_ENTRY_GATE_V1
+
+- Issue-bound repository-content 作業以 coord/execution-v2/.dispatch/execution/issue-N.json 原生 ExecutionRecord 為唯一 claim/lease/owner authority；Phase6 GREEN、工單留言、PR body、README 及其他 preflight 不能充當 ACQUIRE。
+- 開始 executor-local workspace 施工前，先透過 tools/flow_v2_delivery_entry_gate.py::validate_work_entry 讀取 exact native record，核對 Issue、owner/lane、invocation、仍有效的 lease 及實際 production target SHA。所有 expected identity 必須來自受信任工作槽與真實 Git checkout，不能從請求任意宣告。
+- Issue-bound delivery PR 在 Governance Mirror Hard Gate 執行 tools/flow_v2_delivery_entry_gate.py；必須有 ACTIVE/VERIFYING/INTEGRATING 原生 record、對應 work_branch/head SHA、有效 lease、同 invocation 交易回執與 ACTIVE delivery reservation。missing/READY/owner mismatch/stale lease/fake comments 均 fail closed。非 Issue-bound 的產品 PR 保持原有檢查，不應被錯誤攔截。
+- root observation 不等於 content-write unlock。GitHub Runner checkout 必須產生實際 workspace path、git origin、root entries、HEAD，並核對 production ref；不得將 CONTROL_PLANE_ONLY 直接改名為 REPOSITORY_CONTENT。
+- 繼續依 CURRENT delivery-only sequence：ACQUIRE → workspace edit/test → GREEN + exact diff frozen → RESERVE_PATHS → START_BRANCH/APPLY_COMMIT → issue-bound PR/CI/QA/MERGE/FINALIZE。原生記錄 next_action=START_BRANCH 不會自動豁免 measured workspace tests、git write receipt 或 reservation。
+- 這套入場檢查是既有 coord 權責邊界上的唯讀驗證，不新增第二套可寫 lease、claim、generation、override 或補歷史。
+
 ### INVOCATION_ADMISSION_SESSION_V3
 
 
