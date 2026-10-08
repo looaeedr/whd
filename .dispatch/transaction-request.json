@@ -1,13 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1378-reviewfix-acquire-7",
+  "request_id": "issue1378-reviewfix-reserve_paths-8",
   "issue": 1378,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1378.reviewfix.20261008",
-  "expected_coord_head": "52896cc7107651e81f1eb20c5d10d5ef939863e7",
-  "expected_generation": 7,
-  "effect": {},
+  "expected_coord_head": "2954be02e5cd2e080c91d4403adbecc8a0375730",
+  "expected_generation": 8,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
+    "write_paths": [
+      "tests/process/test_issue1378_idempotent_readback_characterization.py"
+    ],
+    "delete_paths": [],
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "05b25429acfa45c2586e2fc1bfca2989df6632e86644dbd69256ee4e5b675926"
+      },
+      "display": "Deliver exact reviewed and tested T0 fence cases"
+    }
+  },
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
@@ -135,8 +149,8 @@
       "status": "GREEN"
     },
     "purpose": "Complete Issue1378 review correction and trusted terminal tail",
-    "issued_at": "2026-10-08T04:16:55Z",
-    "expires_at": "2026-10-08T04:21:55Z",
+    "issued_at": "2026-10-08T04:19:20Z",
+    "expires_at": "2026-10-08T04:24:20Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Complete Issue1378 review correction and trusted terminal tail\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
@@ -172,7 +186,7 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T04:16:55Z"
+    "observed_at": "2026-10-08T04:19:20Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -183,9 +197,9 @@
     "issue": 1378,
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-    "startup_issued_at": "2026-10-08T04:16:55Z",
-    "preflight_observed_at": "2026-10-08T04:16:55Z",
-    "issued_at": "2026-10-08T04:16:55Z",
-    "expires_at": "2026-10-08T04:21:55Z"
+    "startup_issued_at": "2026-10-08T04:19:20Z",
+    "preflight_observed_at": "2026-10-08T04:19:20Z",
+    "issued_at": "2026-10-08T04:19:20Z",
+    "expires_at": "2026-10-08T04:24:20Z"
   }
 }
