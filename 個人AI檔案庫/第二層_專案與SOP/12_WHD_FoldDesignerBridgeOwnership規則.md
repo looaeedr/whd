@@ -133,21 +133,27 @@ Shared-content 呈現細節仍由
 `個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md`
 擁有。
 
-### Part Editor
+### Part Editor / Part Session compatibility orchestration
 
-**Decision：C_KEEP_BRIDGE_COMPATIBILITY。**
+**CURRENT decision：APPLICATION_COMPATIBILITY_ORCHESTRATION_OWNER。**
 
-目前不建立 `phase6_part_editor_session.py`，也不把 `_fix11_activate_part` / save-load 路徑整塊 move-only 到新 class。
+Historical #448 / Phase 6 B1 的 `C_KEEP_BRIDGE_COMPATIBILITY` 仍保留為 provenance，但其中「`_fix11_activate_part` / save-load 路徑不得 move-only 到新 class」的 **location lock 已由 #1321 supersede**。#1321 已把 activation/save sequencing 抽到 `gui_modules/application/fold_designer_part_session.py::Phase6PartSessionOwner`；#1385 將這個既成事實正式收斂為 CURRENT authority wording。
 
-Bridge 可保留相容 orchestration，但必須遵守既有 canonical owner：
+`Phase6PartSessionOwner` 是 **application compatibility orchestration owner**，不是新的 Part Editor domain owner、workspace/navigation owner、project persistence owner、update scheduler owner、render owner 或 manufacturing owner。它只擁有既有 owner 間的 activation/save sequencing 與 compatibility effect ordering。
 
-- part/navigation identity 不得由 UI convenience 改寫；
-- project persistence 仍由 project/session owner 擁有；
-- update scheduling 仍由 command router / existing update owner 擁有；
-- render handoff 不得建立第二個 render authority；
-- multipart physical-child identity 仍由 topology/workspace/manufacturing authority 決定。
+CURRENT responsibility boundary：
 
-未來若要改成 A/B extraction，屬新的 ownership-boundary change，必須另有規格與工單 authority；不得把本輪 T9 writeback 當成預先授權。
+- Bridge 的 `_fix11_activate_part` / `_fix11_save_current_part` 只保留 narrow compatibility delegates；不得重新長回 deep activation/save bodies。
+- part/navigation identity 與 activation state mutation 仍由 `Phase6WorkspaceNavigationController` / `Phase6DesignerWorkspace` 擁有；Part Session owner 只能消費 plan/begin/finish/stash 等既有 seam。
+- project persistence payload / save-reload authority仍由 DesignerWorkspace / ProjectController 等既有 project/session owners 擁有；Part Session owner 不建立第二套 project state machine。
+- update scheduling仍由 `gui_modules/application/command_router.py` 既有 scheduler 擁有；Part Session owner只能提交 update intent。
+- render acquisition/presentation authority不因 sequencing owner 改變；不得建立第二個 render path。
+- multipart physical-child identity、manufacturing formula、Settings canonical mutation、geometry/DXF truth 都不屬於 Part Session owner。
+- `phase6_part_editor_session.py` 仍不得以「新的 Part Editor domain/session owner」名義出現；若未來要建立新的 domain owner，必須重新走 deletion-test / authority writeback。
+
+因此 CURRENT 唯一解釋是：
+
+> `Phase6PartSessionOwner` owns application-level compatibility orchestration for part activation/save sequencing; existing domain/state/persistence/scheduler/render owners remain authoritative.
 
 ## `_fix11_init` lifecycle boundary
 
@@ -217,7 +223,7 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 - Settings presentation owner：#445；
 - Registry diagnostics presentation owner：#446；
 - Workspace shell historical `NO_EXTRACTION`：#447（**SUPERSEDED_BY_PHASE6_V1_4**；CURRENT deep shell owner 由 #527 定義）；
-- Part Editor C_KEEP_BRIDGE_COMPATIBILITY：#448（Phase 6 B1 / #526 Deletion-Test 重新驗證後維持 KEEP）；
+- Part Editor historical C_KEEP_BRIDGE_COMPATIBILITY：#448 / #526；其 domain-authority invariants仍有效，但 activation/save body 的 location lock 已由 #1321 supersede，CURRENT application compatibility orchestration owner由 #1385 定義；
 - `_fix11_init` bootstrap-only：#449；
 - Combined invariant acceptance：#450。
 
@@ -264,7 +270,7 @@ CURRENT pure planning owner：`phase6_settings_profile_projection.py`。
 
 Phase 4 / #448 的 `C_KEEP_BRIDGE_COMPATIBILITY` 與 Linked Endcap `KEEP_COMPATIBILITY` 仍受保護。
 
-- `_fix11_save_current_part` / `_fix11_activate_part` 可保留 compatibility orchestration，但 canonical Settings mutation 必須走既有 Settings coordinator/controller seam。
+- `_fix11_save_current_part` / `_fix11_activate_part` 的 Bridge surface只保留 narrow delegates；實際 activation/save compatibility orchestration 由 `Phase6PartSessionOwner` 擁有，但 canonical Settings mutation 必須走既有 Settings coordinator/controller seam。
 - editor-value save 只提交實際 changed Settings delta；no-op 不得產生 host notification。
 - FW explicit operator takeover 仍由既有 EndCap/FW semantic owner決定；linked Head/Tail refresh 只能經 narrow compatibility port 觸發。
 - 不建立 `phase6_part_editor_session.py`，也不把 Part Editor compatibility 誤升格成新的 domain owner。
@@ -319,7 +325,7 @@ Accepted C1 provenance: owning Issue #533, tested HEAD `09e19c06cffcee6521483eb8
 
 The following decisions are CURRENT ownership-routing evidence after Phase 6 v1.4 reconsideration:
 
-- **B1 / #526 Part Editor**：Deletion-Test revalidated `B1_KEEP_COMPATIBILITY`; no new Part Editor domain/session owner was created.
+- **B1 / #526 Part Editor**：Deletion-Test revalidated「不建立新的 Part Editor domain owner」；#1321 後續建立的 `Phase6PartSessionOwner` 僅是 application compatibility orchestration owner，不推翻 navigation/persistence/scheduler/render/domain authority；#1385 將此 supersession 正式寫回 CURRENT contract。
 - **B2 / #527 Workspace Shell**：historical #447 `NO_EXTRACTION` is `SUPERSEDED_BY_PHASE6_V1_4`; CURRENT deep presentation owner is `phase6_workspace_shell.py::WorkspaceShellOwner`.
 - **B3 / #528 Settings exact-six**：revalidated `KEEP_CURRENT_BOUNDARY`; existing Settings presentation/application/pure-planning owners remain authoritative.
 - **B4 / #529 Linked Endcap**：revalidated `KEEP_COMPATIBILITY`; derivation remains in Fold Profiles and compatibility effects remain bounded.
