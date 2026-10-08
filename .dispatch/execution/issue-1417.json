@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "74deb50272f5879c5c1f16c240545ed57c3bf0ce",
-    "released_at": null
+    "released_at": "2026-10-08T11:39:27Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "258a7d091ea267ad96a061bca5b3a682cf9e1a59",
   "issue": 1417,
-  "lane_id": "chatgpt.flowv2.work3",
-  "lease": {
-    "expires_at": "2026-10-08T11:52:46Z",
-    "invocation_identity": "chatgpt.issue1417.postdelivery.recovery",
-    "token": "recovery:1417:37771177672"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1423,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work3",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.3",
   "source_branch": "work/issue-1417-qa-poll-no-yield",
   "source_sha": "258a7d091ea267ad96a061bca5b3a682cf9e1a59",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
-  "transaction": null,
-  "updated_at": "2026-10-08T11:37:46Z",
+  "transaction": {
+    "expected_fingerprint": "de2a23c5f6bc6d3960141307da63b590717c330645b42d3cd71c8db00f23423d",
+    "id": "gha:37771177672:1417:FINALIZE:1",
+    "invocation_identity": "chatgpt.issue1417.postdelivery.recovery",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T11:38:55Z",
   "version": 2,
   "work_branch": "work/issue-1417-qa-poll-no-yield"
 }
