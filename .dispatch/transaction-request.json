@@ -1,33 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-start-branch-authentic-runner-receipt-20261008-v1",
+  "request_id": "issue1433-apply-commit-zero-tree-delta-20261008-v1",
   "issue": 1433,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "3e19861bf8234d2b7b8d6b9f6100007cf5758b3e",
-  "expected_generation": 7,
+  "expected_coord_head": "7cbcf92bb9931e0471e11e2ef62840c060a1eb7d",
+  "expected_generation": 8,
   "effect": {
-    "work_branch": "work/issue-1433-native-ready-slot-repair",
-    "head_sha": "35d1b19aef44a564fe6e3a6b313b18ed26c2ade8",
+    "head_sha": "c06d3a6aa50694ea1278b41ece4bf26a1deda92f",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "74fece51d0752eab2064272958ec8c1811a7a4b08552f6ba919fe930b1f79edb"
+        "pr_number": 1436
       },
-      "display": "Apply verified exact GitHub Runner tested seven-file candidate"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1433,
-      "generation": 7,
-      "record_fingerprint": "2527dfe5023b2eb0729e0cfa38d477c86ae5e9c309cc86104bff34bed85bded2",
-      "lease_token": "lease:1433:37796547674:1",
-      "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-      "expected_next_action": "START_BRANCH",
-      "expected_work_branch": "work/issue-1433-native-ready-slot-repair",
-      "expected_work_head": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-      "expected_target_head": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd"
+      "display": "Start exact-head GitHub QA for verified #1436 candidate"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -50,6 +37,18 @@
       "record_fingerprint": "b1fccf8ff6f790d3e4f9bbfb50cec7b78f1843a17057a90fd67843af7133d021",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1433,
+      "generation": 8,
+      "record_fingerprint": "6f9a21307dc1bb6ef9fdd8e395e8c6acd1873d4729b7259b29e18c5cb1862503",
+      "lease_token": "lease:1433:37796547674:1",
+      "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
+      "expected_next_action": "APPLY_COMMIT",
+      "expected_work_branch": "work/issue-1433-native-ready-slot-repair",
+      "expected_work_head": "35d1b19aef44a564fe6e3a6b313b18ed26c2ade8",
+      "expected_target_head": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd"
     }
   },
   "reuse_admission_session": true
