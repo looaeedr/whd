@@ -709,6 +709,10 @@ Remote QA 是外部等待，但 active run 不能看到一次 `in_progress` 就�
 3. **第一次 terminal observation 是狀態讀取終點**：`completed/success` 立刻走 `CONSUME_QA / ACCEPT_QA`，terminal non-success 立刻走 `FAIL_QA`；不得再讀第二次相同 run/job/status。
 4. terminal 後若同一 invocation 再觀測同一 run，machine owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget` 必須 fail closed：`REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN`。
 5. active polling 只讀結構化狀態；長 log 仍依 `long-log-context-safe-execution` 使用 bounded slice，不得每輪重抓整包 log。
+6. 同一 `issue + run_id + head_sha` 的 `queued / pending / in_progress` 預設只輪詢既有 Run，不重複 `START_QA`、dispatch 或重跑測試；輪詢間隔採 provider 合理 cadence，禁止 busy-loop。
+7. terminal GREEN 立即 `CONSUME_QA / ACCEPT_QA` 並繼續 MERGE、Issue close/readback、FINALIZE、RELEASED，之後按已授權 chain successor / READY discovery 續下一張。
+8. terminal FAIL 必須 `FAIL_QA`，保留失敗證據、修復同一工作分支並對新 exact tested HEAD 重測；不得沿用失敗 run 冒充 GREEN。
+9. 真正的連線故障、權限拒絕、provider 失效或 host 強制中斷，只能依既有 fail-closed / resume 記錄真實 blocker；禁止標為 QA terminal 或任務完成。
 
 
 <!-- REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1 -->
