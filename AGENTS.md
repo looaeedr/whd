@@ -108,7 +108,7 @@ Drive mount、Drive mirror、舊 pointer、`.unpushed` 缺失都不是 blocker�
 2. Skill 名稱使用 active canonical identity，中文 Skill 直接使用 canonical 中文 `name`；不得用 retired alias 或自創簡稱冒充。
 3. 只有實際要使用 Skill 時才公告；沒有使用 Skill 的回合不得為了形式虛報。
 4. 若本回合開始時已知會使用多個 Skill，必須在第一行全部列出。若因後續 evidence / scope expansion 才新增一個事前無法知道的 Skill，必須在**第一次實際使用該新增 Skill 之前**另行輸出 `追加使用「<技能名>」技能…`。
-5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、checkpoint、tests 或該 Skill 自己要求的其他證據。
+5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、領域 evidence、tests 或該 Skill 自己要求的其他證據；不得以 execution checkpoint/journal 當額外 gate。
 6. 不得先完成實質工作，再用「使用某 Skill」補述並宣稱符合本 gate；公告順序錯誤即屬本回合流程違規。
 
 > **這是所有 AI / Agent / Subagent 接手本專案後的第一個 startup communication 規則；chat 與 headless 只差輸出 surface，不得因沒有 chat UI 停工。優先級高於本文後續章節。**
@@ -979,7 +979,23 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 
 ---
 
-## 0.0.2 2026-09-06 事故硬閘門：Remote Source of Truth、Exact Seam、真派工、Harness 分類
+### 0.0.4 Authoritative View freshness 硬閘門
+
+> **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
+
+凡 Main GUI / Fold Designer / 2D / 3D 共用 authoritative state 的同步或入口收斂任務，必須同時驗證資料同源與可見 View freshness：
+
+1. authoritative mutation / external sync 必須先完成 commit/apply/invalidate，再由 View 重新讀 authoritative projection / render data。
+2. 若 `corner_data` / 截角資料 View 當下可見，每個新的 authoritative revision 套用成功後**剛好刷新一次**。
+3. hidden View 不得 eager refresh；replayed / stale revision 必須 no-op，不得重刷。
+4. repeated authoritative revisions 必須維持「一個 commit 對應一次 visible refresh」，不得漏刷或雙刷。
+5. 禁止 widget-to-widget 抄值作同步；View refresh / destroy / recreate 不得寫回 manufacturing state、available parts、CornerType、Fold Profile、holes/features 或 persistence payload。
+6. 驗 dual-view parity 不得只比 Final Material / DXF / Save→Reload；還必須有 visible refresh、hidden no-refresh、replayed revision no-op、repeated revisions、View recreate zero-mutation 的證據。
+7. 發現「資料正確但畫面仍舊」時，先查 authoritative commit → invalidate/apply → visible View refresh orchestration，不得另建第二套 geometry/state 當 workaround。
+
+
+
+## 0.0.5 2026-09-06 事故硬閘門：Remote Source of Truth、Exact Seam、真派工、Harness 分類
 
 > 本節來自 2026-09-06 Receiving 工單事故。屬永久 fail-closed 規則；優先級與 0.0.1 派工硬閘門相同。後續 AI 每次讀 AGENTS.md 都必須看到並遵守。
 
@@ -1076,21 +1092,6 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - target drift 命中 touched paths 時必須 refresh/reconcile workspace、重測，再更新 delivery candidate。
 - Drive/shared-zero 不再有 CURRENT delivery route；`/推推` 只可作已測 exact diff 的顯式 delivery alias，不得把施工流程導回 Drive。
 - remote scheduler/control-plane scope 依 Flow v2 自己 authority，不得拿普通 workspace baseline read 擴張 control-plane mutation。
-### 0.0.4 Authoritative View freshness 硬閘門
-
-> **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
-
-凡 Main GUI / Fold Designer / 2D / 3D 共用 authoritative state 的同步或入口收斂任務，必須同時驗證資料同源與可見 View freshness：
-
-1. authoritative mutation / external sync 必須先完成 commit/apply/invalidate，再由 View 重新讀 authoritative projection / render data。
-2. 若 `corner_data` / 截角資料 View 當下可見，每個新的 authoritative revision 套用成功後**剛好刷新一次**。
-3. hidden View 不得 eager refresh；replayed / stale revision 必須 no-op，不得重刷。
-4. repeated authoritative revisions 必須維持「一個 commit 對應一次 visible refresh」，不得漏刷或雙刷。
-5. 禁止 widget-to-widget 抄值作同步；View refresh / destroy / recreate 不得寫回 manufacturing state、available parts、CornerType、Fold Profile、holes/features 或 persistence payload。
-6. 驗 dual-view parity 不得只比 Final Material / DXF / Save→Reload；還必須有 visible refresh、hidden no-refresh、replayed revision no-op、repeated revisions、View recreate zero-mutation 的證據。
-7. 發現「資料正確但畫面仍舊」時，先查 authoritative commit → invalidate/apply → visible View refresh orchestration，不得另建第二套 geometry/state 當 workaround。
-
-
 ### ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE
 
 退役 UI 入口時，先切斷「使用者可達入口 / navigation authority / identity authority」，不得因名稱看似 legacy 就盲刪仍被新入口共用的 renderer/helper/callback state。若暫留 compatibility state，必須 user-unreachable、non-navigation、non-manufacturing-authority，並以 runtime navigation + capability preservation 驗收。
