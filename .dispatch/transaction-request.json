@@ -1,88 +1,53 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1383-reserve-tested-c1-20261008",
+  "request_id": "issue1383-start-branch-verified-tree-20261008",
   "issue": 1383,
-  "kind": "RESERVE_PATHS",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-  "expected_coord_head": "05dff661bb13b2fa78e1929a631fd54bc038bd3d",
-  "expected_generation": 2,
+  "expected_coord_head": "f53c29422ab2b941ea6c2e4518ab358100b1dc71",
+  "expected_generation": 3,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-    "write_paths": [
-      "ae_engine/assembly_marking_geometry.py",
-      "ae_engine/receiving_joint_marking.py",
-      "ae_engine/receiving_pairing_marking.py",
-      "tests/test_issue1383_dm8_c1_neutral_geometry.py"
-    ],
-    "delete_paths": [],
+    "work_branch": "work/issue-1383",
+    "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "diff_digest": "2edfaf35d9829eabbd6d9c6e10327802b4ae6d1403d907dad835f002648dbc96"
+        "candidate_commit_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b"
       },
-      "display": "Start exact tested delivery branch from production X"
+      "display": "Apply exact verified tested DM8-C1 commit"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+      "diff_digest": "2edfaf35d9829eabbd6d9c6e10327802b4ae6d1403d907dad835f002648dbc96",
+      "issue": 1383,
+      "generation": 3,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "ae_engine/assembly_marking_geometry.py",
+        "ae_engine/receiving_joint_marking.py",
+        "ae_engine/receiving_pairing_marking.py",
+        "tests/test_issue1383_dm8_c1_neutral_geometry.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "8e526733cec60c457ea921db01c1ebb3cf5c9a36174916ea7df41e63205d35e5",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1383,
+      "generation": 3,
+      "record_fingerprint": "8e526733cec60c457ea921db01c1ebb3cf5c9a36174916ea7df41e63205d35e5",
+      "lease_token": "lease:1383:37762792792:1",
+      "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "work/issue-1383",
+      "expected_work_head": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+      "expected_target_head": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf"
     }
   },
-  "purpose": "Reserve exact four already tested neutral geometry C1 file paths in native Flow v2; preserve tested diff identity and no concurrent writer.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "REPOSITORY_CONTENT",
-    "read_mode": "WORKSPACE_GIT_BASELINE",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "executor_local_workspace",
-    "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
-    "workspace_root": "/mnt/data/whd1383-workspace",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": null,
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1383,
-    "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-    "required_skills": [
-      "root-local-first",
-      "phase6-corner-3d-model-integrity"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "phase6-corner-3d-model-integrity"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "基準檔/截角資料庫/README_母規則說明.md",
-      "基準檔/截角資料庫/certified_relief_rules.json",
-      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
-    ],
-    "observed_at": "2026-10-08T10:22:17Z"
-  }
+  "reuse_admission_session": true
 }
