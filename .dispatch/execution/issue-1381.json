@@ -1,10 +1,6 @@
 {
   "active_run": null,
-  "blocker": {
-    "evidence": "GitHub canonical DISPATCH_READY + ACQUIRE have succeeded for Issue #1381 on worker.slot.1. This interactive /派工 runtime has GitHub control-plane transport but no verified writable/testable executor-local WHD repository workspace. /派工 prohibits substituting RC or the user's local shell. Exact next_action START_BRANCH cannot lawfully proceed without source edit + focused tests GREEN + exact diff in a verified workspace; untested GitHub hotfix and owner=NONE handoff forbidden. Resume exact Issue #1381 in a real workspace-capable runtime, fresh-read current record/lease and continue workspace edit/test -> tested delivery; no fabricated dispatch completion.",
-    "kind": "MISSING_CAPABILITY",
-    "recheck_after": null
-  },
+  "blocker": null,
   "chain": {
     "next_action": null,
     "next_issue": null,
@@ -16,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
   "issue": 1381,
   "lane_id": "chatgpt.flowv2.work1",
@@ -27,11 +23,9 @@
   },
   "mutation_scope": null,
   "next_action": {
-    "args": {
-      "blocker_kind": "MISSING_CAPABILITY"
-    },
-    "display": "等待有可寫可測 WHD workspace 的執行環境",
-    "kind": "WAIT_EXTERNAL"
+    "args": {},
+    "display": "Deliver tested Issue1381 no-replay hardening",
+    "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -49,21 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "BLOCKED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
-  "state": "BLOCKED",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+  "target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
   "transaction": {
-    "expected_fingerprint": "511c0a43f2e7ed7b10c0320b4face0ba55d1950d796fe361bf798c765db71f50",
-    "id": "gha:37735062503:1381:BLOCK:2",
-    "invocation_identity": "chatgpt.issue1381.dispatch.20261008.work1",
-    "kind": "BLOCK",
+    "expected_fingerprint": "3de77b90ba2f09116ec15efc8e051bc324a549a2dc694af5df49b9502cbffd4e",
+    "id": "gha:37746522463:1381:RECONCILE:3",
+    "invocation_identity": "chatgpt.issue1381.takeover.20261008",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T05:58:58Z",
+  "updated_at": "2026-10-08T07:57:16Z",
   "version": 2,
   "work_branch": "work/issue-1381"
 }
