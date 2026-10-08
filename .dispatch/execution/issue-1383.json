@@ -12,19 +12,23 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
   "issue": 1383,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": {
+    "expires_at": "2026-10-08T10:36:17Z",
+    "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
+    "token": "lease:1383:37762792792:1"
+  },
   "mutation_scope": null,
   "next_action": {
     "args": {},
-    "display": "Acquire Issue #1383",
-    "kind": "ACQUIRE"
+    "display": "Deliver tested DM8-C1 Issue #1383 exact diff as isolated PR",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -39,15 +43,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-  "transaction": null,
-  "updated_at": "2026-10-08T10:18:42Z",
+  "transaction": {
+    "expected_fingerprint": "e07792e56df7567fd226296dcc134a95e29ffa9f3c745721ad364bfdaa90b3df",
+    "id": "gha:37762792792:1383:ACQUIRE:1",
+    "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T10:21:17Z",
   "version": 2,
   "work_branch": "work/issue-1383"
 }
