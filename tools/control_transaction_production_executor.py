@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -44,12 +45,14 @@ from tools.control_transaction import (
     POST_DELIVERY_RECOVERY_PROOF_SCHEMA,
     is_post_delivery_recovery_finalize_record,
 )
+from tools.flow_v2_pre_merge_recovery import build_pre_merge_recovery_ready_record
 from tools.execution_dispatch_ingress import (
     DispatchIngressError,
     DispatchIngressRequest,
     plan_dispatch_ingress,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
+from tools.execution_work_slot_view import FIXED_SLOT_IDS
 from tools.execution_invocation_exit import (
     InvocationExitError,
     assert_active_owning_issue_sticky,
@@ -1587,6 +1590,134 @@ def _write_state(
 
 
 
+def assert_unique_ready_slot_candidate(records: dict[int, ExecutionRecord], candidate: ExecutionRecord) -> None:
+    """Reject the candidate's occupied slot, not unrelated pre-existing debt.
+
+    Legacy duplicate records may exist on a different slot. The atomic writer
+    must still prevent a *new* collision while allowing other EMPTY lanes to
+    make progress. Never infer that any existing duplicate was repaired.
+    """
+    if candidate.slot_id is None:
+        return
+    if candidate.slot_id not in FIXED_SLOT_IDS:
+        raise ProductionExecutorError("DISPATCH_READY_SLOT_COLLISION: candidate has unknown fixed slot")
+    for existing in records.values():
+        if not isinstance(existing, ExecutionRecord):
+            raise ProductionExecutorError("DISPATCH_READY requires native ExecutionRecords")
+        if existing.state != "DONE" and existing.slot_id == candidate.slot_id:
+            raise ProductionExecutorError(
+                f"DISPATCH_READY_SLOT_COLLISION: slot {candidate.slot_id} belongs to "
+                f"Issue #{existing.issue}; requested Issue #{candidate.issue}"
+            )
+
+
+def plan_ready_slot_repair(
+    records: dict[int, ExecutionRecord], *,
+    authority_issue: int, expected_authority_generation: int,
+    target_issue: int, expected_target_generation: int,
+    expected_old_slot_id: str, new_slot_id: str,
+    lane_id: str, invocation_identity: str,
+    observed_at: datetime | None = None,
+) -> ExecutionRecord:
+    """Pure repair; never fabricate ACQUIRE, lease, owner, QA or work-head history."""
+    current = observed_at or _now()
+    if current.tzinfo is None or current.utcoffset() is None:
+        raise ProductionExecutorError("REPAIR_READY_SLOT clock must be timezone-aware")
+    current = current.astimezone(timezone.utc)
+    if authority_issue == target_issue:
+        raise ProductionExecutorError("REPAIR_READY_SLOT authority cannot repair itself")
+    if (expected_old_slot_id not in FIXED_SLOT_IDS or new_slot_id not in FIXED_SLOT_IDS
+            or expected_old_slot_id == new_slot_id):
+        raise ProductionExecutorError("REPAIR_READY_SLOT requires distinct fixed work slots")
+    authority, target = records.get(authority_issue), records.get(target_issue)
+    if authority is None or target is None:
+        raise ProductionExecutorError("REPAIR_READY_SLOT requires existing native records")
+    if authority.generation != expected_authority_generation:
+        raise ProductionExecutorError("REPAIR_READY_SLOT authority generation drift")
+    if (authority.state != "ACTIVE" or authority.owner_id != lane_id
+            or authority.lane_id != lane_id or authority.lease is None
+            or authority.lease.invocation_identity != invocation_identity):
+        raise ProductionExecutorError("REPAIR_READY_SLOT requires owning ACTIVE lease")
+    expires = datetime.fromisoformat(authority.lease.expires_at.replace("Z", "+00:00"))
+    if expires <= current:
+        raise ProductionExecutorError("REPAIR_READY_SLOT authority lease expired")
+    if (target.state != "READY" or target.generation != expected_target_generation
+            or target.slot_id != expected_old_slot_id or target.owner_kind != "UNCLAIMED"
+            or target.owner_id != "NONE" or target.lane_id is not None
+            or target.lease is not None or target.active_run is not None
+            or target.transaction is not None or target.mutation_scope is not None
+            or target.next_action is None or target.next_action.kind != "ACQUIRE"
+            or target.qa.last_accepted_run is not None or target.qa.accepted_head_sha is not None):
+        raise ProductionExecutorError("REPAIR_READY_SLOT target must be exact unclaimed READY")
+    if any(
+        number != target_issue and rec.state != "DONE" and rec.slot_id == new_slot_id
+        for number, rec in records.items()
+    ):
+        raise ProductionExecutorError("REPAIR_READY_SLOT destination slot occupied")
+    audit = {
+        "kind": "READY_SLOT_REPAIR", "authority_issue": authority_issue,
+        "from_slot_id": expected_old_slot_id, "to_slot_id": new_slot_id,
+        "observed_at": _iso(current),
+    }
+    return replace(
+        target, slot_id=new_slot_id, generation=target.generation + 1,
+        updated_at=_iso(current), recovery_history=(*target.recovery_history, audit),
+    )
+
+
+def repair_ready_slot(
+    *, repo: str, token: str, coord_branch: str,
+    authority_issue: int, expected_authority_generation: int,
+    target_issue: int, expected_target_generation: int,
+    expected_old_slot_id: str, new_slot_id: str,
+    lane_id: str, invocation_identity: str, expected_coord_head: str,
+) -> dict[str, object]:
+    """Atomic native CAS writer; slot repair never claims the repaired Issue."""
+    parent, tree, records = _load_state(repo, token, coord_branch)
+    if parent != expected_coord_head:
+        raise ControlTransactionConflict(
+            f"coord head drift: expected {expected_coord_head}, observed {parent}"
+        )
+    for attempt in range(5):
+        updated = plan_ready_slot_repair(
+            records, authority_issue=authority_issue,
+            expected_authority_generation=expected_authority_generation,
+            target_issue=target_issue, expected_target_generation=expected_target_generation,
+            expected_old_slot_id=expected_old_slot_id, new_slot_id=new_slot_id,
+            lane_id=lane_id, invocation_identity=invocation_identity,
+        )
+        candidates = dict(records)
+        candidates[target_issue] = updated
+        try:
+            commit_sha, blob_sha = _write_state(
+                repo, token, coord_branch, parent_sha=parent,
+                base_tree_sha=tree, records=candidates, issue=target_issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            if not str(exc).startswith("coord/execution-v2 ref advanced during transaction") or attempt == 4:
+                raise
+            parent, tree, records = _load_state(repo, token, coord_branch)
+            if (records.get(target_issue) is None
+                    or records[target_issue].generation != expected_target_generation
+                    or records.get(authority_issue) is None
+                    or records[authority_issue].generation != expected_authority_generation):
+                raise ControlTransactionConflict("REPAIR_READY_SLOT exact native record drift") from exc
+    _, _, latest = _load_state(repo, token, coord_branch)
+    readback = latest.get(target_issue)
+    if readback is None or execution_record_fingerprint(readback) != execution_record_fingerprint(updated):
+        raise ProductionExecutorError("REPAIR_READY_SLOT post-write record fingerprint mismatch")
+    return {
+        "schema": RESULT_SCHEMA, "result": "APPLIED", "kind": "REPAIR_READY_SLOT",
+        "issue": target_issue, "authority_issue": authority_issue,
+        "coord_commit_sha": commit_sha, "record_blob_sha": blob_sha,
+        "post_generation": readback.generation, "post_state": readback.state,
+        "post_next_action": readback.next_action.kind if readback.next_action else None,
+        "post_slot_id": readback.slot_id,
+        "post_record_fingerprint": execution_record_fingerprint(readback),
+    }
+
+
 def dispatch_ready_missing_record(
     *,
     repo: str,
@@ -1638,6 +1769,7 @@ def dispatch_ready_missing_record(
             raise ControlTransactionConflict(
                 f"DISPATCH_READY same-Issue record appeared during bootstrap: {issue}"
             )
+        assert_unique_ready_slot_candidate(records, record)
         candidate_records = dict(records)
         candidate_records[issue] = record
         try:
@@ -1690,6 +1822,117 @@ def dispatch_ready_missing_record(
         "runtime_observation_status": "NOT_APPLICABLE_UNCLAIMED_READY",
     }
 
+
+
+def recover_pre_merge_missing_record(
+    *,
+    repo: str, token: str, coord_branch: str,
+    issue: int, lane_id: str, invocation_identity: str,
+    expected_coord_head: str, supplied_effect: dict[str, object],
+) -> dict[str, object]:
+    """Create-only pre-merge READY from trusted live PR; no historical ACQUIRE.
+
+    Not a recovery owner or merger. The real owner ACQUIRE/QA/MERGE/FINALIZE
+    transactions are still mandatory. Same-Issue races fail closed.
+    """
+    parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+    if parent_sha != expected_coord_head:
+        raise ControlTransactionConflict(
+            f"coord head drift: expected {expected_coord_head}, observed {parent_sha}"
+        )
+    if issue in records:
+        raise ControlTransactionConflict(
+            f"RECOVER_PRE_MERGE requires missing record; issue {issue} exists"
+        )
+    permitted_fields = {
+        "authority_kind", "authority_ref", "pr_number",
+        "expected_pr_head_sha", "expected_target_sha",
+    }
+    unexpected = set(supplied_effect) - permitted_fields
+    if unexpected:
+        raise ProductionExecutorError(
+            "RECOVER_PRE_MERGE cannot import owner, QA or historical state: "
+            + ",".join(sorted(unexpected))
+        )
+    if supplied_effect.get("authority_kind") != "USER_EXPLICIT" or not str(
+        supplied_effect.get("authority_ref") or ""
+    ).strip():
+        raise ProductionExecutorError(
+            "RECOVER_PRE_MERGE requires user-explicit authority reference"
+        )
+    pr_number = supplied_effect.get("pr_number")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        raise ProductionExecutorError("RECOVER_PRE_MERGE requires exact pr_number")
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    owning = _api(repo, "GET", f"/issues/{issue}", token) or {}
+    target = _read_branch_head(repo, token, "cleanup/2d-3d-sync")
+    checks = list(_required_checks_for_target(repo, token, "cleanup/2d-3d-sync"))
+    conclusions = _check_conclusions_for_head(
+        repo, token, str((pr.get("head") or {}).get("sha") or "")
+    )
+    try:
+        record = build_pre_merge_recovery_ready_record(
+            repository=repo, issue=issue,
+            pr_number=pr_number,
+            lane_id=lane_id,
+            slot_id=_slot_for_lane(lane_id),
+            issue_readback=owning,
+            pr_readback=pr,
+            observed_target_sha=target,
+            required_checks=checks,
+            check_conclusions=conclusions,
+            expected_pr_head_sha=str(supplied_effect.get("expected_pr_head_sha") or ""),
+            expected_target_sha=str(supplied_effect.get("expected_target_sha") or ""),
+            pr_closes_issue=_pr_body_closes_issue(pr.get("body"), issue),
+            observed_at=_iso(_now()),
+        )
+    except (ValueError, ExecutionRecordError) as exc:
+        raise ProductionExecutorError(str(exc)) from exc
+
+    last_conflict: ControlTransactionConflict | None = None
+    for attempt in range(1, 6):
+        if issue in records:
+            raise ControlTransactionConflict(
+                "RECOVER_PRE_MERGE same-Issue record appeared during bootstrap"
+            )
+        candidate_records = dict(records)
+        candidate_records[issue] = record
+        try:
+            commit_sha, blob_sha = _write_state(
+                repo, token, coord_branch, parent_sha=parent_sha,
+                base_tree_sha=tree_sha, records=candidate_records, issue=issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            last_conflict = exc
+            if not str(exc).startswith(
+                "coord/execution-v2 ref advanced during transaction"
+            ) or attempt >= 5:
+                raise
+            parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+            if issue in records:
+                raise ControlTransactionConflict(
+                    "RECOVER_PRE_MERGE same-Issue record appeared during coord retry"
+                ) from exc
+    else:  # pragma: no cover
+        assert last_conflict is not None
+        raise last_conflict
+
+    _, _, fresh_records = _load_state(repo, token, coord_branch)
+    fresh = fresh_records.get(issue)
+    if fresh is None or execution_record_fingerprint(fresh) != execution_record_fingerprint(record):
+        raise ProductionExecutorError("RECOVER_PRE_MERGE post-write readback mismatch")
+    return {
+        "schema": RESULT_SCHEMA, "result": "APPLIED",
+        "issue": issue, "kind": "RECOVER_PRE_MERGE",
+        "coord_commit_sha": commit_sha, "record_blob_sha": blob_sha,
+        "post_generation": fresh.generation,
+        "post_record_fingerprint": execution_record_fingerprint(fresh),
+        "post_state": fresh.state,
+        "post_next_action": fresh.next_action.kind if fresh.next_action else None,
+        "lease_invocation_identity": None,
+        "runtime_observation_status": "NOT_APPLICABLE_UNCLAIMED_READY",
+    }
 
 
 def recover_post_delivery_missing_record(

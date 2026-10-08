@@ -73,6 +73,18 @@ Machine enforcement owner=`tools/control_transaction.py` / `tools/execution_invo
 
 
 
+### MISSING_EXECUTION_RECORD_PRE_MERGE_RECOVERY_V1 — 先領工單，已交付漏領只能 create-only 接入
+
+正常路徑的 **native READY → ACQUIRE → owning Issue 留言** 必須在任何 substantive repository-content mutation／PR 前完成；Phase6 Preflight 和 PR CI SUCCESS 都不能充當接取紀錄。這是**前置硬閘門**，不是事後補一個假的 ACQUIRE。
+
+若 exact Issue 的 ExecutionRecord **不存在**，但同 Issue 已有 **OPEN、尚未合併且有全套 required GREEN** 的現成 delivery PR，禁止直接 MERGE 或重做已完成的實作。固定走 trusted `RECOVER_PRE_MERGE`：
+1. Trusted ingress fresh-read Issue/PR/production HEAD/PR HEAD/required checks，檢查同 repo／exact closing keyword／mergeable／source branch、target SHA 及原始 user-exact Issue authority。
+2. 透過 `coord/execution-v2` create-only + expected coord SHA CAS 新增 **gen1 READY / UNCLAIMED / no lease / no QA** 的紀錄；proof 僅標當下可信證據，明示 **未重建過去 ACQUIRE/QA**。已有 native record 直接走原正常流程，不能覆寫。
+3. 綁定 `ACQUIRE.post_acquire=START_QA` 及 exact 原 PR；真正 native ACQUIRE 成功後立即擷取 GitHub server Issue 留言時鐘，按 10 分鐘規則繼續。以前的 GREEN run 只能**在當下重新驗證** workflow/HEAD/complete/success 後走 native `CONSUME_QA`，若不合規就重新 START_QA。
+4. 之後仍走正常 `MERGE → FINALIZE → Issue close/readback → DONE`。前置補救 transaction 不是完成或合併授權。
+
+CURRENT 實作：`tools/flow_v2_pre_merge_recovery.py`、`tools/control_transaction_production_executor.py::recover_pre_merge_missing_record`、`tools/control_transaction_request_ingress.py`；參考文件 `docs/governance/flow_v2_pre_merge_recovery.md`。已合併的漏 record 才適用下面的 `RECOVER_POST_DELIVERY`，兩者互斥。
+
 ### MISSING_EXECUTION_RECORD_POST_DELIVERY_RECOVERY_V1 — 已交付不得因缺 record 停住
 
 若 fresh durable evidence 已證明 repository-content delivery PR **已 merged 到 `cleanup/2d-3d-sync`**，但 owning Issue 在 `coord/execution-v2` 沒有 native `ExecutionRecord`，這是 **recovery condition，不是施工 blocker，也不是重做 implementation 的理由**。
@@ -254,6 +266,15 @@ Flow v2 `mutation_scope` / `RESERVE_PATHS` 是 **delivery-only coordination**，
 
 `RESERVE_PATHS / RELEASE_PATHS` 是 delivery coordination，不算 engineering progress；WORKSPACE_DEFAULT 不得在 tests GREEN + exact diff 以前 reservation。
 
+
+### ISSUE1431_NATIVE_WORK_AND_PR_ENTRY_GATE_V1
+
+- Issue-bound repository-content 作業以 coord/execution-v2/.dispatch/execution/issue-N.json 原生 ExecutionRecord 為唯一 claim/lease/owner authority；Phase6 GREEN、工單留言、PR body、README 及其他 preflight 不能充當 ACQUIRE。
+- 開始 executor-local workspace 施工前，先透過 tools/flow_v2_delivery_entry_gate.py::validate_work_entry 讀取 exact native record，核對 Issue、owner/lane、invocation、仍有效的 lease 及實際 production target SHA。所有 expected identity 必須來自受信任工作槽與真實 Git checkout，不能從請求任意宣告。
+- Issue-bound delivery PR 在 Governance Mirror Hard Gate 執行 tools/flow_v2_delivery_entry_gate.py；必須有 ACTIVE/VERIFYING/INTEGRATING 原生 record、對應 work_branch/head SHA、有效 lease、同 invocation 交易回執與 ACTIVE delivery reservation。missing/READY/owner mismatch/stale lease/fake comments 均 fail closed。非 Issue-bound 的產品 PR 保持原有檢查，不應被錯誤攔截。
+- root observation 不等於 content-write unlock。GitHub Runner checkout 必須產生實際 workspace path、git origin、root entries、HEAD，並核對 production ref；不得將 CONTROL_PLANE_ONLY 直接改名為 REPOSITORY_CONTENT。
+- 繼續依 CURRENT delivery-only sequence：ACQUIRE → workspace edit/test → GREEN + exact diff frozen → RESERVE_PATHS → START_BRANCH/APPLY_COMMIT → issue-bound PR/CI/QA/MERGE/FINALIZE。原生記錄 next_action=START_BRANCH 不會自動豁免 measured workspace tests、git write receipt 或 reservation。
+- 這套入場檢查是既有 coord 權責邊界上的唯讀驗證，不新增第二套可寫 lease、claim、generation、override 或補歷史。
 
 ### INVOCATION_ADMISSION_SESSION_V3
 
@@ -904,3 +925,9 @@ POLL_QA 是 observation。若 fresh-read 已存在 **exact-head + exact-workflow
 
 ### Frozen root evidence current-fence rule
 `generation` in the root test receipt is **freeze-time provenance** only. The current execution fence is `mutation_writer_guard`. A pure lease renewal / generation advance with unchanged source, lane manifest, paths, diff digest and test receipt must not invalidate frozen evidence and **不得要求重跑 root tests**.
+
+### ISSUE1433_READY_SLOT_ATOMIC_REPAIR_V1 — create-first slot uniqueness
+
+- `DISPATCH_READY` 的 trusted create-only writer 在任何 CAS write 前，必須逐筆 fresh native records 檢查 candidate 指定 fixed slot 尚未 BOUND；若該 slot 有紀錄，`DISPATCH_READY_SLOT_COLLISION` fail closed。其他 slot 的歷史重複占用只作獨立待修缺陷，不得把安全的空槽也連帶封鎖。遇 unrelated coord CAS churn 重讀、重新檢查，不能沿用舊 EMPTY 判斷。
+- 已存在 duplicate READY 時，只允許 `REPAIR_READY_SLOT` trusted transaction：使用本 lane 有效 `ACTIVE` ExecutionRecord lease 作授權，限定另一筆 exact generation 之 `READY / UNCLAIMED / owner=NONE / lease=null / next_action=ACQUIRE` native record，原子換到 EMPTY slot，且只變更 slot_id、generation、更新時間及真實 audit event；保留 owner/work head/QA/lease/action。
+- 修好 slot **不等於** 接取：仍須由修復後固定 slot 對應 lane 從同一張 Issue fresh-read，重新送 ACQUIRE 並得到 trusted 回讀，才准繼續。未取得正式 ACQUIRE 不能以 Phase6 GREEN / PR CI GREEN 冒充施工權限。

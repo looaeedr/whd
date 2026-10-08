@@ -62,6 +62,9 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 5. Google Drive / `.unpushed/{docs|body}/0` / shared-zero 全部退出 CURRENT repository-content routing；不得因其存在、缺失或 drift 改變施工 route。
 ## -0.6. ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1
 
+<!-- PRE_MERGE_MISSING_RECORD_BOOTSTRAP_HARD_GATE_V1 -->
+Flow v2 任何一般施工必須在 PR／實作之前完成原生 READY→ACQUIRE 並在 owning Issue 留言。已有 OPEN 未合併 PR、同 Issue 缺 ExecutionRecord 時，僅限 trusted `RECOVER_PRE_MERGE` create-only 產生未接取 READY，保留原有 PR／綠燈，後續仍要真 ACQUIRE／原生 QA consume／MERGE／FINALIZE。禁止倒填 ACQUIRE、QA／lease，禁止以 Preflight／CI GREEN 冒充交易；已合併的 PR 僅走 RECOVER_POST_DELIVERY。
+
 所有 Flow v2 工單接取／介入，CURRENT 唯一介入時間證據是 **GitHub owning Issue** 的合格 `WHD_ISSUE_OWNER_PROGRESS_V1` 留言：ACQUIRE 成功立即留接取者身份；每 10 分鐘留言有效進度；後來者 fresh-read 該 Issue。最後有效留言距現在 **<=600 秒不得介入，>600 秒才可走正式 HANDOFF/ACQUIRE CAS**。留言缺失、identity 不合或未 fresh-read 都不授權介入。舊 heartbeat／lease／END／runtime／family liveness 不能再當介入時鐘；原子單寫者安全驗證維持不變。canonical owner=`.agents/skills/engineering/flow-v2-execution/SKILL.md::ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`，validator=`tools/issue_comment_progress.py`。
 
 ## -0.5. WORKSPACE_ENTRY_HARD_GATE_V1：workspace-only current route
@@ -1095,3 +1098,9 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 ### ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE
 
 退役 UI 入口時，先切斷「使用者可達入口 / navigation authority / identity authority」，不得因名稱看似 legacy 就盲刪仍被新入口共用的 renderer/helper/callback state。若暫留 compatibility state，必須 user-unreachable、non-navigation、non-manufacturing-authority，並以 runtime navigation + capability preservation 驗收。
+
+### ISSUE1433_READY_SLOT_ATOMIC_REPAIR_V1 — native entry slot fence
+
+- 在任何 `DISPATCH_READY` 正式寫入前，必須以最新 `coord/execution-v2` native records 檢查本次 candidate fixed work-slot occupancy；已 BOUND 不可建立同 slot 的第二筆 READY；其他 slot 的歷史占槽錯誤應獨立修復、不得鎖死仍空閒的工作槽；若預設 slot0 忙碌，先選其他 EMPTY slot 與對應 workN lane，不能直接用 slot0 的 request branch 偷換 slot。
+- 原生 `REPAIR_READY_SLOT` 僅修復既有 `READY / UNCLAIMED / owner=NONE / lease=null / next_action=ACQUIRE` 錯誤占槽，以另一個正式 `ACTIVE` owning Issue 的當前同 invocation lease 授權，核對 generation / old slot / EMPTY destination / coord CAS 與 post-write fingerprint。不得冒稱已 ACQUIRE，亦不得改動其他 owner、head、QA、lease、next_action。
+- 施工前還必須先完成 exact Issue 的 `DISPATCH_READY → ACQUIRE` native readback。Phase6、GitHub Issue 留言、測試 GREEN、PR 建立不等於 owner 已接取，不能將「施工後補紀錄」當正常流程。
