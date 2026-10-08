@@ -7,24 +7,20 @@
     "parent_issue": 1374
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-    "released_at": null
+    "released_at": "2026-10-08T10:37:40Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
   "issue": 1383,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-08T10:36:17Z",
-    "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "token": "lease:1383:37762792792:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "ae_engine/assembly_marking_geometry.py",
@@ -33,15 +29,9 @@
       "tests/test_issue1383_dm8_c1_neutral_geometry.py"
     ]
   },
-  "next_action": {
-    "args": {
-      "pr_number": 1416
-    },
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
     "last_accepted_run": 37763726037
@@ -56,21 +46,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
   "transaction": {
-    "expected_fingerprint": "7605dfde935cfe54632888ba5197717ed5a8c0ab2ea1728d3d2f5669d5af39e9",
-    "id": "gha:37764311881:1383:MERGE:7",
+    "expected_fingerprint": "49f99b37b38eeebc0a0be0fff2f27e3ed35b51d6e637a4a044a55063de410346",
+    "id": "gha:37764311881:1383:FINALIZE:8",
     "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T10:35:56Z",
+  "updated_at": "2026-10-08T10:37:07Z",
   "version": 2,
   "work_branch": "work/issue-1383"
 }
