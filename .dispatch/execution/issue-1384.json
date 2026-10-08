@@ -12,19 +12,38 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
   "issue": 1384,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1384",
-    "kind": "ACQUIRE"
+  "lane_id": "chatgpt.flowv2.work3",
+  "lease": {
+    "expires_at": "2026-10-08T23:42:44Z",
+    "invocation_identity": "chatgpt.issue1384.c2.resume.work3.20261009",
+    "token": "lease:1384:37859471953:1"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "mutation_scope": {
+    "base_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "ae_engine/manufacturing_render_data.py",
+      "ae_engine/manufacturing_scene_access.py",
+      "ae_engine/receiving_joint_marking.py",
+      "ae_engine/receiving_pairing_marking.py",
+      "tests/test_issue1114_receiving_pairing_marking.py",
+      "tests/test_issue1384_scene_access.py"
+    ]
+  },
+  "next_action": {
+    "args": {
+      "diff_digest": "74ff856e56f2f8f573047b62e150264b1d3daaa39482de2a83a457f226d6bd4e"
+    },
+    "display": "Publish exact tested DM8-C2 six-file scene-seam commit",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work3",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -39,15 +58,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.3",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-  "transaction": null,
-  "updated_at": "2026-10-08T23:23:29Z",
+  "transaction": {
+    "expected_fingerprint": "9de50819fd8bd70db794700475c516a114528622d092c36cae173b3931470231",
+    "id": "gha:37859471953:1384:ACQUIRE:1",
+    "invocation_identity": "chatgpt.issue1384.c2.resume.work3.20261009",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T23:27:44Z",
   "version": 2,
   "work_branch": "work/issue-1384"
 }
