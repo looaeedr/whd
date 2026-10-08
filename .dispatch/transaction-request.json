@@ -1,59 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1435-native-apply-tested-commit-gen4-20261008-2202",
+  "request_id": "issue1435-native-consume-qa-green-exact-head-20261008-2206",
   "issue": 1435,
-  "kind": "APPLY_COMMIT",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-  "expected_coord_head": "a2ce7319360d574cf63c9ca556446378cd4b3370",
-  "expected_generation": 4,
+  "expected_coord_head": "b0cae36e2311f6975f81479c893f36c6ad2e45fe",
+  "expected_generation": 5,
   "reuse_admission_session": true,
   "effect": {
-    "head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
-    "semantic_state": "DELIVERED_AWAITING_NATIVE_QA",
+    "run_id": 37781642378,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
+        "pr_number": 1437,
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Validate exact delivered PR head using trusted native QA"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-      "diff_digest": "8de2d1906dcc5493863e4027ae986f5670ca3c06cc749482410086eac2760f40",
-      "issue": 1435,
-      "generation": 4,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        "AGENTS.md",
-        "docs/governance/flow_v2_pre_merge_recovery.md",
-        "tests/process/test_issue1391_dispatch_acquire_control_plane_only.py",
-        "tests/process/test_issue1429_pre_merge_recovery.py",
-        "tools/control_plane_regression.py",
-        "tools/control_transaction_production_executor.py",
-        "tools/control_transaction_request_builder.py",
-        "tools/control_transaction_request_ingress.py",
-        "tools/flow_v2_pre_merge_recovery.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "867cfcda102a7bb05a25852ad680959d6db5cf0c53a186096b219ebdacc31604",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1435,
-      "generation": 4,
-      "record_fingerprint": "867cfcda102a7bb05a25852ad680959d6db5cf0c53a186096b219ebdacc31604",
-      "lease_token": "lease:1435:37788995609:1",
-      "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "work/issue-1435-trusted-premerge-delivery",
-      "expected_work_head": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-      "expected_target_head": "859bb8295ef1ba814a70bb6d0359be6b87fa2873"
+      "display": "Merge verified PR #1437 through trusted native Flow v2"
     }
   }
 }
