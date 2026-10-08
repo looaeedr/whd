@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
+    "id": 37766073513,
+    "purpose": "Accepted preexisting WHD Product Regression exact PR #1419 head; actions:read permission repaired",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
   "issue": 1382,
   "lane_id": "chatgpt.flowv2.work1",
@@ -33,10 +38,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
+      "run_id": 37766073513
     },
-    "display": "Recheck exact PR #1419 after native permissions fix and target drift",
-    "kind": "START_QA"
+    "display": "Accept exact #1382 Product Regression after repaired actions read",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -54,21 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "TARGET_DRIFT_RECONCILED",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
   "transaction": {
-    "expected_fingerprint": "8883a55d3e6c4365cfe3f0023354997a449b325ab396d9e8d67ded6d55e8eae4",
-    "id": "gha:37771047946:1382:ACQUIRE:6",
+    "expected_fingerprint": "9fe77e766808e6b57ccdef174a6f542bf486ccb753dfb14f75851fe8fb726f68",
+    "id": "gha:37771471764:1382:START_QA:7",
     "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-    "kind": "ACQUIRE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T11:36:05Z",
+  "updated_at": "2026-10-08T11:40:00Z",
   "version": 2,
   "work_branch": "work/issue-1382"
 }
