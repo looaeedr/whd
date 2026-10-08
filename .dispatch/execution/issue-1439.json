@@ -1,0 +1,53 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+  "issue": 1439,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1439",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "d76a3eafe945521d24eca913382d3f1912d60ac13aff0426338ecf2b880db0f0",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "https://github.com/looaeedr/whd/issues/1439",
+      "dispatch_transport": "GITHUB_CANONICAL",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+  "transaction": null,
+  "updated_at": "2026-10-08T23:04:07Z",
+  "version": 2,
+  "work_branch": "work/issue-1439-tok-ci-identity"
+}
