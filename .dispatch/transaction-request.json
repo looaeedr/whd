@@ -1,12 +1,79 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-native-finalize-pr1438-gen11",
-  "issue": 1431,
-  "kind": "FINALIZE",
+  "request_id": "issue1432-postdelivery-pr1434-user-explicit-20261009",
+  "issue": 1432,
+  "kind": "RECOVER_POST_DELIVERY",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-  "expected_coord_head": "bd62180b3c5c5c9478d0360065554721c72fe5b0",
-  "expected_generation": 11,
-  "reuse_admission_session": true,
-  "effect": {}
+  "invocation_identity": "chatgpt.issue1432.postdelivery.work1.20261009",
+  "expected_coord_head": "efe999411e90422ded0bf3aa204472aad02ea26e",
+  "expected_generation": 1,
+  "effect": {
+    "pr_number": 1434
+  },
+  "purpose": "User-explicit close #1432 after verified, already-merged same-tree PR #1434 and native #1435 delivery; only trusted current post-delivery recovery, no historical ACQUIRE or QA reconstruction",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1432,
+    "invocation_identity": "chatgpt.issue1432.postdelivery.work1.20261009",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "phase6-release-packaging"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "phase6-release-packaging"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-08T16:58:55.487Z",
+    "remote_preflight_run_id": 37812849737,
+    "remote_preflight_comment_id": 6064900238
+  }
 }
