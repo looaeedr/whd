@@ -47,6 +47,7 @@ jobs:
           required_single = {
               "issue", "worker", "executor_source", "branch", "head_sha", "task"
           }
+          optional_single = {"invocation_identity"}
           allowed_multi = {"changed_file"}
           singles = {}
           changed_files = []
@@ -57,7 +58,7 @@ jobs:
                   raise SystemExit(f"malformed request line: {raw!r}")
               key, value = raw.split("=", 1)
               key, value = key.strip(), value.strip()
-              if key in required_single:
+              if key in required_single or key in optional_single:
                   if key in singles:
                       raise SystemExit(f"duplicate request key: {key}")
                   singles[key] = value
