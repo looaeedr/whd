@@ -8,6 +8,8 @@ on:
       - .github/workflows/whd-issue1431-root-attest.yml
       - tools/flow_v2_delivery_entry_gate.py
       - tests/process/test_issue1431_native_delivery_entry_gate.py
+      - .github/workflows/whd-governance-single-authority-gate.yml
+      - .agents/skills/engineering/flow-v2-execution/SKILL.md
 
 permissions:
   contents: read
@@ -99,6 +101,15 @@ jobs:
           set -euo pipefail
           cd candidate
           python -m unittest discover -s tests/process -p 'test_issue1431_native_delivery_entry_gate.py' -v
+
+      - name: Check governance workflow actually invokes the candidate gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'Verify issue-bound PR has native acquired execution' candidate/.github/workflows/whd-governance-single-authority-gate.yml
+          grep -q 'coord/execution-v2' candidate/.github/workflows/whd-governance-single-authority-gate.yml
+          grep -q 'tools/flow_v2_delivery_entry_gate.py' candidate/.github/workflows/whd-governance-single-authority-gate.yml
+          grep -q 'ISSUE1431_NATIVE_WORK_AND_PR_ENTRY_GATE_V1' candidate/.agents/skills/engineering/flow-v2-execution/SKILL.md
 
       - name: Upload read-only root observation
         uses: actions/upload-artifact@v4
