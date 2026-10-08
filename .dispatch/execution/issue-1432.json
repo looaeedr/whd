@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
-    "released_at": null
+    "released_at": "2026-10-08T17:01:54Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
   "issue": 1432,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-08T17:15:13Z",
-    "invocation_identity": "chatgpt.issue1432.postdelivery.work1.20261009",
-    "token": "recovery:1432:37813022014"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1434,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "work/issue-1432-flow-v2-premerge",
   "source_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
-  "transaction": null,
-  "updated_at": "2026-10-08T17:00:13Z",
+  "transaction": {
+    "expected_fingerprint": "0475f87e2747ac7f7a5320e27349c30069bfa8581716f5be5a82241fe707afdc",
+    "id": "gha:37813022014:1432:FINALIZE:1",
+    "invocation_identity": "chatgpt.issue1432.postdelivery.work1.20261009",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T17:01:21Z",
   "version": 2,
   "work_branch": "work/issue-1432-flow-v2-premerge"
 }
