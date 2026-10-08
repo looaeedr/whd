@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "25abb461f165383e71494c183d8c816f21cdb78d",
   "issue": 1378,
   "lane_id": "chatgpt.flowv2.work1",
@@ -32,19 +32,20 @@
   },
   "next_action": {
     "args": {
-      "post_accept_pr_number": 1407,
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "post_accept_target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
+      "head_sha": "25abb461f165383e71494c183d8c816f21cdb78d",
+      "pr_number": 1407,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Validate exact review correction head",
-    "kind": "START_QA"
+    "display": "Merge exact tested Issue1378 review correction",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "25abb461f165383e71494c183d8c816f21cdb78d",
+    "last_accepted_run": 37727222967
   },
   "recovery_history": [
     {
@@ -56,21 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
   "transaction": {
-    "expected_fingerprint": "4d00ca4885ca186455d16f627ec17b748cfcf1869c250c47180c00b84d1c165c",
-    "id": "gha:37727285858:1378:START_BRANCH:9",
+    "expected_fingerprint": "8c53ca16def926c7f415b9982dade6c08e1c6d7132c4a7c4a6f702718c9beb71",
+    "id": "gha:37727499242:1378:CONSUME_QA:10",
     "invocation_identity": "chatgpt.issue1378.reviewfix.20261008",
-    "kind": "START_BRANCH",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T04:25:06Z",
+  "updated_at": "2026-10-08T04:27:15Z",
   "version": 2,
   "work_branch": "work/issue-1378"
 }
