@@ -174,11 +174,13 @@ def classify_dispatch_completion(
         and tx.status == "RECONCILED"
         and tx.invocation_identity == invocation
         and tx.kind == "HANDOFF"
+        and record.owner_kind != "NONE"
+        and record.owner_id != "NONE"
     ):
         return DispatchCompletionDecision(
             status="DISPATCH_COMPLETE_HANDOFF",
             may_claim_complete=True,
-            reason="ownership was durably handed off",
+            reason="ownership was durably handed off to a named target owner",
             issue=record.issue,
             generation=record.generation,
             transaction_kind=tx_kind,
