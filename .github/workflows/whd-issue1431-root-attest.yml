@@ -6,6 +6,8 @@ on:
       - test/issue1431-root-attest
     paths:
       - .github/workflows/whd-issue1431-root-attest.yml
+      - tools/flow_v2_delivery_entry_gate.py
+      - tests/process/test_issue1431_native_delivery_entry_gate.py
 
 permissions:
   contents: read
@@ -83,6 +85,20 @@ jobs:
           output.write_text(json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8')
           print(json.dumps({'run_id': record['run_id'], 'production_sha': head, 'workspace_root': str(root), 'status': evidence['status']}))
           PY
+
+      - name: Checkout isolated Issue 1431 candidate
+        uses: actions/checkout@v4
+        with:
+          ref: test/issue1431-root-attest
+          path: candidate
+          fetch-depth: 1
+
+      - name: Run isolated native delivery entry regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candidate
+          python -m unittest discover -s tests/process -p 'test_issue1431_native_delivery_entry_gate.py' -v
 
       - name: Upload read-only root observation
         uses: actions/upload-artifact@v4
