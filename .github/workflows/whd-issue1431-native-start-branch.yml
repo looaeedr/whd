@@ -1,0 +1,166 @@
+name: WHD Issue1431 Native START_BRANCH Delivery
+on:
+  push:
+    branches: [test/issue1431-root-attest]
+    paths: [.dispatch/issue1431-native-start-branch-trigger.json]
+permissions:
+  contents: read
+concurrency:
+  group: issue1431-native-start-branch
+  cancel-in-progress: false
+jobs:
+  start-branch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: prod
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          ref: coord/execution-v2
+          path: coord
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+          fetch-depth: 0
+      - name: Mint native tested delivery guard from real Runner
+        shell: bash
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=prod python - <<'PY'
+          import json,hashlib,os,subprocess,sys
+          from pathlib import Path
+          from datetime import datetime,timezone
+          from tools.execution_record import execution_record_from_payload
+          from tools.execution_path_reservation import build_path_reservation_evidence
+          from tools.control_transaction import build_mutation_writer_guard
+          from tools.root_local_first_gate import build_git_unlock_receipt,build_remote_connection_authority
+          from tools.control_transaction_request_builder import build_control_transaction_request_from_intent
+          root=Path('prod').resolve(strict=True); coord=Path('coord').resolve(strict=True)
+          cand=Path('candidate').resolve(strict=True)
+          def git(p,*args):
+              return subprocess.check_output(['git','-C',str(p),*args],text=True).strip()
+          if os.environ['GITHUB_REPOSITORY']!='looaeedr/whd': raise SystemExit('REPOSITORY_MISMATCH')
+          head=git(root,'rev-parse','HEAD')
+          if head!=git(root,'ls-remote','origin','refs/heads/cleanup/2d-3d-sync').split()[0]:
+              raise SystemExit('PRODUCTION_DRIFT')
+          csha=git(coord,'rev-parse','HEAD')
+          if csha!=git(coord,'ls-remote','origin','refs/heads/coord/execution-v2').split()[0]:
+              raise SystemExit('COORD_DRIFT')
+          rec=execution_record_from_payload(json.loads((coord/'.dispatch/execution/issue-1431.json').read_text('utf-8')))
+          if rec.issue!=1431 or rec.generation<6 or rec.state!='ACTIVE': raise SystemExit('BAD_NATIVE_RECORD')
+          if rec.owner_id!='chatgpt.flowv2.work1' or rec.slot_id!='worker.slot.1': raise SystemExit('BAD_OWNER')
+          inv='chatgpt.issue1431.native-entry.work1.20261008'
+          if rec.lease is None or rec.lease.invocation_identity!=inv: raise SystemExit('BAD_INVOCATION')
+          if datetime.fromisoformat(rec.lease.expires_at.replace('Z','+00:00'))<=datetime.now(timezone.utc):
+              raise SystemExit('LEASE_EXPIRED')
+          if rec.target_sha!=head or rec.target_branch!='cleanup/2d-3d-sync':
+              raise SystemExit('TARGET_DRIFT')
+          if rec.next_action is None or rec.next_action.kind!='START_BRANCH': raise SystemExit('WRONG_NEXT_ACTION')
+          reserved=build_path_reservation_evidence(rec)
+          paths=list(reserved['write_paths'])
+          tested='87a6f791b63367cb2ff3b6e7805373d3b6538530'
+          if len(paths)!=4: raise SystemExit('FOUR_PATHS_REQUIRED')
+          for p in paths:
+              if git(cand,'rev-parse',tested+':'+p)!=git(cand,'rev-parse','HEAD:'+p):
+                  raise SystemExit('TESTED_BLOB_CHANGED '+p)
+          tested_patch=subprocess.check_output(['git','-C',str(cand),'diff','--binary',head,tested,'--',*paths])
+          current_patch=subprocess.check_output(['git','-C',str(cand),'diff','--binary',head,'HEAD','--',*paths])
+          if current_patch!=tested_patch: raise SystemExit('TESTED_PATCH_CHANGED')
+          digest=hashlib.sha256(tested_patch).hexdigest()
+          subprocess.run([sys.executable,'-m','unittest','discover','-s','tests/process',
+              '-p','test_issue1431_native_delivery_entry_gate.py','-v'],cwd=cand,check=True)
+          authorization=build_remote_connection_authority(kind='WORKSPACE_DELIVERY',target='GITHUB',user_explicit=True)
+          root_gate={
+              'applicable':True,'git_write_unlocked':True,'next_action':'EXACT_TESTED_DIFF_ONLY',
+              'execution_mode':'INTERACTIVE','diff_digest':digest,
+              'remote_connection_authority':authorization,
+              'path_reservation':reserved,
+          }
+          receipt=build_git_unlock_receipt(root_gate)
+          guard=build_mutation_writer_guard(rec,kind='START_BRANCH',invocation_identity=inv)
+          branch=rec.work_branch
+          next_action={'kind':'APPLY_COMMIT','args':{},'display':'Apply exact tested four-file candidate'}
+          intent={
+              'schema':'WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1',
+              'request_id':'issue1431-native-start-branch-'+os.environ['RUN_ID'],
+              'issue':1431,'kind':'START_BRANCH','lane_id':'chatgpt.flowv2.work1',
+              'invocation_identity':inv,'expected_coord_head':csha,
+              'expected_generation':rec.generation,'reuse_admission_session':True,
+              'effect':{'work_branch':branch,'head_sha':head,'next_action':next_action,
+                  'root_local_first_git_write_receipt':receipt,'mutation_writer_guard':guard},
+          }
+          build_control_transaction_request_from_intent(intent)
+          tmp=Path(os.environ['RUNNER_TEMP'])
+          (tmp/'issue1431-start-branch-intent.json').write_text(json.dumps(intent,ensure_ascii=False,indent=2)+'\n')
+          (tmp/'issue1431-start-branch-audit.json').write_text(json.dumps({
+              'run':os.environ['RUN_ID'],'status':'GREEN','generation':rec.generation,
+              'source_sha':head,'target_branch':rec.target_branch,'work_branch':branch,
+              'tested_sha':tested,'diff_sha256':digest,'write_paths':paths,
+          },indent=2)+'\n')
+          print('NATIVE_START_BRANCH_GUARD_TESTED_GREEN')
+          PY
+      - name: Obtain WHD app credential for delivery branch and request transport
+        id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.WHD_APP_ID }}
+          private-key: ${{ secrets.WHD_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Create exact branch then submit START_BRANCH through trusted ingress
+        shell: bash
+        env:
+          WHD_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,json,base64,urllib.request,urllib.parse,urllib.error
+          from pathlib import Path
+          prefix='https://api.github.com/repos/looaeedr/whd'
+          headers={'Authorization':'Bearer '+os.environ['WHD_TOKEN'],
+              'Accept':'application/vnd.github+json','Content-Type':'application/json',
+              'X-GitHub-Api-Version':'2022-11-28'}
+          def api(path,method='GET',data=None):
+              req=urllib.request.Request(prefix+path,method=method,headers=headers,
+                  data=json.dumps(data).encode() if data is not None else None)
+              with urllib.request.urlopen(req,timeout=40) as f: return json.load(f)
+          intent=json.loads((Path(os.environ['RUNNER_TEMP'])/'issue1431-start-branch-intent.json').read_text())
+          branch=intent['effect']['work_branch']
+          sha=intent['effect']['head_sha']
+          ref='refs/heads/'+branch
+          try:
+              current=api('/git/ref/heads/'+urllib.parse.quote(branch,safe=''))
+              if current['object']['sha']!=sha: raise SystemExit('EXISTING_WORK_BRANCH_HEAD_MISMATCH')
+          except urllib.error.HTTPError as e:
+              if e.code!=404: raise
+              api('/git/refs','POST',{'ref':ref,'sha':sha})
+          branch_read=api('/git/ref/heads/'+urllib.parse.quote(branch,safe=''))
+          if branch_read['object']['sha']!=sha: raise SystemExit('WORK_BRANCH_READBACK_MISMATCH')
+          request_branch='coord/transaction-requests-work1'
+          route='/contents/.dispatch/transaction-request.json'
+          old=api(route+'?ref='+urllib.parse.quote(request_branch,safe=''))
+          raw=(Path(os.environ['RUNNER_TEMP'])/'issue1431-start-branch-intent.json').read_bytes()
+          result=api(route,'PUT',{
+              'branch':request_branch,'sha':old['sha'],
+              'message':'flow(issue1431): native tested START_BRANCH intent',
+              'content':base64.b64encode(raw).decode(),
+          })
+          print('NATIVE_START_BRANCH_REQUEST_SUBMITTED '+result['commit']['sha'])
+          PY
+      - name: Preserve tested branch submission
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1431-native-start-branch-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/issue1431-start-branch-intent.json
+            ${{ runner.temp }}/issue1431-start-branch-audit.json
+          if-no-files-found: warn
+          retention-days: 7
