@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-acquire-gen4-after1435-reconcile-v1",
+  "request_id": "issue1433-acquire-gen4-refresh-preflight-20261008-v2",
   "issue": 1433,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -8,7 +8,7 @@
   "expected_coord_head": "278f03234b8e2513effa4553484b5c8c702904a3",
   "expected_generation": 4,
   "effect": {},
-  "purpose": "Same-owner fresh native ACQUIRE on reconciled production target after #1435 release",
+  "purpose": "Fresh readback of trusted Phase6 GREEN for same-owner #1433 ACQUIRE after target reconciliation",
   "work_root_gate_evidence": {
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -163,6 +163,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T14:19:34.009Z"
+    "observed_at": "2026-10-08T14:25:55.391Z"
   }
 }
