@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue-comment-intervention-policy
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #1412 — 工單留言接取、10 分鐘進度與介入唯一判定
 
 > CURRENT。Authority：`.agents/skills/engineering/flow-v2-execution/SKILL.md::ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`。本文件只說明 Issue-plane protocol，不另建 owner／claim state machine。
