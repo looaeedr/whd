@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue448-t6-part-editor-census
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #448 / T6 — Part Editor contract decomposition / owner decision
 
 > **HISTORICAL PROVENANCE — CURRENT LOCATION LOCK SUPERSEDED.**
