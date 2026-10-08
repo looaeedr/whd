@@ -150,13 +150,20 @@ jobs:
               raise SystemExit("exact requested HEAD checkout failed")
           PY
 
+      - name: Checkout trusted production Phase6 runner
+        uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: trusted-prod
+          fetch-depth: 1
+
       - name: Run canonical Phase6 Knowledge Preflight
         env:
           GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
         shell: bash
         run: |
           set -euo pipefail
-          python -m tools.phase6_remote_preflight \
+          PYTHONPATH=trusted-prod python -m tools.phase6_remote_preflight \
             --request-file /tmp/phase6-preflight-request.json \
             --run-id "$GITHUB_RUN_ID_VALUE" \
             --output /tmp/phase6-preflight-result.json
