@@ -5,7 +5,10 @@
   "verified_tested_sha": "87a6f791b63367cb2ff3b6e7805373d3b6538530",
   "native_next_action": "APPLY_COMMIT",
   "work_branch": "work/issue-1431-flow-v2-entry-gate",
-  "retry": 2,
+  "retry": 3,
   "previous_run": 37809832144,
-  "fix": "REST_PATCH_GIT_REFS_PLURAL"
+  "fix": "REST_PATCH_GIT_REFS_PLURAL",
+  "native_generation": 8,
+  "already_pushed_commit": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
+  "mode": "TRUSTED_ALREADY_APPLIED_COMMIT_RECONCILE"
 }
