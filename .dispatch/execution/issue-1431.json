@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
-  "head_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+  "generation": 9,
+  "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
   "issue": 1431,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -34,9 +34,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Apply exact tested four-file candidate",
-    "kind": "APPLY_COMMIT"
+    "args": {
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+    },
+    "display": "Run exact-head QA on tested four-file PR",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -69,13 +71,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
   "transaction": {
-    "expected_fingerprint": "1c39d8732f30e782f2929c63753f36507725d632fb56d0e450f4ce01c3066fac",
-    "id": "gha:37810538939:1431:ACQUIRE:7",
+    "expected_fingerprint": "e9e3b6be88c465e15bc5c811a57240488c682946bb565e5bb7515cab7cad660e",
+    "id": "gha:37810798754:1431:APPLY_COMMIT:8",
     "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-    "kind": "ACQUIRE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T16:40:52Z",
+  "updated_at": "2026-10-08T16:42:32Z",
   "version": 2,
   "work_branch": "work/issue-1431-flow-v2-entry-gate"
 }
