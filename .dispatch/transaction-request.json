@@ -1,13 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-merge-after-disconnect-no-side-effect-proof-20261008",
+  "request_id": "issue1382-finalize-merged-pr1419-generation15-20261008",
   "issue": 1382,
-  "kind": "MERGE",
+  "kind": "FINALIZE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "94fb0b37e69b960edec1a0407b56b6cf0701534c",
-  "expected_generation": 14,
-  "purpose": "Fresh transaction only after independent GET /pulls/1419/merge=404 plus PR OPEN merged=false, unchanged target/work refs and unchanged native generation, proving previous remote disconnect did NOT merge.",
+  "expected_coord_head": "d3103571d634bd94fd57681d64010a9fda7a3056",
+  "expected_generation": 15,
   "effect": {},
   "reuse_admission_session": true
 }
