@@ -1,4 +1,14 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue448-t6-part-editor-census
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #448 / T6 — Part Editor contract decomposition / owner decision
+
+> **HISTORICAL PROVENANCE — CURRENT LOCATION LOCK SUPERSEDED.**
+> #448/#526 的 domain-authority invariants仍有效，但「`_fix11_activate_part` / save-load deep body 必須留在 Bridge」的 location decision 已由 merged #1321 supersede；CURRENT wording 由 #1385 與 `12_WHD_FoldDesignerBridgeOwnership規則.md` 定義。不得把本 checkpoint重新解讀成禁止 `Phase6PartSessionOwner` 的 application compatibility orchestration。
 
 - Parent / Master: #441
 - Issue: #448

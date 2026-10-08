@@ -11,6 +11,7 @@ BRIDGE = ROOT / "fold_designer_bridge.py"
 WORKSPACE = ROOT / "phase6_designer_workspace.py"
 NAV = ROOT / "phase6_workspace_navigation_controller.py"
 ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
+OWNER = ROOT / "gui_modules" / "application" / "fold_designer_part_session.py"
 CENSUS = ROOT / "docs" / "superpowers" / "checkpoints" / "issue448-t6-part-editor-census.md"
 PROSPECTIVE_SESSION = ROOT / "phase6_part_editor_session.py"
 
@@ -49,11 +50,13 @@ def _imports(path: Path) -> set[str]:
     return result
 
 
-def test_t6_decision_keeps_composition_adapter_and_rejects_shallow_session():
+def test_t6_historical_decision_is_superseded_only_for_orchestration_location():
     text = CENSUS.read_text(encoding="utf-8")
     assert "DECISION=C_KEEP_BRIDGE_COMPATIBILITY" in text
+    assert "CURRENT LOCATION LOCK SUPERSEDED" in text
+    assert OWNER.exists()
     assert not PROSPECTIVE_SESSION.exists(), (
-        "T6 C decision forbids a move-only phase6_part_editor_session.py"
+        "No new Part Editor domain/session owner may bypass the accepted authority split"
     )
 
 
@@ -68,9 +71,17 @@ def test_t6_existing_workspace_and_navigation_owners_stay_pure():
 
 
 def test_t6_activation_orders_outgoing_save_before_identity_switch():
-    fn = _function(BRIDGE, "_fix11_activate_part")
+    owner_tree = _tree(OWNER)
+    owner_class = next(
+        node for node in owner_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "Phase6PartSessionOwner"
+    )
+    fn = next(
+        node for node in owner_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "activate_part"
+    )
     plan = _call_lines(fn, attr="plan_activation")
-    save = _call_lines(fn, attr="_save_current_part")
+    save = _call_lines(fn, attr="save_current_part")
     begin = _call_lines(fn, attr="begin_activation")
     finish = _call_lines(fn, attr="finish_activation")
     assert len(plan) == len(save) == len(begin) == len(finish) == 1
@@ -78,35 +89,36 @@ def test_t6_activation_orders_outgoing_save_before_identity_switch():
 
 
 def test_t6_activation_routes_contracts_to_existing_seams():
-    fn = _function(BRIDGE, "_fix11_activate_part")
-    required_calls = {
+    owner_tree = _tree(OWNER)
+    owner_class = next(
+        node for node in owner_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "Phase6PartSessionOwner"
+    )
+    fn = next(
+        node for node in owner_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "activate_part"
+    )
+    attrs = {
+        node.func.attr
+        for node in ast.walk(fn)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+    required_attrs = {
         "_phase6_mount_shared_content",
         "_phase6_render_settings_context",
         "_phase6_render_active_drawing_edge_controls",
         "_phase6_refresh_persistent_structure_controls",
         "_phase6_refresh_box_body_piece_selector",
         "_phase6_refresh_content_switch",
+        "plan_activation",
+        "begin_activation",
+        "finish_activation",
+        "stash_profiles",
     }
-    names = {
-        node.func.id
-        for node in ast.walk(fn)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    }
-    assert required_calls <= names
+    assert required_attrs <= attrs
 
-    attrs = {
-        node.func.attr
-        for node in ast.walk(fn)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-    }
-    assert "plan_activation" in attrs
-    assert "begin_activation" in attrs
-    assert "finish_activation" in attrs
-
-    body = ast.get_source_segment(BRIDGE.read_text(encoding="utf-8"), fn) or ""
-    # Compatibility adapter resolves the installed facade method dynamically, then
-    # calls the local `submit` exactly once. Do not require a direct Attribute call.
-    assert 'getattr(self, "submit_update_intent", None)' in body
+    body = ast.get_source_segment(OWNER.read_text(encoding="utf-8"), fn) or ""
+    assert "submit_update_intent" in body
     local_submit_calls = [
         node
         for node in ast.walk(fn)
@@ -115,35 +127,36 @@ def test_t6_activation_routes_contracts_to_existing_seams():
         and node.func.id == "submit"
     ]
     assert len(local_submit_calls) == 1
-    # Profile stashing through the navigation controller is the accepted owner route.
-    # The separate direct-mutation contract below rejects bridge writes to
-    # DesignerWorkspace backing state.
-    assert "stash_profiles" in attrs
 
 
-def test_t6_activation_does_not_directly_mutate_designer_workspace_state():
-    fn = _function(BRIDGE, "_fix11_activate_part")
-    forbidden_attrs = {
-        "active_part",
-        "selected_part",
-        "dirty",
-        "switching",
-    }
+def test_t6_part_session_owner_does_not_directly_mutate_designer_workspace_identity():
+    owner_tree = _tree(OWNER)
+    owner_class = next(
+        node for node in owner_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "Phase6PartSessionOwner"
+    )
+    functions = [
+        node for node in owner_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name in {"activate_part", "save_current_part"}
+    ]
+    forbidden_attrs = {"active_part", "selected_part", "dirty", "switching"}
     violations = []
-    for node in ast.walk(fn):
-        if not isinstance(node, ast.Attribute):
-            continue
-        if not isinstance(node.ctx, (ast.Store, ast.Del)):
-            continue
-        if not (
-            isinstance(node.value, ast.Attribute)
-            and isinstance(node.value.value, ast.Name)
-            and node.value.value.id == "self"
-            and node.value.attr == "designer_workspace"
-        ):
-            continue
-        if node.attr in forbidden_attrs:
-            violations.append((node.attr, node.lineno))
+    for fn in functions:
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.Attribute):
+                continue
+            if not isinstance(node.ctx, (ast.Store, ast.Del)):
+                continue
+            if not (
+                isinstance(node.value, ast.Attribute)
+                and isinstance(node.value.value, ast.Name)
+                and node.value.value.id == "app"
+                and node.value.attr == "designer_workspace"
+            ):
+                continue
+            if node.attr in forbidden_attrs:
+                violations.append((fn.name, node.attr, node.lineno))
     assert violations == []
 
 
