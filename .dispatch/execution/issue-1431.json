@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 10,
+  "generation": 11,
   "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
   "issue": 1431,
   "lane_id": "chatgpt.flowv2.work1",
@@ -35,14 +35,10 @@
   },
   "next_action": {
     "args": {
-      "expected_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-      "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
-      "pr_number": 1438,
-      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
+      "pr_number": 1438
     },
-    "display": "Merge exact accepted PR #1438 after all required checks",
-    "kind": "MERGE"
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -67,21 +63,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+  "target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
   "transaction": {
-    "expected_fingerprint": "27627306be482e5506ec896b880c326b15a5d70679a67884b673e18aefab9ea8",
-    "id": "gha:37811182254:1431:CONSUME_QA:9",
+    "expected_fingerprint": "69ccbfa3baabed0f596ce5a04152e285d808643e0d18093afef05640c2e0a1e0",
+    "id": "gha:37811439149:1431:MERGE:10",
     "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T16:45:48Z",
+  "updated_at": "2026-10-08T16:48:43Z",
   "version": 2,
   "work_branch": "work/issue-1431-flow-v2-entry-gate"
 }
