@@ -1,16 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1417-recover-6058964195",
-  "issue": 1417,
-  "kind": "RECOVER_POST_DELIVERY",
+  "request_id": "issue1384-native-ready-work3-six-file-tested-20261009",
+  "issue": 1384,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "chatgpt.issue1417.postdelivery.recovery",
-  "expected_coord_head": "1fce55947594c2d8a6b0d3c470811f35385821cc",
+  "invocation_identity": "chatgpt.issue1384.c2.resume.work3.20261009",
+  "expected_coord_head": "23ae3ce218925e2dec9b01e768a77a9a2fa96ab7",
   "expected_generation": 1,
   "effect": {
-    "pr_number": 1423
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user:繼續 #1384 2026-10-09",
+    "work_branch": "work/issue-1384",
+    "parent_issue": 1374,
+    "slot_id": "worker.slot.3",
+    "dispatch_transport": "GITHUB_CANONICAL"
   },
-  "purpose": "Recover formally merged issue #1417 via trusted Flow v2 create-only post-delivery and immediate FINALIZE",
+  "purpose": "Verified 104 record slot scan: free worker.slot.3. Deliver exact six tested DM8-C2 scene seam changes, no user RC/local access.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -22,18 +27,18 @@
     "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "a2c463f9db59442a782ce849a4443796356a268c",
+    "production_head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "drive_role": "MIRROR_BACKUP_ONLY",
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "root_entries": [
-      ".git",
       ".agents",
+      ".git",
       ".github",
       "AGENTS.md",
-      "tools",
-      "tests",
       "ae_engine",
-      "gui_modules"
+      "gui_modules",
+      "tests",
+      "tools"
     ],
     "shared_zero_required": false,
     "repository_content_write_unlocked": false,
@@ -42,24 +47,38 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1417,
-    "invocation_identity": "chatgpt.issue1417.postdelivery.recovery",
-    "branch": "work/issue-1417-recovery-preflight-anchor",
-    "head_sha": "0c54f178afb39ffcf29b4117c0be67fd0350df83",
+    "issue": 1384,
+    "invocation_identity": "chatgpt.issue1384.c2.resume.work3.20261009",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "required_skills": [
-      "root-local-first"
+      "flow-v2-execution",
+      "root-local-first",
+      "diagnosing-bugs",
+      "tdd",
+      "驗證板件與DXF",
+      "monitoring-remote-qa"
     ],
     "completed_skills": [
-      "root-local-first"
+      "flow-v2-execution",
+      "root-local-first",
+      "diagnosing-bugs",
+      "tdd",
+      "驗證板件與DXF",
+      "monitoring-remote-qa"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-08T11:34:47Z"
+    "observed_at": "2026-10-08T23:23:09Z"
   }
 }
